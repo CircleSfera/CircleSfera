@@ -6,9 +6,10 @@
 
 - `circlesfera-backend/vitest.config.ts` and `vitest.e2e.config.ts`
 - An existing good spec: `src/auth/guards/admin.guard.spec.ts`, `src/posts/posts.service.spec.ts`
-- `circlesfera-backend/test/*.e2e-spec.ts` (5 files)
-- `circlesfera-frontend/src/test/setup.ts` and an existing component test
-- `playwright.config.ts` and `e2e/` (13 specs, `smoke.spec.ts` is the CI gate)
+- `circlesfera-backend/test/*.e2e-spec.ts` (auth, posts, profile, content, app, money)
+- `circlesfera-frontend/src/test/setup.ts` and `src/test/test-utils.tsx` (real i18n catalogs)
+- Frontend Playwright: `circlesfera-frontend/playwright.config.ts` and `circlesfera-frontend/e2e/` (composer + SPA journeys; API stubbed)
+- Root Playwright: `e2e/` (`smoke.spec.ts` is the CI gate; nightly chromium journeys hit Nest; each spec creates its own user)
 - [`../core/quality.md`](../core/quality.md)
 
 ## The current test surface
@@ -16,16 +17,22 @@
 | Layer | Where | Command |
 | --- | --- | --- |
 | Backend unit | `src/**/*.spec.ts` (~59 files) | `npm test` |
-| Backend e2e | `test/*.e2e-spec.ts` (5 files), real Postgres + Redis, no file parallelism | `npm run test:e2e` |
-| Frontend unit | `src/**/*.{test,spec}.{ts,tsx}` (~11 files) | `npm test` |
-| Browser e2e | root `e2e/*.spec.ts` | `npm run test:e2e` |
+| Backend e2e | `test/*.e2e-spec.ts` (6 files), real Postgres + Redis, no file parallelism | `npm run test:e2e` |
+| Frontend unit | `src/**/*.{test,spec}.{ts,tsx}` | `npm test` |
+| Composer unit | `src/components/create-post/*.test.tsx` (real `es` i18n) | `npx vitest run src/components/create-post/` |
+| Composer Playwright | `circlesfera-frontend/e2e/composer-*.spec.ts` (API stubbed) | `npm run test:e2e:composer` |
+| Frontend Playwright | `circlesfera-frontend/e2e/*.spec.ts` (API stubbed) | `cd circlesfera-frontend && npm run test:e2e` |
+| Browser e2e | root `e2e/*.spec.ts` (live Nest) | `npm run test:e2e` |
+
+What each layer stubs vs runs for real: [`../core/quality.md`](../core/quality.md) (pyramid). Composer slice: `circlesfera-frontend/e2e/COMPOSER_QA.md`.
 
 Coverage thresholds are 30% statements/lines. That is a floor, not a goal.
 
 ## Choosing the level
 
 - **Unit** for business rules: ownership rejection, gating, state transitions, money math, guards.
-- **Backend e2e** for contract behaviour: status codes, auth, CSRF, validation rejection.
+  Controller specs: HTTP 401 / `forbidNonWhitelisted` via `createControllerApp` (not method-call wiring).
+- **Backend e2e** for full-stack contract behaviour: real JWT, CSRF, KYC, Postgres.
 - **Frontend unit** for user-visible component behaviour through Testing Library.
 - **Playwright** for a critical journey end to end. Keep `smoke.spec.ts` fast — it gates every PR.
 

@@ -47,12 +47,10 @@ export default function NotificationsSettings() {
     usersApi
       .updateSettings({ [key]: value })
       .then(() => {
-        toast.success(t('settings.notifications.updated', 'Settings updated'));
+        toast.success(t('settings.notifications.updated'));
       })
       .catch(() => {
-        toast.error(
-          t('settings.notifications.update_error', 'Failed to update settings'),
-        );
+        toast.error(t('settings.notifications.update_error'));
       });
   };
 
@@ -114,10 +112,7 @@ export default function NotificationsSettings() {
         <div className="space-y-3">
           <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
             <SettingsRow
-              label={t(
-                'settings.notifications_tab.native_alerts',
-                'Native alerts',
-              )}
+              label={t('settings.notifications_tab.native_alerts')}
               description={t('settings.notifications_tab.native_alerts_desc')}
               control={
                 <button
@@ -129,10 +124,7 @@ export default function NotificationsSettings() {
                   onClick={() => {
                     void toggleNativeAlerts();
                   }}
-                  aria-label={t(
-                    'settings.notifications_tab.native_alerts',
-                    'Native alerts',
-                  )}
+                  aria-label={t('settings.notifications_tab.native_alerts')}
                   className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
                     isSubscribed ? 'bg-brand-primary' : 'bg-white/10'
                   }`}
@@ -165,14 +157,8 @@ export default function NotificationsSettings() {
           {settingsLoaded && (
             <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
               <SettingsRow
-                label={t(
-                  'settings.notifications.push_notifications',
-                  'Push notifications',
-                )}
-                description={t(
-                  'settings.notifications.push_desc',
-                  'Receive in-app notifications',
-                )}
+                label={t('settings.notifications.push_notifications')}
+                description={t('settings.notifications.push_desc')}
                 control={
                   <Switch
                     checked={pushNotifications}
@@ -180,22 +166,13 @@ export default function NotificationsSettings() {
                       setPushNotifications(e.target.checked);
                       updateSetting('pushNotifications', e.target.checked);
                     }}
-                    aria-label={t(
-                      'settings.notifications.push_notifications',
-                      'Push notifications',
-                    )}
+                    aria-label={t('settings.notifications.push_notifications')}
                   />
                 }
               />
               <SettingsRow
-                label={t(
-                  'settings.notifications.email_notifications',
-                  'Email notifications',
-                )}
-                description={t(
-                  'settings.notifications.email_desc',
-                  'Receive email updates and alerts',
-                )}
+                label={t('settings.notifications.email_notifications')}
+                description={t('settings.notifications.email_desc')}
                 control={
                   <Switch
                     checked={emailNotifications}
@@ -203,10 +180,7 @@ export default function NotificationsSettings() {
                       setEmailNotifications(e.target.checked);
                       updateSetting('emailNotifications', e.target.checked);
                     }}
-                    aria-label={t(
-                      'settings.notifications.email_notifications',
-                      'Email notifications',
-                    )}
+                    aria-label={t('settings.notifications.email_notifications')}
                   />
                 }
               />

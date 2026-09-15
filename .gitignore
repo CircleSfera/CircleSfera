@@ -40,6 +40,8 @@ circlesfera-shared/dist/
 
 # Persistent data
 circlesfera-backend/uploads/
+circlesfera-backend/backups/
+backups/
 postgres_data/
 redis_data/
 coverage/
@@ -50,6 +52,7 @@ test-results/
 storageState.json
 nginx/.htpasswd
 scratch/
+circlesfera-backend/scratch/
 deploy_jobs.json
 deploy_runs.json
 .local/

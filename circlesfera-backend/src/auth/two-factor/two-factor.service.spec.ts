@@ -107,10 +107,12 @@ describe('TwoFactorService', () => {
         { id: 'user-1' },
       );
 
-      expect(verifySync).toHaveBeenCalledWith({
-        token: '123456',
-        secret: 'GENERATED_SECRET',
-      });
+      expect(verifySync).toHaveBeenCalledWith(
+        expect.objectContaining({
+          token: '123456',
+          secret: 'GENERATED_SECRET',
+        }),
+      );
       expect(isValid).toBe(true);
     });
 

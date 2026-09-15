@@ -5,6 +5,7 @@ import { Heart, Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
 import { bookmarksApi, followsApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
@@ -52,7 +53,7 @@ export default function FrameItem({
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
-    profile?.user?.verificationLevel || profile?.verificationLevel;
+    profile?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
@@ -81,15 +82,14 @@ export default function FrameItem({
       if (response?.url) {
         window.location.href = response.url;
       } else {
-        toast.success(t('post.media.unlock_success', 'Post unlocked!'));
+        toast.success(t('post.media.unlock_success'));
         queryClient.invalidateQueries({ queryKey: ['frames'] });
         queryClient.invalidateQueries({ queryKey: ['feed'] });
       }
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(
-        error.response?.data?.message ||
-          t('post.media.unlock_error', 'Error unlocking post'),
+        error.response?.data?.message || t('post.media.unlock_error'),
       );
     },
   });
@@ -117,7 +117,9 @@ export default function FrameItem({
 
   useEffect(() => {
     if (isActive && videoRef.current) {
-      videoRef.current.muted = isMuted;
+      // When a library track is attached, mute the original video bed and play the clip.
+      const hasLibraryAudio = Boolean(post.audio?.url);
+      videoRef.current.muted = hasLibraryAudio ? true : isMuted;
       videoRef.current.currentTime = 0;
       videoRef.current.play().catch(() => {
         logger.log('Autoplay blocked, falling back to muted');
@@ -136,7 +138,15 @@ export default function FrameItem({
         watchTimeRef.current = 0;
       }
     }
-  }, [isActive, post.id, isMuted, setMuted]);
+  }, [isActive, post.id, post.audio?.url, isMuted, setMuted]);
+
+  useSyncedLibraryAudio({
+    enabled: isActive,
+    trackUrl: post.audio?.url,
+    audioStartMs: post.audioStartMs,
+    isMuted,
+    videoRef,
+  });
 
   useEffect(() => {
     return () => {
@@ -286,7 +296,7 @@ export default function FrameItem({
         type="button"
         className="absolute inset-0 w-full h-full border-none p-0 z-10 focus:outline-none bg-transparent"
         onClick={handleVideoClick}
-        aria-label={t('frames.playback_area', 'Video playback area')}
+        aria-label={t('frames.playback_area')}
       >
         <HlsVideoPlayer
           ref={videoRef}
@@ -344,9 +354,7 @@ export default function FrameItem({
             e.stopPropagation();
             toggleMute();
           }}
-          aria-label={
-            isMuted ? t('frames.unmute', 'Unmute') : t('frames.mute', 'Mute')
-          }
+          aria-label={isMuted ? t('frames.unmute') : t('frames.mute')}
           className="w-11 h-11 bg-black/40 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-black/60 transition-colors"
         >
           {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
@@ -385,7 +393,7 @@ export default function FrameItem({
           value={progress}
           onChange={handleSeek}
           className="w-full absolute inset-0 opacity-0 cursor-pointer z-40"
-          aria-label={t('frames.progress', 'Video progress')}
+          aria-label={t('frames.progress')}
         />
         <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/20">
           <div
@@ -407,17 +415,14 @@ export default function FrameItem({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={() => deleteMutation.mutate()}
-        title={t('frames.delete_title', 'Delete Frame')}
-        message={t(
-          'frames.delete_message',
-          'Are you sure you want to delete this frame? This action cannot be undone.',
-        )}
+        title={t('frames.delete_title')}
+        message={t('frames.delete_message')}
         confirmText={
           deleteMutation.isPending
-            ? t('frames.delete_pending', 'Deleting...')
-            : t('frames.delete_confirm', 'Delete')
+            ? t('frames.delete_pending')
+            : t('frames.delete_confirm')
         }
-        cancelText={t('common.cancel', 'Cancel')}
+        cancelText={t('common.cancel')}
         isDestructive
       />
       {showPromoteModal && (

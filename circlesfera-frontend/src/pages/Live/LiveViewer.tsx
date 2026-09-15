@@ -67,13 +67,13 @@ export default function LiveViewer() {
 
   useEffect(() => {
     if (searchParams.get('gift_success') === 'true') {
-      toast.success(t('live.gift_sent', '¡Regalo enviado!'));
+      toast.success(t('live.gift_sent'));
       searchParams.delete('gift_success');
       searchParams.delete('session_id');
       setSearchParams(searchParams, { replace: true });
     }
     if (searchParams.get('gift_canceled') === 'true') {
-      toast.error(t('live.gift_canceled', 'Pago de regalo cancelado'));
+      toast.error(t('live.gift_canceled'));
       searchParams.delete('gift_canceled');
       setSearchParams(searchParams, { replace: true });
     }
@@ -143,9 +143,8 @@ export default function LiveViewer() {
       }) => {
         toast.success(
           t('live.gift_received_toast', {
-            user: data.senderUsername || 'Someone',
-            gift: data.giftId || 'gift',
-            defaultValue: `${data.senderUsername || 'Someone'} sent a ${data.giftId || 'gift'}!`,
+            user: data.senderUsername || t('live.someone'),
+            gift: data.giftId || t('live.gift_generic'),
           }),
         );
         triggerFloatingReaction('🎁');
@@ -231,8 +230,7 @@ export default function LiveViewer() {
   const handleAskQuestion = (question: string) => {
     const socket = useSocketStore.getState().socket;
     if (!socket || !activeStreamId) return;
-    const username =
-      profile?.username?.trim() || t('live.viewer.anonymous', 'Viewer');
+    const username = profile?.username?.trim() || t('live.anonymous');
     socket.emit('live:ask_question', {
       streamId: activeStreamId,
       question,
@@ -274,7 +272,9 @@ export default function LiveViewer() {
                   streamDetails?.host?.profile?.avatar ||
                   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
                 }
-                alt="Host Avatar"
+                alt={
+                  streamDetails?.host?.profile?.username || t('common.alt.host')
+                }
                 className="w-9 h-9 rounded-full object-cover border-2 border-black"
               />
             </div>
@@ -282,10 +282,11 @@ export default function LiveViewer() {
             <div className="flex flex-col">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-extrabold text-white tracking-wide drop-shadow-md">
-                  {streamDetails?.host?.profile?.username || 'Creador Live'}
+                  {streamDetails?.host?.profile?.username ||
+                    t('live.host_fallback')}
                 </span>
                 <span className="bg-linear-to-r from-pink-600 to-purple-600 text-[10px] font-black text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-md shadow-pink-500/30">
-                  VIVO
+                  {t('live.now')}
                 </span>
               </div>
               {streamDetails?.title && (
@@ -308,6 +309,7 @@ export default function LiveViewer() {
               type="button"
               onClick={() => navigate(-1)}
               className="p-2 bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-xl border border-white/10 transition-all shadow-xl hover:scale-105 active:scale-95"
+              aria-label={t('common.close')}
             >
               <X className="w-5 h-5" />
             </button>
@@ -359,7 +361,7 @@ export default function LiveViewer() {
                       {highlightedQuestion.username}
                     </span>
                     <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
-                      Pregunta
+                      {t('live.qna.question')}
                     </span>
                   </div>
                 </div>
@@ -431,12 +433,13 @@ export default function LiveViewer() {
                 type="button"
                 onClick={() => setIsQnAOpen(true)}
                 className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
+                aria-label={t('live.qna.title')}
               >
                 <HelpCircle size={20} />
               </button>
               <input
                 type="text"
-                placeholder={t('live.chat_placeholder', 'Comentar...')}
+                placeholder={t('live.chat_placeholder')}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
                 className="w-full rounded-full bg-white/15 border border-white/25 px-4 py-2.5 text-xs sm:text-sm text-white placeholder-white/60 outline-none backdrop-blur-xl focus:bg-white/25 focus:border-pink-500/50 transition-all shadow-inner"
@@ -468,7 +471,8 @@ export default function LiveViewer() {
                 type="button"
                 onClick={() => setGiftModalOpen(true)}
                 className="p-2.5 rounded-full bg-linear-to-tr from-amber-400 to-pink-500 text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all shrink-0"
-                title={t('live.send_gift_btn', 'Regalar')}
+                title={t('live.send_gift_btn')}
+                aria-label={t('live.send_gift_btn')}
               >
                 <Gift className="w-5 h-5 text-white animate-pulse" />
               </button>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
 import { sanitizeUrl } from '../../utils/apiUtils';
@@ -12,6 +13,7 @@ function isVideoUrl(url: string): boolean {
 }
 
 export default function SharedPost({ post }: SharedPostProps) {
+  const { t } = useTranslation();
   const media = post.media?.[0];
   const isVideo =
     media?.type === 'video' || (media?.url && isVideoUrl(media.url));
@@ -54,7 +56,7 @@ export default function SharedPost({ post }: SharedPostProps) {
         ) : imageUrl ? (
           <img
             src={imageUrl}
-            alt="Post preview"
+            alt={post.caption || t('common.alt.post')}
             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
           />
         ) : null}

@@ -1,20 +1,26 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { ProfilesController } from './profiles.controller.js';
 import { ProfilesService } from './profiles.service.js';
 
 describe('ProfilesController', () => {
-  let controller: ProfilesController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     searchProfiles: vi.fn(),
@@ -27,29 +33,37 @@ describe('ProfilesController', () => {
     deleteAccount: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [ProfilesController],
       providers: [{ provide: ProfilesService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(EmailVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: EmailVerifiedGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<ProfilesController>(ProfilesController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects own profile without a session', async () => {
+    await request(app.getHttpServer()).get('/api/v1/profiles/me').expect(401);
+    expect(mockService.getMyProfile).not.toHaveBeenCalled();
   });
 
   it('searches profiles without a caller profile', async () => {
     mockService.searchProfiles.mockResolvedValue([]);
 
-    await controller.searchProfiles('alice');
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/search')
+      .query({ q: 'alice' })
+      .expect(200);
 
     expect(mockService.searchProfiles).toHaveBeenCalledWith('alice');
   });
@@ -58,11 +72,19 @@ describe('ProfilesController', () => {
     mockService.getMyReferrals.mockResolvedValue([]);
     mockService.getMyProfile.mockResolvedValue({ id: 'profile-1' });
 
-    await controller.getMyReferrals(mockUser);
-    await controller.getMyProfile(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/me/referrals')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/me')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.getMyReferrals).toHaveBeenCalledWith('profile-1');
-    expect(mockService.getMyProfile).toHaveBeenCalledWith('profile-1');
+    expect(mockService.getMyReferrals).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
+    expect(mockService.getMyProfile).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 
   it('checks username availability and loads a public profile by username', async () => {
@@ -71,30 +93,59 @@ describe('ProfilesController', () => {
     });
     mockService.getProfile.mockResolvedValue({ username: 'alice' });
 
-    await controller.checkUsername('alice');
-    await controller.getProfile('alice');
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/check-username/alice')
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/alice')
+      .expect(200);
 
     expect(mockService.checkUsernameAvailability).toHaveBeenCalledWith('alice');
     expect(mockService.getProfile).toHaveBeenCalledWith('alice');
+  });
+
+  it('rejects profile update with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .put('/api/v1/profiles/me')
+      .set(BEARER)
+      .send({ bio: 'Hello', isPremium: true })
+      .expect(400);
+
+    expect(mockService.updateProfile).not.toHaveBeenCalled();
   });
 
   it('updates the caller profile', async () => {
     const dto = { bio: 'Hello' };
     mockService.updateProfile.mockResolvedValue({ id: 'profile-1' });
 
-    await controller.updateProfile(mockUser, dto);
+    await request(app.getHttpServer())
+      .put('/api/v1/profiles/me')
+      .set(BEARER)
+      .send(dto)
+      .expect(200);
 
-    expect(mockService.updateProfile).toHaveBeenCalledWith('profile-1', dto);
+    expect(mockService.updateProfile).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      dto,
+    );
   });
 
   it('deactivates and deletes as the caller profile', async () => {
     mockService.deactivateAccount.mockResolvedValue({ ok: true });
     mockService.deleteAccount.mockResolvedValue({ ok: true });
 
-    await controller.deactivateAccount(mockUser);
-    await controller.deleteAccount(mockUser);
+    await request(app.getHttpServer())
+      .post('/api/v1/profiles/me/deactivate')
+      .set(BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/profiles/me')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.deactivateAccount).toHaveBeenCalledWith('profile-1');
-    expect(mockService.deleteAccount).toHaveBeenCalledWith('profile-1');
+    expect(mockService.deactivateAccount).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
+    expect(mockService.deleteAccount).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 });

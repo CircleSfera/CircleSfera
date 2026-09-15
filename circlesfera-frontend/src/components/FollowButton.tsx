@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { followsApi } from '../services';
 import { Button } from './ui';
 
@@ -8,6 +9,7 @@ interface FollowButtonProps {
 }
 
 export default function FollowButton({ username }: FollowButtonProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
 
   const { data } = useQuery({
@@ -52,10 +54,10 @@ export default function FollowButton({ username }: FollowButtonProps) {
   });
 
   const getButtonText = () => {
-    if (status === 'ACCEPTED') return 'Following';
-    if (status === 'PENDING') return 'Requested';
-    if (status === 'BLOCKED') return 'Unblock'; // Or show blocked state differently
-    return 'Follow';
+    if (status === 'ACCEPTED') return t('profile.actions.following');
+    if (status === 'PENDING') return t('profile.actions.requested');
+    if (status === 'BLOCKED') return t('profile.actions.unblock');
+    return t('profile.actions.follow');
   };
 
   const getButtonVariant = () => {

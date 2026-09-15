@@ -5,23 +5,21 @@ import {
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
-import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { motion } from 'framer-motion';
-import { Clock, X as CloseIcon, Sparkles } from 'lucide-react';
+import { Clock, X as CloseIcon, Map as MapIcon, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { ErrorState } from '../components/ErrorEmptyStates';
 import ExploreColdStart from '../components/explore/ExploreColdStart';
-import { LoadingSpinner, PostSkeleton } from '../components/LoadingStates';
-import PostCard from '../components/PostCard';
+import { Skeleton } from '../components/LoadingStates';
+import PostGrid from '../components/profile/PostGrid';
 import UserAvatar from '../components/UserAvatar';
 import { PullToRefresh } from '../components/ui';
 import VerificationBadge, {
   type VerificationLevel,
 } from '../components/VerificationBadge';
-import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { feedApi, postsApi, searchApi } from '../services';
 import type {
   PaginatedResponse,
@@ -30,8 +28,19 @@ import type {
   SearchResult,
 } from '../types';
 
+function ExploreGridSkeleton({ count = 18 }: { count?: number }) {
+  return (
+    <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5 md:gap-1 max-w-6xl mx-auto">
+      {Array.from({ length: count }, (_, i) => `explore-sk-${i}`).map((id) => (
+        <Skeleton key={id} className="aspect-4/5 rounded-none" />
+      ))}
+    </div>
+  );
+}
+
 export default function Explore() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -107,32 +116,6 @@ export default function Explore() {
   const explorePostList =
     explorePosts?.pages.flatMap((page) => page.data) ?? [];
 
-  const exploreVirtualizer = useWindowVirtualizer({
-    count: explorePostList.length,
-    estimateSize: () => 560,
-    overscan: 2,
-  });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: remeasure when tab or list size changes
-  useEffect(() => {
-    if (debouncedQuery.length >= 2) return;
-    const frame = requestAnimationFrame(() => {
-      exploreVirtualizer.measure();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [
-    activeTab,
-    explorePostList.length,
-    debouncedQuery.length,
-    exploreVirtualizer,
-  ]);
-
-  const loadMoreRef = useInfiniteScroll(
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  );
-
   const handleRefresh = async () => {
     if (debouncedQuery.length >= 2) {
       // Ignore refresh in search mode, or you can refetch searchResults
@@ -143,7 +126,7 @@ export default function Explore() {
 
   return (
     <PullToRefresh onRefresh={handleRefresh}>
-      <div className="pt-2 md:pt-6 pb-20 px-4 md:px-5 lg:px-6 min-h-dvh max-w-6xl 2xl:max-w-7xl mx-auto">
+      <div className="pt-2 md:pt-6 pb-20 px-4 md:px-5 lg:px-6 min-h-dvh max-w-6xl mx-auto">
         <SEO
           title={t('explore.page_title')}
           description={t('explore.page_desc')}
@@ -153,44 +136,54 @@ export default function Explore() {
         <div className="relative mb-3 md:mb-6 max-w-2xl mx-auto group">
           <div className="absolute -top-px left-8 right-8 h-px bg-linear-to-r from-transparent via-brand-primary to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
 
-          <input
-            type="text"
-            placeholder={t(
-              'explore.search_placeholder',
-              'Buscar personas, etiquetas o describir lo que buscas…',
-            )}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="input-glass w-full pl-5 pr-12 rounded-xl text-white placeholder-gray-500 text-sm font-medium transition-all"
-            style={{ height: 'var(--input-height-search, 48px)' }}
-          />
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                className="p-1 text-gray-400 hover:text-white transition-colors"
-                aria-label="Limpiar búsqueda"
-              >
-                <CloseIcon size={18} />
-              </button>
-            )}
-            <div className="text-gray-500">
-              <svg
-                aria-hidden="true"
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
+              <input
+                type="text"
+                data-testid="explore-search-input"
+                placeholder={t('explore.search_placeholder')}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="input-glass w-full pl-5 pr-12 rounded-xl text-white placeholder-gray-500 text-sm font-medium transition-all"
+                style={{ height: 'var(--input-height-search, 48px)' }}
+              />
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                    aria-label={t('explore.clear_search')}
+                  >
+                    <CloseIcon size={18} />
+                  </button>
+                )}
+                <div className="text-gray-500">
+                  <svg
+                    aria-hidden="true"
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+              </div>
             </div>
+            <button
+              type="button"
+              onClick={() => navigate('/explore/map')}
+              aria-label={t('explore.map.open')}
+              className="shrink-0 w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center justify-center"
+            >
+              <MapIcon size={20} />
+            </button>
           </div>
         </div>
 
@@ -203,7 +196,7 @@ export default function Explore() {
                 {t('explore.searching')}
               </div>
             ) : (
-              <div className="space-y-10 max-w-5xl 2xl:max-w-7xl mx-auto">
+              <div className="space-y-10 max-w-6xl mx-auto">
                 {/* AI Semantic Search Results */}
                 {debouncedQuery.length >= 3 && (
                   <div className="mb-12">
@@ -218,25 +211,18 @@ export default function Explore() {
                       </span>
                     </h2>
                     {isSearching ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1">
-                        {[1, 2, 3].map((id) => (
-                          <PostSkeleton key={id} />
-                        ))}
-                      </div>
+                      <ExploreGridSkeleton count={6} />
                     ) : searchResults?.semanticPosts &&
                       searchResults.semanticPosts.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-1 animate-in fade-in slide-in-from-bottom-4">
-                        {searchResults.semanticPosts.map((post: Post) => (
-                          <div key={post.id} className="relative group">
-                            <PostCard post={post} />
-                            <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                              <div className="bg-brand-primary/90 text-white text-xs font-bold px-2 py-1 rounded-lg backdrop-blur-sm shadow-xl flex items-center gap-1">
-                                <Sparkles size={10} />
-                                {t('explore.conceptual_match')}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                      <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <PostGrid
+                          items={searchResults.semanticPosts}
+                          emptyMessage=""
+                          emptySubtext=""
+                          icon={null}
+                          columns="explore"
+                          aspectRatio="4/5"
+                        />
                       </div>
                     ) : (
                       !isSearching && (
@@ -255,7 +241,7 @@ export default function Explore() {
                     <div className="mb-10">
                       <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <Sparkles className="text-sky-400" size={22} />
-                        {t('explore.smart_people', 'People matching your idea')}
+                        {t('explore.smart_people')}
                         <span className="text-xs bg-sky-500/20 text-sky-300 px-2 py-0.5 rounded-full uppercase tracking-wide font-black ml-2">
                           {t('explore.beta_ai')}
                         </span>
@@ -294,7 +280,7 @@ export default function Explore() {
                               </div>
                               {typeof profile.similarityScore === 'number' && (
                                 <div className="text-[10px] font-bold text-sky-400 uppercase tracking-wide mt-0.5">
-                                  {t('explore.match', 'Match')}{' '}
+                                  {t('explore.match')}{' '}
                                   {Math.round(profile.similarityScore * 100)}%
                                 </div>
                               )}
@@ -327,8 +313,7 @@ export default function Explore() {
                               alt={user.username}
                               size="md"
                               verificationLevel={
-                                user.user
-                                  ?.verificationLevel as VerificationLevel
+                                user?.verificationLevel as VerificationLevel
                               }
                             />
                             <div className="min-w-0">
@@ -336,8 +321,7 @@ export default function Explore() {
                                 {user.username}
                                 <VerificationBadge
                                   level={
-                                    user.user
-                                      ?.verificationLevel as VerificationLevel
+                                    user?.verificationLevel as VerificationLevel
                                   }
                                   size={12}
                                 />
@@ -491,8 +475,8 @@ export default function Explore() {
                     )}
                     <span className="relative z-10">
                       {tab === 'foryou'
-                        ? t('explore.for_you', 'Para ti')
-                        : t('explore.trending', 'Tendencias')}
+                        ? t('explore.for_you')
+                        : t('explore.trending')}
                     </span>
                   </button>
                 ))}
@@ -500,56 +484,29 @@ export default function Explore() {
             </div>
 
             {isLoadingExplore ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4 gap-1 max-w-5xl 2xl:max-w-7xl mx-auto">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((id) => (
-                  <div key={id} className="break-inside-avoid mb-2.5 md:mb-6">
-                    <PostSkeleton />
-                  </div>
-                ))}
-              </div>
+              <ExploreGridSkeleton />
             ) : isExploreError ? (
               <ErrorState
-                title={t('explore.error_title', "Couldn't load explore")}
-                message={t(
-                  'explore.error_message',
-                  'Something went wrong while loading posts. Please try again.',
-                )}
+                title={t('explore.error_title')}
+                message={t('explore.error_message')}
                 onRetry={() => refetchExplore()}
               />
             ) : explorePostList.length > 0 ? (
-              <>
-                <div
-                  className="relative w-full max-w-2xl mx-auto"
-                  style={{ height: `${exploreVirtualizer.getTotalSize()}px` }}
-                >
-                  {exploreVirtualizer.getVirtualItems().map((virtualItem) => {
-                    const post = explorePostList[virtualItem.index];
-                    if (!post) return null;
-
-                    return (
-                      <div
-                        key={post.id}
-                        ref={exploreVirtualizer.measureElement}
-                        data-index={virtualItem.index}
-                        className="absolute left-0 w-full px-0"
-                        style={{
-                          transform: `translateY(${virtualItem.start}px)`,
-                        }}
-                      >
-                        <div className="pb-3">
-                          <PostCard post={post} />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
-                {isFetchingNextPage && (
-                  <div className="flex justify-center py-8">
-                    <LoadingSpinner size="md" />
-                  </div>
-                )}
-              </>
+              <div className="max-w-6xl mx-auto">
+                <PostGrid
+                  items={explorePostList}
+                  emptyMessage=""
+                  emptySubtext=""
+                  icon={null}
+                  columns="explore"
+                  aspectRatio="4/5"
+                  onLoadMore={() => {
+                    void fetchNextPage();
+                  }}
+                  hasMore={!!hasNextPage}
+                  isLoadingMore={isFetchingNextPage}
+                />
+              </div>
             ) : (
               <ExploreColdStart
                 activeTab={activeTab}

@@ -17,6 +17,7 @@ describe('UsersService', () => {
     profile: {
       findMany: vi.fn(),
       updateMany: vi.fn(),
+      update: vi.fn(),
     },
     follow: {
       findMany: vi.fn(),
@@ -117,15 +118,22 @@ describe('UsersService', () => {
     it('should promote user to CREATOR and ELITE if they have an elite plan', async () => {
       mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u1',
-        accountType: 'PERSONAL',
-        verificationLevel: 'BASIC',
-        platformSubscriptions: [{ status: 'ACTIVE', plan: { name: 'Elite' } }],
+        profiles: [
+          {
+            id: 'p1',
+            accountType: 'PERSONAL',
+            verificationLevel: 'BASIC',
+            platformSubscriptions: [
+              { status: 'ACTIVE', plan: { name: 'Elite' } },
+            ],
+          },
+        ],
       });
 
       await service.syncUserTier('u1');
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'u1' },
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p1' },
         data: {
           accountType: 'CREATOR',
           verificationLevel: 'ELITE',
@@ -136,16 +144,21 @@ describe('UsersService', () => {
     it('should downgrade plan badge to BASIC when KYC-only (identity is separate)', async () => {
       mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u2',
-        accountType: 'CREATOR',
-        verificationLevel: 'VERIFIED',
         identityVerifiedAt: new Date(),
-        platformSubscriptions: [],
+        profiles: [
+          {
+            id: 'p2',
+            accountType: 'CREATOR',
+            verificationLevel: 'VERIFIED',
+            platformSubscriptions: [],
+          },
+        ],
       });
 
       await service.syncUserTier('u2');
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'u2' },
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p2' },
         data: {
           accountType: 'PERSONAL',
           verificationLevel: 'BASIC',
@@ -156,16 +169,21 @@ describe('UsersService', () => {
     it('should downgrade to BASIC if no subscription and no KYC', async () => {
       mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u3',
-        accountType: 'CREATOR',
-        verificationLevel: 'VERIFIED',
         identityVerifiedAt: null,
-        platformSubscriptions: [],
+        profiles: [
+          {
+            id: 'p3',
+            accountType: 'CREATOR',
+            verificationLevel: 'VERIFIED',
+            platformSubscriptions: [],
+          },
+        ],
       });
 
       await service.syncUserTier('u3');
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'u3' },
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p3' },
         data: {
           accountType: 'PERSONAL',
           verificationLevel: 'BASIC',

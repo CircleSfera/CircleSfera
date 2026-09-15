@@ -1,20 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+  TEST_UUID,
+} from '../common/testing/http-controller.js';
 import { InteractiveController } from './interactive.controller.js';
 import { InteractiveService } from './interactive.service.js';
 
 describe('InteractiveController', () => {
-  let controller: InteractiveController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     createPoll: vi.fn(),
@@ -25,89 +32,141 @@ describe('InteractiveController', () => {
     answerQna: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [InteractiveController],
       providers: [{ provide: InteractiveService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtOptionalGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+      ],
+    });
+  });
 
-    controller = module.get<InteractiveController>(InteractiveController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects poll create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/interactive/poll')
+      .send({ question: 'A or B?', options: ['A', 'B'] })
+      .expect(401);
+
+    expect(mockService.createPoll).not.toHaveBeenCalled();
   });
 
-  it('creates a poll as the caller profile', async () => {
-    const dto = { question: 'A or B?', options: ['A', 'B'] };
+  it('rejects poll create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/interactive/poll')
+      .set(BEARER)
+      .send({
+        question: 'A or B?',
+        options: ['A', 'B'],
+        authorId: 'attacker',
+      })
+      .expect(400);
+
+    expect(mockService.createPoll).not.toHaveBeenCalled();
+  });
+
+  it('creates a poll as the session profile', async () => {
     mockService.createPoll.mockResolvedValue({ id: 'poll-1' });
 
-    await controller.createPoll(mockUser, dto);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/interactive/poll')
+      .set(BEARER)
+      .send({ question: 'A or B?', options: ['A', 'B'] })
+      .expect(201);
 
-    expect(mockService.createPoll).toHaveBeenCalledWith('profile-1', dto);
+    expect(res.body).toEqual({ id: 'poll-1' });
+    expect(mockService.createPoll).toHaveBeenCalledWith(TEST_USER.profileId, {
+      question: 'A or B?',
+      options: ['A', 'B'],
+    });
   });
 
   it('loads a poll with the viewer profile when present', async () => {
     mockService.getPoll.mockResolvedValue({ id: 'poll-1' });
 
-    await controller.getPoll('poll-1', 'profile-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/interactive/poll/poll-1')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.getPoll).toHaveBeenCalledWith('poll-1', 'profile-1');
+    expect(mockService.getPoll).toHaveBeenCalledWith(
+      'poll-1',
+      TEST_USER.profileId,
+    );
   });
 
   it('loads a poll without a profile when anonymous', async () => {
     mockService.getPoll.mockResolvedValue({ id: 'poll-1' });
 
-    await controller.getPoll('poll-1', null);
+    await request(app.getHttpServer())
+      .get('/api/v1/interactive/poll/poll-1')
+      .expect(200);
 
     expect(mockService.getPoll).toHaveBeenCalledWith('poll-1', undefined);
   });
 
-  it('votes as the caller profile and unwraps the body', async () => {
+  it('votes as the session profile and unwraps the body', async () => {
     mockService.votePoll.mockResolvedValue({ id: 'vote-1' });
 
-    await controller.votePoll(mockUser, {
-      pollId: 'poll-1',
-      optionIndex: 1,
-    });
+    await request(app.getHttpServer())
+      .post('/api/v1/interactive/poll/vote')
+      .set(BEARER)
+      .send({ pollId: TEST_UUID, optionIndex: 1 })
+      .expect(200);
 
-    expect(mockService.votePoll).toHaveBeenCalledWith('profile-1', 'poll-1', 1);
+    expect(mockService.votePoll).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      TEST_UUID,
+      1,
+    );
   });
 
-  it('creates a Q&A box as the caller profile', async () => {
-    const dto = { prompt: 'Ask me anything' };
+  it('creates a Q&A box as the session profile', async () => {
     mockService.createQnaBox.mockResolvedValue({ id: 'qna-1' });
 
-    await controller.createQnaBox(mockUser, dto);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/interactive/qna')
+      .set(BEARER)
+      .send({ prompt: 'Ask me anything' })
+      .expect(201);
 
-    expect(mockService.createQnaBox).toHaveBeenCalledWith('profile-1', dto);
+    expect(res.body).toEqual({ id: 'qna-1' });
+    expect(mockService.createQnaBox).toHaveBeenCalledWith(TEST_USER.profileId, {
+      prompt: 'Ask me anything',
+    });
   });
 
   it('loads a Q&A box without a viewer profile', async () => {
     mockService.getQnaBox.mockResolvedValue({ id: 'qna-1' });
 
-    await controller.getQnaBox('qna-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/interactive/qna/qna-1')
+      .expect(200);
 
     expect(mockService.getQnaBox).toHaveBeenCalledWith('qna-1');
   });
 
-  it('answers a Q&A box as the caller profile and unwraps the body', async () => {
+  it('answers a Q&A box as the session profile and unwraps the body', async () => {
     mockService.answerQna.mockResolvedValue({ id: 'ans-1' });
 
-    await controller.answerQna(mockUser, {
-      qnaBoxId: 'qna-1',
-      answerText: 'Yes',
-    });
+    await request(app.getHttpServer())
+      .post('/api/v1/interactive/qna/answer')
+      .set(BEARER)
+      .send({ qnaBoxId: TEST_UUID, answerText: 'Yes' })
+      .expect(201);
 
     expect(mockService.answerQna).toHaveBeenCalledWith(
-      'profile-1',
-      'qna-1',
+      TEST_USER.profileId,
+      TEST_UUID,
       'Yes',
     );
   });

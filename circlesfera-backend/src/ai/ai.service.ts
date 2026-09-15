@@ -1,6 +1,9 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
+import { safeFetchMedia } from '../common/utils/safe-media-fetcher.js';
+import { Semaphore } from '../common/utils/semaphore.js';
+import { isPrivateOrLocalHost } from '../common/utils/ssrf.util.js';
 
 export interface ContentModerationResult {
   flagged: boolean;
@@ -15,6 +18,8 @@ export interface ContentModerationResult {
 export class AIService {
   private readonly logger = new Logger(AIService.name);
   private openai: OpenAI | null = null;
+  // Bounded concurrency admission control for external OpenAI operations
+  private readonly aiConcurrencySemaphore = new Semaphore(5);
 
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const apiKey = this.configService.get<string>('OPENAI_API_KEY');
@@ -51,11 +56,12 @@ export class AIService {
       return this.getMockEmbedding();
     }
 
-    this.logger.log(
-      `Generating embedding for text: ${text.substring(0, 50)}...`,
-    );
-
+    const release = await this.aiConcurrencySemaphore.acquire();
     try {
+      this.logger.log(
+        `Generating embedding for text: ${text.substring(0, 50)}...`,
+      );
+
       const response = await this.openai.embeddings.create({
         model: 'text-embedding-3-small',
         input: text,
@@ -66,6 +72,8 @@ export class AIService {
     } catch (error) {
       this.logger.error('Failed to generate embedding with OpenAI', error);
       throw error;
+    } finally {
+      release();
     }
   }
 
@@ -89,6 +97,7 @@ export class AIService {
       return { flagged: false, categories: {}, category_scores: {} };
     }
 
+    const release = await this.aiConcurrencySemaphore.acquire();
     try {
       const input: any[] = [];
       if (text) {
@@ -97,7 +106,23 @@ export class AIService {
 
       for (const url of mediaUrls) {
         // Only attempt to moderate if it looks like a public URL or base64
-        if (url.startsWith('http') || url.startsWith('data:image')) {
+        if (url.startsWith('http')) {
+          try {
+            const parsed = new URL(url);
+            if (isPrivateOrLocalHost(parsed.hostname)) {
+              this.logger.warn(
+                `Skipping private/loopback URL in moderation: ${parsed.hostname}`,
+              );
+              continue;
+            }
+          } catch {
+            continue;
+          }
+          input.push({
+            type: 'image_url',
+            image_url: { url },
+          });
+        } else if (url.startsWith('data:image')) {
           input.push({
             type: 'image_url',
             image_url: { url },
@@ -127,6 +152,8 @@ export class AIService {
     } catch (error) {
       this.logger.error('Failed to moderate content with OpenAI', error);
       throw error;
+    } finally {
+      release();
     }
   }
 
@@ -156,6 +183,7 @@ export class AIService {
       return `A beautiful high-quality image from CircleSfera (Ref: ${imageUrl.split('/').pop()})`;
     }
 
+    const release = await this.aiConcurrencySemaphore.acquire();
     try {
       this.logger.log(`Generating AI alt-text for: ${imageUrl}`);
 
@@ -182,6 +210,8 @@ export class AIService {
     } catch (error) {
       this.logger.error('Failed to generate alt-text', error);
       return 'An image shared on CircleSfera.';
+    } finally {
+      release();
     }
   }
 
@@ -192,6 +222,7 @@ export class AIService {
       return `👋 ¡Buenos días! Las métricas de ayer:\n- Nuevos usuarios: ${metrics.newUsers}\n- Posts creados: ${metrics.newPosts}\n- Reportes pendientes: ${metrics.pendingReports}\n- Nuevas suscripciones: ${metrics.newSubscriptions}\n\n(Modo Mock: OpenAI no configurado)`;
     }
 
+    const release = await this.aiConcurrencySemaphore.acquire();
     try {
       this.logger.log('Generating AI Morning Briefing...');
       const prompt = `Eres un asistente virtual de operaciones (SOC/NOC) para la red social CircleSfera.
@@ -215,6 +246,8 @@ El mensaje debe tener menos de 100 palabras.`;
     } catch (error) {
       this.logger.error('Failed to generate morning briefing', error);
       return `📊 Métricas crudas (Error AI):\nUsuarios: ${metrics.newUsers}\nPosts: ${metrics.newPosts}\nReportes: ${metrics.pendingReports}\nSuscripciones: ${metrics.newSubscriptions}`;
+    } finally {
+      release();
     }
   }
 
@@ -227,46 +260,41 @@ El mensaje debe tener menos de 100 palabras.`;
       throw new Error('AI_SERVICE_UNAVAILABLE');
     }
 
-    this.logger.log(`Transcribing media (url length=${mediaUrl.length})`);
+    const release = await this.aiConcurrencySemaphore.acquire();
+    try {
+      this.logger.log(`Transcribing media (url length=${mediaUrl.length})`);
 
-    const response = await fetch(mediaUrl);
-    if (!response.ok) {
-      throw new Error(
-        `Failed to fetch media for transcription: ${response.status}`,
-      );
+      // Safely retrieve media: blocks private/internal IPs (SSRF), enforces
+      // size limits (max 25MB for Whisper), timeouts, and validates magic bytes.
+      const { buffer, contentType, ext } = await safeFetchMedia(mediaUrl, {
+        maxBytes: 25 * 1024 * 1024,
+        timeoutMs: 15_000,
+      });
+
+      const { toFile } = await import('openai');
+      const file = await toFile(buffer, `clip.${ext}`, { type: contentType });
+
+      const result = await this.openai.audio.transcriptions.create({
+        file,
+        model: 'whisper-1',
+        response_format: 'verbose_json',
+        timestamp_granularities: ['segment'],
+      });
+
+      const segments =
+        (
+          result as {
+            segments?: { start: number; end: number; text: string }[];
+          }
+        ).segments || [];
+
+      return segments.map((s) => ({
+        start: s.start,
+        end: s.end,
+        text: (s.text || '').trim(),
+      }));
+    } finally {
+      release();
     }
-
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType =
-      response.headers.get('content-type') || 'application/octet-stream';
-    const ext = contentType.includes('audio')
-      ? 'mp3'
-      : contentType.includes('webm')
-        ? 'webm'
-        : 'mp4';
-
-    const { toFile } = await import('openai');
-    const file = await toFile(buffer, `clip.${ext}`, { type: contentType });
-
-    const result = await this.openai.audio.transcriptions.create({
-      file,
-      model: 'whisper-1',
-      response_format: 'verbose_json',
-      timestamp_granularities: ['segment'],
-    });
-
-    const segments =
-      (
-        result as {
-          segments?: { start: number; end: number; text: string }[];
-        }
-      ).segments || [];
-
-    return segments.map((s) => ({
-      start: s.start,
-      end: s.end,
-      text: (s.text || '').trim(),
-    }));
   }
 }

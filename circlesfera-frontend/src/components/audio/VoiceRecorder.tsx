@@ -248,9 +248,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
     return (
       <div className="flex items-center space-x-2 px-3 py-2 bg-white/5 border border-white/10 rounded-2xl text-xs text-accent-blue font-semibold shrink-0">
         <Loader2 className="w-4 h-4 animate-spin" />
-        {!compact && (
-          <span>{t('voice.uploading', 'Subiendo nota de voz...')}</span>
-        )}
+        {!compact && <span>{t('voice.uploading')}</span>}
       </div>
     );
   }
@@ -272,14 +270,12 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
               ? 'w-11 h-11 flex items-center justify-center bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-full transition-all shrink-0'
               : 'px-3 py-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 border border-red-500/30 rounded-xl text-xs font-bold flex items-center space-x-1.5 transition-all'
           }
-          aria-label={t('voice.record', 'Grabar Voz')}
-          title={t('voice.record', 'Grabar Voz')}
+          aria-label={t('voice.record')}
+          title={t('voice.record')}
         >
           <Mic className="w-4 h-4" />
           {!compact && (
-            <span className="hidden sm:inline">
-              {t('voice.record', 'Grabar Voz')}
-            </span>
+            <span className="hidden sm:inline">{t('voice.record')}</span>
           )}
         </button>
       ) : isRecording ? (
@@ -309,7 +305,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={stopRecording}
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white rounded-xl transition-all"
-            title={t('voice.stop', 'Detener grabación')}
+            title={t('voice.stop')}
           >
             <Square className="w-4 h-4 fill-white" />
           </button>
@@ -318,7 +314,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={cancelRecording}
             className="p-2 bg-red-500/20 hover:bg-red-500/30 active:scale-95 text-red-400 rounded-xl transition-all"
-            title={t('common.cancel', 'Cancelar')}
+            title={t('common.cancel')}
           >
             <Trash2 className="w-4 h-4" />
           </button>
@@ -331,8 +327,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-accent-blue rounded-xl transition-all"
             title={
               isPreviewPlaying
-                ? t('voice.pause_preview', 'Pausar vista previa')
-                : t('voice.play_preview', 'Escuchar borrador')
+                ? t('voice.pause_preview')
+                : t('voice.play_preview')
             }
           >
             {isPreviewPlaying ? (
@@ -343,14 +339,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           </button>
 
           <div className="px-2.5 py-1.5 bg-accent-blue/10 border border-accent-blue/20 rounded-xl text-xs font-bold text-accent-blue">
-            {t('voice.ready', 'Listo')} ({formatTimer(recordingSeconds)})
+            {t('voice.ready')} ({formatTimer(recordingSeconds)})
           </div>
 
           <button
             type="button"
             onClick={sendRecording}
             className="p-2 bg-accent-blue text-white hover:bg-accent-blue/90 active:scale-95 rounded-xl transition-all shadow-md"
-            title={t('voice.send', 'Enviar nota de voz')}
+            title={t('voice.send')}
           >
             <Send className="w-4 h-4" />
           </button>
@@ -359,7 +355,7 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
             type="button"
             onClick={cancelRecording}
             className="p-2 bg-white/10 hover:bg-white/20 active:scale-95 text-gray-400 rounded-xl transition-all"
-            title={t('voice.discard', 'Descartar')}
+            title={t('voice.discard')}
           >
             <Trash2 className="w-4 h-4" />
           </button>

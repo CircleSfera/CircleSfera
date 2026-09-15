@@ -92,32 +92,32 @@ export default function FirewallRulesTab({ onToast }: Props) {
     mutationFn: () =>
       adminApi.createFirewallRule({ keyword: newKeyword, action: newAction }),
     onSuccess: () => {
-      onToast('Regla añadida', 'success');
+      onToast(t('admin.firewall.rule_added'), 'success');
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
     },
-    onError: () => onToast('Error añadiendo regla', 'error'),
+    onError: () => onToast(t('admin.firewall.rule_add_error'), 'error'),
   });
 
   const updateMutation = useMutation({
     mutationFn: (args: { id: string; action: string }) =>
       adminApi.updateFirewallRule(args.id, { action: args.action }),
     onSuccess: () => {
-      onToast('Regla actualizada', 'success');
+      onToast(t('admin.firewall.rule_updated'), 'success');
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
     },
-    onError: () => onToast('Error actualizando regla', 'error'),
+    onError: () => onToast(t('admin.firewall.rule_update_error'), 'error'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deleteFirewallRule(id),
     onSuccess: (_data, id) => {
-      onToast('Regla borrada', 'success');
+      onToast(t('admin.firewall.rule_deleted'), 'success');
       setDeleteId(null);
       if (selectedId === id) setSelectedId(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
     },
-    onError: () => onToast('Error borrando regla', 'error'),
+    onError: () => onToast(t('admin.firewall.rule_delete_error'), 'error'),
   });
 
   const handleSave = () => {
@@ -198,14 +198,8 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   </h3>
                   <p className="text-sm text-white/50">
                     {isCreating
-                      ? t(
-                          'admin.firewall.new_rule_hint',
-                          'Define an exact word or phrase to intercept.',
-                        )
-                      : t(
-                          'admin.firewall.rule_details_hint',
-                          'Information for the selected rule.',
-                        )}
+                      ? t('admin.firewall.new_rule_hint')
+                      : t('admin.firewall.rule_details_hint')}
                   </p>
                 </div>
                 {!isCreating && selectedItem && (
@@ -232,7 +226,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       type="text"
                       value={newKeyword}
                       onChange={(e) => setNewKeyword(e.target.value)}
-                      placeholder="ej. spamcasino.com"
+                      placeholder={t('admin.firewall.keyword_placeholder')}
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
                     />
                   </div>

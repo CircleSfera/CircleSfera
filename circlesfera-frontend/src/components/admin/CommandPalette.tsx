@@ -69,15 +69,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         if (!item || !canOpenTab(tabId)) return null;
         return {
           id: `quick-${item.id}`,
-          title: t('admin.cmd.quick_action', {
-            section: t(item.labelKey, item.labelFallback),
-          }),
+          title: t('admin.cmd.quick_action', { section: t(item.labelKey) }),
           icon: <item.icon size={16} />,
           action: () => {
             navigate(adminTabPath(item.id));
             onClose();
           },
-          searchable: `${item.labelFallback} ${item.id} quick`,
+          searchable: `${t(item.labelKey)} ${item.id} quick`,
         };
       }).filter(Boolean) as PaletteResult[],
     [canOpenTab, navigate, onClose, t],
@@ -89,15 +87,13 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         (item) => !QUICK_ACTION_TABS.includes(item.id) && canOpenTab(item.id),
       ).map((item) => ({
         id: `nav-${item.id}`,
-        title: t('admin.cmd.go_to', {
-          section: t(item.labelKey, item.labelFallback),
-        }),
+        title: t('admin.cmd.go_to', { section: t(item.labelKey) }),
         icon: <item.icon size={16} />,
         action: () => {
           navigate(adminTabPath(item.id));
           onClose();
         },
-        searchable: `${item.labelFallback} ${item.id}`,
+        searchable: `${t(item.labelKey)} ${item.id}`,
       })),
     [canOpenTab, navigate, onClose, t],
   );
@@ -201,7 +197,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
         >
           {query.length > 0 && results.length === 0 ? (
             <div className="p-4 text-center text-white/40 text-sm">
-              {t('admin.cmd.no_results', 'Sin resultados para "{{query}}"', {
+              {t('admin.cmd.no_results', {
                 query,
               })}
             </div>

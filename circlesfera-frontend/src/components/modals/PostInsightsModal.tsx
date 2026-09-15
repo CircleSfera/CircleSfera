@@ -67,49 +67,49 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
             <>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <StatCard
-                  label={t('modals.insights.views', 'Views')}
+                  label={t('modals.insights.views')}
                   value={insights.post.views}
                   icon={Eye}
                   color="text-blue-400"
                   bg="bg-blue-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.impressions', 'Impressions')}
+                  label={t('modals.insights.impressions')}
                   value={insights.post.impressions || 0}
                   icon={Eye}
                   color="text-indigo-400"
                   bg="bg-indigo-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.likes', 'Likes')}
+                  label={t('modals.insights.likes')}
                   value={insights.post._count.likes}
                   icon={Heart}
                   color="text-rose-400"
                   bg="bg-rose-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.comments', 'Comments')}
+                  label={t('modals.insights.comments')}
                   value={insights.post._count.comments}
                   icon={MessageCircle}
                   color="text-emerald-400"
                   bg="bg-emerald-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.saves', 'Saves')}
+                  label={t('modals.insights.saves')}
                   value={insights.post._count.bookmarks}
                   icon={Bookmark}
                   color="text-purple-400"
                   bg="bg-purple-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.shares', 'Shares')}
+                  label={t('modals.insights.shares')}
                   value={insights.post.shares || 0}
                   icon={Share2}
                   color="text-pink-400"
                   bg="bg-pink-400/10"
                 />
                 <StatCard
-                  label={t('modals.insights.dwell_time', 'Dwell Time')}
+                  label={t('modals.insights.dwell_time')}
                   value={insights.post.totalDwellTime || 0}
                   icon={Clock}
                   color="text-cyan-400"
@@ -119,7 +119,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
                   }
                 />
                 <StatCard
-                  label={t('modals.insights.conversion_rate', 'Conv. Rate')}
+                  label={t('modals.insights.conversion_rate')}
                   value={insights.post.conversionRate || 0}
                   icon={TrendingUp}
                   color="text-amber-400"

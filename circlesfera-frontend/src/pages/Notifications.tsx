@@ -59,11 +59,8 @@ export default function Notifications() {
     return (
       <div className="min-h-dvh flex items-center justify-center px-4">
         <ErrorState
-          title={t('notifications.error_title', "Couldn't load notifications")}
-          message={t(
-            'notifications.error_message',
-            'Something went wrong. Please try again.',
-          )}
+          title={t('notifications.error_title')}
+          message={t('notifications.error_message')}
           onRetry={() => refetch()}
         />
       </div>
@@ -224,7 +221,7 @@ export default function Notifications() {
       {/* Page Header */}
       <div className="px-4 pt-3 pb-2 md:pt-6 md:pb-3">
         <h1 className="text-xl md:text-2xl font-black tracking-tight text-white">
-          {t('notifications.title', 'Actividad')}
+          {t('notifications.title')}
         </h1>
       </div>
 
@@ -330,7 +327,7 @@ export default function Notifications() {
                     to={moderationAppealPath(notif)}
                     className="inline-flex mt-2 min-h-11 items-center rounded-full border border-orange-400/30 bg-orange-500/10 px-3 text-xs font-semibold text-orange-200 hover:bg-orange-500/20 transition-colors"
                   >
-                    {t('notifications.appeal_cta', 'Appeal this decision')}
+                    {t('notifications.appeal_cta')}
                   </Link>
                 )}
                 <p
@@ -366,10 +363,7 @@ export default function Notifications() {
                 <Link
                   to={moderationAppealPath(notif)}
                   className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
-                  aria-label={t(
-                    'notifications.appeal_cta',
-                    'Appeal this decision',
-                  )}
+                  aria-label={t('notifications.appeal_cta')}
                 >
                   <div
                     className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"

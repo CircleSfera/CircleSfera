@@ -90,7 +90,7 @@ export default function ChatWindow() {
     voiceWaveform: number[];
   }) => {
     setIsRecording(false);
-    const voiceLabel = t('chat.voice_note', '🎤 Voice note');
+    const voiceLabel = t('chat.voice_note');
     const tempId =
       Date.now().toString() + Math.random().toString(36).substring(2, 9);
     const tempMsg: Message = {
@@ -198,11 +198,7 @@ export default function ChatWindow() {
         }
       } catch (err) {
         logger.error('Failed to unlock message', err);
-        toast.error(
-          t('monetization.failed_to_unlock', {
-            defaultValue: 'Failed to unlock message',
-          }),
-        );
+        toast.error(t('monetization.failed_to_unlock'));
       }
     },
     [t],
@@ -275,9 +271,7 @@ export default function ChatWindow() {
     if (!success && !canceled) return;
 
     if (success) {
-      toast.success(
-        t('chat.unlock_success', 'Message unlocked. Thanks for your support!'),
-      );
+      toast.success(t('chat.unlock_success'));
       chatApi
         .getMessages(id)
         .then((res) => {
@@ -287,7 +281,7 @@ export default function ChatWindow() {
         })
         .catch((err) => logger.error('Failed to refresh messages', err));
     } else {
-      toast.error(t('chat.unlock_canceled', 'Unlock checkout was canceled.'));
+      toast.error(t('chat.unlock_canceled'));
     }
 
     const next = new URLSearchParams(searchParams);
@@ -579,7 +573,7 @@ export default function ChatWindow() {
       const uploadRes = await uploadApi.upload(formData);
 
       const mediaPayload = {
-        text: t('chat.sent_image') || '📷 Image',
+        text: t('chat.sent_image'),
         originalName: file.name,
         originalType: file.type,
       };
@@ -823,7 +817,7 @@ export default function ChatWindow() {
                   {conversation.avatarUrl ? (
                     <img
                       src={conversation.avatarUrl}
-                      alt="Group"
+                      alt={chatInfo.name || t('common.alt.group')}
                       className="w-full h-full object-cover"
                     />
                   ) : (
@@ -839,7 +833,7 @@ export default function ChatWindow() {
                               '/default-avatar.png'
                             }
                             className="w-full h-full object-cover"
-                            alt={p.profile?.username || 'User'}
+                            alt={p.profile?.username || t('chat.user')}
                             loading="lazy"
                           />
                         ))}
@@ -868,7 +862,7 @@ export default function ChatWindow() {
                   <span>{chatInfo.name}</span>
                   {!chatInfo.isGroup && (
                     <span
-                      title="Mensajería cifrada de extremo a extremo (E2EE)"
+                      title={t('chat.e2ee')}
                       className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold tracking-wider uppercase"
                     >
                       <ShieldCheck size={12} className="shrink-0" />
@@ -959,7 +953,7 @@ export default function ChatWindow() {
                 type="button"
                 className="fixed inset-0 z-40 bg-transparent cursor-default border-none p-0 w-screen h-screen"
                 onClick={() => setShowMenu(false)}
-                aria-label="Cerrar menú"
+                aria-label={t('common.close_menu')}
               />
             )}
             <button
@@ -991,9 +985,7 @@ export default function ChatWindow() {
                     className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
-                    {t('chat.delete_for_me', {
-                      defaultValue: 'Eliminar para mí',
-                    })}
+                    {t('chat.delete_for_me')}
                   </button>
                   <button
                     type="button"
@@ -1005,9 +997,7 @@ export default function ChatWindow() {
                     className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
                     <Trash2 size={16} />
-                    {t('chat.delete_for_everyone', {
-                      defaultValue: 'Eliminar para todos',
-                    })}
+                    {t('chat.delete_for_everyone')}
                   </button>
                 </motion.div>
               )}
@@ -1131,7 +1121,7 @@ export default function ChatWindow() {
                 </div>
                 <span className="text-gray-300 line-clamp-1 text-xs mt-0.5">
                   {replyTo.content?.includes('"ciphertext"')
-                    ? `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`
+                    ? `🔒 ${t('chat.secure_message')}`
                     : replyTo.content || t('chat.attachment')}
                 </span>
               </div>
@@ -1154,9 +1144,7 @@ export default function ChatWindow() {
               <div className="flex flex-col text-sm border-l-2 border-blue-500 pl-3">
                 <div className="flex items-center gap-2">
                   <span className="text-blue-400 font-semibold text-xs">
-                    {t('chat.editing_message', {
-                      defaultValue: 'Editando mensaje',
-                    })}
+                    {t('chat.editing_message')}
                   </span>
                 </div>
                 <span className="text-gray-300 line-clamp-1 text-xs mt-0.5">

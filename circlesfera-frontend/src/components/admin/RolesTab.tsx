@@ -102,13 +102,7 @@ export default function RolesTab({ onToast }: Props) {
     } catch (err) {
       if (isStepUpRequired(err)) {
         setPendingAction(() => action);
-        onToast(
-          t(
-            'admin.operators.step_up_required',
-            'Confirm with your authenticator code',
-          ),
-          'error',
-        );
+        onToast(t('admin.operators.step_up_required'), 'error');
         return;
       }
       throw err;
@@ -124,10 +118,10 @@ export default function RolesTab({ onToast }: Props) {
       setPendingAction(null);
       setStepUpCode('');
       void invalidate();
-      onToast(t('admin.operators.step_up_ok', 'Verified'), 'success');
+      onToast(t('admin.operators.step_up_ok'), 'success');
     },
     onError: () => {
-      onToast(t('admin.operators.step_up_failed', 'Step-up failed'), 'error');
+      onToast(t('admin.operators.step_up_failed'), 'error');
     },
   });
 
@@ -135,7 +129,7 @@ export default function RolesTab({ onToast }: Props) {
     mutationFn: () =>
       runWithStepUp(() =>
         adminApi.createOperator(createForm).then(async (res) => {
-          onToast(t('admin.operators.created', 'Operator created'), 'success');
+          onToast(t('admin.operators.created'), 'success');
           setShowCreate(false);
           setCreateForm({
             email: '',
@@ -150,8 +144,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message ||
-            t('admin.operators.create_error', 'Could not create operator'),
+          err?.response?.data?.message || t('admin.operators.create_error'),
           'error',
         );
       }
@@ -165,8 +158,8 @@ export default function RolesTab({ onToast }: Props) {
         await adminApi.updateOperatorStatus(selectedId, next);
         onToast(
           next === 'DISABLED'
-            ? t('admin.operators.disabled', 'Operator disabled')
-            : t('admin.operators.enabled', 'Operator enabled'),
+            ? t('admin.operators.disabled')
+            : t('admin.operators.enabled'),
           'success',
         );
         await invalidate();
@@ -174,8 +167,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message ||
-            t('admin.operators.status_error', 'Could not update status'),
+          err?.response?.data?.message || t('admin.operators.status_error'),
           'error',
         );
       }
@@ -187,14 +179,13 @@ export default function RolesTab({ onToast }: Props) {
       runWithStepUp(async () => {
         if (!selectedId) return;
         await adminApi.replaceOperatorRoles(selectedId, roleIds);
-        onToast(t('admin.operators.roles_updated', 'Roles updated'), 'success');
+        onToast(t('admin.operators.roles_updated'), 'success');
         await invalidate();
       }),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message ||
-            t('admin.operators.roles_error', 'Could not update roles'),
+          err?.response?.data?.message || t('admin.operators.roles_error'),
           'error',
         );
       }
@@ -206,14 +197,13 @@ export default function RolesTab({ onToast }: Props) {
       runWithStepUp(async () => {
         if (!selectedId) return;
         await adminApi.resetOperatorMfa(selectedId);
-        onToast(t('admin.operators.mfa_reset', 'MFA reset'), 'success');
+        onToast(t('admin.operators.mfa_reset'), 'success');
         await invalidate();
       }),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message ||
-            t('admin.operators.mfa_error', 'Could not reset MFA'),
+          err?.response?.data?.message || t('admin.operators.mfa_error'),
           'error',
         );
       }
@@ -226,17 +216,13 @@ export default function RolesTab({ onToast }: Props) {
         if (!selectedId || passwordReset.length < 12) return;
         await adminApi.resetOperatorPassword(selectedId, passwordReset);
         setPasswordReset('');
-        onToast(
-          t('admin.operators.password_reset', 'Password updated'),
-          'success',
-        );
+        onToast(t('admin.operators.password_reset'), 'success');
         await invalidate();
       }),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message ||
-            t('admin.operators.password_error', 'Could not reset password'),
+          err?.response?.data?.message || t('admin.operators.password_error'),
           'error',
         );
       }
@@ -246,11 +232,8 @@ export default function RolesTab({ onToast }: Props) {
   return (
     <div className="space-y-2.5">
       <AdminPageHeader
-        title={t('admin.operators.title', 'Operators')}
-        subtitle={t(
-          'admin.operators.subtitle',
-          'Admin Panel identities, roles and MFA',
-        )}
+        title={t('admin.operators.title')}
+        subtitle={t('admin.operators.subtitle')}
         actions={
           <Button
             type="button"
@@ -260,7 +243,7 @@ export default function RolesTab({ onToast }: Props) {
             onClick={() => setShowCreate(true)}
           >
             <Plus size={16} />
-            {t('admin.operators.create', 'New operator')}
+            {t('admin.operators.create')}
           </Button>
         }
       />
@@ -272,7 +255,7 @@ export default function RolesTab({ onToast }: Props) {
             setSearchQuery(v);
             setPage(1);
           }}
-          placeholder={t('admin.operators.search', 'Search by email or name…')}
+          placeholder={t('admin.operators.search')}
         />
         <select
           value={statusFilter}
@@ -281,10 +264,10 @@ export default function RolesTab({ onToast }: Props) {
             setPage(1);
           }}
           className="input-glass h-11 px-3 rounded-xl text-sm text-white bg-transparent border border-white/10"
-          aria-label={t('admin.operators.filter_status', 'Status')}
+          aria-label={t('admin.operators.filter_status')}
         >
           <option value="ALL" className="bg-surface-raised">
-            {t('admin.operators.status_all', 'All statuses')}
+            {t('admin.operators.status_all')}
           </option>
           <option value="ACTIVE" className="bg-surface-raised">
             ACTIVE
@@ -298,10 +281,7 @@ export default function RolesTab({ onToast }: Props) {
       {pendingAction && (
         <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
           <p className="text-sm text-white/70">
-            {t(
-              'admin.operators.step_up_hint',
-              'Enter your authenticator code to confirm this action.',
-            )}
+            {t('admin.operators.step_up_hint')}
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <Input
@@ -320,7 +300,7 @@ export default function RolesTab({ onToast }: Props) {
               isLoading={stepUpMutation.isPending}
               onClick={() => stepUpMutation.mutate()}
             >
-              {t('admin.operators.confirm', 'Confirm')}
+              {t('admin.operators.confirm')}
             </Button>
             <Button
               type="button"
@@ -330,7 +310,7 @@ export default function RolesTab({ onToast }: Props) {
                 setStepUpCode('');
               }}
             >
-              {t('common.cancel', 'Cancel')}
+              {t('common.cancel')}
             </Button>
           </div>
         </div>
@@ -339,7 +319,7 @@ export default function RolesTab({ onToast }: Props) {
       {showCreate && (
         <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
           <h3 className="text-sm font-bold text-white">
-            {t('admin.operators.create', 'New operator')}
+            {t('admin.operators.create')}
           </h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
@@ -351,7 +331,7 @@ export default function RolesTab({ onToast }: Props) {
               }
             />
             <Input
-              placeholder={t('admin.operators.display_name', 'Display name')}
+              placeholder={t('admin.operators.display_name')}
               value={createForm.displayName}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, displayName: e.target.value }))
@@ -359,10 +339,7 @@ export default function RolesTab({ onToast }: Props) {
             />
             <Input
               type="password"
-              placeholder={t(
-                'admin.operators.password_min',
-                'Password (min 12)',
-              )}
+              placeholder={t('admin.operators.password_min')}
               value={createForm.password}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, password: e.target.value }))
@@ -387,14 +364,14 @@ export default function RolesTab({ onToast }: Props) {
               }
               onClick={() => createMutation.mutate()}
             >
-              {t('admin.operators.save', 'Create')}
+              {t('admin.operators.save')}
             </Button>
             <Button
               type="button"
               variant="ghost"
               onClick={() => setShowCreate(false)}
             >
-              {t('common.cancel', 'Cancel')}
+              {t('common.cancel')}
             </Button>
           </div>
         </div>
@@ -403,7 +380,7 @@ export default function RolesTab({ onToast }: Props) {
       {isError ? (
         <AdminEmptyState
           icon={ShieldOff}
-          title={t('admin.operators.load_error', 'Could not load operators')}
+          title={t('admin.operators.load_error')}
         />
       ) : (
         <AdminSplitView
@@ -416,7 +393,7 @@ export default function RolesTab({ onToast }: Props) {
             ) : !data?.data.length ? (
               <AdminEmptyState
                 icon={UserCog}
-                title={t('admin.operators.empty', 'No operators yet')}
+                title={t('admin.operators.empty')}
                 compact
               />
             ) : (
@@ -462,12 +439,12 @@ export default function RolesTab({ onToast }: Props) {
                     {selected.totpEnabled ? (
                       <>
                         <ShieldCheck size={14} className="text-emerald-400" />
-                        {t('admin.operators.mfa_on', 'MFA enrolled')}
+                        {t('admin.operators.mfa_on')}
                       </>
                     ) : (
                       <>
                         <ShieldOff size={14} className="text-amber-400" />
-                        {t('admin.operators.mfa_off', 'MFA enrollment pending')}
+                        {t('admin.operators.mfa_off')}
                       </>
                     )}
                   </p>
@@ -475,7 +452,7 @@ export default function RolesTab({ onToast }: Props) {
 
                 <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
-                    {t('admin.operators.roles', 'Roles')}
+                    {t('admin.operators.roles')}
                   </h4>
                   <RoleChecklist
                     catalog={rolesCatalog || []}
@@ -486,7 +463,7 @@ export default function RolesTab({ onToast }: Props) {
 
                 <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
-                    {t('admin.operators.actions', 'Actions')}
+                    {t('admin.operators.actions')}
                   </h4>
                   <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                     <Button
@@ -501,8 +478,8 @@ export default function RolesTab({ onToast }: Props) {
                       }
                     >
                       {selected.status === 'ACTIVE'
-                        ? t('admin.operators.disable', 'Disable')
-                        : t('admin.operators.enable', 'Enable')}
+                        ? t('admin.operators.disable')
+                        : t('admin.operators.enable')}
                     </Button>
                     <Button
                       type="button"
@@ -512,16 +489,13 @@ export default function RolesTab({ onToast }: Props) {
                       onClick={() => resetMfaMutation.mutate()}
                     >
                       <KeyRound size={14} />
-                      {t('admin.operators.reset_mfa', 'Reset MFA')}
+                      {t('admin.operators.reset_mfa')}
                     </Button>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                       type="password"
-                      placeholder={t(
-                        'admin.operators.new_password',
-                        'New password (min 12)',
-                      )}
+                      placeholder={t('admin.operators.new_password')}
                       value={passwordReset}
                       onChange={(e) => setPasswordReset(e.target.value)}
                     />
@@ -533,7 +507,7 @@ export default function RolesTab({ onToast }: Props) {
                       disabled={passwordReset.length < 12}
                       onClick={() => resetPasswordMutation.mutate()}
                     >
-                      {t('admin.operators.set_password', 'Set password')}
+                      {t('admin.operators.set_password')}
                     </Button>
                   </div>
                 </div>

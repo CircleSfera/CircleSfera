@@ -86,13 +86,14 @@ export const ActiveSessionsSettings: React.FC = () => {
   };
 
   const getDeviceName = (ua?: string) => {
-    if (!ua) return 'Dispositivo';
-    if (ua.includes('iPhone')) return 'iPhone (Safari Mobile)';
-    if (ua.includes('Android')) return 'Android Device';
-    if (ua.includes('Macintosh') || ua.includes('Mac OS')) return 'Mac Desktop';
-    if (ua.includes('Windows')) return 'Windows Desktop';
-    if (ua.includes('Linux')) return 'Linux Desktop';
-    return 'Web Browser';
+    if (!ua) return t('settings.security.device_unknown');
+    if (ua.includes('iPhone')) return t('settings.security.device_iphone');
+    if (ua.includes('Android')) return t('settings.security.device_android');
+    if (ua.includes('Macintosh') || ua.includes('Mac OS'))
+      return t('settings.security.device_mac');
+    if (ua.includes('Windows')) return t('settings.security.device_windows');
+    if (ua.includes('Linux')) return t('settings.security.device_linux');
+    return t('settings.security.device_browser');
   };
 
   return (

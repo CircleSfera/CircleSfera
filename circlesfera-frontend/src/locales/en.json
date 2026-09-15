@@ -1,9 +1,14 @@
 {
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist or has been moved."
+  },
   "cookieConsent": {
     "title": "Cookies",
     "description": "We use necessary cookies to run the app. Analytics cookies help us improve CircleSfera and are optional.",
     "essential_only": "Essential only",
-    "accept": "Accept all"
+    "accept": "Accept all",
+    "dismiss": "Dismiss"
   },
   "nav": {
     "home": "Home",
@@ -19,7 +24,10 @@
     "premium": "Premium",
     "settings": "Settings",
     "log_out": "Log out",
-    "explore": "Explore"
+    "explore": "Explore",
+    "main": "Main navigation",
+    "mobile": "Mobile navigation",
+    "top": "Top navigation"
   },
   "settings": {
     "title": "Settings",
@@ -139,7 +147,14 @@
         "name": "Your name",
         "bio": "Tell the world your story...",
         "website": "https://yourwebsite.com"
-      }
+      },
+      "email_sent": "Sent!",
+      "email_unverified_desc": "For security, you need to verify your email to save changes.",
+      "email_unverified_title": "Email not verified",
+      "error_saving": "Could not save changes",
+      "resend_email": "Resend email",
+      "username_check_error": "Error checking username",
+      "username_min": "Username must be at least 3 characters"
     },
     "privacy": {
       "title": "Privacy",
@@ -157,7 +172,9 @@
       "subtitle": "Manage Connections",
       "empty": "No pending requests at the moment",
       "confirm": "Confirm",
-      "delete": "Delete"
+      "delete": "Delete",
+      "accept": "Confirm",
+      "reject": "Delete"
     },
     "mutes": {
       "title": "Blocked accounts",
@@ -199,7 +216,8 @@
         "btn": "Request export",
         "processing": "Processing your request…",
         "download": "Download data",
-        "request_new": "Request a new export"
+        "request_new": "Request a new export",
+        "history": "Export History"
       },
       "export_success": "Data export started. You will receive an email when it is ready.",
       "export_error": "Failed to request data export.",
@@ -214,7 +232,14 @@
         "btn": "Verify identity",
         "verified": "Verified",
         "error": "Failed to initialize verification session"
-      }
+      },
+      "ledger": {
+        "button": "Download Ledger",
+        "desc": "Download a complete CSV record of all your financial transactions.",
+        "title": "Financial Ledger"
+      },
+      "ledger_error": "Failed to download ledger.",
+      "ledger_success": "Ledger downloaded."
     },
     "billing": {
       "title": "Subscription",
@@ -243,7 +268,41 @@
       "revoke_others": "Log out other sessions",
       "current_device": "This device",
       "loading_sessions": "Loading active sessions...",
-      "no_other_sessions": "No additional active sessions at this time."
+      "no_other_sessions": "No additional active sessions at this time.",
+      "2fa": {
+        "title": "Two-Factor Authentication (TOTP)",
+        "status_enabled": "Your account is secured with 2FA.",
+        "status_disabled": "Protect your account by enabling 2FA.",
+        "setup_btn": "Set Up Authenticator App",
+        "instructions": "Scan this QR code with an authenticator app (like Google Authenticator or Authy), then enter the 6-digit code below.",
+        "qr_alt": "Authenticator QR code",
+        "verify_btn": "Verify",
+        "confirm_disable": "Are you sure you want to disable 2FA? This will make your account less secure.",
+        "disabling": "Disabling...",
+        "disable_btn": "Disable 2FA",
+        "generate_error": "Failed to generate 2FA secret",
+        "enable_success": "Two-Factor Authentication enabled!",
+        "invalid_code": "Invalid verification code",
+        "disable_success": "Two-Factor Authentication disabled",
+        "disable_error": "Failed to disable 2FA"
+      },
+      "biometric_desc": "Require Face ID / Touch ID when opening the app",
+      "biometric_label": "Biometric Lock",
+      "app_locked_desc": "CircleSfera is locked. Verify your identity to continue.",
+      "app_locked_title": "App locked",
+      "biometric_description": "Use Face ID or Touch ID to unlock.",
+      "biometric_failed": "Authentication failed. Try again.",
+      "biometric_reason": "Unlock CircleSfera",
+      "biometric_subtitle": "Verify your identity",
+      "biometric_title": "Authentication required",
+      "unlock_button": "Unlock",
+      "device_unknown": "Device",
+      "device_iphone": "iPhone (Safari Mobile)",
+      "device_android": "Android device",
+      "device_mac": "Mac desktop",
+      "device_windows": "Windows desktop",
+      "device_linux": "Linux desktop",
+      "device_browser": "Web browser"
     },
     "appeals": {
       "title": "Appeals",
@@ -337,7 +396,19 @@
       "success": "Passkey registered successfully!",
       "initializing": "Initializing Secure Handshake...",
       "add_new": "Add New Security Key",
-      "fido": "FIDO2 / WebAuthn Certified Protection"
+      "fido": "FIDO2 / WebAuthn Certified Protection",
+      "empty": "You don't have any passkeys yet.",
+      "register_error": "Could not register the passkey.",
+      "biometric_available": "Biometrics available",
+      "created_on": "Created {{date}}"
+    },
+    "notifications": {
+      "email_desc": "Receive email updates and alerts",
+      "email_notifications": "Email notifications",
+      "push_desc": "Receive in-app notifications",
+      "push_notifications": "Push notifications",
+      "update_error": "Failed to update settings",
+      "updated": "Settings updated"
     }
   },
   "auth": {
@@ -358,7 +429,16 @@
       "passkey_loading": "Verifying Identity...",
       "passkey_btn": "Sign in with Passkey",
       "no_account": "Don't have an account?",
-      "sign_up_link": "Sign up"
+      "sign_up_link": "Sign up",
+      "banned_message": "Your account has been deactivated. You may submit an appeal below.",
+      "appeal_reason_label": "Reason for Appeal",
+      "appeal_reason_placeholder": "Explain why your account should be reinstated...",
+      "submit_appeal": "Submit Appeal",
+      "appeal_success": "Appeal submitted successfully. Our team will review it.",
+      "appeal_error": "Failed to submit appeal",
+      "back_to_login": "Back",
+      "2fa_code": "Authentication Code",
+      "2fa_hint": "Enter the 6-digit code from your authenticator app."
     },
     "register": {
       "title": "CircleSfera",
@@ -389,7 +469,9 @@
       "sign_up": "Sign Up",
       "has_account": "Already have an account?",
       "sign_in_link": "Sign in",
-      "success": "Account created successfully! Please check your email to verify your account."
+      "success": "Account created successfully! Please check your email to verify your account.",
+      "age_error": "You must be at least 16 years old to register.",
+      "dob_required": "Date of birth is required"
     },
     "verify": {
       "no_token": "Verification token not found.",
@@ -435,7 +517,8 @@
       "submit": "Change Password",
       "cancel": "Cancel and back to login"
     },
-    "captcha_required": "Please complete the security check."
+    "captcha_required": "Please complete the security check.",
+    "captcha_unavailable": "Security check is not ready yet. Wait for the deploy to finish and refresh."
   },
   "legal": {
     "nav": {
@@ -520,6 +603,8 @@
   "feed": {
     "home_title": "Home",
     "brand_name": "CircleSfera",
+    "for_you": "For You",
+    "following": "Following",
     "no_posts": "No posts yet. Explore to find creators!",
     "no_posts_title": "No recent posts",
     "login_required_title": "Sign in",
@@ -555,13 +640,18 @@
     "author_shown": "Author visible again",
     "post_shown": "Post visible again",
     "error": "Could not update preference",
-    "hidden_post_fallback": "Hidden post"
+    "hidden_post_fallback": "Hidden post",
+    "post_hidden": "Post hidden from your feed",
+    "post_hide_error": "Could not hide post",
+    "author_hidden": "Author hidden from your feed",
+    "author_hide_error": "Could not hide author"
   },
   "explore": {
     "page_title": "Explore the Universe",
     "page_desc": "Discover trending posts, local creators, and use our AI-powered search to find exactly what you're looking for on CircleSfera.",
     "heading": "Explore",
     "search_placeholder": "Search users, #tags, or described content...",
+    "clear_search": "Clear search",
     "searching": "Searching...",
     "smart_search": "Smart Search",
     "beta_ai": "Beta AI",
@@ -579,6 +669,35 @@
     "for_you": "For You",
     "trending": "Trending",
     "discover_content": "Discover new content here based on your tastes.",
+    "map": {
+      "open": "Open discovery map",
+      "page_title": "Explore map",
+      "title": "Places nearby",
+      "back": "Back",
+      "close_sheet": "Close",
+      "search_area": "Search this area",
+      "searching": "Searching…",
+      "recenter": "Center on my location",
+      "empty": "No tagged places in this area yet.",
+      "empty_hint": "Tag a place when you create a post. Public content with a location will show as pins on the map.",
+      "empty_cta": "Create a post",
+      "show_places": "Show places",
+      "places_chip": "{{count}} places",
+      "posts_count": "{{count}} posts",
+      "more_count": "+{{count}} more",
+      "recent": "Recent",
+      "posted_by": "Posted here",
+      "creators_more": "{{count}} people",
+      "place": "Place",
+      "no_posts": "No posts here yet",
+      "no_posts_hint": "Be the first to tag this place.",
+      "area_generic": "This area",
+      "token_missing": "Mapbox token required",
+      "token_missing_hint": "Set VITE_MAPBOX_ACCESS_TOKEN in your frontend .env and restart Vite.",
+      "render_error": "Couldn't load the map",
+      "render_error_hint": "Check the browser console or reload the page.",
+      "retry": "Retry"
+    },
     "cold_start": {
       "title_foryou": "Discover your own space",
       "title_trending": "Trends are waiting for you",
@@ -739,7 +858,11 @@
         },
         "closing": "Read Pricing for plan details, then create an account to open Creator Studio when you are eligible."
       }
-    }
+    },
+    "error_message": "Something went wrong while loading posts. Please try again.",
+    "match": "Match",
+    "smart_people": "People matching your idea",
+    "error_title": "Couldn't load explore"
   },
   "post": {
     "detail": {
@@ -748,31 +871,47 @@
     },
     "tag_feed": {
       "discover": "Discover posts related to this tag",
-      "no_posts": "No posts found for"
+      "no_posts": "No posts found for",
+      "error_message": "Something went wrong while loading posts. Please try again.",
+      "error_title": "Couldn't load tag feed"
     },
     "actions": {
       "comments": "Comments",
       "share": "Share post",
       "tip": "Give tip",
       "remove_bookmark": "Remove from saved",
-      "add_bookmark": "Save post"
+      "add_bookmark": "Save post",
+      "like": "Like post",
+      "unlike": "Unlike post"
     },
     "content": {
       "likes": "likes",
-      "view_all_comments": "View all {{count}} comments"
+      "view_all_comments": "View all {{count}} comments",
+      "likes_count": "{{count}} likes",
+      "comments_count": "{{count}} comments"
     },
     "header": {
-      "promoted": "Promoted"
+      "promoted": "Promoted",
+      "more_options": "More options"
     },
     "media": {
       "unlock_success": "Post successfully unlocked!",
-      "unlock_error": "Error unlocking post"
+      "unlock_error": "Error unlocking post",
+      "carousel": "Media carousel",
+      "previous_slide": "Previous slide",
+      "next_slide": "Next slide",
+      "go_to_slide": "Go to slide {{n}}",
+      "sensitive": "Sensitive content blurred"
     },
     "menu": {
       "edit": "Edit",
       "delete": "Delete",
       "report": "Report",
-      "save": "Save"
+      "save": "Save",
+      "promote": "Boost Post",
+      "hide_author": "Hide author",
+      "mute": "Mute user",
+      "not_interested": "Not interested"
     },
     "modals": {
       "delete_title": "Delete Post?",
@@ -784,7 +923,24 @@
       "write_caption": "Write a caption...",
       "save": "Save",
       "saving": "Saving..."
-    }
+    },
+    "recommendation": {
+      "interest": "Recommended for you",
+      "popular": "Popular",
+      "new": "New for you",
+      "why": "Why?",
+      "close_friends": "Close Friends",
+      "following": "Following",
+      "signals_desc": {
+        "ranked_for_you": "Our ranking marked this as highly relevant based on your interests and activity.",
+        "popular": "This post is getting a lot of engagement on the platform right now.",
+        "network": "People in your network or that you follow are engaging with this post.",
+        "close_friend": "The author of this post is on your Close Friends list.",
+        "generic": "We recommend this because of: {{signal}}"
+      }
+    },
+    "checkout_canceled": "Checkout was canceled.",
+    "checkout_success": "Payment successful. Content will unlock shortly."
   },
   "story": {
     "delete_error": "Failed to delete story",
@@ -793,6 +949,12 @@
     "views": "Views",
     "sent": "Sent!",
     "reply_placeholder": "Reply...",
+    "send_reply": "Send reply",
+    "close_viewer": "Close story viewer",
+    "delete_this": "Delete this story",
+    "you": "You",
+    "yours": "Your story",
+    "view_of": "View {{username}}'s stories",
     "delete_title": "Delete Story?",
     "delete_warning": "This action cannot be undone.",
     "delete": "Delete",
@@ -806,7 +968,16 @@
     "questions_short": "Q&A",
     "qna_prompt_label": "Prompt",
     "no_questions": "No questions yet",
-    "no_questions_desc": "When people answer your Q&A sticker, they show up here."
+    "no_questions_desc": "When people answer your Q&A sticker, they show up here.",
+    "unlock_success": "Story unlocked",
+    "unlock_error": "Could not unlock story",
+    "delete_highlight": "Delete highlight",
+    "delete_highlight_confirm": "Delete this highlight?",
+    "edit_highlight": "Edit highlight",
+    "highlight_delete_error": "Could not delete",
+    "highlight_deleted": "Highlight deleted",
+    "highlight_update_error": "Could not update",
+    "highlight_updated": "Highlight updated"
   },
   "comments": {
     "unlike": "Unlike",
@@ -823,7 +994,9 @@
     "post": "Post",
     "upload_error": "Failed to upload media",
     "delete_title": "Delete Comment",
-    "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone."
+    "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone.",
+    "add_media": "Add media",
+    "voice_note": "🎤 Voice note"
   },
   "profile": {
     "tabs": {
@@ -852,7 +1025,12 @@
       "more_options": "More options",
       "mute": "Mute",
       "muted": "User muted",
-      "mute_error": "Failed to mute user"
+      "mute_error": "Failed to mute user",
+      "follow": "Follow",
+      "following": "Following",
+      "requested": "Requested",
+      "unblock": "Unblock",
+      "create_post": "Create new post"
     },
     "creator_mode": {
       "creator": "Creator",
@@ -898,7 +1076,9 @@
     "messages": {
       "subscribed_success": "Successfully subscribed!",
       "subscribe_error": "Error subscribing",
-      "chat_error": "Could not open chat"
+      "chat_error": "Could not open chat",
+      "checkout_canceled": "Checkout was canceled.",
+      "checkout_success": "Payment successful. Thanks for your support!"
     },
     "badges": {
       "premium": "Premium subscriber",
@@ -931,7 +1111,9 @@
         "older": "Longer ago",
         "unknown": "Unknown"
       }
-    }
+    },
+    "private_account": "Private account",
+    "private_label": "Private"
   },
   "suggestions": {
     "title": "Suggested for you",
@@ -981,9 +1163,16 @@
       "subtitle": "Optimize for screen readers",
       "done": "Done",
       "info": "\"Alt text describes your photos for people with visual impairments. CircleSfera can help you generate them using our proprietary AI.\"",
+      "info_video": "Describe this video for people who cannot see or hear it. CircleSfera does not auto-generate video descriptions yet.",
       "placeholder": "Write alt text...",
+      "placeholder_video": "Describe this video…",
       "generating": "Generating...",
       "magic_ai": "Magic AI"
+    },
+    "preview": {
+      "play": "Play",
+      "pause": "Pause",
+      "seek": "Scrub timeline"
     },
     "caption": {
       "add_location": "Add Location",
@@ -995,6 +1184,8 @@
       "write_caption": "Write a caption...",
       "you": "You",
       "options": "Post options",
+      "more_options": "More options",
+      "too_long": "Caption is too long.",
       "monetization": "Monetization",
       "monetization_active": "Paid content",
       "premium_content": "Premium Content (Pay-Per-View)",
@@ -1029,6 +1220,29 @@
       "n_files": "{{count}} files",
       "remove_media": "Remove media",
       "add_more": "Add more media",
+      "select_media": "Select media",
+      "audio": "Audio",
+      "muted": "Muted",
+      "with_sound": "With sound",
+      "trim_label": "Trim ({{seconds}}s)",
+      "reset": "Reset",
+      "tab_filters": "Filters",
+      "tab_adjust": "Adjust",
+      "tab_crop": "Crop",
+      "tab_trim": "Trim",
+      "tab_overlay": "Overlay",
+      "crop_free": "Free",
+      "crop_1_1": "1:1",
+      "crop_4_5": "4:5",
+      "crop_16_9": "16:9",
+      "crop_rotation": "Rotation",
+      "overlay_draw": "Draw",
+      "overlay_drawing": "Drawing…",
+      "overlay_add_text": "+ Text",
+      "overlay_new_text": "New text",
+      "overlay_delete": "Delete",
+      "overlay_brush_color": "Brush color",
+      "overlay_brush_size": "Brush size",
       "post": "Post",
       "story": "Story",
       "frame": "Frame",
@@ -1043,6 +1257,14 @@
         "sepia": "Sepia",
         "grayscale": "Grayscale"
       }
+    },
+    "frameTrim": {
+      "title": "Choose Frame length",
+      "hint": "Select a clip between {{min}} and {{max}} seconds.",
+      "presets": "Duration presets",
+      "preset_seconds": "{{seconds}}s",
+      "slider": "Clip start position",
+      "range": "{{start}} – {{end}}"
     },
     "header": {
       "add_to_story": "Add to Story",
@@ -1063,7 +1285,17 @@
       "poll_question": "Ask a question…",
       "option_a": "Option A",
       "option_b": "Option B",
-      "qna_prompt": "Ask me anything…"
+      "qna_prompt": "Ask me anything…",
+      "save": "Save",
+      "yes": "Yes",
+      "no": "No",
+      "poll_create_failed": "Post published, but the poll could not be created.",
+      "qna_create_failed": "Post published, but Q&A could not be created."
+    },
+    "seo": {
+      "post": "CircleSfera — New Post",
+      "frame": "CircleSfera — New Frame",
+      "story": "CircleSfera — Add to Story"
     },
     "stepper": {
       "upload": "Upload",
@@ -1075,25 +1307,40 @@
       "title": "Add Location",
       "search": "Find a location...",
       "use_current": "Use Current Location",
+      "current_coords": "Near {{lat}}, {{lng}}",
+      "geo_unsupported": "Geolocation is not available in this browser.",
+      "geo_denied": "Could not get your location. Check permissions.",
+      "geo_loading": "Finding place…",
       "suggested": "Suggested Location",
       "not_found": "No locations found",
-      "try_different": "Try searching for a different city or region."
+      "try_different": "Try searching for a different city or region.",
+      "token_missing": "Mapbox token missing. Set VITE_MAPBOX_ACCESS_TOKEN to search places.",
+      "retrieve_failed": "Could not resolve that place. Try another result.",
+      "clear": "Clear",
+      "mapbox_hint": "Search powered by Mapbox. Pick a place to attach coordinates to your post."
     },
     "upload": {
       "post": "Post",
       "post_desc": "Share photos & carousels",
-      "post_hint": "JPG, PNG, MP4 · Max 100MB",
+      "post_hint": "JPG, PNG, MP4 · Max 100MB · Video up to 5 min",
       "story": "Story",
       "story_desc": "Disappears in 24h",
       "story_hint": "Photo or video · Up to 60s",
       "frame": "Frame",
       "frame_desc": "Short-form video",
-      "frame_hint": "MP4, MOV · 15-90 seconds · Max 100MB",
+      "frame_hint": "MP4, MOV · Choose 15–90s · Max 100MB",
+      "frame_video_only": "Frames only accept video.",
+      "frame_duration": "Frame videos must be between {{min}} and {{max}} seconds.",
+      "frame_too_short": "Frame videos must be at least {{min}} seconds. Pick a longer clip.",
+      "frame_duration_probe_failed": "Could not read this video’s duration. Try another file.",
+      "story_duration": "Story videos must be {{max}} seconds or shorter.",
+      "post_duration": "Post videos must be {{max}} seconds or shorter.",
       "file_too_large": "{{name}} exceeds the {{maxMb}} MB limit.",
       "upload_failed": "Failed to upload {{name}}",
       "drop_files": "Drop files here",
       "drag_files": "Drag photos and videos here",
       "select_device": "Select from device",
+      "select_video": "Select video",
       "take_photo": "Take a photo",
       "create_text_story": "Create Text Story",
       "create_text_story_desc": "Backgrounds, text & stickers",
@@ -1197,30 +1444,50 @@
       "unsupported": "Tagging is only supported on images.",
       "done": "Done",
       "tags_on_photo": "Tags on this photo",
-      "no_tags_yet": "No tags yet. Tap the photo to add tags."
+      "no_tags_yet": "No tags yet. Tap the photo to add tags.",
+      "remove": "Remove"
     },
     "story": {
       "add_music": "Add Music",
+      "add_location": "Add place",
       "close_friends": "Close Friends",
       "your_story": "Your Story",
       "manage_close_friends": "Manage close friends",
       "add_close_friends_first": "Add close friends to share stories with them only.",
       "qna_create_error": "Story published, but Q&A could not be created.",
       "poll_create_error": "Story published, but the poll could not be created."
+    },
+    "discard": {
+      "cancel": "Cancel",
+      "confirm": "Discard",
+      "message": "If you leave now, you will lose all changes.",
+      "title": "Discard post?"
     }
   },
   "report": {
     "title": "Report",
     "success": "Thanks for reporting. We'll review your report shortly.",
-    "why_report": "Why are you reporting this {{targetType}}?",
+    "why_report": "Why are you reporting {{targetType}}?",
     "additional_details": "Additional Details (Optional)",
     "placeholder": "Tell us more...",
     "submitting": "Submitting...",
     "submit": "Submit Report",
+    "targets": {
+      "user": "this account",
+      "post": "this post",
+      "comment": "this comment",
+      "story": "this story",
+      "message": "this message"
+    },
     "reasons": {
       "spam": "It's spam",
       "harassment": "Harassment or bullying",
       "hate_speech": "Inappropriate content or Hate speech",
+      "violence": "Violence or dangerous content",
+      "illegal_content": "Illegal content",
+      "impersonation": "Impersonation",
+      "scam": "Scam or fraud",
+      "csam": "Child sexual exploitation (CSAM)",
       "other": "Something else"
     }
   },
@@ -1261,6 +1528,13 @@
     "file_too_large": "To ensure E2E encryption, files cannot exceed 50 MB.",
     "sent_attachment": "Sent an attachment",
     "shared_post": "Shared a post",
+    "message_deleted": "This message was deleted",
+    "secure_message": "Secure message",
+    "reply": "Reply",
+    "react": "React",
+    "remove_reaction": "Remove reaction",
+    "edit": "Edit",
+    "e2ee": "End-to-end encrypted messaging",
     "chat": "Chat",
     "group_chat": "Group Chat",
     "user": "User",
@@ -1325,7 +1599,12 @@
     "decrypting": "Decrypting…",
     "edited": "edited",
     "unlock_success": "Message unlocked. Thanks for your support!",
-    "unlock_canceled": "Unlock checkout was canceled."
+    "unlock_canceled": "Unlock checkout was canceled.",
+    "delete_for_me": "Delete for me",
+    "delete_for_everyone": "Delete for everyone",
+    "editing_message": "Editing message",
+    "read": "Read",
+    "delivered": "Delivered"
   },
   "creator": {
     "title": "Creator Studio",
@@ -1354,13 +1633,17 @@
       "filter_posts": "Posts",
       "filter_frames": "Frames",
       "prev": "Previous",
-      "next": "Next"
+      "next": "Next",
+      "insights": "Insights",
+      "boost": "Boost"
     },
     "stories": {
       "empty_title": "No stories yet",
       "empty_desc": "Share ephemeral moments with your followers to grow your reach.",
       "expired": "Expired",
-      "active": "Active"
+      "active": "Active",
+      "open": "Open story",
+      "open_error": "Could not open this story"
     },
     "money": {
       "sections": "Monetization sections",
@@ -1427,7 +1710,21 @@
       "followers": "Followers",
       "not_enough_data": "Not enough data yet",
       "upload_content": "Upload content to start measuring your audience.",
-      "export_csv": "Export CSV"
+      "export_csv": "Export CSV",
+      "income_history": "Income history (6 months)",
+      "no_income_data": "No income data for this period",
+      "current_month_income": "Income this month",
+      "total_tips": "Total tips",
+      "activity_hours": "Peak activity hours (last 30 days)",
+      "follower_locations": "Follower geography",
+      "no_activity_data": "No activity data",
+      "no_location_data": "No location data",
+      "no_retention_data": "No subscriber data",
+      "sub_retention": "Subscription retention",
+      "retained": "Active (renewing)",
+      "churning": "Cancelled (expiring soon)",
+      "churned": "Expired",
+      "income_series": "Income"
     },
     "promotions": {
       "created": "Promotion created",
@@ -1484,14 +1781,35 @@
       "finished_refund": "Promotion cancelled. Refund: {{amount}} {{currency}}",
       "error_cancel": "Error cancelling",
       "restarted": "Campaign restarted",
-      "error_repeat": "Error repeating"
+      "error_repeat": "Error repeating",
+      "elite_required": "Promotions are available on the Elite plan.",
+      "objective_profile": "Profile Visits",
+      "objective_follows": "Get Followers",
+      "objective_conversions": "Subscription Conversions",
+      "campaign_objective": "Campaign Objective",
+      "per_day": "day",
+      "estimated_reach": "Estimated reach",
+      "countries_hint": "Countries (e.g. ES, MX, US)",
+      "interests_hint": "Interests (e.g. Music, Fashion)",
+      "all_countries": "All countries",
+      "all_interests": "All interests",
+      "accept_terms": "By boosting you accept the advertising terms.",
+      "countries_placeholder": "Countries (comma-separated, optional)",
+      "interests_placeholder": "Interests (comma-separated, optional)",
+      "objective": "Objective",
+      "clicks": "Clicks",
+      "ctr": "CTR",
+      "cpc": "CPC"
     },
     "monetization": {
       "error_checkout": "Error starting checkout",
       "error_portal": "Error accessing portal",
+      "error_connect": "Error connecting to Stripe",
+      "error_dashboard": "Error opening dashboard",
       "loading_plans": "Loading plans...",
       "subscription_status": "Subscription Status",
-      "current_plan": "Current Plan",
+      "current_plan": "Current plan: {{plan}}",
+      "free_plan": "Free experience",
       "select_plan_start": "Select a plan below to start.",
       "manage_subscription": "Manage Subscription",
       "active": "Active",
@@ -1501,7 +1819,39 @@
       "growth_analytics": "Growth Analytics",
       "growth_desc": "Discover interaction patterns and optimize your reach with our proprietary AI tools.",
       "vip_community": "VIP Community",
-      "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery."
+      "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery.",
+      "lifetime": "Lifetime earnings",
+      "express_dashboard": "Open Stripe",
+      "stripe_connected": "Stripe account connected",
+      "stripe_connected_desc": "Stripe splits each charge (80% you / 20% CircleSfera) and pays out to your bank.",
+      "transfers_enabled": "Transfers enabled",
+      "transfers_pending": "Transfers pending setup"
+    },
+    "advanced": {
+      "title": "Revenue and retention",
+      "subtitle": "Paid audience, income mix and when people stay.",
+      "error": "Could not load advanced analytics.",
+      "export_csv": "Export CSV",
+      "loading": "Loading creator metrics…",
+      "gross": "Gross revenue",
+      "period_hint": "Period: {{period}}",
+      "paid_subs": "Paid subscribers",
+      "conversion": "Conversion: {{rate}}%",
+      "dwell": "Average dwell",
+      "peak": "Peak: {{hour}}:00 UTC",
+      "tips_gifts": "Tips & gifts",
+      "tips_hint": "Live and direct messages",
+      "breakdown": "Income sources",
+      "subscriptions": "Subscriptions",
+      "unlocks": "Paid unlocks",
+      "hourly": "Hourly interaction (UTC)",
+      "hour_slot": "{{hour}}:00 UTC — {{count}} interactions",
+      "hourly_hint": "Publishing around {{hour}}:00 UTC usually matches peak dwell.",
+      "top_posts": "Highest-performing posts",
+      "no_top_posts": "No posts with scored metrics yet."
+    },
+    "guard": {
+      "creators_only": "Creator Studio is available for creator accounts."
     }
   },
   "wallet": {
@@ -1542,7 +1892,11 @@
     "send_gift": "Send Gift",
     "send_tip": "Send Tip",
     "unlock_for_money": "Unlock for €{{price}}",
-    "failed_to_unlock": "Failed to unlock message"
+    "failed_to_unlock": "Failed to unlock message",
+    "connect_stripe_error": "Failed to connect Stripe.",
+    "connect_with_stripe": "Connect with Stripe",
+    "stripe_connect_desc": "To withdraw earnings, verify your identity and link a bank account with Stripe Connect.",
+    "verify_identity": "Verify identity to receive payouts"
   },
   "admin": {
     "panel": "Admin Panel",
@@ -1559,6 +1913,7 @@
       "dashboard": "Dashboard",
       "analytics": "Analytics",
       "monetization": "Monetization",
+      "payouts": "Payouts (Stripe)",
       "promotions": "Promotions",
       "verification": "Verification",
       "whitelist": "Whitelist",
@@ -1626,7 +1981,9 @@
       "saving": "Saving...",
       "save_changes": "Save changes",
       "add": "Add",
-      "delete": "Delete"
+      "delete": "Delete",
+      "select_item_title": "Select an item",
+      "select_item_description": "Choose an item from the list to see details."
     },
     "users": {
       "title": "User Management",
@@ -1684,6 +2041,17 @@
       "action_suspend": "Suspend",
       "action_restore": "Restore",
       "action_promote": "Promote",
+      "promote_modal": {
+        "title": "Promote user",
+        "description": "Search for a user by name or email to add them to the admin team.",
+        "search_placeholder": "Search by username or email...",
+        "searching": "Searching...",
+        "min_chars": "Type at least 3 characters to search.",
+        "empty": "No standard users found for that term.",
+        "change": "Change",
+        "role_label": "Select the new role",
+        "confirm": "Grant permissions"
+      },
       "action_demote": "Disable linked operator",
       "action_delete": "Delete",
       "action_view_detail": "View detail",
@@ -1756,7 +2124,11 @@
       "kb_approve": "Approve",
       "kb_hide": "Hide",
       "kb_remove": "Remove",
-      "kb_deselect": "Deselect"
+      "kb_deselect": "Deselect",
+      "permanent_delete_note": "Permanently removed by moderation",
+      "note_batch_approved": "Batch approved",
+      "note_batch_hidden": "Batch hidden",
+      "note_false_positive": "Approved (false positive)"
     },
     "reports": {
       "title": "User Reports",
@@ -1886,7 +2258,8 @@
       "target_preview": "Target",
       "open_user": "Open user",
       "notes_prompt": "Optional admin notes (leave empty to skip):",
-      "notes_prompt_reject": "Reason for rejection (optional):"
+      "notes_prompt_reject": "Reason for rejection (optional):",
+      "admin_notes": "Notes"
     },
     "trust": {
       "title": "Trust Queue",
@@ -1946,7 +2319,9 @@
       "kpi_viewers": "Total viewers",
       "kpi_traffic": "Traffic peak",
       "kpi_traffic_normal": "Normal",
-      "status_live_now": "Live now"
+      "status_live_now": "Live now",
+      "gifts": "Gifts",
+      "viewers": "Viewers"
     },
     "support": {
       "title": "Support Tickets",
@@ -2162,7 +2537,10 @@
       "confirm_delete_message": "Are you sure you want to permanently delete this comment?",
       "confirm_delete": "Delete",
       "kpi_engagement": "Global engagement rate",
-      "kpi_pending_reports": "Pending reports (moderation)"
+      "kpi_pending_reports": "Pending reports (moderation)",
+      "detail_title": "Comment detail",
+      "no_content": "No content",
+      "toast_hide_error": "Could not hide comment"
     },
     "hashtags": {
       "title": "Hashtags",
@@ -2323,7 +2701,16 @@
       "saving": "Saving...",
       "added_on": "Added on {{date}}",
       "new_rule_hint": "Define an exact word or phrase to intercept.",
-      "rule_details_hint": "Information for the selected rule."
+      "rule_details_hint": "Information for the selected rule.",
+      "rule_added": "Rule added",
+      "rule_updated": "Rule updated",
+      "rule_deleted": "Rule deleted",
+      "rule_add_error": "Error adding rule",
+      "rule_update_error": "Error updating rule",
+      "rule_delete_error": "Error deleting rule",
+      "delete_desc": "This removes the keyword rule permanently.",
+      "delete_title": "Delete firewall rule?",
+      "keyword_placeholder": "e.g. spamcasino.com"
     },
     "whitelist": {
       "title": "Interest Whitelist",
@@ -2551,10 +2938,24 @@
       "report_status_reviewing": "Reviewing",
       "report_status_resolved": "Resolved",
       "report_status_rejected": "Rejected",
-      "not_found": "Could not find the user record"
+      "not_found": "Could not find the user record",
+      "apply_bot_label": "Label as possible bot",
+      "bot_label_error": "Failed",
+      "bot_label_prompt": "Reason for possible-bot label",
+      "bot_label_updated": "Updated",
+      "clear_bot_label": "Clear bot label",
+      "cluster_size": "Linked accounts in cluster: {{count}}",
+      "last_ip": "Last IP",
+      "signup_ip": "Signup IP",
+      "trust_title": "Trust signals"
     },
     "cmd": {
-      "placeholder": "Search sections or users..."
+      "placeholder": "Search sections or users...",
+      "no_results": "No results for \"{{query}}\"",
+      "go_to": "Go to {{section}}",
+      "no_username": "(no username)",
+      "quick_action": "Quick action: {{section}}",
+      "user_result": "@{{username}} — {{name}}"
     },
     "lives": {
       "title": "Live streams",
@@ -2568,7 +2969,10 @@
       "status_live": "Live now",
       "status_ended": "Ended",
       "status_all": "All",
-      "no_video_source": "No video source available"
+      "no_video_source": "No video source available",
+      "action_end": "End",
+      "confirm_end_message": "Are you sure you want to end this stream? Viewers will be disconnected immediately.",
+      "confirm_end_title": "End live"
     },
     "settings": {
       "title": "Global settings",
@@ -2669,7 +3073,16 @@
     "posts_count": "{{count}} posts",
     "saved_title": "Saved",
     "no_saved": "No saved posts yet",
-    "no_saved_desc": "Save posts to view them later by tapping the bookmark icon."
+    "no_saved_desc": "Save posts to view them later by tapping the bookmark icon.",
+    "delete": "Delete",
+    "delete_confirm": "Delete this collection? Saved posts stay in Saved.",
+    "delete_error": "Could not delete",
+    "deleted": "Collection deleted",
+    "load_error_message": "Something went wrong. Please try again.",
+    "load_error_title": "Could not load saved posts",
+    "rename": "Rename",
+    "rename_error": "Could not rename",
+    "renamed": "Collection renamed"
   },
   "supportPage": {
     "badge": "Support",
@@ -2761,6 +3174,9 @@
     "save_error": "Could not save draft",
     "save_error_short": "Save failed",
     "zoom": "Timeline zoom",
+    "playhead": "Playhead",
+    "trim_start": "Trim start",
+    "trim_end": "Trim end",
     "mute": "Mute track",
     "unmute": "Unmute track",
     "hide": "Hide track",
@@ -2915,6 +3331,8 @@
   "live": {
     "connecting": "Connecting to live stream...",
     "starting": "Starting live stream...",
+    "starting_camera": "Starting camera...",
+    "waiting_stream": "Waiting for stream...",
     "ended_or_not_found": "Live stream ended or not found.",
     "chat_placeholder": "Write a comment...",
     "send_reaction": "Send {{emoji}}",
@@ -2945,12 +3363,76 @@
       "project": "Project",
       "clear_screen": "Clear question from screen",
       "placeholder": "Write your question…",
-      "send": "Send question"
+      "send": "Send question",
+      "question": "Question"
+    },
+    "end_stream": "End livestream",
+    "badge": "Live",
+    "now": "LIVE",
+    "pinned": "Pinned",
+    "unpin": "Unpin comment",
+    "pin": "Pin",
+    "delete_comment": "Delete",
+    "ended_title": "Livestream ended",
+    "ended_summary": "Your stream summary",
+    "viewers": "Viewers",
+    "likes": "Likes",
+    "close_summary": "Close summary",
+    "goal": {
+      "add": "Add goal",
+      "target_prompt": "Enter the target amount (e.g. 1000):",
+      "title_prompt": "Enter the goal title:",
+      "title_default": "Livestream goal"
+    },
+    "gift_sent": "Gift sent!",
+    "gift_canceled": "Gift payment canceled",
+    "gift_received_toast": "{{user}} sent a {{gift}}!",
+    "send_gift_btn": "Send gift",
+    "someone": "Someone",
+    "gift_generic": "gift",
+    "host_fallback": "Live creator",
+    "host_n": "Host {{n}}",
+    "cohost_fallback": "Co-host",
+    "anonymous": "Viewer",
+    "cohost_invite": {
+      "badge": "Live invitation",
+      "body": "invites you as co-host",
+      "join": "Join as co-host",
+      "decline": "Decline"
     }
+  },
+  "shortcuts": {
+    "next_post": "Next post",
+    "previous_post": "Previous post",
+    "like_post": "Like post",
+    "search": "Search"
   },
   "common": {
     "cancel": "Cancel",
     "loading": "Loading...",
+    "close": "Close",
+    "close_dialog": "Close dialog",
+    "close_menu": "Close menu",
+    "back_home": "Back to home",
+    "back": "Back",
+    "view_profile": "View {{username}}'s profile",
+    "offline": "No internet connection",
+    "online": "Back online",
+    "mute": "Mute",
+    "unmute": "Unmute",
+    "more": "More",
+    "alt": {
+      "story": "Story",
+      "attachment": "Attachment",
+      "preview": "Preview",
+      "cover": "Cover",
+      "comment": "Comment media",
+      "post": "Post preview",
+      "upload": "Upload preview",
+      "host": "Host",
+      "group": "Group",
+      "reported": "Reported content"
+    },
     "footer": {
       "desc": "A refined social layer built for those who value visual depth and authentic connection.",
       "platform": "Platform",
@@ -2965,7 +3447,17 @@
       "guidelines": "Guidelines",
       "copyright": "© 2026 CircleSfera Social. All rights reserved.",
       "designed_for": "Designed for the next generation of creators."
-    }
+    },
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "save": "Save",
+    "error_title": "Something went wrong",
+    "error_message": "An unexpected error occurred. Please try again.",
+    "error_message_refresh": "An unexpected error occurred. Please try refreshing the page.",
+    "try_again": "Try Again",
+    "reload_page": "Reload Page",
+    "seo_default_title": "CircleSfera - Social Reimagined",
+    "seo_default_description": "CircleSfera is a refined social layer designed for visual storytelling, authentic connections, and immersive experiences."
   },
   "mute": {
     "title": "Mute {{username}}",
@@ -3005,7 +3497,11 @@
       "impact_summary": "Impact Summary",
       "engagement_rate_prefix": "This post has an engagement rate of ",
       "above_average": " You are beating your category average.",
-      "keep_promoting": " Keep promoting to gain more reach."
+      "keep_promoting": " Keep promoting to gain more reach.",
+      "conversion_rate": "Conv. Rate",
+      "dwell_time": "Dwell Time",
+      "impressions": "Impressions",
+      "shares": "Shares"
     },
     "confirm": {
       "processing": "Processing..."
@@ -3065,7 +3561,15 @@
       "selected": "Selected",
       "use": "Use",
       "play_preview": "Play preview",
-      "pause_preview": "Pause preview"
+      "pause_preview": "Pause preview",
+      "back": "Back",
+      "trim_title": "Choose clip",
+      "trim_hint": "Drag to pick where the {{seconds}}s clip starts in the track.",
+      "trim_slider": "Clip start position",
+      "trim_value": "{{start}}s – {{end}}s",
+      "preview_clip": "Preview clip",
+      "confirm_clip": "Use this clip",
+      "waveform_loading": "Loading waveform…"
     }
   },
   "frames": {
@@ -3282,7 +3786,8 @@
       "loading": "Loading poll…",
       "votes_one": "{{count}} vote",
       "votes_other": "{{count}} votes",
-      "voted": "✓ Vote recorded"
+      "voted": "✓ Vote recorded",
+      "votes": "{{count}} votes"
     },
     "qna": {
       "title": "Q&A",
@@ -3292,7 +3797,31 @@
       "answers_heading_one": "{{count}} answer",
       "answers_heading_other": "{{count}} answers",
       "loading_answers": "Loading answers…",
-      "no_answers": "No answers yet."
+      "no_answers": "No answers yet.",
+      "answers_heading": "{{count}} answers"
     }
+  },
+  "create_menu": {
+    "circle": "Circle",
+    "frame": "Frame",
+    "highlights": "Highlights",
+    "live": "Live",
+    "new": "New",
+    "post": "Post",
+    "section_content": "Content",
+    "section_more": "More",
+    "story": "Story",
+    "studio": "Studio",
+    "title": "Create"
+  },
+  "voice": {
+    "discard": "Discard",
+    "pause_preview": "Pause preview",
+    "play_preview": "Play draft",
+    "ready": "Ready",
+    "record": "Record voice",
+    "send": "Send voice note",
+    "stop": "Stop recording",
+    "uploading": "Uploading voice note..."
   }
 }

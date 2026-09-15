@@ -50,6 +50,7 @@ export class TwoFactorService {
     return verifySync({
       token: twoFactorAuthenticationCode,
       secret: userData.twoFactorSecret,
+      epochTolerance: 120,
     }).valid;
   }
 

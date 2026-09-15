@@ -1,11 +1,21 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { createControllerApp } from '../common/testing/http-controller.js';
 import { SlackController } from './slack.controller.js';
 import { SlackGuard } from './slack.guard.js';
 import { SlackService } from './slack.service.js';
 
 describe('SlackController', () => {
-  let controller: SlackController;
+  let app: INestApplication;
 
   const mockService = {
     handleStatsCommand: vi.fn(),
@@ -14,54 +24,77 @@ describe('SlackController', () => {
     handleModerationInteraction: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [SlackController],
       providers: [{ provide: SlackService, useValue: mockService }],
-    })
-      .overrideGuard(SlackGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<SlackController>(SlackController);
-    vi.clearAllMocks();
+      guards: [{ guard: SlackGuard, mode: 'allow' }],
+    });
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('routes slash commands', async () => {
     mockService.handleStatsCommand.mockResolvedValue({ text: 'stats' });
     mockService.handleUserCommand.mockResolvedValue({ text: 'user' });
 
-    await controller.handleCommands({ command: '/cs-stats' });
-    await controller.handleCommands({ command: '/cs-user', text: 'alice' });
-    const unknown = await controller.handleCommands({ command: '/other' });
+    const stats = await request(app.getHttpServer())
+      .post('/api/v1/slack/commands')
+      .send({ command: '/cs-stats' })
+      .expect(200);
+    const user = await request(app.getHttpServer())
+      .post('/api/v1/slack/commands')
+      .send({ command: '/cs-user', text: 'alice' })
+      .expect(200);
+    const unknown = await request(app.getHttpServer())
+      .post('/api/v1/slack/commands')
+      .send({ command: '/other' })
+      .expect(200);
 
+    expect(stats.body).toEqual({ text: 'stats' });
+    expect(user.body).toEqual({ text: 'user' });
+    expect(unknown.body).toEqual({
+      text: 'Command not recognized: /other',
+    });
     expect(mockService.handleStatsCommand).toHaveBeenCalledWith();
     expect(mockService.handleUserCommand).toHaveBeenCalledWith('alice');
-    expect(unknown).toEqual({ text: 'Command not recognized: /other' });
   });
 
   it('ignores interactions without a payload', async () => {
-    await expect(controller.handleInteractions({})).resolves.toBeUndefined();
+    await request(app.getHttpServer())
+      .post('/api/v1/slack/interactions')
+      .send({})
+      .expect(200);
+
     expect(mockService.handleViewSubmission).not.toHaveBeenCalled();
     expect(mockService.handleModerationInteraction).not.toHaveBeenCalled();
   });
 
   it('rejects invalid interaction JSON', async () => {
-    await expect(
-      controller.handleInteractions({ payload: '{bad' }),
-    ).resolves.toEqual({ text: 'Invalid payload JSON' });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/slack/interactions')
+      .send({ payload: '{bad' })
+      .expect(200);
+
+    expect(res.body).toEqual({ text: 'Invalid payload JSON' });
   });
 
   it('handles view submissions', async () => {
     const payload = { type: 'view_submission' };
     mockService.handleViewSubmission.mockResolvedValue({ ok: true });
 
-    await controller.handleInteractions({ payload: JSON.stringify(payload) });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/slack/interactions')
+      .send({ payload: JSON.stringify(payload) })
+      .expect(200);
 
+    expect(res.body).toEqual({ ok: true });
     expect(mockService.handleViewSubmission).toHaveBeenCalledWith(payload);
   });
 
@@ -69,13 +102,13 @@ describe('SlackController', () => {
     const payload = { type: 'block_actions' };
     mockService.handleModerationInteraction.mockResolvedValue(undefined);
 
-    const result = await controller.handleInteractions({
-      payload: JSON.stringify(payload),
-    });
+    await request(app.getHttpServer())
+      .post('/api/v1/slack/interactions')
+      .send({ payload: JSON.stringify(payload) })
+      .expect(200);
 
     expect(mockService.handleModerationInteraction).toHaveBeenCalledWith(
       payload,
     );
-    expect(result).toBeUndefined();
   });
 });

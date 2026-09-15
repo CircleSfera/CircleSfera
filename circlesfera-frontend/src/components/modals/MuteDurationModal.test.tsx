@@ -42,7 +42,7 @@ describe('MuteDurationModal', () => {
   });
 
   it('shows the username and duration options', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username="alice"
@@ -51,22 +51,36 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    expect(screen.getByText('Mute alice')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Their posts will be hidden from your feed. They will not be notified.',
+        i18n!.t('mute.title', 'Mute {{username}}', { username: 'alice' }),
       ),
     ).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('mute.subtitle'))).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '24 hours' }),
+      screen.getByRole('button', {
+        name: i18n!.t('mute.duration.24h'),
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '7 days' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '30 days' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Forever' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('mute.duration.7d'),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('mute.duration.30d'),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('mute.duration.forever'),
+      }),
+    ).toBeInTheDocument();
   });
 
   it('closes from cancel and the dialog X without muting', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username="alice"
@@ -75,7 +89,11 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('common.cancel'),
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -84,7 +102,7 @@ describe('MuteDurationModal', () => {
   });
 
   it('mutes forever by default and notifies the parent', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username="alice"
@@ -93,18 +111,20 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('mute.confirm') }),
+    );
 
     await waitFor(() => {
       expect(followsApi.mute).toHaveBeenCalledWith('alice', 'forever');
     });
-    expect(toast.success).toHaveBeenCalledWith('User muted');
+    expect(toast.success).toHaveBeenCalledWith(i18n!.t('mute.success'));
     expect(onMuted).toHaveBeenCalledWith('forever');
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('sends the selected duration', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username="alice"
@@ -113,8 +133,14 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('mute.duration.7d'),
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('mute.confirm') }),
+    );
 
     await waitFor(() => {
       expect(followsApi.mute).toHaveBeenCalledWith('alice', '7d');
@@ -123,7 +149,7 @@ describe('MuteDurationModal', () => {
   });
 
   it('does not call mute without a username', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username=""
@@ -132,7 +158,9 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('mute.confirm') }),
+    );
 
     await waitFor(() => {
       expect(followsApi.mute).not.toHaveBeenCalled();
@@ -144,7 +172,7 @@ describe('MuteDurationModal', () => {
   it('toasts on failure and stays open', async () => {
     vi.mocked(followsApi.mute).mockRejectedValueOnce(new Error('denied'));
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <MuteDurationModal
         isOpen
         username="alice"
@@ -153,10 +181,12 @@ describe('MuteDurationModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Mute' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('mute.confirm') }),
+    );
 
     await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Failed to mute user');
+      expect(toast.error).toHaveBeenCalledWith(i18n!.t('mute.error'));
     });
     expect(onMuted).not.toHaveBeenCalled();
     expect(onClose).not.toHaveBeenCalled();

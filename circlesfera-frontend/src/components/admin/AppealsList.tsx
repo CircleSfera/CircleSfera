@@ -124,7 +124,7 @@ export default function AppealsList({
               ) : null}
               {appeal.adminNotes ? (
                 <span className="block text-xs text-white/50 mt-1">
-                  {t('admin.appeals.admin_notes', 'Notes')}: {appeal.adminNotes}
+                  {t('admin.appeals.admin_notes')}: {appeal.adminNotes}
                 </span>
               ) : null}
             </>
@@ -227,7 +227,7 @@ export default function AppealsList({
         isDestructive={reviewModal?.status === 'REJECTED'}
         isLoading={updateMutation.isPending}
         showInput
-        inputLabel={t('admin.appeals.admin_notes', 'Notes')}
+        inputLabel={t('admin.appeals.admin_notes')}
         inputRequired={false}
       />
     </div>

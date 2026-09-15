@@ -14,7 +14,7 @@ interface TipModalProps {
   receiverName: string;
 }
 
-const TIP_AMOUNTS = [1, 5, 10, 50];
+export const TIP_AMOUNTS = [1, 5, 10, 50];
 
 export default function TipModal({
   isOpen,
@@ -69,10 +69,7 @@ export default function TipModal({
           <Gift className="w-7 h-7 text-brand-primary" />
         </div>
         <p className="text-white/60 text-sm">
-          {t('wallet.support_with_money', {
-            name: receiverName,
-            defaultValue: `Support ${receiverName} with a tip`,
-          })}
+          {t('wallet.support_with_money', { name: receiverName })}
         </p>
       </div>
 
@@ -104,7 +101,7 @@ export default function TipModal({
         className="w-full"
         variant="primary"
       >
-        {t('wallet.send_tip', 'Send tip')}
+        {t('wallet.send_tip')}
       </Button>
     </Dialog>
   );

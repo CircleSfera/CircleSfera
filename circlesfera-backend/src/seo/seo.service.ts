@@ -210,7 +210,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       : 'Visual content on CircleSfera';
     const likes = post?._count.likes || 0;
     const comments = post?._count.comments || 0;
-    const isVerified = post?.profile?.user?.verificationLevel !== 'BASIC';
+    const isVerified = post?.profile?.verificationLevel !== 'BASIC';
 
     return `<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
       <defs>

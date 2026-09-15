@@ -8,6 +8,7 @@ import {
 import type { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { sanitizeUrl } from '../utils/url-sanitizer.util.js';
 
 @Injectable()
 export class ObservabilityInterceptor implements NestInterceptor {
@@ -29,6 +30,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const sanitizedUrl = sanitizeUrl(originalUrl);
     const startTime = Date.now();
 
     return next.handle().pipe(
@@ -39,7 +41,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
 
           if (duration > this.SLOW_THRESHOLD_MS) {
             this.logger.warn(
-              `[SLOW REQUEST] ${method} ${originalUrl} ${statusCode} - ${duration}ms`,
+              `[SLOW REQUEST] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms`,
             );
           }
         },
@@ -48,7 +50,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
           const statusCode = error?.status || error?.statusCode || 500;
 
           this.logger.error(
-            `[ERROR] ${method} ${originalUrl} ${statusCode} - ${duration}ms - ${error.message}`,
+            `[ERROR] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms - ${error.message}`,
             error.stack,
           );
         },

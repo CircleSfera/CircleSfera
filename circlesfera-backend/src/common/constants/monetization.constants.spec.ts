@@ -1,10 +1,21 @@
 import {
+  CREATOR_SHARE_DECIMAL,
   centsToEuros,
   eurosToCents,
+  PLATFORM_FEE_DECIMAL,
+  PLATFORM_FEE_PERCENT,
   PROMOTION_COST_PER_VIEW_CENTS,
 } from './monetization.constants.js';
 
 describe('monetization money helpers', () => {
+  it('keeps the 20% platform / 80% creator split (ADR-0010)', () => {
+    expect(PLATFORM_FEE_PERCENT).toBe(20);
+    expect(PLATFORM_FEE_DECIMAL).toBe(0.2);
+    expect(CREATOR_SHARE_DECIMAL).toBe(0.8);
+    expect(PLATFORM_FEE_DECIMAL + CREATOR_SHARE_DECIMAL).toBe(1);
+    expect(Math.floor(1000 * CREATOR_SHARE_DECIMAL)).toBe(800);
+    expect(Math.floor(999 * PLATFORM_FEE_DECIMAL)).toBe(199);
+  });
   it('rounds half-up style via Math.round for eurosToCents', () => {
     expect(eurosToCents(9.99)).toBe(999);
     expect(eurosToCents(19.99)).toBe(1999);

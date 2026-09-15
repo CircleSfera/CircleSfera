@@ -3,6 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@prisma/client';
 import * as argon2 from 'argon2';
 import pkg from 'pg';
+import { seedFirstPartyAudio } from './first-party-audio.seed.js';
 
 const { Pool } = pkg;
 
@@ -542,6 +543,8 @@ async function main() {
       });
     }
     console.log('✅ System settings defaults seeded');
+
+    await seedFirstPartyAudio(prisma);
   } catch (err) {
     console.error('❌ Error en el sembrado de datos:', err);
   } finally {

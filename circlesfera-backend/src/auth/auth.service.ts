@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import { randomUUID } from 'node:crypto';
 import { ApiErrorCode } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -7,6 +8,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -39,6 +41,8 @@ import type {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(JwtService) private readonly jwtService: JwtService,
@@ -129,7 +133,8 @@ export class AuthService {
     // Hash password
     const hashedPassword = await argon2.hash(dto.password);
 
-    const verificationToken = randomUUID();
+    // Generate high-entropy token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
 
     // Create user and profile
     const user = await this.prisma.user.create({
@@ -214,7 +219,7 @@ export class AuthService {
     if (user.emailVerified) {
       return { message: 'Email already verified' };
     }
-    const verificationToken = randomUUID();
+    const verificationToken = crypto.randomBytes(32).toString('hex');
     await this.prisma.user.update({
       where: { id: userId },
       data: { verificationToken },
@@ -240,7 +245,7 @@ export class AuthService {
       return { message: 'If an account exists, a reset email has been sent' };
     }
 
-    const resetToken = randomUUID();
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour
 
     await this.prisma.user.update({
@@ -347,17 +352,11 @@ export class AuthService {
           });
         }
       } else {
-        // Plain text or malformed hash fallback (used if manually edited in DB)
-        isPasswordValid = user.password === dto.password;
-
-        if (isPasswordValid) {
-          // Auto-migrate plain text to argon2
-          const newHashedPassword = await argon2.hash(dto.password);
-          await this.prisma.user.update({
-            where: { id: user.id },
-            data: { password: newHashedPassword },
-          });
-        }
+        // Reject unknown/plaintext password formats; fail closed
+        this.logger.warn(
+          `Authentication rejected for user ${user.id}: Stored password hash format is unrecognized (fail closed).`,
+        );
+        isPasswordValid = false;
       }
     } catch {
       // If verify or compare throws (e.g., malformed hash string), fail securely without 500
@@ -397,9 +396,7 @@ export class AuthService {
           reason: user.rootBanReason,
         });
       } else {
-        const secret =
-          this.configService.get<string>('JWT_SECRET') ||
-          'circlesfera_default_secret_key';
+        const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
           { sub: user.id, isAppealToken: true },
           { expiresIn: '15m', secret },
@@ -535,8 +532,13 @@ export class AuthService {
 
   // Rotate a refresh token: validates the old one, deletes it, and issues a new pair.
   // Param dto: Contains the current refresh token
+  // Computes a SHA-256 cryptographic digest of a refresh token for storage at rest.
+  private hashRefreshToken(token: string): string {
+    return crypto.createHash('sha256').update(token).digest('hex');
+  }
+
   // Returns New access and refresh token pair
-  // Throws UnauthorizedException if token is invalid, expired, or not found
+  // Throws UnauthorizedException if token is invalid, expired, revoked, or reused
   async refreshToken(
     dto: RefreshTokenDto,
     meta: AbuseRequestMeta = {},
@@ -546,57 +548,121 @@ export class AuthService {
     }
     const refreshToken = dto.refreshToken;
 
+    let payload: {
+      sub: string;
+      email: string;
+      familyId?: string;
+      jti?: string;
+    };
     try {
-      // Verify refresh token
-      const payload = this.jwtService.verify<{ sub: string; email: string }>(
-        refreshToken,
-        {
-          secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-        },
-      );
-
-      // Check if refresh token exists in database
-      const storedToken = await this.prisma.refreshToken.findUnique({
-        where: { token: refreshToken },
+      // Verify refresh token signature & expiration
+      payload = this.jwtService.verify<{
+        sub: string;
+        email: string;
+        familyId?: string;
+        jti?: string;
+      }>(refreshToken, {
+        secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       });
-
-      if (!storedToken || storedToken.userId !== payload.sub) {
-        throw new UnauthorizedException('Invalid refresh token');
-      }
-
-      // Check if token is expired
-      if (storedToken.expiresAt < new Date()) {
-        await this.prisma.refreshToken.delete({
-          where: { id: storedToken.id },
-        });
-        throw new UnauthorizedException('Refresh token expired');
-      }
-
-      // Delete old refresh token
-      await this.prisma.refreshToken.delete({ where: { id: storedToken.id } });
-
-      // Generate new tokens
-      return this.generateTokens(
-        payload.sub,
-        payload.email,
-        meta.userAgent || undefined,
-        meta.ip || undefined,
-      );
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
+
+    const hashedToken = this.hashRefreshToken(refreshToken);
+
+    // Check if refresh token exists in database (check by hash first, fallback to raw for legacy tokens)
+    let storedToken = await this.prisma.refreshToken.findUnique({
+      where: { token: hashedToken },
+    });
+
+    if (!storedToken) {
+      storedToken = await this.prisma.refreshToken.findUnique({
+        where: { token: refreshToken },
+      });
+    }
+
+    if (!storedToken || storedToken.userId !== payload.sub) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
+    // Token family reuse / replay attack detection (RFC 6819)
+    if (storedToken.isRevoked) {
+      const familyToRevoke = storedToken.familyId || payload.familyId;
+      if (familyToRevoke) {
+        await this.prisma.refreshToken.deleteMany({
+          where: {
+            userId: storedToken.userId,
+            familyId: familyToRevoke,
+          },
+        });
+      } else {
+        await this.prisma.refreshToken.delete({
+          where: { id: storedToken.id },
+        });
+      }
+
+      this.logger.warn(
+        `Security alert: Refresh token replay attack detected for user ${storedToken.userId}, family ${familyToRevoke || 'unknown'}`,
+      );
+      throw new UnauthorizedException('Refresh token reuse detected');
+    }
+
+    // Check if token is expired
+    if (storedToken.expiresAt < new Date()) {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Legitimate rotation: mark current token as revoked and issue a new token within the same family
+    const currentFamilyId =
+      storedToken.familyId || payload.familyId || randomUUID();
+
+    await this.prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: {
+        isRevoked: true,
+        revokedAt: new Date(),
+      },
+    });
+
+    return this.generateTokens(
+      payload.sub,
+      payload.email,
+      meta.userAgent || undefined,
+      meta.ip || undefined,
+      currentFamilyId,
+    );
   }
 
-  // Invalidate a specific refresh token for the given user.
+  // Invalidate a specific refresh token (or its entire session family) for the given user.
   // Param userId: The authenticated user's ID
   // Param refreshToken: The refresh token to revoke
   async logout(userId: string, refreshToken: string): Promise<void> {
-    await this.prisma.refreshToken.deleteMany({
+    const hashedToken = this.hashRefreshToken(refreshToken);
+    const stored = await this.prisma.refreshToken.findFirst({
       where: {
         userId,
-        token: refreshToken,
+        OR: [{ token: hashedToken }, { token: refreshToken }],
       },
     });
+
+    if (stored?.familyId) {
+      await this.prisma.refreshToken.deleteMany({
+        where: {
+          userId,
+          familyId: stored.familyId,
+        },
+      });
+    } else {
+      await this.prisma.refreshToken.deleteMany({
+        where: {
+          userId,
+          OR: [{ token: hashedToken }, { token: refreshToken }],
+        },
+      });
+    }
   }
 
   // Get all active sessions for a user.
@@ -604,6 +670,7 @@ export class AuthService {
     const sessions = await this.prisma.refreshToken.findMany({
       where: {
         userId,
+        isRevoked: false,
         expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: 'desc' },
@@ -621,12 +688,18 @@ export class AuthService {
 
   // Revoke a specific session by ID for a user.
   async revokeSession(userId: string, sessionId: string) {
-    await this.prisma.refreshToken.deleteMany({
-      where: {
-        id: sessionId,
-        userId,
-      },
+    const session = await this.prisma.refreshToken.findFirst({
+      where: { id: sessionId, userId },
     });
+    if (session?.familyId) {
+      await this.prisma.refreshToken.deleteMany({
+        where: { familyId: session.familyId, userId },
+      });
+    } else {
+      await this.prisma.refreshToken.deleteMany({
+        where: { id: sessionId, userId },
+      });
+    }
     return { success: true };
   }
 
@@ -643,48 +716,63 @@ export class AuthService {
 
   // Generate a new access/refresh token pair and persist the refresh token in the database.
   // Access tokens expire in 15 minutes; refresh tokens expire in 7 days.
+  // Refresh tokens are cryptographically hashed with SHA-256 before persistence.
   // Param userId: User ID to encode in the JWT payload
   // Param email: User email to encode in the JWT payload
   // Param userAgent: Optional client browser/device User-Agent string
   // Param ipAddress: Optional client IP address
+  // Param familyId: Optional token family identifier for session rotation lineage
   // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
     email: string,
     userAgent?: string,
     ipAddress?: string,
+    familyId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const payload = { sub: userId, email, jti: randomUUID() };
+    const tokenFamilyId = familyId || randomUUID();
+    const payload = {
+      sub: userId,
+      email,
+      jti: randomUUID(),
+      familyId: tokenFamilyId,
+    };
 
-    const accessToken = this.jwtService.sign(payload, {
-      secret: this.configService.getOrThrow<string>('JWT_SECRET'),
-      expiresIn: '15m',
-    });
+    const accessToken = this.jwtService.sign(
+      { sub: userId, email, jti: randomUUID() },
+      {
+        secret: this.configService.getOrThrow<string>('JWT_SECRET'),
+        expiresIn: '15m',
+      },
+    );
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
       expiresIn: '7d',
     });
 
-    // Store refresh token in database with defensive fallback for schema variations
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+    const hashedToken = this.hashRefreshToken(refreshToken);
 
     try {
       await this.prisma.refreshToken.create({
         data: {
-          token: refreshToken,
+          token: hashedToken,
           userId,
+          familyId: tokenFamilyId,
+          isRevoked: false,
           userAgent: userAgent || null,
           ipAddress: ipAddress || null,
           expiresAt,
         },
       });
     } catch (_err) {
-      // Fallback: If userAgent or ipAddress columns are missing in legacy DB schemas before migration runs
+      // Fallback: If familyId, userAgent or ipAddress columns are missing in legacy DB schemas before migration runs
       await this.prisma.refreshToken.create({
         data: {
-          token: refreshToken,
+          token: hashedToken,
           userId,
           expiresAt,
         },

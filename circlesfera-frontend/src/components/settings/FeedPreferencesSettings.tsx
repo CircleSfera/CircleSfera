@@ -39,10 +39,10 @@ export default function FeedPreferencesSettings() {
     usersApi
       .updateSettings({ [key]: value })
       .then(() => {
-        toast.success(t('feedPrefs.updated', 'Settings updated'));
+        toast.success(t('feedPrefs.updated'));
       })
       .catch(() => {
-        toast.error(t('feedPrefs.update_error', 'Failed to update settings'));
+        toast.error(t('feedPrefs.update_error'));
       });
   };
 
@@ -60,13 +60,10 @@ export default function FeedPreferencesSettings() {
     onSuccess: () => {
       setKeyword('');
       invalidate();
-      toast.success(t('feedPrefs.keyword_muted', 'Keyword muted'));
+      toast.success(t('feedPrefs.keyword_muted'));
     },
     onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(
-        err.response?.data?.message ||
-          t('feedPrefs.error', 'Could not update preference'),
-      );
+      toast.error(err.response?.data?.message || t('feedPrefs.error'));
     },
   });
 
@@ -75,7 +72,7 @@ export default function FeedPreferencesSettings() {
       api.delete(`/feed/preferences/mute-keyword/${encodeURIComponent(kw)}`),
     onSuccess: () => {
       invalidate();
-      toast.success(t('feedPrefs.keyword_unmuted', 'Keyword unmuted'));
+      toast.success(t('feedPrefs.keyword_unmuted'));
     },
   });
 
@@ -84,7 +81,7 @@ export default function FeedPreferencesSettings() {
       api.delete(`/feed/preferences/hide-author/${authorId}`),
     onSuccess: () => {
       invalidate();
-      toast.success(t('feedPrefs.author_shown', 'Author visible again'));
+      toast.success(t('feedPrefs.author_shown'));
     },
   });
 
@@ -93,37 +90,24 @@ export default function FeedPreferencesSettings() {
       api.delete(`/feed/preferences/hide-post/${postId}`),
     onSuccess: () => {
       invalidate();
-      toast.success(t('feedPrefs.post_shown', 'Post visible again'));
+      toast.success(t('feedPrefs.post_shown'));
     },
   });
 
   if (isLoading) {
-    return (
-      <p className="text-white/50 text-sm">
-        {t('common.loading', 'Loading...')}
-      </p>
-    );
+    return <p className="text-white/50 text-sm">{t('common.loading')}</p>;
   }
 
   return (
     <div className="max-w-xl space-y-6">
       {settingsLoaded && (
         <SettingsSection
-          title={t('feedPrefs.content_title', 'Content preferences')}
-          description={t(
-            'feedPrefs.content_surface',
-            'Following shows people you chose. For You and Explore respect this setting, muted keywords, and Not interested.',
-          )}
+          title={t('feedPrefs.content_title')}
+          description={t('feedPrefs.content_surface')}
         >
           <SettingsRow
-            label={t(
-              'feedPrefs.show_sensitive',
-              'Show sensitive content in For You and Explore',
-            )}
-            description={t(
-              'feedPrefs.show_sensitive_desc',
-              'Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.',
-            )}
+            label={t('feedPrefs.show_sensitive')}
+            description={t('feedPrefs.show_sensitive_desc')}
             control={
               <Switch
                 checked={contentPreference === 'MATURE'}
@@ -132,19 +116,13 @@ export default function FeedPreferencesSettings() {
                   setContentPreference(pref);
                   updateSetting('contentPreference', pref);
                 }}
-                aria-label={t(
-                  'feedPrefs.show_sensitive',
-                  'Show sensitive content in For You and Explore',
-                )}
+                aria-label={t('feedPrefs.show_sensitive')}
               />
             }
           />
           <SettingsRow
-            label={t('feedPrefs.blur_sensitive', 'Blur sensitive content')}
-            description={t(
-              'feedPrefs.blur_desc',
-              'Hide potentially sensitive images until you click.',
-            )}
+            label={t('feedPrefs.blur_sensitive')}
+            description={t('feedPrefs.blur_desc')}
             control={
               <div className="flex items-center gap-2">
                 {blurSensitiveContent ? (
@@ -158,10 +136,7 @@ export default function FeedPreferencesSettings() {
                     setBlurSensitiveContent(e.target.checked);
                     updateSetting('blurSensitiveContent', e.target.checked);
                   }}
-                  aria-label={t(
-                    'feedPrefs.blur_sensitive',
-                    'Blur sensitive content',
-                  )}
+                  aria-label={t('feedPrefs.blur_sensitive')}
                 />
               </div>
             }
@@ -170,11 +145,8 @@ export default function FeedPreferencesSettings() {
       )}
 
       <SettingsSection
-        title={t('feedPrefs.keywords_title', 'Muted keywords')}
-        description={t(
-          'feedPrefs.keywords_desc',
-          'Posts whose caption contains these words will be hidden from your feed.',
-        )}
+        title={t('feedPrefs.keywords_title')}
+        description={t('feedPrefs.keywords_desc')}
         card={false}
       >
         <form
@@ -187,7 +159,7 @@ export default function FeedPreferencesSettings() {
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
-            placeholder={t('feedPrefs.keyword_placeholder', 'e.g. spoiler')}
+            placeholder={t('feedPrefs.keyword_placeholder')}
             className="flex-1 min-h-11 rounded-xl bg-white/5 border border-white/10 px-3 py-2 text-sm text-white"
           />
           <Button
@@ -195,7 +167,7 @@ export default function FeedPreferencesSettings() {
             isLoading={muteKeyword.isPending}
             className="min-h-11"
           >
-            {t('feedPrefs.mute', 'Mute')}
+            {t('feedPrefs.mute')}
           </Button>
         </form>
         <ul className="space-y-2">
@@ -213,7 +185,7 @@ export default function FeedPreferencesSettings() {
                   type="button"
                   onClick={() => unmuteKeyword.mutate(k.keyword)}
                   className="p-2 min-h-11 min-w-11 flex items-center justify-center text-white/40 hover:text-white"
-                  aria-label={t('feedPrefs.unmute', 'Unmute')}
+                  aria-label={t('feedPrefs.unmute')}
                 >
                   <X size={16} />
                 </button>
@@ -222,16 +194,13 @@ export default function FeedPreferencesSettings() {
           )}
           {(data?.mutedKeywords || []).length === 0 && (
             <p className="text-white/40 text-sm">
-              {t('feedPrefs.no_keywords', 'No muted keywords yet.')}
+              {t('feedPrefs.no_keywords')}
             </p>
           )}
         </ul>
       </SettingsSection>
 
-      <SettingsSection
-        title={t('feedPrefs.authors_title', 'Hidden authors')}
-        card={false}
-      >
+      <SettingsSection title={t('feedPrefs.authors_title')} card={false}>
         <ul className="space-y-2">
           {(data?.hiddenAuthors || []).map(
             (a: {
@@ -253,23 +222,18 @@ export default function FeedPreferencesSettings() {
                   onClick={() => unhideAuthor.mutate(a.authorId)}
                   className="min-h-11"
                 >
-                  {t('feedPrefs.show_again', 'Show again')}
+                  {t('feedPrefs.show_again')}
                 </Button>
               </li>
             ),
           )}
           {(data?.hiddenAuthors || []).length === 0 && (
-            <p className="text-white/40 text-sm">
-              {t('feedPrefs.no_authors', 'No hidden authors.')}
-            </p>
+            <p className="text-white/40 text-sm">{t('feedPrefs.no_authors')}</p>
           )}
         </ul>
       </SettingsSection>
 
-      <SettingsSection
-        title={t('feedPrefs.posts_title', 'Hidden posts')}
-        card={false}
-      >
+      <SettingsSection title={t('feedPrefs.posts_title')} card={false}>
         <ul className="space-y-2">
           {(data?.hiddenPosts || []).map(
             (p: {
@@ -306,8 +270,7 @@ export default function FeedPreferencesSettings() {
                       </p>
                     ) : null}
                     <p className="text-white/50 text-xs line-clamp-2">
-                      {p.caption?.trim() ||
-                        t('feedPrefs.hidden_post_fallback', 'Hidden post')}
+                      {p.caption?.trim() || t('feedPrefs.hidden_post_fallback')}
                     </p>
                   </div>
                 </div>
@@ -317,15 +280,13 @@ export default function FeedPreferencesSettings() {
                   onClick={() => unhidePost.mutate(p.postId)}
                   className="min-h-11 shrink-0"
                 >
-                  {t('feedPrefs.show_again', 'Show again')}
+                  {t('feedPrefs.show_again')}
                 </Button>
               </li>
             ),
           )}
           {(data?.hiddenPosts || []).length === 0 && (
-            <p className="text-white/40 text-sm">
-              {t('feedPrefs.no_posts', 'No hidden posts.')}
-            </p>
+            <p className="text-white/40 text-sm">{t('feedPrefs.no_posts')}</p>
           )}
         </ul>
       </SettingsSection>

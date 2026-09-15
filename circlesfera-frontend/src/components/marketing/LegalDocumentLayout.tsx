@@ -57,9 +57,7 @@ export function LegalDocumentLayout({
               </div>
 
               <label className="block lg:hidden">
-                <span className="sr-only">
-                  {t('legal.toc_label', 'Jump to section')}
-                </span>
+                <span className="sr-only">{t('legal.toc_label')}</span>
                 <select
                   className="w-full h-14 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 text-sm text-white px-4 focus:outline-none focus-visible:border-white/30 appearance-none"
                   defaultValue=""
@@ -68,7 +66,7 @@ export function LegalDocumentLayout({
                   }}
                 >
                   <option value="" disabled>
-                    {t('legal.toc_label', 'Jump to section')}
+                    {t('legal.toc_label')}
                   </option>
                   {sections.map((s) => (
                     <option
@@ -84,7 +82,7 @@ export function LegalDocumentLayout({
 
               <nav
                 className="hidden lg:block space-y-1 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-3 shadow-2xl shadow-black/20"
-                aria-label={t('legal.toc_label', 'Jump to section')}
+                aria-label={t('legal.toc_label')}
               >
                 {sections.map((section) => (
                   <button

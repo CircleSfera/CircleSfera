@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 
 const TIMELINE_OFFSET_PX = 32;
 
 export default function Playhead() {
+  const { t } = useTranslation();
   const { playhead, zoom, setPlayhead, setPlaying, project } = useStudioStore();
   const draggingRef = useRef(false);
 
@@ -62,7 +64,7 @@ export default function Playhead() {
         <div
           role="slider"
           tabIndex={0}
-          aria-label="Playhead"
+          aria-label={t('studio.playhead')}
           aria-valuemin={0}
           aria-valuemax={project?.duration ?? 0}
           aria-valuenow={playhead}
@@ -92,7 +94,7 @@ export default function Playhead() {
             xmlns="http://www.w3.org/2000/svg"
             className="drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] mt-1"
             role="img"
-            aria-label="Playhead"
+            aria-label={t('studio.playhead')}
           >
             <path
               d="M0 2C0 0.895431 0.895431 0 2 0H12C13.1046 0 14 0.895431 14 2V14.5L7 19.5L0 14.5V2Z"

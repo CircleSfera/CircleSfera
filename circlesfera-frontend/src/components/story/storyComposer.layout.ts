@@ -4,31 +4,26 @@ export function getStoryStagePadClass(opts: {
   panelOpen: boolean;
 }): string {
   const { textTakeoverActive, editingElement, panelOpen } = opts;
-  // Mobile: chrome insets only (full-bleed canvas). md+: room for framed card.
-  return textTakeoverActive
-    ? 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))] md:pt-20 md:pb-24'
-    : editingElement
-      ? 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(min(34dvh,260px)+env(safe-area-inset-bottom,0px)+0.5rem)] md:pt-20 md:pb-[calc(min(34dvh,260px)+1.25rem)]'
-      : panelOpen
-        ? 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(min(34dvh,260px)+4.75rem+env(safe-area-inset-bottom,0px))] md:pt-20 md:pb-[calc(min(34dvh,260px)+5.75rem)]'
-        : 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:pt-20 md:pb-28';
-}
+  // Dynamic padding shrinks the flex container's available height
+  // when panels open, forcing the card to smoothly scale down and center itself in the remaining space.
+  if (textTakeoverActive) {
+    return 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]';
+  }
+  if (editingElement) {
+    return 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(min(34dvh,260px)+env(safe-area-inset-bottom,0px)+0.5rem)]';
+  }
+  if (panelOpen) {
+    // El panel inferior mide aproximadamente 220-250px.
+    // Con 17rem (272px) aseguramos que el lienzo flote justo por encima.
+    // Aumentamos el pt a 5.5rem (88px) para despegar la tarjeta de los botones superiores (que miden ~64px).
+    return 'pt-[calc(5.5rem+env(safe-area-inset-top,0px))] pb-[calc(17rem+env(safe-area-inset-bottom,0px))]';
+  }
 
-/**
- * Canvas size classes. Mobile = full-bleed 9:16 in the stage (ADR-0018).
- * md+ = framed floating card.
- */
-export function getStoryCardSizeClass(opts: {
-  textTakeoverActive: boolean;
-  editingElement: boolean;
-  panelOpen: boolean;
-}): string {
-  const { textTakeoverActive, editingElement, panelOpen } = opts;
-  return textTakeoverActive
-    ? 'h-full max-h-full w-auto max-w-full md:h-auto md:w-[min(260px,calc(min(56dvh,460px)*9/16))]'
-    : editingElement
-      ? 'h-full max-h-full w-auto max-w-full md:h-auto md:w-[min(240px,calc(min(50dvh,400px)*9/16))]'
-      : panelOpen
-        ? 'h-full max-h-full w-auto max-w-full md:h-auto md:w-[min(240px,calc(min(50dvh,400px)*9/16))]'
-        : 'h-full max-h-full w-auto max-w-full md:h-auto md:w-[min(260px,calc(min(56dvh,460px)*9/16))]';
+  return 'pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]';
+}
+export function getStoryCardSizeClass(): string {
+  // `h-full` ensures the card always has a resolved height (preventing it from collapsing to 0x0).
+  // `max-h-[...px]` prevents it from becoming too tall ("ocupar todo el largo") when panels are closed.
+  // `w-auto max-w-full` paired with the aspect-9/16 class ensures the width scales perfectly with the height.
+  return 'h-full max-h-[65dvh] md:max-h-[600px] w-auto max-w-full';
 }

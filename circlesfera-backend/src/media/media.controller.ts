@@ -1,18 +1,74 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { ErrorCode } from '@circlesfera/shared';
-import { Controller, Get, Logger, Param, Req, Res } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import {
+  Controller,
+  ForbiddenException,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiExcludeEndpoint, ApiTags } from '@nestjs/swagger';
 import { Request, Response } from 'express';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { MediaAuthService } from './media-auth.service.js';
 
 @ApiTags('Media')
 @Controller('media')
 export class MediaController {
   private readonly logger = new Logger(MediaController.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mediaAuthService: MediaAuthService,
+  ) {}
+
+  /**
+   * Internal endpoint called by Nginx `auth_request /internal/media-auth`.
+   *
+   * Nginx passes the original request URI via the `X-Original-URI` header.
+   * This endpoint returns:
+   *   - 204 No Content  → Nginx serves the file.
+   *   - 403 Forbidden   → Nginx returns 403 to the client.
+   *
+   * The JwtOptionalGuard never throws; it simply leaves `req.user` as null
+   * for anonymous visitors so they can still reach public content.
+   */
+  @ApiExcludeEndpoint()
+  @UseGuards(JwtOptionalGuard)
+  @Get('auth-check')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async authCheck(
+    @Req()
+    req: Request & { user?: { userId?: string; profileId?: string } },
+    @Res({ passthrough: true }) _res: Response,
+  ): Promise<void> {
+    const originalUri =
+      (req.headers['x-original-uri'] as string | undefined) ?? '';
+
+    const viewerUserId = req.user?.userId ?? null;
+    const viewerProfileId = req.user?.profileId ?? null;
+
+    const allowed = await this.mediaAuthService.isAccessAllowed(
+      originalUri,
+      viewerUserId,
+      viewerProfileId,
+    );
+
+    if (!allowed) {
+      this.logger.debug(
+        `auth-check denied — uri=${originalUri} user=${viewerUserId ?? 'anonymous'}`,
+      );
+      throw new ForbiddenException();
+    }
+  }
 
   @Get('teaser/:mediaId/*file')
   async serveTeaser(

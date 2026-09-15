@@ -16,6 +16,8 @@ interface FrameBottomSheetProps {
   align?: 'bottom' | 'center';
   // Optional id for aria-labelledby
   titleId?: string;
+  /** Backdrop behind the sheet. Frames keep the default heavy scrim. */
+  scrimClass?: string;
 }
 
 export default function FrameBottomSheet({
@@ -28,6 +30,7 @@ export default function FrameBottomSheet({
   showHandle = true,
   align = 'bottom',
   titleId,
+  scrimClass = 'bg-black/60 backdrop-blur-sm',
 }: FrameBottomSheetProps) {
   const { t } = useTranslation();
   const dragControls = useDragControls();
@@ -50,7 +53,7 @@ export default function FrameBottomSheet({
         onClick={onClose}
         variant="ghost"
         size="icon"
-        aria-label={t('frames.close', 'Close')}
+        aria-label={t('frames.close')}
         className="w-8 h-8 rounded-full bg-white/10 text-white hover:bg-white/20 shrink-0"
       >
         <X size={18} />
@@ -68,9 +71,9 @@ export default function FrameBottomSheet({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="absolute inset-0 z-40 bg-black/60 backdrop-blur-sm border-none p-0 cursor-default"
+            className={`absolute inset-0 z-40 border-none p-0 cursor-default ${scrimClass}`}
             onClick={onClose}
-            aria-label={t('frames.close', 'Close')}
+            aria-label={t('frames.close')}
           />
 
           {isCentered ? (

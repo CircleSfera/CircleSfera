@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { vi } from 'vitest';
+import '../src/auth/passkey/disable-experimental-webcrypto-pqc.js';
 
 // Silence NestJS default logger methods during tests to prevent console/stderr pollution.
 // This prevents mock error traces from displaying in the CI output.

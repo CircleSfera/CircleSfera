@@ -144,7 +144,7 @@ export default memo(function MessageBubble({
                           msg.story.standardUrl ||
                           msg.story.url
                         }
-                        alt="Story"
+                        alt={t('common.alt.story')}
                         className="w-full h-full object-cover"
                         loading="lazy"
                       />
@@ -191,7 +191,7 @@ export default memo(function MessageBubble({
                         : undefined
                     }
                     sizes="(max-width: 768px) 70vw, 400px"
-                    alt="Attachment"
+                    alt={t('common.alt.attachment')}
                     className={`max-w-full object-cover transition-transform hover:scale-105 duration-300 ${
                       !msg.content ? 'rounded-b-[18px]' : ''
                     }`}
@@ -211,21 +211,17 @@ export default memo(function MessageBubble({
             {/* Text Content */}
             {(displayText || msg.isDeleted) && (
               <div className="relative">
-                {msg.isLocked ||
-                msg.content === 'This message is locked. Pay to unlock.' ? (
+                {msg.isLocked ? (
                   <div className="flex flex-col items-center justify-center p-4 min-w-50 gap-3 bg-black/20 rounded-xl backdrop-blur-md border border-amber-500/30">
                     <div className="w-12 h-12 rounded-full bg-linear-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg shadow-amber-500/20">
                       <Lock className="w-6 h-6 text-white" />
                     </div>
                     <div className="text-center">
                       <p className="font-semibold text-white">
-                        {t('chat.locked_title', 'Exclusive message')}
+                        {t('chat.locked_title')}
                       </p>
                       <p className="text-xs text-white/70 mt-1">
-                        {t(
-                          'chat.locked_subtitle',
-                          'Unlock to view this content',
-                        )}
+                        {t('chat.locked_subtitle')}
                       </p>
                     </div>
                     <button
@@ -233,7 +229,7 @@ export default memo(function MessageBubble({
                       onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
                       className="mt-2 w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
                     >
-                      {t('chat.unlock_for', 'Unlock for {{price}}', {
+                      {t('chat.unlock_for', {
                         price: ((msg.priceCents || 0) / 100).toLocaleString(
                           i18n.language,
                           { style: 'currency', currency: 'EUR' },
@@ -246,15 +242,10 @@ export default memo(function MessageBubble({
                     className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
                   >
                     {msg.isDeleted ? (
-                      <>
-                        🚫{' '}
-                        {t('chat.message_deleted', {
-                          defaultValue: 'Este mensaje fue eliminado',
-                        })}
-                      </>
+                      <>🚫 {t('chat.message_deleted')}</>
                     ) : isDecrypting ? (
                       <span className="opacity-50 italic">
-                        {t('chat.decrypting', 'Decrypting…')}
+                        {t('chat.decrypting')}
                       </span>
                     ) : (
                       displayText
@@ -272,7 +263,7 @@ export default memo(function MessageBubble({
               <span className="tabular-nums font-mono leading-none tracking-wide opacity-80 flex items-center gap-1">
                 {msg.isEdited && !msg.isDeleted && (
                   <span className="text-xs lowercase">
-                    ({t('chat.edited', 'edited')})
+                    ({t('chat.edited')})
                   </span>
                 )}
                 {timeString}
@@ -280,7 +271,7 @@ export default memo(function MessageBubble({
               {isMe && (
                 <div
                   className="flex ml-0.5"
-                  title={isRead ? 'Read' : 'Delivered'}
+                  title={isRead ? t('chat.read') : t('chat.delivered')}
                 >
                   {isRead ? (
                     <motion.svg
@@ -344,7 +335,7 @@ export default memo(function MessageBubble({
                 type="button"
                 onClick={() => onReply(msg)}
                 className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
-                title="Reply"
+                title={t('chat.reply')}
               >
                 <Reply size={14} />
               </button>
@@ -352,7 +343,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
-                  title="Reaccionar"
+                  title={t('chat.react')}
                 >
                   <Smile size={14} />
                 </button>
@@ -381,8 +372,8 @@ export default memo(function MessageBubble({
                           }`}
                           title={
                             isSelected
-                              ? 'Quitar reacción'
-                              : `Reaccionar ${emoji}`
+                              ? t('chat.remove_reaction')
+                              : `${t('chat.react')} ${emoji}`
                           }
                         >
                           {emoji}
@@ -398,7 +389,8 @@ export default memo(function MessageBubble({
                   type="button"
                   onClick={() => onEdit(msg, decryptedText)}
                   className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
-                  title="Edit"
+                  title={t('chat.edit')}
+                  aria-label={t('chat.edit')}
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -410,9 +402,8 @@ export default memo(function MessageBubble({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    aria-label="Edit"
+                    aria-hidden
                   >
-                    <title>Edit</title>
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                   </svg>
@@ -423,7 +414,8 @@ export default memo(function MessageBubble({
                   type="button"
                   onClick={() => onDelete(msg.id!)}
                   className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-red-400 transition-colors"
-                  title="Delete"
+                  title={t('chat.delete')}
+                  aria-label={t('chat.delete')}
                 >
                   <Trash2 size={14} />
                 </button>

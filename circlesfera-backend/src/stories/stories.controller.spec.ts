@@ -1,21 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { StoriesController } from './stories.controller.js';
 import { StoriesService } from './stories.service.js';
 
 describe('StoriesController', () => {
-  let controller: StoriesController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -29,48 +35,81 @@ describe('StoriesController', () => {
     getReactions: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [StoriesController],
       providers: [{ provide: StoriesService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(EmailVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtOptionalGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: EmailVerifiedGuard, mode: 'allow' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+      ],
+    });
+  });
 
-    controller = module.get<StoriesController>(StoriesController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/stories')
+      .send({ url: 'https://cdn.example/story.jpg' })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('creates a story as the caller profile', async () => {
-    const dto = { url: 'https://cdn.example/story.jpg' };
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/stories')
+      .set(BEARER)
+      .send({
+        url: 'https://cdn.example/story.jpg',
+        authorId: 'attacker',
+      })
+      .expect(400);
+
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a story as the session profile', async () => {
     mockService.create.mockResolvedValue({ id: 'story-1' });
 
-    await controller.create(mockUser, dto);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/stories')
+      .set(BEARER)
+      .send({ url: 'https://cdn.example/story.jpg' })
+      .expect(201);
 
-    expect(mockService.create).toHaveBeenCalledWith('profile-1', dto);
+    expect(res.body).toEqual({ id: 'story-1' });
+    expect(mockService.create).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      expect.objectContaining({
+        url: 'https://cdn.example/story.jpg',
+      }),
+    );
   });
 
   it('lists the feed with the viewer profile when present', async () => {
     mockService.findAll.mockResolvedValue([]);
 
-    await controller.findAll(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/stories')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findAll).toHaveBeenCalledWith('profile-1');
+    expect(mockService.findAll).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 
   it('lists the feed without a profile when anonymous', async () => {
     mockService.findAll.mockResolvedValue([]);
 
-    await controller.findAll(null);
+    await request(app.getHttpServer()).get('/api/v1/stories').expect(200);
 
     expect(mockService.findAll).toHaveBeenCalledWith(undefined);
   });
@@ -78,33 +117,58 @@ describe('StoriesController', () => {
   it('loads another profile stories with the viewer profileId', async () => {
     mockService.findByUser.mockResolvedValue([]);
 
-    await controller.findByUser(mockUser, 'alice');
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/user/alice')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findByUser).toHaveBeenCalledWith('alice', 'profile-1');
+    expect(mockService.findByUser).toHaveBeenCalledWith(
+      'alice',
+      TEST_USER.profileId,
+    );
   });
 
-  it('reads the archive, deletes and records a view as the caller profile', async () => {
+  it('reads the archive, deletes and records a view as the session profile', async () => {
     mockService.getArchive.mockResolvedValue([]);
     mockService.delete.mockResolvedValue(undefined);
     mockService.view.mockResolvedValue({ id: 'view-1' });
 
-    await controller.getArchive(mockUser);
-    await controller.remove(mockUser, 'story-1');
-    await controller.view(mockUser, 'story-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/archive')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/stories/story-1')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/story-1/view')
+      .set(BEARER)
+      .expect(201);
 
-    expect(mockService.getArchive).toHaveBeenCalledWith('profile-1');
-    expect(mockService.delete).toHaveBeenCalledWith('story-1', 'profile-1');
-    expect(mockService.view).toHaveBeenCalledWith('story-1', 'profile-1');
+    expect(mockService.getArchive).toHaveBeenCalledWith(TEST_USER.profileId);
+    expect(mockService.delete).toHaveBeenCalledWith(
+      'story-1',
+      TEST_USER.profileId,
+    );
+    expect(mockService.view).toHaveBeenCalledWith(
+      'story-1',
+      TEST_USER.profileId,
+    );
   });
 
-  it('reacts as the caller profile', async () => {
+  it('reacts as the session profile', async () => {
     mockService.addReaction.mockResolvedValue({ id: 'rx-1' });
 
-    await controller.react(mockUser, 'story-1', { reaction: '❤️' });
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/story-1/react')
+      .set(BEARER)
+      .send({ reaction: '❤️' })
+      .expect(201);
 
     expect(mockService.addReaction).toHaveBeenCalledWith(
       'story-1',
-      'profile-1',
+      TEST_USER.profileId,
       '❤️',
     );
   });

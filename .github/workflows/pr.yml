@@ -18,7 +18,12 @@ permissions:
 jobs:
   test:
     name: Run Lint and Unit Tests
-    uses: ./.github/workflows/ci-quality.yml
+    # Prefer owner/repo@ref over `./.github/workflows/...`: the Actions language
+    # service fails to resolve relative reusable workflows in this workspace
+    # (path with spaces → "Unable to find reusable workflow"). Pin to main so
+    # the call matches the shared gate on origin; change ci-quality.yml on main.
+    uses: CircleSfera/CircleSfera/.github/workflows/ci-quality.yml@main
+    secrets: inherit
 
   playwright-smoke:
     name: Playwright Smoke (unauthenticated)
@@ -61,14 +66,10 @@ jobs:
       ABUSE_HASH_PEPPER: ci-smoke-abuse-hash-pepper-not-for-production-use!!
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
-      CLOUDINARY_NAME: dummy
-      CLOUDINARY_API_KEY: dummy
-      CLOUDINARY_API_SECRET: dummy
       CORS_ORIGIN: http://localhost:5173
-      # No E2E_USER_EMAIL/PASSWORD secrets required: smoke.spec.ts runs fully
-      # unauthenticated (empty storageState) and SKIP_GLOBAL_SETUP skips the
-      # Playwright global-setup login flow that needs those credentials.
-      SKIP_GLOBAL_SETUP: 'true'
+      # smoke.spec.ts is unauthenticated (empty storageState). Do not set
+      # CLOUDINARY_NAME — a dummy name selects Cloudinary and would break
+      # authenticated publish journeys if this job is expanded.
       PLAYWRIGHT_SKIP_WEBSERVER: 'true'
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1

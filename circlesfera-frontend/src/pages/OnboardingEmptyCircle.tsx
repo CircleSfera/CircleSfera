@@ -14,19 +14,13 @@ export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
   const places = [
     {
       icon: Home,
-      title: t('nav.home', 'Home'),
-      desc: t(
-        'onboarding.empty_home_desc',
-        'Suggested creators appear next to your feed.',
-      ),
+      title: t('nav.home'),
+      desc: t('onboarding.empty_home_desc'),
     },
     {
       icon: Search,
-      title: t('nav.explore', 'Explore'),
-      desc: t(
-        'onboarding.empty_explore_desc',
-        'Trending posts from the community.',
-      ),
+      title: t('nav.explore'),
+      desc: t('onboarding.empty_explore_desc'),
     },
   ] as const;
 
@@ -34,13 +28,10 @@ export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
     <div data-testid="onboarding-empty-suggestions">
       <div className="px-3 pt-3 pb-2">
         <p className="font-black text-white/45 text-xs uppercase tracking-wider">
-          {t('onboarding.empty_places_label', 'Where to find people')}
+          {t('onboarding.empty_places_label')}
         </p>
         <p className="text-sm text-white/70 mt-1.5 leading-snug">
-          {t(
-            'onboarding.empty_message',
-            'No creators to follow yet. Enter CircleSfera and find people from Home and Explore.',
-          )}
+          {t('onboarding.empty_message')}
         </p>
       </div>
 
@@ -79,7 +70,7 @@ export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
           className="w-full font-semibold"
         >
           <RefreshCw size={16} aria-hidden />
-          {t('onboarding.retry_suggestions', 'Refresh suggestions')}
+          {t('onboarding.retry_suggestions')}
         </Button>
       </div>
     </div>

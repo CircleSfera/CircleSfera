@@ -66,7 +66,7 @@ export default function CreatorDashboard({
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
-    profile?.user?.verificationLevel || profile?.verificationLevel;
+    profile?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
@@ -92,12 +92,9 @@ export default function CreatorDashboard({
 
       <section>
         <SectionHeader
-          title={t(
-            'creator.dashboard.content_performance',
-            'Content performance',
-          )}
+          title={t('creator.dashboard.content_performance')}
           onSeeAll={() => onNavigate('content')}
-          seeAllLabel={t('creator.dashboard.see_all_content', 'See all')}
+          seeAllLabel={t('creator.dashboard.see_all_content')}
         />
 
         {postsLoading ? (
@@ -112,11 +109,8 @@ export default function CreatorDashboard({
         ) : posts.length === 0 ? (
           <CreatorEmpty
             icon={ImageIcon}
-            title={t('creator.posts.empty_title', 'No posts yet')}
-            message={t(
-              'creator.posts.empty_desc',
-              'Publish your first post to see it here.',
-            )}
+            title={t('creator.posts.empty_title')}
+            message={t('creator.posts.empty_desc')}
           />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -144,8 +138,7 @@ export default function CreatorDashboard({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-white text-sm font-medium truncate">
-                      {post.caption ||
-                        t('creator.dashboard.untitled_post', 'Untitled post')}
+                      {post.caption || t('creator.dashboard.untitled_post')}
                     </p>
                     <span className="text-[11px] text-white/50 shrink-0">
                       {post.type}
@@ -153,9 +146,7 @@ export default function CreatorDashboard({
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-white/40 mb-1">
-                    <span>
-                      {t('creator.dashboard.performance', 'Performance')}
-                    </span>
+                    <span>{t('creator.dashboard.performance')}</span>
                     <span className="tabular-nums text-white/70">
                       {post.performanceScore || 0}%
                     </span>
@@ -176,19 +167,14 @@ export default function CreatorDashboard({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (!canPromote) {
-                        toast(
-                          t(
-                            'creator.promotions.elite_required',
-                            'Promotions are available on the Elite plan.',
-                          ),
-                        );
+                        toast(t('creator.promotions.elite_required'));
                         return;
                       }
                       onPromote(post);
                     }}
                   >
                     <Megaphone size={14} aria-hidden />
-                    {t('creator.dashboard.promote_post', 'Promote')}
+                    {t('creator.dashboard.promote_post')}
                   </Button>
                 </div>
               </Card>
@@ -199,12 +185,7 @@ export default function CreatorDashboard({
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="lg:col-span-2">
-          <SectionHeader
-            title={t(
-              'creator.dashboard.studio_management',
-              'Studio management',
-            )}
-          />
+          <SectionHeader title={t('creator.dashboard.studio_management')} />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               type="button"
@@ -217,13 +198,10 @@ export default function CreatorDashboard({
                 aria-hidden
               />
               <h3 className="text-white text-sm font-medium mb-1">
-                {t('creator.dashboard.finance_earnings', 'Finance & earnings')}
+                {t('creator.dashboard.finance_earnings')}
               </h3>
               <p className="text-xs text-white/50 leading-relaxed">
-                {t(
-                  'creator.dashboard.finance_desc',
-                  'Subscriptions, tips, locked content and payouts.',
-                )}
+                {t('creator.dashboard.finance_desc')}
               </p>
             </button>
 
@@ -238,20 +216,17 @@ export default function CreatorDashboard({
                 aria-hidden
               />
               <h3 className="text-white text-sm font-medium mb-1">
-                {t('creator.dashboard.ads_promotions', 'Ads & campaigns')}
+                {t('creator.dashboard.ads_promotions')}
               </h3>
               <p className="text-xs text-white/50 leading-relaxed">
-                {t(
-                  'creator.dashboard.ads_desc',
-                  'Campaigns and sponsored posts to grow your reach.',
-                )}
+                {t('creator.dashboard.ads_desc')}
               </p>
             </button>
           </div>
         </section>
 
         <section>
-          <SectionHeader title={t('creator.dashboard.audience', 'Audience')} />
+          <SectionHeader title={t('creator.dashboard.audience')} />
           <Card
             variant="glass"
             className="p-4 flex flex-col items-center text-center"
@@ -261,7 +236,6 @@ export default function CreatorDashboard({
               role="img"
               aria-label={t('creator.dashboard.retention_chart_aria', {
                 rate: stats?.insights.retentionRate || 0,
-                defaultValue: 'Retention: {{rate}}%',
               })}
             >
               <svg aria-hidden="true" className="w-full h-full -rotate-90">
@@ -293,7 +267,7 @@ export default function CreatorDashboard({
                   {stats?.insights.retentionRate || 0}%
                 </span>
                 <span className="text-white/50 text-[11px]">
-                  {t('creator.dashboard.retention', 'Retention')}
+                  {t('creator.dashboard.retention')}
                 </span>
               </div>
             </div>
@@ -301,7 +275,7 @@ export default function CreatorDashboard({
             <div className="w-full grid grid-cols-2 gap-2">
               <div className="bg-white/3 p-2.5 rounded-lg border border-white/5 text-left">
                 <p className="text-white/40 text-[11px] mb-0.5">
-                  {t('creator.dashboard.best_day', 'Best day')}
+                  {t('creator.dashboard.best_day')}
                 </p>
                 <p className="text-white text-sm font-medium">
                   {stats?.insights.bestDayToPost || '—'}
@@ -309,7 +283,7 @@ export default function CreatorDashboard({
               </div>
               <div className="bg-white/3 p-2.5 rounded-lg border border-white/5 text-left">
                 <p className="text-white/40 text-[11px] mb-0.5">
-                  {t('creator.dashboard.peak_hour', 'Peak hour')}
+                  {t('creator.dashboard.peak_hour')}
                 </p>
                 <p className="text-white text-sm font-medium tabular-nums">
                   {stats?.insights.bestHourToPost || '—'}
@@ -330,20 +304,14 @@ export default function CreatorDashboard({
         </div>
         <div className="flex-1 min-w-0">
           <h3 className="text-white font-medium mb-0.5">
-            {t(
-              'creator.dashboard.analytics_teaser_title',
-              'Advanced analytics',
-            )}
+            {t('creator.dashboard.analytics_teaser_title')}
           </h3>
           <p className="text-white/50 text-sm leading-relaxed">
-            {t(
-              'creator.dashboard.analytics_teaser_desc',
-              'Audience growth, geography, retention and peak hours.',
-            )}
+            {t('creator.dashboard.analytics_teaser_desc')}
           </p>
         </div>
         <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-primary shrink-0 min-h-11">
-          {t('creator.dashboard.see_analytics', 'View analytics')}
+          {t('creator.dashboard.see_analytics')}
           <ChevronRight size={14} aria-hidden />
         </span>
       </button>

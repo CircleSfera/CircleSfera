@@ -150,11 +150,33 @@ describe('EmailService', () => {
         new Error('Brevo Down'),
       );
 
-      // In production, email errors are logged but never re-thrown.
-      // A Brevo failure must not turn a successful registration into a 500.
       await expect(
         service.sendVerificationEmail('error@example.com', 'asd'),
       ).resolves.toBeUndefined();
+    });
+
+    it('should enforce recipient rate limiting quota (max 5 emails per 10m window)', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      const recipient = 'rate-limited@example.com';
+
+      for (let i = 0; i < 5; i++) {
+        await service.sendVerificationEmail(recipient, `token-${i}`);
+      }
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledTimes(5);
+
+      // 6th call should be suppressed due to recipient quota
+      await service.sendVerificationEmail(recipient, 'token-6');
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledTimes(5);
+
+      // A different recipient should still be allowed
+      await service.sendVerificationEmail('other@example.com', 'token-other');
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledTimes(6);
     });
   });
 });

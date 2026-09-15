@@ -36,11 +36,11 @@ vi.mock('./post/PostMedia', () => ({
 }));
 
 vi.mock('./interactive/PollWidget', () => ({
-  PollWidget: () => null,
+  PollWidget: () => <div data-testid="poll-widget" />,
 }));
 
 vi.mock('./interactive/QnaWidget', () => ({
-  QnaWidget: () => null,
+  QnaWidget: () => <div data-testid="qna-widget" />,
 }));
 
 const mockProfile: ProfileWithUser = {
@@ -113,5 +113,55 @@ describe('PostCard', () => {
 
     renderComponent();
     expect(screen.getByText('testuser')).toBeInTheDocument();
+  });
+
+  it('does not render QnA in the feed card', () => {
+    renderWithProviders(
+      <PostCard
+        post={{
+          ...mockPost,
+          qnaBox: { id: 'qna-1' },
+        }}
+      />,
+    );
+
+    expect(screen.queryByTestId('qna-widget')).not.toBeInTheDocument();
+  });
+
+  it('still renders polls in the feed card', () => {
+    renderWithProviders(
+      <PostCard
+        post={{
+          ...mockPost,
+          poll: { id: 'poll-1' },
+        }}
+      />,
+    );
+
+    expect(screen.getByTestId('poll-widget')).toBeInTheDocument();
+  });
+
+  it('shows recommendation chrome from the catalog, not mixed EN/ES fallbacks', () => {
+    const { i18n } = renderWithProviders(
+      <PostCard
+        post={{
+          ...mockPost,
+          recommendationReason: 'new',
+          recommendationSignals: ['ranked_for_you'],
+        }}
+      />,
+    );
+
+    expect(i18n!.t('post.recommendation.new')).toBe('New for you');
+    expect(
+      screen.getByText(i18n!.t('post.recommendation.new')),
+    ).toBeInTheDocument();
+    expect(i18n!.t('post.recommendation.why')).toBe('Why?');
+    expect(
+      screen.getByRole('button', {
+        name: new RegExp(i18n!.t('post.recommendation.why')),
+      }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Nuevo para ti')).not.toBeInTheDocument();
   });
 });

@@ -91,7 +91,7 @@ function SharePostBody({ post, compact }: { post: Post; compact?: boolean }) {
     mutationFn: async ({ conversationId }: { conversationId: string }) => {
       return chatApi.sendMessage({
         conversationId,
-        content: t('chat.shared_post', 'Shared a post'),
+        content: t('chat.shared_post'),
         postId: post.id,
       });
     },
@@ -234,7 +234,7 @@ export default function SharePostModal({
       <FrameBottomSheet
         isOpen
         onClose={onClose}
-        title={t('frames.share_frame', 'Share frame')}
+        title={t('frames.share_frame')}
         maxHeightClass="max-h-[58%]"
       >
         <SharePostBody post={post} compact />

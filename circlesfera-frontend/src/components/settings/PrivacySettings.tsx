@@ -73,12 +73,12 @@ export default function PrivacySettings() {
       </SettingsSection>
 
       <p className="text-xs text-white/50 px-1">
-        {t('settings.privacy.export_link_hint', 'Need a copy of your data?')}{' '}
+        {t('settings.privacy.export_link_hint')}{' '}
         <Link
           to="/accounts/account"
           className="text-brand-primary hover:underline font-medium"
         >
-          {t('settings.privacy.export_link', 'Export from Account')}
+          {t('settings.privacy.export_link')}
         </Link>
       </p>
     </div>

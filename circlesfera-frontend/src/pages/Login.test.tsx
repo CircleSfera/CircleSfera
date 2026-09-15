@@ -54,22 +54,35 @@ describe('Login Page Integration', () => {
   });
 
   it('renders login form correctly', () => {
-    renderWithProviders(<Login />);
+    const { i18n } = renderWithProviders(<Login />);
 
-    expect(screen.getByLabelText(/email or username/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/password/i)).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('login-submit-button')).toBeInTheDocument();
+    expect(
+      screen.getByTitle(i18n!.t('auth.login.forgot_password')),
+    ).toHaveAttribute('href', '/forgot-password');
   });
 
   it('handles successful login via authApi and loads profile', async () => {
-    renderWithProviders(<Login />);
+    const { i18n } = renderWithProviders(<Login />);
 
-    fireEvent.change(screen.getByLabelText(/email or username/i), {
-      target: { value: 'test@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'password123' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      {
+        target: { value: 'test@example.com' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      {
+        target: { value: 'password123' },
+      },
+    );
     fireEvent.click(screen.getByTestId('login-submit-button'));
 
     await waitFor(() => {
@@ -92,18 +105,94 @@ describe('Login Page Integration', () => {
       response: { data: { message: 'Invalid credentials' } },
     });
 
-    renderWithProviders(<Login />);
+    const { i18n } = renderWithProviders(<Login />);
 
-    fireEvent.change(screen.getByLabelText(/email or username/i), {
-      target: { value: 'wrong@example.com' },
-    });
-    fireEvent.change(screen.getByLabelText(/password/i), {
-      target: { value: 'wrongpass' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      {
+        target: { value: 'wrong@example.com' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      {
+        target: { value: 'wrongpass' },
+      },
+    );
     fireEvent.click(screen.getByTestId('login-submit-button'));
 
     await waitFor(() => {
       expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
     });
+  });
+
+  it('shows 2FA chrome from the catalog when required', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: { data: { message: '2FA_REQUIRED' } },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'user@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText(i18n!.t('auth.login.2fa_code')),
+      ).toBeInTheDocument();
+    });
+    expect(i18n!.t('auth.login.2fa_code')).toBe('Authentication Code');
+    expect(
+      screen.getByText(i18n!.t('auth.login.2fa_hint')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Código de autenticación'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows appeal chrome from the catalog when banned with token', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'ACCOUNT_BANNED',
+          appealToken: 'appeal-token-1',
+        },
+      },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'banned@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(i18n!.t('auth.login.banned_message')),
+      ).toBeInTheDocument();
+    });
+    expect(i18n!.t('auth.login.submit_appeal')).toBe('Submit Appeal');
+    expect(
+      screen.getByLabelText(i18n!.t('auth.login.appeal_reason_label')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('auth.login.submit_appeal') }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Motivo de la apelación'),
+    ).not.toBeInTheDocument();
   });
 });

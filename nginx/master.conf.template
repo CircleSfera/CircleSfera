@@ -10,6 +10,7 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
     client_body_timeout 300s;
     send_timeout 300s;
     proxy_read_timeout 300s;
@@ -68,11 +69,34 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Internal Uploads Proxy
+    # Media delivery with per-file authorization via auth_request.
+    # Nginx calls /internal/media-auth before serving any file in /uploads/.
+    # The backend returns 204 (allow) or 403 (deny). Cookies are forwarded so
+    # logged-in users are transparently authorized.
     location /uploads/ {
+        auth_request /internal/media-auth;
+        # Forward the original URI so the backend knows which file is requested.
+        auth_request_set $auth_status $upstream_status;
+
         alias /usr/share/nginx/html/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
+    }
+
+    # Internal auth subrequest — not reachable from the public internet.
+    location = /internal/media-auth {
+        internal;
+        proxy_pass $backend_upstream/api/v1/media/auth-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        # Provide the original URI so the backend can look up the file.
+        proxy_set_header X-Original-URI $request_uri;
+        # Forward cookies so the backend can authenticate the user.
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # SEO Endpoints Proxy
@@ -117,6 +141,7 @@ server {
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
 
@@ -154,9 +179,30 @@ server {
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
     set $backend_upstream http://backend:${BACKEND_PORT};
 
-    # Basic Authentication Protection (Production-Dev only) - DISABLED
-    # auth_basic "CircleSfera Development - Restricted Access";
-    # auth_basic_user_file /etc/nginx/.htpasswd;
+    # Basic Authentication Protection (Production-Dev only) - ENABLED
+    auth_basic "CircleSfera Development - Restricted Access";
+    auth_basic_user_file /etc/nginx/.htpasswd;
+
+    # Exemptions for Health and Webhooks
+    location = /api/v1/health {
+        auth_basic off;
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location = /api/v1/payments/webhook {
+        auth_basic off;
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
     # Backend API Proxy
     location /api/v1/ {
@@ -176,12 +222,30 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Internal Uploads Proxy
+    # Media delivery with per-file authorization via auth_request.
     location /uploads/ {
         auth_basic off;
+        auth_request /internal/media-auth;
+        auth_request_set $auth_status $upstream_status;
+
         alias /usr/share/nginx/html/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
+    }
+
+    # Internal auth subrequest — not reachable from the public internet.
+    location = /internal/media-auth {
+        internal;
+        auth_basic off;
+        proxy_pass $backend_upstream/api/v1/media/auth-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     # Standard Socket.io Proxy
@@ -290,6 +354,7 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
 
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
@@ -330,10 +395,28 @@ server {
     }
 
     # Same volume as apex — relative /uploads/* avatars & media must not fall through to the SPA.
+    # Media delivery with per-file authorization via auth_request.
     location /uploads/ {
+        auth_request /internal/media-auth;
+        auth_request_set $auth_status $upstream_status;
+
         alias /usr/share/nginx/html/uploads/;
         expires 30d;
         add_header Cache-Control "public, no-transform";
+    }
+
+    # Internal auth subrequest — not reachable from the public internet.
+    location = /internal/media-auth {
+        internal;
+        proxy_pass $backend_upstream/api/v1/media/auth-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location / {

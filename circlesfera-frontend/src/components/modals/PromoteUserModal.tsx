@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Search, UserPlus } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
@@ -24,6 +25,7 @@ export default function PromoteUserModal({
   onConfirm,
   isLoading = false,
 }: PromoteUserModalProps) {
+  const { t } = useTranslation();
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
@@ -49,10 +51,11 @@ export default function PromoteUserModal({
   return (
     <Dialog isOpen={isOpen} onClose={onClose} maxWidth="md">
       <div className="pt-2">
-        <h2 className="text-xl font-bold text-white mb-2">Promover Usuario</h2>
+        <h2 className="text-xl font-bold text-white mb-2">
+          {t('admin.users.promote_modal.title')}
+        </h2>
         <p className="text-sm text-gray-400 mb-6">
-          Busca a un usuario por su nombre o correo para añadirlo al equipo de
-          administración.
+          {t('admin.users.promote_modal.description')}
         </p>
 
         {!selectedUser ? (
@@ -61,7 +64,7 @@ export default function PromoteUserModal({
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Buscar por usuario o email..."
+                placeholder={t('admin.users.promote_modal.search_placeholder')}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-brand-primary focus:ring-1 focus:ring-brand-primary transition-all"
@@ -71,15 +74,15 @@ export default function PromoteUserModal({
             <div className="min-h-50 border border-white/5 rounded-xl bg-black/20 p-2 overflow-y-auto">
               {isFetching ? (
                 <div className="p-4 text-center text-sm text-gray-400">
-                  Buscando...
+                  {t('admin.users.promote_modal.searching')}
                 </div>
               ) : debouncedSearch.length <= 2 ? (
                 <div className="p-4 text-center text-sm text-gray-400">
-                  Escribe al menos 3 letras para buscar.
+                  {t('admin.users.promote_modal.min_chars')}
                 </div>
               ) : data?.data.length === 0 ? (
                 <div className="p-4 text-center text-sm text-gray-400">
-                  No se encontraron usuarios estándar con ese término.
+                  {t('admin.users.promote_modal.empty')}
                 </div>
               ) : (
                 <div className="space-y-1">
@@ -131,7 +134,7 @@ export default function PromoteUserModal({
                 onClick={() => setSelectedUser(null)}
                 className="absolute top-2 right-2 text-xs text-gray-400 hover:text-white px-2 py-1 rounded hover:bg-white/10"
               >
-                Cambiar
+                {t('admin.users.promote_modal.change')}
               </button>
             </div>
 
@@ -140,7 +143,7 @@ export default function PromoteUserModal({
                 htmlFor="role-select"
                 className="text-sm font-semibold text-gray-300"
               >
-                Selecciona el nuevo rol
+                {t('admin.users.promote_modal.role_label')}
               </label>
               <select
                 id="role-select"
@@ -160,7 +163,7 @@ export default function PromoteUserModal({
 
         <div className="mt-8 flex gap-3 justify-end">
           <Button variant="ghost" onClick={onClose} disabled={isLoading}>
-            Cancelar
+            {t('common.cancel')}
           </Button>
           <Button
             variant="primary"
@@ -172,7 +175,7 @@ export default function PromoteUserModal({
             className="gap-2"
           >
             <UserPlus className="w-4 h-4" />
-            Otorgar Permisos
+            {t('admin.users.promote_modal.confirm')}
           </Button>
         </div>
       </div>

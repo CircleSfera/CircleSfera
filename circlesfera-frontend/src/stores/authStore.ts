@@ -111,3 +111,9 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:unauthorized', () => {
+    void useAuthStore.getState().logout();
+  });
+}

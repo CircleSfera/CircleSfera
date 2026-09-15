@@ -1,0 +1,37 @@
+# Isolated Postgres for root Playwright journeys (e2e/).
+# Does not replace docker-compose.dev.yml — keep your day-to-day DB on :5432.
+#
+#   npm run e2e:db:up
+#   npm run e2e:db:migrate
+#   # Point Nest at E2E_DATABASE_URL (see e2e/README.md), then:
+#   npx playwright test --project=chromium
+#
+# Default URL (host machine):
+#   postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public
+
+services:
+  postgres-e2e:
+    image: pgvector/pgvector:pg16
+    container_name: CircleSfera-Postgres-E2E
+    environment:
+      POSTGRES_USER: ${E2E_POSTGRES_USER:-prisma}
+      POSTGRES_PASSWORD: ${E2E_POSTGRES_PASSWORD:-prisma}
+      POSTGRES_DB: ${E2E_POSTGRES_DB:-circlesfera_e2e}
+    ports:
+      - '${E2E_DB_PORT:-5433}:5432'
+    volumes:
+      - postgres_e2e_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'pg_isready -U ${E2E_POSTGRES_USER:-prisma} -d ${E2E_POSTGRES_DB:-circlesfera_e2e}',
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_e2e_data:
+    name: circlesfera-postgres_e2e_data

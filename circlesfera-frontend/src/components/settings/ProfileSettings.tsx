@@ -96,7 +96,7 @@ export default function ProfileSettings() {
       setUsername(profile.username || '');
       setBio(profile.bio || '');
       setWebsite(profile.website || '');
-      setAccountType(profile.user?.accountType || 'PERSONAL');
+      setAccountType(profile.accountType || 'PERSONAL');
       setInitialized(true);
     }
   }, [profile, initialized]);
@@ -111,10 +111,7 @@ export default function ProfileSettings() {
         setUsernameStatus({
           checking: false,
           available: false,
-          message: t(
-            'settings.profile.username_min',
-            'Username must be at least 3 characters',
-          ),
+          message: t('settings.profile.username_min'),
         });
         return;
       }
@@ -130,10 +127,7 @@ export default function ProfileSettings() {
         setUsernameStatus({
           checking: false,
           available: false,
-          message: t(
-            'settings.profile.username_check_error',
-            'Error checking username',
-          ),
+          message: t('settings.profile.username_check_error'),
         });
       }
     },
@@ -180,8 +174,7 @@ export default function ProfileSettings() {
       username !== (profile?.username || '') ||
       bio !== (profile?.bio || '') ||
       website !== (profile?.website || '') ||
-      accountType !==
-        (profile?.user?.accountType || profile?.accountType || 'PERSONAL'));
+      accountType !== (profile?.accountType || 'PERSONAL'));
 
   const canSubmit =
     isDirty &&
@@ -225,16 +218,10 @@ export default function ProfileSettings() {
             <MailWarning size={20} className="shrink-0 mt-0.5 sm:mt-0" />
             <div className="text-sm">
               <p className="font-semibold">
-                {t(
-                  'settings.profile.email_unverified_title',
-                  'Correo no verificado',
-                )}
+                {t('settings.profile.email_unverified_title')}
               </p>
               <p className="opacity-90 mt-0.5">
-                {t(
-                  'settings.profile.email_unverified_desc',
-                  'Por seguridad, necesitas verificar tu correo electrónico para guardar los cambios.',
-                )}
+                {t('settings.profile.email_unverified_desc')}
               </p>
             </div>
           </div>
@@ -248,8 +235,8 @@ export default function ProfileSettings() {
             onClick={() => resendVerificationMutation.mutate()}
           >
             {resendVerificationMutation.isSuccess
-              ? t('settings.profile.email_sent', '¡Enviado!')
-              : t('settings.profile.resend_email', 'Reenviar correo')}
+              ? t('settings.profile.email_sent')
+              : t('settings.profile.resend_email')}
           </Button>
         </div>
       )}
@@ -461,19 +448,11 @@ export default function ProfileSettings() {
       </SettingsSection>
 
       {hasBiometric && (
-        <SettingsSection
-          title={t('settings.security.title', 'Seguridad y Privacidad')}
-        >
+        <SettingsSection title={t('settings.security.title')}>
           <div className="space-y-2">
             <SettingsRow
-              label={t(
-                'settings.security.biometric_label',
-                'Bloqueo Biométrico',
-              )}
-              description={t(
-                'settings.security.biometric_desc',
-                'Requerir FaceID / TouchID al abrir la app',
-              )}
+              label={t('settings.security.biometric_label')}
+              description={t('settings.security.biometric_desc')}
               control={
                 <button
                   type="button"
@@ -514,10 +493,7 @@ export default function ProfileSettings() {
             <X size={16} className="shrink-0" />
             <span className="font-medium text-sm">
               {(updateProfileMutation.error as any)?.response?.data?.message ||
-                t(
-                  'settings.profile.error_saving',
-                  'Error al guardar los cambios',
-                )}
+                t('settings.profile.error_saving')}
             </span>
           </motion.div>
         )}

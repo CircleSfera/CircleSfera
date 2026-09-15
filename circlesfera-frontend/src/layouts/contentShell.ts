@@ -5,6 +5,7 @@ export type ContentShell =
   | 'broadcast'
   | 'playback'
   | 'vertical'
+  | 'map'
   | 'stream';
 
 // Resolve the content shell for a location pathname (no search or hash)
@@ -22,12 +23,20 @@ export function getContentShell(pathname: string): ContentShell {
   if (pathname.startsWith('/frames')) {
     return 'vertical';
   }
+  if (pathname.startsWith('/explore/map')) {
+    return 'map';
+  }
   return 'stream';
 }
 
 // Hide TopNav and BottomNav; lock document scroll
 export function isImmersiveShell(shell: ContentShell): boolean {
-  return shell === 'create' || shell === 'broadcast' || shell === 'playback';
+  return (
+    shell === 'create' ||
+    shell === 'broadcast' ||
+    shell === 'playback' ||
+    shell === 'map'
+  );
 }
 
 // Lock the main column to the viewport; BottomNav may remain on vertical
@@ -36,21 +45,36 @@ export function isViewportLockedShell(shell: ContentShell): boolean {
     shell === 'create' ||
     shell === 'broadcast' ||
     shell === 'playback' ||
-    shell === 'vertical'
+    shell === 'vertical' ||
+    shell === 'map'
   );
 }
 
-// Hide mobile TopNav on create, broadcast, and playback shells
+// Hide mobile TopNav on create, broadcast, playback, and map shells
 export function hidesTopNav(shell: ContentShell): boolean {
-  return shell === 'create' || shell === 'broadcast' || shell === 'playback';
+  return (
+    shell === 'create' ||
+    shell === 'broadcast' ||
+    shell === 'playback' ||
+    shell === 'map'
+  );
 }
 
-// Hide BottomNav on create, broadcast, and playback shells
+// Hide BottomNav on create, broadcast, playback, and map shells
 export function hidesBottomNav(shell: ContentShell): boolean {
-  return shell === 'create' || shell === 'broadcast' || shell === 'playback';
+  return (
+    shell === 'create' ||
+    shell === 'broadcast' ||
+    shell === 'playback' ||
+    shell === 'map'
+  );
 }
 
 // Hide Sidebar even on md+ (edits studio only — checked separately via pathname)
 export function isEditsPath(pathname: string): boolean {
   return pathname.startsWith('/edits');
+}
+
+export function isMapPath(pathname: string): boolean {
+  return pathname.startsWith('/explore/map');
 }

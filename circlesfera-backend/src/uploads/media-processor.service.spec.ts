@@ -1,3 +1,4 @@
+import { UnsupportedMediaTypeException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import sharp from 'sharp';
 import { type Mock, vi } from 'vitest';
@@ -7,6 +8,7 @@ import { MediaProcessorService } from './media-processor.service.js';
 // Mock Sharp
 vi.mock('sharp', () => {
   const sharpMock = {
+    metadata: vi.fn().mockResolvedValue({ width: 800, height: 600 }),
     resize: vi.fn().mockReturnThis(),
     rotate: vi.fn().mockReturnThis(),
     avif: vi.fn().mockReturnThis(),
@@ -76,6 +78,7 @@ describe('MediaProcessorService', () => {
 
     // Mock sharp to fail on AVIF
     const sharpMock = {
+      metadata: vi.fn().mockResolvedValue({ width: 800, height: 600 }),
       resize: vi.fn().mockReturnThis(),
       rotate: vi.fn().mockReturnThis(),
       avif: vi.fn().mockImplementation(() => {
@@ -104,5 +107,17 @@ describe('MediaProcessorService', () => {
     expect(manifest.masterPlaylist).toContain('intro_720p.m3u8');
     expect(manifest.masterPlaylist).toContain('intro_1080p.m3u8');
     expect(manifest.segmentCount).toBe(2);
+  });
+
+  it('should reject SVG files under security policy (mitigates Stored XSS)', async () => {
+    const file: UploadedFile = {
+      originalname: 'vector.svg',
+      mimetype: 'image/svg+xml',
+      buffer: Buffer.from('<svg></svg>'),
+    };
+
+    await expect(service.process(file)).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
   });
 });

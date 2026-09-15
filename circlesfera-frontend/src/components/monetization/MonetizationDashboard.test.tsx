@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
+import { renderWithProviders } from '../../test/test-utils';
 import MonetizationDashboard from './MonetizationDashboard';
 
 vi.mock('../../services/monetization.service', () => ({
@@ -19,17 +19,7 @@ vi.mock('../../stores/authStore', () => ({
 }));
 
 describe('MonetizationDashboard', () => {
-  const renderDashboard = () => {
-    const queryClient = new QueryClient({
-      defaultOptions: { queries: { retry: false } },
-    });
-
-    return render(
-      <QueryClientProvider client={queryClient}>
-        <MonetizationDashboard />
-      </QueryClientProvider>,
-    );
-  };
+  const renderDashboard = () => renderWithProviders(<MonetizationDashboard />);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -66,9 +56,12 @@ describe('MonetizationDashboard', () => {
       },
     });
 
-    renderDashboard();
+    const { i18n } = renderDashboard();
 
-    expect(await screen.findByText('€8.00')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('creator.income.breakdown')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('€8.00')).toBeInTheDocument();
     expect(screen.getByText('€2.00')).toBeInTheDocument();
   });
 
@@ -81,12 +74,21 @@ describe('MonetizationDashboard', () => {
       pending: [{ amountCents: 250, currency: 'EUR' }],
     });
 
-    renderDashboard();
+    const { i18n } = renderDashboard();
 
+    expect(
+      await screen.findByText(i18n!.t('creator.income.stripe_balances')),
+    ).toBeInTheDocument();
     await waitFor(() => {
       expect(screen.getByText(/10\.00/)).toBeInTheDocument();
     });
     expect(screen.getByText(/2\.50/)).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('creator.income.available')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('creator.income.pending')),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Connect with Stripe/i)).not.toBeInTheDocument();
   });
 
@@ -108,19 +110,20 @@ describe('MonetizationDashboard', () => {
       ],
     });
 
-    renderDashboard();
+    const { i18n } = renderDashboard();
 
+    expect(
+      await screen.findByText(i18n!.t('creator.income.transactions')),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Tip from a fan')).toBeInTheDocument();
     expect(screen.getByText('+€5.00')).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no transactions', async () => {
-    renderDashboard();
+    const { i18n } = renderDashboard();
 
     expect(
-      await screen.findByText(
-        /No transactions yet|Aún no hay transacciones|Sin transacciones/i,
-      ),
+      await screen.findByText(i18n!.t('creator.income.no_transactions')),
     ).toBeInTheDocument();
   });
 });

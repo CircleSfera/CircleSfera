@@ -1,26 +1,31 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { PostsController } from './posts.controller.js';
 import { PostsService } from './posts.service.js';
 
 describe('PostsController', () => {
-  let controller: PostsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
-
-  const pagination = { page: 1, limit: 10 };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -35,63 +40,89 @@ describe('PostsController', () => {
     adminRemove: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [PostsController],
       providers: [{ provide: PostsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(EmailVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtOptionalGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(OwnershipGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: EmailVerifiedGuard, mode: 'allow' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+        { guard: OwnershipGuard, mode: 'allow' },
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<PostsController>(PostsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts')
+      .send({ caption: 'Hello' })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('creates a post as the caller profile', async () => {
-    const dto = { caption: 'Hello' };
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts')
+      .set(BEARER)
+      .send({ caption: 'Hello', authorId: 'attacker' })
+      .expect(400);
+
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
+
+  it('creates a post as the session profile', async () => {
     mockService.create.mockResolvedValue({ id: 'post-1' });
 
-    await controller.create(mockUser, dto);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/posts')
+      .set(BEARER)
+      .send({ caption: 'Hello' })
+      .expect(201);
 
-    expect(mockService.create).toHaveBeenCalledWith('profile-1', dto);
+    expect(res.body).toEqual({ id: 'post-1' });
+    expect(mockService.create).toHaveBeenCalledWith(TEST_USER.profileId, {
+      caption: 'Hello',
+    });
   });
 
-  it('lists posts with the viewer profile and strips sort', async () => {
+  it('lists posts with the viewer profile when authenticated', async () => {
     mockService.findAll.mockResolvedValue({ data: [] });
-    const query = { ...pagination, sort: 'trending' as const };
 
-    await controller.findAll(mockUser, query);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts')
+      .query({ page: 1, limit: 10, sort: 'trending' })
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.findAll).toHaveBeenCalledWith(
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       'trending',
-      'profile-1',
+      TEST_USER.profileId,
     );
   });
 
   it('lists posts without a profile when anonymous', async () => {
     mockService.findAll.mockResolvedValue({ data: [] });
-    const query = { ...pagination, sort: 'latest' as const };
 
-    await controller.findAll(null, query);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts')
+      .query({ page: 1, limit: 10, sort: 'latest' })
+      .expect(200);
 
     expect(mockService.findAll).toHaveBeenCalledWith(
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       'latest',
       undefined,
     );
@@ -100,99 +131,146 @@ describe('PostsController', () => {
   it('loads Frames with the viewer profile when present', async () => {
     mockService.getFramesFeed.mockResolvedValue({ data: [] });
 
-    await controller.getFrames(mockUser, pagination);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/frames')
+      .query({ page: 1, limit: 10 })
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.getFramesFeed).toHaveBeenCalledWith(
-      pagination,
-      'profile-1',
+      expect.objectContaining({ page: 1, limit: 10 }),
+      TEST_USER.profileId,
     );
   });
 
   it('loads Frames without a profile when anonymous', async () => {
     mockService.getFramesFeed.mockResolvedValue({ data: [] });
 
-    await controller.getFrames(null, pagination);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/frames')
+      .query({ page: 1, limit: 10 })
+      .expect(200);
 
     expect(mockService.getFramesFeed).toHaveBeenCalledWith(
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       undefined,
     );
   });
 
   it('lists another profile posts with type and viewer profileId', async () => {
     mockService.findByUser.mockResolvedValue({ data: [] });
-    const query = { ...pagination, type: 'FRAME' as const };
 
-    await controller.findByUser(mockUser, 'alice', query);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/user/alice')
+      .query({ page: 1, limit: 10, type: 'FRAME' })
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.findByUser).toHaveBeenCalledWith(
       'alice',
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       'FRAME',
-      'profile-1',
+      TEST_USER.profileId,
     );
   });
 
   it('lists another profile posts without a viewer when anonymous', async () => {
     mockService.findByUser.mockResolvedValue({ data: [] });
-    const query = { ...pagination, type: 'POST' as const };
 
-    await controller.findByUser(null, 'alice', query);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/user/alice')
+      .query({ page: 1, limit: 10, type: 'POST' })
+      .expect(200);
 
     expect(mockService.findByUser).toHaveBeenCalledWith(
       'alice',
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       'POST',
       undefined,
     );
   });
 
-  it('loads tagged posts and hashtag posts without a viewer', async () => {
+  it('loads tagged posts and hashtag posts without a session', async () => {
     mockService.getTaggedPosts.mockResolvedValue({ data: [] });
     mockService.getByTag.mockResolvedValue({ data: [] });
 
-    await controller.getTaggedPosts('alice', pagination);
-    await controller.getByTag('sfera', pagination);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/user/alice/tagged')
+      .query({ page: 1, limit: 10 })
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/tags/sfera')
+      .query({ page: 1, limit: 10 })
+      .expect(200);
 
     expect(mockService.getTaggedPosts).toHaveBeenCalledWith(
       'alice',
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
     );
-    expect(mockService.getByTag).toHaveBeenCalledWith('sfera', pagination);
+    expect(mockService.getByTag).toHaveBeenCalledWith(
+      'sfera',
+      expect.objectContaining({ page: 1, limit: 10 }),
+    );
   });
 
   it('loads one post with the viewer profile when present', async () => {
     mockService.findOne.mockResolvedValue({ id: 'post-1' });
 
-    await controller.findOne(mockUser, 'post-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findOne).toHaveBeenCalledWith('post-1', 'profile-1');
+    expect(mockService.findOne).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+    );
   });
 
   it('loads one post without a profile when anonymous', async () => {
     mockService.findOne.mockResolvedValue({ id: 'post-1' });
 
-    await controller.findOne(null, 'post-1');
+    await request(app.getHttpServer()).get('/api/v1/posts/post-1').expect(200);
 
     expect(mockService.findOne).toHaveBeenCalledWith('post-1', undefined);
   });
 
-  it('updates and deletes by post id without passing profileId', async () => {
-    const dto = { caption: 'Edited' };
+  it('updates and deletes by post id with a session', async () => {
     mockService.update.mockResolvedValue({ id: 'post-1' });
     mockService.remove.mockResolvedValue(undefined);
 
-    await controller.update('post-1', dto);
-    await controller.remove('post-1');
+    await request(app.getHttpServer())
+      .put('/api/v1/posts/post-1')
+      .set(BEARER)
+      .send({ caption: 'Edited' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1')
+      .set(BEARER)
+      .expect(204);
 
-    expect(mockService.update).toHaveBeenCalledWith('post-1', dto);
+    expect(mockService.update).toHaveBeenCalledWith('post-1', {
+      caption: 'Edited',
+    });
     expect(mockService.remove).toHaveBeenCalledWith('post-1');
   });
 
-  it('admin-deletes by post id without a staff profile', async () => {
+  it('rejects admin delete with a user session', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/admin')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.adminRemove).not.toHaveBeenCalled();
+  });
+
+  it('admin-deletes by post id with an admin session', async () => {
     mockService.adminRemove.mockResolvedValue(undefined);
 
-    await controller.adminRemove('post-1');
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/admin')
+      .set(ADMIN_BEARER)
+      .expect(204);
 
     expect(mockService.adminRemove).toHaveBeenCalledWith('post-1');
   });

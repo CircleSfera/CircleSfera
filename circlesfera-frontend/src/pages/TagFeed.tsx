@@ -67,11 +67,8 @@ export default function TagFeed() {
           </div>
         ) : isError ? (
           <ErrorState
-            title={t('post.tag_feed.error_title', "Couldn't load tag feed")}
-            message={t(
-              'post.tag_feed.error_message',
-              'Something went wrong while loading posts. Please try again.',
-            )}
+            title={t('post.tag_feed.error_title')}
+            message={t('post.tag_feed.error_message')}
             onRetry={() => refetch()}
           />
         ) : posts.length === 0 ? (

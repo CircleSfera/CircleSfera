@@ -98,7 +98,7 @@ export default function Sidebar() {
     { icon: Bookmark, label: t('nav.saved'), to: '/saved', badge: 0 },
     {
       icon: Wand2,
-      label: t('nav.studio', 'Studio'),
+      label: t('nav.studio'),
       to: '/edits',
       badge: 0,
     },
@@ -153,7 +153,7 @@ export default function Sidebar() {
       {/* Navigation Items */}
       <nav
         className="flex-1 px-2 space-y-0.5 overflow-y-auto overflow-x-hidden no-scrollbar"
-        aria-label="Main navigation"
+        aria-label={t('nav.main')}
       >
         {navItems.map((item) => {
           const isActive =
@@ -276,7 +276,7 @@ export default function Sidebar() {
       <div className="px-2 pb-4 space-y-0.5 shrink-0">
         <Link
           to="/pricing"
-          aria-label="Premium"
+          aria-label={t('nav.premium')}
           className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-amber-400/90 hover:text-amber-300 transition-all duration-200 group relative overflow-hidden active:scale-95"
           style={{
             background:
@@ -297,7 +297,7 @@ export default function Sidebar() {
 
         <Link
           to="/accounts"
-          aria-label="Settings"
+          aria-label={t('nav.settings')}
           className="flex items-center gap-3 py-2.5 px-3 rounded-xl text-gray-400/80 hover:bg-white/5 hover:text-white/90 transition-all duration-200 active:scale-95"
           style={{ minHeight: 44 }}
         >
@@ -310,7 +310,7 @@ export default function Sidebar() {
         <button
           type="button"
           onClick={logout}
-          aria-label="Log out"
+          aria-label={t('nav.log_out')}
           className="w-full flex items-center gap-3 py-2.5 px-3 rounded-xl text-red-400/80 hover:bg-red-500/8 hover:text-red-300 transition-all duration-200 active:scale-95"
           style={{ minHeight: 44 }}
         >

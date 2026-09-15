@@ -30,17 +30,19 @@ export default function StoryComposerChrome({
   const { t } = useTranslation();
 
   return (
-    <header className="relative z-30 flex items-center justify-between gap-2 shrink-0 px-3.5 pb-1.5 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.35rem))]">
-      <button
-        type="button"
-        onClick={onClose}
-        className={`${iconBtn} bg-white/10 text-white hover:bg-white/16`}
-        aria-label={t('createPost.storyComposer.close')}
-      >
-        <X size={18} strokeWidth={2} />
-      </button>
+    <header className="relative z-30 flex items-center justify-between shrink-0 px-3.5 pb-1.5 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.35rem))]">
+      <div className="flex-1 flex justify-start">
+        <button
+          type="button"
+          onClick={onClose}
+          className={`${iconBtn} bg-white/10 text-white hover:bg-white/16`}
+          aria-label={t('createPost.storyComposer.close')}
+        >
+          <X size={18} strokeWidth={2} />
+        </button>
+      </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="absolute left-1/2 -translate-x-1/2 flex items-center gap-1.5">
         <button
           type="button"
           onClick={onUndo}
@@ -61,23 +63,25 @@ export default function StoryComposerChrome({
         </button>
       </div>
 
-      <motion.button
-        type="button"
-        onClick={onPost}
-        disabled={!canPost || isExporting}
-        className="bg-linear-to-r from-brand-primary to-brand-blue text-white min-h-11 px-4 rounded-full font-bold text-xs
-                   disabled:opacity-40 flex items-center gap-1.5 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
-        whileTap={{ scale: 0.95 }}
-      >
-        {isExporting ? (
-          <Loader2 className="animate-spin" size={16} />
-        ) : (
-          <>
-            {t('createPost.storyComposer.post')}{' '}
-            <Check size={14} strokeWidth={2.5} />
-          </>
-        )}
-      </motion.button>
+      <div className="flex-1 flex justify-end">
+        <motion.button
+          type="button"
+          onClick={onPost}
+          disabled={!canPost || isExporting}
+          className="bg-linear-to-r from-brand-primary to-brand-blue text-white min-h-11 px-4 rounded-full font-bold text-xs
+                     disabled:opacity-40 flex items-center gap-1.5 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+          whileTap={{ scale: 0.95 }}
+        >
+          {isExporting ? (
+            <Loader2 className="animate-spin" size={16} />
+          ) : (
+            <>
+              {t('createPost.storyComposer.post')}{' '}
+              <Check size={14} strokeWidth={2.5} />
+            </>
+          )}
+        </motion.button>
+      </div>
     </header>
   );
 }

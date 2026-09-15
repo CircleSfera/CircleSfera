@@ -50,20 +50,26 @@ describe('PromoteUserModal', () => {
   });
 
   it('keeps confirm disabled and does not search until three characters', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteUserModal isOpen onClose={onClose} onConfirm={onConfirm} />,
     );
 
-    expect(screen.getByText('Promover Usuario')).toBeInTheDocument();
     expect(
-      screen.getByText('Escribe al menos 3 letras para buscar.'),
+      screen.getByText(i18n!.t('admin.users.promote_modal.title')),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /otorgar permisos/i }),
+      screen.getByText(i18n!.t('admin.users.promote_modal.min_chars')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('admin.users.promote_modal.confirm'),
+      }),
     ).toBeDisabled();
 
     fireEvent.change(
-      screen.getByPlaceholderText('Buscar por usuario o email...'),
+      screen.getByPlaceholderText(
+        i18n!.t('admin.users.promote_modal.search_placeholder'),
+      ),
       { target: { value: 'al' } },
     );
     await new Promise((resolve) => {
@@ -73,24 +79,28 @@ describe('PromoteUserModal', () => {
   });
 
   it('cancels from the dialog X without promoting', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteUserModal isOpen onClose={onClose} onConfirm={onConfirm} />,
     );
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.cancel') }),
+    );
 
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('searches standard users and confirms the default moderator role', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteUserModal isOpen onClose={onClose} onConfirm={onConfirm} />,
     );
 
     fireEvent.change(
-      screen.getByPlaceholderText('Buscar por usuario o email...'),
+      screen.getByPlaceholderText(
+        i18n!.t('admin.users.promote_modal.search_placeholder'),
+      ),
       { target: { value: 'ali' } },
     );
 
@@ -104,46 +114,69 @@ describe('PromoteUserModal', () => {
       );
     });
     fireEvent.click(await screen.findByText('Alice Doe'));
-    fireEvent.click(screen.getByRole('button', { name: /otorgar permisos/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('admin.users.promote_modal.confirm'),
+      }),
+    );
 
     expect(onConfirm).toHaveBeenCalledWith('user-alice', 'MODERATOR');
   });
 
   it('confirms the chosen staff role', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteUserModal isOpen onClose={onClose} onConfirm={onConfirm} />,
     );
 
     fireEvent.change(
-      screen.getByPlaceholderText('Buscar por usuario o email...'),
+      screen.getByPlaceholderText(
+        i18n!.t('admin.users.promote_modal.search_placeholder'),
+      ),
       { target: { value: 'ali' } },
     );
     fireEvent.click(await screen.findByText('Alice Doe'));
-    fireEvent.change(screen.getByLabelText('Selecciona el nuevo rol'), {
-      target: { value: 'ADMIN' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: /otorgar permisos/i }));
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('admin.users.promote_modal.role_label')),
+      {
+        target: { value: 'ADMIN' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('admin.users.promote_modal.confirm'),
+      }),
+    );
 
     expect(onConfirm).toHaveBeenCalledWith('user-alice', 'ADMIN');
   });
 
   it('lets the operator change the selected user', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteUserModal isOpen onClose={onClose} onConfirm={onConfirm} />,
     );
 
     fireEvent.change(
-      screen.getByPlaceholderText('Buscar por usuario o email...'),
+      screen.getByPlaceholderText(
+        i18n!.t('admin.users.promote_modal.search_placeholder'),
+      ),
       { target: { value: 'ali' } },
     );
     fireEvent.click(await screen.findByText('Alice Doe'));
-    fireEvent.click(screen.getByRole('button', { name: 'Cambiar' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('admin.users.promote_modal.change'),
+      }),
+    );
 
     expect(
-      screen.getByPlaceholderText('Buscar por usuario o email...'),
+      screen.getByPlaceholderText(
+        i18n!.t('admin.users.promote_modal.search_placeholder'),
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: /otorgar permisos/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('admin.users.promote_modal.confirm'),
+      }),
     ).toBeDisabled();
     expect(onConfirm).not.toHaveBeenCalled();
   });

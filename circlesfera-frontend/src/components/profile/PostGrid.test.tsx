@@ -47,4 +47,28 @@ describe('PostGrid', () => {
     expect(links[0]).toHaveAttribute('href', '/frames?post=frame-1');
     expect(links[1]).toHaveAttribute('href', '/p/post-1');
   });
+
+  it('uses the explore discovery column layout with 4:5 tiles', () => {
+    const { container } = renderWithProviders(
+      <PostGrid
+        items={[post({ id: 'post-1', type: 'POST', caption: 'Still' })]}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+        columns="explore"
+        aspectRatio="4/5"
+      />,
+    );
+
+    const grid = container.querySelector('.grid');
+    expect(grid).toHaveClass(
+      'grid-cols-3',
+      'md:grid-cols-4',
+      'lg:grid-cols-5',
+      'xl:grid-cols-6',
+    );
+    const tile = screen.getByRole('link');
+    expect(tile).toHaveAttribute('href', '/p/post-1');
+    expect(tile).toHaveClass('aspect-4/5');
+  });
 });

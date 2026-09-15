@@ -20,6 +20,9 @@ import {
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
+import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
+import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
+import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -69,6 +72,34 @@ export class StoriesService {
         );
       }
     }
+
+    let audioStartMs = 0;
+    if (dto.audioId) {
+      const audio = await this.prisma.audio.findUnique({
+        where: { id: dto.audioId },
+        select: { id: true, duration: true },
+      });
+      if (!audio) {
+        throw new BadRequestException('AUDIO_NOT_FOUND');
+      }
+      audioStartMs = resolveAudioStartMs({
+        audioId: dto.audioId,
+        audioStartMs: dto.audioStartMs,
+        trackDurationSec: audio.duration,
+      });
+    }
+
+    const placeAttachment = await resolvePlaceAttachment(this.prisma, {
+      placeId: dto.placeId,
+      place: dto.place,
+      location: dto.location,
+    });
+
+    const mediaType = (dto.mediaType || 'image').toLowerCase();
+    if (mediaType === 'video') {
+      await assertVideoUrlDuration('STORY', dto.url);
+    }
+
     const scheduledAt =
       dto.scheduledAt && new Date(dto.scheduledAt) > new Date()
         ? new Date(dto.scheduledAt)
@@ -86,11 +117,16 @@ export class StoriesService {
         priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         audioId: dto.audioId,
+        audioStartMs,
+        location: placeAttachment.location,
+        placeId: placeAttachment.placeId,
         scheduledAt: scheduledAt ?? null,
         scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
       },
       include: {
         profile: { include: { user: true } },
+        audio: true,
+        place: true,
       },
     });
 
@@ -148,6 +184,8 @@ export class StoriesService {
       where: whereClause,
       include: {
         profile: { include: { user: true } },
+        audio: true,
+        place: true,
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
         _count: {
@@ -298,6 +336,8 @@ export class StoriesService {
       },
       include: {
         profile: { include: { user: true } },
+        audio: true,
+        place: true,
         _count: {
           select: { views: true },
         },
@@ -503,9 +543,21 @@ export class StoriesService {
   }
 
   @OnEvent('user.hard_deleted')
-  async handleUserDeleted(payload: { profileId: string }) {
+  async handleUserDeleted(payload: {
+    profileId?: string;
+    profileIds?: string[];
+  }) {
+    const ids =
+      payload.profileIds && payload.profileIds.length > 0
+        ? payload.profileIds
+        : payload.profileId
+          ? [payload.profileId]
+          : [];
+
+    if (ids.length === 0) return;
+
     const userStories = await this.prisma.story.findMany({
-      where: { profileId: payload.profileId },
+      where: { profileId: { in: ids } },
     });
 
     const mediaUrls = new Set<string>();

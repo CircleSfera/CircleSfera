@@ -240,7 +240,7 @@ export default function AuditLogTab() {
               {selected.details && (
                 <div>
                   <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
-                    {t('admin.audit.col_details', 'Detalles')}
+                    {t('admin.audit.col_details')}
                   </p>
                   <pre className="text-xs text-white/70 whitespace-pre-wrap break-all bg-white/3 border border-white/5 rounded-lg p-3 font-mono leading-relaxed">
                     {selected.details}

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
 
 const baseProps = {
@@ -16,15 +17,18 @@ const baseProps = {
 
 describe('AdvancedSettingsSubScreen', () => {
   it('lets the author mark a post as sensitive without adult or 18+ language', () => {
-    render(<AdvancedSettingsSubScreen {...baseProps} showSensitiveToggle />);
+    renderWithProviders(
+      <AdvancedSettingsSubScreen {...baseProps} showSensitiveToggle />,
+      { lng: 'es' },
+    );
 
     expect(
       screen.getByRole('switch', {
-        name: /createPost\.caption\.mark_sensitive$/,
+        name: 'Marcar como contenido sensible',
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/createPost\.caption\.mark_sensitive_desc/),
+      screen.getByText(/Violencia gráfica, lenguaje fuerte/),
     ).toBeInTheDocument();
     expect(screen.queryByText(/18\+/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/mature/i)).not.toBeInTheDocument();
@@ -32,30 +36,32 @@ describe('AdvancedSettingsSubScreen', () => {
 
   it('toggles sensitive content on', () => {
     const setIsSensitive = vi.fn();
-    render(
+    renderWithProviders(
       <AdvancedSettingsSubScreen
         {...baseProps}
         setIsSensitive={setIsSensitive}
         showSensitiveToggle
       />,
+      { lng: 'es' },
     );
 
     fireEvent.click(
       screen.getByRole('switch', {
-        name: /createPost\.caption\.mark_sensitive$/,
+        name: 'Marcar como contenido sensible',
       }),
     );
     expect(setIsSensitive).toHaveBeenCalledWith(true);
   });
 
   it('hides the sensitive toggle for stories', () => {
-    render(
+    renderWithProviders(
       <AdvancedSettingsSubScreen {...baseProps} showSensitiveToggle={false} />,
+      { lng: 'es' },
     );
 
     expect(
       screen.queryByRole('switch', {
-        name: /createPost\.caption\.mark_sensitive$/,
+        name: 'Marcar como contenido sensible',
       }),
     ).not.toBeInTheDocument();
   });

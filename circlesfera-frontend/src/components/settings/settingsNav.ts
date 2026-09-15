@@ -36,14 +36,12 @@ export type SettingsSectionId =
 export interface SettingsNavItem {
   id: SettingsSectionId;
   labelKey: string;
-  labelFallback: string;
   icon: LucideIcon;
 }
 
 export interface SettingsNavGroup {
   id: 'you' | 'control' | 'trust' | 'money';
   labelKey: string;
-  labelFallback: string;
   items: SettingsNavItem[];
 }
 
@@ -75,24 +73,20 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
   {
     id: 'you',
     labelKey: 'settings.groups.you',
-    labelFallback: 'Your account',
     items: [
       {
         id: 'profile',
         labelKey: 'settings.tabs.profile.label',
-        labelFallback: 'Profile',
         icon: User,
       },
       {
         id: 'notifications',
         labelKey: 'settings.tabs.notifications.label',
-        labelFallback: 'Notifications',
         icon: Bell,
       },
       {
         id: 'account',
         labelKey: 'settings.tabs.account.label',
-        labelFallback: 'Account',
         icon: UserCog,
       },
     ],
@@ -100,36 +94,30 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
   {
     id: 'control',
     labelKey: 'settings.groups.control',
-    labelFallback: 'Privacy & control',
     items: [
       {
         id: 'privacy',
         labelKey: 'settings.tabs.privacy.label',
-        labelFallback: 'Privacy',
         icon: Shield,
       },
       {
         id: 'feed_prefs',
         labelKey: 'settings.tabs.feed_prefs.label',
-        labelFallback: 'Feed preferences',
         icon: EyeOff,
       },
       {
         id: 'close_friends',
         labelKey: 'settings.tabs.close_friends.label',
-        labelFallback: 'Close friends',
         icon: Star,
       },
       {
         id: 'requests',
         labelKey: 'settings.tabs.requests.label',
-        labelFallback: 'Requests',
         icon: UserPlus,
       },
       {
         id: 'mutes',
         labelKey: 'settings.tabs.mutes.label',
-        labelFallback: 'Blocked & muted',
         icon: UserX,
       },
     ],
@@ -137,24 +125,20 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
   {
     id: 'trust',
     labelKey: 'settings.groups.trust',
-    labelFallback: 'Security & trust',
     items: [
       {
         id: 'security',
         labelKey: 'settings.tabs.security.label',
-        labelFallback: 'Security',
         icon: Key,
       },
       {
         id: 'appeals',
         labelKey: 'settings.tabs.appeals.label',
-        labelFallback: 'Appeals',
         icon: Scale,
       },
       {
         id: 'reports',
         labelKey: 'settings.tabs.reports.label',
-        labelFallback: 'Reports',
         icon: Flag,
       },
     ],
@@ -162,24 +146,20 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
   {
     id: 'money',
     labelKey: 'settings.groups.money',
-    labelFallback: 'Plan & growth',
     items: [
       {
         id: 'billing',
         labelKey: 'settings.tabs.billing.label',
-        labelFallback: 'Subscription',
         icon: CreditCard,
       },
       {
         id: 'monetization',
         labelKey: 'settings.tabs.monetization.label',
-        labelFallback: 'Monetization',
         icon: DollarSign,
       },
       {
         id: 'referrals',
         labelKey: 'settings.tabs.referrals.label',
-        labelFallback: 'Invitations',
         icon: Users,
       },
     ],

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { liveApi, storiesApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -13,6 +14,7 @@ import type { VerificationLevel } from './VerificationBadge';
 // Compact horizontal scroll strip with gap-3 (12px) between items
 // Label uses 11px (--text-badge)
 export default function StoryList() {
+  const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const openStories = useStoryStore((state) => state.openStories);
 
@@ -104,7 +106,7 @@ export default function StoryList() {
                 className="uppercase font-bold text-red-500 block truncate w-full"
                 style={{ fontSize: '9px', letterSpacing: '0.04em' }}
               >
-                En vivo
+                {t('live.badge')}
               </span>
             </div>
           </Link>
@@ -155,7 +157,7 @@ export default function StoryList() {
                       src={profile?.avatar}
                       thumbnailUrl={profile?.thumbnailUrl}
                       standardUrl={profile?.standardUrl}
-                      alt="Tu story"
+                      alt={t('story.yours')}
                       size="md"
                       hasStory={false}
                       verificationLevel={
@@ -168,7 +170,7 @@ export default function StoryList() {
                   className={`truncate w-full text-center ${allViewed ? 'text-gray-500' : 'text-gray-300'}`}
                   style={{ fontSize: 'var(--text-badge, 11px)' }}
                 >
-                  Tú
+                  {t('story.you')}
                 </span>
               </button>
             );
@@ -191,7 +193,7 @@ export default function StoryList() {
                         src={profile.avatar}
                         thumbnailUrl={profile.thumbnailUrl}
                         standardUrl={profile.standardUrl}
-                        alt="Tu story"
+                        alt={t('story.yours')}
                         size="full"
                         hasStory={false}
                       />
@@ -229,7 +231,7 @@ export default function StoryList() {
                 className="text-gray-400 group-hover:text-white transition-colors text-center w-full truncate"
                 style={{ fontSize: 'var(--text-badge, 11px)' }}
               >
-                Tu story
+                {t('story.yours')}
               </span>
             </Link>
           );
@@ -252,7 +254,9 @@ export default function StoryList() {
                 type="button"
                 key={group.profile.id}
                 onClick={() => handleStoryClick(group.originalIndex)}
-                aria-label={`Ver historias de ${group.profile?.username || ''}`}
+                aria-label={t('story.view_of', {
+                  username: group.profile?.username || '',
+                })}
                 className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
                 style={{ width: 52 }}
               >

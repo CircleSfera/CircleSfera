@@ -1,4 +1,5 @@
 import { Target } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface LiveGoalData {
   title: string;
@@ -17,6 +18,7 @@ export default function LiveGoalBar({
   onClick,
   isHost,
 }: LiveGoalBarProps) {
+  const { t } = useTranslation();
   if (!goal) {
     if (!isHost) return null;
     return (
@@ -26,7 +28,7 @@ export default function LiveGoalBar({
         className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 border border-white/10 border-dashed rounded-full text-white/70 hover:bg-black/60 hover:text-white transition-all text-xs"
       >
         <Target size={14} />
-        <span>Añadir Objetivo</span>
+        <span>{t('live.goal.add')}</span>
       </button>
     );
   }

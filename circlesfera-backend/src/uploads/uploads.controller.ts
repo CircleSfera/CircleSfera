@@ -11,6 +11,10 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { Throttle } from '@nestjs/throttler';
+import {
+  CurrentUser,
+  type CurrentUserData,
+} from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
@@ -31,7 +35,13 @@ export class UploadsController {
   @Throttle({ short: { limit: 5, ttl: 60000 } })
   @UseInterceptors(
     FileInterceptor('file', {
-      limits: { fileSize: MAX_UPLOAD_BYTES },
+      limits: {
+        fileSize: MAX_UPLOAD_BYTES,
+        files: 1,
+        fields: 10,
+        parts: 20,
+        fieldSize: 1 * 1024 * 1024,
+      },
     }),
   )
   async uploadFile(
@@ -47,6 +57,7 @@ export class UploadsController {
       }),
     )
     file: UploadedFile,
+    @CurrentUser() user?: CurrentUserData,
   ): Promise<{
     url: string;
     standardUrl?: string;
@@ -54,8 +65,8 @@ export class UploadsController {
     type: string;
   }> {
     this.logger.log(
-      `Incoming POST /uploads: ${file.originalname} (${file.mimetype})`,
+      `Incoming POST /uploads: ${file.originalname} (${file.mimetype}) by user ${user?.userId ?? 'anonymous'}`,
     );
-    return await this.uploadsService.uploadFile(file);
+    return await this.uploadsService.uploadFile(file, user?.userId);
   }
 }

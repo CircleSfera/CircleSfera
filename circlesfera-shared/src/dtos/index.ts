@@ -32,6 +32,17 @@ export interface CreatePostDto {
   caption?: string;
   type?: 'POST' | 'FRAME';
   location?: string;
+  placeId?: string;
+  place?: {
+    mapboxId: string;
+    name: string;
+    fullName?: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    region?: string;
+    locality?: string;
+  };
   hideLikes?: boolean;
   turnOffComments?: boolean;
   media?: Array<{
@@ -41,6 +52,7 @@ export interface CreatePostDto {
     altText?: string;
   }>;
   audioId?: string;
+  audioStartMs?: number;
   tags?: Array<{ profileId: string; x: number; y: number }>;
   isPremium?: boolean;
   priceCents?: number;
@@ -58,6 +70,19 @@ export interface CreateStoryDto {
   mediaType?: string;
   isCloseFriendsOnly?: boolean;
   audioId?: string;
+  audioStartMs?: number;
+  location?: string;
+  placeId?: string;
+  place?: {
+    mapboxId: string;
+    name: string;
+    fullName?: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    region?: string;
+    locality?: string;
+  };
   isPremium?: boolean;
   priceCents?: number;
 }

@@ -14,6 +14,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { STORY_MAX_DURATION_SEC } from '../constants/uploadLimits';
 import { useStoryPlayback } from '../hooks/useStoryPlayback';
 import { chatApi, storiesApi } from '../services';
 import { apiClient } from '../services/api';
@@ -30,6 +31,8 @@ import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { type StoryQnaAnswer, StoryViewersSheet } from './StoryViewersSheet';
 import UserAvatar from './UserAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
+
+const STORY_IMAGE_DURATION_MS = 5000;
 
 const getRelativeTime = (dateValue: string | Date | number) => {
   const diffMins = Math.floor(
@@ -67,6 +70,7 @@ export default function StoryViewer({
   const [replyText, setReplyText] = useState('');
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [messageSent, setMessageSent] = useState(false);
+  const [durationById, setDurationById] = useState<Record<string, number>>({});
 
   // Floating reactions system
   const [particles, setParticles] = useState<
@@ -76,6 +80,14 @@ export default function StoryViewer({
 
   const isModalOpen = showDeleteConfirm || showViewers;
   const [lockedPause, setLockedPause] = useState(false);
+
+  const resolveStoryDurationMs = (story: Story | undefined): number => {
+    if (!story) return STORY_IMAGE_DURATION_MS;
+    if (story.mediaType !== 'video') return STORY_IMAGE_DURATION_MS;
+    return (
+      durationById[story.id] ?? Math.min(15_000, STORY_MAX_DURATION_SEC * 1000)
+    );
+  };
 
   const {
     currentIndex,
@@ -89,7 +101,17 @@ export default function StoryViewer({
     totalStories: stories.length,
     initialIndex,
     onClose,
-    audioUrl: stories[0]?.audio?.url,
+    storyDuration: STORY_IMAGE_DURATION_MS,
+    getDurationMs: (index) => resolveStoryDurationMs(stories[index]),
+    getAudioClip: (index) => {
+      const story = stories[index];
+      if (!story?.audio?.url) return null;
+      return {
+        url: story.audio.url,
+        startMs: story.audioStartMs ?? 0,
+        windowMs: resolveStoryDurationMs(story),
+      };
+    },
     isPausedOverride: isModalOpen || lockedPause,
   });
 
@@ -101,6 +123,33 @@ export default function StoryViewer({
     setLockedPause(isLocked);
   }, [isLocked]);
 
+  // Probe video duration for the active story (and prefetch neighbors lightly).
+  useEffect(() => {
+    const story = stories[currentIndex];
+    if (story?.mediaType !== 'video') return;
+    if (durationById[story.id]) return;
+
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.src = story.url;
+    const onLoaded = () => {
+      const ms = Math.round((video.duration || 0) * 1000);
+      if (!Number.isFinite(ms) || ms <= 0) return;
+      const clamped = Math.min(
+        Math.max(1000, ms),
+        STORY_MAX_DURATION_SEC * 1000,
+      );
+      setDurationById((prev) =>
+        prev[story.id] === clamped ? prev : { ...prev, [story.id]: clamped },
+      );
+    };
+    video.addEventListener('loadedmetadata', onLoaded);
+    return () => {
+      video.removeEventListener('loadedmetadata', onLoaded);
+      video.src = '';
+    };
+  }, [currentIndex, stories, durationById]);
+
   const unlockMutation = useMutation({
     mutationFn: () =>
       monetizationApi.unlockStory(currentStory!.id, window.location.href),
@@ -109,14 +158,11 @@ export default function StoryViewer({
         window.location.href = response.url;
         return;
       }
-      toast.success(t('story.unlock_success', 'Story unlocked'));
+      toast.success(t('story.unlock_success'));
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(
-        error.response?.data?.message ||
-          t('story.unlock_error', 'Could not unlock story'),
-      );
+      toast.error(error.response?.data?.message || t('story.unlock_error'));
     },
   });
 
@@ -311,7 +357,8 @@ export default function StoryViewer({
               ) : (
                 <img
                   src={bgUrl}
-                  alt="background"
+                  alt=""
+                  aria-hidden
                   className={`w-full h-full object-cover blur-3xl opacity-40 scale-125 ${className}`}
                   style={style}
                 />
@@ -331,7 +378,7 @@ export default function StoryViewer({
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95, x: -100 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative w-full h-full md:w-auto md:h-[92vh] md:max-h-[92vh] md:aspect-9/16 flex items-center justify-center md:rounded-xl overflow-hidden ring-1 ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
+            className="relative w-full h-full md:w-auto md:h-[92vh] md:max-h-[92vh] md:aspect-9/16 flex items-center justify-center md:rounded-xl overflow-hidden md:ring-1 md:ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
           >
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
@@ -340,7 +387,7 @@ export default function StoryViewer({
                 <HlsVideoPlayer
                   src={currentStory.url}
                   hlsUrl={currentStory.standardUrl || undefined}
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className} ${lockClass}`}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
                   autoPlay={!isLocked}
                   muted
@@ -355,8 +402,8 @@ export default function StoryViewer({
                       : undefined
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
-                  alt="Story"
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-contain pointer-events-auto z-10 ${className} ${lockClass}`}
+                  alt={t('common.alt.story')}
+                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
                   loading="eager"
                 />
@@ -435,7 +482,7 @@ export default function StoryViewer({
                     {currentStory.profile?.username}
                     <VerificationBadge
                       level={
-                        currentStory.profile?.user
+                        currentStory.profile
                           ?.verificationLevel as VerificationLevel
                       }
                       size={14}
@@ -450,7 +497,7 @@ export default function StoryViewer({
                 <button
                   type="button"
                   onClick={() => setIsMuted(!isMuted)}
-                  aria-label={isMuted ? 'Unmute' : 'Mute'}
+                  aria-label={isMuted ? t('common.unmute') : t('common.mute')}
                   className="text-white/90 bg-black/30 hover:bg-black/50 w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
                   {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -458,7 +505,7 @@ export default function StoryViewer({
                 <button
                   type="button"
                   onClick={onClose}
-                  aria-label="Close story viewer"
+                  aria-label={t('story.close_viewer')}
                   className="text-white/90 bg-black/30 hover:bg-black/50 w-11 h-11 flex items-center justify-center rounded-full backdrop-blur-md transition-colors shadow-lg"
                 >
                   <X size={22} />
@@ -490,7 +537,7 @@ export default function StoryViewer({
                       />
                       <button
                         type="submit"
-                        aria-label="Send reply"
+                        aria-label={t('story.send_reply')}
                         disabled={!replyText.trim() || isSendingReply}
                         className="ml-2 text-white/70 disabled:opacity-30"
                       >
@@ -552,7 +599,7 @@ export default function StoryViewer({
                       </span>
                       {currentStory.qnaBox?.id ? (
                         <span className="text-xs font-semibold text-purple-200/90 border-l border-white/20 pl-2">
-                          {t('story.questions_short', 'Q&A')}
+                          {t('story.questions_short')}
                           {qnaAnswers.length > 0
                             ? ` · ${qnaAnswers.length}`
                             : ''}
@@ -565,7 +612,7 @@ export default function StoryViewer({
                         e.stopPropagation();
                         setShowDeleteConfirm(true);
                       }}
-                      aria-label="Delete this story"
+                      aria-label={t('story.delete_this')}
                       className="text-white bg-black/40 backdrop-blur-xl p-3 rounded-full border border-white/20 hover:bg-red-500/80 hover:border-red-500 transition-all shadow-2xl"
                     >
                       <Trash2 size={20} />

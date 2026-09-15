@@ -1,12 +1,26 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+} from '../common/testing/http-controller.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
 
 describe('AdminStatsController', () => {
-  let controller: AdminStatsController;
+  let app: INestApplication;
 
   const mockService = {
     getEnhancedStats: vi.fn(),
@@ -19,35 +33,64 @@ describe('AdminStatsController', () => {
     getTransactions: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminStatsController],
       providers: [{ provide: AdminStatsService, useValue: mockService }],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminStatsController>(AdminStatsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects enhanced stats without credentials', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/enhanced')
+      .expect(401);
+
+    expect(mockService.getEnhancedStats).not.toHaveBeenCalled();
   });
 
-  it('reads stats, top users, monetization and payout stats without an actor', async () => {
+  it('rejects enhanced stats with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/enhanced')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.getEnhancedStats).not.toHaveBeenCalled();
+  });
+
+  it('reads stats, top users, monetization and payout stats', async () => {
     mockService.getEnhancedStats.mockResolvedValue({});
     mockService.getTopUsers.mockResolvedValue([]);
     mockService.getMonetizationAnalytics.mockResolvedValue({});
     mockService.getPayoutStats.mockResolvedValue({});
 
-    await controller.getEnhancedStats();
-    await controller.getTopUsers();
-    await controller.getMonetizationAnalytics();
-    await controller.getPayoutStats();
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/enhanced')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/top-users')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/analytics/monetization')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/payouts/stats')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getEnhancedStats).toHaveBeenCalledWith();
     expect(mockService.getTopUsers).toHaveBeenCalledWith();
@@ -58,17 +101,24 @@ describe('AdminStatsController', () => {
   it('lists audit logs with default pagination and filters', async () => {
     mockService.getAuditLogs.mockResolvedValue({ data: [] });
 
-    await controller.getAuditLogs({});
-    await controller.getAuditLogs({
-      page: 2,
-      limit: 10,
-      action: 'BAN_USER',
-      search: 'ada',
-      from: '2026-01-01',
-      to: '2026-01-31',
-    });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs')
+      .query({
+        page: 2,
+        limit: 10,
+        action: 'BAN_USER',
+        search: 'ada',
+        from: '2026-01-01',
+        to: '2026-01-31',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(mockService.getAuditLogs).toHaveBeenNthCalledWith(1, 1, 20, {
+    expect(mockService.getAuditLogs).toHaveBeenNthCalledWith(1, 1, 10, {
       action: undefined,
       search: undefined,
       from: undefined,
@@ -85,8 +135,15 @@ describe('AdminStatsController', () => {
   it('loads the activity chart with default and parsed days', async () => {
     mockService.getActivityChart.mockResolvedValue([]);
 
-    await controller.getActivityChart();
-    await controller.getActivityChart('7');
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/activity-chart')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats/activity-chart')
+      .query({ days: '7' })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getActivityChart).toHaveBeenNthCalledWith(1, 14);
     expect(mockService.getActivityChart).toHaveBeenNthCalledWith(2, 7);
@@ -96,15 +153,29 @@ describe('AdminStatsController', () => {
     mockService.getPayouts.mockResolvedValue({ data: [] });
     mockService.getTransactions.mockResolvedValue({ data: [] });
 
-    await controller.getPayouts();
-    await controller.getPayouts(2, 10, 'paid', 'ada');
-    await controller.getTransactions({});
-    await controller.getTransactions({
-      page: 3,
-      limit: 15,
-      status: 'COMPLETED',
-      search: 'tip',
-    });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/payouts')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/payouts')
+      .query({ page: 2, limit: 10, status: 'paid', search: 'ada' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/transactions')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/transactions')
+      .query({
+        page: 3,
+        limit: 15,
+        status: 'COMPLETED',
+        search: 'tip',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getPayouts).toHaveBeenNthCalledWith(
       1,
@@ -123,7 +194,7 @@ describe('AdminStatsController', () => {
     expect(mockService.getTransactions).toHaveBeenNthCalledWith(
       1,
       1,
-      20,
+      10,
       undefined,
       undefined,
     );

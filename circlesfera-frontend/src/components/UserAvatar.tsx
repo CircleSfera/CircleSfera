@@ -1,5 +1,6 @@
 import type React from 'react';
 import { memo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { getBlurFallbackUrl, sanitizeUrl } from '../utils/apiUtils';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
@@ -56,6 +57,7 @@ export default memo(function UserAvatar({
   isOnline,
   verificationLevel,
 }: UserAvatarProps) {
+  const { t } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
 
   const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
@@ -108,7 +110,8 @@ export default memo(function UserAvatar({
         {!isLoaded && blurUrl && (
           <img
             src={blurUrl}
-            alt="loading"
+            alt=""
+            aria-hidden
             className="absolute inset-0 w-full h-full object-cover scale-110 blur-sm"
           />
         )}
@@ -189,7 +192,7 @@ export default memo(function UserAvatar({
         type="button"
         onClick={onClick}
         style={style}
-        aria-label={`Ver perfil de ${alt}`}
+        aria-label={t('common.view_profile', { username: alt })}
         className={`relative block ${sizeClasses[size]} rounded-full cursor-pointer hover:scale-105 transition-transform duration-300 group p-0 border-none bg-transparent ${className}`}
       >
         {innerContent}

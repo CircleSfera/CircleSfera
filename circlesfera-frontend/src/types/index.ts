@@ -8,6 +8,9 @@ import type {
   Message as IMessage,
   Notification as INotification,
   Participant as IParticipant,
+  Place as IPlace,
+  PlaceDetail as IPlaceDetail,
+  PlaceMapPin as IPlaceMapPin,
   PlatformPlanDto as IPlatformPlanDto,
   Post as IPost,
   PostMedia as IPostMedia,
@@ -61,6 +64,9 @@ export type Collection = ICollection & {
   description?: string | null;
 };
 export type Audio = IAudio;
+export type Place = IPlace;
+export type PlaceMapPin = IPlaceMapPin;
+export type PlaceDetail = IPlaceDetail;
 export type Purchase = IPurchase;
 export type WebhookEvent = IWebhookEvent;
 export type StoryElement = IStoryElement;
@@ -77,18 +83,16 @@ export interface ProfileWithUser extends IProfile {
     providerAccountId?: string | null;
     isMonetizationEnabled?: boolean;
     isTwoFactorEnabled?: boolean;
-    verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
-    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
     stripeConnectAccountId?: string | null;
     settings?: {
       isOnboarded: boolean;
       privacyLevel?: string;
     } | null;
-    _count?: {
-      posts: number;
-      followers: number;
-      following: number;
-    };
+  };
+  _count?: {
+    posts: number;
+    followers: number;
+    following: number;
   };
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
@@ -136,10 +140,22 @@ export type CreatePostDto = {
   caption?: string;
   type?: 'POST' | 'FRAME';
   location?: string;
+  placeId?: string;
+  place?: {
+    mapboxId: string;
+    name: string;
+    fullName?: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    region?: string;
+    locality?: string;
+  };
   hideLikes?: boolean;
   turnOffComments?: boolean;
   media?: PostMediaItem[];
   audioId?: string;
+  audioStartMs?: number;
   tags?: {
     profileId: string;
     x: number;
@@ -158,6 +174,19 @@ export type CreateStoryDto = {
   mediaType?: string;
   isCloseFriendsOnly?: boolean;
   audioId?: string;
+  audioStartMs?: number;
+  location?: string;
+  placeId?: string;
+  place?: {
+    mapboxId: string;
+    name: string;
+    fullName?: string;
+    latitude: number;
+    longitude: number;
+    country?: string;
+    region?: string;
+    locality?: string;
+  };
   isPremium?: boolean;
   priceCents?: number;
   scheduledAt?: string | Date;

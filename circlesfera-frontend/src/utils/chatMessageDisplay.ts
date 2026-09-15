@@ -20,9 +20,7 @@ export function getMessagePreviewText(
   t: TFunction,
 ): string | null {
   if (msg.isDeleted) {
-    return t('chat.message_deleted', {
-      defaultValue: 'Este mensaje fue eliminado',
-    });
+    return t('chat.message_deleted');
   }
   if (msg.voiceUrl || msg.mediaType === 'audio') return t('chat.sent_voice');
   if (msg.mediaType === 'image') return t('chat.sent_image');
@@ -32,10 +30,10 @@ export function getMessagePreviewText(
     typeof msg.content === 'string' &&
     msg.content.includes('"ciphertext"')
   ) {
-    return `🔒 ${t('chat.secure_message', 'Mensaje seguro')}`;
+    return `🔒 ${t('chat.secure_message')}`;
   }
   if (isSharedPostMessage(msg)) {
-    return t('chat.shared_post', 'Shared a post');
+    return t('chat.shared_post');
   }
   return msg.content || null;
 }
@@ -46,15 +44,13 @@ export function getMessageDisplayText(
   t: TFunction,
 ): string | null {
   if (msg.isDeleted) {
-    return t('chat.message_deleted', {
-      defaultValue: 'Este mensaje fue eliminado',
-    });
+    return t('chat.message_deleted');
   }
   if (isSharedPostMessage(msg) && msg.post) {
     return null;
   }
   if (isSharedPostMessage(msg)) {
-    return t('chat.shared_post', 'Shared a post');
+    return t('chat.shared_post');
   }
   return decryptedText;
 }

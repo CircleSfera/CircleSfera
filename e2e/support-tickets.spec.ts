@@ -1,57 +1,23 @@
 import { expect, test } from '@playwright/test';
+import { enterAsNewUser, prepareGuest } from './helpers/session';
 
-test.describe('Support Tickets & Help Center', () => {
-  test('should render support portal and ticket modal', async ({ page }) => {
+test.describe('Support', () => {
+  test('guest sees the portal and login hint', async ({ page }) => {
+    await prepareGuest(page);
     await page.goto('/support');
-    await expect(page.locator('body')).toBeVisible();
-
-    const supportHeader = page.locator('h1, h2, header').first();
-    await expect(supportHeader).toBeVisible();
+    await expect(
+      page.getByRole('heading', { name: 'Asistencia técnica directa.' }),
+    ).toBeVisible();
   });
 
-  test('should allow submitting a support ticket when authenticated', async ({
-    page,
-  }) => {
+  test('authenticated user can submit a ticket', async ({ page }) => {
+    await enterAsNewUser(page);
     await page.goto('/support');
-
-    // Wait for auth profile hydrate so the form enables
+    await page.locator('#subject').fill('Ticket E2E');
     await page
-      .waitForFunction(
-        () => {
-          try {
-            const raw = localStorage.getItem('auth-storage');
-            if (!raw) return false;
-            const parsed = JSON.parse(raw) as {
-              state?: { profile?: { user?: { email?: string } } };
-            };
-            return Boolean(parsed.state?.profile?.user?.email);
-          } catch {
-            return false;
-          }
-        },
-        null,
-        { timeout: 15000 },
-      )
-      .catch(() => undefined);
-
-    const subject = page.locator('#subject');
-    await expect(subject).toBeVisible({ timeout: 10000 });
-
-    // If still disabled, assert the login warning instead of failing on fill
-    if (await subject.isDisabled()) {
-      await expect(
-        page.getByText(/iniciar sesión|sign in|log in/i),
-      ).toBeVisible();
-      return;
-    }
-
-    await subject.fill('E2E support ticket');
-    await page.locator('#message').fill('Automated Playwright support ticket.');
-    await page
-      .getByRole('button', { name: /Enviar mensaje|Send message/i })
-      .click();
-    await expect(
-      page.getByText(/Mensaje enviado|Message sent|enviado/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+      .locator('#message')
+      .fill('Automated Playwright support ticket from a unique account.');
+    await page.getByRole('button', { name: 'Enviar mensaje' }).click();
+    await expect(page.getByText('Mensaje enviado')).toBeVisible();
   });
 });

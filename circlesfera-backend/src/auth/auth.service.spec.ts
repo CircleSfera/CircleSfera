@@ -39,6 +39,7 @@ describe('AuthService', () => {
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
+      update: vi.fn(),
     },
   };
 
@@ -48,12 +49,12 @@ describe('AuthService', () => {
   };
 
   const mockConfigService = {
-    get: vi.fn((key: string) => {
+    get: vi.fn((key: string): string | null => {
       if (key === 'JWT_SECRET') return 'secret';
       if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
       return null;
     }),
-    getOrThrow: vi.fn((key: string) => {
+    getOrThrow: vi.fn((key: string): string => {
       if (key === 'JWT_SECRET') return 'secret';
       if (key === 'JWT_REFRESH_SECRET') return 'refresh-secret';
       throw new Error(`Missing key ${key}`);
@@ -246,6 +247,82 @@ describe('AuthService', () => {
 
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
     });
+
+    it('should strictly reject plaintext passwords and fail closed without updating user', async () => {
+      // Stored password matches dto.password in plaintext
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-plaintext',
+        email: dto.identifier,
+        password: dto.password,
+        isActive: true,
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should fail closed on unknown or malformed password hash', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-malformed',
+        email: dto.identifier,
+        password: 'corrupted_hash_format_xyz',
+        isActive: true,
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('should fail closed when JWT_SECRET is missing during appeal token generation', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'banned-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: false,
+        deletedAt: null,
+        isRootBanned: false,
+      });
+
+      mockConfigService.getOrThrow.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') {
+          throw new Error('Missing key JWT_SECRET');
+        }
+        return 'dummy';
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(
+        'Missing key JWT_SECRET',
+      );
+    });
+
+    it('should generate appeal token with configured JWT_SECRET without hardcoded fallback', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'banned-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: false,
+        deletedAt: null,
+        isRootBanned: false,
+      });
+
+      mockConfigService.getOrThrow.mockImplementation((key: string) => {
+        if (key === 'JWT_SECRET') return 'configured-production-secret';
+        return 'dummy';
+      });
+
+      try {
+        await service.login(dto);
+        expect.unreachable('Should have thrown UnauthorizedException');
+      } catch (err: unknown) {
+        expect(err).toBeInstanceOf(UnauthorizedException);
+        expect(mockJwtService.sign).toHaveBeenCalledWith(
+          { sub: 'banned-user', isAppealToken: true },
+          { expiresIn: '15m', secret: 'configured-production-secret' },
+        );
+      }
+    });
   });
 
   describe('verifyEmail', () => {
@@ -299,14 +376,17 @@ describe('AuthService', () => {
   });
 
   describe('refreshToken', () => {
-    it('should refresh tokens successfully', async () => {
+    it('should refresh tokens successfully and mark old token as revoked', async () => {
       mockJwtService.verify.mockReturnValue({
         sub: '1',
         email: 'test@example.com',
+        familyId: 'family-1',
       });
       mockPrismaService.refreshToken.findUnique.mockResolvedValue({
         id: 'token-id',
         userId: '1',
+        familyId: 'family-1',
+        isRevoked: false,
         expiresAt: new Date(Date.now() + 100000),
       });
 
@@ -314,19 +394,105 @@ describe('AuthService', () => {
         refreshToken: 'mock-refresh',
       });
       expect(result).toHaveProperty('accessToken');
-      expect(mockPrismaService.refreshToken.delete).toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'token-id' },
+          data: expect.objectContaining({ isRevoked: true }),
+        }),
+      );
+    });
+
+    it('should detect token replay, revoke entire family and throw UnauthorizedException', async () => {
+      mockJwtService.verify.mockReturnValue({
+        sub: '1',
+        email: 'test@example.com',
+        familyId: 'family-compromised',
+      });
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
+        id: 'old-token-id',
+        userId: '1',
+        familyId: 'family-compromised',
+        isRevoked: true,
+        expiresAt: new Date(Date.now() + 100000),
+      });
+
+      await expect(
+        service.refreshToken({
+          refreshToken: 'mock-reused-token',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: '1',
+          familyId: 'family-compromised',
+        },
+      });
+    });
+
+    it('should throw UnauthorizedException if token is expired', async () => {
+      mockJwtService.verify.mockReturnValue({
+        sub: '1',
+        email: 'test@example.com',
+      });
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
+        id: 'token-id',
+        userId: '1',
+        familyId: 'family-1',
+        isRevoked: false,
+        expiresAt: new Date(Date.now() - 1000),
+      });
+
+      await expect(
+        service.refreshToken({
+          refreshToken: 'mock-refresh',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('generateTokens', () => {
+    it('should store cryptographic sha256 digest of refresh token at rest, not raw token', async () => {
+      mockPrismaService.refreshToken.create.mockClear();
+
+      const result = await service.generateTokens('user-1', 'user@example.com');
+      expect(result).toHaveProperty('accessToken');
+      expect(result).toHaveProperty('refreshToken');
+
+      expect(mockPrismaService.refreshToken.create).toHaveBeenCalled();
+      const createCall = mockPrismaService.refreshToken.create.mock.calls[0][0];
+      const storedToken = createCall.data.token;
+
+      // Must be a 64-character hex string (SHA-256 digest)
+      expect(storedToken).toMatch(/^[a-f0-9]{64}$/);
+      // Must not match the raw token returned to client
+      expect(storedToken).not.toBe(result.refreshToken);
+      // Family ID must be set
+      expect(createCall.data.familyId).toBeDefined();
+      expect(createCall.data.isRevoked).toBe(false);
     });
   });
 
   describe('logout', () => {
-    it('should delete refresh tokens', async () => {
+    it('should delete refresh tokens by family or hash', async () => {
+      mockPrismaService.refreshToken.findFirst.mockResolvedValue({
+        id: 'token-1',
+        userId: '1',
+        familyId: 'family-logout',
+      });
+
       await service.logout('1', 'token');
-      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalled();
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: '1',
+          familyId: 'family-logout',
+        },
+      });
     });
   });
 
   describe('session management', () => {
-    it('should fetch user sessions', async () => {
+    it('should fetch only non-revoked active user sessions', async () => {
       mockPrismaService.refreshToken.findMany = vi
         .fn()
         .mockResolvedValue([
@@ -334,12 +500,26 @@ describe('AuthService', () => {
         ]);
       const sessions = await service.getUserSessions('user-1');
       expect(sessions).toHaveLength(1);
+      expect(mockPrismaService.refreshToken.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-1',
+            isRevoked: false,
+          }),
+        }),
+      );
     });
 
-    it('should revoke a single session', async () => {
+    it('should revoke a single session and its family', async () => {
+      mockPrismaService.refreshToken.findFirst.mockResolvedValue({
+        id: 's1',
+        userId: 'user-1',
+        familyId: 'family-session-1',
+      });
+
       await service.revokeSession('user-1', 's1');
       expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: { id: 's1', userId: 'user-1' },
+        where: { familyId: 'family-session-1', userId: 'user-1' },
       });
     });
 

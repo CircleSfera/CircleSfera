@@ -113,7 +113,7 @@ function CollectionPickerBody({
                 variant="secondary"
                 className="flex-1 h-11 font-semibold"
               >
-                {t('common.cancel', 'Cancel')}
+                {t('common.cancel')}
               </Button>
               <Button
                 type="submit"
@@ -122,7 +122,7 @@ function CollectionPickerBody({
                 variant="primary"
                 className="flex-1 h-11 font-semibold"
               >
-                {t('collections.create', 'Create Collection')}
+                {t('collections.create')}
               </Button>
             </div>
           </form>
@@ -184,7 +184,7 @@ export default function AddToCollectionModal({
       <FrameBottomSheet
         isOpen
         onClose={onClose}
-        title={t('frames.save_to_collection', 'Save to collection')}
+        title={t('frames.save_to_collection')}
         maxHeightClass="max-h-[58%]"
       >
         <CollectionPickerBody
@@ -202,7 +202,7 @@ export default function AddToCollectionModal({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="sm"
-      title={t('frames.save_to_collection', 'Save to collection')}
+      title={t('frames.save_to_collection')}
       className="max-h-[90vh]"
     >
       <CollectionPickerBody

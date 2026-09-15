@@ -1,9 +1,11 @@
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts';
 
 export function GlobalKeyboardShortcuts() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const getVisiblePosts = () => {
     return Array.from(
@@ -42,7 +44,7 @@ export function GlobalKeyboardShortcuts() {
   useKeyboardShortcuts([
     {
       key: 'j',
-      description: 'Next post',
+      description: t('shortcuts.next_post'),
       handler: () => {
         const posts = getVisiblePosts();
         const activeIndex = getActivePostIndex(posts);
@@ -51,7 +53,7 @@ export function GlobalKeyboardShortcuts() {
     },
     {
       key: 'k',
-      description: 'Previous post',
+      description: t('shortcuts.previous_post'),
       handler: () => {
         const posts = getVisiblePosts();
         const activeIndex = getActivePostIndex(posts);
@@ -60,7 +62,7 @@ export function GlobalKeyboardShortcuts() {
     },
     {
       key: 'l',
-      description: 'Like post',
+      description: t('shortcuts.like_post'),
       handler: () => {
         const posts = getVisiblePosts();
         const activeIndex = getActivePostIndex(posts);
@@ -77,14 +79,14 @@ export function GlobalKeyboardShortcuts() {
     },
     {
       key: '/',
-      description: 'Search',
+      description: t('shortcuts.search'),
       handler: (e) => {
         e.preventDefault();
         if (location.pathname !== '/explore') {
           navigate('/explore');
         } else {
           const searchInput = document.querySelector(
-            'input[placeholder*="Search"]',
+            '[data-testid="explore-search-input"]',
           ) as HTMLInputElement | null;
           if (searchInput) {
             searchInput.focus();

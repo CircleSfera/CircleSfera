@@ -6,8 +6,6 @@ export interface User {
   lastSeenAt?: Date | string | null;
   providerAccountId?: string | null;
   isMonetizationEnabled?: boolean;
-  verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
-  accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
   stripeConnectAccountId?: string | null;
 }
 
@@ -24,6 +22,8 @@ export interface Profile {
   location?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
+  accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 }
 
 export interface ProfileWithUser extends Profile {
@@ -32,14 +32,12 @@ export interface ProfileWithUser extends Profile {
     email: string;
     role?: string;
     createdAt: Date | string;
-    verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
-    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
     isMonetizationEnabled?: boolean;
-    _count?: {
-      posts: number;
-      followers: number;
-      following: number;
-    };
+  };
+  _count?: {
+    posts: number;
+    followers: number;
+    following: number;
   };
 }
 
@@ -50,6 +48,58 @@ export interface Audio {
   url: string;
   thumbnailUrl?: string;
   duration: number;
+}
+
+export interface Place {
+  id: string;
+  mapboxId: string;
+  name: string;
+  fullName?: string | null;
+  latitude: number;
+  longitude: number;
+  country?: string | null;
+  region?: string | null;
+  locality?: string | null;
+}
+
+export interface PlaceInput {
+  mapboxId: string;
+  name: string;
+  fullName?: string;
+  latitude: number;
+  longitude: number;
+  country?: string;
+  region?: string;
+  locality?: string;
+}
+
+/** Creator preview on a discovery-map place pin. */
+export interface PlaceMapCreator {
+  id: string;
+  username: string;
+  avatar: string | null;
+}
+
+/** Place aggregate for Explore discovery map (content-backed). */
+export interface PlaceMapPin {
+  id: string;
+  mapboxId: string;
+  name: string;
+  fullName?: string | null;
+  latitude: number;
+  longitude: number;
+  country?: string | null;
+  region?: string | null;
+  locality?: string | null;
+  postCount: number;
+  previewMedia: string[];
+  creators: PlaceMapCreator[];
+  latestPostId?: string | null;
+  markerImageUrl?: string | null;
+}
+
+export interface PlaceDetail extends Place {
+  postCount: number;
 }
 
 export interface PostMedia {
@@ -68,6 +118,7 @@ export interface Post {
   caption: string | null;
   media: PostMedia[];
   type?: string;
+  location?: string | null;
 
   isPremium?: boolean;
   priceCents?: number | null;
@@ -75,7 +126,11 @@ export interface Post {
   isPurchased?: boolean;
 
   audioId?: string | null;
+  /** Offset into attached track (ms). Clip window = media duration at playback. */
+  audioStartMs?: number | null;
   audio?: Audio | null;
+  placeId?: string | null;
+  place?: Place | null;
 
   createdAt: Date | string;
   updatedAt: Date | string;
@@ -134,7 +189,12 @@ export interface Story {
   profile: ProfileWithUser;
   isCloseFriendsOnly?: boolean | null;
   audioId?: string | null;
+  /** Offset into attached track (ms). Clip window = media duration at playback. */
+  audioStartMs?: number | null;
   audio?: Audio | null;
+  location?: string | null;
+  placeId?: string | null;
+  place?: Place | null;
   isViewed?: boolean;
   _count?: {
     views: number;

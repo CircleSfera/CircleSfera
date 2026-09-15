@@ -1,12 +1,11 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Message } from '@prisma/client';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
-import { AppGateway } from '../../../socket/app.gateway.js';
 
 @Injectable()
 export class SendMessageUseCase {
@@ -16,12 +15,8 @@ export class SendMessageUseCase {
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(CryptoService) private cryptoService: CryptoService,
     @Inject(PushService) private pushService: PushService,
-    @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
   ) {}
-
-  private get gateway(): AppGateway {
-    return this.moduleRef.get(AppGateway, { strict: false });
-  }
 
   async execute(
     senderId: string,
@@ -203,13 +198,12 @@ export class SendMessageUseCase {
     const payload = { ...message, content, tempId };
 
     try {
+      this.eventEmitter.emit('chat.message.sent', {
+        participants: conversation.participants,
+        payload,
+      });
+
       conversation.participants.forEach((p: any) => {
-        this.gateway.addConversationToSocket(p.profileId, conversation.id);
-
-        this.gateway.server
-          .to(`user:${p.profileId}`)
-          .emit('receiveMessage', payload);
-
         if (p.profileId !== senderId) {
           this.pushService
             .sendNotification(p.profileId, {

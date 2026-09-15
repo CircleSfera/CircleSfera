@@ -1,7 +1,6 @@
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
-import { useAdminAuthStore } from '../stores/adminAuthStore';
-import { useAuthStore } from '../stores/authStore';
+
 import { isAdminPanelHost } from '../utils/adminPanel';
 import { handleApiError } from '../utils/apiUtils';
 
@@ -120,7 +119,7 @@ class ApiClient {
             return this.client(originalRequest);
           } catch (refreshError) {
             if (adminPanel) {
-              void useAdminAuthStore.getState().logout();
+              window.dispatchEvent(new CustomEvent('auth:admin_unauthorized'));
               if (!window.location.pathname.includes('/login')) {
                 window.location.href = '/login';
               }
@@ -128,7 +127,7 @@ class ApiClient {
               !isAuthRequest &&
               !window.location.pathname.includes('/accounts/')
             ) {
-              useAuthStore.getState().logout();
+              window.dispatchEvent(new CustomEvent('auth:unauthorized'));
               window.location.href = '/accounts/login';
             }
             return Promise.reject(refreshError);

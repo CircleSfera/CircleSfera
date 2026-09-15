@@ -70,7 +70,9 @@ export class AdminAuthService {
     const code = token.replace(/\s+/g, '').trim();
     if (!/^\d{6}$/.test(code)) return false;
     try {
-      return !!verifySync({ token: code, secret })?.valid;
+      return (
+        verifySync({ token: code, secret, epochTolerance: 120 })?.valid === true
+      );
     } catch {
       return false;
     }
@@ -279,6 +281,17 @@ export class AdminAuthService {
     }
 
     if (!this.isTotpValid(code, admin.totpSecret)) {
+      if (process.env.NODE_ENV !== 'production') {
+        const { generateSync } = require('otplib');
+        const expected = generateSync({
+          secret: admin.totpSecret,
+          strategy: 'totp',
+        });
+        console.error(
+          `[MFA DEBUG] Expected code around: ${expected}. User provided: ${code}`,
+        );
+      }
+
       await this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,

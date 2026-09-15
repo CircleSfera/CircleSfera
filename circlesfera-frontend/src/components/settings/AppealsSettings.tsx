@@ -122,7 +122,7 @@ export default function AppealsSettings() {
                 {t('settings.appeals.type_ban')}
               </option>
               <option value="BOT_LABEL">
-                {t('settings.appeals.type_bot_label', 'Possible bot label')}
+                {t('settings.appeals.type_bot_label')}
               </option>
             </Select>
           </div>
@@ -142,10 +142,7 @@ export default function AppealsSettings() {
             />
             {targetIdLocked ? (
               <p className="mt-1.5 text-xs text-white/40">
-                {t(
-                  'settings.appeals.target_id_from_notification',
-                  'Filled from your moderation notification.',
-                )}
+                {t('settings.appeals.target_id_from_notification')}
               </p>
             ) : null}
           </div>
@@ -233,7 +230,7 @@ function AppealRow({ appeal }: { appeal: Appeal }) {
     appeal.targetType === 'ACCOUNT_BAN'
       ? t('settings.appeals.type_ban')
       : appeal.targetType === 'BOT_LABEL'
-        ? t('settings.appeals.type_bot_label', 'Possible bot label')
+        ? t('settings.appeals.type_bot_label')
         : t('settings.appeals.type_post');
 
   return (

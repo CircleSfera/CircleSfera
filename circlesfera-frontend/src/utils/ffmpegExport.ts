@@ -38,6 +38,31 @@ function throwIfAborted(signal?: AbortSignal) {
   }
 }
 
+/** Reject when `signal` aborts even if `promise` never settles (hung wasm fetch). */
+function awaitUnlessAborted<T>(
+  promise: Promise<T>,
+  signal?: AbortSignal,
+): Promise<T> {
+  if (!signal) return promise;
+  throwIfAborted(signal);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => {
+      reject(new StudioExportError('studio.export_errors.cancelled'));
+    };
+    signal.addEventListener('abort', onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener('abort', onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener('abort', onAbort);
+        reject(err);
+      },
+    );
+  });
+}
+
 // Export a Studio project to MP4 honouring timeline placement, images,
 // Mute/volume, basic transforms/filters, and text overlays.
 export async function exportStudioProject(
@@ -80,16 +105,16 @@ export async function exportStudioProject(
 
   try {
     try {
-      const coreURL = await toBlobURL(
-        `${FFMPEG_BASE}/ffmpeg-core.js`,
-        'text/javascript',
+      const coreURL = await awaitUnlessAborted(
+        toBlobURL(`${FFMPEG_BASE}/ffmpeg-core.js`, 'text/javascript'),
+        signal,
       );
-      const wasmURL = await toBlobURL(
-        `${FFMPEG_BASE}/ffmpeg-core.wasm`,
-        'application/wasm',
+      const wasmURL = await awaitUnlessAborted(
+        toBlobURL(`${FFMPEG_BASE}/ffmpeg-core.wasm`, 'application/wasm'),
+        signal,
       );
       throwIfAborted(signal);
-      await ffmpeg.load({ coreURL, wasmURL });
+      await awaitUnlessAborted(ffmpeg.load({ coreURL, wasmURL }), signal);
     } catch (err) {
       if (err instanceof StudioExportError) throw err;
       if (signal?.aborted) {

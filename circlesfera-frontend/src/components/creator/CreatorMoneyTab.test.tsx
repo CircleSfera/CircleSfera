@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 import CreatorMoneyTab, { parseSection } from './CreatorMoneyTab';
 
 vi.mock('./CreatorMonetizationTab', () => ({
@@ -17,17 +17,25 @@ describe('CreatorMoneyTab', () => {
   });
 
   it('renders Income and Plans tabs only', async () => {
-    render(
-      <MemoryRouter initialEntries={['/creator/monetization']}>
-        <CreatorMoneyTab onToast={vi.fn()} />
-      </MemoryRouter>,
+    const { i18n } = renderWithProviders(
+      <CreatorMoneyTab onToast={vi.fn()} />,
+      {
+        routerProps: {
+          useTransitions: false,
+          initialEntries: ['/creator/monetization'],
+        },
+      },
     );
 
     expect(
-      await screen.findByRole('tab', { name: /ingresos|income/i }),
+      await screen.findByRole('tab', {
+        name: i18n!.t('creator.money.income'),
+      }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', { name: /planes|plans/i }),
+      screen.getByRole('tab', {
+        name: i18n!.t('creator.money.plans'),
+      }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('tab', { name: /^wallet$/i }),

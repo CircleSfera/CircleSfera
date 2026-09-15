@@ -63,18 +63,15 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
   const objectives = [
     {
       id: 'PROFILE_VISITS',
-      label: t('creator.promotions.objective_profile', 'Profile Visits'),
+      label: t('creator.promotions.objective_profile'),
     },
     {
       id: 'FOLLOWS',
-      label: t('creator.promotions.objective_follows', 'Get Followers'),
+      label: t('creator.promotions.objective_follows'),
     },
     {
       id: 'TIER_CONVERSIONS',
-      label: t(
-        'creator.promotions.objective_conversions',
-        'Subscription Conversions',
-      ),
+      label: t('creator.promotions.objective_conversions'),
     },
   ];
 
@@ -82,7 +79,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
     <Dialog
       isOpen
       onClose={onClose}
-      title={t('post.menu.promote', 'Boost Post')}
+      title={t('post.menu.promote')}
       maxWidth="md"
       className="max-h-[90vh]"
     >
@@ -107,8 +104,14 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               {post.caption || t('creator.promotions.untitled')}
             </p>
             <p className="text-white/40 text-xs mt-0.5">
-              {post.type} · {post._count?.likes || 0} likes ·{' '}
-              {post._count?.comments || 0} comentarios
+              {post.type} ·{' '}
+              {t('post.content.likes_count', {
+                count: post._count?.likes || 0,
+              })}{' '}
+              ·{' '}
+              {t('post.content.comments_count', {
+                count: post._count?.comments || 0,
+              })}
             </p>
           </div>
         </div>
@@ -118,8 +121,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         {/* Objective Selection */}
         <div>
           <h3 className="text-xs text-white/50 mb-3 flex items-center gap-1">
-            <Target size={14} />{' '}
-            {t('creator.promotions.campaign_objective', 'Campaign Objective')}
+            <Target size={14} /> {t('creator.promotions.campaign_objective')}
           </h3>
           <div className="grid grid-cols-1 gap-2">
             {objectives.map((obj) => (
@@ -146,9 +148,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               htmlFor="dailyBudgetInput"
               className="text-white/50 text-xs mb-2 block"
             >
-              {t('creator.promotions.daily_budget', {
-                currency: 'EUR',
-              })}
+              {t('creator.promotions.daily_budget', { currency: 'EUR' })}
             </label>
             <input
               id="dailyBudgetInput"
@@ -186,19 +186,12 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               htmlFor="countriesInput"
               className="text-white/50 text-xs mb-2 flex items-center gap-1"
             >
-              <Globe size={14} />{' '}
-              {t(
-                'creator.promotions.countries_hint',
-                'Countries (e.g. ES, MX, US)',
-              )}
+              <Globe size={14} /> {t('creator.promotions.countries_hint')}
             </label>
             <input
               id="countriesInput"
               type="text"
-              placeholder={t(
-                'creator.promotions.all_countries',
-                'All countries',
-              )}
+              placeholder={t('creator.promotions.all_countries')}
               value={countries}
               onChange={(e) => setCountries(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-primary"
@@ -209,19 +202,12 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
               htmlFor="interestsInput"
               className="text-white/50 text-xs mb-2 flex items-center gap-1"
             >
-              <Hash size={14} />{' '}
-              {t(
-                'creator.promotions.interests_hint',
-                'Interests (e.g. Music, Fashion)',
-              )}
+              <Hash size={14} /> {t('creator.promotions.interests_hint')}
             </label>
             <input
               id="interestsInput"
               type="text"
-              placeholder={t(
-                'creator.promotions.all_interests',
-                'All interests',
-              )}
+              placeholder={t('creator.promotions.all_interests')}
               value={interests}
               onChange={(e) => setInterests(e.target.value)}
               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-primary"
@@ -243,7 +229,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           </div>
           <div className="flex items-center justify-between text-xs text-brand-primary/60">
             <span>
-              €{dailyBudget}/{t('creator.promotions.per_day', 'day')} ·{' '}
+              €{dailyBudget}/{t('creator.promotions.per_day')} ·{' '}
               {t('creator.promotions.days', { count: durationDays })}
             </span>
           </div>
@@ -252,7 +238,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
         <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
           <span className="text-gray-300 text-sm font-bold flex items-center gap-2">
             <Sparkles size={16} className="text-brand-accent" />
-            {t('creator.promotions.estimated_reach', 'Alcance estimado')}
+            {t('creator.promotions.estimated_reach')}
           </span>
           <span className="text-white font-medium text-sm tabular-nums">
             {minReach.toLocaleString()} - {maxReach.toLocaleString()}
@@ -276,10 +262,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
           })}
         </Button>
         <p className="text-center text-white/40 text-xs mt-3">
-          {t(
-            'creator.promotions.accept_terms',
-            'By promoting, you accept our terms of use and advertising policy.',
-          )}
+          {t('creator.promotions.accept_terms')}
         </p>
       </div>
     </Dialog>

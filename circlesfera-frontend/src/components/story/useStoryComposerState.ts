@@ -225,11 +225,7 @@ export function useStoryComposerState(props: {
     editingElement: Boolean(editingElement),
     panelOpen,
   });
-  const cardSizeClass = getStoryCardSizeClass({
-    textTakeoverActive,
-    editingElement: Boolean(editingElement),
-    panelOpen,
-  });
+  const cardSizeClass = getStoryCardSizeClass();
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 
   return {

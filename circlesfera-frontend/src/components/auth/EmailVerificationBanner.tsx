@@ -41,13 +41,11 @@ export default function EmailVerificationBanner({
   const resend = useMutation({
     mutationFn: () => authApi.resendVerification(),
     onSuccess: () => {
-      toast.success(
-        t('auth.verify.resend_success', 'Verification email sent.'),
-      );
+      toast.success(t('auth.verify.resend_success'));
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
     onError: () => {
-      toast.error(t('auth.verify.resend_error', 'Could not resend email.'));
+      toast.error(t('auth.verify.resend_error'));
     },
   });
 
@@ -67,10 +65,7 @@ export default function EmailVerificationBanner({
         <div className="mx-auto flex max-w-3xl items-center gap-3 text-sm">
           <Mail className="size-4 shrink-0 text-amber-400" aria-hidden />
           <p className="flex-1 text-amber-100/90 text-xs md:text-sm">
-            {t(
-              'auth.verify.banner',
-              'Confirm your email to post, follow, message, and like.',
-            )}
+            {t('auth.verify.banner')}
           </p>
           <Button
             type="button"
@@ -80,7 +75,7 @@ export default function EmailVerificationBanner({
             onClick={() => resend.mutate()}
             className="shrink-0 h-9 text-xs uppercase font-bold"
           >
-            {t('auth.verify.resend', 'Resend')}
+            {t('auth.verify.resend')}
           </Button>
         </div>
       </div>

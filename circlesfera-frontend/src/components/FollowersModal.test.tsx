@@ -36,12 +36,16 @@ describe('FollowersModal', () => {
   });
 
   it('shows the followers empty state and closes without navigating', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <FollowersModal title="followers" users={[]} onClose={onClose} />,
     );
 
-    expect(screen.getByText('Followers')).toBeInTheDocument();
-    expect(screen.getByText('No users found.')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.stats.followers')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.empty.no_users_found')),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
@@ -50,11 +54,13 @@ describe('FollowersModal', () => {
   });
 
   it('uses the following title', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <FollowersModal title="following" users={[]} onClose={onClose} />,
     );
 
-    expect(screen.getByText('Following')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.stats.following')),
+    ).toBeInTheDocument();
   });
 
   it('navigates to the profile and closes', () => {

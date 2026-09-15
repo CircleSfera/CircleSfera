@@ -153,7 +153,7 @@ export default function CreateHighlightModal({
                 variant="ghost"
                 size="icon"
                 className="text-white hover:text-gray-300 shrink-0"
-                aria-label={t('common.back', 'Back')}
+                aria-label={t('common.back')}
               >
                 <ChevronLeft size={24} />
               </Button>
@@ -161,7 +161,7 @@ export default function CreateHighlightModal({
             <h2 className="text-lg font-bold text-white truncate">
               {step === 1
                 ? isEditing
-                  ? t('modals.highlight.edit_highlight', 'Edit highlight')
+                  ? t('modals.highlight.edit_highlight')
                   : t('modals.highlight.new_highlight')
                 : t('modals.highlight.title_and_cover')}
             </h2>
@@ -192,7 +192,7 @@ export default function CreateHighlightModal({
                       >
                         <img
                           src={story.url}
-                          alt="Story"
+                          alt={t('common.alt.story')}
                           className="w-full h-full object-cover rounded-md"
                         />
                         <div
@@ -249,7 +249,7 @@ export default function CreateHighlightModal({
                     return previewUrl ? (
                       <img
                         src={previewUrl}
-                        alt="Cover"
+                        alt={t('common.alt.cover')}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -293,7 +293,7 @@ export default function CreateHighlightModal({
               className="px-6 py-2 font-semibold"
             >
               {isEditing
-                ? t('modals.highlight.save_changes', 'Save changes')
+                ? t('modals.highlight.save_changes')
                 : t('modals.highlight.done')}
             </Button>
           )}

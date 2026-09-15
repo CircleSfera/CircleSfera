@@ -43,4 +43,4 @@ echo "Setting repository variable E2E_ENABLED=true..."
 gh variable set E2E_ENABLED --body "true"
 
 echo "Done. Verify with: gh secret list && gh variable list"
-echo "Run smoke locally: BASE_URL=https://circlesfera.com BACKEND_URL=https://circlesfera.com/api/v1 SKIP_GLOBAL_SETUP=true npm run test:e2e -- e2e/smoke.spec.ts"
+echo "Run smoke locally: BASE_URL=https://circlesfera.com BACKEND_URL=https://circlesfera.com/api/v1 npm run test:e2e -- e2e/smoke.spec.ts"

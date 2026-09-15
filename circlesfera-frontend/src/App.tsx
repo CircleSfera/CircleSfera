@@ -14,7 +14,6 @@ import GuestGuard from './components/auth/GuestGuard';
 import ContentComposerPage from './components/ContentComposerPage';
 import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
-import { useGlobalSocket } from './hooks/useGlobalSocket';
 import { useNativeApp } from './hooks/useNativeApp';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import AppShell from './layouts/AppShell';
@@ -22,6 +21,7 @@ import AppShell from './layouts/AppShell';
 import CommunityGuidelines from './pages/CommunityGuidelines';
 import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
+import ExploreMapPage from './pages/explore-map/ExploreMapPage';
 import FaqPage from './pages/FaqPage';
 import FeatureDetailPage, {
   ExploreFeatureRedirect,
@@ -189,7 +189,6 @@ function App() {
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
   const adminPanel = isAdminPanelHost();
 
-  useGlobalSocket();
   usePushNotifications();
   useNativeApp();
 
@@ -322,6 +321,16 @@ function App() {
           element={
             <AuthGuard>
               <LiveViewer />
+            </AuthGuard>
+          }
+        />
+
+        {/* Explore map — before /explore/:feature and tags sibling */}
+        <Route
+          path="/explore/map"
+          element={
+            <AuthGuard>
+              <ExploreMapPage />
             </AuthGuard>
           }
         />

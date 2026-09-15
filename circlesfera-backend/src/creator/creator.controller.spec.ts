@@ -1,10 +1,22 @@
-import { BadRequestException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AnalyticsService } from '../analytics/analytics.service.js';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { CreatorController } from './creator.controller.js';
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
 import { GetAudienceRetentionQuery } from './use-cases/analytics/queries/get-audience-retention.query.js';
@@ -19,18 +31,7 @@ import { RecordPromotionInteractionUseCase } from './use-cases/promotions/comman
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 describe('CreatorController', () => {
-  let controller: CreatorController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'creator@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
-
-  const req = { user: mockUser } as Parameters<
-    CreatorController['getStats']
-  >[0];
+  let app: INestApplication;
 
   const mockAnalyticsService = {
     getCreatorDashboard: vi.fn(),
@@ -55,8 +56,8 @@ describe('CreatorController', () => {
     recordClick: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [CreatorController],
       providers: [
         { provide: AnalyticsService, useValue: mockAnalyticsService },
@@ -84,128 +85,150 @@ describe('CreatorController', () => {
           useValue: mockRecordPromotionInteractionUC,
         },
       ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(SubscriptionGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: SubscriptionGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<CreatorController>(CreatorController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects stats without a session', async () => {
+    await request(app.getHttpServer()).get('/api/v1/creator/stats').expect(401);
+
+    expect(mockGetCreatorStatsQ.execute).not.toHaveBeenCalled();
   });
 
-  describe('getStats', () => {
-    it('delegates to GetCreatorStatsQuery with profileId', async () => {
-      const stats = { followers: 100, revenueCents: 5000 };
-      mockGetCreatorStatsQ.execute.mockResolvedValue(stats);
+  it('reads stats as the session profileId', async () => {
+    const stats = { followers: 100, revenueCents: 5000 };
+    mockGetCreatorStatsQ.execute.mockResolvedValue(stats);
 
-      const result = await controller.getStats(req);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/creator/stats')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockGetCreatorStatsQ.execute).toHaveBeenCalledWith('profile-1');
-      expect(result).toEqual(stats);
-    });
+    expect(res.body).toEqual(stats);
+    expect(mockGetCreatorStatsQ.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
   });
 
-  describe('getActivityChart', () => {
-    it('returns daily metrics from analytics dashboard', async () => {
-      const dailyMetrics = [{ date: '2026-01-01', views: 10 }];
-      mockAnalyticsService.getCreatorDashboard.mockResolvedValue({
-        charts: { dailyMetrics },
-      });
-
-      const result = await controller.getActivityChart(req);
-
-      expect(mockAnalyticsService.getCreatorDashboard).toHaveBeenCalledWith(
-        'profile-1',
-        14,
-      );
-      expect(result).toEqual(dailyMetrics);
+  it('returns daily metrics from analytics dashboard', async () => {
+    const dailyMetrics = [{ date: '2026-01-01', views: 10 }];
+    mockAnalyticsService.getCreatorDashboard.mockResolvedValue({
+      charts: { dailyMetrics },
     });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/creator/activity-chart')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(dailyMetrics);
+    expect(mockAnalyticsService.getCreatorDashboard).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      14,
+    );
   });
 
-  describe('getPosts', () => {
-    it('delegates with parsed pagination defaults', async () => {
-      mockGetCreatorPostsQ.execute.mockResolvedValue({ items: [] });
+  it('lists posts with parsed pagination defaults', async () => {
+    mockGetCreatorPostsQ.execute.mockResolvedValue({ items: [] });
 
-      await controller.getPosts(req);
+    await request(app.getHttpServer())
+      .get('/api/v1/creator/posts')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockGetCreatorPostsQ.execute).toHaveBeenCalledWith(
-        'profile-1',
-        1,
-        10,
-        undefined,
-      );
-    });
-
-    it('passes query params when provided', async () => {
-      mockGetCreatorPostsQ.execute.mockResolvedValue({ items: [] });
-
-      await controller.getPosts(req, '2', '20', 'FRAME');
-
-      expect(mockGetCreatorPostsQ.execute).toHaveBeenCalledWith(
-        'profile-1',
-        2,
-        20,
-        'FRAME',
-      );
-    });
+    expect(mockGetCreatorPostsQ.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      1,
+      10,
+      undefined,
+    );
   });
 
-  describe('createPromotion', () => {
-    it('throws BadRequestException when required fields missing', async () => {
-      await expect(
-        controller.createPromotion(req, {
-          targetType: 'POST',
-          targetId: 'post-1',
-          durationDays: 7,
-        }),
-      ).rejects.toThrow(BadRequestException);
-    });
+  it('passes page, limit and type when provided', async () => {
+    mockGetCreatorPostsQ.execute.mockResolvedValue({ items: [] });
 
-    it('delegates to CreatePromotionUseCase when valid', async () => {
-      mockCreatePromotionUC.execute.mockResolvedValue({ id: 'promo-1' });
+    await request(app.getHttpServer())
+      .get('/api/v1/creator/posts')
+      .query({ page: 2, limit: 20, type: 'FRAME' })
+      .set(BEARER)
+      .expect(200);
 
-      const result = await controller.createPromotion(req, {
+    expect(mockGetCreatorPostsQ.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      2,
+      20,
+      'FRAME',
+    );
+  });
+
+  it('rejects a promotion when required fields are missing', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
+        targetType: 'POST',
+        targetId: 'post-1',
+        durationDays: 7,
+      })
+      .expect(400);
+
+    expect(mockCreatePromotionUC.execute).not.toHaveBeenCalled();
+  });
+
+  it('creates a promotion as the session userId', async () => {
+    mockCreatePromotionUC.execute.mockResolvedValue({ id: 'promo-1' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
         targetType: 'POST',
         targetId: 'post-1',
         budget: 1000,
         durationDays: 7,
-      });
+      })
+      .expect(201);
 
-      expect(mockCreatePromotionUC.execute).toHaveBeenCalledWith(
-        'user-1',
-        'POST',
-        'post-1',
-        7,
-        1000,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-      );
-      expect(result).toEqual({ id: 'promo-1' });
-    });
+    expect(res.body).toEqual({ id: 'promo-1' });
+    expect(mockCreatePromotionUC.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'POST',
+      'post-1',
+      7,
+      1000,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
-  describe('recordPromotionView', () => {
-    it('delegates to recordView with userId', async () => {
-      mockRecordPromotionInteractionUC.recordView.mockResolvedValue({
-        success: true,
-      });
-
-      const result = await controller.recordPromotionView(req, 'promo-1');
-
-      expect(mockRecordPromotionInteractionUC.recordView).toHaveBeenCalledWith(
-        'promo-1',
-        'user-1',
-      );
-      expect(result).toEqual({ success: true });
+  it('records a promotion view as the session userId', async () => {
+    mockRecordPromotionInteractionUC.recordView.mockResolvedValue({
+      success: true,
     });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions/promo-1/view')
+      .set(BEARER)
+      .expect(201);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockRecordPromotionInteractionUC.recordView).toHaveBeenCalledWith(
+      'promo-1',
+      TEST_USER.userId,
+    );
   });
 });

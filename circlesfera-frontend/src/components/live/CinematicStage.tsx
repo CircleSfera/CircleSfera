@@ -1,17 +1,19 @@
 import { TrackToggle, useTracks, VideoTrack } from '@livekit/components-react';
 import { Track } from 'livekit-client';
+import { useTranslation } from 'react-i18next';
 
 export default function CinematicStage({
   isBroadcaster = false,
 }: {
   isBroadcaster?: boolean;
 }) {
+  const { t } = useTranslation();
   const tracks = useTracks([Track.Source.Camera]);
 
   if (tracks.length === 0) {
     return (
       <div className="absolute inset-0 bg-zinc-900 flex items-center justify-center text-white/50 text-sm">
-        {isBroadcaster ? 'Iniciando cámara...' : 'Esperando transmisión...'}
+        {isBroadcaster ? t('live.starting_camera') : t('live.waiting_stream')}
       </div>
     );
   }
@@ -42,7 +44,9 @@ export default function CinematicStage({
             />
             <div className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span>{tracks[0].participant.identity || 'Host 1'}</span>
+              <span>
+                {tracks[0].participant.identity || t('live.host_n', { n: 1 })}
+              </span>
             </div>
           </div>
           <div className="flex-1 relative overflow-hidden rounded-2xl border border-white/10 shadow-2xl">
@@ -52,7 +56,9 @@ export default function CinematicStage({
             />
             <div className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              <span>{tracks[1].participant.identity || 'Co-Host'}</span>
+              <span>
+                {tracks[1].participant.identity || t('live.cohost_fallback')}
+              </span>
             </div>
           </div>
         </div>
@@ -73,7 +79,8 @@ export default function CinematicStage({
               <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/70 backdrop-blur-md rounded-full border border-white/20 text-xs font-bold text-white shadow-md flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                 <span>
-                  {trackRef.participant.identity || `Host ${idx + 1}`}
+                  {trackRef.participant.identity ||
+                    t('live.host_n', { n: idx + 1 })}
                 </span>
               </div>
             </div>

@@ -15,7 +15,7 @@ export default function CreatorNavList({ onNavigate }: CreatorNavListProps) {
       {CREATOR_NAV_GROUPS.map((group) => (
         <div key={group.labelKey}>
           <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-1.5 px-2">
-            {t(group.labelKey, group.labelFallback)}
+            {t(group.labelKey)}
           </p>
           <ul className="space-y-0.5">
             {group.items.map((item) => {
@@ -43,9 +43,7 @@ export default function CreatorNavList({ onNavigate }: CreatorNavListProps) {
                           }
                           aria-hidden
                         />
-                        <span className="truncate">
-                          {t(item.labelKey, item.labelFallback)}
-                        </span>
+                        <span className="truncate">{t(item.labelKey)}</span>
                       </>
                     )}
                   </NavLink>

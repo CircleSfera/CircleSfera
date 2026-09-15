@@ -1,14 +1,9 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePushNotifications } from '../../hooks/usePushNotifications';
 import { usersApi } from '../../services/users.service';
+import { renderWithProviders } from '../../test/test-utils';
 import NotificationsSettings from './NotificationsSettings';
 
 vi.mock('../../hooks/usePushNotifications', () => ({
@@ -52,10 +47,10 @@ describe('NotificationsSettings', () => {
   it('shows a failure toast and keeps native alerts off when subscribe fails', async () => {
     requestPermission.mockResolvedValue(false);
 
-    render(<NotificationsSettings />);
+    const { i18n } = renderWithProviders(<NotificationsSettings />);
 
     const toggle = await screen.findByRole('switch', {
-      name: /native alerts/i,
+      name: i18n!.t('settings.notifications_tab.native_alerts'),
     });
     fireEvent.click(toggle);
 
@@ -75,9 +70,9 @@ describe('NotificationsSettings', () => {
         }),
     );
 
-    render(<NotificationsSettings />);
+    const { i18n } = renderWithProviders(<NotificationsSettings />);
     const toggle = await screen.findByRole('switch', {
-      name: /native alerts/i,
+      name: i18n!.t('settings.notifications_tab.native_alerts'),
     });
     fireEvent.click(toggle);
     fireEvent.click(toggle);
@@ -96,10 +91,10 @@ describe('NotificationsSettings', () => {
   it('turns native alerts on after a successful subscribe', async () => {
     requestPermission.mockResolvedValue(true);
 
-    const { rerender } = render(<NotificationsSettings />);
+    const { i18n, rerender } = renderWithProviders(<NotificationsSettings />);
 
     const toggle = await screen.findByRole('switch', {
-      name: /native alerts/i,
+      name: i18n!.t('settings.notifications_tab.native_alerts'),
     });
     fireEvent.click(toggle);
 
@@ -120,7 +115,9 @@ describe('NotificationsSettings', () => {
     rerender(<NotificationsSettings />);
 
     expect(
-      screen.getByRole('switch', { name: /native alerts/i }),
+      screen.getByRole('switch', {
+        name: i18n!.t('settings.notifications_tab.native_alerts'),
+      }),
     ).toHaveAttribute('aria-checked', 'true');
   });
 });

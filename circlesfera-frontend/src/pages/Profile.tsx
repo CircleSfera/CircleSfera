@@ -131,21 +131,14 @@ export default function Profile() {
     handledCheckoutReturn.current = true;
 
     if (success) {
-      toast.success(
-        t(
-          'profile.messages.checkout_success',
-          'Payment successful. Thanks for your support!',
-        ),
-      );
+      toast.success(t('profile.messages.checkout_success'));
       queryClient.invalidateQueries({
         queryKey: ['creator-subscription', profile?.data.userId],
       });
       queryClient.invalidateQueries({ queryKey: ['profile', username] });
       queryClient.invalidateQueries({ queryKey: ['userPosts', username] });
     } else {
-      toast.error(
-        t('profile.messages.checkout_canceled', 'Checkout was canceled.'),
-      );
+      toast.error(t('profile.messages.checkout_canceled'));
     }
 
     const next = new URLSearchParams(searchParams);
@@ -538,7 +531,7 @@ export default function Profile() {
               {isMe && (
                 <HighlightBubble
                   id="new"
-                  title={t('profile.highlights.new', 'New')}
+                  title={t('profile.highlights.new')}
                   isAddButton
                   onClick={() => setIsHighlightModalOpen(true)}
                 />

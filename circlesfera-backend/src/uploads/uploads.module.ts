@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { STORAGE_PROVIDER } from './interfaces/storage-provider.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
+import { MediaSignatureValidator } from './media-signature.validator.js';
 import { VideoProcessor } from './processors/video.processor.js';
 import { CloudinaryProvider } from './providers/cloudinary.provider.js';
 import { LocalStorageProvider } from './providers/local.provider.js';
@@ -21,6 +22,7 @@ import { UploadsService } from './uploads.service.js';
   providers: [
     UploadsService,
     MediaProcessorService,
+    MediaSignatureValidator,
     VideoProcessor,
     {
       provide: STORAGE_PROVIDER,

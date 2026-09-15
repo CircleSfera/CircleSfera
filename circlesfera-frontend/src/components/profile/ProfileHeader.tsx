@@ -99,9 +99,7 @@ function ProfileOtherUserMenu({
       <button
         type="button"
         onClick={onToggle}
-        aria-label={t('profile.actions.more_options', {
-          defaultValue: 'More options',
-        })}
+        aria-label={t('profile.actions.more_options')}
         aria-expanded={isOpen}
         className={buttonClassName}
       >
@@ -120,7 +118,7 @@ function ProfileOtherUserMenu({
             }}
             className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
           >
-            {t('profile.about.title', 'About this account')}
+            {t('profile.about.title')}
             <Info size={14} aria-hidden="true" />
           </button>
           <button
@@ -131,7 +129,7 @@ function ProfileOtherUserMenu({
             }}
             className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
           >
-            {t('profile.actions.mute', { defaultValue: 'Mute' })}
+            {t('profile.actions.mute')}
             <VolumeX size={14} aria-hidden="true" />
           </button>
           <button
@@ -293,7 +291,7 @@ export default function ProfileHeader({
                   />
                   {showIdentityVerifiedBadge && (
                     <span
-                      title={t('profile.badges.identity', 'Identity verified')}
+                      title={t('profile.badges.identity')}
                       className="inline-flex"
                     >
                       <ShieldCheck
@@ -305,7 +303,7 @@ export default function ProfileHeader({
                   )}
                   {data.botLabeled && (
                     <span
-                      title={t('profile.badges.bot', 'Possibly automated')}
+                      title={t('profile.badges.bot')}
                       className="inline-flex"
                     >
                       <Bot size={16} className="text-amber-400" aria-hidden />
@@ -317,10 +315,10 @@ export default function ProfileHeader({
                   {profile.data.isPrivate && (
                     <span
                       className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm shrink-0"
-                      title={t('profile.private_account', 'Cuenta privada')}
+                      title={t('profile.private_account')}
                     >
                       <Lock size={12} className="text-brand-primary" />
-                      <span>{t('profile.private_label', 'Privada')}</span>
+                      <span>{t('profile.private_label')}</span>
                     </span>
                   )}
                 </div>
@@ -329,7 +327,7 @@ export default function ProfileHeader({
               {/* Stats */}
               <div className="flex items-center justify-between md:justify-start gap-2 md:gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <AnimatedCounter
-                  value={profile.data.user?._count?.posts || 0}
+                  value={profile.data._count?.posts || 0}
                   label={t('profile.stats.posts')}
                 />
                 <button
@@ -338,7 +336,7 @@ export default function ProfileHeader({
                   aria-label={t('profile.stats.followers')}
                 >
                   <AnimatedCounter
-                    value={profile.data.user?._count?.followers || 0}
+                    value={profile.data._count?.followers || 0}
                     label={t('profile.stats.followers')}
                   />
                 </button>
@@ -348,7 +346,7 @@ export default function ProfileHeader({
                   aria-label={t('profile.stats.following')}
                 >
                   <AnimatedCounter
-                    value={profile.data.user?._count?.following || 0}
+                    value={profile.data._count?.following || 0}
                     label={t('profile.stats.following')}
                   />
                 </button>
@@ -362,9 +360,7 @@ export default function ProfileHeader({
                   <button
                     type="button"
                     onClick={openCreateMenu}
-                    aria-label={t('profile.actions.create_post', {
-                      defaultValue: 'Create new post',
-                    })}
+                    aria-label={t('profile.actions.create_post')}
                     className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
@@ -391,9 +387,7 @@ export default function ProfileHeader({
                   </button>
                   <Link
                     to="/accounts"
-                    aria-label={t('profile.actions.settings', {
-                      defaultValue: 'Settings',
-                    })}
+                    aria-label={t('profile.actions.settings')}
                     className="p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center"
                   >
                     <Settings size={18} aria-hidden="true" />
@@ -425,7 +419,7 @@ export default function ProfileHeader({
                   <button
                     type="button"
                     onClick={() => setShowAbout(true)}
-                    aria-label={t('profile.about.title', 'About this account')}
+                    aria-label={t('profile.about.title')}
                     className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
                   >
                     <Info size={18} aria-hidden="true" />
@@ -583,9 +577,7 @@ export default function ProfileHeader({
                 <button
                   type="button"
                   onClick={openCreateMenu}
-                  aria-label={t('profile.actions.create_post', {
-                    defaultValue: 'Create new post',
-                  })}
+                  aria-label={t('profile.actions.create_post')}
                   className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-white rounded-xl border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
                 >
                   <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
@@ -607,9 +599,7 @@ export default function ProfileHeader({
                 </button>
                 <Link
                   to="/accounts"
-                  aria-label={t('profile.actions.settings', {
-                    defaultValue: 'Settings',
-                  })}
+                  aria-label={t('profile.actions.settings')}
                   className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
                 >
                   <Settings size={18} aria-hidden="true" />
@@ -641,7 +631,7 @@ export default function ProfileHeader({
                 <button
                   type="button"
                   onClick={() => setShowAbout(true)}
-                  aria-label={t('profile.about.title', 'About this account')}
+                  aria-label={t('profile.about.title')}
                   className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
                 >
                   <Info size={18} aria-hidden="true" />

@@ -1,22 +1,29 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { ReportReason, ReportTargetType } from './dto/create-report.dto.js';
 import { ReportsController } from './reports.controller.js';
 import { ReportsService } from './reports.service.js';
 
 describe('ReportsController', () => {
-  let controller: ReportsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -25,73 +32,130 @@ describe('ReportsController', () => {
     update: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [ReportsController],
       providers: [{ provide: ReportsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<ReportsController>(ReportsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/reports')
+      .send({
+        targetType: ReportTargetType.POST,
+        targetId: 'post-1',
+        reason: ReportReason.SPAM,
+      })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('files a report as the caller profile', async () => {
-    const dto = {
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/reports')
+      .set(BEARER)
+      .send({
+        targetType: ReportTargetType.POST,
+        targetId: 'post-1',
+        reason: ReportReason.SPAM,
+        reporterId: 'attacker',
+      })
+      .expect(400);
+
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
+
+  it('files a report as the session profile', async () => {
+    mockService.create.mockResolvedValue({ id: 'report-1' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/reports')
+      .set(BEARER)
+      .send({
+        targetType: ReportTargetType.POST,
+        targetId: 'post-1',
+        reason: ReportReason.SPAM,
+      })
+      .expect(201);
+
+    expect(res.body).toEqual({ id: 'report-1' });
+    expect(mockService.create).toHaveBeenCalledWith(TEST_USER.profileId, {
       targetType: ReportTargetType.POST,
       targetId: 'post-1',
       reason: ReportReason.SPAM,
-    };
-    mockService.create.mockResolvedValue({ id: 'report-1' });
-
-    await controller.create(mockUser, dto);
-
-    expect(mockService.create).toHaveBeenCalledWith('profile-1', dto);
+    });
   });
 
   it('lists the caller reports with pagination', async () => {
-    const pagination = { page: 1, limit: 10 };
     mockService.findMyReports.mockResolvedValue({ data: [] });
 
-    await controller.findMyReports(mockUser, pagination);
+    await request(app.getHttpServer())
+      .get('/api/v1/reports/me')
+      .query({ page: 1, limit: 10 })
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.findMyReports).toHaveBeenCalledWith(
-      'profile-1',
-      pagination,
+      TEST_USER.profileId,
+      expect.objectContaining({ page: 1, limit: 10 }),
     );
   });
 
-  it('lists all reports without a reporter profile', async () => {
-    const pagination = { page: 1, limit: 10 };
-    mockService.findAll.mockResolvedValue({ data: [] });
+  it('rejects listing all reports with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/reports')
+      .query({ page: 1, limit: 10 })
+      .set(BEARER)
+      .expect(401);
 
-    await controller.findAll(pagination);
-
-    expect(mockService.findAll).toHaveBeenCalledWith(pagination);
+    expect(mockService.findAll).not.toHaveBeenCalled();
   });
 
-  it('updates a report status as the staff profile', async () => {
+  it('lists all reports with an admin session', async () => {
+    mockService.findAll.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/reports')
+      .query({ page: 1, limit: 10 })
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(mockService.findAll).toHaveBeenCalledWith(
+      expect.objectContaining({ page: 1, limit: 10 }),
+    );
+  });
+
+  it('updates a report status with an admin session', async () => {
     mockService.update.mockResolvedValue({
       id: 'report-1',
       status: 'REVIEWING',
     });
 
-    await controller.update('report-1', 'REVIEWING', mockUser);
+    await request(app.getHttpServer())
+      .patch('/api/v1/reports/report-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'REVIEWING' })
+      .expect(200);
 
     expect(mockService.update).toHaveBeenCalledWith(
       'report-1',
       'REVIEWING',
-      'profile-1',
+      undefined,
     );
   });
 });

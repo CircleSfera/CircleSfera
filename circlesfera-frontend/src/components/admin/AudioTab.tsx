@@ -69,7 +69,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
 
   const invalidateAudio = () => {
     queryClient.invalidateQueries({ queryKey: ['admin', 'audio'] });
-    queryClient.invalidateQueries({ queryKey: ['music'] });
+    queryClient.invalidateQueries({ queryKey: ['audio'] });
   };
 
   const closeForm = () => {

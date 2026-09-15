@@ -20,44 +20,16 @@ interface ReportModalProps {
   targetId: string;
 }
 
-const REPORT_REASONS = [
-  { id: 'SPAM', labelKey: 'report.reason.spam', fallback: "It's spam" },
-  {
-    id: 'HARASSMENT',
-    labelKey: 'report.reason.harassment',
-    fallback: 'Harassment or bullying',
-  },
-  {
-    id: 'HATE_SPEECH',
-    labelKey: 'report.reason.hate',
-    fallback: 'Hate speech',
-  },
-  {
-    id: 'VIOLENCE',
-    labelKey: 'report.reason.violence',
-    fallback: 'Violence or dangerous content',
-  },
-  {
-    id: 'ILLEGAL_CONTENT',
-    labelKey: 'report.reason.illegal',
-    fallback: 'Illegal content',
-  },
-  {
-    id: 'IMPERSONATION',
-    labelKey: 'report.reason.impersonation',
-    fallback: 'Impersonation',
-  },
-  {
-    id: 'SCAM',
-    labelKey: 'report.reason.scam',
-    fallback: 'Scam or fraud',
-  },
-  {
-    id: 'CSAM',
-    labelKey: 'report.reason.csam',
-    fallback: 'Child sexual exploitation (CSAM)',
-  },
-  { id: 'OTHER', labelKey: 'report.reason.other', fallback: 'Something else' },
+export const REPORT_REASONS = [
+  { id: 'SPAM', labelKey: 'report.reasons.spam' },
+  { id: 'HARASSMENT', labelKey: 'report.reasons.harassment' },
+  { id: 'HATE_SPEECH', labelKey: 'report.reasons.hate_speech' },
+  { id: 'VIOLENCE', labelKey: 'report.reasons.violence' },
+  { id: 'ILLEGAL_CONTENT', labelKey: 'report.reasons.illegal_content' },
+  { id: 'IMPERSONATION', labelKey: 'report.reasons.impersonation' },
+  { id: 'SCAM', labelKey: 'report.reasons.scam' },
+  { id: 'CSAM', labelKey: 'report.reasons.csam' },
+  { id: 'OTHER', labelKey: 'report.reasons.other' },
 ];
 
 export default function ReportModal({
@@ -108,24 +80,22 @@ export default function ReportModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={t('report.title', 'Report')}
+      title={t('report.title')}
       maxWidth="md"
       className="max-h-[90vh]"
     >
       {isSuccess ? (
         <div className="flex flex-col items-center gap-3 py-8 text-center">
           <CheckCircle2 className="text-emerald-400" size={40} />
-          <p className="text-white font-semibold">
-            {t('report.success', 'Thanks for your report')}
-          </p>
+          <p className="text-white font-semibold">{t('report.success')}</p>
         </div>
       ) : (
         <>
           <div className="flex items-center gap-2 mb-3 text-brand-secondary">
             <AlertCircle size={18} aria-hidden />
             <p className="text-white/50 text-sm">
-              {t('report.subtitle', 'Why are you reporting this {{type}}?', {
-                type: targetType.toLowerCase(),
+              {t('report.why_report', {
+                targetType: t(`report.targets.${targetType.toLowerCase()}`),
               })}
             </p>
           </div>
@@ -141,17 +111,14 @@ export default function ReportModal({
                     : 'border-white/10 text-white/80 hover:bg-white/5'
                 }`}
               >
-                {t(r.labelKey, r.fallback)}
+                {t(r.labelKey)}
               </button>
             ))}
           </div>
           <Textarea
             value={details}
             onChange={(e) => setDetails(e.target.value)}
-            placeholder={t(
-              'report.details_placeholder',
-              'Additional details (optional)',
-            )}
+            placeholder={t('report.placeholder')}
             className="mb-4"
           />
           <Button
@@ -160,7 +127,7 @@ export default function ReportModal({
             isLoading={isSubmitting}
             className="w-full"
           >
-            {t('report.submit', 'Submit report')}
+            {isSubmitting ? t('report.submitting') : t('report.submit')}
           </Button>
         </>
       )}

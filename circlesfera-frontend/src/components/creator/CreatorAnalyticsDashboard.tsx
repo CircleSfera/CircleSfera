@@ -76,9 +76,7 @@ export const CreatorAnalyticsDashboard = () => {
       setTopPosts(topRes.data);
     } catch (err) {
       logger.error('Failed to fetch creator analytics:', err);
-      setError(
-        t('creator.advanced.error', 'Could not load advanced analytics.'),
-      );
+      setError(t('creator.advanced.error'));
     } finally {
       setLoading(false);
     }
@@ -116,13 +114,10 @@ export const CreatorAnalyticsDashboard = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-white tracking-tight">
-            {t('creator.advanced.title', 'Revenue and retention')}
+            {t('creator.advanced.title')}
           </h2>
           <p className="text-sm text-white/50 mt-0.5">
-            {t(
-              'creator.advanced.subtitle',
-              'Paid audience, income mix and when people stay.',
-            )}
+            {t('creator.advanced.subtitle')}
           </p>
         </div>
 
@@ -161,7 +156,7 @@ export const CreatorAnalyticsDashboard = () => {
               <Download className="w-4 h-4" />
             )}
             <span className="hidden sm:inline">
-              {t('creator.advanced.export_csv', 'Export CSV')}
+              {t('creator.advanced.export_csv')}
             </span>
           </Button>
         </div>
@@ -177,62 +172,58 @@ export const CreatorAnalyticsDashboard = () => {
       {loading ? (
         <div className="flex justify-center items-center py-12 text-white/50">
           <Loader2 className="w-5 h-5 animate-spin mr-3 text-brand-primary" />
-          <span className="text-sm">
-            {t('creator.advanced.loading', 'Loading creator metrics…')}
-          </span>
+          <span className="text-sm">{t('creator.advanced.loading')}</span>
         </div>
       ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <Kpi
               icon={DollarSign}
-              label={t('creator.advanced.gross', 'Gross revenue')}
+              label={t('creator.advanced.gross')}
               value={`€${(revenue?.grossRevenue || 0).toFixed(2)}`}
-              hint={t('creator.advanced.period_hint', 'Period: {{period}}', {
-                period,
-              })}
+              hint={t('creator.advanced.period_hint', { period })}
             />
             <Kpi
               icon={Users}
-              label={t('creator.advanced.paid_subs', 'Paid subscribers')}
+              label={t('creator.advanced.paid_subs')}
               value={String(revenue?.activeSubscribersCount || 0)}
-              hint={t('creator.advanced.conversion', 'Conversion: {{rate}}%', {
+              hint={t('creator.advanced.conversion', {
                 rate: revenue?.conversionRate || 0,
               })}
             />
             <Kpi
               icon={Clock}
-              label={t('creator.advanced.dwell', 'Average dwell')}
+              label={t('creator.advanced.dwell')}
               value={`${retention?.avgDwellSeconds || 0}s`}
-              hint={t('creator.advanced.peak', 'Peak: {{hour}}:00 UTC', {
+              hint={t('creator.advanced.peak', {
                 hour: retention?.peakActivityHourUTC ?? '—',
               })}
             />
             <Kpi
               icon={Sparkles}
-              label={t('creator.advanced.tips_gifts', 'Tips & gifts')}
+              label={t('creator.advanced.tips_gifts')}
               value={`€${((revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)).toFixed(2)}`}
-              hint={t('creator.advanced.tips_hint', 'Live and direct messages')}
+              hint={t('creator.advanced.tips_hint')}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             <Card variant="glass" className="p-4 space-y-4">
               <h3 className="text-sm font-medium text-white">
-                {t('creator.advanced.breakdown', 'Income sources')}
+                {t('creator.advanced.breakdown')}
               </h3>
               <ShareRow
-                label={t('creator.advanced.subscriptions', 'Subscriptions')}
+                label={t('creator.advanced.subscriptions')}
                 amount={revenue?.subscriptionsTotal || 0}
                 pct={share(revenue?.subscriptionsTotal || 0)}
               />
               <ShareRow
-                label={t('creator.advanced.unlocks', 'Paid unlocks')}
+                label={t('creator.advanced.unlocks')}
                 amount={revenue?.postUnlocksTotal || 0}
                 pct={share(revenue?.postUnlocksTotal || 0)}
               />
               <ShareRow
-                label={t('creator.advanced.tips_gifts', 'Tips & gifts')}
+                label={t('creator.advanced.tips_gifts')}
                 amount={(revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)}
                 pct={share(
                   (revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0),
@@ -242,7 +233,7 @@ export const CreatorAnalyticsDashboard = () => {
 
             <Card variant="glass" className="p-4 space-y-4">
               <h3 className="text-sm font-medium text-white">
-                {t('creator.advanced.hourly', 'Hourly interaction (UTC)')}
+                {t('creator.advanced.hourly')}
               </h3>
               <div className="grid grid-cols-12 gap-1 pt-1">
                 {Array.from({ length: 24 }, (_, hour) => ({
@@ -263,8 +254,6 @@ export const CreatorAnalyticsDashboard = () => {
                       title={t('creator.advanced.hour_slot', {
                         hour: slot.hour,
                         count: slot.count,
-                        defaultValue:
-                          '{{hour}}:00 UTC — {{count}} interactions',
                       })}
                       className="h-10 rounded-md flex flex-col justify-end p-1"
                       style={{
@@ -279,11 +268,9 @@ export const CreatorAnalyticsDashboard = () => {
                 })}
               </div>
               <p className="text-xs text-white/50">
-                {t(
-                  'creator.advanced.hourly_hint',
-                  'Publishing around {{hour}}:00 UTC usually matches peak dwell.',
-                  { hour: retention?.peakActivityHourUTC ?? '—' },
-                )}
+                {t('creator.advanced.hourly_hint', {
+                  hour: retention?.peakActivityHourUTC ?? '—',
+                })}
               </p>
             </Card>
           </div>
@@ -291,14 +278,11 @@ export const CreatorAnalyticsDashboard = () => {
           <Card variant="glass" className="p-4 space-y-3">
             <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <Award size={16} className="text-brand-primary" aria-hidden />
-              {t('creator.advanced.top_posts', 'Highest-performing posts')}
+              {t('creator.advanced.top_posts')}
             </h3>
             {topPosts.length === 0 ? (
               <p className="text-sm text-white/50 py-2">
-                {t(
-                  'creator.advanced.no_top_posts',
-                  'No posts with scored metrics yet.',
-                )}
+                {t('creator.advanced.no_top_posts')}
               </p>
             ) : (
               <div className="space-y-2">
@@ -313,11 +297,7 @@ export const CreatorAnalyticsDashboard = () => {
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm text-white truncate">
-                          {post.caption ||
-                            t(
-                              'creator.dashboard.untitled_post',
-                              'Untitled post',
-                            )}
+                          {post.caption || t('creator.dashboard.untitled_post')}
                         </p>
                         <div className="flex items-center gap-3 text-[11px] text-white/40 mt-0.5">
                           <span className="inline-flex items-center gap-1">

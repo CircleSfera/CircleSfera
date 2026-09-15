@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { useTranslation } from 'react-i18next';
 
 interface SEOProps {
   title?: string;
@@ -14,8 +15,8 @@ interface SEOProps {
 }
 
 export default function SEO({
-  title = 'CircleSfera - Social Reimagined',
-  description = 'CircleSfera is a refined social layer designed for visual storytelling, authentic connections, and immersive experiences.',
+  title,
+  description,
   canonical,
   ogTitle,
   ogDescription,
@@ -24,10 +25,12 @@ export default function SEO({
   twitterHandle = '@circlesfera',
   noIndex = false,
 }: SEOProps) {
-  const siteTitle = title.includes('CircleSfera')
-    ? title
-    : `${title} | CircleSfera`;
-  const metaDescription = description;
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('common.seo_default_title');
+  const metaDescription = description ?? t('common.seo_default_description');
+  const siteTitle = resolvedTitle.includes('CircleSfera')
+    ? resolvedTitle
+    : `${resolvedTitle} | CircleSfera`;
 
   return (
     <Helmet>

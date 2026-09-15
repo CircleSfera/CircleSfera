@@ -74,10 +74,14 @@ describe('DraftsModal', () => {
   });
 
   it('shows the empty state after load', async () => {
-    renderWithProviders(<DraftsModal onClose={onClose} />);
+    const { i18n } = renderWithProviders(<DraftsModal onClose={onClose} />);
 
-    expect(screen.getByText('My drafts')).toBeInTheDocument();
-    expect(await screen.findByText('No saved drafts yet')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('studio.drafts.title')),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('studio.drafts.empty')),
+    ).toBeInTheDocument();
   });
 
   it('shows an error when drafts fail to load', async () => {
@@ -85,10 +89,10 @@ describe('DraftsModal', () => {
       new Error('fail'),
     );
 
-    renderWithProviders(<DraftsModal onClose={onClose} />);
+    const { i18n } = renderWithProviders(<DraftsModal onClose={onClose} />);
 
     expect(
-      await screen.findByText('Could not load drafts'),
+      await screen.findByText(i18n!.t('studio.drafts.error')),
     ).toBeInTheDocument();
   });
 
@@ -126,13 +130,15 @@ describe('DraftsModal', () => {
     useStudioStore.setState({ cloudProjectId: 'draft-1' });
     vi.mocked(editsService.getProjects).mockResolvedValue([validDraft]);
 
-    renderWithProviders(<DraftsModal onClose={onClose} />);
+    const { i18n } = renderWithProviders(<DraftsModal onClose={onClose} />);
     await screen.findByText('Beach cut');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('studio.drafts.delete') }),
+    );
 
     expect(window.confirm).toHaveBeenCalledWith(
-      'Delete this draft permanently?',
+      i18n!.t('studio.drafts.delete_confirm'),
     );
     await waitFor(() => {
       expect(editsService.deleteProject).toHaveBeenCalledWith('draft-1');
@@ -140,7 +146,9 @@ describe('DraftsModal', () => {
     await waitFor(() => {
       expect(useStudioStore.getState().cloudProjectId).toBeNull();
     });
-    expect(toast.success).toHaveBeenCalledWith('Draft deleted');
+    expect(toast.success).toHaveBeenCalledWith(
+      i18n!.t('studio.drafts.deleted'),
+    );
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -148,10 +156,12 @@ describe('DraftsModal', () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
     vi.mocked(editsService.getProjects).mockResolvedValue([validDraft]);
 
-    renderWithProviders(<DraftsModal onClose={onClose} />);
+    const { i18n } = renderWithProviders(<DraftsModal onClose={onClose} />);
     await screen.findByText('Beach cut');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete draft' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('studio.drafts.delete') }),
+    );
 
     expect(editsService.deleteProject).not.toHaveBeenCalled();
   });

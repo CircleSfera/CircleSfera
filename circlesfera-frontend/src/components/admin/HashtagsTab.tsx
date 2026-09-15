@@ -63,9 +63,7 @@ export default function HashtagsTab() {
                 }
                 badge={
                   <span className="text-brand-primary font-semibold text-sm">
-                    {t('admin.hashtags.posts_count', {
-                      count: tag.postCount,
-                    })}
+                    {t('admin.hashtags.posts_count', { count: tag.postCount })}
                   </span>
                 }
                 meta={new Date(tag.createdAt).toLocaleDateString()}

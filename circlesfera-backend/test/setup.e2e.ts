@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { vi } from 'vitest';
+import '../src/auth/passkey/disable-experimental-webcrypto-pqc.js';
 
 // Silence NestJS chatty log levels to keep the e2e output readable.
 // `error` is intentionally left untouched: in e2e runs it is only emitted by

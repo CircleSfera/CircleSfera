@@ -1,20 +1,15 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
-import { AppGateway } from '../../../socket/app.gateway.js';
 
 @Injectable()
 export class DeleteMessageUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
   ) {}
-
-  private get gateway(): AppGateway {
-    return this.moduleRef.get(AppGateway, { strict: false });
-  }
 
   async execute(profileId: string, messageId: string) {
     const message = await this.prisma.message.findUnique({
@@ -51,10 +46,9 @@ export class DeleteMessageUseCase {
       },
     });
 
-    message.conversation.participants.forEach((p: any) => {
-      this.gateway.server
-        .to(`user:${p.profileId}`)
-        .emit('message_deleted', { messageId });
+    this.eventEmitter.emit('chat.message.deleted', {
+      participants: message.conversation.participants,
+      payload: { messageId },
     });
 
     return { success: true, message: updated };

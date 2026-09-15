@@ -77,7 +77,7 @@ export default function SettingsDangerZone({
               onClick={() => setOpen(false)}
               className="min-h-11"
             >
-              {t('common.cancel', 'Cancel')}
+              {t('common.cancel')}
             </Button>
             <Button
               type="button"

@@ -1,43 +1,60 @@
 import { expect, test } from '@playwright/test';
+import { enterAsNewUser } from './helpers/session';
 
-test.describe('End-to-End Encrypted Chat', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/messages');
-  });
-
-  test('should load the messages interface', async ({ page }) => {
-    await expect(page).toHaveURL(/.*\/direct\/inbox/);
-    await expect(page).toHaveTitle(/Messages|Mensajes/i);
-  });
-
-  test('should be able to search for a user and send a message', async ({
-    page,
+test.describe('Direct', () => {
+  test('two users can start a thread and send a message', async ({
+    browser,
+    baseURL,
   }) => {
-    const searchInput = page.getByPlaceholder(/Search|Buscar/i).first();
+    test.setTimeout(120_000);
+    const ctxOpts = {
+      baseURL,
+      storageState: { cookies: [], origins: [] } as const,
+    };
+    const contextA = await browser.newContext(ctxOpts);
+    const contextB = await browser.newContext(ctxOpts);
+    const pageA = await contextA.newPage();
+    const pageB = await contextB.newPage();
 
-    if (await searchInput.isVisible()) {
-      await searchInput.fill('admin'); // searching for admin seeded user
+    const userA = await enterAsNewUser(pageA);
+    const userB = await enterAsNewUser(pageB);
 
-      // Click the first result
-      const firstResult = page
-        .locator('div[role="button"]')
-        .filter({ hasText: /admin/i })
-        .first();
-      await firstResult.click();
+    await pageA.goto('/direct/inbox');
+    await expect(pageA.getByText('Aún no hay mensajes')).toBeVisible();
+    await pageA.getByRole('button', { name: 'Enviar Mensaje' }).click();
 
-      // Ensure the chat panel is open
-      const chatComposer = page.getByPlaceholder(
-        /Write a message|Escribe un mensaje/i,
-      );
-      await expect(chatComposer).toBeVisible();
+    const dialog = pageA.getByRole('dialog');
+    await dialog.getByPlaceholder('Buscar...').fill(userB.username);
+    await dialog.getByRole('button', { name: userB.username }).click();
+    const startChat = dialog.getByRole('button', { name: 'Chat' });
+    await expect(startChat).toBeEnabled();
 
-      // Type and send a message
-      const msgText = `Mensaje de prueba E2EE ${Date.now()}`;
-      await chatComposer.fill(msgText);
-      await chatComposer.press('Enter');
+    const created = pageA.waitForResponse(
+      (res) =>
+        res.url().includes('/chat/conversations') &&
+        res.request().method() === 'POST',
+      { timeout: 20_000 },
+    );
+    await startChat.evaluate((el) => (el as HTMLButtonElement).click());
+    const createRes = await created;
+    expect(createRes.status(), await createRes.text()).toBe(201);
+    await expect(pageA).toHaveURL(/\/direct\/inbox\/t\//, { timeout: 15_000 });
 
-      // Check if message appears in the chat bubble
-      await expect(page.getByText(msgText)).toBeVisible({ timeout: 5000 });
-    }
+    const text = `Hola E2E ${userA.username}`;
+    const composer = pageA.getByPlaceholder('Mensaje...');
+    await expect(composer).toBeVisible();
+    await composer.fill(text);
+    await composer.press('Enter');
+    await expect(
+      pageA.getByText(text).filter({ visible: true }).first(),
+    ).toBeVisible();
+
+    await pageB.goto('/direct/inbox');
+    await expect(
+      pageB.getByText(text).filter({ visible: true }).first(),
+    ).toBeVisible({ timeout: 20_000 });
+
+    await contextA.close();
+    await contextB.close();
   });
 });

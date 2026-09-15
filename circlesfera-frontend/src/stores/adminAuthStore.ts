@@ -74,3 +74,9 @@ export const useAdminAuthStore = create<AdminAuthState>()(
     },
   ),
 );
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:admin_unauthorized', () => {
+    void useAdminAuthStore.getState().logout();
+  });
+}

@@ -78,16 +78,13 @@ export default function CreateCollectionModal({
             htmlFor="collectionDescription"
             className="block text-sm font-medium text-gray-300 mb-2"
           >
-            {t('collections.description_label', 'Description (optional)')}
+            {t('collections.description_label')}
           </label>
           <textarea
             id="collectionDescription"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder={t(
-              'collections.placeholder_description',
-              'What belongs in this collection?',
-            )}
+            placeholder={t('collections.placeholder_description')}
             maxLength={300}
             rows={3}
             className="w-full min-h-20 bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white placeholder-gray-600 focus:outline-none focus:border-brand-primary transition-colors resize-y"

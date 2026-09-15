@@ -61,7 +61,7 @@ export default function AdminShell({
               type="button"
               onClick={() => setDrawerOpen(true)}
               className="lg:hidden w-11 h-11 flex items-center justify-center rounded-lg bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
-              aria-label={t('admin.open_nav', 'Abrir navegación')}
+              aria-label={t('admin.open_nav')}
             >
               <Menu size={20} />
             </button>
@@ -74,19 +74,17 @@ export default function AdminShell({
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
                 <h1 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight truncate">
-                  {t('adminPanel.title', 'Admin Panel')}
+                  {t('adminPanel.title')}
                 </h1>
                 <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-primary/15 border border-brand-primary/25 shrink-0">
                   <ShieldCheck size={10} className="text-brand-primary" />
                   <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
-                    {t('adminPanel.staff', 'Staff')}
+                    {t('adminPanel.staff')}
                   </span>
                 </span>
               </div>
               <p className="text-[11px] text-white/40 truncate leading-tight">
-                {activeItem
-                  ? t(activeItem.labelKey, activeItem.labelFallback)
-                  : activeTab}
+                {activeItem ? t(activeItem.labelKey) : activeTab}
               </p>
             </div>
           </div>
@@ -190,7 +188,7 @@ function AdminAccountMenu() {
             className="flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white"
           >
             <ExternalLink size={14} className="text-brand-primary shrink-0" />
-            {t('admin.back_to_app', 'Volver a CircleSfera')}
+            {t('admin.back_to_app')}
           </a>
           <button
             type="button"
@@ -203,7 +201,7 @@ function AdminAccountMenu() {
             className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white text-left"
           >
             <LogOut size={14} className="text-brand-primary shrink-0" />
-            {t('adminPanel.logout', 'Sign out')}
+            {t('adminPanel.logout')}
           </button>
         </div>
       )}

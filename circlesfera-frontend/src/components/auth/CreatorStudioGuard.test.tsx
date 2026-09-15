@@ -1,7 +1,8 @@
-import { render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen, waitFor } from '@testing-library/react';
+import toast from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../../stores/authStore';
+import { renderWithProviders } from '../../test/test-utils';
 import CreatorStudioGuard from './CreatorStudioGuard';
 
 vi.mock('../../stores/authStore', () => ({
@@ -37,15 +38,13 @@ describe('CreatorStudioGuard', () => {
       return selector ? selector(state) : state;
     }) as any);
 
-    render(
-      <MemoryRouter>
-        <CreatorStudioGuard>
-          <div>Studio Content</div>
-        </CreatorStudioGuard>
-      </MemoryRouter>,
+    const { getByText } = renderWithProviders(
+      <CreatorStudioGuard>
+        <div>Studio Content</div>
+      </CreatorStudioGuard>,
     );
 
-    expect(screen.getByText('Studio Content')).toBeInTheDocument();
+    expect(getByText('Studio Content')).toBeInTheDocument();
   });
 
   it('renders children for BUSINESS accountType', () => {
@@ -61,18 +60,16 @@ describe('CreatorStudioGuard', () => {
       return selector ? selector(state) : state;
     }) as any);
 
-    render(
-      <MemoryRouter>
-        <CreatorStudioGuard>
-          <div>Studio Content</div>
-        </CreatorStudioGuard>
-      </MemoryRouter>,
+    const { getByText } = renderWithProviders(
+      <CreatorStudioGuard>
+        <div>Studio Content</div>
+      </CreatorStudioGuard>,
     );
 
-    expect(screen.getByText('Studio Content')).toBeInTheDocument();
+    expect(getByText('Studio Content')).toBeInTheDocument();
   });
 
-  it('blocks PERSONAL authenticated users', () => {
+  it('blocks PERSONAL authenticated users and toasts catalog copy', async () => {
     vi.mocked(useAuthStore).mockImplementation(((selector: any) => {
       const state = {
         isAuthenticated: true,
@@ -85,14 +82,17 @@ describe('CreatorStudioGuard', () => {
       return selector ? selector(state) : state;
     }) as any);
 
-    render(
-      <MemoryRouter>
-        <CreatorStudioGuard>
-          <div>Studio Content</div>
-        </CreatorStudioGuard>
-      </MemoryRouter>,
+    const { i18n } = renderWithProviders(
+      <CreatorStudioGuard>
+        <div>Studio Content</div>
+      </CreatorStudioGuard>,
     );
 
     expect(screen.queryByText('Studio Content')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('creator.guard.creators_only'),
+      );
+    });
   });
 });

@@ -1,10 +1,5 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
-import {
-  forwardRef,
-  Logger,
-  Module,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import type { Queue } from 'bullmq';
@@ -12,7 +7,6 @@ import type { Queue } from 'bullmq';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PushModule } from '../push/push.module.js';
-import { SocketModule } from '../socket/socket.module.js';
 
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
@@ -63,7 +57,6 @@ const useCases = [
     BullModule.registerQueue({
       name: 'chat-processing',
     }),
-    forwardRef(() => SocketModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

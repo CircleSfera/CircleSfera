@@ -77,22 +77,20 @@ export default function HighlightViewerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlight', id] });
       queryClient.invalidateQueries({ queryKey: ['highlights'] });
-      toast.success(t('story.highlight_updated', 'Highlight updated'));
+      toast.success(t('story.highlight_updated'));
       setEditingTitle(false);
     },
-    onError: () =>
-      toast.error(t('story.highlight_update_error', 'Could not update')),
+    onError: () => toast.error(t('story.highlight_update_error')),
   });
 
   const deleteMutation = useMutation({
     mutationFn: () => highlightsApi.delete(id!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['highlights'] });
-      toast.success(t('story.highlight_deleted', 'Highlight deleted'));
+      toast.success(t('story.highlight_deleted'));
       navigate(-1);
     },
-    onError: () =>
-      toast.error(t('story.highlight_delete_error', 'Could not delete')),
+    onError: () => toast.error(t('story.highlight_delete_error')),
   });
 
   if (isLoading) {
@@ -145,7 +143,7 @@ export default function HighlightViewerPage() {
                 type="submit"
                 className="px-4 min-h-11 rounded-lg bg-white text-black text-xs font-bold flex items-center justify-center"
               >
-                {t('common.save', 'Save')}
+                {t('common.save')}
               </button>
             </form>
           ) : (
@@ -154,10 +152,7 @@ export default function HighlightViewerPage() {
                 type="button"
                 onClick={() => setIsManageOpen(true)}
                 className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
-                aria-label={t(
-                  'modals.highlight.edit_highlight',
-                  'Edit highlight',
-                )}
+                aria-label={t('modals.highlight.edit_highlight')}
               >
                 <Images size={16} />
               </button>
@@ -168,7 +163,7 @@ export default function HighlightViewerPage() {
                   setEditingTitle(true);
                 }}
                 className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
-                aria-label={t('story.edit_highlight', 'Edit highlight')}
+                aria-label={t('story.edit_highlight')}
               >
                 <Pencil size={16} />
               </button>
@@ -177,16 +172,12 @@ export default function HighlightViewerPage() {
           <button
             type="button"
             onClick={() => {
-              if (
-                window.confirm(
-                  t('story.delete_highlight_confirm', 'Delete this highlight?'),
-                )
-              ) {
+              if (window.confirm(t('story.delete_highlight_confirm'))) {
                 deleteMutation.mutate();
               }
             }}
             className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
-            aria-label={t('story.delete_highlight', 'Delete highlight')}
+            aria-label={t('story.delete_highlight')}
           >
             <Trash2 size={16} />
           </button>

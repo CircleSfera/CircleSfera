@@ -27,13 +27,13 @@ export default function MuteDurationModal({
   const labelFor = (duration: MuteDuration) => {
     switch (duration) {
       case '24h':
-        return t('mute.duration.24h', '24 hours');
+        return t('mute.duration.24h');
       case '7d':
-        return t('mute.duration.7d', '7 days');
+        return t('mute.duration.7d');
       case '30d':
-        return t('mute.duration.30d', '30 days');
+        return t('mute.duration.30d');
       case 'forever':
-        return t('mute.duration.forever', 'Forever');
+        return t('mute.duration.forever');
     }
   };
 
@@ -42,19 +42,11 @@ export default function MuteDurationModal({
     setIsLoading(true);
     try {
       await followsApi.mute(username, selected);
-      toast.success(
-        t('mute.success', {
-          defaultValue: 'User muted',
-        }),
-      );
+      toast.success(t('mute.success'));
       onMuted?.(selected);
       onClose();
     } catch {
-      toast.error(
-        t('mute.error', {
-          defaultValue: 'Failed to mute user',
-        }),
-      );
+      toast.error(t('mute.error'));
     } finally {
       setIsLoading(false);
     }
@@ -64,16 +56,11 @@ export default function MuteDurationModal({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={t('mute.title', 'Mute {{username}}', { username })}
+      title={t('mute.title', { username })}
       maxWidth="sm"
     >
       <div className="p-4 space-y-4">
-        <p className="text-sm text-white/60">
-          {t(
-            'mute.subtitle',
-            'Their posts will be hidden from your feed. They will not be notified.',
-          )}
-        </p>
+        <p className="text-sm text-white/60">{t('mute.subtitle')}</p>
         <ul className="space-y-2">
           {DURATIONS.map((duration) => (
             <li key={duration}>
@@ -99,7 +86,7 @@ export default function MuteDurationModal({
             onClick={onClose}
             disabled={isLoading}
           >
-            {t('common.cancel', 'Cancel')}
+            {t('common.cancel')}
           </Button>
           <Button
             type="button"
@@ -107,7 +94,7 @@ export default function MuteDurationModal({
             onClick={handleConfirm}
             isLoading={isLoading}
           >
-            {t('mute.confirm', 'Mute')}
+            {t('mute.confirm')}
           </Button>
         </div>
       </div>

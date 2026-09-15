@@ -11,7 +11,7 @@ circlesfera-backend/     NestJS 11 API + Prisma + BullMQ workers + Socket.IO gat
 circlesfera-frontend/    React 19 SPA (Vite), PWA, TanStack Query + Zustand
 circlesfera-shared/      Small shared package: some enums, interfaces, DTOs
 circlesfera-documentation/  Numbered docs 00–15 + adr/ + runbooks/
-e2e/                     Playwright specs (root-level under e2e/, including e2e/tests/)
+e2e/                     Playwright journeys (live Nest). SPA-stubbed suite is circlesfera-frontend/e2e/
 ```
 
 `circlesfera-landing/` was removed from the tree (Jul 2026). Its nginx listener is gone
@@ -52,7 +52,9 @@ npm run check                    # biome check --write .
 npm run prisma:migrate           # prisma migrate dev
 npm run prisma:generate
 npm run prisma:seed              # prisma/seed.ts (plans, demo users, content)
-npm run prisma:seed:audio        # prisma/seed-audio.ts
+npm run prisma:seed:audio        # prisma/seed-audio.ts (also runs from prisma:seed)
+# First-party Sound catalog → audio_tracks; create pickers use GET /audio/trending|search
+# Prod: replace demo URLs via Admin → Audio with CDN rights-cleared tracks
 npm run prisma:check-migrations  # drift check against an empty Postgres
 npm run embeddings:backfill      # tsx scripts/generate-embeddings.ts
 ```
@@ -87,6 +89,8 @@ Commands:
 npm run dev        # vite (port 5173)
 npm run build      # tsc -b && vite build  <- this is the frontend typecheck gate
 npm test           # vitest run (~47 `*.test.ts(x)` under `src/` as of 2026-09-05)
+npx vitest run src/components/create-post/   # composer unit (real es i18n)
+npm run test:e2e:composer   # Playwright smoke + visual, API stubbed (see e2e/COMPOSER_QA.md)
 npm run lint       # biome lint .
 npm run check      # biome check --write .
 ```
@@ -102,9 +106,11 @@ Biome versions: root, frontend and `circlesfera-shared` use **2.4.12**; backend 
 Prefer scoped Biome on changed files for local iteration; CI runs `npx biome ci .` at the root via
 `ci-quality.yml`.
 
-Playwright's `globalSetup` (`e2e/global-setup.ts`) needs a reachable backend at `BACKEND_URL`
-(default `http://localhost:3005/api/v1`) and E2E credentials; skip with `SKIP_GLOBAL_SETUP=true`
-for `e2e/smoke.spec.ts`.
+Root Playwright journeys (`e2e/*.spec.ts`) need a reachable backend at `BACKEND_URL`
+(default `http://localhost:3005/api/v1`) and `DATABASE_URL` so helpers can mark the new user’s
+email verified. `e2e/smoke.spec.ts` is unauthenticated and does not register users. Do not set
+`CLOUDINARY_NAME` in CI for this suite — dummy Cloudinary selects the Cloudinary provider and
+uploads fail. Admin Panel MFA is project `admin-panel` (seeded operator), not the chromium journeys.
 
 ## Local infrastructure
 
@@ -133,7 +139,8 @@ entrypoint runs `npx prisma migrate deploy` before `node dist/main`.
 
 `deploy.yml` reuses the same quality gate, builds and pushes GHCR images, then deploys over SSH to
 the OVH VPS with a health poll and automatic rollback to the previous SHA.
-`playwright-nightly.yml` runs the full Playwright suite on a cron. `ops-reencrypt.yml` is
+`playwright-nightly.yml` boots Postgres/Redis/Nest and runs chromium journeys (each spec creates
+its own user). `ops-reencrypt.yml` is
 manual-only ops tooling.
 
 Backend typecheck is `npm run build` (`nest build`) inside `ci-quality.yml` — not only in Playwright.

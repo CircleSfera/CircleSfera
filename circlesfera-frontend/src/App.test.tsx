@@ -1,7 +1,4 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
-import type { ReactElement } from 'react';
-import { MemoryRouter } from 'react-router-dom';
+import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
@@ -10,6 +7,7 @@ import {
   LandingHero,
   LandingPrinciples,
 } from './components/marketing';
+import { renderWithProviders } from './test/test-utils';
 
 vi.mock('./stores/useExperimentStore', () => ({
   useExperimentStore: (
@@ -28,40 +26,29 @@ vi.mock('./stores/useExperimentStore', () => ({
     }),
 }));
 
-function renderWithProviders(ui: ReactElement) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{ui}</MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
-
 describe('App Smoke Test', () => {
   it('renders without crashing', async () => {
-    renderWithProviders(<App />);
-    // Guest landing chrome exposes Log In in GuestAppChrome
-    expect(screen.getAllByText('Log In')[0]).toBeInTheDocument();
+    const { i18n } = renderWithProviders(<App />);
+    expect(
+      screen.getAllByText(i18n!.t('landing.nav.log_in'))[0],
+    ).toBeInTheDocument();
   });
 });
 
 describe('Landing product surface', () => {
   it('hero shows headline and links to signup, explore, and login', () => {
-    renderWithProviders(<LandingHero />);
+    const { i18n } = renderWithProviders(<LandingHero />);
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent(
-      /your feed\.?\s*you decide/i,
+      `${i18n!.t('landing.hero.title_part1')} ${i18n!.t('landing.hero.title_part2')}`,
     );
     expect(
-      screen.getByRole('link', { name: /create account/i }),
+      screen.getByRole('link', { name: i18n!.t('landing.hero.get_started') }),
     ).toHaveAttribute('href', '/accounts/signup');
-    expect(screen.getByRole('link', { name: /^log in$/i })).toHaveAttribute(
-      'href',
-      '/accounts/login',
-    );
     expect(
-      screen.getByRole('link', { name: /explore circlesfera/i }),
+      screen.getByRole('link', { name: i18n!.t('landing.hero.log_in') }),
+    ).toHaveAttribute('href', '/accounts/login');
+    expect(
+      screen.getByRole('link', { name: i18n!.t('landing.hero.explore_demo') }),
     ).toHaveAttribute('href', '/explore');
   });
 
@@ -72,42 +59,52 @@ describe('Landing product surface', () => {
   });
 
   it('principles section exposes five product principles', () => {
-    renderWithProviders(<LandingPrinciples />);
-    expect(screen.getByText(/user control first/i)).toBeInTheDocument();
-    expect(screen.getByText(/visibility you control/i)).toBeInTheDocument();
+    const { i18n } = renderWithProviders(<LandingPrinciples />);
+    expect(
+      screen.getByText(i18n!.t('landing.principles.items.control.title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        i18n!.t('landing.principles.items.no_suppression.title'),
+      ),
+    ).toBeInTheDocument();
   });
 
   it('hero product window is labelled as Home', () => {
-    renderWithProviders(<LandingHero />);
-    expect(screen.getByRole('figure', { name: /home/i })).toBeInTheDocument();
+    const { i18n } = renderWithProviders(<LandingHero />);
+    expect(
+      screen.getByRole('figure', { name: i18n!.t('landing.preview.home') }),
+    ).toBeInTheDocument();
   });
 });
 
 describe('Guest chrome', () => {
   it('exposes login, signup, and primary destinations', () => {
-    renderWithProviders(<GuestAppChrome />);
+    const { i18n } = renderWithProviders(<GuestAppChrome />);
     expect(screen.getByRole('link', { name: 'CircleSfera' })).toHaveAttribute(
       'href',
       '/',
     );
-    expect(screen.getByRole('link', { name: 'Log In' })).toHaveAttribute(
-      'href',
-      '/accounts/login',
-    );
-    expect(screen.getByRole('link', { name: 'Sign Up' })).toHaveAttribute(
-      'href',
-      '/accounts/signup',
-    );
+    expect(
+      screen.getByRole('link', { name: i18n!.t('landing.nav.log_in') }),
+    ).toHaveAttribute('href', '/accounts/login');
+    expect(
+      screen.getByRole('link', { name: i18n!.t('landing.nav.sign_up') }),
+    ).toHaveAttribute('href', '/accounts/signup');
   });
 
   it('renders a labelled product window for each surface', () => {
-    renderWithProviders(<GuestSurfaceMedia surface="frames" />);
-    expect(screen.getByRole('figure', { name: /frames/i })).toBeInTheDocument();
+    const { i18n } = renderWithProviders(
+      <GuestSurfaceMedia surface="frames" />,
+    );
+    expect(
+      screen.getByRole('figure', { name: i18n!.t('landing.preview.frames') }),
+    ).toBeInTheDocument();
   });
 
   it('home mock shows For You / Following feed tabs', () => {
-    renderWithProviders(<GuestSurfaceMedia surface="home" />);
-    expect(screen.getByText(/for you/i)).toBeInTheDocument();
-    expect(screen.getByText(/following/i)).toBeInTheDocument();
+    const { i18n } = renderWithProviders(<GuestSurfaceMedia surface="home" />);
+    expect(screen.getByText(i18n!.t('feed.for_you'))).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('feed.following'))).toBeInTheDocument();
   });
 });

@@ -1,5 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  PayloadTooLargeException,
+  UnsupportedMediaTypeException,
+} from '@nestjs/common';
 import sharp from 'sharp';
+import { Semaphore } from '../common/utils/semaphore.js';
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 
 export interface ProcessedMedia {
@@ -23,6 +29,29 @@ export class MediaProcessorService {
   private readonly MAX_WIDTH_THUMBNAIL = 300;
   private readonly DEFAULT_QUALITY = 82;
 
+  /**
+   * Maximum total pixels allowed per image (width × height).
+   * Default matches Sharp's own `limitInputPixels` (8192²).
+   * Images exceeding this are rejected with HTTP 413 before Sharp touches them.
+   */
+  private readonly MAX_PIXELS = 8192 ** 2; // 67,108,864 px
+
+  /**
+   * Global semaphore that caps the number of concurrent Sharp operations.
+   * Prevents N simultaneous uploads from spawning N×3 Sharp workers at once.
+   * Configurable via SHARP_CONCURRENCY env var; defaults to 6.
+   */
+  private readonly semaphore: Semaphore;
+
+  constructor() {
+    const concurrency = Math.max(
+      1,
+      parseInt(process.env.SHARP_CONCURRENCY ?? '6', 10) || 6,
+    );
+    this.semaphore = new Semaphore(concurrency);
+    this.logger.log(`Sharp concurrency limit: ${concurrency} slots`);
+  }
+
   // Processes an image file: resizes, converts to format (AVIF/WebP), and strips metadata.
   // Generates multiple variants (original, standard, thumbnail).
   // For non-images, returns the same buffer for all variants.
@@ -33,8 +62,16 @@ export class MediaProcessorService {
 
     const isImage = file.mimetype.startsWith('image/');
     const isVideo = file.mimetype.startsWith('video/');
-    const isSpecial =
-      file.mimetype === 'image/svg+xml' || file.mimetype === 'image/gif';
+
+    // UPLOAD-002: Reject SVG uploads immediately (mitigates Stored XSS / XXE)
+    if (file.mimetype === 'image/svg+xml') {
+      throw new UnsupportedMediaTypeException(
+        'SVG uploads are not permitted for security reasons. Please upload raster images (JPEG, PNG, WebP, GIF).',
+      );
+    }
+
+    // GIF is kept intact to preserve animation frames without Sharp re-encoding
+    const isSpecial = file.mimetype === 'image/gif';
 
     if (isVideo) {
       this.logger.log(
@@ -42,15 +79,30 @@ export class MediaProcessorService {
       );
     }
 
-    // 1. Skip processing for non-images or special images (SVG/GIF)
+    // 1. Skip processing for non-images or special images (GIF)
     if (!isImage || isSpecial) {
       this.logger.debug(`Skipping processing for format: ${file.mimetype}`);
       const base = { buffer: file.buffer, mimetype: file.mimetype };
       return { original: base, standard: base, thumbnail: base };
     }
 
+    // 2. Validate image dimensions before invoking Sharp.
+    //    Reading metadata is cheap (no full decode) and gives us pixel counts.
+    const meta = await sharp(file.buffer, {
+      limitInputPixels: false,
+    }).metadata();
+    const totalPixels = (meta.width ?? 0) * (meta.height ?? 0);
+    if (totalPixels > this.MAX_PIXELS) {
+      this.logger.warn(
+        `Image too large: ${meta.width}×${meta.height} (${totalPixels} px) exceeds limit of ${this.MAX_PIXELS} px. File: ${file.originalname}`,
+      );
+      throw new PayloadTooLargeException(
+        `Image resolution exceeds the maximum allowed (${Math.round(this.MAX_PIXELS / 1_000_000)} MP). Please resize before uploading.`,
+      );
+    }
+
     try {
-      // 2. Generate Variants in Parallel
+      // 3. Generate Variants in Parallel (each slot is rate-limited by the semaphore)
       const [original, standard, thumbnail] = await Promise.all([
         this.processImage(file.buffer, this.MAX_WIDTH_ORIGINAL, 75),
         this.processImage(
@@ -73,12 +125,14 @@ export class MediaProcessorService {
     }
   }
 
-  // Internal helper to process a single image variant
+  // Internal helper to process a single image variant.
+  // Acquires a semaphore slot before invoking Sharp and releases it on completion.
   private async processImage(
     buffer: Buffer,
     width: number,
     quality: number,
   ): Promise<{ buffer: Buffer; mimetype: string }> {
+    const release = await this.semaphore.acquire();
     try {
       const sharpInstance = sharp(buffer, { limitInputPixels: 8192 ** 2 });
       const processor = sharpInstance
@@ -99,6 +153,8 @@ export class MediaProcessorService {
         .toBuffer();
 
       return { buffer: webpBuffer, mimetype: 'image/webp' };
+    } finally {
+      release();
     }
   }
 

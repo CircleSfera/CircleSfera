@@ -1,48 +1,34 @@
 import { expect, test } from '@playwright/test';
-
-// Use an isolated storage state (logged out) for auth tests
-test.use({ storageState: { cookies: [], origins: [] } });
+import { prepareGuest } from './helpers/session';
+import { uniqueAccount } from './helpers/unique';
 
 test.describe('Authentication Flow', () => {
-  test('should allow a user to navigate to login and see form', async ({
-    page,
-  }) => {
+  test('login form is visible', async ({ page }) => {
+    await prepareGuest(page);
     await page.goto('/accounts/login');
-
-    const emailInput = page.locator('#identifier');
-    await expect(emailInput).toBeVisible();
-
-    const passwordInput = page.locator('#password');
-    await expect(passwordInput).toBeVisible();
-
-    const submitButton = page.locator('button[type="submit"]');
-    await expect(submitButton).toBeVisible();
+    await expect(page.locator('#identifier')).toBeVisible();
+    await expect(page.locator('#password')).toBeVisible();
+    await expect(page.getByTestId('login-submit-button')).toBeVisible();
   });
 
-  test('should show error for invalid credentials', async ({ page }) => {
+  test('invalid credentials show an error', async ({ page }) => {
+    await prepareGuest(page);
     await page.goto('/accounts/login');
-
     await page.locator('#identifier').fill('invalid_user@circlesfera.com');
     await page.locator('#password').fill('wrongpassword');
-    await page.locator('button[type="submit"]').click();
-
-    // Expect error message container
-    const errorContainer = page.locator('.bg-red-500\\/10');
-    await expect(errorContainer).toBeVisible({ timeout: 5000 });
+    await page.getByTestId('login-submit-button').click();
+    await expect(page.locator('.bg-red-500\\/10')).toBeVisible();
   });
 
-  test('should allow a new user to register', async ({ page }) => {
-    const randomSuffix = Math.floor(Math.random() * 100000);
-    const testEmail = `newuser${randomSuffix}@circlesfera.com`;
-    const testPassword = `Password${randomSuffix}!`;
-
+  test('new user can register and reach onboarding', async ({ page }) => {
+    await prepareGuest(page);
+    const account = uniqueAccount('reg');
     await page.goto('/accounts/signup');
-
-    await page.locator('#fullName').fill('Test User');
-    await page.locator('#username').fill(`testuser${randomSuffix}`);
-    await page.locator('#email').fill(testEmail);
-    await page.locator('#password').fill(testPassword);
-    await page.locator('#dateOfBirth').fill('1995-06-15');
+    await page.locator('#fullName').fill(account.fullName);
+    await page.locator('#username').fill(account.username);
+    await page.locator('#email').fill(account.email);
+    await page.locator('#password').fill(account.password);
+    await page.locator('#dateOfBirth').fill(account.dateOfBirth);
 
     const registerResponse = page.waitForResponse(
       (res) =>
@@ -50,12 +36,8 @@ test.describe('Authentication Flow', () => {
         res.request().method() === 'POST',
     );
     await page.locator('button[type="submit"]').click();
-
     const response = await registerResponse;
     expect(response.status(), await response.text()).toBe(201);
-
-    await expect(page).toHaveURL(/.*\/onboarding/, {
-      timeout: 15000,
-    });
+    await expect(page).toHaveURL(/\/onboarding/, { timeout: 15_000 });
   });
 });

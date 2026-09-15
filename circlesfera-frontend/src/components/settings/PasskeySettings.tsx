@@ -18,7 +18,7 @@ import type { PasskeyInfo } from '../../services/passkey.service';
 import { logger } from '../../utils/logger';
 
 export const PasskeySettings: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -85,10 +85,7 @@ export const PasskeySettings: React.FC = () => {
       const errorMessage =
         err instanceof Error
           ? err.message
-          : t(
-              'settings.passkey.register_error',
-              'Error al registrar la clave Passkey.',
-            );
+          : t('settings.passkey_settings.register_error');
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -117,19 +114,16 @@ export const PasskeySettings: React.FC = () => {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-lg font-bold text-white tracking-tight">
-                {t('settings.passkey.title', 'Biometría y Passkeys')}
+                {t('settings.passkey_settings.title')}
               </h3>
               {isBiometricSupported === true && (
                 <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 rounded-full">
-                  Biometría Disponible
+                  {t('settings.passkey_settings.biometric_available')}
                 </span>
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">
-              {t(
-                'settings.passkey.subtitle',
-                'Inicia sesión de forma segura sin contraseña usando FaceID, TouchID o tu dispositivo.',
-              )}
+              {t('settings.passkey_settings.desc')}
             </p>
           </div>
         </div>
@@ -145,7 +139,7 @@ export const PasskeySettings: React.FC = () => {
           ) : (
             <Plus size={16} />
           )}
-          {t('settings.passkey.add_button', 'Añadir Passkey')}
+          {t('settings.passkey_settings.add_new')}
         </button>
       </div>
 
@@ -159,12 +153,7 @@ export const PasskeySettings: React.FC = () => {
       {success && (
         <div className="flex items-center gap-3 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm">
           <CheckCircle size={18} className="shrink-0" />
-          <span>
-            {t(
-              'settings.passkey.success_message',
-              'Clave Passkey registrada correctamente.',
-            )}
-          </span>
+          <span>{t('settings.passkey_settings.success')}</span>
         </div>
       )}
 
@@ -172,7 +161,7 @@ export const PasskeySettings: React.FC = () => {
       <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
         <div className="px-5 py-3 border-b border-white/10 bg-white/5 flex items-center justify-between">
           <span className="text-xs font-bold uppercase tracking-wider text-gray-400">
-            {t('settings.passkey.registered_keys', 'Llaves Registradas')}
+            {t('settings.passkey_settings.registered')}
           </span>
           <span className="text-xs font-bold text-gray-500">
             {passkeys.length} / 10
@@ -186,10 +175,7 @@ export const PasskeySettings: React.FC = () => {
         ) : passkeys.length === 0 ? (
           <div className="p-8 text-center text-gray-500 text-sm font-medium">
             <Key size={32} className="mx-auto mb-2 opacity-30" />
-            {t(
-              'settings.passkey.empty_list',
-              'No tienes ninguna clave Passkey registrada todavía.',
-            )}
+            {t('settings.passkey_settings.empty')}
           </div>
         ) : (
           <div className="divide-y divide-white/5">
@@ -204,14 +190,18 @@ export const PasskeySettings: React.FC = () => {
                   </div>
                   <div>
                     <p className="text-sm font-bold text-white font-mono">
-                      Passkey (
+                      {t('settings.passkey_settings.passkey')} (
                       {key.credentialID
                         ? `${key.credentialID.slice(0, 16)}...`
                         : key.id}
                       )
                     </p>
                     <p className="text-xs text-gray-500 font-medium">
-                      Creado el {new Date(key.createdAt).toLocaleDateString()}
+                      {t('settings.passkey_settings.created_on', {
+                        date: new Date(key.createdAt).toLocaleDateString(
+                          i18n.language,
+                        ),
+                      })}
                     </p>
                   </div>
                 </div>
@@ -221,7 +211,8 @@ export const PasskeySettings: React.FC = () => {
                   onClick={() => handleDelete(key.id)}
                   disabled={deletingId === key.id}
                   className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all"
-                  title="Eliminar Passkey"
+                  title={t('settings.passkey_settings.remove')}
+                  aria-label={t('settings.passkey_settings.remove')}
                 >
                   {deletingId === key.id ? (
                     <Loader2 size={16} className="animate-spin" />

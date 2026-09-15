@@ -147,8 +147,8 @@ export default function InteractionRail({
       onClick={onBookmark}
       aria-label={
         isBookmarked
-          ? t('post.actions.remove_bookmark', 'Remove from saved')
-          : t('post.actions.add_bookmark', 'Save')
+          ? t('post.actions.remove_bookmark')
+          : t('post.actions.add_bookmark')
       }
       className={`${hitClass} ${
         isVertical ? '' : 'text-white/60 hover:text-white transition-all'
@@ -178,7 +178,7 @@ export default function InteractionRail({
       type="button"
       ref={menuButtonRef}
       onClick={onMenu}
-      aria-label={t('post.header.more_options', 'More options')}
+      aria-label={t('post.header.more_options')}
       className={hitClass}
     >
       <MoreHorizontal size={iconSize} className={`text-white ${iconShadow}`} />

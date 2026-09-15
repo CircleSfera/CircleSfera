@@ -78,7 +78,7 @@ export default function CreatorAnalyticsTab() {
               className="inline-flex items-center justify-center gap-2 min-h-11 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors w-full sm:w-auto"
             >
               <Download size={14} />
-              {t('creator.analytics.export_csv', 'Export CSV')}
+              {t('creator.analytics.export_csv')}
             </button>
           )}
         </div>
@@ -203,10 +203,7 @@ export default function CreatorAnalyticsTab() {
           <div className="flex items-center gap-2 mb-6">
             <DollarSign size={16} className="text-brand-primary" />
             <h3 className="text-sm font-medium text-white">
-              {t(
-                'creator.analytics.income_history',
-                'Income history (6 months)',
-              )}
+              {t('creator.analytics.income_history')}
             </h3>
           </div>
           <div className="h-60 w-full flex-1">
@@ -263,7 +260,7 @@ export default function CreatorAnalyticsTab() {
                     itemStyle={{ fontSize: '12px', color: '#fff' }}
                     formatter={(value: any) => [
                       `€${(Number(value) / 100).toFixed(2)}`,
-                      'Ingresos',
+                      t('creator.analytics.income_series'),
                     ]}
                   />
                   <Area
@@ -278,10 +275,7 @@ export default function CreatorAnalyticsTab() {
               </SafeResponsiveContainer>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t(
-                  'creator.analytics.no_income_data',
-                  'No hay datos de ingresos en este periodo',
-                )}
+                {t('creator.analytics.no_income_data')}
               </div>
             )}
           </div>
@@ -294,7 +288,7 @@ export default function CreatorAnalyticsTab() {
             className="p-5 flex-1 flex flex-col justify-center"
           >
             <h3 className="text-xs text-white/50 mb-2">
-              {t('creator.analytics.current_month_income', 'Income this month')}
+              {t('creator.analytics.current_month_income')}
             </h3>
             <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
               €{((financialSummary?.currentMonthIncome || 0) / 100).toFixed(2)}
@@ -305,7 +299,7 @@ export default function CreatorAnalyticsTab() {
             className="p-5 flex-1 flex flex-col justify-center"
           >
             <h3 className="text-xs text-white/50 mb-2">
-              {t('creator.analytics.total_tips', 'Total tips')}
+              {t('creator.analytics.total_tips')}
             </h3>
             <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
               €{((financialSummary?.totalTips || 0) / 100).toFixed(2)}
@@ -321,10 +315,7 @@ export default function CreatorAnalyticsTab() {
           <div className="flex items-center gap-2 mb-6">
             <MapPin size={16} className="text-brand-secondary" />
             <h3 className="text-sm font-medium text-white">
-              {t(
-                'creator.analytics.follower_locations',
-                'Geografía de Seguidores',
-              )}
+              {t('creator.analytics.follower_locations')}
             </h3>
           </div>
           <div className="h-60 w-full flex-1">
@@ -372,10 +363,7 @@ export default function CreatorAnalyticsTab() {
               </SafeResponsiveContainer>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t(
-                  'creator.analytics.no_location_data',
-                  'No hay datos de ubicación',
-                )}
+                {t('creator.analytics.no_location_data')}
               </div>
             )}
           </div>
@@ -386,10 +374,7 @@ export default function CreatorAnalyticsTab() {
           <div className="flex items-center gap-2 mb-6">
             <Users size={16} className="text-brand-primary" />
             <h3 className="text-sm font-medium text-white">
-              {t(
-                'creator.analytics.sub_retention',
-                'Retención de Suscripciones',
-              )}
+              {t('creator.analytics.sub_retention')}
             </h3>
           </div>
           <div className="h-60 w-full flex-1 flex flex-col md:flex-row items-center justify-around gap-4">
@@ -404,21 +389,15 @@ export default function CreatorAnalyticsTab() {
                       <Pie
                         data={[
                           {
-                            name: t(
-                              'creator.analytics.retained',
-                              'Activas (Renovando)',
-                            ),
+                            name: t('creator.analytics.retained'),
                             value: stats.retentionStatus.active,
                           },
                           {
-                            name: t(
-                              'creator.analytics.churning',
-                              'Canceladas (Por Expirar)',
-                            ),
+                            name: t('creator.analytics.churning'),
                             value: stats.retentionStatus.churning,
                           },
                           {
-                            name: t('creator.analytics.churned', 'Expiradas'),
+                            name: t('creator.analytics.churned'),
                             value: stats.retentionStatus.churned,
                           },
                         ].filter((d) => d.value > 0)}
@@ -448,7 +427,7 @@ export default function CreatorAnalyticsTab() {
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
                     <span className="text-white/50 font-medium">
-                      {t('creator.analytics.retained', 'Activas (Renovando)')}:
+                      {t('creator.analytics.retained')}:
                     </span>
                     <span className="text-white font-bold">
                       {stats.retentionStatus.active}
@@ -457,11 +436,7 @@ export default function CreatorAnalyticsTab() {
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-brand-accent" />
                     <span className="text-white/50 font-medium">
-                      {t(
-                        'creator.analytics.churning',
-                        'Canceladas (Por Expirar)',
-                      )}
-                      :
+                      {t('creator.analytics.churning')}:
                     </span>
                     <span className="text-white font-bold">
                       {stats.retentionStatus.churning}
@@ -470,7 +445,7 @@ export default function CreatorAnalyticsTab() {
                   <div className="flex items-center gap-2">
                     <div className="w-2.5 h-2.5 rounded-full bg-brand-secondary" />
                     <span className="text-white/50 font-medium">
-                      {t('creator.analytics.churned', 'Expiradas')}:
+                      {t('creator.analytics.churned')}:
                     </span>
                     <span className="text-white font-bold">
                       {stats.retentionStatus.churned}
@@ -480,10 +455,7 @@ export default function CreatorAnalyticsTab() {
               </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t(
-                  'creator.analytics.no_retention_data',
-                  'No hay datos de suscriptores',
-                )}
+                {t('creator.analytics.no_retention_data')}
               </div>
             )}
           </div>
@@ -494,10 +466,7 @@ export default function CreatorAnalyticsTab() {
           <div className="flex items-center gap-2 mb-6">
             <Clock size={16} className="text-brand-primary" />
             <h3 className="text-sm font-medium text-white">
-              {t(
-                'creator.analytics.activity_hours',
-                'Horas de Mayor Actividad (Últimos 30 días)',
-              )}
+              {t('creator.analytics.activity_hours')}
             </h3>
           </div>
           <div className="h-60 w-full flex-1">
@@ -545,10 +514,7 @@ export default function CreatorAnalyticsTab() {
               </SafeResponsiveContainer>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t(
-                  'creator.analytics.no_activity_data',
-                  'No hay datos de actividad',
-                )}
+                {t('creator.analytics.no_activity_data')}
               </div>
             )}
           </div>

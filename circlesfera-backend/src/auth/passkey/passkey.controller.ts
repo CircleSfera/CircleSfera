@@ -29,7 +29,7 @@ import {
   type CurrentUserData,
 } from '../decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
-import type {
+import {
   AuthenticatePasskeyDto,
   GetPasskeyOptionsDto,
   RegisterPasskeyDto,

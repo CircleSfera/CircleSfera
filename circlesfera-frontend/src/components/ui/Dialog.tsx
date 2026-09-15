@@ -1,12 +1,13 @@
 import { X } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
 export interface DialogProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   overlayClassName?: string;
@@ -14,6 +15,8 @@ export interface DialogProps {
   placement?: 'center' | 'top';
   ariaLabel?: string;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full';
+  noPadding?: boolean;
+  hideCloseButton?: boolean;
 }
 
 // Same brand wash as BrandAmbientBackground + dim — keeps Dialog in sync with Home / Account Center.
@@ -36,7 +39,10 @@ export function Dialog({
   placement = 'center',
   ariaLabel,
   maxWidth = 'md',
+  noPadding = false,
+  hideCloseButton = false,
 }: DialogProps) {
+  const { t } = useTranslation();
   const overlayRef = useFocusTrap<HTMLDivElement>(isOpen, undefined, {
     onEscape: onClose,
   });
@@ -86,39 +92,49 @@ export function Dialog({
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby={title ? 'dialog-title' : undefined}
-        aria-label={!title ? ariaLabel : undefined}
+        aria-labelledby={
+          title && typeof title === 'string' ? 'dialog-title' : undefined
+        }
+        aria-label={!title || typeof title !== 'string' ? ariaLabel : undefined}
         className={`w-full ${maxWidthClasses[maxWidth]} relative modal-glass rounded-xl shadow-2xl flex flex-col animate-in zoom-in-95 duration-200 ${className}`}
       >
         {title && (
-          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
-            <h2
-              id="dialog-title"
-              className="text-lg font-bold text-white tracking-tight"
-            >
-              {title}
-            </h2>
+          <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0 bg-surface-elevated/95 rounded-t-xl">
+            {typeof title === 'string' ? (
+              <h2
+                id="dialog-title"
+                className="text-lg font-bold text-white tracking-tight"
+              >
+                {title}
+              </h2>
+            ) : (
+              <div className="flex-1 min-w-0 flex items-center">{title}</div>
+            )}
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close dialog"
-              className="p-2 min-h-11 min-w-11 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
+              aria-label={t('common.close_dialog')}
+              className="p-2 ml-4 min-h-11 min-w-11 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors shrink-0"
             >
               <X size={20} />
             </button>
           </div>
         )}
-        {!title && (
+        {!title && !hideCloseButton && (
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t('common.close_dialog')}
             className="absolute top-4 right-4 z-10 p-2 min-h-11 min-w-11 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           >
             <X size={20} />
           </button>
         )}
-        <div className="p-4 overflow-y-auto custom-scrollbar">{children}</div>
+        <div
+          className={`${noPadding ? '' : 'p-4'} overflow-y-auto custom-scrollbar`}
+        >
+          {children}
+        </div>
       </div>
     </div>,
     document.body,

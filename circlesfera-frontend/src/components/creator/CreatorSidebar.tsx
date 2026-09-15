@@ -7,7 +7,7 @@ export default function CreatorSidebar() {
   return (
     <nav
       data-testid="creator-sidebar"
-      aria-label={t('creator.nav_label', 'Creator Studio')}
+      aria-label={t('creator.nav_label')}
       className="hidden md:block w-56 shrink-0"
     >
       <div className="sticky top-24">

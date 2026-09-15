@@ -4,24 +4,32 @@
   "description": "CircleSfera - Your World, Connected.",
   "main": "index.js",
   "scripts": {
-    "test:e2e": "npx playwright test",
+    "test:e2e": "env -u NO_COLOR FORCE_COLOR=0 npx playwright test",
+    "e2e:db:up": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml up -d",
+    "e2e:db:down": "docker compose -p circlesfera-e2e -f docker-compose.e2e.yml down",
+    "e2e:db:migrate": "cd circlesfera-backend && DATABASE_URL=\"${E2E_DATABASE_URL:-postgresql://prisma:prisma@localhost:5433/circlesfera_e2e?schema=public}\" npx prisma migrate deploy",
+    "e2e:cleanup": "cd circlesfera-backend && npx tsx scripts/cleanup-e2e-users.ts",
     "smoke:profile-drift": "node scripts/validate-profile-drift-smoke.mjs",
     "docs:api-inventory": "node scripts/generate-api-inventory.mjs",
     "check": "biome check --write .",
-    "prepare": "husky install"
+    "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "module",
+  "overrides": {
+    "fast-uri": "4.1.4"
+  },
   "devDependencies": {
-    "@biomejs/biome": "2.4.12",
+    "@biomejs/biome": "2.5.12",
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
-    "@playwright/test": "1.58.2",
-    "@types/node": "25.2.3",
+    "@playwright/test": "1.63.0",
+    "@types/node": "24.13.3",
     "husky": "9.1.7",
-    "otplib": "^13.4.1",
-    "typescript": "^6.0.3"
+    "otplib": "13.5.0",
+    "typescript": "6.0.3"
   }
 }

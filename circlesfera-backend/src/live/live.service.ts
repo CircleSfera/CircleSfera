@@ -18,7 +18,11 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { LIVE_GIFT_CATALOG, resolveGiftAmountCents } from './gift-catalog.js';
+import {
+  LIVE_GIFT_CATALOG,
+  resolveGiftAmountCents,
+  resolveGiftName,
+} from './gift-catalog.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -28,6 +32,10 @@ function appendCheckoutQuery(returnUrl: string, query: string): string {
 @Injectable()
 export class LiveService {
   private readonly logger = new Logger(LiveService.name);
+  /** Serializes concurrent stream-start operations per host. */
+  private readonly startStreamInFlight = new Map<string, Promise<any>>();
+  /** Deduplicates concurrent or retried gift-creation calls by idempotency key. */
+  private readonly giftInFlight = new Map<string, Promise<any>>();
 
   constructor(
     private prisma: PrismaService,
@@ -58,21 +66,40 @@ export class LiveService {
       throw new ForbiddenException('LIVE_STREAMS_DISABLED');
     }
 
-    await this.prisma.liveStream.updateMany({
-      where: { hostId: hostProfileId, status: 'LIVE' },
-      data: { status: 'ENDED', endedAt: new Date() },
-    });
+    // Serialize concurrent startStream calls per-host so that at most
+    // one stream transition runs at a time for the same host.
+    const inFlight = this.startStreamInFlight.get(hostProfileId);
+    if (inFlight) {
+      return inFlight;
+    }
 
-    const stream = await this.prisma.liveStream.create({
-      data: {
-        hostId: hostProfileId,
-        title,
-        status: 'LIVE',
-      },
-    });
+    const streamPromise = (async () => {
+      try {
+        // Atomic: terminate previous streams and create the new one in a single transaction.
+        const stream = await this.prisma.$transaction(async (tx) => {
+          await tx.liveStream.updateMany({
+            where: { hostId: hostProfileId, status: 'LIVE' },
+            data: { status: 'ENDED', endedAt: new Date() },
+          });
 
-    const token = await this.createToken(stream.id, hostProfileId, true);
-    return { stream, token };
+          return tx.liveStream.create({
+            data: {
+              hostId: hostProfileId,
+              title,
+              status: 'LIVE',
+            },
+          });
+        });
+
+        const token = await this.createToken(stream.id, hostProfileId, true);
+        return { stream, token };
+      } finally {
+        this.startStreamInFlight.delete(hostProfileId);
+      }
+    })();
+
+    this.startStreamInFlight.set(hostProfileId, streamPromise);
+    return streamPromise;
   }
 
   async getViewerToken(streamId: string, userId: string) {
@@ -399,72 +426,128 @@ export class LiveService {
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
-    const giftName = LIVE_GIFT_CATALOG[giftId].name;
+    const giftName = resolveGiftName(giftId, 'en');
+    if (!giftName) {
+      throw new BadRequestException(
+        `Unknown giftId. Allowed: ${Object.keys(LIVE_GIFT_CATALOG).join(', ')}`,
+      );
+    }
 
-    const pendingGift = await this.prisma.liveGift.create({
-      data: {
-        streamId,
-        senderId,
-        receiverId: stream.host.userId,
-        giftId,
-        amountCents,
-        currency: 'EUR',
-        status: 'PENDING',
-      },
-    });
+    // Concurrent or retried calls sharing the same idempotencyKey must resolve
+    // to the same promise and must not create duplicate local records.
+    if (idempotencyKey) {
+      const inFlight = this.giftInFlight.get(idempotencyKey);
+      if (inFlight) {
+        return inFlight;
+      }
+    }
 
-    const session = await this.stripeService.createCheckoutSession(
-      {
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: sender.email,
-        client_reference_id: senderId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: `Live Gift: ${giftName}`,
-                description: `Gift for @${stream.host.username || 'creator'}`,
+    const giftPromise = (async () => {
+      try {
+        // On a retry with the same key, reuse an existing PENDING gift record
+        // to avoid inserting duplicates before reaching Stripe.
+        let pendingGift = idempotencyKey
+          ? await this.prisma.liveGift.findFirst({
+              where: {
+                streamId,
+                senderId,
+                giftId,
+                status: 'PENDING',
+                // We store the idempotencyKey in stripeCheckoutSessionId as null initially;
+                // re-identify by composite (streamId, senderId, giftId, PENDING) + idempotencyKey
+                // via a dedicated approach: check if a session already exists.
               },
-              unit_amount: amountCents,
+            })
+          : null;
+
+        if (pendingGift?.stripeCheckoutSessionId) {
+          // Already have a Stripe session from a previous attempt — return it without
+          // calling Stripe again.
+          return {
+            url: null, // Session URL is not stored locally; client must use session_id to resume
+            liveGiftId: pendingGift.id,
+            giftId,
+            amountCents,
+          };
+        }
+
+        if (!pendingGift) {
+          pendingGift = await this.prisma.liveGift.create({
+            data: {
+              streamId,
+              senderId,
+              receiverId: stream.host.userId,
+              giftId,
+              amountCents,
+              currency: 'EUR',
+              status: 'PENDING',
             },
-            quantity: 1,
+          });
+        }
+
+        const session = await this.stripeService.createCheckoutSession(
+          {
+            payment_method_types: ['card'],
+            mode: 'payment',
+            customer_email: sender.email,
+            client_reference_id: senderId,
+            line_items: [
+              {
+                price_data: {
+                  currency: 'eur',
+                  product_data: {
+                    name: `Live Gift: ${giftName}`,
+                    description: `Gift for @${stream.host.username || 'creator'}`,
+                  },
+                  unit_amount: amountCents,
+                },
+                quantity: 1,
+              },
+            ],
+            payment_intent_data: {
+              application_fee_amount: platformFee,
+              transfer_data: {
+                destination: stream.host.user!.stripeConnectAccountId!,
+              },
+            },
+            metadata: {
+              type: 'DIRECT_LIVE_GIFT',
+              liveGiftId: pendingGift.id,
+              streamId,
+              giftId,
+              creatorId: stream.hostId,
+            },
+            success_url: appendCheckoutQuery(
+              returnUrl,
+              'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
+            ),
+            cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
           },
-        ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: stream.host.user?.stripeConnectAccountId,
-          },
-        },
-        metadata: {
-          type: 'DIRECT_LIVE_GIFT',
+          { idempotencyKey },
+        );
+
+        await this.prisma.liveGift.update({
+          where: { id: pendingGift.id },
+          data: { stripeCheckoutSessionId: session.id },
+        });
+
+        return {
+          url: session.url,
           liveGiftId: pendingGift.id,
-          streamId,
           giftId,
-          creatorId: stream.hostId,
-        },
-        success_url: appendCheckoutQuery(
-          returnUrl,
-          'gift_success=true&session_id={CHECKOUT_SESSION_ID}',
-        ),
-        cancel_url: appendCheckoutQuery(returnUrl, 'gift_canceled=true'),
-      },
-      { idempotencyKey },
-    );
+          amountCents,
+        };
+      } finally {
+        if (idempotencyKey) {
+          this.giftInFlight.delete(idempotencyKey);
+        }
+      }
+    })();
 
-    await this.prisma.liveGift.update({
-      where: { id: pendingGift.id },
-      data: { stripeCheckoutSessionId: session.id },
-    });
-
-    return {
-      url: session.url,
-      liveGiftId: pendingGift.id,
-      giftId,
-      amountCents,
-    };
+    if (idempotencyKey) {
+      this.giftInFlight.set(idempotencyKey, giftPromise);
+    }
+    return giftPromise;
   }
 
   // Called from Stripe webhook after successful payment.

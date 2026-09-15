@@ -26,6 +26,9 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
+import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
+import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -97,6 +100,51 @@ export class PostsService {
       }
     }
 
+    let audioStartMs = 0;
+    if (dto.audioId) {
+      const audio = await this.prisma.audio.findUnique({
+        where: { id: dto.audioId },
+        select: { id: true, duration: true },
+      });
+      if (!audio) {
+        throw new BadRequestException('AUDIO_NOT_FOUND');
+      }
+      audioStartMs = resolveAudioStartMs({
+        audioId: dto.audioId,
+        audioStartMs: dto.audioStartMs,
+        trackDurationSec: audio.duration,
+      });
+    }
+
+    const placeAttachment = await resolvePlaceAttachment(this.prisma, {
+      placeId: dto.placeId,
+      place: dto.place,
+      location: dto.location,
+    });
+
+    const postType = dto.type || 'POST';
+    const mediaItems = dto.media ?? [];
+
+    if (postType === 'FRAME') {
+      if (mediaItems.length === 0) {
+        throw new BadRequestException('FRAME_MEDIA_REQUIRED');
+      }
+      const nonVideo = mediaItems.filter(
+        (m) => (m.type || 'image').toLowerCase() !== 'video',
+      );
+      if (nonVideo.length > 0) {
+        throw new BadRequestException('FRAME_VIDEO_ONLY');
+      }
+      // Single-clip product surface — validate the primary video.
+      await assertVideoUrlDuration('FRAME', mediaItems[0].url);
+    } else {
+      for (const item of mediaItems) {
+        if ((item.type || '').toLowerCase() === 'video') {
+          await assertVideoUrlDuration('POST', item.url);
+        }
+      }
+    }
+
     if (moderation.flagged) {
       throw new BadRequestException(
         'El contenido infringe las normas de la comunidad y ha sido bloqueado.',
@@ -114,11 +162,13 @@ export class PostsService {
           data: {
             profileId,
             caption: dto.caption,
-            type: dto.type || 'POST',
-            location: dto.location,
+            type: postType,
+            location: placeAttachment.location,
+            placeId: placeAttachment.placeId,
             hideLikes: dto.hideLikes,
             turnOffComments: dto.turnOffComments,
             audioId: dto.audioId,
+            audioStartMs,
             contentRating: dto.contentRating || ContentRating.GENERAL,
             visibility: dto.visibility || Visibility.PUBLIC,
             isPremium: dto.isPremium || false,
@@ -183,6 +233,8 @@ export class PostsService {
         media: true,
         hashtags: { include: { hashtag: true } },
         tags: true,
+        audio: true,
+        place: true,
         profile: { include: { user: true } },
         _count: {
           select: {
@@ -350,6 +402,8 @@ export class PostsService {
             },
           },
           media: true,
+          audio: true,
+          place: true,
           _count: {
             select: {
               likes: true,
@@ -419,6 +473,8 @@ export class PostsService {
             },
           },
           media: true,
+          audio: true,
+          place: true,
           _count: {
             select: {
               likes: true,
@@ -479,6 +535,8 @@ export class PostsService {
           ? { where: { profileId: currentProfileId }, take: 1 }
           : false,
         media: true,
+        audio: true,
+        place: true,
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
       },

@@ -1,19 +1,25 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { NotificationsController } from './notifications.controller.js';
 import { NotificationsService } from './notifications.service.js';
 
 describe('NotificationsController', () => {
-  let controller: NotificationsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     findAll: vi.fn(),
@@ -22,54 +28,80 @@ describe('NotificationsController', () => {
     markAllAsRead: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [NotificationsController],
       providers: [{ provide: NotificationsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<NotificationsController>(NotificationsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects listing without a session', async () => {
+    await request(app.getHttpServer()).get('/api/v1/notifications').expect(401);
+
+    expect(mockService.findAll).not.toHaveBeenCalled();
   });
 
-  it('lists notifications as the caller profile', async () => {
-    const pagination = { page: 1, limit: 10 };
+  it('lists notifications as the session profile', async () => {
     mockService.findAll.mockResolvedValue({ data: [] });
 
-    await controller.findAll(mockUser, pagination);
+    await request(app.getHttpServer())
+      .get('/api/v1/notifications')
+      .query({ page: 1, limit: 10 })
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findAll).toHaveBeenCalledWith('profile-1', pagination);
+    expect(mockService.findAll).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      expect.objectContaining({ page: 1, limit: 10 }),
+    );
   });
 
-  it('reads unread count as the caller profile', async () => {
+  it('reads unread count as the session profile', async () => {
     mockService.getUnreadCount.mockResolvedValue({ count: 3 });
 
-    await controller.getUnreadCount(mockUser);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/notifications/unread-count')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.getUnreadCount).toHaveBeenCalledWith('profile-1');
+    expect(res.body).toEqual({ count: 3 });
+    expect(mockService.getUnreadCount).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
   });
 
-  it('marks one notification read as the caller profile', async () => {
+  it('marks one notification read as the session profile', async () => {
     mockService.markAsRead.mockResolvedValue({ id: 'n-1' });
 
-    await controller.markAsRead('n-1', mockUser);
+    await request(app.getHttpServer())
+      .put('/api/v1/notifications/n-1/read')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.markAsRead).toHaveBeenCalledWith('n-1', 'profile-1');
+    expect(mockService.markAsRead).toHaveBeenCalledWith(
+      'n-1',
+      TEST_USER.profileId,
+    );
   });
 
-  it('marks all notifications read as the caller profile', async () => {
+  it('marks all notifications read as the session profile', async () => {
     mockService.markAllAsRead.mockResolvedValue(undefined);
 
-    const result = await controller.markAllAsRead(mockUser);
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/notifications/read-all')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.markAllAsRead).toHaveBeenCalledWith('profile-1');
-    expect(result).toEqual({ success: true });
+    expect(res.body).toEqual({ success: true });
+    expect(mockService.markAllAsRead).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 });

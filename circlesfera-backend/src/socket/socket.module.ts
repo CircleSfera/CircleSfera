@@ -1,7 +1,8 @@
-import { forwardRef, Global, Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { ChatModule } from '../chat/chat.module.js';
+import { WebrtcModule } from '../webrtc/webrtc.module.js';
 import { AppGateway } from './app.gateway.js';
 
 @Global()
@@ -16,7 +17,8 @@ import { AppGateway } from './app.gateway.js';
       }),
       inject: [ConfigService],
     }),
-    forwardRef(() => ChatModule),
+    ChatModule,
+    WebrtcModule,
   ],
   providers: [AppGateway],
   exports: [AppGateway],

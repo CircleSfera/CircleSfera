@@ -1,6 +1,8 @@
-import { ChevronLeft, DollarSign } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Switch } from '../ui';
+import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import SubScreenHeader from './SubScreenHeader';
 
 interface MonetizationSubScreenProps {
   isPremium: boolean;
@@ -20,28 +22,20 @@ export default function MonetizationSubScreen({
   const { t } = useTranslation();
 
   return (
-    <div className="absolute inset-0 z-50 bg-surface-base flex flex-col">
-      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 h-(--nav-top-height,52px) bg-surface-elevated border-b border-white/10 shrink-0">
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white hover:bg-white/8 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-          aria-label={t('createPost.header.back')}
-        >
-          <ChevronLeft size={22} strokeWidth={2} />
-        </button>
-        <h2 className="font-bold text-base text-white">
-          {t('createPost.caption.monetization')}
-        </h2>
-      </div>
+    <div className={SUBSCREEN_SHELL}>
+      <SubScreenHeader
+        title={t('createPost.caption.monetization')}
+        onClose={onClose}
+      />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
-            <DollarSign size={18} className="text-brand-primary" />
+      <div className={SUBSCREEN_BODY}>
+        <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 flex items-start gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
+            <DollarSign size={14} className="text-brand-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <Switch
+              compact
               role="switch"
               checked={isPremium}
               onChange={(e) => setIsPremium(e.target.checked)}
@@ -53,16 +47,16 @@ export default function MonetizationSubScreen({
         </div>
 
         {isPremium && (
-          <div className="space-y-3">
+          <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 space-y-2">
             <label
               htmlFor="premium-price"
-              className="block text-sm font-medium text-white"
+              className="block text-[13px] font-medium text-white"
             >
-              {t('createPost.caption.price_eur', 'Price (EUR)')}
+              {t('createPost.caption.price_eur')}
             </label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <span className="text-white/40 font-medium">€</span>
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-white/40 text-sm font-medium">€</span>
               </div>
               <input
                 id="premium-price"
@@ -75,23 +69,23 @@ export default function MonetizationSubScreen({
                   setPrice(Number.parseFloat(e.target.value) || 0)
                 }
                 placeholder="5.00"
-                className="w-full min-h-12 bg-surface-raised border border-white/10 rounded-xl py-3 pl-8 pr-4 text-white text-base focus:ring-2 focus:ring-brand-primary/40 outline-none"
+                className="w-full min-h-10 h-10 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
               />
             </div>
 
             {price > 0 && price < 1 && (
-              <p className="text-xs text-brand-accent font-medium">
+              <p className="text-[11px] text-brand-accent font-medium">
                 {t('createPost.caption.min_price_warning')}
               </p>
             )}
             {price > 500 && (
-              <p className="text-xs text-brand-accent font-medium">
+              <p className="text-[11px] text-brand-accent font-medium">
                 {t('createPost.caption.max_price_warning')}
               </p>
             )}
 
             {price >= 1 && price <= 500 && (
-              <div className="p-3 rounded-xl bg-brand-primary/10 border border-brand-primary/20 text-xs text-white/80 space-y-1">
+              <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-[11px] text-white/80 space-y-0.5">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>
                   <span>€{(price * 0.8).toFixed(2)}</span>

@@ -444,7 +444,7 @@ export default function Studio() {
   if (!hydrated || !project) {
     return (
       <div className="relative flex flex-col h-full bg-surface-base text-white items-center justify-center">
-        <SEO title={t('studio.seo_title', 'Studio | CircleSfera')} />
+        <SEO title={t('studio.seo_title')} />
         <p className="text-sm text-white/50">{t('common.loading')}</p>
       </div>
     );
@@ -452,7 +452,7 @@ export default function Studio() {
 
   return (
     <div className="relative flex flex-col h-full bg-surface-base text-white overflow-hidden font-sans select-none">
-      <SEO title={t('studio.seo_title', 'Studio | CircleSfera')} />
+      <SEO title={t('studio.seo_title')} />
 
       <ExportModal
         isOpen={showExportModal}
@@ -555,7 +555,7 @@ export default function Studio() {
               max="200"
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
-              aria-label={t('studio.zoom', 'Zoom')}
+              aria-label={t('studio.zoom')}
               className="w-16 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1"
             />
             <ZoomIn size={13} className="text-white/40" aria-hidden />

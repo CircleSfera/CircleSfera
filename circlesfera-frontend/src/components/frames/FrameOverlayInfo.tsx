@@ -1,4 +1,4 @@
-import { Music } from 'lucide-react';
+import { MapPin, Music } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
@@ -47,14 +47,14 @@ export default function FrameOverlayInfo({
                 onClick={onFollow}
                 className="px-2.5 py-0.5 bg-transparent border border-white/80 rounded-lg text-[11px] font-semibold text-white transition-all active:scale-95 hover:bg-white/10 shrink-0"
               >
-                {t('suggestions.follow', 'Follow')}
+                {t('suggestions.follow')}
               </button>
             )}
           </div>
 
           {post.isPromoted && (
             <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 drop-shadow-md mt-0.5">
-              {t('post.header.promoted', 'Promoted')}
+              {t('post.header.promoted')}
             </span>
           )}
         </div>
@@ -76,11 +76,20 @@ export default function FrameOverlayInfo({
               className="text-white/80 font-bold text-[11px] mt-0.5 drop-shadow-md hover:text-white"
             >
               {isCaptionExpanded
-                ? t('frames.caption_less', 'less')
-                : t('frames.caption_more', 'more')}
+                ? t('frames.caption_less')
+                : t('frames.caption_more')}
             </button>
           )}
         </div>
+      )}
+
+      {(post.place?.name || post.location) && (
+        <p className="pointer-events-auto mb-1.5 text-xs text-white/85 drop-shadow-md flex items-center gap-1 min-w-0">
+          <MapPin size={12} className="shrink-0" aria-hidden />
+          <span className="truncate">
+            {post.place?.fullName || post.place?.name || post.location}
+          </span>
+        </p>
       )}
 
       <Link
@@ -91,11 +100,8 @@ export default function FrameOverlayInfo({
         <div className="overflow-hidden whitespace-nowrap max-w-44 relative mask-[linear-gradient(to_right,white_80%,transparent)]">
           <div className="animate-marquee inline-block text-xs font-medium">
             {post.audio
-              ? `${post.audio.title} - ${post.audio.artist || t('frames.artist_fallback', 'Artist')}`
-              : t('frames.original_audio', {
-                  username: post.profile.username,
-                  defaultValue: '{{username}} • Original audio',
-                })}
+              ? `${post.audio.title} - ${post.audio.artist || t('frames.artist_fallback')}`
+              : t('frames.original_audio', { username: post.profile.username })}
           </div>
         </div>
       </Link>

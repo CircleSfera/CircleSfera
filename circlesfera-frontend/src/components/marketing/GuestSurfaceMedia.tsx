@@ -133,10 +133,10 @@ function MockFeedTabs() {
       <div className="inline-flex items-center gap-1.5 rounded-full bg-black/75 border border-white/12 p-1.5">
         <span className="relative px-5 py-1.5 text-[11px] font-bold text-white">
           <span className="absolute inset-0 rounded-full bg-white/15 border border-white/20" />
-          <span className="relative z-10">{t('feed.foryou', 'For You')}</span>
+          <span className="relative z-10">{t('feed.for_you')}</span>
         </span>
         <span className="px-5 py-1.5 text-[11px] font-bold text-white/40">
-          {t('feed.following', 'Following')}
+          {t('feed.following')}
         </span>
       </div>
     </div>
@@ -169,12 +169,10 @@ function MockExplore() {
         <div className="inline-flex items-center gap-1.5 rounded-full bg-black/75 border border-white/12 p-1.5">
           <span className="relative px-5 py-1.5 text-[11px] font-bold text-white">
             <span className="absolute inset-0 rounded-full bg-white/15 border border-white/20" />
-            <span className="relative z-10">
-              {t('explore.for_you', 'For You')}
-            </span>
+            <span className="relative z-10">{t('explore.for_you')}</span>
           </span>
           <span className="px-5 py-1.5 text-[11px] font-bold text-white/40">
-            {t('explore.trending', 'Trending')}
+            {t('explore.trending')}
           </span>
         </div>
       </div>

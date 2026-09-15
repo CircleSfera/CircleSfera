@@ -66,11 +66,8 @@ export default function LiveStreamsTab() {
   return (
     <div className="space-y-2.5">
       <AdminPageHeader
-        title={t('admin.lives.title', 'Directos')}
-        subtitle={t(
-          'admin.lives.subtitle',
-          'Gestión y monitorización de transmisiones en vivo',
-        )}
+        title={t('admin.lives.title')}
+        subtitle={t('admin.lives.subtitle')}
       />
 
       {/* Summary Widgets */}
@@ -117,7 +114,7 @@ export default function LiveStreamsTab() {
         hasSelection={!!selectedStream}
         onBack={() => setSelectedStream(null)}
         onClearSelection={() => setSelectedStream(null)}
-        listTitle={t('admin.lives.title', 'Directos')}
+        listTitle={t('admin.lives.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
@@ -126,11 +123,8 @@ export default function LiveStreamsTab() {
               ) : streams.length === 0 ? (
                 <AdminEmptyState
                   icon={Radio}
-                  title={t('admin.lives.empty_title', 'No hay directos')}
-                  description={t(
-                    'admin.lives.empty_description',
-                    'No se encontraron directos con los filtros actuales.',
-                  )}
+                  title={t('admin.lives.empty_title')}
+                  description={t('admin.lives.empty_description')}
                   compact
                 />
               ) : (
@@ -173,7 +167,7 @@ export default function LiveStreamsTab() {
                       stream.status === 'LIVE' ? (
                         <ActionButton
                           onClick={() => setConfirmEndId(stream.id)}
-                          label={t('admin.lives.action_end', 'Finalizar')}
+                          label={t('admin.lives.action_end')}
                           variant="danger"
                           icon={StopCircle}
                           disabled={endStreamMutation.isPending}
@@ -210,13 +204,10 @@ export default function LiveStreamsTab() {
         isOpen={confirmEndId !== null}
         onClose={() => setConfirmEndId(null)}
         onConfirm={() => confirmEndId && endStreamMutation.mutate(confirmEndId)}
-        title={t('admin.lives.confirm_end_title', 'Finalizar directo')}
-        message={t(
-          'admin.lives.confirm_end_message',
-          '¿Estás seguro de que deseas finalizar esta transmisión? Los espectadores serán desconectados inmediatamente.',
-        )}
-        confirmText={t('admin.lives.action_end', 'Finalizar')}
-        cancelText={t('admin.shared.cancel', 'Cancelar')}
+        title={t('admin.lives.confirm_end_title')}
+        message={t('admin.lives.confirm_end_message')}
+        confirmText={t('admin.lives.action_end')}
+        cancelText={t('admin.shared.cancel')}
         isDestructive={true}
         isLoading={endStreamMutation.isPending}
       />

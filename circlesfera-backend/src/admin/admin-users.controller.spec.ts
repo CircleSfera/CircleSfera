@@ -1,23 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+} from '../common/testing/http-controller.js';
 import { AdminUsersController } from './admin-users.controller.js';
 import { AdminUsersService } from './admin-users.service.js';
 
 describe('AdminUsersController', () => {
-  let controller: AdminUsersController;
-
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['users.read', 'users.write', 'users.ban', 'system'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     sendBroadcastEmail: vi.fn(),
@@ -46,38 +50,102 @@ describe('AdminUsersController', () => {
     getSignupFunnelStats: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminUsersController],
       providers: [{ provide: AdminUsersService, useValue: mockService }],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminUsersController>(AdminUsersController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects users list without credentials', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/users').expect(401);
+
+    expect(mockService.getUsers).not.toHaveBeenCalled();
+  });
+
+  it('rejects users list with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.getUsers).not.toHaveBeenCalled();
+  });
+
+  it('rejects broadcast with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast')
+      .set(ADMIN_BEARER)
+      .send({
+        subject: 'Hello',
+        title: 'Hi',
+        content: 'Body',
+        extra: 'nope',
+      })
+      .expect(400);
+
+    expect(mockService.sendBroadcastEmail).not.toHaveBeenCalled();
+  });
+
+  it('rejects status update with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/status')
+      .set(ADMIN_BEARER)
+      .send({ isActive: false, extra: true })
+      .expect(400);
+
+    expect(mockService.updateUserStatus).not.toHaveBeenCalled();
+  });
+
+  it('rejects whitelist create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/whitelist')
+      .set(ADMIN_BEARER)
+      .send({ email: 'invite@example.com', extra: 'nope' })
+      .expect(400);
+
+    expect(mockService.createWhitelist).not.toHaveBeenCalled();
+  });
+
+  it('rejects whitelist update with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/whitelist/wl-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'REGISTERED', extra: 'nope' })
+      .expect(400);
+
+    expect(mockService.updateWhitelist).not.toHaveBeenCalled();
   });
 
   it('lists users with the query fields and no actor', async () => {
     mockService.getUsers.mockResolvedValue({ data: [] });
-    const query = {
-      page: 2,
-      limit: 20,
-      search: 'ada',
-      status: 'ACTIVE',
-      role: 'USER',
-      kycStatus: 'verified' as const,
-    };
 
-    await controller.getUsers(query);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/users')
+      .query({
+        page: 2,
+        limit: 20,
+        search: 'ada',
+        status: 'ACTIVE',
+        role: 'USER',
+        kycStatus: 'verified',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
+    expect(res.body).toEqual({ data: [] });
     expect(mockService.getUsers).toHaveBeenCalledWith(
       2,
       20,
@@ -88,18 +156,33 @@ describe('AdminUsersController', () => {
     );
   });
 
-  it('reads KYC, detail, linked accounts, trust and funnel without adminId', async () => {
+  it('reads KYC, detail, linked accounts, trust and funnel', async () => {
     mockService.getKycStats.mockResolvedValue({});
     mockService.getUserDetail.mockResolvedValue({ id: 'user-2' });
     mockService.getLinkedAccounts.mockResolvedValue([]);
     mockService.getTrustScore.mockResolvedValue({ score: 1 });
     mockService.getSignupFunnelStats.mockResolvedValue({});
 
-    await controller.getKycStats();
-    await controller.getUserDetail('user-2');
-    await controller.getLinkedAccounts('user-2');
-    await controller.getTrustScore('user-2');
-    await controller.getSignupFunnel();
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/kyc/stats')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-2/detail')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-2/linked-accounts')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-2/trust-score')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/trust/funnel')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getKycStats).toHaveBeenCalledWith();
     expect(mockService.getUserDetail).toHaveBeenCalledWith('user-2');
@@ -109,26 +192,33 @@ describe('AdminUsersController', () => {
   });
 
   it('exports users CSV without an actor', async () => {
-    const res = {
-      setHeader: vi.fn(),
-      send: vi.fn(),
-    } as unknown as Response;
     mockService.exportUsersCSV.mockResolvedValue('id,email\n');
 
-    await controller.exportUsersCSV(res);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/users/export')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.text).toBe('id,email\n');
     expect(mockService.exportUsersCSV).toHaveBeenCalledWith();
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/csv');
-    expect(res.send).toHaveBeenCalledWith('id,email\n');
   });
 
   it('broadcasts as adminId', async () => {
     const dto = { subject: 'Hello', title: 'Hi', content: 'Body' };
     mockService.sendBroadcastEmail.mockResolvedValue({ ok: true });
 
-    await controller.sendBroadcast(dto, admin);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(201);
 
-    expect(mockService.sendBroadcastEmail).toHaveBeenCalledWith('admin-1', dto);
+    expect(res.body).toEqual({ ok: true });
+    expect(mockService.sendBroadcastEmail).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      dto,
+    );
   });
 
   it('bans, unbans and deletes as adminId', async () => {
@@ -136,13 +226,31 @@ describe('AdminUsersController', () => {
     mockService.unbanUser.mockResolvedValue({ id: 'user-2' });
     mockService.deleteUser.mockResolvedValue({ ok: true });
 
-    await controller.banUser('user-2', admin);
-    await controller.unbanUser('user-2', admin);
-    await controller.deleteUser('user-2', admin);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/ban')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/unban')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/users/user-2')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(mockService.banUser).toHaveBeenCalledWith('admin-1', 'user-2');
-    expect(mockService.unbanUser).toHaveBeenCalledWith('admin-1', 'user-2');
-    expect(mockService.deleteUser).toHaveBeenCalledWith('admin-1', 'user-2');
+    expect(mockService.banUser).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
+    expect(mockService.unbanUser).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
+    expect(mockService.deleteUser).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
   });
 
   it('updates role, status and KYC as adminId', async () => {
@@ -152,23 +260,43 @@ describe('AdminUsersController', () => {
     mockService.revokeUserKYC.mockResolvedValue({ id: 'user-2' });
     mockService.syncUserKYC.mockResolvedValue({ id: 'user-2' });
 
-    await controller.updateUserRole('user-2', { role: 'MODERATOR' }, admin);
-    await controller.updateUserStatus('user-2', status, admin);
-    await controller.revokeUserKYC('user-2', admin);
-    await controller.syncUserKYC('user-2', admin);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/role')
+      .set(ADMIN_BEARER)
+      .send({ role: 'MODERATOR' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/status')
+      .set(ADMIN_BEARER)
+      .send(status)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-2/revoke-kyc')
+      .set(ADMIN_BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-2/sync-kyc')
+      .set(ADMIN_BEARER)
+      .expect(201);
 
     expect(mockService.updateUserRole).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       'MODERATOR',
     );
     expect(mockService.updateUserStatus).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       status,
     );
-    expect(mockService.revokeUserKYC).toHaveBeenCalledWith('admin-1', 'user-2');
-    expect(mockService.syncUserKYC).toHaveBeenCalledWith('admin-1', 'user-2');
+    expect(mockService.revokeUserKYC).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
+    expect(mockService.syncUserKYC).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
   });
 
   it('lists whitelist with defaults and mutates as adminId', async () => {
@@ -179,22 +307,39 @@ describe('AdminUsersController', () => {
     mockService.updateWhitelist.mockResolvedValue({ id: 'wl-1' });
     mockService.deleteWhitelist.mockResolvedValue({ ok: true });
 
-    await controller.getWhitelist({});
-    await controller.createWhitelist(createDto, admin);
-    await controller.updateWhitelist('wl-1', updateDto, admin);
-    await controller.deleteWhitelist('wl-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/whitelist')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/whitelist')
+      .set(ADMIN_BEARER)
+      .send(createDto)
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/whitelist/wl-1')
+      .set(ADMIN_BEARER)
+      .send(updateDto)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/whitelist/wl-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getWhitelist).toHaveBeenCalledWith(1, 10, undefined);
     expect(mockService.createWhitelist).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       createDto,
     );
     expect(mockService.updateWhitelist).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'wl-1',
       updateDto,
     );
-    expect(mockService.deleteWhitelist).toHaveBeenCalledWith('admin-1', 'wl-1');
+    expect(mockService.deleteWhitelist).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'wl-1',
+    );
   });
 
   it('warns, suspends with default days, and restores as adminId', async () => {
@@ -202,45 +347,73 @@ describe('AdminUsersController', () => {
     mockService.suspendUser.mockResolvedValue({ id: 'user-2' });
     mockService.restoreUser.mockResolvedValue({ id: 'user-2' });
 
-    await controller.warnUser('user-2', 'spam', admin);
-    await controller.suspendUser('user-2', { reason: 'abuse' }, admin);
-    await controller.suspendUser('user-2', { days: 3, reason: 'abuse' }, admin);
-    await controller.restoreSuspendedUser('user-2', admin);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/warn')
+      .set(ADMIN_BEARER)
+      .send({ reason: 'spam' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/suspend')
+      .set(ADMIN_BEARER)
+      .send({ reason: 'abuse' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/suspend')
+      .set(ADMIN_BEARER)
+      .send({ days: 3, reason: 'abuse' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/users/user-2/restore')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.warnUser).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       'spam',
     );
     expect(mockService.suspendUser).toHaveBeenNthCalledWith(
       1,
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       7,
       'abuse',
     );
     expect(mockService.suspendUser).toHaveBeenNthCalledWith(
       2,
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       3,
       'abuse',
     );
-    expect(mockService.restoreUser).toHaveBeenCalledWith('admin-1', 'user-2');
+    expect(mockService.restoreUser).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
   });
 
   it('applies and clears a bot label as adminId', async () => {
     mockService.applyBotLabel.mockResolvedValue({ id: 'user-2' });
     mockService.clearBotLabel.mockResolvedValue({ id: 'user-2' });
 
-    await controller.applyBotLabel('user-2', 'automation', admin);
-    await controller.clearBotLabel('user-2', admin);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-2/bot-label')
+      .set(ADMIN_BEARER)
+      .send({ reason: 'automation' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/users/user-2/bot-label')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.applyBotLabel).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       'automation',
     );
-    expect(mockService.clearBotLabel).toHaveBeenCalledWith('admin-1', 'user-2');
+    expect(mockService.clearBotLabel).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-2',
+    );
   });
 });

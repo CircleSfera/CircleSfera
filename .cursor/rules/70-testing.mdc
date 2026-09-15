@@ -9,7 +9,10 @@ alwaysApply: false
 | Backend unit | `circlesfera-backend/src/**/*.spec.ts` | `npm test` |
 | Backend e2e | `circlesfera-backend/test/*.e2e-spec.ts` — real Postgres + Redis, `fileParallelism: false` | `npm run test:e2e` |
 | Frontend unit | `circlesfera-frontend/src/**/*.{test,spec}.{ts,tsx}` | `npm test` |
-| Browser e2e | root `e2e/*.spec.ts`, Playwright, baseURL `http://localhost:5173` | `npm run test:e2e` |
+| Composer unit | `create-post/*.test.tsx` — real `es` i18n via `renderWithProviders` | `npx vitest run src/components/create-post/` |
+| Composer Playwright | `circlesfera-frontend/e2e/composer-*.spec.ts` — real UI, API stubbed | `npm run test:e2e:composer` |
+| Frontend Playwright | `circlesfera-frontend/e2e/*.spec.ts` — SPA journeys, API stubbed | `cd circlesfera-frontend && npm run test:e2e` |
+| Browser e2e | root `e2e/*.spec.ts`, Playwright, live Nest | `npm run test:e2e` |
 
 Coverage thresholds are 30% statements/lines. That is a floor, not a target.
 
@@ -18,13 +21,18 @@ Rules:
 - A change without a test that **fails before it and passes after** is unverified.
 - Test the deny path: forbidden, unauthenticated, wrong owner, missing staff permission, invalid
   payload. Model: `src/auth/guards/admin.guard.spec.ts`.
-- Prefer the cheapest level that would actually catch the regression: unit for business rules, backend
-  e2e for contract behaviour (status codes, auth, CSRF, validation rejection), Testing Library for
-  user-visible component behaviour, Playwright for a critical journey.
-- Keep `e2e/smoke.spec.ts` fast and auth-free — it gates every PR.
+- Prefer the cheapest level that would actually catch the regression: unit for business rules and
+  single-controller HTTP (401, ValidationPipe) via `createControllerApp`; backend e2e for real JWT,
+  CSRF, KYC and Postgres; Testing Library for user-visible component behaviour; Playwright for a
+  critical journey.
+- Keep `e2e/smoke.spec.ts` fast and auth-free — it gates every PR. Root journeys in `e2e/` hit
+  live Nest and must not stub `**/api/v1/**`. Do not share `storageState.json` across specs.
 - Backend e2e tests share one database and run serially; clean up your fixtures.
-- Frontend tests assert what the user sees, not internal state. `src/test/setup.ts` already mocks
-  `matchMedia`, `IntersectionObserver` and `react-i18next`.
+- Frontend tests assert what the user sees, not internal state. `src/test/setup.ts`
+  mocks `matchMedia` and `IntersectionObserver`. i18n is the real catalogs (`en`
+  by default). Composer `create-post` tests pass `{ lng: 'es' }`. Never assert a
+  raw `createPost.*` key as visible text.
+- Pyramid (what is stubbed vs real): `.ai/core/quality.md`. Composer details: `e2e/COMPOSER_QA.md`.
 - Deterministic only: no real clock, no real network, no dependence on file order.
 - Never leave `.skip` or `.only`. Never weaken an assertion to make a test pass. Never write a test
   that only exercises its own mocks.

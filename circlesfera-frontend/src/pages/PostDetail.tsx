@@ -35,17 +35,12 @@ export default function PostDetail() {
     handledCheckoutReturn.current = true;
 
     if (success) {
-      toast.success(
-        t(
-          'post.checkout_success',
-          'Payment successful. Content will unlock shortly.',
-        ),
-      );
+      toast.success(t('post.checkout_success'));
       queryClient.invalidateQueries({ queryKey: ['post', id] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['posts'] });
     } else {
-      toast.error(t('post.checkout_canceled', 'Checkout was canceled.'));
+      toast.error(t('post.checkout_canceled'));
     }
 
     const next = new URLSearchParams(searchParams);

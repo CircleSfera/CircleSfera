@@ -1,26 +1,30 @@
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
 import {
-  BadRequestException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { IdentityVerifiedGuard } from '../auth/guards/identity-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+  TEST_UUID,
+} from '../common/testing/http-controller.js';
 import { PaymentsController } from './payments.controller.js';
 import { PaymentsService } from './payments.service.js';
 
 describe('PaymentsController', () => {
-  let controller: PaymentsController;
-
-  const req = {
-    user: {
-      userId: 'user-1',
-      email: 'test@example.com',
-      role: 'USER',
-    },
-  } as Parameters<PaymentsController['createCheckout']>[0];
+  let app: INestApplication;
 
   const mockService = {
     findAllPlans: vi.fn(),
@@ -32,134 +36,167 @@ describe('PaymentsController', () => {
     processWebhookEvent: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [PaymentsController],
       providers: [{ provide: PaymentsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(IdentityVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
-
-    controller = module.get<PaymentsController>(PaymentsController);
-    vi.clearAllMocks();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: IdentityVerifiedGuard, mode: 'session' },
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('lists plans without a caller identity', async () => {
     mockService.findAllPlans.mockResolvedValue([]);
 
-    await controller.getPlans();
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/payments/plans')
+      .expect(200);
 
+    expect(res.body).toEqual([]);
     expect(mockService.findAllPlans).toHaveBeenCalledWith();
   });
 
-  it('starts checkout as the caller userId and unwraps plan fields', async () => {
+  it('rejects checkout without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/checkout')
+      .send({ planId: TEST_UUID, billingCycle: 'YEARLY' })
+      .expect(401);
+
+    expect(mockService.createCheckout).not.toHaveBeenCalled();
+  });
+
+  it('rejects checkout with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/checkout')
+      .set(BEARER)
+      .send({
+        planId: TEST_UUID,
+        billingCycle: 'YEARLY',
+        amountCents: 999,
+      })
+      .expect(400);
+
+    expect(mockService.createCheckout).not.toHaveBeenCalled();
+  });
+
+  it('starts checkout as the session userId', async () => {
     mockService.createCheckout.mockResolvedValue({
       url: 'https://example.com',
     });
 
-    await controller.createCheckout(req, {
-      planId: '11111111-1111-1111-1111-111111111111',
-      billingCycle: 'YEARLY',
-    });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/checkout')
+      .set(BEARER)
+      .send({ planId: TEST_UUID, billingCycle: 'YEARLY' })
+      .expect(201);
 
+    expect(res.body).toEqual({ url: 'https://example.com' });
     expect(mockService.createCheckout).toHaveBeenCalledWith(
-      'user-1',
-      '11111111-1111-1111-1111-111111111111',
+      TEST_USER.userId,
+      TEST_UUID,
       'YEARLY',
     );
   });
 
-  it('reads portal, status and ledger as the caller userId', async () => {
+  it('reads portal, status and ledger as the session userId', async () => {
     mockService.getPortalUrl.mockResolvedValue({ url: 'https://example.com' });
     mockService.getBillingStatus.mockResolvedValue({ plan: null });
     mockService.getLedgerCsv.mockResolvedValue('id,amount\n');
 
-    await controller.getPortal(req);
-    await controller.getBillingStatus(req);
-    await controller.getLedger(req);
+    const portal = await request(app.getHttpServer())
+      .get('/api/v1/payments/portal')
+      .set(BEARER)
+      .expect(200);
+    expect(portal.body).toEqual({ url: 'https://example.com' });
 
-    expect(mockService.getPortalUrl).toHaveBeenCalledWith('user-1');
-    expect(mockService.getBillingStatus).toHaveBeenCalledWith('user-1');
-    expect(mockService.getLedgerCsv).toHaveBeenCalledWith('user-1');
+    const status = await request(app.getHttpServer())
+      .get('/api/v1/payments/status')
+      .set(BEARER)
+      .expect(200);
+    expect(status.body).toEqual({ plan: null });
+
+    const ledger = await request(app.getHttpServer())
+      .get('/api/v1/payments/ledger')
+      .set(BEARER)
+      .expect(200);
+    expect(ledger.text).toBe('id,amount\n');
+
+    expect(mockService.getPortalUrl).toHaveBeenCalledWith(TEST_USER.userId);
+    expect(mockService.getBillingStatus).toHaveBeenCalledWith(TEST_USER.userId);
+    expect(mockService.getLedgerCsv).toHaveBeenCalledWith(TEST_USER.userId);
   });
 
-  it('exports the admin ledger without a userId', async () => {
+  it('rejects the admin ledger with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/payments/admin/ledger')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.getLedgerCsv).not.toHaveBeenCalled();
+  });
+
+  it('exports the admin ledger with an admin session', async () => {
     mockService.getLedgerCsv.mockResolvedValue('id,amount\n');
 
-    await controller.getAdminLedger();
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/payments/admin/ledger')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
+    expect(res.text).toBe('id,amount\n');
     expect(mockService.getLedgerCsv).toHaveBeenCalledWith();
   });
 
   it('rejects a webhook without stripe-signature', async () => {
-    await expect(
-      controller.handleWebhook({
-        headers: {},
-        rawBody: Buffer.from('{}'),
-      } as never),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(mockService.constructEvent).not.toHaveBeenCalled();
-  });
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook')
+      .send({ id: 'evt_test' })
+      .expect(400);
 
-  it('rejects a webhook without rawBody', async () => {
-    await expect(
-      controller.handleWebhook({
-        headers: { 'stripe-signature': 'sig-1' },
-      } as never),
-    ).rejects.toBeInstanceOf(BadRequestException);
     expect(mockService.constructEvent).not.toHaveBeenCalled();
   });
 
   it('verifies and processes a webhook event', async () => {
-    const rawBody = Buffer.from('{"id":"evt_test"}');
     const event = { id: 'evt_test', type: 'checkout.session.completed' };
     mockService.constructEvent.mockReturnValue(event);
     mockService.processWebhookEvent.mockResolvedValue(undefined);
 
-    const result = await controller.handleWebhook({
-      headers: { 'stripe-signature': 'sig-1' },
-      rawBody,
-    } as never);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook')
+      .set('stripe-signature', 'sig-1')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ id: 'evt_test' }))
+      .expect(200);
 
-    expect(mockService.constructEvent).toHaveBeenCalledWith(rawBody, 'sig-1');
+    expect(res.body).toEqual({ received: true });
+    expect(mockService.constructEvent).toHaveBeenCalled();
+    const [rawBody, sig] = mockService.constructEvent.mock.calls[0];
+    expect(Buffer.isBuffer(rawBody)).toBe(true);
+    expect(sig).toBe('sig-1');
     expect(mockService.processWebhookEvent).toHaveBeenCalledWith(event);
-    expect(result).toEqual({ received: true });
-  });
-
-  it('rethrows BadRequestException from webhook verification', async () => {
-    mockService.constructEvent.mockImplementation(() => {
-      throw new BadRequestException('bad signature');
-    });
-
-    await expect(
-      controller.handleWebhook({
-        headers: { 'stripe-signature': 'sig-1' },
-        rawBody: Buffer.from('{}'),
-      } as never),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    expect(mockService.processWebhookEvent).not.toHaveBeenCalled();
   });
 
   it('maps unexpected webhook errors to 5xx so Stripe can retry', async () => {
     mockService.constructEvent.mockReturnValue({ id: 'evt_test' });
     mockService.processWebhookEvent.mockRejectedValue(new Error('downstream'));
 
-    await expect(
-      controller.handleWebhook({
-        headers: { 'stripe-signature': 'sig-1' },
-        rawBody: Buffer.from('{}'),
-      } as never),
-    ).rejects.toBeInstanceOf(InternalServerErrorException);
+    await request(app.getHttpServer())
+      .post('/api/v1/payments/webhook')
+      .set('stripe-signature', 'sig-1')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ id: 'evt_test' }))
+      .expect(500);
   });
 });

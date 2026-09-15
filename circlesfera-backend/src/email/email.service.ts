@@ -6,10 +6,14 @@ import { EmailTemplates } from './email-templates.js';
 // Service for sending transactional emails (verification, password reset, welcome).
 // Uses Brevo (formerly Sendinblue) API v3 via the official Node.js SDK (v5+).
 // Silently skips failures in non-production environments.
+export const MAX_EMAILS_PER_RECIPIENT_WINDOW = 5;
+export const RECIPIENT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
 @Injectable()
 export class EmailService {
   private readonly logger = new Logger(EmailService.name);
-  private readonly brevo?: BrevoClient;
+  private brevo: BrevoClient | null = null;
+  private readonly recipientSendTimestamps = new Map<string, number[]>();
 
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
@@ -158,6 +162,34 @@ export class EmailService {
         `Skipping email send to ${options.to}: BREVO_API_KEY not set.`,
       );
       return;
+    }
+
+    const normalizedTo = options.to.trim().toLowerCase();
+    const now = Date.now();
+    const timestamps = (
+      this.recipientSendTimestamps.get(normalizedTo) || []
+    ).filter((ts) => now - ts < RECIPIENT_WINDOW_MS);
+
+    if (timestamps.length >= MAX_EMAILS_PER_RECIPIENT_WINDOW) {
+      this.logger.warn(
+        `Email quota exceeded for recipient ${normalizedTo} (${timestamps.length}/${MAX_EMAILS_PER_RECIPIENT_WINDOW} in ${RECIPIENT_WINDOW_MS / 60000}m). Suppressing email "${options.subject}".`,
+      );
+      return;
+    }
+
+    timestamps.push(now);
+    this.recipientSendTimestamps.set(normalizedTo, timestamps);
+
+    // Periodic map cleanup to bound memory footprint
+    if (this.recipientSendTimestamps.size > 5000) {
+      for (const [key, list] of this.recipientSendTimestamps.entries()) {
+        const active = list.filter((ts) => now - ts < RECIPIENT_WINDOW_MS);
+        if (active.length === 0) {
+          this.recipientSendTimestamps.delete(key);
+        } else {
+          this.recipientSendTimestamps.set(key, active);
+        }
+      }
     }
 
     const fromEmail =

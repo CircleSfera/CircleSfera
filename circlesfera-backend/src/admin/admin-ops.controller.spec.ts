@@ -1,22 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+} from '../common/testing/http-controller.js';
 import { AdminOpsController } from './admin-ops.controller.js';
 import { AdminOpsService } from './admin-ops.service.js';
 
 describe('AdminOpsController', () => {
-  let controller: AdminOpsController;
-
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['moderation', 'experiments', 'support', 'payments'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     getFirewallSignatures: vi.fn(),
@@ -35,23 +40,40 @@ describe('AdminOpsController', () => {
     replayWebhookEvent: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminOpsController],
       providers: [{ provide: AdminOpsService, useValue: mockService }],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminOpsController>(AdminOpsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects firewall list without credentials', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/firewall')
+      .expect(401);
+
+    expect(mockService.getFirewallSignatures).not.toHaveBeenCalled();
+  });
+
+  it('rejects firewall list with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/firewall')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.getFirewallSignatures).not.toHaveBeenCalled();
   });
 
   it('lists firewall signatures and mutates them as adminId', async () => {
@@ -59,21 +81,28 @@ describe('AdminOpsController', () => {
     mockService.addFirewallSignature.mockResolvedValue({ id: 'fw-1' });
     mockService.deleteFirewallSignature.mockResolvedValue({ ok: true });
 
-    await controller.getFirewallSignatures({});
-    await controller.addFirewallSignature(
-      { text: 'spam', category: 'SCAM' },
-      admin,
-    );
-    await controller.deleteFirewallSignature('fw-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/firewall')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/firewall')
+      .set(ADMIN_BEARER)
+      .send({ text: 'spam', category: 'SCAM' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/firewall/fw-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(mockService.getFirewallSignatures).toHaveBeenCalledWith(1, 20);
+    expect(mockService.getFirewallSignatures).toHaveBeenCalledWith(1, 10);
     expect(mockService.addFirewallSignature).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'spam',
       'SCAM',
     );
     expect(mockService.deleteFirewallSignature).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'fw-1',
     );
   });
@@ -83,22 +112,34 @@ describe('AdminOpsController', () => {
     mockService.assignUserExperiment.mockResolvedValue({ id: 'exp-1' });
     mockService.removeUserExperiment.mockResolvedValue({ ok: true });
 
-    await controller.getUserExperiments({ search: 'ada' });
-    await controller.assignUserExperiment(
-      { userId: 'user-2', experimentKey: 'feed_v2', variant: 'B' },
-      admin,
-    );
-    await controller.removeUserExperiment('exp-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/experiments/users')
+      .query({ search: 'ada' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/experiments/users')
+      .set(ADMIN_BEARER)
+      .send({
+        userId: 'user-2',
+        experimentKey: 'feed_v2',
+        variant: 'B',
+      })
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/experiments/users/exp-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(mockService.getUserExperiments).toHaveBeenCalledWith(1, 20, 'ada');
+    expect(mockService.getUserExperiments).toHaveBeenCalledWith(1, 10, 'ada');
     expect(mockService.assignUserExperiment).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'user-2',
       'feed_v2',
       'B',
     );
     expect(mockService.removeUserExperiment).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'exp-1',
     );
   });
@@ -108,12 +149,20 @@ describe('AdminOpsController', () => {
     mockService.getSupportTickets.mockResolvedValue({ data: [] });
     mockService.updateSupportTicket.mockResolvedValue({ id: 't-1' });
 
-    await controller.getSupportTickets({ status: 'OPEN' });
-    await controller.updateSupportTicket('t-1', body, admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets')
+      .query({ status: 'OPEN' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/support/tickets/t-1')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(200);
 
-    expect(mockService.getSupportTickets).toHaveBeenCalledWith(1, 20, 'OPEN');
+    expect(mockService.getSupportTickets).toHaveBeenCalledWith(1, 10, 'OPEN');
     expect(mockService.updateSupportTicket).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       't-1',
       body,
     );
@@ -124,23 +173,32 @@ describe('AdminOpsController', () => {
     mockService.upsertFeatureFlag.mockResolvedValue({ key: 'x' });
     mockService.deleteFeatureFlag.mockResolvedValue({ ok: true });
 
-    await controller.listFeatureFlags();
-    await controller.upsertFeatureFlag(
-      'feed_v2',
-      { name: 'Feed v2', isEnabled: true, percentage: 10 },
-      admin,
-    );
-    await controller.deleteFeatureFlag('feed_v2', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/feature-flags')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .put('/api/v1/admin/feature-flags/feed_v2')
+      .set(ADMIN_BEARER)
+      .send({ name: 'Feed v2', isEnabled: true, percentage: 10 })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/feature-flags/feed_v2')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.listFeatureFlags).toHaveBeenCalledWith();
-    expect(mockService.upsertFeatureFlag).toHaveBeenCalledWith('admin-1', {
-      key: 'feed_v2',
-      name: 'Feed v2',
-      isEnabled: true,
-      percentage: 10,
-    });
+    expect(mockService.upsertFeatureFlag).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      {
+        key: 'feed_v2',
+        name: 'Feed v2',
+        isEnabled: true,
+        percentage: 10,
+      },
+    );
     expect(mockService.deleteFeatureFlag).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'feed_v2',
     );
   });
@@ -150,14 +208,24 @@ describe('AdminOpsController', () => {
     mockService.getWebhookEvent.mockResolvedValue({ id: 'wh-1' });
     mockService.replayWebhookEvent.mockResolvedValue({ ok: true });
 
-    await controller.getWebhookEvents({ status: 'FAILED' });
-    await controller.getWebhookEvent('wh-1');
-    await controller.replayWebhookEvent('wh-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/webhooks')
+      .query({ status: 'FAILED' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/webhooks/wh-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/webhooks/wh-1/replay')
+      .set(ADMIN_BEARER)
+      .expect(201);
 
-    expect(mockService.getWebhookEvents).toHaveBeenCalledWith(1, 20, 'FAILED');
+    expect(mockService.getWebhookEvents).toHaveBeenCalledWith(1, 10, 'FAILED');
     expect(mockService.getWebhookEvent).toHaveBeenCalledWith('wh-1');
     expect(mockService.replayWebhookEvent).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'wh-1',
     );
   });

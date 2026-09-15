@@ -11,9 +11,11 @@ interface PostGridProps {
   emptyMessage: string;
   emptySubtext: string;
   icon: React.ReactNode;
-  // Posts: 4/5. Profile frame thumbnails: 3/4 (not full 9:16 — that is for the viewer).
-  aspectRatio?: '4/5' | '3/4';
+  // Posts: 4/5. Profile frame thumbnails: 3/4. Explore discovery: 1/1.
+  aspectRatio?: '4/5' | '3/4' | '1/1';
   variant?: 'default' | 'frames';
+  /** Column layout: profile (3), frames (3→4), explore discovery (dense). */
+  columns?: 'default' | 'frames' | 'explore';
   onLoadMore?: () => void;
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -22,6 +24,14 @@ interface PostGridProps {
 const ASPECT_CLASS = {
   '4/5': 'aspect-4/5',
   '3/4': 'aspect-3/4',
+  '1/1': 'aspect-square',
+} as const;
+
+const GRID_CLASS = {
+  default: 'grid grid-cols-3 gap-1',
+  frames: 'grid grid-cols-3 md:grid-cols-4 gap-0.5 md:gap-1',
+  explore:
+    'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5 md:gap-1',
 } as const;
 
 export default function PostGrid({
@@ -30,11 +40,14 @@ export default function PostGrid({
   emptySubtext,
   aspectRatio = '4/5',
   variant = 'default',
+  columns,
   onLoadMore,
   hasMore = false,
   isLoadingMore = false,
 }: PostGridProps) {
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const resolvedColumns =
+    columns ?? (variant === 'frames' ? 'frames' : 'default');
 
   useEffect(() => {
     void items.length;
@@ -63,17 +76,12 @@ export default function PostGrid({
   }
 
   const isFramesGrid = variant === 'frames';
-  const statIconSize = isFramesGrid ? 14 : 20;
+  const isExploreGrid = resolvedColumns === 'explore';
+  const statIconSize = isFramesGrid || isExploreGrid ? 14 : 20;
 
   return (
     <div>
-      <div
-        className={
-          isFramesGrid
-            ? 'grid grid-cols-3 md:grid-cols-4 gap-0.5 md:gap-1'
-            : 'grid grid-cols-3 gap-1'
-        }
-      >
+      <div className={GRID_CLASS[resolvedColumns]}>
         {items.map((post) => (
           <Link
             key={post.id}
@@ -83,7 +91,7 @@ export default function PostGrid({
             {post.type === 'FRAME' && (
               <div className="absolute top-1.5 right-1.5 z-10">
                 <Clapperboard
-                  size={isFramesGrid ? 12 : 16}
+                  size={isFramesGrid || isExploreGrid ? 12 : 16}
                   className="text-white drop-shadow-md"
                 />
               </div>
@@ -128,7 +136,11 @@ export default function PostGrid({
                     ? `${post.media?.[0]?.thumbnailUrl} 300w, ${post.media?.[0]?.standardUrl} 600w`
                     : undefined
                 }
-                sizes="(max-width: 768px) 33vw, 250px"
+                sizes={
+                  isExploreGrid
+                    ? '(max-width: 768px) 33vw, (max-width: 1280px) 20vw, 16vw'
+                    : '(max-width: 768px) 33vw, 250px'
+                }
                 alt={post.caption || ''}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 loading="lazy"

@@ -1,20 +1,15 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
-import { AppGateway } from '../../../socket/app.gateway.js';
 
 @Injectable()
 export class CreateGroupUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
   ) {}
-
-  private get gateway(): AppGateway {
-    return this.moduleRef.get(AppGateway, { strict: false });
-  }
 
   async execute(profileId: string, participantIds: string[], name?: string) {
     const uniqueParticipantIds = Array.from(
@@ -128,8 +123,8 @@ export class CreateGroupUseCase {
       },
     });
 
-    conversation.participants.forEach((p) => {
-      this.gateway.addConversationToSocket(p.profileId, conversation.id);
+    this.eventEmitter.emit('chat.conversation.created', {
+      conversation,
     });
 
     return conversation;

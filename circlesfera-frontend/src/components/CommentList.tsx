@@ -88,9 +88,7 @@ const CommentItem = ({
               <span className="font-semibold text-white mr-1 inline-flex items-center gap-1">
                 {comment.profile.username}
                 <VerificationBadge
-                  level={
-                    comment.profile.user?.verificationLevel as VerificationLevel
-                  }
+                  level={comment.profile.verificationLevel as VerificationLevel}
                   size={12}
                 />
               </span>
@@ -115,7 +113,7 @@ const CommentItem = ({
                   ) : (
                     <img
                       src={comment.url}
-                      alt="Comment media"
+                      alt={t('common.alt.comment')}
                       className="w-full h-auto"
                     />
                   )}
@@ -130,11 +128,7 @@ const CommentItem = ({
                 size="icon"
                 className={`w-8 h-8 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
-                aria-label={
-                  isLiked
-                    ? t('comments.unlike', 'Ya no me gusta')
-                    : t('comments.like', 'Me gusta')
-                }
+                aria-label={isLiked ? t('comments.unlike') : t('comments.like')}
               >
                 <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
               </Button>
@@ -145,7 +139,7 @@ const CommentItem = ({
                 size="icon"
                 className="w-8 h-8 p-0 text-gray-300 hover:text-purple-400 transition-colors"
                 title={t('comments.reply')}
-                aria-label={t('comments.reply', 'Responder')}
+                aria-label={t('comments.reply')}
               >
                 <MessageCircle size={14} />
               </Button>
@@ -158,7 +152,7 @@ const CommentItem = ({
                   size="icon"
                   className="w-8 h-8 p-0 text-gray-300 hover:text-red-400 transition-colors"
                   title={t('comments.delete')}
-                  aria-label={t('comments.delete', 'Eliminar comentario')}
+                  aria-label={t('comments.delete')}
                 >
                   <Trash2 size={14} />
                 </Button>
@@ -361,7 +355,7 @@ export default function CommentList({
         <div className="relative inline-block mb-3 group">
           <img
             src={media.url}
-            alt="Preview"
+            alt={t('common.alt.preview')}
             className="w-20 h-20 object-cover rounded-lg border border-white/20"
           />
           <Button
@@ -399,7 +393,7 @@ export default function CommentList({
           variant="ghost"
           size="icon"
           className="bg-white/5 border border-white/10 rounded-full text-gray-300 hover:text-white hover:bg-white/10"
-          aria-label={t('comments.add_media', 'Add media')}
+          aria-label={t('comments.add_media')}
         >
           {!isUploading && <ImageIcon size={18} />}
         </Button>
@@ -407,7 +401,7 @@ export default function CommentList({
           compact
           onSendVoice={(voiceData) => {
             const commentDto: CreateCommentDto = {
-              content: '🎤 Nota de voz',
+              content: t('comments.voice_note'),
               parentId: replyingTo?.id,
               voiceUrl: voiceData.voiceUrl,
               voiceDuration: voiceData.voiceDuration,
@@ -427,7 +421,7 @@ export default function CommentList({
                   username: replyingTo.profile.username,
                 })
               : compactComposer
-                ? t('comments.add_comment_short', 'Comment…')
+                ? t('comments.add_comment_short')
                 : t('comments.add_comment')
           }
           className={`flex-1 min-w-0 ${compactComposer ? 'px-3 py-2.5' : 'px-4 py-2.5'} bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-sm text-white placeholder-gray-500 outline-none transition-all`}

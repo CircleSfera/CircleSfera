@@ -20,13 +20,10 @@ export default function CreatorPpvIncome({
     <Card variant="glass" className="p-4 sm:p-5 space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-white tracking-tight">
-          {t('creator.ppv.title', 'Pay-per-view earnings')}
+          {t('creator.ppv.title')}
         </h2>
         <p className="text-sm text-white/50 mt-1 leading-relaxed">
-          {t(
-            'creator.ppv.description',
-            'You earn when someone optionally unlocks a post or story you marked as paid. There is no monthly fan subscription in this tab.',
-          )}
+          {t('creator.ppv.description')}
         </p>
       </div>
 
@@ -37,12 +34,7 @@ export default function CreatorPpvIncome({
             className="text-brand-primary shrink-0 mt-0.5"
             aria-hidden
           />
-          <span>
-            {t(
-              'creator.ppv.lock_rule',
-              'Set a price on a post or story when you publish. Fans who do not pay never see the locked media.',
-            )}
-          </span>
+          <span>{t('creator.ppv.lock_rule')}</span>
         </li>
         <li className="flex items-start gap-2.5">
           <Wallet
@@ -50,12 +42,7 @@ export default function CreatorPpvIncome({
             className="text-brand-primary shrink-0 mt-0.5"
             aria-hidden
           />
-          <span>
-            {t(
-              'creator.ppv.split',
-              'Stripe splits each charge: 80% to you, 20% to CircleSfera. Payouts go to your bank through Stripe.',
-            )}
-          </span>
+          <span>{t('creator.ppv.split')}</span>
         </li>
       </ul>
 
@@ -70,7 +57,7 @@ export default function CreatorPpvIncome({
             <Loader2 className="animate-spin" size={16} />
           ) : (
             <>
-              {t('creator.ppv.connect', 'Connect Stripe')}
+              {t('creator.ppv.connect')}
               <ArrowRight size={15} aria-hidden />
             </>
           )}

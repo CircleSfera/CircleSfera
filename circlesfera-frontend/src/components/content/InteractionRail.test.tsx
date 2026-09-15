@@ -1,6 +1,7 @@
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 import InteractionRail from './InteractionRail';
 
 vi.mock('../LikeButton', () => ({
@@ -19,7 +20,7 @@ describe('InteractionRail', () => {
     const onShare = vi.fn();
     const onBookmark = vi.fn();
 
-    render(
+    const { i18n } = renderWithProviders(
       <InteractionRail
         postId="p1"
         variant="horizontal"
@@ -32,9 +33,11 @@ describe('InteractionRail', () => {
     );
 
     await user.click(screen.getByText('Like'));
-    await user.click(screen.getByLabelText(/comment/i));
-    await user.click(screen.getByLabelText(/share/i));
-    await user.click(screen.getByLabelText(/save/i));
+    await user.click(screen.getByLabelText(i18n!.t('post.actions.comments')));
+    await user.click(screen.getByLabelText(i18n!.t('post.actions.share')));
+    await user.click(
+      screen.getByLabelText(i18n!.t('post.actions.add_bookmark')),
+    );
 
     expect(onLikeToggle).toHaveBeenCalledWith(true);
     expect(onComment).toHaveBeenCalled();
@@ -43,7 +46,7 @@ describe('InteractionRail', () => {
   });
 
   it('shows counts in vertical variant', () => {
-    render(
+    renderWithProviders(
       <InteractionRail
         postId="p1"
         variant="vertical"

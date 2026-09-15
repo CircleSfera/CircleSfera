@@ -1,55 +1,49 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import type { Request, Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
 import {
-  ACCESS_TOKEN_COOKIE,
-  accessTokenCookieOptions,
-  clearCookieOptions,
-  REFRESH_TOKEN_COOKIE,
-  refreshTokenCookieOptions,
-} from '../common/config/cookie.config.js';
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-import type { CurrentUserData } from './decorators/current-user.decorator.js';
 import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
 
-describe('AuthController', () => {
-  let controller: AuthController;
+const ABUSE_HEADERS = {
+  'User-Agent': 'Vitest',
+  'x-forwarded-for': '203.0.113.10',
+  'cf-ipcountry': 'ES',
+} as const;
 
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+const expectedAbuseMeta = {
+  ip: '203.0.113.10',
+  userAgent: 'Vitest',
+  country: 'ES',
+};
+
+function cookieHeader(res: { headers: Record<string, unknown> }): string {
+  const raw = res.headers['set-cookie'];
+  if (!raw) return '';
+  return Array.isArray(raw) ? raw.join('\n') : String(raw);
+}
+
+describe('AuthController', () => {
+  let app: INestApplication;
 
   const tokens = {
     accessToken: 'access-test',
     refreshToken: 'refresh-test',
   };
-
-  const abuseReq = {
-    ip: '203.0.113.10',
-    headers: {
-      'user-agent': 'Vitest',
-      'x-forwarded-for': '203.0.113.10',
-      'cf-ipcountry': 'ES',
-    },
-    cookies: {},
-  } as unknown as Request;
-
-  const expectedAbuseMeta = {
-    ip: '203.0.113.10',
-    userAgent: 'Vitest',
-    country: 'ES',
-  };
-
-  const mockRes = () =>
-    ({
-      cookie: vi.fn(),
-      clearCookie: vi.fn(),
-    }) as unknown as Response;
 
   const mockService = {
     register: vi.fn(),
@@ -65,23 +59,45 @@ describe('AuthController', () => {
     revokeSession: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AuthController],
       providers: [{ provide: AuthService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: ThrottlerGuard, mode: 'allow' },
+        { guard: JwtAuthGuard, mode: 'session' },
+      ],
+    });
+  });
 
-    controller = module.get<AuthController>(AuthController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects logout without a session', async () => {
+    await request(app.getHttpServer()).post('/api/v1/auth/logout').expect(401);
+
+    expect(mockService.logout).not.toHaveBeenCalled();
+  });
+
+  it('rejects register with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .set(ABUSE_HEADERS)
+      .send({
+        email: 'new@example.com',
+        password: 'password1',
+        username: 'newuser',
+        dateOfBirth: '2000-01-01',
+        role: 'ADMIN',
+      })
+      .expect(400);
+
+    expect(mockService.register).not.toHaveBeenCalled();
   });
 
   it('registers and sets auth cookies', async () => {
@@ -91,62 +107,63 @@ describe('AuthController', () => {
       username: 'newuser',
       dateOfBirth: '2000-01-01',
     };
-    const res = mockRes();
     mockService.register.mockResolvedValue(tokens);
 
-    const result = await controller.register(dto, abuseReq, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .set(ABUSE_HEADERS)
+      .send(dto)
+      .expect(201);
 
+    expect(res.body).toEqual({ message: 'Registration successful' });
+    expect(cookieHeader(res)).toContain('access_token=access-test');
+    expect(cookieHeader(res)).toContain('refresh_token=refresh-test');
     expect(mockService.register).toHaveBeenCalledWith(dto, expectedAbuseMeta);
-    expect(res.cookie).toHaveBeenCalledWith(
-      ACCESS_TOKEN_COOKIE,
-      'access-test',
-      accessTokenCookieOptions,
-    );
-    expect(res.cookie).toHaveBeenCalledWith(
-      REFRESH_TOKEN_COOKIE,
-      'refresh-test',
-      refreshTokenCookieOptions,
-    );
-    expect(result).toEqual({ message: 'Registration successful' });
   });
 
   it('logs in and sets auth cookies', async () => {
     const dto = { identifier: 'newuser', password: 'password1' };
-    const res = mockRes();
     mockService.login.mockResolvedValue(tokens);
 
-    const result = await controller.login(dto, abuseReq, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set(ABUSE_HEADERS)
+      .send(dto)
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Login successful' });
+    expect(cookieHeader(res)).toContain('access_token=access-test');
+    expect(cookieHeader(res)).toContain('refresh_token=refresh-test');
     expect(mockService.login).toHaveBeenCalledWith(dto, expectedAbuseMeta);
-    expect(result).toEqual({ message: 'Login successful' });
   });
 
   it('refreshes from the refresh cookie before the body', async () => {
-    const res = mockRes();
     mockService.refreshToken.mockResolvedValue(tokens);
-    const req = {
-      ...abuseReq,
-      cookies: { [REFRESH_TOKEN_COOKIE]: 'cookie-refresh' },
-    } as unknown as Request;
 
-    const result = await controller.refresh(
-      req,
-      { refreshToken: 'body-refresh' },
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set(ABUSE_HEADERS)
+      .set('Cookie', 'refresh_token=cookie-refresh')
+      .send({ refreshToken: 'body-refresh' })
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Tokens refreshed' });
+    expect(cookieHeader(res)).toContain('access_token=access-test');
+    expect(cookieHeader(res)).toContain('refresh_token=refresh-test');
     expect(mockService.refreshToken).toHaveBeenCalledWith(
       { refreshToken: 'cookie-refresh' },
       expectedAbuseMeta,
     );
-    expect(result).toEqual({ message: 'Tokens refreshed' });
   });
 
   it('refreshes from the body when the cookie is absent', async () => {
-    const res = mockRes();
     mockService.refreshToken.mockResolvedValue(tokens);
 
-    await controller.refresh(abuseReq, { refreshToken: 'body-refresh' }, res);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/refresh')
+      .set(ABUSE_HEADERS)
+      .send({ refreshToken: 'body-refresh' })
+      .expect(200);
 
     expect(mockService.refreshToken).toHaveBeenCalledWith(
       { refreshToken: 'body-refresh' },
@@ -155,28 +172,20 @@ describe('AuthController', () => {
   });
 
   it('logs out the caller userId, prefers the cookie, and clears cookies', async () => {
-    const res = mockRes();
     mockService.logout.mockResolvedValue(undefined);
-    const req = {
-      ...abuseReq,
-      cookies: { [REFRESH_TOKEN_COOKIE]: 'cookie-refresh' },
-    } as unknown as Request;
 
-    await controller.logout(
-      mockUser,
-      req,
-      { refreshToken: 'body-refresh' },
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .set(BEARER)
+      .set('Cookie', 'refresh_token=cookie-refresh')
+      .send({ refreshToken: 'body-refresh' })
+      .expect(204);
 
-    expect(mockService.logout).toHaveBeenCalledWith('user-1', 'cookie-refresh');
-    expect(res.clearCookie).toHaveBeenCalledWith(
-      ACCESS_TOKEN_COOKIE,
-      clearCookieOptions,
-    );
-    expect(res.clearCookie).toHaveBeenCalledWith(
-      REFRESH_TOKEN_COOKIE,
-      clearCookieOptions,
+    expect(cookieHeader(res)).toContain('access_token=');
+    expect(cookieHeader(res)).toContain('refresh_token=');
+    expect(mockService.logout).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'cookie-refresh',
     );
   });
 
@@ -188,9 +197,18 @@ describe('AuthController', () => {
     mockService.requestPasswordReset.mockResolvedValue({ ok: true });
     mockService.resetPassword.mockResolvedValue({ ok: true });
 
-    await controller.verifyEmail(verifyDto);
-    await controller.requestReset(resetRequest);
-    await controller.resetPassword(resetDto);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/verify-email')
+      .send(verifyDto)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/request-reset')
+      .send(resetRequest)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/reset-password')
+      .send(resetDto)
+      .expect(200);
 
     expect(mockService.verifyEmail).toHaveBeenCalledWith(verifyDto);
     expect(mockService.requestPasswordReset).toHaveBeenCalledWith(resetRequest);
@@ -201,23 +219,39 @@ describe('AuthController', () => {
     mockService.resendVerification.mockResolvedValue({ ok: true });
     mockService.getUserSessions.mockResolvedValue([]);
 
-    await controller.resendVerification(mockUser);
-    await controller.getSessions(mockUser);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/resend-verification')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/sessions')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.resendVerification).toHaveBeenCalledWith('user-1');
-    expect(mockService.getUserSessions).toHaveBeenCalledWith('user-1');
+    expect(mockService.resendVerification).toHaveBeenCalledWith(
+      TEST_USER.userId,
+    );
+    expect(mockService.getUserSessions).toHaveBeenCalledWith(TEST_USER.userId);
   });
 
   it('revokes other sessions and one session as the caller userId', async () => {
     mockService.revokeOtherSessions.mockResolvedValue({ ok: true });
     mockService.revokeSession.mockResolvedValue({ ok: true });
 
-    await controller.revokeOtherSessions(mockUser);
-    await controller.revokeSession('session-1', mockUser);
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/sessions/other')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/sessions/session-1')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.revokeOtherSessions).toHaveBeenCalledWith('user-1');
+    expect(mockService.revokeOtherSessions).toHaveBeenCalledWith(
+      TEST_USER.userId,
+    );
     expect(mockService.revokeSession).toHaveBeenCalledWith(
-      'user-1',
+      TEST_USER.userId,
       'session-1',
     );
   });

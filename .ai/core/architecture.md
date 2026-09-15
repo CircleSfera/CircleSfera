@@ -1,4 +1,7 @@
-# Architecture — as built
+# [ARCHIVED] Architecture — as built
+
+> **⚠ WARNING: THIS DOCUMENT IS ARCHIVED.**
+> The canonical and definitive technical architecture documentation is now located at `circlesfera-documentation/01-architecture.md` and `circlesfera-documentation/00-status.md`. Please refer to those documents as the single source of truth.
 
 A map of how CircleSfera is actually structured, so agents follow the existing shape instead of
 inventing one. Narrative background: `circlesfera-documentation/02-database-er-diagram.md`,

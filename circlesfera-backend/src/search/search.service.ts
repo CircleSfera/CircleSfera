@@ -147,8 +147,6 @@ export class SearchService {
                 select: {
                   id: true,
                   role: true,
-                  verificationLevel: true,
-                  accountType: true,
                 },
               },
             },
@@ -277,7 +275,6 @@ export class SearchService {
       },
       take: 30, // Larger pool for better ranking
       include: {
-        user: { select: { verificationLevel: true } },
         _count: {
           select: { followers: true },
         },
@@ -315,8 +312,7 @@ export class SearchService {
             .filter(Boolean) as string[];
         }
 
-        const authoritySignal =
-          profile.user.verificationLevel !== 'BASIC' ? 20 : 0;
+        const authoritySignal = profile.verificationLevel !== 'BASIC' ? 20 : 0;
         const score =
           Math.log10(profile._count.followers + 1) +
           mutualCount * 5 +
@@ -324,7 +320,7 @@ export class SearchService {
 
         return {
           ...profile,
-          verificationLevel: profile.user.verificationLevel,
+          verificationLevel: profile.verificationLevel,
           mutualCount,
           followedByFriends: followedByFriendNames,
           score,
@@ -403,10 +399,8 @@ export class SearchService {
     // Rank by Authority Signal + Simple engagement
     return posts
       .sort((a, b) => {
-        const authorityA =
-          a.profile.user.verificationLevel !== 'BASIC' ? 100 : 0;
-        const authorityB =
-          b.profile.user.verificationLevel !== 'BASIC' ? 100 : 0;
+        const authorityA = a.profile.verificationLevel !== 'BASIC' ? 100 : 0;
+        const authorityB = b.profile.verificationLevel !== 'BASIC' ? 100 : 0;
 
         const scoreA =
           a._count.likes * 1.2 + a._count.comments * 2.5 + authorityA;

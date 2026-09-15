@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
@@ -18,8 +19,26 @@ import {
 } from '@nestjs/websockets';
 import * as cookie from 'cookie';
 import type { Server, Socket } from 'socket.io';
+import { AddReactionUseCase } from '../chat/use-cases/messages/add-reaction.use-case.js';
 import { ACCESS_TOKEN_COOKIE } from '../common/config/cookie.config.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
+import type {
+  CallAcceptDeclineDto,
+  CallHangupDto,
+  CallInviteDto,
+  CallSignalDto,
+  LiveAskQuestionDto,
+  LiveChatDto,
+  LiveHighlightQuestionDto,
+  LivePinCommentDto,
+  LiveReactionDto,
+  LiveSetGoalDto,
+  LiveStreamIdDto,
+  MarkReadDto,
+  SendReactionDto,
+  TypingEventDto,
+} from './dto/socket-events.dto.js';
 
 interface JwtPayload {
   sub: string;
@@ -37,9 +56,6 @@ export interface SocketWithAuth extends Socket {
   };
 }
 
-// @ts-nocheck
-import { AddReactionUseCase } from '../chat/use-cases/messages/add-reaction.use-case.js';
-
 @WebSocketGateway({
   cors: {
     origin: true,
@@ -47,6 +63,7 @@ import { AddReactionUseCase } from '../chat/use-cases/messages/add-reaction.use-
   },
   namespace: 'events',
   path: '/socket.io',
+  maxHttpBufferSize: 128 * 1024, // 128 KB max packet size (INPUT-002)
 })
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -60,6 +77,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(forwardRef(() => AddReactionUseCase))
     private addReactionUseCase: AddReactionUseCase,
+    @Inject(WebrtcSignalingService)
+    private webrtcSignalingService: WebrtcSignalingService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -98,15 +117,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new UnauthorizedException('Profile not found');
       }
 
-      (client as SocketWithAuth).data.user = { ...payload, profileId };
-
       const userConvs = await this.prisma.participant.findMany({
         where: { profileId, deletedAt: null },
         select: { conversationId: true },
       });
-      (client as SocketWithAuth).data.conversationIds = new Set(
-        userConvs.map((c) => c.conversationId),
-      );
+
+      (client as SocketWithAuth).data = {
+        user: { ...payload, profileId },
+        conversationIds: new Set(userConvs.map((c) => c.conversationId)),
+      };
 
       await client.join(`user:${profileId}`);
 
@@ -158,6 +177,19 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
           isOnline: false,
           lastSeenAt: new Date().toISOString(),
         });
+
+        // Clean up any ongoing or ringing WebRTC calls for the disconnected user (RT-003)
+        if (this.webrtcSignalingService) {
+          const terminatedCalls =
+            this.webrtcSignalingService.handleUserDisconnect(user.profileId);
+          for (const call of terminatedCalls) {
+            if (call.state === 'RINGING') {
+              this.server.to(`user:${call.peerId}`).emit('call:declined');
+            } else {
+              this.server.to(`user:${call.peerId}`).emit('call:ended');
+            }
+          }
+        }
 
         this.logger.log(
           `User disconnected: ${user.sub} (profile ${user.profileId})`,
@@ -215,10 +247,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Chat Actions (Typing, Reactions, etc.)
   @SubscribeMessage('typing_start')
   async handleTypingStart(
-    @MessageBody() payload: { conversationId: string; recipientId: string },
+    @MessageBody() payload: TypingEventDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    if (!client.data.conversationIds?.has(payload.conversationId)) return;
+    if (!payload?.conversationId || !payload?.recipientId) return;
+    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_typing', {
       profileId: client.data.user.profileId,
@@ -228,10 +261,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('typing_stop')
   async handleTypingStop(
-    @MessageBody() payload: { conversationId: string; recipientId: string },
+    @MessageBody() payload: TypingEventDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    if (!client.data.conversationIds?.has(payload.conversationId)) return;
+    if (!payload?.conversationId || !payload?.recipientId) return;
+    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('user_stopped_typing', {
       profileId: client.data.user.profileId,
@@ -242,47 +276,87 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('send_reaction')
   async handleSendReaction(
     @MessageBody()
-    payload: {
-      messageId: string;
-      conversationId: string;
-      reaction: string;
-    },
+    payload: SendReactionDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const reactionRecord = await this.addReactionUseCase.execute(
-      payload.messageId,
-      client.data.user.profileId,
-      payload.reaction,
-    );
+    if (
+      !payload?.messageId ||
+      !payload?.conversationId ||
+      !payload?.reaction ||
+      typeof payload.reaction !== 'string' ||
+      payload.reaction.length > 32
+    ) {
+      return;
+    }
 
-    const eventPayload = {
-      messageId: payload.messageId,
-      profileId: client.data.user.profileId,
-      reaction: reactionRecord.reaction,
-      id: reactionRecord.id,
-    };
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
 
-    // Get all participants of this conversation to notify them
-    const conv = await this.prisma.conversation.findUnique({
-      where: { id: payload.conversationId },
-      select: { participants: { select: { profileId: true } } },
-    });
-
-    if (conv) {
-      conv.participants.forEach((p) => {
-        this.server
-          .to(`user:${p.profileId}`)
-          .emit('message_reaction', eventPayload);
+    const isMember = client.data.conversationIds?.has(payload.conversationId);
+    if (!isMember) {
+      const participant = await this.prisma.participant.findUnique({
+        where: {
+          conversationId_profileId: {
+            conversationId: payload.conversationId,
+            profileId: callerProfileId,
+          },
+        },
       });
+      if (!participant || participant.deletedAt) {
+        this.logger.warn(
+          `Unauthorized send_reaction attempt by profile ${callerProfileId} in conversation ${payload.conversationId}`,
+        );
+        return;
+      }
+      if (!client.data.conversationIds) {
+        client.data.conversationIds = new Set();
+      }
+      client.data.conversationIds.add(payload.conversationId);
+    }
+
+    try {
+      const reactionRecord = await this.addReactionUseCase.execute(
+        payload.messageId,
+        callerProfileId,
+        payload.reaction,
+      );
+
+      const eventPayload = {
+        messageId: payload.messageId,
+        profileId: callerProfileId,
+        reaction: reactionRecord.reaction,
+        id: reactionRecord.id,
+      };
+
+      // Get all participants of this conversation to notify them
+      const conv = await this.prisma.conversation.findUnique({
+        where: { id: payload.conversationId },
+        select: { participants: { select: { profileId: true } } },
+      });
+
+      if (conv) {
+        conv.participants.forEach((p) => {
+          this.server
+            .to(`user:${p.profileId}`)
+            .emit('message_reaction', eventPayload);
+        });
+      }
+    } catch (err: unknown) {
+      this.logger.warn(
+        `Failed to add reaction to message ${payload.messageId}: ${
+          err instanceof Error ? err.message : 'Unknown'
+        }`,
+      );
     }
   }
 
   @SubscribeMessage('mark_read')
   async handleMarkRead(
-    @MessageBody() payload: { conversationId: string; recipientId: string },
+    @MessageBody() payload: MarkReadDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    if (!client.data.conversationIds?.has(payload.conversationId)) return;
+    if (!payload?.conversationId || !payload?.recipientId) return;
+    if (!client.data?.conversationIds?.has(payload.conversationId)) return;
 
     this.server.to(`user:${payload.recipientId}`).emit('messages_read', {
       conversationId: payload.conversationId,
@@ -297,32 +371,30 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('call:initiate')
   async handleCallInvite(
     @MessageBody()
-    payload: {
-      recipientId?: string;
-      targetId?: string;
-      type: 'audio' | 'video';
-    },
+    payload: CallInviteDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const callerId = client.data.user.profileId;
-    const targetId = payload.targetId || payload.recipientId;
-    if (!targetId) return;
+    const callerId = client.data.user?.profileId;
+    const targetId = payload?.targetId || payload?.recipientId;
+    if (!callerId || !targetId) return;
 
-    // Security: Only allow calling if they have an active 1-on-1 conversation
-    const conversation = await this.prisma.conversation.findFirst({
-      where: {
-        isGroup: false,
-        AND: [
-          { participants: { some: { profileId: callerId } } },
-          { participants: { some: { profileId: targetId } } },
-        ],
-      },
-    });
+    const callType = payload?.type || 'audio';
 
-    if (!conversation) {
-      this.logger.warn(
-        `Call blocked: No active conversation between ${callerId} and ${targetId}`,
+    // Server-side authorization: relationship (blocks, active conversation) and state (neither busy)
+    const authResult =
+      await this.webrtcSignalingService.authorizeAndInitiateCall(
+        callerId,
+        targetId,
+        callType,
       );
+
+    if (!authResult.ok) {
+      this.logger.warn(
+        `Call invite from ${callerId} to ${targetId} rejected: ${authResult.reason}`,
+      );
+      if (authResult.reason === 'BUSY') {
+        client.emit('call:declined', { reason: 'busy' });
+      }
       return;
     }
 
@@ -337,10 +409,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
 
     this.logger.log(
-      `Call invite from ${callerId} to ${targetId} (${payload.type})`,
+      `Call invite from ${callerId} to ${targetId} (${callType}) [callId: ${authResult.session?.callId}]`,
     );
 
     this.server.to(`user:${targetId}`).emit('call:incoming', {
+      callId: authResult.session?.callId,
       caller: callerProfile
         ? {
             id: callerProfile.id,
@@ -351,17 +424,32 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             },
           }
         : null,
-      type: payload.type,
+      type: callType,
       signalData: null,
     });
   }
 
   @SubscribeMessage('call:accept')
   handleCallAccept(
-    @MessageBody() payload: { callerId: string },
+    @MessageBody() payload: CallAcceptDeclineDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const receiverId = client.data.user.profileId;
+    const receiverId = client.data.user?.profileId;
+    if (!receiverId || !payload?.callerId) return;
+
+    // Server-side authorization: valid RINGING call session where caller is payload.callerId
+    const auth = this.webrtcSignalingService.authorizeAndAcceptCall(
+      receiverId,
+      payload.callerId,
+    );
+
+    if (!auth.ok) {
+      this.logger.warn(
+        `Unauthorized call:accept attempt by ${receiverId} for caller ${payload.callerId}`,
+      );
+      return;
+    }
+
     this.logger.log(
       `Call accepted by ${receiverId} (Caller: ${payload.callerId})`,
     );
@@ -371,34 +459,130 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('call:decline')
-  handleCallDecline(@MessageBody() payload: { callerId: string }) {
+  handleCallDecline(
+    @MessageBody() payload: CallAcceptDeclineDto,
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    const receiverId = client.data.user?.profileId;
+    if (!receiverId || !payload?.callerId) return;
+
+    // Server-side authorization: valid RINGING call session where caller is payload.callerId
+    const auth = this.webrtcSignalingService.authorizeAndDeclineCall(
+      receiverId,
+      payload.callerId,
+    );
+
+    if (!auth.ok) {
+      this.logger.warn(
+        `Unauthorized call:decline attempt by ${receiverId} for caller ${payload.callerId}`,
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Call declined by ${receiverId} (Caller: ${payload.callerId})`,
+    );
     this.server.to(`user:${payload.callerId}`).emit('call:declined');
   }
 
   @SubscribeMessage('call:signal')
   handleCallSignal(
-    @MessageBody() payload: { targetId: string; signal: unknown },
+    @MessageBody() payload: CallSignalDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    // Transparently forward WebRTC signaling data (OFFER, ANSWER, ICE Candidates)
+    const senderId = client.data.user?.profileId;
+    if (!senderId || !payload?.targetId || !payload?.signal) return;
+
+    try {
+      const signalStr =
+        typeof payload.signal === 'string'
+          ? payload.signal
+          : JSON.stringify(payload.signal);
+      if (signalStr.length > 32768) {
+        this.logger.warn(
+          `Dropped oversized call:signal payload from ${senderId}`,
+        );
+        return;
+      }
+    } catch {
+      return;
+    }
+
+    // Server-side authorization for every signaling event (RT-003)
+    const isAuthorized = this.webrtcSignalingService.authorizeSignal(
+      senderId,
+      payload.targetId,
+    );
+
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized call:signal from ${senderId} to ${payload.targetId} dropped`,
+      );
+      return;
+    }
+
+    // Forward WebRTC signaling data (OFFER, ANSWER, ICE Candidates)
     this.server.to(`user:${payload.targetId}`).emit('call:signal', {
       signal: payload.signal,
-      fromId: client.data.user.profileId,
+      fromId: senderId,
     });
   }
 
   @SubscribeMessage('call:hangup')
-  handleCallHangup(@MessageBody() payload: { targetId: string }) {
+  handleCallHangup(
+    @MessageBody() payload: CallHangupDto,
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    const senderId = client.data.user?.profileId;
+    if (!senderId || !payload?.targetId) return;
+
+    const endResult = this.webrtcSignalingService.authorizeAndEndCall(
+      senderId,
+      payload.targetId,
+    );
+
+    if (!endResult.ok) {
+      this.logger.warn(
+        `Unauthorized call:hangup from ${senderId} for target ${payload.targetId}`,
+      );
+      return;
+    }
+
     this.server.to(`user:${payload.targetId}`).emit('call:ended');
+  }
+
+  // Live Streams
+
+  // Helper for live stream ownership checks
+  private async isStreamHostOrCoHost(
+    streamId: string,
+    profileId: string,
+  ): Promise<boolean> {
+    if (!streamId || !profileId) return false;
+    const stream = await this.prisma.liveStream.findUnique({
+      where: { id: streamId },
+      select: { hostId: true, coHostId: true },
+    });
+    if (!stream) return false;
+    return stream.hostId === profileId || stream.coHostId === profileId;
   }
 
   // Live Streams
 
   @SubscribeMessage('live:join')
   async handleLiveJoin(
-    @MessageBody() payload: { streamId: string },
+    @MessageBody() payload: LiveStreamIdDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      typeof payload.streamId !== 'string' ||
+      payload.streamId.length > 64
+    )
+      return;
+    const profileId = client.data?.user?.profileId;
+    if (!profileId) return;
+
     await client.join(`live:${payload.streamId}`);
 
     // Update DB viewer count & broadcast
@@ -420,7 +604,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const count = updatedStream?.viewerCount ?? 1;
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_joined', {
-      profileId: client.data.user.profileId,
+      profileId,
       viewerCount: count,
     });
 
@@ -434,9 +618,18 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('live:leave')
   async handleLiveLeave(
-    @MessageBody() payload: { streamId: string },
+    @MessageBody() payload: LiveStreamIdDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      typeof payload.streamId !== 'string' ||
+      payload.streamId.length > 64
+    )
+      return;
+    const profileId = client.data?.user?.profileId;
+    if (!profileId) return;
+
     await client.leave(`live:${payload.streamId}`);
 
     const updatedStream = await this.prisma.liveStream
@@ -457,7 +650,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const count = Math.max(0, updatedStream?.viewerCount ?? 0);
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_left', {
-      profileId: client.data.user.profileId,
+      profileId,
       viewerCount: count,
     });
 
@@ -471,11 +664,22 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('live:chat')
   async handleLiveChat(
-    @MessageBody() payload: { streamId: string; message: string },
+    @MessageBody() payload: LiveChatDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      !payload?.message ||
+      typeof payload.streamId !== 'string' ||
+      typeof payload.message !== 'string'
+    ) {
+      return;
+    }
+    const cleanMessage = payload.message.trim().slice(0, 500);
+    if (!cleanMessage) return;
+
     const user = await this.prisma.user.findUnique({
-      where: { id: client.data.user.sub },
+      where: { id: client.data?.user?.sub },
       include: { profiles: true },
     });
 
@@ -487,7 +691,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
           username: user.profiles[0].username,
           avatar: user.profiles[0].avatar,
         },
-        message: payload.message,
+        message: cleanMessage,
         timestamp: new Date().toISOString(),
       });
     }
@@ -496,25 +700,68 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('live:pin_comment')
   async handleLivePinComment(
     @MessageBody()
-    payload: {
-      streamId: string;
-      commentId: string;
-      message: string;
-      username: string;
-      avatar?: string;
-    },
+    payload: LivePinCommentDto,
+    @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      !payload?.commentId ||
+      !payload?.message ||
+      typeof payload.message !== 'string'
+    ) {
+      return;
+    }
+
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const isAuthorized = await this.isStreamHostOrCoHost(
+      payload.streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized live:pin_comment attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
+      );
+      return;
+    }
+
+    const cleanMessage = payload.message.trim().slice(0, 500);
+    const cleanUsername =
+      typeof payload.username === 'string'
+        ? payload.username.slice(0, 100)
+        : '';
+
     this.server.to(`live:${payload.streamId}`).emit('live:comment_pinned', {
       commentId: payload.commentId,
-      message: payload.message,
-      username: payload.username,
+      message: cleanMessage,
+      username: cleanUsername,
       avatar: payload.avatar,
       pinnedAt: new Date().toISOString(),
     });
   }
 
   @SubscribeMessage('live:unpin_comment')
-  async handleLiveUnpinComment(@MessageBody() payload: { streamId: string }) {
+  async handleLiveUnpinComment(
+    @MessageBody() payload: LiveStreamIdDto,
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const isAuthorized = await this.isStreamHostOrCoHost(
+      payload.streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized live:unpin_comment attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
+      );
+      return;
+    }
+
     this.server.to(`live:${payload.streamId}`).emit('live:comment_unpinned', {
       streamId: payload.streamId,
     });
@@ -522,24 +769,39 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('live:heart')
   async handleLiveHeart(
-    @MessageBody() payload: { streamId: string; reaction?: string },
+    @MessageBody() payload: LiveReactionDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
-    const reaction = payload.reaction || '❤️';
+    if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const reaction =
+      typeof payload.reaction === 'string' && payload.reaction.length <= 32
+        ? payload.reaction
+        : '❤️';
     this.server.to(`live:${payload.streamId}`).emit('live:heart_received', {
-      profileId: client.data.user.profileId,
+      profileId: callerProfileId,
       reaction,
     });
   }
 
   @SubscribeMessage('live:send_reaction')
   async handleLiveSendReaction(
-    @MessageBody() payload: { streamId: string; reaction: string },
+    @MessageBody() payload: LiveReactionDto,
     @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const reaction =
+      typeof payload.reaction === 'string' && payload.reaction.length <= 32
+        ? payload.reaction
+        : '🔥';
     this.server.to(`live:${payload.streamId}`).emit('live:reaction_received', {
-      profileId: client.data.user.profileId,
-      reaction: payload.reaction || '🔥',
+      profileId: callerProfileId,
+      reaction,
     });
   }
 
@@ -547,17 +809,32 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('live:ask_question')
   async handleLiveAskQuestion(
-    @MessageBody() payload: {
-      streamId: string;
-      question: string;
-      username: string;
-      avatar?: string;
-    },
+    @MessageBody()
+    payload: LiveAskQuestionDto,
+    @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      !payload?.question ||
+      typeof payload.streamId !== 'string' ||
+      typeof payload.question !== 'string'
+    ) {
+      return;
+    }
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const cleanQuestion = payload.question.trim().slice(0, 500);
+    if (!cleanQuestion) return;
+    const cleanUsername =
+      typeof payload.username === 'string'
+        ? payload.username.slice(0, 100)
+        : '';
+
     this.server.to(`live:${payload.streamId}`).emit('live:question_asked', {
       id: crypto.randomUUID(),
-      question: payload.question,
-      username: payload.username,
+      question: cleanQuestion,
+      username: cleanUsername,
       avatar: payload.avatar,
       createdAt: new Date().toISOString(),
     });
@@ -565,37 +842,184 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('live:highlight_question')
   async handleLiveHighlightQuestion(
-    @MessageBody() payload: {
-      streamId: string;
-      questionId: string;
-      question: string;
-      username: string;
-      avatar?: string;
-    },
+    @MessageBody()
+    payload: LiveHighlightQuestionDto,
+    @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      !payload?.questionId ||
+      !payload?.question ||
+      typeof payload.streamId !== 'string' ||
+      typeof payload.question !== 'string'
+    ) {
+      return;
+    }
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const isAuthorized = await this.isStreamHostOrCoHost(
+      payload.streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized live:highlight_question attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
+      );
+      return;
+    }
+
+    const cleanQuestion = payload.question.trim().slice(0, 500);
+    const cleanUsername =
+      typeof payload.username === 'string'
+        ? payload.username.slice(0, 100)
+        : '';
+
     this.server
       .to(`live:${payload.streamId}`)
       .emit('live:question_highlighted', {
         id: payload.questionId,
-        question: payload.question,
-        username: payload.username,
+        question: cleanQuestion,
+        username: cleanUsername,
         avatar: payload.avatar,
       });
   }
 
   @SubscribeMessage('live:clear_question')
-  async handleLiveClearQuestion(@MessageBody() payload: { streamId: string }) {
+  async handleLiveClearQuestion(
+    @MessageBody() payload: LiveStreamIdDto,
+    @ConnectedSocket() client: SocketWithAuth,
+  ) {
+    if (!payload?.streamId || typeof payload.streamId !== 'string') return;
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const isAuthorized = await this.isStreamHostOrCoHost(
+      payload.streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized live:clear_question attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
+      );
+      return;
+    }
+
     this.server.to(`live:${payload.streamId}`).emit('live:question_cleared');
   }
 
   @SubscribeMessage('live:set_goal')
   async handleLiveSetGoal(
-    @MessageBody() payload: { streamId: string; title: string; target: number },
+    @MessageBody() payload: LiveSetGoalDto,
+    @ConnectedSocket() client: SocketWithAuth,
   ) {
+    if (
+      !payload?.streamId ||
+      !payload?.title ||
+      typeof payload.streamId !== 'string' ||
+      typeof payload.title !== 'string' ||
+      typeof payload.target !== 'number' ||
+      payload.target <= 0 ||
+      payload.target > 1000000
+    ) {
+      return;
+    }
+
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return;
+
+    const isAuthorized = await this.isStreamHostOrCoHost(
+      payload.streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized live:set_goal attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
+      );
+      return;
+    }
+
+    const cleanTitle = payload.title.trim().slice(0, 100);
+
     this.server.to(`live:${payload.streamId}`).emit('live:goal_set', {
-      title: payload.title,
-      target: payload.target,
-      current: 0, // Goals start at 0
+      title: cleanTitle,
+      target: Math.floor(payload.target),
+      current: 0,
+    });
+  }
+
+  // --- EDA Domain Event Listeners (BE-003) ---
+
+  @OnEvent('chat.message.sent')
+  handleChatMessageSent(event: {
+    participants: { profileId: string }[];
+    payload: { conversationId: string; [key: string]: unknown };
+  }) {
+    event.participants?.forEach((p) => {
+      this.addConversationToSocket(p.profileId, event.payload.conversationId);
+      this.server
+        .to(`user:${p.profileId}`)
+        .emit('receiveMessage', event.payload);
+    });
+  }
+
+  @OnEvent('chat.message.deleted')
+  handleChatMessageDeleted(event: {
+    participants: { profileId: string }[];
+    payload: { messageId: string; [key: string]: unknown };
+  }) {
+    event.participants?.forEach((p) => {
+      this.server
+        .to(`user:${p.profileId}`)
+        .emit('message_deleted', event.payload);
+    });
+  }
+
+  @OnEvent('chat.message.edited')
+  handleChatMessageEdited(event: {
+    participants: { profileId: string }[];
+    payload: { messageId: string; [key: string]: unknown };
+  }) {
+    event.participants?.forEach((p) => {
+      this.server
+        .to(`user:${p.profileId}`)
+        .emit('message_edited', event.payload);
+    });
+  }
+
+  @OnEvent('chat.conversation.updated')
+  handleChatConversationUpdated(event: {
+    participants: { profileId: string }[];
+    payload: { conversationId: string; [key: string]: unknown };
+  }) {
+    event.participants?.forEach((p) => {
+      this.server
+        .to(`user:${p.profileId}`)
+        .emit('conversation_updated', event.payload);
+    });
+  }
+
+  @OnEvent('chat.conversation.deleted')
+  handleChatConversationDeleted(event: {
+    participants: { profileId: string }[];
+    payload: { conversationId: string; [key: string]: unknown };
+  }) {
+    event.participants?.forEach((p) => {
+      this.server
+        .to(`user:${p.profileId}`)
+        .emit('conversationDeleted', event.payload);
+    });
+  }
+
+  @OnEvent('chat.conversation.created')
+  handleChatConversationCreated(event: {
+    conversation: {
+      id: string;
+      participants: { profileId: string }[];
+    };
+  }) {
+    event.conversation?.participants?.forEach((p) => {
+      this.addConversationToSocket(p.profileId, event.conversation.id);
     });
   }
 
@@ -611,10 +1035,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         if (cookies[ACCESS_TOKEN_COOKIE]) {
           return cookies[ACCESS_TOKEN_COOKIE];
         }
-      } catch (parseError) {
+      } catch (parseError: unknown) {
         this.logger.error(
-          'Failed to parse socket handshake cookies',
-          parseError,
+          `Failed to parse socket handshake cookies: ${
+            parseError instanceof Error ? parseError.message : 'Unknown'
+          }`,
         );
       }
     }

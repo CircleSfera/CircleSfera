@@ -50,12 +50,7 @@ export default function AccountSettings() {
       .then((res) => {
         if (res?.status === 'verified') {
           queryClient.invalidateQueries({ queryKey: ['myProfile'] });
-          toast.success(
-            t(
-              'settings.account.verification.success',
-              'Your identity has been verified!',
-            ),
-          );
+          toast.success(t('settings.account.verification.success'));
         }
       })
       .catch((err) => {
@@ -75,12 +70,7 @@ export default function AccountSettings() {
   const deleteAccountMutation = useMutation({
     mutationFn: () => usersApi.scheduleDeletion(),
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.account.delete_scheduled',
-          'Account scheduled for deletion. Log in within 30 days to restore it.',
-        ),
-      );
+      toast.success(t('settings.account.delete_scheduled'));
       logout();
       navigate('/accounts/login');
     },
@@ -89,38 +79,22 @@ export default function AccountSettings() {
   const cancelDeletionMutation = useMutation({
     mutationFn: () => usersApi.cancelScheduledDeletion(),
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.account.delete_cancelled',
-          'Account deletion cancelled. Your account is active again.',
-        ),
-      );
+      toast.success(t('settings.account.delete_cancelled'));
     },
     onError: () => {
-      toast.error(
-        t(
-          'settings.account.delete_cancel_error',
-          'Could not cancel deletion. Try logging in again within the grace period.',
-        ),
-      );
+      toast.error(t('settings.account.delete_cancel_error'));
     },
   });
 
   const requestExportMutation = useMutation({
     mutationFn: dataExportApi.requestDataExport,
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.privacy.export_requested',
-          'Export request created. We will notify you when it is ready.',
-        ),
-      );
+      toast.success(t('settings.privacy.export_requested'));
       refetchExport();
     },
     onError: (error: { response?: { data?: { message?: string } } }) => {
       toast.error(
-        error.response?.data?.message ||
-          t('settings.account.export_error', 'Failed to request data export.'),
+        error.response?.data?.message || t('settings.account.export_error'),
       );
     },
   });
@@ -134,12 +108,7 @@ export default function AccountSettings() {
       window.location.href = data.url;
     },
     onError: () => {
-      toast.error(
-        t(
-          'settings.account.verification.error',
-          'Failed to initialize verification session',
-        ),
-      );
+      toast.error(t('settings.account.verification.error'));
     },
   });
 
@@ -178,13 +147,10 @@ export default function AccountSettings() {
                   />
                   <span className="flex-1 min-w-0">
                     <span className="block text-sm font-medium text-white truncate">
-                      {t('settings.hub.about', 'About this account')}
+                      {t('settings.hub.about')}
                     </span>
                     <span className="block text-xs text-white/50 mt-0.5 truncate">
-                      {t(
-                        'settings.hub.about_hint',
-                        'Joined date, verification, and account status',
-                      )}
+                      {t('settings.hub.about_hint')}
                     </span>
                   </span>
                   <ChevronRight
@@ -243,26 +209,17 @@ export default function AccountSettings() {
               }`}
             >
               <BadgeCheck size={16} aria-hidden />
-              {t(
-                'settings.account.verification.title',
-                'Identity Verification',
-              )}
+              {t('settings.account.verification.title')}
             </h3>
             <p className="text-xs text-white/50 leading-relaxed mb-3">
               {profile?.identityVerifiedAt
-                ? t(
-                    'settings.account.verification.verified_desc',
-                    'Your identity has been successfully verified.',
-                  )
-                : t(
-                    'settings.account.verification.unverified_desc',
-                    'Verify your identity to get the verified badge. You will need a valid ID or Passport.',
-                  )}
+                ? t('settings.account.verification.verified_desc')
+                : t('settings.account.verification.unverified_desc')}
             </p>
             {profile?.identityVerifiedAt ? (
               <div className="inline-flex items-center gap-2 text-green-400 font-medium text-xs px-2 py-1 bg-green-500/10 rounded-lg">
                 <Check size={14} strokeWidth={3} />
-                {t('settings.account.verification.verified', 'Verified')}
+                {t('settings.account.verification.verified')}
               </div>
             ) : (
               <Button
@@ -271,7 +228,7 @@ export default function AccountSettings() {
                 variant="outline"
                 className="min-h-11 text-sm font-semibold"
               >
-                {t('settings.account.verification.btn', 'Verify Identity')}
+                {t('settings.account.verification.btn')}
               </Button>
             )}
           </div>
@@ -279,20 +236,14 @@ export default function AccountSettings() {
           <div className="rounded-xl border border-brand-primary/15 bg-brand-primary/5 p-4">
             <h3 className="text-sm font-semibold text-brand-primary flex items-center gap-2 mb-2">
               <Download size={14} aria-hidden />
-              {t('settings.account.export.title', 'Export Data')}
+              {t('settings.account.export.title')}
             </h3>
             <p className="text-xs text-white/50 leading-relaxed mb-3">
-              {t(
-                'settings.account.export.desc',
-                'Download a copy of your data including your profile, posts, and messages.',
-              )}
+              {t('settings.account.export.desc')}
             </p>
             {latestExport && latestExport.status === 'PENDING' ? (
               <p className="text-sm text-brand-accent font-medium">
-                {t(
-                  'settings.account.export.processing',
-                  'Processing your request…',
-                )}
+                {t('settings.account.export.processing')}
               </p>
             ) : latestExport &&
               latestExport.status === 'COMPLETED' &&
@@ -309,7 +260,7 @@ export default function AccountSettings() {
                     className="min-h-11 text-sm font-semibold gap-2"
                   >
                     <Download size={16} />
-                    {t('settings.account.export.download', 'Download data')}
+                    {t('settings.account.export.download')}
                   </Button>
                 </a>
                 <Button
@@ -318,10 +269,7 @@ export default function AccountSettings() {
                   isLoading={requestExportMutation.isPending}
                   className="text-xs min-h-11"
                 >
-                  {t(
-                    'settings.account.export.request_new',
-                    'Request a new export',
-                  )}
+                  {t('settings.account.export.request_new')}
                 </Button>
               </div>
             ) : (
@@ -331,7 +279,7 @@ export default function AccountSettings() {
                 variant="outline"
                 className="min-h-11 text-sm font-semibold"
               >
-                {t('settings.account.export.btn', 'Request Export')}
+                {t('settings.account.export.btn')}
               </Button>
             )}
           </div>
@@ -345,10 +293,7 @@ export default function AccountSettings() {
           description={t('settings.account.disable.desc')}
           actionLabel={t('settings.account.disable.btn')}
           confirmTitle={t('settings.account.disable.title')}
-          confirmBody={t(
-            'settings.account.disable.confirm',
-            'Are you sure you want to deactivate your account? You can reactivate it by logging in again.',
-          )}
+          confirmBody={t('settings.account.disable.confirm')}
           confirmLabel={t('settings.account.disable.btn')}
           onConfirm={() => deactivateMutation.mutate()}
           isLoading={deactivateMutation.isPending}
@@ -357,16 +302,10 @@ export default function AccountSettings() {
         <SettingsDangerZone
           variant="danger"
           title={t('settings.account.delete.title')}
-          description={t(
-            'settings.account.delete.desc',
-            'Schedules deletion with a 30-day grace period. Log in again within that window to restore your account.',
-          )}
+          description={t('settings.account.delete.desc')}
           actionLabel={t('settings.account.delete.btn')}
           confirmTitle={t('settings.account.delete.title')}
-          confirmBody={t(
-            'settings.account.delete.confirm',
-            'Schedule permanent deletion? You can restore by logging in within 30 days.',
-          )}
+          confirmBody={t('settings.account.delete.confirm')}
           confirmLabel={t('settings.account.delete.btn')}
           onConfirm={() => deleteAccountMutation.mutate()}
           isLoading={deleteAccountMutation.isPending}
@@ -377,10 +316,7 @@ export default function AccountSettings() {
               variant="outline"
               className="w-full min-h-11 text-sm font-semibold border-white/15 text-white/70"
             >
-              {t(
-                'settings.account.delete.cancel_btn',
-                'Cancel scheduled deletion',
-              )}
+              {t('settings.account.delete.cancel_btn')}
             </Button>
           }
         />

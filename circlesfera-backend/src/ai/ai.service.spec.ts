@@ -10,6 +10,8 @@ import {
   type Mock,
   vi,
 } from 'vitest';
+import { safeFetchMedia } from '../common/utils/safe-media-fetcher.js';
+import { SsrfBlockedError } from '../common/utils/ssrf.util.js';
 import { AIService } from './ai.service.js';
 
 const mOpenAI = {
@@ -19,14 +21,29 @@ const mOpenAI = {
   moderations: {
     create: vi.fn(),
   },
+  audio: {
+    transcriptions: {
+      create: vi.fn(),
+    },
+  },
 };
+
+vi.mock('../common/utils/safe-media-fetcher.js', () => ({
+  safeFetchMedia: vi.fn(),
+}));
 
 vi.mock('openai', () => {
   return {
     default: class OpenAI {
       embeddings = mOpenAI.embeddings;
       moderations = mOpenAI.moderations;
+      audio = mOpenAI.audio;
     },
+    toFile: vi.fn().mockImplementation(async (buffer, filename, opts) => ({
+      buffer,
+      filename,
+      ...opts,
+    })),
   };
 });
 
@@ -208,6 +225,107 @@ describe('AIService', () => {
           ],
         }).compile(),
       ).rejects.toThrow(/OPENAI_API_KEY is required in production/);
+    });
+    it('filters out private/loopback URLs from moderation to prevent SSRF', async () => {
+      openAiInstance.moderations.create.mockResolvedValue({
+        results: [
+          {
+            flagged: false,
+            categories: {},
+            category_scores: {},
+          },
+        ],
+      });
+
+      await service.moderateContent('hello', [
+        'http://127.0.0.1/internal.png',
+        'http://169.254.169.254/meta.jpg',
+        'http://10.0.0.1/private.png',
+        'https://cdn.example.com/public.jpg',
+      ]);
+
+      expect(openAiInstance.moderations.create).toHaveBeenCalledWith({
+        input: [
+          { text: 'hello', type: 'text' },
+          {
+            type: 'image_url',
+            image_url: { url: 'https://cdn.example.com/public.jpg' },
+          },
+        ],
+        model: 'omni-moderation-latest',
+      });
+    });
+  });
+
+  describe('transcribeAudio', () => {
+    it('safely fetches media and creates Whisper transcription', async () => {
+      const mockBuffer = Buffer.from('audio-data');
+      (safeFetchMedia as Mock).mockResolvedValue({
+        buffer: mockBuffer,
+        contentType: 'audio/wav',
+        ext: 'wav',
+      });
+
+      mOpenAI.audio.transcriptions.create.mockResolvedValue({
+        segments: [
+          { start: 0, end: 2.5, text: ' Hello world' },
+          { start: 2.5, end: 5.0, text: ' CircleSfera' },
+        ],
+      });
+
+      const result = await service.transcribeAudio(
+        'https://cdn.example.com/clip.wav',
+      );
+
+      expect(safeFetchMedia).toHaveBeenCalledWith(
+        'https://cdn.example.com/clip.wav',
+        expect.objectContaining({
+          maxBytes: 25 * 1024 * 1024,
+          timeoutMs: 15_000,
+        }),
+      );
+
+      expect(mOpenAI.audio.transcriptions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'whisper-1',
+          response_format: 'verbose_json',
+        }),
+      );
+
+      expect(result).toEqual([
+        { start: 0, end: 2.5, text: 'Hello world' },
+        { start: 2.5, end: 5.0, text: 'CircleSfera' },
+      ]);
+    });
+
+    it('propagates error when safeFetchMedia rejects with SSRF error', async () => {
+      (safeFetchMedia as Mock).mockRejectedValue(
+        new SsrfBlockedError('Target IP is private', 'PRIVATE_IP'),
+      );
+
+      await expect(
+        service.transcribeAudio('http://169.254.169.254/meta'),
+      ).rejects.toThrow(SsrfBlockedError);
+    });
+
+    it('throws AI_SERVICE_UNAVAILABLE if OpenAI is not configured', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'OPENAI_API_KEY') return undefined;
+        if (key === 'NODE_ENV') return 'development';
+        return null;
+      });
+
+      const module = await Test.createTestingModule({
+        providers: [
+          AIService,
+          { provide: ConfigService, useValue: mockConfigService },
+        ],
+      }).compile();
+
+      const unconfiguredService = module.get<AIService>(AIService);
+      await expect(
+        unconfiguredService.transcribeAudio('https://example.com/audio.mp3'),
+      ).rejects.toThrow('AI_SERVICE_UNAVAILABLE');
     });
   });
 

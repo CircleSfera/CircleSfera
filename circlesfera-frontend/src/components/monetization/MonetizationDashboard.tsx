@@ -57,13 +57,10 @@ export default function MonetizationDashboard() {
       {breakdown ? (
         <Card variant="glass" className="p-5 space-y-3">
           <h3 className="text-sm font-medium text-white">
-            {t('creator.income.breakdown', 'Breakdown by type')}
+            {t('creator.income.breakdown')}
           </h3>
           <p className="text-xs text-white/50">
-            {t(
-              'creator.income.breakdown_hint',
-              'Amounts are the creator share after Stripe applies the 20% platform fee.',
-            )}
+            {t('creator.income.breakdown_hint')}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
             {(
@@ -105,18 +102,15 @@ export default function MonetizationDashboard() {
         <Card variant="glass" className="p-5 space-y-3">
           <h3 className="text-sm font-medium text-white flex items-center gap-1.5">
             <ShieldCheck size={14} className="text-brand-primary" aria-hidden />
-            {t('creator.income.stripe_balances', 'Stripe balances')}
+            {t('creator.income.stripe_balances')}
           </h3>
           <p className="text-xs text-white/50">
-            {t(
-              'creator.income.stripe_balances_hint',
-              'Read from Stripe Connect. CircleSfera does not hold a withdrawable wallet.',
-            )}
+            {t('creator.income.stripe_balances_hint')}
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
               <p className="text-[11px] text-white/50 mb-0.5">
-                {t('creator.income.available', 'Available')}
+                {t('creator.income.available')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
                 {(
@@ -129,7 +123,7 @@ export default function MonetizationDashboard() {
             </div>
             <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
               <p className="text-[11px] text-white/50 mb-0.5">
-                {t('creator.income.pending', 'Pending')}
+                {t('creator.income.pending')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
                 {(
@@ -146,7 +140,7 @@ export default function MonetizationDashboard() {
 
       <Card variant="glass" className="p-5 space-y-3">
         <h3 className="text-sm font-medium text-white">
-          {t('creator.income.transactions', 'Recent transactions')}
+          {t('creator.income.transactions')}
         </h3>
         <div className="space-y-2">
           {transactions.map((tx) => {
@@ -198,10 +192,7 @@ export default function MonetizationDashboard() {
 
           {transactions.length === 0 && (
             <p className="text-sm text-white/50 text-center py-6">
-              {t(
-                'creator.income.no_transactions',
-                'Sin transacciones registradas aún.',
-              )}
+              {t('creator.income.no_transactions')}
             </p>
           )}
         </div>

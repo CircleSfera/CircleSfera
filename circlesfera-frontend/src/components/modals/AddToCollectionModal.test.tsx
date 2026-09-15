@@ -61,11 +61,13 @@ describe('AddToCollectionModal', () => {
   });
 
   it('adds the post to an existing collection and closes', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AddToCollectionModal isOpen onClose={onClose} postId="post-1" />,
     );
 
-    expect(await screen.findByText('3 posts')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('collections.posts_count', { count: 3 })),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /travel/i }));
 
     await waitFor(() => {
@@ -80,16 +82,27 @@ describe('AddToCollectionModal', () => {
   });
 
   it('creates a collection then saves the post into it', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AddToCollectionModal isOpen onClose={onClose} postId="post-1" />,
     );
 
     await screen.findByText('Travel');
-    fireEvent.click(screen.getByRole('button', { name: 'New Collection' }));
-    fireEvent.change(screen.getByPlaceholderText('Collection Name'), {
-      target: { value: 'Weekend' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Collection' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('collections.new_collection'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: 'Weekend' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('collections.create'),
+      }),
+    );
 
     await waitFor(() => {
       expect(collectionsApi.create).toHaveBeenCalledWith({ name: 'Weekend' });
@@ -104,26 +117,37 @@ describe('AddToCollectionModal', () => {
   });
 
   it('cancels inline create without calling the API', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AddToCollectionModal isOpen onClose={onClose} postId="post-1" />,
     );
 
     await screen.findByText('Travel');
-    fireEvent.click(screen.getByRole('button', { name: 'New Collection' }));
-    fireEvent.change(screen.getByPlaceholderText('Collection Name'), {
-      target: { value: 'Nope' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('collections.new_collection'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: 'Nope' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('common.cancel'),
+      }),
+    );
 
     expect(
-      screen.queryByPlaceholderText('Collection Name'),
+      screen.queryByPlaceholderText(i18n!.t('collections.collection_name')),
     ).not.toBeInTheDocument();
     expect(collectionsApi.create).not.toHaveBeenCalled();
     expect(bookmarksApi.updateCollection).not.toHaveBeenCalled();
   });
 
   it('uses the frame sheet title and closes without saving', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AddToCollectionModal
         isOpen
         onClose={onClose}
@@ -132,10 +156,14 @@ describe('AddToCollectionModal', () => {
       />,
     );
 
-    expect(await screen.findByText('Save to collection')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('frames.save_to_collection')),
+    ).toBeInTheDocument();
     expect(await screen.findByText('Travel')).toBeInTheDocument();
 
-    const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+    const closeButtons = screen.getAllByRole('button', {
+      name: i18n!.t('frames.close'),
+    });
     fireEvent.click(closeButtons[closeButtons.length - 1]);
 
     expect(onClose).toHaveBeenCalledTimes(1);

@@ -1,9 +1,23 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+  TEST_UUID,
+} from '../common/testing/http-controller.js';
 import { AdminContentController } from './admin-content.controller.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
@@ -20,16 +34,7 @@ import { GetPromotionsQuery } from './use-cases/content/queries/get-promotions.q
 import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.js';
 
 describe('AdminContentController', () => {
-  let controller: AdminContentController;
-
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['content', 'reports', 'moderation', 'live'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const getPosts = { execute: vi.fn() };
   const deletePost = { execute: vi.fn() };
@@ -58,8 +63,8 @@ describe('AdminContentController', () => {
   const getLiveStreams = { execute: vi.fn() };
   const endLiveStream = { execute: vi.fn() };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminContentController],
       providers: [
         { provide: GetPostsQuery, useValue: getPosts },
@@ -76,33 +81,65 @@ describe('AdminContentController', () => {
         { provide: GetLiveStreamsQuery, useValue: getLiveStreams },
         { provide: EndLiveStreamUseCase, useValue: endLiveStream },
       ],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminContentController>(AdminContentController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects posts list without credentials', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/posts').expect(401);
+
+    expect(getPosts.execute).not.toHaveBeenCalled();
   });
 
-  it('lists posts with default pagination and no actor', async () => {
+  it('rejects posts list with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/posts')
+      .set(BEARER)
+      .expect(401);
+
+    expect(getPosts.execute).not.toHaveBeenCalled();
+  });
+
+  it('rejects reassign with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post(`/api/v1/admin/reports/${TEST_UUID}/reassign`)
+      .set(ADMIN_BEARER)
+      .send({ toAdminId: TEST_UUID, extra: 'nope' })
+      .expect(400);
+
+    expect(reviewReport.reassign).not.toHaveBeenCalled();
+  });
+
+  it('lists posts with default pagination and filters', async () => {
     getPosts.execute.mockResolvedValue({ data: [] });
 
-    await controller.getPosts({});
-    await controller.getPosts({
-      page: 2,
-      limit: 20,
-      search: 'q',
-      type: 'FRAME',
-      userId: 'user-2',
-      moderationStatus: 'HIDDEN',
-    });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/posts')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/posts')
+      .query({
+        page: 2,
+        limit: 20,
+        search: 'q',
+        type: 'FRAME',
+        userId: TEST_UUID,
+        moderationStatus: 'HIDDEN',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(getPosts.execute).toHaveBeenNthCalledWith(
       1,
@@ -119,22 +156,22 @@ describe('AdminContentController', () => {
       20,
       'q',
       'FRAME',
-      'user-2',
+      TEST_UUID,
       'HIDDEN',
     );
   });
 
   it('exports posts CSV without an actor', async () => {
-    const res = {
-      setHeader: vi.fn(),
-      send: vi.fn(),
-    } as unknown as Response;
     getContent.exportPostsCSV.mockResolvedValue('id,caption\n');
 
-    await controller.exportPostsCSV(res);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/posts/export')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
+    expect(res.headers['content-type']).toMatch(/text\/csv/);
+    expect(res.text).toBe('id,caption\n');
     expect(getContent.exportPostsCSV).toHaveBeenCalledWith();
-    expect(res.send).toHaveBeenCalledWith('id,caption\n');
   });
 
   it('deletes post, comment and story as adminId', async () => {
@@ -142,19 +179,40 @@ describe('AdminContentController', () => {
     deleteComment.execute.mockResolvedValue({ ok: true });
     deleteStory.execute.mockResolvedValue({ ok: true });
 
-    await controller.deletePost('post-1', admin);
-    await controller.deleteComment('c-1', admin);
-    await controller.deleteStory('story-1', admin);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/posts/post-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/comments/c-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/stories/story-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(deletePost.execute).toHaveBeenCalledWith('admin-1', 'post-1');
-    expect(deleteComment.execute).toHaveBeenCalledWith('admin-1', 'c-1');
-    expect(deleteStory.execute).toHaveBeenCalledWith('admin-1', 'story-1');
+    expect(deletePost.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'post-1',
+    );
+    expect(deleteComment.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'c-1',
+    );
+    expect(deleteStory.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'story-1',
+    );
   });
 
   it('lists reports with default pagination', async () => {
     getReports.execute.mockResolvedValue({ data: [] });
 
-    await controller.getReports({});
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/reports')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(getReports.execute).toHaveBeenCalledWith(
       1,
@@ -174,51 +232,70 @@ describe('AdminContentController', () => {
     reviewReport.resolveWithPenalty.mockResolvedValue({ id: 'r-1' });
     reviewReport.bulkUpdate.mockResolvedValue({ count: 2 });
 
-    await controller.updateReport('r-1', 'REVIEWING', 'note', admin);
-    await controller.claimReport('r-1', admin);
-    await controller.unclaimReport('r-1', admin);
-    await controller.reassignReport(
-      'r-1',
-      { toAdminId: '11111111-1111-1111-1111-111111111111' },
-      admin,
-    );
-    await controller.resolveReportWithPenalty('r-1', 'STRIKE', admin);
-    await controller.bulkUpdateReports(
-      { ids: ['r-1', 'r-2'], status: 'RESOLVED' },
-      admin,
-    );
-    await controller.bulkUpdateReports(
-      { ids: undefined as never, status: 'REJECTED' },
-      admin,
-    );
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/reports/r-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'REVIEWING', internalNotes: 'note' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/r-1/claim')
+      .set(ADMIN_BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/r-1/unclaim')
+      .set(ADMIN_BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/r-1/reassign')
+      .set(ADMIN_BEARER)
+      .send({ toAdminId: TEST_UUID })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/r-1/resolve-penalty')
+      .set(ADMIN_BEARER)
+      .send({ action: 'STRIKE' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/bulk')
+      .set(ADMIN_BEARER)
+      .send({ ids: ['r-1', 'r-2'], status: 'RESOLVED' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/reports/bulk')
+      .set(ADMIN_BEARER)
+      .send({ status: 'REJECTED' })
+      .expect(201);
 
     expect(reviewReport.updateStatus).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'r-1',
       'REVIEWING',
       'note',
     );
-    expect(reviewReport.claim).toHaveBeenCalledWith('admin-1', 'r-1');
-    expect(reviewReport.unclaim).toHaveBeenCalledWith('admin-1', 'r-1');
-    expect(reviewReport.reassign).toHaveBeenCalledWith(
-      'admin-1',
+    expect(reviewReport.claim).toHaveBeenCalledWith(TEST_ADMIN.adminId, 'r-1');
+    expect(reviewReport.unclaim).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
       'r-1',
-      '11111111-1111-1111-1111-111111111111',
+    );
+    expect(reviewReport.reassign).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'r-1',
+      TEST_UUID,
     );
     expect(reviewReport.resolveWithPenalty).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'r-1',
       'STRIKE',
     );
     expect(reviewReport.bulkUpdate).toHaveBeenNthCalledWith(
       1,
-      'admin-1',
+      TEST_ADMIN.adminId,
       ['r-1', 'r-2'],
       'RESOLVED',
     );
     expect(reviewReport.bulkUpdate).toHaveBeenNthCalledWith(
       2,
-      'admin-1',
+      TEST_ADMIN.adminId,
       [],
       'REJECTED',
     );
@@ -229,32 +306,43 @@ describe('AdminContentController', () => {
     getContent.getComments.mockResolvedValue({ data: [] });
     getContent.getStories.mockResolvedValue({ data: [] });
 
-    await controller.getHashtags({});
-    await controller.getComments({
-      page: 3,
-      limit: 5,
-      search: 'hi',
-      userId: 'user-2',
-      moderationStatus: 'VISIBLE',
-    });
-    await controller.getStories({
-      expired: 'true',
-      userId: 'user-2',
-      moderationStatus: 'HIDDEN',
-    });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/hashtags')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/comments')
+      .query({
+        page: 3,
+        limit: 5,
+        search: 'hi',
+        userId: TEST_UUID,
+        moderationStatus: 'VISIBLE',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stories')
+      .query({
+        expired: 'true',
+        userId: TEST_UUID,
+        moderationStatus: 'HIDDEN',
+      })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(getContent.getHashtags).toHaveBeenCalledWith(1, 20, undefined);
+    expect(getContent.getHashtags).toHaveBeenCalledWith(1, 10, undefined);
     expect(getContent.getComments).toHaveBeenCalledWith(
       3,
       5,
       'hi',
-      'user-2',
+      TEST_UUID,
       'VISIBLE',
     );
     expect(getContent.getStories).toHaveBeenCalledWith(1, 10, {
       moderationStatus: 'HIDDEN',
       expired: 'true',
-      userId: 'user-2',
+      userId: TEST_UUID,
     });
   });
 
@@ -262,12 +350,20 @@ describe('AdminContentController', () => {
     getPromotions.execute.mockResolvedValue({ data: [] });
     reviewPromotion.execute.mockResolvedValue({ id: 'promo-1' });
 
-    await controller.getPromotions({ status: 'ACTIVE', search: 'ad' });
-    await controller.updatePromotionStatus('promo-1', 'PAUSED', 'slow', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/promotions')
+      .query({ status: 'ACTIVE', search: 'ad' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/promotions/promo-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'PAUSED', note: 'slow' })
+      .expect(200);
 
     expect(getPromotions.execute).toHaveBeenCalledWith(1, 10, 'ACTIVE', 'ad');
     expect(reviewPromotion.execute).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'promo-1',
       'PAUSED',
       'slow',
@@ -278,18 +374,20 @@ describe('AdminContentController', () => {
     getModerationQueue.execute.mockResolvedValue({ data: [] });
     moderateContent.execute.mockResolvedValue({ id: 'post-1' });
 
-    await controller.getModerationQueue({ type: 'POST', search: 'q' });
-    await controller.updateModerationStatus(
-      'POST',
-      'post-1',
-      'HIDDEN',
-      'nsfw',
-      admin,
-    );
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/moderation/queue')
+      .query({ type: 'POST', search: 'q' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/moderation/POST/post-1')
+      .set(ADMIN_BEARER)
+      .send({ status: 'HIDDEN', note: 'nsfw' })
+      .expect(200);
 
     expect(getModerationQueue.execute).toHaveBeenCalledWith(1, 10, 'POST', 'q');
     expect(moderateContent.execute).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'POST',
       'post-1',
       'HIDDEN',
@@ -302,17 +400,30 @@ describe('AdminContentController', () => {
     getLiveStreams.execute.mockResolvedValue({ data: [] });
     endLiveStream.execute.mockResolvedValue({ ok: true });
 
-    await controller.getTrustQueue();
-    await controller.getLiveStreams({ status: 'LIVE', userId: 'user-2' });
-    await controller.endLiveStream('live-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/trust/queue')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/live')
+      .query({ status: 'LIVE', userId: TEST_UUID })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/live/live-1/end')
+      .set(ADMIN_BEARER)
+      .expect(201);
 
     expect(getContent.getTrustQueue).toHaveBeenCalledWith();
     expect(getLiveStreams.execute).toHaveBeenCalledWith(
       1,
-      20,
+      10,
       'LIVE',
-      'user-2',
+      TEST_UUID,
     );
-    expect(endLiveStream.execute).toHaveBeenCalledWith('admin-1', 'live-1');
+    expect(endLiveStream.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'live-1',
+    );
   });
 });

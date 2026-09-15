@@ -1,10 +1,9 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { profileApi } from '../../services';
 import { paymentsApi } from '../../services/payments.service';
+import { renderWithProviders } from '../../test/test-utils';
 import SettingsHubIndex from './SettingsHubIndex';
 import SettingsShell from './SettingsShell';
 
@@ -19,19 +18,6 @@ vi.mock('../../services/payments.service', () => ({
     getBillingStatus: vi.fn(),
   },
 }));
-
-function renderHub() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <SettingsHubIndex />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
-}
 
 describe('SettingsHubIndex', () => {
   beforeEach(() => {
@@ -50,54 +36,67 @@ describe('SettingsHubIndex', () => {
   });
 
   it('sends Edit, plan, and visibility to the matching sections', async () => {
-    renderHub();
+    const { i18n } = renderWithProviders(<SettingsHubIndex />);
 
     expect(
-      await screen.findByRole('link', { name: /^edit$/i }),
+      await screen.findByRole('link', {
+        name: i18n!.t('settings.hub.edit_profile'),
+      }),
     ).toHaveAttribute('href', '/accounts/profile');
     expect(
-      screen.getByRole('link', { name: /subscription: free/i }),
+      screen.getByRole('link', {
+        name: i18n!.t('settings.hub.plan_a11y', { plan: 'Free' }),
+      }),
     ).toHaveAttribute('href', '/accounts/billing');
     expect(
-      screen.getByRole('link', { name: /privacy: public/i }),
+      screen.getByRole('link', {
+        name: i18n!.t('settings.hub.privacy_a11y', {
+          visibility: i18n!.t('settings.hub.public'),
+        }),
+      }),
     ).toHaveAttribute('href', '/accounts/privacy');
   });
 
   it('opens About this account from the hub', async () => {
     const user = userEvent.setup();
-    renderHub();
+    const { i18n } = renderWithProviders(<SettingsHubIndex />);
 
     const aboutBtn = await screen.findByRole('button', {
-      name: /about this account/i,
+      name: (accessibleName) =>
+        accessibleName.includes(i18n!.t('settings.hub.about')),
     });
     await user.click(aboutBtn);
 
     expect(
-      await screen.findByRole('dialog', { name: /about this account/i }),
+      await screen.findByRole('dialog', {
+        name: i18n!.t('profile.about.title'),
+      }),
     ).toBeInTheDocument();
   });
 
   it('shows log out at the bottom of the hub list', async () => {
-    renderHub();
+    const { i18n } = renderWithProviders(<SettingsHubIndex />);
 
     expect(
-      await screen.findByRole('button', { name: /log out/i }),
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.logout'),
+      }),
     ).toBeInTheDocument();
   });
 });
 
 describe('SettingsShell', () => {
   it('hides the section rail on the hub index', () => {
-    render(
-      <MemoryRouter>
-        <SettingsShell section={null}>
-          <div>hub</div>
-        </SettingsShell>
-      </MemoryRouter>,
+    const { i18n } = renderWithProviders(
+      <SettingsShell section={null}>
+        <div>hub</div>
+      </SettingsShell>,
     );
 
     expect(
-      screen.queryByRole('navigation', { name: /account settings/i }),
+      screen.queryByRole('navigation', {
+        name: i18n!.t('settings.hub.nav_label'),
+      }),
     ).not.toBeInTheDocument();
     expect(screen.getByTestId('settings-column')).toHaveClass(
       'max-w-xl',
@@ -106,22 +105,22 @@ describe('SettingsShell', () => {
   });
 
   it('shows the section rail inside a section', () => {
-    render(
-      <MemoryRouter>
-        <SettingsShell section="profile">
-          <div>profile</div>
-        </SettingsShell>
-      </MemoryRouter>,
+    const { i18n } = renderWithProviders(
+      <SettingsShell section="profile">
+        <div>profile</div>
+      </SettingsShell>,
     );
 
     expect(
       screen.getByRole('navigation', {
-        name: /account settings/i,
+        name: i18n!.t('settings.hub.nav_label'),
         hidden: true,
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: /back to account/i }),
+      screen.getByRole('link', {
+        name: i18n!.t('settings.hub.back'),
+      }),
     ).toHaveAttribute('href', '/accounts');
     expect(screen.getByTestId('settings-column')).toHaveClass('max-w-5xl');
   });

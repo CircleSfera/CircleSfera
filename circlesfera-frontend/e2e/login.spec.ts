@@ -1,60 +1,36 @@
 import { expect, test } from '@playwright/test';
+import { emptyPage, prepareGuestSession, testProfile } from './helpers/session';
 
-test.describe('Flujo de Autenticación', () => {
-  test('debe permitir a un usuario iniciar sesión exitosamente (Mockeado)', async ({
-    page,
-  }) => {
-    // Interceptar la petición de login para devolver un token falso
+test.describe('Login', () => {
+  test('guest envía el formulario y llega a Home', async ({ page }) => {
+    await prepareGuestSession(page);
+
     await page.route('**/api/v1/auth/login', async (route) => {
-      const json = {
-        accessToken: 'fake-access-token',
-        user: {
-          id: 'test-user-id',
-          username: 'tester',
-          email: 'test@example.com',
-          role: 'user',
-          avatarUrl: null,
-        },
-      };
-      await route.fulfill({ status: 200, json });
-    });
-
-    // Interceptar la petición al perfil (me) para validar sesión
-    await page.route('**/api/v1/profiles/me', async (route) => {
-      const json = {
-        id: 'test-user-id',
-        username: 'tester',
-        email: 'test@example.com',
-        role: 'user',
-      };
-      await route.fulfill({ status: 200, json });
-    });
-
-    // Mocks adicionales para el feed que carga inmediatamente tras login
-    await page.route('**/api/v1/posts*', async (route) => {
       await route.fulfill({
         status: 200,
-        json: { posts: [], nextCursor: null },
+        json: { accessToken: 'cookie-session', refreshToken: 'refresh' },
       });
     });
 
-    await page.goto('/login');
+    const me = testProfile();
+    await page.route('**/api/v1/profiles/me', async (route) => {
+      await route.fulfill({ status: 200, json: me });
+    });
 
-    // Validar que estamos en la página
+    await page.route('**/api/v1/feed/**', async (route) => {
+      await route.fulfill({ status: 200, json: emptyPage });
+    });
+
+    await page.goto('/accounts/login');
     await expect(page).toHaveTitle(/CircleSfera/);
 
-    // Rellenar formulario
-    await page.fill('#identifier', 'test@example.com');
-    await page.fill('#password', 'password123');
+    await page.locator('#identifier').fill('test@example.com');
+    await page.locator('#password').fill('password123');
+    await page.getByTestId('login-submit-button').click();
 
-    // Click en iniciar sesión
-    await page.click('data-testid=login-submit-button');
-
-    // Esperar a que la redirección a la raíz (o feed) ocurra
-    await page.waitForURL('**/');
-
-    // Validar que el componente principal del muro / feed está visible (por ejemplo NavigationBar o CreatePost)
-    const navBar = page.locator('nav').first();
-    await expect(navBar).toBeVisible();
+    await page.waitForURL((url) => !url.pathname.includes('/accounts/login'), {
+      timeout: 15_000,
+    });
+    await expect(page.locator('nav').first()).toBeVisible();
   });
 });

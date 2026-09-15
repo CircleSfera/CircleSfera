@@ -1,10 +1,20 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { createControllerApp } from '../common/testing/http-controller.js';
 import { SeoController } from './seo.controller.js';
 import { SeoService } from './seo.service.js';
 
 describe('SeoController', () => {
-  let controller: SeoController;
+  let app: INestApplication;
 
   const mockService = {
     generateSitemap: vi.fn(),
@@ -14,26 +24,34 @@ describe('SeoController', () => {
     generateProfileOgImage: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [SeoController],
       providers: [{ provide: SeoService, useValue: mockService }],
-    }).compile();
-
-    controller = module.get<SeoController>(SeoController);
-    vi.clearAllMocks();
+    });
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
   it('delegates sitemap and robots.txt', async () => {
     mockService.generateSitemap.mockResolvedValue('<urlset/>');
     mockService.generateRobotsTxt.mockReturnValue('User-agent: *');
 
-    await controller.getSitemap();
-    controller.getRobotsTxt();
+    const sitemap = await request(app.getHttpServer())
+      .get('/api/v1/sitemap.xml')
+      .expect(200);
+    expect(sitemap.text).toBe('<urlset/>');
+
+    const robots = await request(app.getHttpServer())
+      .get('/api/v1/robots.txt')
+      .expect(200);
+    expect(robots.text).toBe('User-agent: *');
 
     expect(mockService.generateSitemap).toHaveBeenCalledWith();
     expect(mockService.generateRobotsTxt).toHaveBeenCalledWith();
@@ -42,9 +60,15 @@ describe('SeoController', () => {
   it('generates Open Graph HTML with a path or the root fallback', async () => {
     mockService.generateOpenGraphHtml.mockResolvedValue('<html/>');
 
-    await controller.getOpenGraphHtml('/u/alice');
-    await controller.getOpenGraphHtml('');
-    await controller.getOpenGraphHtml(undefined as never);
+    await request(app.getHttpServer())
+      .get('/api/v1/og')
+      .query({ path: '/u/alice' })
+      .expect(200);
+    await request(app.getHttpServer()).get('/api/v1/og').expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/og')
+      .query({ path: '' })
+      .expect(200);
 
     expect(mockService.generateOpenGraphHtml).toHaveBeenNthCalledWith(
       1,
@@ -58,8 +82,12 @@ describe('SeoController', () => {
     mockService.generatePostOgImage.mockResolvedValue('<svg/>');
     mockService.generateProfileOgImage.mockResolvedValue('<svg/>');
 
-    await controller.getPostOgImage('post-1');
-    await controller.getProfileOgImage('alice');
+    await request(app.getHttpServer())
+      .get('/api/v1/og-image/post/post-1')
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/og-image/profile/alice')
+      .expect(200);
 
     expect(mockService.generatePostOgImage).toHaveBeenCalledWith('post-1');
     expect(mockService.generateProfileOgImage).toHaveBeenCalledWith('alice');

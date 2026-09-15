@@ -1,9 +1,14 @@
 {
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe o se ha movido."
+  },
   "cookieConsent": {
     "title": "Cookies",
     "description": "Usamos cookies necesarias para que la app funcione. Las cookies de analítica son opcionales y nos ayudan a mejorar CircleSfera.",
     "essential_only": "Solo esenciales",
-    "accept": "Aceptar todas"
+    "accept": "Aceptar todas",
+    "dismiss": "Cerrar"
   },
   "nav": {
     "home": "Inicio",
@@ -19,7 +24,10 @@
     "premium": "Premium",
     "settings": "Configuración",
     "log_out": "Cerrar sesión",
-    "explore": "Explorar"
+    "explore": "Explorar",
+    "main": "Navegación principal",
+    "mobile": "Navegación móvil",
+    "top": "Navegación superior"
   },
   "settings": {
     "title": "Ajustes",
@@ -139,7 +147,14 @@
         "name": "Tu nombre",
         "bio": "Cuéntale al mundo tu historia...",
         "website": "https://tusitioweb.com"
-      }
+      },
+      "email_sent": "¡Enviado!",
+      "email_unverified_desc": "Por seguridad, necesitas verificar tu correo electrónico para guardar los cambios.",
+      "email_unverified_title": "Correo no verificado",
+      "error_saving": "Error al guardar los cambios",
+      "resend_email": "Reenviar correo",
+      "username_check_error": "Error al comprobar el usuario",
+      "username_min": "El usuario debe tener al menos 3 caracteres"
     },
     "privacy": {
       "title": "Privacidad",
@@ -157,7 +172,9 @@
       "subtitle": "Gestionar Conexiones",
       "empty": "No hay solicitudes pendientes en este momento",
       "confirm": "Confirmar",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "accept": "Confirmar",
+      "reject": "Eliminar"
     },
     "mutes": {
       "title": "Cuentas bloqueadas",
@@ -199,7 +216,8 @@
         "btn": "Solicitar exportación",
         "processing": "Procesando tu solicitud…",
         "download": "Descargar datos",
-        "request_new": "Solicitar una nueva exportación"
+        "request_new": "Solicitar una nueva exportación",
+        "history": "Historial de exportaciones"
       },
       "export_success": "Exportación iniciada. Recibirás un correo cuando esté lista.",
       "export_error": "Error al solicitar la exportación de datos.",
@@ -214,7 +232,14 @@
         "btn": "Verificar identidad",
         "verified": "Verificado",
         "error": "No se pudo iniciar la sesión de verificación"
-      }
+      },
+      "ledger": {
+        "button": "Descargar libro",
+        "desc": "Descarga un registro CSV completo de todas tus transacciones financieras.",
+        "title": "Libro financiero"
+      },
+      "ledger_error": "No se pudo descargar el libro.",
+      "ledger_success": "Libro descargado."
     },
     "billing": {
       "title": "Suscripción",
@@ -243,7 +268,41 @@
       "revoke_others": "Cerrar otras sesiones",
       "current_device": "Este dispositivo",
       "loading_sessions": "Cargando sesiones activas...",
-      "no_other_sessions": "No hay sesiones activas adicionales en este momento."
+      "no_other_sessions": "No hay sesiones activas adicionales en este momento.",
+      "2fa": {
+        "title": "Autenticación en dos factores (TOTP)",
+        "status_enabled": "Tu cuenta está protegida con 2FA.",
+        "status_disabled": "Protege tu cuenta activando 2FA.",
+        "setup_btn": "Configurar aplicación autenticadora",
+        "instructions": "Escanea este código QR con una app autenticadora (como Google Authenticator o Authy) e introduce el código de 6 dígitos.",
+        "qr_alt": "Código QR del autenticador",
+        "verify_btn": "Verificar",
+        "confirm_disable": "¿Seguro que quieres desactivar el 2FA? Tu cuenta quedará menos protegida.",
+        "disabling": "Desactivando...",
+        "disable_btn": "Desactivar 2FA",
+        "generate_error": "No se pudo generar el secreto 2FA",
+        "enable_success": "Autenticación en dos factores activada",
+        "invalid_code": "Código de verificación no válido",
+        "disable_success": "Autenticación en dos factores desactivada",
+        "disable_error": "No se pudo desactivar el 2FA"
+      },
+      "biometric_desc": "Requerir FaceID / TouchID al abrir la app",
+      "biometric_label": "Bloqueo Biométrico",
+      "app_locked_desc": "CircleSfera está protegida. Verifica tu identidad para continuar.",
+      "app_locked_title": "Aplicación bloqueada",
+      "biometric_description": "Usa Face ID o Touch ID para acceder.",
+      "biometric_failed": "Autenticación fallida. Inténtalo de nuevo.",
+      "biometric_reason": "Desbloquear CircleSfera",
+      "biometric_subtitle": "Verifica tu identidad",
+      "biometric_title": "Autenticación requerida",
+      "unlock_button": "Desbloquear",
+      "device_unknown": "Dispositivo",
+      "device_iphone": "iPhone (Safari móvil)",
+      "device_android": "Dispositivo Android",
+      "device_mac": "Escritorio Mac",
+      "device_windows": "Escritorio Windows",
+      "device_linux": "Escritorio Linux",
+      "device_browser": "Navegador web"
     },
     "appeals": {
       "title": "Apelaciones",
@@ -337,7 +396,19 @@
       "success": "¡Passkey registrada con éxito!",
       "initializing": "Inicializando conexión segura...",
       "add_new": "Añadir Nueva Llave de Seguridad",
-      "fido": "Protección Certificada FIDO2 / WebAuthn"
+      "fido": "Protección Certificada FIDO2 / WebAuthn",
+      "empty": "Aún no tienes ninguna passkey registrada.",
+      "register_error": "No se pudo registrar la passkey.",
+      "biometric_available": "Biometría disponible",
+      "created_on": "Creado el {{date}}"
+    },
+    "notifications": {
+      "email_desc": "Recibe actualizaciones y alertas por correo",
+      "email_notifications": "Notificaciones por correo",
+      "push_desc": "Recibe notificaciones en la app",
+      "push_notifications": "Notificaciones push",
+      "update_error": "No se pudieron actualizar los ajustes",
+      "updated": "Ajustes actualizados"
     }
   },
   "auth": {
@@ -358,7 +429,16 @@
       "passkey_loading": "Verificando Identidad...",
       "passkey_btn": "Iniciar sesión con Passkey",
       "no_account": "¿No tienes una cuenta?",
-      "sign_up_link": "Regístrate"
+      "sign_up_link": "Regístrate",
+      "banned_message": "Tu cuenta ha sido desactivada. Puedes enviar una apelación abajo.",
+      "appeal_reason_label": "Motivo de la apelación",
+      "appeal_reason_placeholder": "Explica por qué debería restablecerse tu cuenta...",
+      "submit_appeal": "Enviar apelación",
+      "appeal_success": "Apelación enviada. Nuestro equipo la revisará.",
+      "appeal_error": "No se pudo enviar la apelación",
+      "back_to_login": "Volver",
+      "2fa_code": "Código de autenticación",
+      "2fa_hint": "Introduce el código de 6 dígitos de tu app de autenticación."
     },
     "register": {
       "title": "CircleSfera",
@@ -389,7 +469,9 @@
       "sign_up": "Regístrate",
       "has_account": "¿Ya tienes una cuenta?",
       "sign_in_link": "Iniciar sesión",
-      "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta."
+      "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta.",
+      "age_error": "Debes tener al menos 16 años para registrarte.",
+      "dob_required": "La fecha de nacimiento es obligatoria"
     },
     "verify": {
       "no_token": "Token de verificación no encontrado.",
@@ -435,7 +517,8 @@
       "submit": "Cambiar Contraseña",
       "cancel": "Cancelar y volver al login"
     },
-    "captcha_required": "Completa la verificación de seguridad."
+    "captcha_required": "Completa la verificación de seguridad.",
+    "captcha_unavailable": "La verificación de seguridad aún no está lista. Espera a que termine el despliegue y actualiza."
   },
   "legal": {
     "nav": {
@@ -520,6 +603,8 @@
   "feed": {
     "home_title": "Inicio",
     "brand_name": "CircleSfera",
+    "for_you": "Para ti",
+    "following": "Siguiendo",
     "no_posts": "Todavía no hay publicaciones. ¡Explora para encontrar creadores!",
     "no_posts_title": "Sin publicaciones recientes",
     "login_required_title": "Inicia sesión",
@@ -555,13 +640,18 @@
     "author_shown": "Autor visible de nuevo",
     "post_shown": "Publicación visible de nuevo",
     "error": "No se pudo actualizar la preferencia",
-    "hidden_post_fallback": "Publicación oculta"
+    "hidden_post_fallback": "Publicación oculta",
+    "post_hidden": "Publicación ocultada de tu feed",
+    "post_hide_error": "No se pudo ocultar la publicación",
+    "author_hidden": "Autor ocultado de tu feed",
+    "author_hide_error": "No se pudo ocultar al autor"
   },
   "explore": {
     "page_title": "Explora el Universo",
     "page_desc": "Descubre publicaciones en tendencia, creadores locales y usa nuestra búsqueda impulsada por IA para encontrar exactamente lo que buscas en CircleSfera.",
     "heading": "Explorar",
     "search_placeholder": "Busca usuarios, #etiquetas o contenido descrito...",
+    "clear_search": "Limpiar búsqueda",
     "searching": "Buscando...",
     "smart_search": "Búsqueda Inteligente",
     "beta_ai": "Beta AI",
@@ -579,6 +669,35 @@
     "for_you": "Para Ti",
     "trending": "Trending",
     "discover_content": "Descubre contenido nuevo aquí basado en tus gustos.",
+    "map": {
+      "open": "Abrir mapa de descubrimiento",
+      "page_title": "Explorar mapa",
+      "title": "Lugares cerca",
+      "back": "Volver",
+      "close_sheet": "Cerrar",
+      "search_area": "Buscar en esta zona",
+      "searching": "Buscando…",
+      "recenter": "Centrar en mi ubicación",
+      "empty": "Aún no hay lugares etiquetados en esta zona.",
+      "empty_hint": "Al crear un post, etiqueta un lugar. Cuando haya contenido público con ubicación, verás pines en el mapa.",
+      "empty_cta": "Crear publicación",
+      "show_places": "Ver lugares",
+      "places_chip": "{{count}} lugares",
+      "posts_count": "{{count}} publicaciones",
+      "more_count": "+{{count}} más",
+      "recent": "Recientes",
+      "posted_by": "Publicaron aquí",
+      "creators_more": "{{count}} personas",
+      "place": "Lugar",
+      "no_posts": "Aún no hay publicaciones aquí",
+      "no_posts_hint": "Sé el primero en etiquetar este lugar.",
+      "area_generic": "Esta zona",
+      "token_missing": "Falta el token de Mapbox",
+      "token_missing_hint": "Configura VITE_MAPBOX_ACCESS_TOKEN en el .env del frontend y reinicia Vite.",
+      "render_error": "No se pudo cargar el mapa",
+      "render_error_hint": "Revisa la consola del navegador o recarga la página.",
+      "retry": "Reintentar"
+    },
     "cold_start": {
       "title_foryou": "Descubre tu propio espacio",
       "title_trending": "Las tendencias te esperan",
@@ -739,7 +858,11 @@
         },
         "closing": "Lee Precios para el detalle de planes y luego crea una cuenta para abrir Creator Studio cuando seas elegible."
       }
-    }
+    },
+    "error_message": "Algo salió mal al cargar publicaciones. Inténtalo de nuevo.",
+    "match": "Match",
+    "smart_people": "Personas que encajan con tu idea",
+    "error_title": "No se pudo cargar Explorar"
   },
   "post": {
     "detail": {
@@ -748,31 +871,47 @@
     },
     "tag_feed": {
       "discover": "Descubre publicaciones relacionadas con esta etiqueta",
-      "no_posts": "No se encontraron publicaciones para"
+      "no_posts": "No se encontraron publicaciones para",
+      "error_message": "Algo salió mal al cargar publicaciones. Inténtalo de nuevo.",
+      "error_title": "No se pudo cargar el feed del tag"
     },
     "actions": {
       "comments": "Comentarios",
       "share": "Compartir publicación",
       "tip": "Dar propina",
       "remove_bookmark": "Quitar de guardados",
-      "add_bookmark": "Guardar publicación"
+      "add_bookmark": "Guardar publicación",
+      "like": "Me gusta",
+      "unlike": "Quitar me gusta"
     },
     "content": {
       "likes": "me gusta",
-      "view_all_comments": "Ver los {{count}} comentarios"
+      "view_all_comments": "Ver los {{count}} comentarios",
+      "likes_count": "{{count}} me gusta",
+      "comments_count": "{{count}} comentarios"
     },
     "header": {
-      "promoted": "Publicidad"
+      "promoted": "Publicidad",
+      "more_options": "Más opciones"
     },
     "media": {
       "unlock_success": "¡Publicación desbloqueada con éxito!",
-      "unlock_error": "Error al desbloquear la publicación"
+      "unlock_error": "Error al desbloquear la publicación",
+      "carousel": "Carrusel de medios",
+      "previous_slide": "Diapositiva anterior",
+      "next_slide": "Diapositiva siguiente",
+      "go_to_slide": "Ir a la diapositiva {{n}}",
+      "sensitive": "Contenido sensible difuminado"
     },
     "menu": {
       "edit": "Editar",
       "delete": "Eliminar",
       "report": "Reportar",
-      "save": "Guardar"
+      "save": "Guardar",
+      "promote": "Impulsar publicación",
+      "hide_author": "Ocultar autor",
+      "mute": "Silenciar usuario",
+      "not_interested": "No me interesa"
     },
     "modals": {
       "delete_title": "¿Eliminar publicación?",
@@ -784,7 +923,24 @@
       "write_caption": "Escribe una descripción...",
       "save": "Guardar",
       "saving": "Guardando..."
-    }
+    },
+    "recommendation": {
+      "interest": "Recomendado para ti",
+      "popular": "Popular",
+      "new": "Nuevo para ti",
+      "why": "¿Por qué?",
+      "close_friends": "Mejores Amigos",
+      "following": "Siguiendo",
+      "signals_desc": {
+        "ranked_for_you": "Nuestro algoritmo ha clasificado este contenido como altamente relevante para ti basándose en tus intereses y actividad.",
+        "popular": "Esta publicación está recibiendo mucha interacción en la plataforma en este momento.",
+        "network": "Personas de tu red o a las que sigues están interactuando con esta publicación.",
+        "close_friend": "El autor de esta publicación está en tu lista de Mejores Amigos.",
+        "generic": "Te recomendamos esto por: {{signal}}"
+      }
+    },
+    "checkout_canceled": "El pago se canceló.",
+    "checkout_success": "Pago correcto. El contenido se desbloqueará en breve."
   },
   "story": {
     "delete_error": "Error al eliminar la historia",
@@ -793,6 +949,12 @@
     "views": "Vistas",
     "sent": "¡Enviado!",
     "reply_placeholder": "Responder...",
+    "send_reply": "Enviar respuesta",
+    "close_viewer": "Cerrar visor de historia",
+    "delete_this": "Eliminar esta historia",
+    "you": "Tú",
+    "yours": "Tu story",
+    "view_of": "Ver historias de {{username}}",
     "delete_title": "¿Eliminar historia?",
     "delete_warning": "Esta acción no se puede deshacer.",
     "delete": "Eliminar",
@@ -806,7 +968,16 @@
     "questions_short": "Q&A",
     "qna_prompt_label": "Pregunta",
     "no_questions": "Aún no hay preguntas",
-    "no_questions_desc": "Cuando respondan a tu sticker de Q&A, aparecerán aquí."
+    "no_questions_desc": "Cuando respondan a tu sticker de Q&A, aparecerán aquí.",
+    "unlock_success": "Historia desbloqueada",
+    "unlock_error": "No se pudo desbloquear la historia",
+    "delete_highlight": "Eliminar destacado",
+    "delete_highlight_confirm": "¿Eliminar este destacado?",
+    "edit_highlight": "Editar destacado",
+    "highlight_delete_error": "No se pudo eliminar",
+    "highlight_deleted": "Destacado eliminado",
+    "highlight_update_error": "No se pudo actualizar",
+    "highlight_updated": "Destacado actualizado"
   },
   "comments": {
     "unlike": "Ya no me gusta",
@@ -823,7 +994,9 @@
     "post": "Publicar",
     "upload_error": "Error al subir el archivo",
     "delete_title": "Eliminar Comentario",
-    "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer."
+    "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.",
+    "add_media": "Añadir media",
+    "voice_note": "🎤 Nota de voz"
   },
   "profile": {
     "tabs": {
@@ -852,7 +1025,12 @@
       "more_options": "Más opciones",
       "mute": "Silenciar",
       "muted": "Usuario silenciado",
-      "mute_error": "No se pudo silenciar al usuario"
+      "mute_error": "No se pudo silenciar al usuario",
+      "follow": "Seguir",
+      "following": "Siguiendo",
+      "requested": "Solicitado",
+      "unblock": "Desbloquear",
+      "create_post": "Crear publicación"
     },
     "creator_mode": {
       "creator": "Creador",
@@ -898,7 +1076,9 @@
     "messages": {
       "subscribed_success": "¡Suscrito con éxito!",
       "subscribe_error": "Error al suscribirse",
-      "chat_error": "No se pudo abrir el chat"
+      "chat_error": "No se pudo abrir el chat",
+      "checkout_canceled": "El pago se canceló.",
+      "checkout_success": "Pago correcto. ¡Gracias por tu apoyo!"
     },
     "badges": {
       "premium": "Suscriptor Premium",
@@ -931,7 +1111,9 @@
         "older": "Hace más tiempo",
         "unknown": "Desconocida"
       }
-    }
+    },
+    "private_account": "Cuenta privada",
+    "private_label": "Privada"
   },
   "suggestions": {
     "title": "Sugerencias para ti",
@@ -981,9 +1163,16 @@
       "subtitle": "Optimiza para lectores de pantalla",
       "done": "Listo",
       "info": "\"El texto alternativo describe tus fotos para personas con discapacidad visual. CircleSfera puede ayudarte a generarlos usando nuestra IA propietaria.\"",
+      "info_video": "Describe este video para quien no pueda verlo o escucharlo. CircleSfera aún no genera descripciones de video automáticamente.",
       "placeholder": "Escribe el texto alternativo...",
+      "placeholder_video": "Describe este video…",
       "generating": "Generando...",
       "magic_ai": "IA Mágica"
+    },
+    "preview": {
+      "play": "Reproducir",
+      "pause": "Pausar",
+      "seek": "Deslizar en la línea de tiempo"
     },
     "caption": {
       "add_location": "Añadir Ubicación",
@@ -995,6 +1184,8 @@
       "write_caption": "Escribe una descripción...",
       "you": "Tú",
       "options": "Opciones de publicación",
+      "more_options": "Más opciones",
+      "too_long": "La descripción es demasiado larga.",
       "monetization": "Monetización",
       "monetization_active": "Contenido de pago",
       "premium_content": "Contenido premium (pago por ver)",
@@ -1029,6 +1220,29 @@
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
       "add_more": "Añadir más medios",
+      "select_media": "Seleccionar medio",
+      "audio": "Audio",
+      "muted": "Silenciado",
+      "with_sound": "Con sonido",
+      "trim_label": "Recortar ({{seconds}}s)",
+      "reset": "Restablecer",
+      "tab_filters": "Filtros",
+      "tab_adjust": "Ajustar",
+      "tab_crop": "Recorte",
+      "tab_trim": "Recortar",
+      "tab_overlay": "Capa",
+      "crop_free": "Libre",
+      "crop_1_1": "1:1",
+      "crop_4_5": "4:5",
+      "crop_16_9": "16:9",
+      "crop_rotation": "Rotación",
+      "overlay_draw": "Dibujar",
+      "overlay_drawing": "Dibujando…",
+      "overlay_add_text": "+ Texto",
+      "overlay_new_text": "Nuevo texto",
+      "overlay_delete": "Eliminar",
+      "overlay_brush_color": "Color del pincel",
+      "overlay_brush_size": "Grosor del pincel",
       "post": "Post",
       "story": "Historia",
       "frame": "Frame",
@@ -1043,6 +1257,14 @@
         "sepia": "Sepia",
         "grayscale": "Escala de grises"
       }
+    },
+    "frameTrim": {
+      "title": "Elige la duración del Frame",
+      "hint": "Selecciona un clip entre {{min}} y {{max}} segundos.",
+      "presets": "Duraciones predefinidas",
+      "preset_seconds": "{{seconds}}s",
+      "slider": "Inicio del clip",
+      "range": "{{start}} – {{end}}"
     },
     "header": {
       "add_to_story": "Añadir a Historia",
@@ -1063,7 +1285,17 @@
       "poll_question": "Haz una pregunta…",
       "option_a": "Opción A",
       "option_b": "Opción B",
-      "qna_prompt": "Pregúntame lo que quieras…"
+      "qna_prompt": "Pregúntame lo que quieras…",
+      "save": "Guardar",
+      "yes": "Sí",
+      "no": "No",
+      "poll_create_failed": "Se publicó, pero falló la creación de la encuesta.",
+      "qna_create_failed": "Se publicó, pero falló la creación de las preguntas."
+    },
+    "seo": {
+      "post": "CircleSfera — Nueva publicación",
+      "frame": "CircleSfera — Nuevo Frame",
+      "story": "CircleSfera — Añadir a Story"
     },
     "stepper": {
       "upload": "Subir",
@@ -1075,25 +1307,40 @@
       "title": "Añadir Ubicación",
       "search": "Buscar ubicación...",
       "use_current": "Usar Ubicación Actual",
+      "current_coords": "Cerca de {{lat}}, {{lng}}",
+      "geo_unsupported": "La geolocalización no está disponible en este navegador.",
+      "geo_denied": "No se pudo obtener tu ubicación. Revisa los permisos.",
+      "geo_loading": "Buscando lugar…",
       "suggested": "Ubicación Sugerida",
       "not_found": "No se encontraron ubicaciones",
-      "try_different": "Intenta buscar una ciudad o región diferente."
+      "try_different": "Intenta buscar una ciudad o región diferente.",
+      "token_missing": "Falta el token de Mapbox. Define VITE_MAPBOX_ACCESS_TOKEN para buscar lugares.",
+      "retrieve_failed": "No se pudo resolver ese lugar. Prueba otro resultado.",
+      "clear": "Quitar",
+      "mapbox_hint": "Búsqueda con Mapbox. Elige un lugar para adjuntar coordenadas a tu publicación."
     },
     "upload": {
       "post": "Post",
       "post_desc": "Comparte fotos y carruseles",
-      "post_hint": "JPG, PNG, MP4 · Máx 100MB",
+      "post_hint": "JPG, PNG, MP4 · Máx 100MB · Vídeo hasta 5 min",
       "story": "Historia",
       "story_desc": "Desaparece en 24h",
       "story_hint": "Foto o video · Hasta 60s",
       "frame": "Frame",
       "frame_desc": "Video corto",
-      "frame_hint": "MP4, MOV · 15-90 segundos · Máx 100MB",
+      "frame_hint": "MP4, MOV · Elige 15–90s · Máx 100MB",
+      "frame_video_only": "Los Frames solo admiten video.",
+      "frame_duration": "Los videos de Frame deben durar entre {{min}} y {{max}} segundos.",
+      "frame_too_short": "Los videos de Frame deben durar al menos {{min}} segundos. Elige un clip más largo.",
+      "frame_duration_probe_failed": "No se pudo leer la duración de este video. Prueba con otro archivo.",
+      "story_duration": "Los videos de Story deben durar {{max}} segundos o menos.",
+      "post_duration": "Los videos de Post deben durar {{max}} segundos o menos.",
       "file_too_large": "{{name}} supera el límite de {{maxMb}} MB.",
       "upload_failed": "No se pudo subir {{name}}",
       "drop_files": "Suelta los archivos aquí",
       "drag_files": "Arrastra fotos y videos aquí",
       "select_device": "Seleccionar del dispositivo",
+      "select_video": "Seleccionar video",
       "take_photo": "Tomar una foto",
       "create_text_story": "Crear Historia de Texto",
       "create_text_story_desc": "Fondos, texto y stickers",
@@ -1197,30 +1444,50 @@
       "unsupported": "El etiquetado solo es compatible con imágenes.",
       "done": "Listo",
       "tags_on_photo": "Etiquetas en esta foto",
-      "no_tags_yet": "Aún no hay etiquetas. Toca la foto para añadirlas."
+      "no_tags_yet": "Aún no hay etiquetas. Toca la foto para añadirlas.",
+      "remove": "Quitar"
     },
     "story": {
       "add_music": "Añadir Música",
+      "add_location": "Añadir lugar",
       "close_friends": "Mejores Amigos",
       "your_story": "Tu Historia",
       "manage_close_friends": "Gestionar mejores amigos",
       "add_close_friends_first": "Añade mejores amigos para compartir historias solo con ellos.",
       "qna_create_error": "Historia publicada, pero no se pudo crear el Q&A.",
       "poll_create_error": "Historia publicada, pero no se pudo crear la encuesta."
+    },
+    "discard": {
+      "cancel": "Cancelar",
+      "confirm": "Descartar",
+      "message": "Si sales ahora, perderás todos los cambios.",
+      "title": "¿Descartar publicación?"
     }
   },
   "report": {
     "title": "Reportar",
     "success": "Gracias por reportar. Revisaremos tu reporte en breve.",
-    "why_report": "¿Por qué estás reportando este {{targetType}}?",
+    "why_report": "¿Por qué estás reportando {{targetType}}?",
     "additional_details": "Detalles adicionales (Opcional)",
     "placeholder": "Cuéntanos más...",
     "submitting": "Enviando...",
     "submit": "Enviar Reporte",
+    "targets": {
+      "user": "esta cuenta",
+      "post": "este post",
+      "comment": "este comentario",
+      "story": "esta historia",
+      "message": "este mensaje"
+    },
     "reasons": {
       "spam": "Es spam",
       "harassment": "Acoso o intimidación",
       "hate_speech": "Contenido inapropiado o Discurso de odio",
+      "violence": "Violencia o contenido peligroso",
+      "illegal_content": "Contenido ilegal",
+      "impersonation": "Suplantación de identidad",
+      "scam": "Estafa o fraude",
+      "csam": "Explotación sexual infantil (CSAM)",
       "other": "Otra cosa"
     }
   },
@@ -1261,6 +1528,13 @@
     "file_too_large": "Para garantizar el cifrado E2E, los archivos no pueden superar los 50 MB.",
     "sent_attachment": "Envió un archivo adjunto",
     "shared_post": "Compartió una publicación",
+    "message_deleted": "Este mensaje fue eliminado",
+    "secure_message": "Mensaje seguro",
+    "reply": "Responder",
+    "react": "Reaccionar",
+    "remove_reaction": "Quitar reacción",
+    "edit": "Editar",
+    "e2ee": "Mensajería cifrada de extremo a extremo (E2EE)",
     "chat": "Chat",
     "group_chat": "Chat de Grupo",
     "user": "Usuario",
@@ -1325,7 +1599,12 @@
     "decrypting": "Descifrando…",
     "edited": "editado",
     "unlock_success": "Mensaje desbloqueado. ¡Gracias por tu apoyo!",
-    "unlock_canceled": "Se canceló el pago del desbloqueo."
+    "unlock_canceled": "Se canceló el pago del desbloqueo.",
+    "delete_for_me": "Eliminar para mí",
+    "delete_for_everyone": "Eliminar para todos",
+    "editing_message": "Editando mensaje",
+    "read": "Leído",
+    "delivered": "Entregado"
   },
   "creator": {
     "title": "Creator Studio",
@@ -1354,13 +1633,17 @@
       "filter_posts": "Posts",
       "filter_frames": "Frames",
       "prev": "Anterior",
-      "next": "Siguiente"
+      "next": "Siguiente",
+      "insights": "Insights",
+      "boost": "Impulsar"
     },
     "stories": {
       "empty_title": "No hay historias",
       "empty_desc": "Comparte momentos efímeros con tus seguidores para aumentar tu alcance.",
       "expired": "Expirada",
-      "active": "Activa"
+      "active": "Activa",
+      "open": "Abrir historia",
+      "open_error": "No se pudo abrir esta historia"
     },
     "money": {
       "sections": "Secciones de monetización",
@@ -1427,7 +1710,21 @@
       "followers": "Seguidores",
       "not_enough_data": "No hay suficientes datos aún",
       "upload_content": "Sube contenido para empezar a medir tu audiencia.",
-      "export_csv": "Exportar CSV"
+      "export_csv": "Exportar CSV",
+      "income_history": "Historial de ingresos (6 meses)",
+      "no_income_data": "No hay datos de ingresos en este periodo",
+      "current_month_income": "Ingresos de este mes",
+      "total_tips": "Propinas totales",
+      "activity_hours": "Horas de mayor actividad (últimos 30 días)",
+      "follower_locations": "Geografía de seguidores",
+      "no_activity_data": "No hay datos de actividad",
+      "no_location_data": "No hay datos de ubicación",
+      "no_retention_data": "No hay datos de suscriptores",
+      "sub_retention": "Retención de suscripciones",
+      "retained": "Activas (renovando)",
+      "churning": "Canceladas (por expirar)",
+      "churned": "Expiradas",
+      "income_series": "Ingresos"
     },
     "promotions": {
       "created": "Promoción creada",
@@ -1484,14 +1781,35 @@
       "finished_refund": "Promoción cancelada. Reembolso: {{amount}} {{currency}}",
       "error_cancel": "Error al cancelar",
       "restarted": "Campaña reiniciada",
-      "error_repeat": "Error al repetir"
+      "error_repeat": "Error al repetir",
+      "elite_required": "Las promociones están disponibles en el plan Elite.",
+      "objective_profile": "Visitas al perfil",
+      "objective_follows": "Conseguir seguidores",
+      "objective_conversions": "Conversiones de suscripción",
+      "campaign_objective": "Objetivo de campaña",
+      "per_day": "día",
+      "estimated_reach": "Alcance estimado",
+      "countries_hint": "Países (p. ej. ES, MX, US)",
+      "interests_hint": "Intereses (p. ej. Música, Moda)",
+      "all_countries": "Todos los países",
+      "all_interests": "Todos los intereses",
+      "accept_terms": "Al impulsar aceptas los términos de publicidad.",
+      "countries_placeholder": "Países (separados por comas, opcional)",
+      "interests_placeholder": "Intereses (separados por comas, opcional)",
+      "objective": "Objetivo",
+      "clicks": "Clics",
+      "ctr": "CTR",
+      "cpc": "CPC"
     },
     "monetization": {
       "error_checkout": "Error al iniciar el pago",
       "error_portal": "Error al acceder al portal",
+      "error_connect": "Error al conectar con Stripe",
+      "error_dashboard": "Error al abrir el panel",
       "loading_plans": "Cargando planes...",
       "subscription_status": "Estatus de Suscripción",
-      "current_plan": "Plan Actual",
+      "current_plan": "Plan actual: {{plan}}",
+      "free_plan": "Experiencia gratuita",
       "select_plan_start": "Selecciona un plan abajo para comenzar.",
       "manage_subscription": "Gestionar Suscripción",
       "active": "Activo",
@@ -1501,7 +1819,39 @@
       "growth_analytics": "Analíticas de Crecimiento",
       "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
       "vip_community": "Comunidad VIP",
-      "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global."
+      "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
+      "lifetime": "Ganancias de por vida",
+      "express_dashboard": "Abrir Stripe",
+      "stripe_connected": "Cuenta de Stripe conectada",
+      "stripe_connected_desc": "Stripe reparte cada cobro (80% tú / 20% CircleSfera) y paga a tu banco.",
+      "transfers_enabled": "Transferencias activadas",
+      "transfers_pending": "Transferencias en configuración"
+    },
+    "advanced": {
+      "title": "Ingresos y retención",
+      "subtitle": "Audiencia de pago, mix de ingresos y cuándo se quedan.",
+      "error": "No se pudieron cargar las analíticas avanzadas.",
+      "export_csv": "Exportar CSV",
+      "loading": "Cargando métricas del creador…",
+      "gross": "Ingresos brutos",
+      "period_hint": "Periodo: {{period}}",
+      "paid_subs": "Suscriptores de pago",
+      "conversion": "Conversión: {{rate}}%",
+      "dwell": "Permanencia media",
+      "peak": "Pico: {{hour}}:00 UTC",
+      "tips_gifts": "Propinas y regalos",
+      "tips_hint": "Live y mensajes directos",
+      "breakdown": "Fuentes de ingresos",
+      "subscriptions": "Suscripciones",
+      "unlocks": "Desbloqueos de pago",
+      "hourly": "Interacción por hora (UTC)",
+      "hour_slot": "{{hour}}:00 UTC — {{count}} interacciones",
+      "hourly_hint": "Publicar alrededor de las {{hour}}:00 UTC suele coincidir con el pico de permanencia.",
+      "top_posts": "Publicaciones con mejor rendimiento",
+      "no_top_posts": "Aún no hay publicaciones con métricas puntuadas."
+    },
+    "guard": {
+      "creators_only": "Creator Studio solo está disponible para cuentas de creador."
     }
   },
   "wallet": {
@@ -1542,7 +1892,11 @@
     "vip_community": "Comunidad VIP",
     "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
     "unlock_for_money": "Desbloquear por €{{price}}",
-    "failed_to_unlock": "No se pudo desbloquear el mensaje"
+    "failed_to_unlock": "No se pudo desbloquear el mensaje",
+    "connect_stripe_error": "No se pudo conectar Stripe.",
+    "connect_with_stripe": "Conectar con Stripe",
+    "stripe_connect_desc": "Para retirar ganancias, verifica tu identidad y vincula una cuenta bancaria con Stripe Connect.",
+    "verify_identity": "Verifica tu identidad para recibir pagos"
   },
   "admin": {
     "panel": "Admin Panel",
@@ -1559,6 +1913,7 @@
       "dashboard": "Dashboard",
       "analytics": "Estadísticas",
       "monetization": "Monetización",
+      "payouts": "Retiros (Stripe)",
       "promotions": "Promociones",
       "verification": "Verificación",
       "whitelist": "Whitelist",
@@ -1626,7 +1981,9 @@
       "saving": "Guardando...",
       "save_changes": "Guardar cambios",
       "add": "Añadir",
-      "delete": "Eliminar"
+      "delete": "Eliminar",
+      "select_item_title": "Selecciona un elemento",
+      "select_item_description": "Elige un elemento de la lista para ver los detalles."
     },
     "users": {
       "title": "Gestión de Usuarios",
@@ -1684,6 +2041,17 @@
       "action_suspend": "Suspender",
       "action_restore": "Restaurar",
       "action_promote": "Promover",
+      "promote_modal": {
+        "title": "Promover usuario",
+        "description": "Busca a un usuario por su nombre o correo para añadirlo al equipo de administración.",
+        "search_placeholder": "Buscar por usuario o email...",
+        "searching": "Buscando...",
+        "min_chars": "Escribe al menos 3 letras para buscar.",
+        "empty": "No se encontraron usuarios estándar con ese término.",
+        "change": "Cambiar",
+        "role_label": "Selecciona el nuevo rol",
+        "confirm": "Otorgar permisos"
+      },
       "action_demote": "Quitar operador vinculado",
       "action_delete": "Eliminar",
       "action_view_detail": "Ver detalle",
@@ -1756,7 +2124,11 @@
       "kb_approve": "Aprobar",
       "kb_hide": "Ocultar",
       "kb_remove": "Eliminar",
-      "kb_deselect": "Deseleccionar"
+      "kb_deselect": "Deseleccionar",
+      "permanent_delete_note": "Eliminado permanentemente por moderación",
+      "note_batch_approved": "Aprobado en lote",
+      "note_batch_hidden": "Ocultado en lote",
+      "note_false_positive": "Aprobado (falso positivo)"
     },
     "reports": {
       "title": "Reportes de Usuario",
@@ -1886,7 +2258,8 @@
       "target_preview": "Contexto",
       "open_user": "Abrir usuario",
       "notes_prompt": "Notas opcionales (vacío para omitir):",
-      "notes_prompt_reject": "Motivo del rechazo (opcional):"
+      "notes_prompt_reject": "Motivo del rechazo (opcional):",
+      "admin_notes": "Notas"
     },
     "trust": {
       "title": "Cola de confianza",
@@ -1946,7 +2319,9 @@
       "kpi_viewers": "Espectadores totales",
       "kpi_traffic": "Pico de tráfico",
       "kpi_traffic_normal": "Normal",
-      "status_live_now": "En vivo ahora"
+      "status_live_now": "En vivo ahora",
+      "gifts": "Regalos",
+      "viewers": "Espectadores"
     },
     "support": {
       "title": "Tickets de Soporte",
@@ -2162,7 +2537,10 @@
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar este comentario permanentemente?",
       "confirm_delete": "Eliminar",
       "kpi_engagement": "Tasa de engagement global",
-      "kpi_pending_reports": "Reportes pendientes (moderación)"
+      "kpi_pending_reports": "Reportes pendientes (moderación)",
+      "detail_title": "Detalle del comentario",
+      "no_content": "Sin contenido",
+      "toast_hide_error": "No se pudo ocultar el comentario"
     },
     "hashtags": {
       "title": "Hashtags",
@@ -2323,7 +2701,16 @@
       "saving": "Guardando...",
       "added_on": "Añadido el {{date}}",
       "new_rule_hint": "Define una palabra o frase exacta para interceptar.",
-      "rule_details_hint": "Información de la regla seleccionada."
+      "rule_details_hint": "Información de la regla seleccionada.",
+      "rule_added": "Regla añadida",
+      "rule_updated": "Regla actualizada",
+      "rule_deleted": "Regla borrada",
+      "rule_add_error": "Error añadiendo regla",
+      "rule_update_error": "Error actualizando regla",
+      "rule_delete_error": "Error borrando regla",
+      "delete_desc": "Esto elimina la regla de palabra clave de forma permanente.",
+      "delete_title": "¿Eliminar regla del firewall?",
+      "keyword_placeholder": "ej. spamcasino.com"
     },
     "whitelist": {
       "title": "Whitelist de Interesados",
@@ -2551,10 +2938,24 @@
       "report_status_reviewing": "En revisión",
       "report_status_resolved": "Resuelto",
       "report_status_rejected": "Rechazado",
-      "not_found": "No se pudo encontrar el expediente del usuario"
+      "not_found": "No se pudo encontrar el expediente del usuario",
+      "apply_bot_label": "Marcar como posible bot",
+      "bot_label_error": "Error",
+      "bot_label_prompt": "Motivo de la etiqueta de posible bot",
+      "bot_label_updated": "Actualizado",
+      "clear_bot_label": "Quitar etiqueta de bot",
+      "cluster_size": "Cuentas vinculadas en el clúster: {{count}}",
+      "last_ip": "Última IP",
+      "signup_ip": "IP de registro",
+      "trust_title": "Señales de confianza"
     },
     "cmd": {
-      "placeholder": "Buscar secciones o usuarios..."
+      "placeholder": "Buscar secciones o usuarios...",
+      "no_results": "Sin resultados para \"{{query}}\"",
+      "go_to": "Ir a {{section}}",
+      "no_username": "(sin usuario)",
+      "quick_action": "Acción rápida: {{section}}",
+      "user_result": "@{{username}} — {{name}}"
     },
     "lives": {
       "title": "Directos",
@@ -2568,7 +2969,10 @@
       "status_live": "En vivo ahora",
       "status_ended": "Finalizados",
       "status_all": "Todos",
-      "no_video_source": "No hay fuente de video disponible"
+      "no_video_source": "No hay fuente de video disponible",
+      "action_end": "Finalizar",
+      "confirm_end_message": "¿Estás seguro de que deseas finalizar esta transmisión? Los espectadores serán desconectados inmediatamente.",
+      "confirm_end_title": "Finalizar directo"
     },
     "settings": {
       "title": "Configuración global",
@@ -2669,7 +3073,16 @@
     "posts_count": "{{count}} posts",
     "saved_title": "Guardados",
     "no_saved": "Aún no hay posts guardados",
-    "no_saved_desc": "Guarda posts para verlos más tarde tocando el icono de marcador."
+    "no_saved_desc": "Guarda posts para verlos más tarde tocando el icono de marcador.",
+    "delete": "Eliminar",
+    "delete_confirm": "¿Eliminar esta colección? Los posts guardados siguen en Guardados.",
+    "delete_error": "No se pudo eliminar",
+    "deleted": "Colección eliminada",
+    "load_error_message": "Algo salió mal. Inténtalo de nuevo.",
+    "load_error_title": "No se pudieron cargar los guardados",
+    "rename": "Renombrar",
+    "rename_error": "No se pudo renombrar",
+    "renamed": "Colección renombrada"
   },
   "supportPage": {
     "badge": "Soporte",
@@ -2761,6 +3174,9 @@
     "save_error": "No se pudo guardar el borrador",
     "save_error_short": "Error al guardar",
     "zoom": "Zoom de timeline",
+    "playhead": "Cabezal de reproducción",
+    "trim_start": "Recortar inicio",
+    "trim_end": "Recortar final",
     "mute": "Silenciar pista",
     "unmute": "Activar sonido",
     "hide": "Ocultar pista",
@@ -2915,6 +3331,8 @@
   "live": {
     "connecting": "Conectando al directo...",
     "starting": "Iniciando directo...",
+    "starting_camera": "Iniciando cámara...",
+    "waiting_stream": "Esperando transmisión...",
     "ended_or_not_found": "Transmisión finalizada o no encontrada.",
     "chat_placeholder": "Escribe un comentario...",
     "send_reaction": "Enviar {{emoji}}",
@@ -2945,12 +3363,76 @@
       "project": "Proyectar",
       "clear_screen": "Quitar pregunta de pantalla",
       "placeholder": "Escribe tu pregunta…",
-      "send": "Enviar pregunta"
+      "send": "Enviar pregunta",
+      "question": "Pregunta"
+    },
+    "end_stream": "Terminar transmisión",
+    "badge": "En vivo",
+    "now": "VIVO",
+    "pinned": "Fijado",
+    "unpin": "Des-fijar comentario",
+    "pin": "Fijar",
+    "delete_comment": "Eliminar",
+    "ended_title": "Live Finalizado",
+    "ended_summary": "Resumen de tu transmisión",
+    "viewers": "Espectadores",
+    "likes": "Me Gustas",
+    "close_summary": "Cerrar Resumen",
+    "goal": {
+      "add": "Añadir Objetivo",
+      "target_prompt": "Ingresa el monto objetivo (ej. 1000):",
+      "title_prompt": "Ingresa el título del objetivo:",
+      "title_default": "Meta del Directo"
+    },
+    "gift_sent": "¡Regalo enviado!",
+    "gift_canceled": "Pago de regalo cancelado",
+    "gift_received_toast": "{{user}} envió un {{gift}}",
+    "send_gift_btn": "Regalar",
+    "someone": "Alguien",
+    "gift_generic": "regalo",
+    "host_fallback": "Creador Live",
+    "host_n": "Host {{n}}",
+    "cohost_fallback": "Co-host",
+    "anonymous": "Espectador",
+    "cohost_invite": {
+      "badge": "Invitación en directo",
+      "body": "te invita como co-anfitrión",
+      "join": "Unirme como co-host",
+      "decline": "Rechazar"
     }
+  },
+  "shortcuts": {
+    "next_post": "Siguiente publicación",
+    "previous_post": "Publicación anterior",
+    "like_post": "Me gusta",
+    "search": "Buscar"
   },
   "common": {
     "cancel": "Cancelar",
     "loading": "Cargando...",
+    "close": "Cerrar",
+    "close_dialog": "Cerrar diálogo",
+    "close_menu": "Cerrar menú",
+    "back_home": "Volver al inicio",
+    "back": "Volver",
+    "view_profile": "Ver perfil de {{username}}",
+    "offline": "Sin conexión a internet",
+    "online": "Conexión restaurada",
+    "mute": "Silenciar",
+    "unmute": "Activar sonido",
+    "more": "Más",
+    "alt": {
+      "story": "Historia",
+      "attachment": "Archivo adjunto",
+      "preview": "Vista previa",
+      "cover": "Portada",
+      "comment": "Media del comentario",
+      "post": "Vista previa de la publicación",
+      "upload": "Vista previa de la subida",
+      "host": "Anfitrión",
+      "group": "Grupo",
+      "reported": "Contenido reportado"
+    },
     "footer": {
       "desc": "Una capa social refinada construida para quienes valoran la profundidad visual y la conexión auténtica.",
       "platform": "Plataforma",
@@ -2965,7 +3447,17 @@
       "guidelines": "Directrices",
       "copyright": "© 2026 CircleSfera Social. Todos los derechos reservados.",
       "designed_for": "Diseñado para la próxima generación de creadores."
-    }
+    },
+    "collapse": "Contraer",
+    "expand": "Expandir",
+    "save": "Guardar",
+    "error_title": "Algo salió mal",
+    "error_message": "Ha ocurrido un error inesperado. Inténtalo de nuevo.",
+    "error_message_refresh": "Ha ocurrido un error inesperado. Prueba a actualizar la página.",
+    "try_again": "Reintentar",
+    "reload_page": "Recargar página",
+    "seo_default_title": "CircleSfera - Social reinventada",
+    "seo_default_description": "CircleSfera es una capa social refinada pensada para storytelling visual, conexiones auténticas y experiencias inmersivas."
   },
   "mute": {
     "title": "Silenciar a {{username}}",
@@ -3005,7 +3497,11 @@
       "impact_summary": "Resumen de Impacto",
       "engagement_rate_prefix": "Este post tiene una tasa de engagement del ",
       "above_average": " Superas el promedio de tu categoría.",
-      "keep_promoting": " Sigue promocionando para ganar más alcance."
+      "keep_promoting": " Sigue promocionando para ganar más alcance.",
+      "conversion_rate": "Tasa de conv.",
+      "dwell_time": "Tiempo de permanencia",
+      "impressions": "Impresiones",
+      "shares": "Compartidos"
     },
     "confirm": {
       "processing": "Procesando..."
@@ -3065,7 +3561,15 @@
       "selected": "Seleccionado",
       "use": "Usar",
       "play_preview": "Reproducir vista previa",
-      "pause_preview": "Pausar vista previa"
+      "pause_preview": "Pausar vista previa",
+      "back": "Atrás",
+      "trim_title": "Elegir fragmento",
+      "trim_hint": "Arrastra para elegir dónde empieza el clip de {{seconds}}s en el track.",
+      "trim_slider": "Inicio del clip",
+      "trim_value": "{{start}}s – {{end}}s",
+      "preview_clip": "Previsualizar clip",
+      "confirm_clip": "Usar este clip",
+      "waveform_loading": "Cargando waveform…"
     }
   },
   "frames": {
@@ -3282,7 +3786,8 @@
       "loading": "Cargando encuesta…",
       "votes_one": "{{count}} voto",
       "votes_other": "{{count}} votos",
-      "voted": "✓ Voto registrado"
+      "voted": "✓ Voto registrado",
+      "votes": "{{count}} votos"
     },
     "qna": {
       "title": "Preguntas y respuestas",
@@ -3292,7 +3797,31 @@
       "answers_heading_one": "{{count}} respuesta",
       "answers_heading_other": "{{count}} respuestas",
       "loading_answers": "Cargando respuestas…",
-      "no_answers": "Aún no hay respuestas."
+      "no_answers": "Aún no hay respuestas.",
+      "answers_heading": "{{count}} respuestas"
     }
+  },
+  "create_menu": {
+    "circle": "Círculo",
+    "frame": "Frame",
+    "highlights": "Destacadas",
+    "live": "Directo",
+    "new": "Nuevo",
+    "post": "Publicación",
+    "section_content": "Contenido",
+    "section_more": "Más",
+    "story": "Historia",
+    "studio": "Studio",
+    "title": "Crear"
+  },
+  "voice": {
+    "discard": "Descartar",
+    "pause_preview": "Pausar vista previa",
+    "play_preview": "Escuchar borrador",
+    "ready": "Listo",
+    "record": "Grabar voz",
+    "send": "Enviar nota de voz",
+    "stop": "Detener grabación",
+    "uploading": "Subiendo nota de voz..."
   }
 }

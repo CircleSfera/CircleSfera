@@ -1,136 +1,33 @@
-# Documentation status
+# CircleSfera: Implementation Status
 
-**Last status note:** Sep 2026 — Docs/AI framework re-sync; trust signals, system settings, ClickHouse ETL noted; CreatorSubscription table confirmed removed
+> **Source of Truth:** Este documento refleja el estado real de implementación del código en el repositorio. Si existe código que no se menciona aquí, este documento debe actualizarse. Si un agente de IA intenta interactuar con un módulo que figura como *Out of Scope* o que no existe, debe detenerse y pedir confirmación.
 
-## Sep 2026 documentation / schema notes
+## 🟢 Shipped (Producción / Completado)
+Los siguientes módulos están implementados, testeados (QA), asegurados (Security) y su arquitectura está delimitada mecánicamente (Gates cerrados).
 
-- **Schema scale (verified):** 76 models, 29 enums in `circlesfera-backend/prisma/schema.prisma`; ADRs **0001–0016** ([adr/README.md](./adr/README.md); 0016 Proposed)
-- **`CreatorSubscription`:** table removed (`20260729154648_sync_schema_again`). Do not document as a live Prisma model. Creator VIP routes/fields are not present on `Profile` — verify controllers before treating VIP as shipped
-- **Account trust signals (ADR-0014):** Turnstile, email gate, KYC vs plan, abuse hashes — migration `20260821050000_account_trust_signals`; detail in [06-security-privacy-compliance.md](./06-security-privacy-compliance.md)
-- **`SystemSetting`**, **`ModerationRule`**, **`StripePayoutLog`:** present in schema (Aug migrations)
-- **Profile ownership P3009:** [runbooks/profile-migration-p3009.md](./runbooks/profile-migration-p3009.md)
-- **ClickHouse:** ETL scripts + BullMQ nightly export shipped; Cloud + Grafana still pending ([ADR-0016](./adr/0016-analytical-warehouse-clickhouse.md), [runbook](./runbooks/clickhouse-cloud-analytics.md))
-- **Schema-first banners:** documents **01, 06, 07** (and this pass adds banners on 02, 04, 05). Prefer schema + controllers when narrative docs disagree
+### Backend
+- **Core Architecture:** Monolito modular con NestJS, Prisma (PostgreSQL), y BullMQ.
+- **Seguridad (Gate A):** Configuración estricta de Helmet (HSTS, CSP, CORP), CSRF de doble envío, `express-rate-limit`, `turnstile` contra bots, y validación severa de DTOs (`forbidNonWhitelisted: true`). 
+- **Autenticación:** Sistema JWT con cookies `httpOnly`, soporte para 2FA y Passkeys (WebAuthn).
+- **Gestión de Identidad:** División de `User` (credenciales y facturación) vs. `Profile` (entidad social e interacción), según el ADR-0015.
+- **Tiempo Real:** Socket.io implementado y escalado con Redis Adapter, con namespace de `events` asegurado por tokens.
+- **Pagos (Stripe):** Suscripciones, webhooks seguros e integración en backend sin que el frontend envíe precios (ADR-0010).
 
-## Aug 2026 User / Profile identity
+### Frontend
+- **Arquitectura:** React SPA con Vite, enrutamiento lazy (`BrowserRouter`), y gestores de estado segmentados (TanStack Query para estado de servidor y 11 `zustand` stores para cliente).
+- **Consumo de API:** Un único cliente HTTP (`ApiClient`) con interceptores para rotación automática de JWT y validación CSRF.
+- **Acoplamiento (Gate C):** Stores de Zustand (como `socketStore`) no poseen el ciclo de vida, simplemente exponen el estado reactivo proveniente de sus respectivos servicios (`realtime.service.ts`).
+- **Diseño (Mobile-first):** Resoluciones priorizadas de 390x844px, con soporte escalado sin desproporcionar componentes, uso denso de UI (inspirado en Meta/Threads).
 
-- **`User`** = account (email, auth, Stripe, platform plans, trust); **`Profile`** = social identity (`username`, avatar, all content/social FKs)
-- JWT session exposes both `userId` (`sub`) and primary `profileId` — see [15-identity-profile-model.md](./15-identity-profile-model.md)
-- Admin APIs flatten profile fields to `user.profile.*` for React admin tabs; helpers in `common/utils/user-profile-shape.util.ts`
-- ERD sections 4–12 corrected: social tables use `profileId`, not `userId`; live hosts on `Profile`; reports reporter on `Profile`; assignee on `AdminIdentity`
-- **ADR-0015** documents the split; regression smoke: `npm run smoke:profile-drift` (`scripts/validate-profile-drift-smoke.mjs`)
+### Infraestructura
+- **Nginx (Proxy Maestro):** Entornos de Producción (`circlesfera.com`, `api.*`, `admin.*`) con HSTS. Entorno de Desarrollo (`dev.*`) asegurado detrás de Auth Basic con las exclusiones estrictas de Stripe y verificadores de estado.
+- **Docker Compose:** Orquestación completa de frontend, backend, PostgreSQL (pgvector), y Redis.
 
-## Aug 2026 Admin Panel
+## 🟡 In Development (Refactorización / Transición)
+- **Documentación Técnica:** Creación de los esquemas definitivos y abandono de los bocetos de la carpeta `.ai/`.
 
-- Separate `AdminIdentity` + DB RBAC; MFA mandatory; admin session cookies on `admin.circlesfera.com`
-- Platform `User.role` staff values deprecated for admin-panel access
-- Framing: Admin Panel = internal control plane / Trust & Safety ops (not creator analytics); post-login home = **Trust** (`/trust`) when permitted
-- Report claim/REVIEWING assignee is `Report.assignedAdminId` → `AdminIdentity` (migration `20260813010000_report_assigned_admin`)
-- Report queue: my-queue filter, unclaim, claim conflict, bulk assignee/`resolvedAt`; Trust previews include assignee
-- Moderation notifications use `AdminIdentity.linkedUserId` (never raw admin id as `Notification.senderId`)
-- Deep-links / command palette gated by `ADMIN_TAB_PERMISSIONS`; promotions tab permission aligned to `content`
-- Runbook: [admin-panel-cutover](./runbooks/admin-panel-cutover.md)
-
-## Jul 2026 production closure (verified)
-
-- **Deploy blocker**: CD uses compose service `nginx-proxy` (not `nginx`)
-- **Encryption rotation**: `ENCRYPTION_KEY` required; `ENCRYPTION_KEY_LEGACY` decrypt fallback; re-encrypt via `node dist/scripts/reencrypt-messages.js` in the backend image
-- **Account deletion**: `scheduledDeletionAt` grace; login restores during window; Settings can cancel; hard-delete cron + BullMQ
-- **T&S**: `AdminGuard` deny-by-default for moderators; claim/REVIEWING/notes in Admin UI; warn/suspend/restore + `suspendedUntil` enforced in JWT/login + daily lift cron
-- **Compliance**: CookieConsent mounted; telemetry gated; GDPR export includes stories/likes/notifications/settings/appeals/collections/transactions; age ≥16 client+server
-- **Migration**: `20260727140000_account_deletion_and_suspension` alters `users` (+ MODERATOR, report queue fields)
-
-## Jul 2026 full roadmap gap-closure
-
-- **P0**: `ENCRYPTION_KEY` required (no insecure fallback); `src/scripts/reencrypt-messages.ts`; unified account deletion (`deletedAt` + `scheduledDeletionAt`); backup/restore scripts; env files synced (`.env`, `.env.production`, backend `.env`/`.env.backup`, examples)
-- **Ops**: deploy rolling update + SHA tags + smoke rollback; Sentry bake-time; backend e2e on deploy; nginx body 50m
-- **T&S**: `Role.MODERATOR`; report claim/REVIEWING/`resolvedAt`; warn/suspend/restore; ReportModal all target types + reasons; anti-shadowban label
-- **Compliance**: cookie consent; GDPR export expanded; retention crons; age ≥16 on register
-- **Quality**: Dependabot, Playwright nightly, AdminGuard specs, endpoint hardening
-- **Frontend/docs**: 404, lazy routes, ADRs 0005–0010, governance files, runbooks
-
-## Jul 2026 gap-closure (frontend/docs pass)
-
-- **Frontend**: 404 + SEO noindex; Admin invalid-tab redirect; Live title before start; lazy EditsStudio/Profile/Frames/Chat panes; EmptyState/ErrorState on Frames/Saved/Notifications
-- **Docs accuracy**: live gifts **are** billed; feed preferences **are** implemented — corrected in 01/02/04/06; `08-schema-prisma.md` is a pointer only
-- **Governance**: root `LICENSE` (MIT), `SECURITY.md`, `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `CHANGELOG.md`
-- **ADRs**: 0005 LiveKit, 0006 Redis+BullMQ, 0007 cookies+CSRF, 0008 storage providers, 0009 feed fan-out, 0010 20% platform fee
-- **Runbooks**: `circlesfera-documentation/runbooks/` stubs → `scripts/backup-*.sh`, `restore-postgres.sh`
-
-## Jul 2026 closure-to-100% (implemented)
-
-- **Live gifts billing**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices server-side (`gift-catalog.ts`)
-- **Feed preferences**: `feed_hidden_posts` / `feed_hidden_authors` / `feed_muted_keywords` + `/feed/preferences` API; integrated into hybrid + following feeds; Settings UI + Post menu actions. See [ADR-0004](./adr/0004-feed-preferences.md) (Accepted)
-- **Stripe payouts**: `GET /monetization/payouts` live-reads Connect `balance.retrieve` + `payouts.list` (no `payouts.create`). Creator MonetizationDashboard surfaces **available/pending balances** only. Admin Payouts reads `StripePayoutLog` synced from Connect `payout.*` webhooks. No `TransactionType.PAYOUT`. See [ADR-0002](./adr/0002-stripe-connect-payouts.md).
-- **Auth bootstrap (frontend)**: `authStore.checkSession()` validates persisted session via `profileApi.getMyProfile()` on cold start
-- **Prod fail-fast**: `OPENAI_API_KEY` + LiveKit credentials required in production (`main.ts` / `AIService` / `LiveService`)
-- **Logging**: payments webhooks use Nest `Logger`; unhandled Stripe events → warn + Sentry
-- **CI**: backend e2e + Playwright smoke on PRs; deploy runs frontend tests + shared build
-
-## Remediation vs PRD v4.0 (implemented)
-
-- Moderation transparency: author notify on AI/admin hide/restore; appeals UI (`Settings → Appeals`); appeal outcome notify
-- User control: mute entry on profile/post menus; `UserSettings` prefs applied to feed (content rating) + push
-- Monetization contracts: one active platform plan enforced; `GET /payments/status`; Elite guard scoped
-  (note: `CreatorSubscription` table later removed — see Sep 2026 note)
-- Discovery: ProfileEmbedding writer on profile update + `npm run embeddings:backfill`; recommendation signals; poll/QnA create (posts) + display
-- Promotions: `PAUSED` / resume; cancel → `CANCELLED` with proportional unused-budget Stripe refund; Ads checkout redirect; feed injects only `ACTIVE`
-
-## Payments / Stripe hardening (Jul 2026)
-
-- Webhooks: `PROCESSED` only after success; `FAILED` + HTTP 5xx on error so Stripe retries; PENDING/FAILED reprocessed (no skip-on-duplicate trap)
-- Creator VIP: historical Jul note referenced `Profile.subscriptionPriceCents` / `PATCH /creator/subscription-price` — **those fields/routes are not in the live schema/controller**; see Sep 2026 note and ERD section 9
-- Promotion views: viewer JWT required; owner cannot burn own budget; row lock via `FOR UPDATE`
-- Admin reject of charged promo triggers proportional refund
-- Unlock requires IdentityVerifiedGuard; Checkout return query append safe when URL already has `?`
-- Ledger: `PROMOTION_PAYMENT` / `STRIPE_SUBSCRIPTION` / story unlocks / **live gifts**; tip/unlock/gift currency **EUR**
-- Ops handlers: `checkout.session.expired`, `invoice.payment_failed`, `charge.refunded`, `charge.dispute.created` (revoke unlocks), `account.updated` (Connect capability cache), Connect `payout.created` / `updated` / `paid` / `failed` / `canceled` (copy into `StripePayoutLog` for Admin Payouts, ADR-0002)
-- Story PPV: persist `isPremium`/`priceCents`; `StoryUnlock` + `POST /monetization/unlock-story`; feed redacts locked media
-- Platform fee: **20%** application fee on Connect tips/unlocks/**live gifts** — [ADR-0010](./adr/0010-platform-fee-20-percent.md)
-
-## Production incident (Jul 2026)
-
-After merging feed hydration for `poll` / `qnaBox`, prod returned feed/stories **500** because `polls`, `qna_boxes`, `live_streams`, and message/comment voice columns existed in `schema.prisma` but had **no prior Prisma migration**. Fixed by migration `20260723010000_add_interactive_live_voice_fields` plus hybrid-feed vector reads from `post_embeddings`.
-
-Follow-up: CI runs `scripts/check-prisma-schema-migrations.sh`; catch-up `20260723020000_appeals_profile_embeddings_drop_payouts`; post-deploy API smoke on 5xx.
-
-## In development (product reopened, Aug 2026)
-
-These were on the Jul 2026 OUT OF SCOPE list. Product has reopened them. They are **not shipped**. Do not write them in present tense.
-
-- **Native apps:** Capacitor wrap of the SPA (`com.circlesfera.app`). `circlesfera-frontend/ios/` and `android/` exist; `cap:sync` / `cap:open:*` scripts are in the frontend package. Store binaries are not published.
-- **Paid ads at scale:** first-party `Promotion` is already in production (creator Checkout, feed inject of `ACTIVE` only, JWT views, proportional refund). Scaling inventory, measurement, and spend is the open work — not a second ads product.
-- **ClickHouse warehouse:** ADR-0016. BullMQ nightly export and `scripts/etl/` shipped; ClickHouse Cloud + Grafana pending provisioning ([runbook](./runbooks/clickhouse-cloud-analytics.md)).
-
-## Still deferred / OUT OF SCOPE
-
-Remain Later / non-goals unless product reopens them:
-
-- Communities / forums
-- B2B Business Manager
-- Public OAuth / third-party developer platform
-- SSR indexable profiles
-- Subscriber badges as a first-class product surface
-- SOC2 certification and public bug-bounty program
-
-Also deferred:
-
-- Creator payouts: Stripe Connect Express only (`accounts.create` `type: 'express'`) — see [ADR-0002](./adr/0002-stripe-connect-payouts.md). CircleSfera never calls `payouts.create` and does not set a payout schedule. Stripe pays out the Express balance on its **automatic rolling schedule** by default ([Payouts to connected accounts](https://docs.stripe.com/connect/payouts-connected-accounts)). The creator can view upcoming payouts, bank details, and — if Stripe has those Express features enabled — change schedule / pay out manually in the Express Dashboard via `GET /monetization/dashboard` (login link). There is no in-app withdraw.
-
-## Aug 2026 investor pack (tier-1)
-
-- English fundraising materials: [`circlesfera-docs/investors/`](../circlesfera-docs/investors/) — suite **00–26** + `_internal/` + `assets/screenshots/`
-- First touch: `22-one-pager.md`, `01-executive-summary.md`, optionally `20-investment-thesis.md`
-- Tier-1 additions: team (23), competitive landscape (24), security summary (25), investor FAQ (26), deck-slides, use-of-funds, hiring plan, 24m CSV model
-- Ask (planning): **€2.5M seed**, range €2.5–5M — founder confirms instrument and cap table in `18-governance.md`
-- Demo URL: https://circlesfera.com
-- Pack grounded in schema, code, ADRs, and this status file
-- Native apps, paid-ads scale-up, ClickHouse, and further creation tools are **in development**
-- Raise finishes commercial product, new creation tools, hires engineering / product / trust — **not** paying creators to post
-
-## Doc / source of truth
-
-- Schema: `circlesfera-backend/prisma/schema.prisma` (not `08-schema-prisma.md`)
-- ADRs: [adr/README.md](./adr/README.md) (0001–0016)
-- Runbooks: [runbooks/README.md](./runbooks/README.md)
-- Prefer code + schema when narrative docs conflict. Freshness banners: see Sep 2026 note above.
+## 🔴 Out of Scope (No implementado)
+- Microservicios separados (se prohíbe explícitamente dividir el monolito sin un ADR).
+- Bus de eventos de dominio (`EventEmitter2`, CQRS, Event Sourcing). No intentes introducirlo.
+- GraphQL. Toda la API está basada en REST con controladores ligeros.
+- Almacenamiento de JWT o tokens sensibles en `localStorage` (estrictamente por cookies HTTP-only).

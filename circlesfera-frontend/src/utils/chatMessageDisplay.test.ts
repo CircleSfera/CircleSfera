@@ -47,4 +47,14 @@ describe('chatMessageDisplay', () => {
       'chat.shared_post',
     );
   });
+
+  it('uses the catalog key for deleted messages', () => {
+    const msg = { isDeleted: true, content: 'secret' } as Message;
+    expect(getMessagePreviewText(msg, ((key: string) => key) as never)).toBe(
+      'chat.message_deleted',
+    );
+    expect(
+      getMessageDisplayText(msg, 'secret', ((key: string) => key) as never),
+    ).toBe('chat.message_deleted');
+  });
 });

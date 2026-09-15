@@ -94,9 +94,7 @@ export default function AboutAccountDialog({
   const { t, i18n } = useTranslation();
 
   const activityKey = account.lastActiveBucket || 'unknown';
-  const activity = t(`profile.about.activity.${activityKey}`, {
-    defaultValue: activityKey,
-  });
+  const activity = t(`profile.about.activity.${activityKey}`);
 
   const rows: {
     icon: typeof Calendar;
@@ -105,34 +103,34 @@ export default function AboutAccountDialog({
   }[] = [
     {
       icon: Calendar,
-      label: t('profile.about.joined', 'Joined'),
+      label: t('profile.about.joined'),
       value: formatJoined(account.joinedAt, i18n.language),
     },
     {
       icon: Mail,
-      label: t('profile.about.email', 'Email confirmed'),
+      label: t('profile.about.email'),
       value: account.emailConfirmed ? (
         <span className="text-brand-primary font-medium">
-          {t('profile.about.yes', 'Yes')}
+          {t('profile.about.yes')}
         </span>
       ) : (
-        t('profile.about.no', 'No')
+        t('profile.about.no')
       ),
     },
     {
       icon: ShieldCheck,
-      label: t('profile.about.identity', 'Identity verified'),
+      label: t('profile.about.identity'),
       value: account.identityVerified ? (
         <span className="text-brand-primary font-medium">
-          {t('profile.about.yes', 'Yes')}
+          {t('profile.about.yes')}
         </span>
       ) : (
-        t('profile.about.no', 'No')
+        t('profile.about.no')
       ),
     },
     {
       icon: BadgeCheck,
-      label: t('profile.about.account_type', 'Account type'),
+      label: t('profile.about.account_type'),
       value: (
         <span className="capitalize">
           {(account.accountType || 'PERSONAL').toLowerCase()}
@@ -144,35 +142,35 @@ export default function AboutAccountDialog({
   if (account.signupCountry) {
     rows.push({
       icon: MapPin,
-      label: t('profile.about.country', 'Country'),
+      label: t('profile.about.country'),
       value: account.signupCountry,
     });
   }
 
   rows.push({
     icon: Activity,
-    label: t('profile.about.activity_label', 'Recent activity'),
+    label: t('profile.about.activity_label'),
     value: activity,
   });
 
   rows.push({
     icon: AlertTriangle,
-    label: t('profile.about.standing', 'Account status'),
+    label: t('profile.about.standing'),
     value:
       account.accountStanding === 'suspended' ? (
         <span className="text-brand-secondary font-medium">
-          {t('profile.about.suspended', 'Suspended')}
+          {t('profile.about.suspended')}
         </span>
       ) : (
         <span className="text-brand-primary font-medium">
-          {t('profile.about.in_good_standing', 'In good standing')}
+          {t('profile.about.in_good_standing')}
         </span>
       ),
   });
 
   rows.push({
     icon: ShieldCheck,
-    label: t('profile.about.strikes', 'Moderation strikes'),
+    label: t('profile.about.strikes'),
     value:
       (account.strikeCount ?? 0) > 0 ? (
         <span className="text-brand-secondary font-medium">
@@ -187,7 +185,7 @@ export default function AboutAccountDialog({
     <Dialog
       isOpen={isOpen}
       onClose={onClose}
-      title={t('profile.about.title', 'About this account')}
+      title={t('profile.about.title')}
       maxWidth="sm"
     >
       <div className="space-y-5">
@@ -217,13 +215,10 @@ export default function AboutAccountDialog({
             />
             <div className="min-w-0">
               <p className="text-sm font-medium text-brand-accent">
-                {t('profile.about.bot_label', 'Possibly automated')}
+                {t('profile.about.bot_label')}
               </p>
               <p className="mt-1 text-xs text-white/50 leading-relaxed">
-                {t(
-                  'profile.about.bot_label_hint',
-                  'Staff applied this label after review. The account owner can appeal in Settings.',
-                )}
+                {t('profile.about.bot_label_hint')}
               </p>
             </div>
           </div>
@@ -255,10 +250,7 @@ export default function AboutAccountDialog({
         </ul>
 
         <p className="text-xs text-white/50 leading-relaxed text-center px-1">
-          {t(
-            'profile.about.identity_disclaimer',
-            'Identity verified means government ID checked via Stripe Identity. It is separate from a paid plan badge.',
-          )}
+          {t('profile.about.identity_disclaimer')}
         </p>
       </div>
     </Dialog>

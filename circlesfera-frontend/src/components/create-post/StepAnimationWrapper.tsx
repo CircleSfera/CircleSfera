@@ -7,26 +7,21 @@ interface StepAnimationWrapperProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
 }
 
-// Variants for the step transition animation.
-// Slides in from the right when going forward (direction > 0)
-// And from the left when going backward (direction < 0).
+/** Horizontal step transition — no blur (cleaner, cheaper, reduced-motion friendlier). */
 const variants = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 50 : -50,
+    x: direction > 0 ? 28 : -28,
     opacity: 0,
-    filter: 'blur(10px)',
   }),
   center: {
     zIndex: 1,
     x: 0,
     opacity: 1,
-    filter: 'blur(0px)',
   },
   exit: (direction: number) => ({
     zIndex: 0,
-    x: direction < 0 ? 50 : -50,
+    x: direction < 0 ? 28 : -28,
     opacity: 0,
-    filter: 'blur(10px)',
   }),
 };
 
@@ -46,11 +41,10 @@ export default function StepAnimationWrapper({
       animate="center"
       exit="exit"
       transition={{
-        x: { type: 'spring', stiffness: 400, damping: 40 },
-        opacity: { duration: 0.2 },
-        filter: { duration: 0.2 },
+        x: { type: 'spring', stiffness: 420, damping: 36 },
+        opacity: { duration: 0.18 },
       }}
-      className={`flex-1 flex flex-col w-full h-full ${className}`}
+      className={`flex-1 flex flex-col w-full h-full min-h-0 ${className}`}
       {...props}
     >
       {children}

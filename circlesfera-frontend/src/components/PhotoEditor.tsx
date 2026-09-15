@@ -3,6 +3,7 @@ import {
   Check,
   Crop,
   RotateCcw,
+  Scissors,
   SlidersHorizontal,
   Sparkles,
   Trash2,
@@ -12,7 +13,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 import type { OverlayElement } from '../services/edits.service';
+import { clampFrameWindow } from '../utils/frameClip';
 import CanvasOverlay from './CanvasOverlay';
+import FrameClipControls from './create-post/FrameClipControls';
 import {
   DEFAULT_PHOTO_ADJUSTMENTS,
   PHOTO_ADJUSTMENT_CONFIG,
@@ -52,6 +55,10 @@ interface PhotoEditorProps {
   onStateChange?: (state: any) => void;
   initialState?: any;
   onApplyToAll?: (filterString: string) => void;
+  /** Open on this tab (e.g. TRIM for Frame re-edit). */
+  initialTab?: 'FILTERS' | 'ADJUST' | 'CROP' | 'OVERLAY' | 'TRIM';
+  /** When set, video trim length is clamped to [min, max] seconds. */
+  constrainDuration?: { min: number; max: number };
 }
 
 const AdjustmentSlider = ({
@@ -74,20 +81,21 @@ const AdjustmentSlider = ({
   const isModified = value !== defaultValue;
   return (
     <motion.div
-      className="space-y-2.5 px-4 py-2"
-      initial={{ opacity: 0, y: 10 }}
+      className="space-y-1 px-0.5 py-0.5"
+      initial={{ opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.12 }}
     >
-      <div className="flex justify-between text-xs font-bold uppercase tracking-[0.12em]">
-        <span className="text-white/30">{label}</span>
-        <span className={isModified ? 'text-brand-primary' : 'text-white/20'}>
+      <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wide">
+        <span className="text-white/40 truncate pr-2">{label}</span>
+        <span
+          className={`tabular-nums shrink-0 ${isModified ? 'text-brand-primary' : 'text-white/25'}`}
+        >
           {value}
           {unit}
         </span>
       </div>
-      <div className="relative">
-        {/* Center marker for bidirectional sliders */}
+      <div className="relative h-7 flex items-center">
         {min === 0 && max >= 200 && (
           <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 -translate-x-1/2 pointer-events-none" />
         )}
@@ -97,7 +105,7 @@ const AdjustmentSlider = ({
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(140, 82, 255,0.5)] [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+          className="w-full appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
         />
       </div>
     </motion.div>
@@ -111,13 +119,19 @@ export default function PhotoEditor({
   onStateChange,
   initialState,
   onApplyToAll,
+  initialTab,
+  constrainDuration,
 }: PhotoEditorProps) {
   const { t } = useTranslation();
   const isVideo = image.type.startsWith('video');
 
   const [activeTab, setActiveTab] = useState<
     'FILTERS' | 'ADJUST' | 'CROP' | 'OVERLAY' | 'TRIM'
-  >('FILTERS');
+  >(
+    initialTab && isVideo && initialTab === 'TRIM'
+      ? 'TRIM'
+      : initialTab || 'FILTERS',
+  );
 
   const [selectedFilter, setSelectedFilter] = useState(
     initialState?.filter
@@ -232,14 +246,28 @@ export default function PhotoEditor({
       video.onloadeddata = () => {
         video.currentTime = 0.1;
         if (videoData.endTime === 0) {
-          setVideoData((v) => ({ ...v, endTime: video.duration }));
+          const sourceSec = video.duration;
+          if (constrainDuration) {
+            const clipped = clampFrameWindow(
+              sourceSec,
+              0,
+              Math.min(constrainDuration.max, sourceSec),
+            );
+            setVideoData((v) => ({
+              ...v,
+              startTime: clipped.startTime,
+              endTime: clipped.endTime,
+            }));
+          } else {
+            setVideoData((v) => ({ ...v, endTime: sourceSec }));
+          }
         }
       };
       video.onseeked = () => {
         captureFrame();
       };
     }
-  }, [previewUrl, isVideo, videoData.endTime]);
+  }, [previewUrl, isVideo, videoData.endTime, constrainDuration]);
 
   // Video loop handling
   useEffect(() => {
@@ -273,28 +301,42 @@ export default function PhotoEditor({
         : 2;
       overlayDataUrl = stageRef.current.toDataURL({ pixelRatio });
     }
+    let nextVideoData: VideoData | undefined = isVideo ? videoData : undefined;
+    if (isVideo && constrainDuration && nextVideoData) {
+      const sourceSec = videoRef.current?.duration || nextVideoData.endTime;
+      const clipped = clampFrameWindow(
+        sourceSec,
+        nextVideoData.startTime,
+        nextVideoData.endTime - nextVideoData.startTime,
+      );
+      nextVideoData = {
+        ...nextVideoData,
+        startTime: clipped.startTime,
+        endTime: clipped.endTime,
+      };
+    }
     onSave(
       image,
       filterString,
       croppedAreaPixels || undefined,
       overlayDataUrl,
-      isVideo ? videoData : undefined,
+      nextVideoData,
     );
   };
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
       {/* Header — same glass icon language as StoryComposerChrome (ADR-0018) */}
-      <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3.5 pb-1.5 pt-[max(0.75rem,calc(env(safe-area-inset-top,0px)+0.35rem))] bg-linear-to-b from-black via-black/90 to-transparent">
+      <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent min-h-11">
         <button
           type="button"
           onClick={onCancel}
-          className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+          className="min-w-9 min-h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
           aria-label={t('createPost.edit.cancel')}
         >
-          <X size={18} strokeWidth={2} />
+          <X size={16} strokeWidth={2} />
         </button>
-        <h1 className="text-[15px] font-bold tracking-tight text-white truncate flex-1 text-center px-1">
+        <h1 className="text-sm font-semibold tracking-tight text-white truncate flex-1 text-center px-1">
           {t('createPost.edit.edit_media')}
         </h1>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -305,7 +347,7 @@ export default function PhotoEditor({
                 const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}__temp:${adjustments.temperature}__vignette:${adjustments.vignette}__noise:${adjustments.noise}`;
                 onApplyToAll(filterString);
               }}
-              className="min-h-11 px-3 text-xs font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+              className="min-h-9 px-2.5 text-[11px] font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             >
               {t('createPost.edit.apply_to_all')}
             </button>
@@ -313,7 +355,7 @@ export default function PhotoEditor({
           <button
             type="button"
             onClick={handleSave}
-            className="min-h-11 px-4 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+            className="min-h-9 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
             aria-label={t('createPost.edit.done')}
           >
             {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />
@@ -359,7 +401,7 @@ export default function PhotoEditor({
             <img
               ref={imageRef}
               src={previewUrl}
-              alt="Upload preview"
+              alt={t('common.alt.upload')}
               className={`max-w-full max-h-full object-contain rounded-lg ${selectedFilter.class} shadow-2xl`}
               style={computedStyle}
             />
@@ -424,10 +466,10 @@ export default function PhotoEditor({
         </div>
       </div>
 
-      {/* Controls Area */}
-      <div className="bg-zinc-900/95 backdrop-blur-xl border-t border-white/4 flex flex-col shrink-0 pb-safe">
+      {/* Controls Area — dense tool strip + compact tab rail */}
+      <div className="bg-surface-elevated/95 border-t border-white/8 flex flex-col shrink-0">
         {/* Active Tool Control */}
-        <div className="h-[120px] flex flex-col justify-center">
+        <div className="min-h-0 flex flex-col justify-center py-2">
           <AnimatePresence mode="wait">
             {activeTab === 'FILTERS' ? (
               <motion.div
@@ -435,34 +477,34 @@ export default function PhotoEditor({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="flex overflow-x-auto items-center gap-3 px-4 no-scrollbar snap-x touch-pan-x"
+                transition={{ duration: 0.12 }}
+                className="flex overflow-x-auto items-center gap-2 px-3 no-scrollbar snap-x touch-pan-x"
               >
                 {FILTERS.map((filter) => (
                   <button
                     type="button"
                     key={filter.name}
                     onClick={() => setSelectedFilter(filter)}
-                    className="flex flex-col items-center gap-1 group min-w-[64px] snap-start"
+                    className="flex flex-col items-center gap-1 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
                   >
                     <div
-                      className={`w-[56px] h-[56px] rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+                      className={`w-11 h-11 rounded-lg overflow-hidden border transition-colors ${
                         selectedFilter.name === filter.name
-                          ? 'border-brand-primary/50 scale-105 shadow-[0_0_15px_rgba(140, 82, 255,0.3)]'
-                          : 'border-transparent opacity-60 group-hover:opacity-100'
+                          ? 'border-brand-primary'
+                          : 'border-white/10'
                       }`}
                     >
                       <img
                         src={thumbnailUrl}
-                        alt={filter.name}
+                        alt=""
                         className={`w-full h-full object-cover ${filter.class}`}
                       />
                     </div>
                     <span
-                      className={`text-xs uppercase font-bold tracking-wider ${
+                      className={`text-[9px] font-semibold uppercase tracking-wide leading-none ${
                         selectedFilter.name === filter.name
-                          ? 'text-brand-primary'
-                          : 'text-white/30'
+                          ? 'text-white'
+                          : 'text-white/40'
                       }`}
                     >
                       {filter.name}
@@ -476,8 +518,8 @@ export default function PhotoEditor({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="w-full max-w-sm mx-auto"
+                transition={{ duration: 0.12 }}
+                className="w-full max-w-sm mx-auto px-3"
               >
                 {ADJUSTMENT_CONFIG.map((adj) =>
                   activeAdjustment === adj.key ? (
@@ -503,74 +545,104 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.15 }}
-                className="w-full max-w-sm mx-auto flex flex-col gap-4 px-4 py-2"
+                className="w-full max-w-md mx-auto flex flex-col gap-2 px-3 py-0.5"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white/60">Audio</span>
+                  <span className="text-[11px] font-bold text-white/55 uppercase tracking-wider">
+                    {t('createPost.edit.audio')}
+                  </span>
                   <button
                     type="button"
                     onClick={() =>
                       setVideoData((v) => ({ ...v, muted: !v.muted }))
                     }
-                    className={`p-2 rounded-lg transition-all ${
+                    className={`min-h-9 px-3 rounded-full text-[11px] font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                       videoData.muted
-                        ? 'bg-red-500/20 text-red-400'
+                        ? 'bg-brand-secondary/20 text-brand-secondary'
                         : 'bg-brand-primary/20 text-brand-primary'
                     }`}
+                    aria-pressed={videoData.muted}
                   >
-                    {videoData.muted ? 'Silenciado 🔇' : 'Con Sonido 🔊'}
+                    {videoData.muted
+                      ? t('createPost.edit.muted')
+                      : t('createPost.edit.with_sound')}
                   </button>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <span className="text-xs font-bold text-white/60">
-                    Recortar (
-                    {Math.max(
-                      0,
-                      videoData.endTime - videoData.startTime,
-                    ).toFixed(1)}
-                    s)
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs w-8">
-                      {videoData.startTime.toFixed(1)}s
+                {constrainDuration ? (
+                  <FrameClipControls
+                    sourceDurationSec={
+                      videoRef.current?.duration ||
+                      Math.max(videoData.endTime, constrainDuration.max)
+                    }
+                    window={{
+                      startTime: videoData.startTime,
+                      endTime: videoData.endTime,
+                    }}
+                    onChange={(next) => {
+                      setVideoData((v) => ({
+                        ...v,
+                        startTime: next.startTime,
+                        endTime: next.endTime,
+                      }));
+                      if (videoRef.current) {
+                        videoRef.current.currentTime = next.startTime;
+                      }
+                    }}
+                    showPresets
+                    compact
+                  />
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <span className="text-xs font-bold text-white/55">
+                      {t('createPost.edit.trim_label', {
+                        seconds: Math.max(
+                          0,
+                          videoData.endTime - videoData.startTime,
+                        ).toFixed(1),
+                      })}
                     </span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={videoRef.current?.duration || 100}
-                      step={0.1}
-                      value={videoData.startTime}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (val < videoData.endTime) {
-                          setVideoData((v) => ({ ...v, startTime: val }));
-                          if (videoRef.current)
-                            videoRef.current.currentTime = val;
-                        }
-                      }}
-                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
-                    />
-                    <input
-                      type="range"
-                      min={0}
-                      max={videoRef.current?.duration || 100}
-                      step={0.1}
-                      value={videoData.endTime}
-                      onChange={(e) => {
-                        const val = Number(e.target.value);
-                        if (val > videoData.startTime) {
-                          setVideoData((v) => ({ ...v, endTime: val }));
-                          if (videoRef.current)
-                            videoRef.current.currentTime = val - 0.1;
-                        }
-                      }}
-                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-red-500 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-red-500 [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
-                    />
-                    <span className="text-xs w-8 text-right">
-                      {videoData.endTime.toFixed(1)}s
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs w-8 tabular-nums text-white/50">
+                        {videoData.startTime.toFixed(1)}s
+                      </span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={videoRef.current?.duration || 100}
+                        step={0.1}
+                        value={videoData.startTime}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val < videoData.endTime) {
+                            setVideoData((v) => ({ ...v, startTime: val }));
+                            if (videoRef.current)
+                              videoRef.current.currentTime = val;
+                          }
+                        }}
+                        className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-11 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-2 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                      />
+                      <input
+                        type="range"
+                        min={0}
+                        max={videoRef.current?.duration || 100}
+                        step={0.1}
+                        value={videoData.endTime}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          if (val > videoData.startTime) {
+                            setVideoData((v) => ({ ...v, endTime: val }));
+                            if (videoRef.current)
+                              videoRef.current.currentTime = val - 0.1;
+                          }
+                        }}
+                        className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-11 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:bg-brand-blue [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-2 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:bg-brand-blue [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                      />
+                      <span className="text-xs w-8 text-right tabular-nums text-white/50">
+                        {videoData.endTime.toFixed(1)}s
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
               </motion.div>
             ) : activeTab === 'CROP' ? (
               <motion.div
@@ -578,42 +650,57 @@ export default function PhotoEditor({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="w-full max-w-sm mx-auto flex flex-col gap-4 px-4 py-2"
+                transition={{ duration: 0.12 }}
+                className="w-full max-w-sm mx-auto flex flex-col gap-2.5 px-3 py-1"
               >
-                <div className="flex justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setAspect(undefined)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${!aspect ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
-                  >
-                    Libre
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAspect(1)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 1 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
-                  >
-                    1:1
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAspect(4 / 5)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 4 / 5 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
-                  >
-                    4:5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setAspect(16 / 9)}
-                    className={`flex-1 py-3 text-xs font-bold rounded-lg ${aspect === 16 / 9 ? 'bg-brand-primary/20 text-brand-primary' : 'bg-white/5 text-white/60'}`}
-                  >
-                    16:9
-                  </button>
+                <div className="flex justify-between gap-1.5">
+                  {(
+                    [
+                      {
+                        key: 'free',
+                        aspect: undefined as number | undefined,
+                        label: t('createPost.edit.crop_free'),
+                      },
+                      {
+                        key: '1:1',
+                        aspect: 1,
+                        label: t('createPost.edit.crop_1_1'),
+                      },
+                      {
+                        key: '4:5',
+                        aspect: 4 / 5,
+                        label: t('createPost.edit.crop_4_5'),
+                      },
+                      {
+                        key: '16:9',
+                        aspect: 16 / 9,
+                        label: t('createPost.edit.crop_16_9'),
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const isActive =
+                      opt.aspect === undefined
+                        ? aspect === undefined
+                        : aspect === opt.aspect;
+                    return (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => setAspect(opt.aspect)}
+                        className={`flex-1 min-h-9 h-9 text-[11px] font-bold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+                          isActive
+                            ? 'bg-brand-primary/20 text-brand-primary'
+                            : 'bg-white/5 text-white/60 hover:text-white/80'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-xs font-bold text-white/40 uppercase">
-                    Rotación
+                <div className="flex items-center gap-2.5">
+                  <span className="text-[11px] font-bold text-white/40 uppercase shrink-0">
+                    {t('createPost.edit.crop_rotation')}
                   </span>
                   <input
                     type="range"
@@ -621,9 +708,9 @@ export default function PhotoEditor({
                     max={180}
                     value={rotation}
                     onChange={(e) => setRotation(Number(e.target.value))}
-                    className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                    className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                   />
-                  <span className="text-xs font-bold text-brand-primary w-8">
+                  <span className="text-[11px] font-bold text-brand-primary w-8 tabular-nums text-right shrink-0">
                     {rotation}°
                   </span>
                 </div>
@@ -634,20 +721,22 @@ export default function PhotoEditor({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.15 }}
-                className="w-full max-w-sm mx-auto flex flex-col gap-4 px-4 py-2"
+                transition={{ duration: 0.12 }}
+                className="w-full max-w-sm mx-auto flex flex-col gap-2.5 px-3 py-1"
               >
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setDrawMode(!drawMode)}
-                    className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+                    className={`min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                       drawMode
-                        ? 'bg-brand-primary text-white shadow-[0_0_15px_rgba(140, 82, 255,0.3)]'
+                        ? 'bg-brand-primary text-white'
                         : 'bg-white/5 text-white/60 hover:text-white'
                     }`}
                   >
-                    {drawMode ? 'Dibujando...' : 'Dibujar'}
+                    {drawMode
+                      ? t('createPost.edit.overlay_drawing')
+                      : t('createPost.edit.overlay_draw')}
                   </button>
                   <button
                     type="button"
@@ -661,15 +750,15 @@ export default function PhotoEditor({
                           type: 'text',
                           x: 50,
                           y: 50,
-                          text: 'Nuevo Texto',
+                          text: t('createPost.edit.overlay_new_text'),
                           fill: brushColor,
                           fontSize: 30,
                         },
                       ]);
                     }}
-                    className="px-4 py-2 text-xs font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all"
+                    className="min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25"
                   >
-                    + Texto
+                    {t('createPost.edit.overlay_add_text')}
                   </button>
                   {selectedOverlayId && (
                     <button
@@ -680,13 +769,13 @@ export default function PhotoEditor({
                         );
                         setSelectedOverlayId(null);
                       }}
-                      className="px-4 py-2 text-xs font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all flex items-center gap-1"
+                      className="min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all inline-flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
                     >
-                      <Trash2 size={14} /> Eliminar
+                      <Trash2 size={12} /> {t('createPost.edit.overlay_delete')}
                     </button>
                   )}
                 </div>
-                <div className="flex gap-2 justify-center">
+                <div className="flex gap-1.5 justify-center">
                   {['🔥', '❤️', '✨', '😂', '😎'].map((emoji) => (
                     <button
                       key={emoji}
@@ -707,19 +796,21 @@ export default function PhotoEditor({
                           },
                         ]);
                       }}
-                      className="text-2xl hover:scale-110 transition-transform"
+                      className="min-w-9 min-h-9 text-xl hover:scale-105 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
+                      aria-label={emoji}
                     >
                       {emoji}
                     </button>
                   ))}
                 </div>
                 {drawMode && (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2.5">
                     <input
                       type="color"
                       value={brushColor}
                       onChange={(e) => setBrushColor(e.target.value)}
-                      className="w-8 h-8 rounded cursor-pointer border-0 p-0"
+                      className="w-7 h-7 rounded cursor-pointer border-0 p-0 shrink-0"
+                      aria-label={t('createPost.edit.overlay_brush_color')}
                     />
                     <input
                       type="range"
@@ -727,7 +818,8 @@ export default function PhotoEditor({
                       max={20}
                       value={brushSize}
                       onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                      aria-label={t('createPost.edit.overlay_brush_size')}
                     />
                   </div>
                 )}
@@ -745,10 +837,10 @@ export default function PhotoEditor({
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="flex overflow-x-auto py-2 border-b border-white/3 no-scrollbar px-2">
+                <div className="flex overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-2 gap-0.5">
                   {ADJUSTMENT_CONFIG.map((adj) => {
                     const isActive = activeAdjustment === adj.key;
                     const isModified =
@@ -758,18 +850,18 @@ export default function PhotoEditor({
                         type="button"
                         key={adj.key}
                         onClick={() => setActiveAdjustment(adj.key)}
-                        className={`px-3.5 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap rounded-lg transition-all ${
+                        className={`px-2.5 min-h-9 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
                           isActive
-                            ? 'text-white bg-white/6'
+                            ? 'text-white bg-white/10'
                             : isModified
-                              ? 'text-brand-primary/80 hover:text-brand-primary'
-                              : 'text-white/20 hover:text-white/40'
+                              ? 'text-brand-primary/90 hover:text-brand-primary'
+                              : 'text-white/35 hover:text-white/55'
                         }`}
                       >
                         {t(`createPost.edit.adjust.${adj.labelKey}`)}
-                        {isModified && !isActive && (
-                          <span className="ml-1 w-1 h-1 bg-brand-primary rounded-full inline-block" />
-                        )}
+                        {isModified && !isActive ? (
+                          <span className="ml-1 w-1 h-1 bg-brand-primary rounded-full inline-block align-middle" />
+                        ) : null}
                       </button>
                     );
                   })}
@@ -778,10 +870,10 @@ export default function PhotoEditor({
                     <button
                       type="button"
                       onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
-                      className="px-3.5 py-2 text-xs font-bold uppercase tracking-wider whitespace-nowrap 
-                                 text-red-400/60 hover:text-red-400 ml-auto flex items-center gap-1 transition-colors"
+                      className="px-2.5 min-h-9 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap
+                                 text-red-400/70 hover:text-red-400 ml-auto flex items-center gap-1 transition-colors"
                     >
-                      <RotateCcw size={10} /> Reset
+                      <RotateCcw size={10} /> {t('createPost.edit.reset')}
                     </button>
                   )}
                 </div>
@@ -789,89 +881,78 @@ export default function PhotoEditor({
             )}
           </AnimatePresence>
 
-          {/* Main Tabs */}
-          <div className="flex w-full items-stretch justify-between px-2 pb-2">
-            <button
-              type="button"
-              onClick={() => setActiveTab('FILTERS')}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
-                activeTab === 'FILTERS'
-                  ? 'text-white bg-white/10'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
-              }`}
+          {/* Compact segmented tab rail — not full-bleed flex giants */}
+          <div
+            className="flex justify-center px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+            role="presentation"
+          >
+            <div
+              className="flex w-full max-w-[280px] gap-0.5 rounded-xl bg-white/5 p-0.5 border border-white/8"
+              role="tablist"
+              aria-label={t('createPost.edit.filters_adjustments')}
             >
-              <Sparkles size={20} />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                Filters
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('ADJUST')}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
-                activeTab === 'ADJUST'
-                  ? 'text-white bg-white/10'
-                  : 'text-white/40 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <SlidersHorizontal size={20} />
-              <span className="text-xs font-bold uppercase tracking-wider">
-                Adjust
-              </span>
-            </button>
-            {!isVideo && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('CROP')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
-                  activeTab === 'CROP'
-                    ? 'text-brand-primary bg-brand-primary/10'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Crop size={20} />
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Crop
-                </span>
-              </button>
-            )}
-
-            {isVideo && (
-              <button
-                type="button"
-                onClick={() => setActiveTab('TRIM')}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
-                  activeTab === 'TRIM'
-                    ? 'text-brand-primary bg-brand-primary/10'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Crop size={20} />
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Trim
-                </span>
-              </button>
-            )}
-
-            {!isVideo && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('OVERLAY');
-                  setDrawMode(false);
-                }}
-                className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 transition-all rounded-xl ${
-                  activeTab === 'OVERLAY'
-                    ? 'text-brand-primary bg-brand-primary/10'
-                    : 'text-white/40 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <Sparkles size={20} />
-                <span className="text-xs font-bold uppercase tracking-wider">
-                  Overlay
-                </span>
-              </button>
-            )}
+              {(
+                [
+                  {
+                    id: 'FILTERS' as const,
+                    icon: Sparkles,
+                    label: t('createPost.edit.tab_filters'),
+                    show: true,
+                  },
+                  {
+                    id: 'ADJUST' as const,
+                    icon: SlidersHorizontal,
+                    label: t('createPost.edit.tab_adjust'),
+                    show: true,
+                  },
+                  {
+                    id: 'CROP' as const,
+                    icon: Crop,
+                    label: t('createPost.edit.tab_crop'),
+                    show: !isVideo,
+                  },
+                  {
+                    id: 'TRIM' as const,
+                    icon: Scissors,
+                    label: t('createPost.edit.tab_trim'),
+                    show: isVideo,
+                  },
+                  {
+                    id: 'OVERLAY' as const,
+                    icon: Sparkles,
+                    label: t('createPost.edit.tab_overlay'),
+                    show: !isVideo,
+                  },
+                ] as const
+              )
+                .filter((tab) => tab.show)
+                .map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        if (tab.id === 'OVERLAY') setDrawMode(false);
+                      }}
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-10 py-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+                        isActive
+                          ? 'bg-white/12 text-white'
+                          : 'text-white/40 hover:text-white/70'
+                      }`}
+                    >
+                      <Icon size={16} strokeWidth={isActive ? 2.25 : 1.75} />
+                      <span className="text-[9px] font-semibold uppercase tracking-wide leading-none">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         </div>
       </div>

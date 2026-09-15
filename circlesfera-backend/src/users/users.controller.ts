@@ -9,8 +9,11 @@ import {
   Post,
   Put,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import type { Response } from 'express';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -22,6 +25,7 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { DataExportService } from './data-export.service.js';
 
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -67,6 +71,7 @@ export class UsersController {
   // GDPR: Request Data Export (.zip).
   @Get('gdpr/export')
   @UseGuards(JwtAuthGuard)
+  @Throttle({ short: { limit: 2, ttl: 3600000 } })
   async requestDataExport(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.requestDataExport(user.userId);
   }
@@ -76,6 +81,18 @@ export class UsersController {
   @UseGuards(JwtAuthGuard)
   async getExportHistory(@CurrentUser() user: CurrentUserData) {
     return this.dataExportService.getExportHistory(user.userId);
+  }
+
+  // GDPR: Download Data Export archive (.zip)
+  @Get('gdpr/exports/:id/download')
+  @UseGuards(JwtOptionalGuard)
+  async downloadDataExport(
+    @Param('id') id: string,
+    @Query('token') token: string | undefined,
+    @CurrentUser() user: CurrentUserData | null | undefined,
+    @Res() res: Response,
+  ) {
+    await this.dataExportService.streamDataExport(id, user?.userId, token, res);
   }
 
   // GDPR: Full account deletion (irreversible).

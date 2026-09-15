@@ -5,18 +5,20 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  type AuthenticatorTransportFuture,
-  type GenerateAuthenticationOptionsOpts,
-  type GenerateRegistrationOptionsOpts,
-  generateAuthenticationOptions,
-  generateRegistrationOptions,
-  type VerifyAuthenticationResponseOpts,
-  type VerifyRegistrationResponseOpts,
-  verifyAuthenticationResponse,
-  verifyRegistrationResponse,
+import type {
+  AuthenticatorTransport,
+  GenerateAuthenticationOptionsOpts,
+  GenerateRegistrationOptionsOpts,
+  VerifyAuthenticationResponseOpts,
+  VerifyRegistrationResponseOpts,
 } from '@simplewebauthn/server';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  generateAuthenticationOptions,
+  generateRegistrationOptions,
+  verifyAuthenticationResponse,
+  verifyRegistrationResponse,
+} from './simplewebauthn.js';
 
 // Service for FIDO2/WebAuthn passkey registration and authentication.
 // Uses @simplewebauthn/server for challenge generation and verification.
@@ -56,7 +58,7 @@ export class PasskeyService {
         credentialID: string;
         publicKey: Buffer;
         counter: bigint | number;
-        transports: AuthenticatorTransportFuture[];
+        transports: AuthenticatorTransport[];
       }[];
       currentChallenge?: string | null;
     } | null;
@@ -133,7 +135,7 @@ export class PasskeyService {
                 credentialID: string;
                 publicKey: Buffer;
                 counter: bigint;
-                transports: AuthenticatorTransportFuture[];
+                transports: AuthenticatorTransport[];
               };
             }) => Promise<any>;
           };
@@ -148,7 +150,7 @@ export class PasskeyService {
             transports:
               (
                 body as {
-                  response: { transports?: AuthenticatorTransportFuture[] };
+                  response: { transports?: AuthenticatorTransport[] };
                 }
               ).response.transports || [],
           },
@@ -187,7 +189,7 @@ export class PasskeyService {
       id: string;
       passkeys: {
         credentialID: string;
-        transports?: AuthenticatorTransportFuture[];
+        transports?: AuthenticatorTransport[];
       }[];
       currentChallenge?: string | null;
     } | null;
@@ -240,7 +242,7 @@ export class PasskeyService {
         credentialID: string;
         publicKey: Buffer;
         counter: bigint | number;
-        transports: AuthenticatorTransportFuture[];
+        transports: AuthenticatorTransport[];
       }[];
       currentChallenge?: string | null;
     } | null;

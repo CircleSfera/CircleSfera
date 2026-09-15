@@ -7,6 +7,8 @@ import { ConfigService } from '@nestjs/config';
 import type { Job } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
+import { DataExportService } from './data-export.service.js';
 import { UsersService } from './users.service.js';
 
 const require = createRequire(import.meta.url);
@@ -21,6 +23,7 @@ export class DataExportProcessor extends WorkerHost {
     private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
+    private readonly dataExportService: DataExportService,
   ) {
     super();
   }
@@ -50,18 +53,60 @@ export class DataExportProcessor extends WorkerHost {
 
       let deletedFiles = 0;
       for (const req of expiredRequests) {
+        // Check opaque filename in EXPORTS_DIR
+        const opaqueName = `export_${req.id}.zip`;
+        const primaryPath = path.join(EXPORTS_DIR, opaqueName);
+        if (fs.existsSync(primaryPath)) {
+          fs.unlinkSync(primaryPath);
+          deletedFiles++;
+        }
+
+        // Check legacy predictable name with userId
+        const legacyPredictableName = `export_${req.userId}_${req.id}.zip`;
+        const legacyPredictablePath = path.join(
+          EXPORTS_DIR,
+          legacyPredictableName,
+        );
+        if (fs.existsSync(legacyPredictablePath)) {
+          fs.unlinkSync(legacyPredictablePath);
+          deletedFiles++;
+        }
+
+        // Check if legacy URL had specific filename
         if (req.url) {
-          const filename = req.url.split('/').pop();
-          if (filename) {
-            const filePath = path.join(
-              process.cwd(),
-              'uploads',
-              'exports',
-              filename,
-            );
-            if (fs.existsSync(filePath)) {
-              fs.unlinkSync(filePath);
+          const filename = path.basename(req.url.split('?')[0]);
+          if (filename?.endsWith('.zip')) {
+            const legacyPath = path.join(LEGACY_EXPORTS_DIR, filename);
+            if (fs.existsSync(legacyPath)) {
+              fs.unlinkSync(legacyPath);
               deletedFiles++;
+            }
+            const fallbackPath = path.join(EXPORTS_DIR, filename);
+            if (fs.existsSync(fallbackPath) && fallbackPath !== primaryPath) {
+              fs.unlinkSync(fallbackPath);
+              deletedFiles++;
+            }
+          }
+        }
+      }
+
+      // Also clean any orphaned zip files older than 7 days in both dirs
+      const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      for (const dir of [EXPORTS_DIR, LEGACY_EXPORTS_DIR]) {
+        if (fs.existsSync(dir)) {
+          const files = fs.readdirSync(dir);
+          for (const file of files) {
+            if (file.endsWith('.zip')) {
+              const fullPath = path.join(dir, file);
+              try {
+                const stat = fs.statSync(fullPath);
+                if (stat.mtimeMs < cutoff) {
+                  fs.unlinkSync(fullPath);
+                  deletedFiles++;
+                }
+              } catch (e) {
+                this.logger.warn(`Could not stat/unlink ${fullPath}: ${e}`);
+              }
             }
           }
         }
@@ -103,13 +148,13 @@ export class DataExportProcessor extends WorkerHost {
 
       if (!user) throw new Error('User not found');
 
-      const exportsDir = path.join(process.cwd(), 'uploads', 'exports');
-      if (!fs.existsSync(exportsDir)) {
-        fs.mkdirSync(exportsDir, { recursive: true });
+      if (!fs.existsSync(EXPORTS_DIR)) {
+        fs.mkdirSync(EXPORTS_DIR, { recursive: true });
       }
 
-      const fileName = `export_${userId}_${Date.now()}.zip`;
-      const filePath = path.join(exportsDir, fileName);
+      // Opaque non-identifying artifact name without user identifiers
+      const fileName = `export_${requestId}.zip`;
+      const filePath = path.join(EXPORTS_DIR, fileName);
 
       const output = fs.createWriteStream(filePath);
       const archive = archiver('zip', { zlib: { level: 9 } });
@@ -119,16 +164,24 @@ export class DataExportProcessor extends WorkerHost {
           try {
             const backendUrl =
               this.configService.get('BACKEND_URL') || 'http://localhost:3000';
-            const downloadUrl = `${backendUrl}/uploads/exports/${fileName}`;
+            const downloadUrl = `${backendUrl}/api/v1/users/gdpr/exports/${requestId}/download`;
+            const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
 
             await this.prisma.dataExportRequest.update({
               where: { id: requestId },
               data: {
                 status: 'COMPLETED',
                 url: downloadUrl,
-                expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+                expiresAt,
               },
             });
+
+            const downloadToken = this.dataExportService.generateDownloadToken(
+              userId,
+              requestId,
+              expiresAt,
+            );
+            const emailDownloadUrl = `${downloadUrl}?token=${downloadToken}`;
 
             const name =
               user.profiles[0]?.fullName ||
@@ -140,7 +193,7 @@ export class DataExportProcessor extends WorkerHost {
               `Hello ${name}`,
               'Your requested data export is now ready to download. For security reasons, this link will expire in 7 days.',
               'Download My Data',
-              downloadUrl,
+              emailDownloadUrl,
             );
 
             this.logger.log(

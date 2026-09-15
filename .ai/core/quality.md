@@ -78,6 +78,34 @@ Write tests that would catch a real regression:
 
 Do not write tests that only assert your own mocks. If you skip tests, say why in the summary.
 
+## QA pyramid (as shipped)
+
+Tests live next to the code they cover. There is no repo-root `tests/` tree, no factory package,
+and no separate Gherkin/Specs suite. “Spec” here means a test that fails when the contract
+changes.
+
+| Layer | Location | What is real | What is isolated |
+| --- | --- | --- | --- |
+| Backend unit | `circlesfera-backend/src/**/*.spec.ts` | Service / guard / util under test. Controller specs are HTTP (`createControllerApp`, ValidationPipe, `/api/v1`) | Collaborators, clock, network. Session stubs (`BEARER` / `ADMIN_BEARER`) — not `canActivate: () => true`. Real JWT crypto and CSRF stay in backend e2e |
+| Frontend unit | `circlesfera-frontend/src/**/*.{test,spec}.{ts,tsx}` | Component / hook / util + **real `en` catalog** (`src/i18n` + `setup.ts`). Chrome copy via `i18n.t('key')`, not pasted English | Browser APIs (`setup.ts`); LanguageDetector forced to `en`. Network still stubbed per test. User-generated strings stay literals |
+| Composer unit | `src/components/create-post/*.test.tsx` | Same + **`es` catalog** via `renderWithProviders({ lng: 'es' })` | Network; `File`/`blob:` media is enough |
+| Backend e2e | `circlesfera-backend/test/*.e2e-spec.ts` | Nest + Postgres + Redis; money deny-paths (KYC, catalog prices, webhook signature) | External Stripe/mail/push; serial, shared DB, clean your fixtures |
+| Composer Playwright | `circlesfera-frontend/e2e/composer-*.spec.ts` | Vite SPA + composer UI + synthetic media | `**/api/v1/**` stub + session in `localStorage`; locale `es` |
+| Frontend Playwright (SPA) | `circlesfera-frontend/e2e/*.spec.ts` | Vite SPA + real catalogs + visible fixtures | `prepareAuthenticatedSession` / `prepareGuestSession` stub `**/api/v1/**`; not Nest. Same isolation as composer. |
+| Root Playwright smoke | `e2e/smoke.spec.ts` | Landing / login against a live backend | Unauthenticated; gates every PR |
+| Root Playwright journeys | `e2e/*.spec.ts` (nightly `--project=chromium`) | SPA + Nest + Postgres; each spec creates its own user | Stripe Checkout / LiveKit / FFmpeg wasm / mail — **not** the Nest API. Email verify via SQL on `users`. |
+
+Three kinds of “fake” — only the first is a defect:
+
+1. **UI stand-in** — i18n mock that paints the key, solid-color media, HTML design-preview as snapshot source. Do not add these.
+2. **Network isolation** — stub `**/api/v1/**` so a product UI suite can run without backend/FFmpeg. Correct for composer visual/smoke.
+3. **Synthetic fixture** — valid-shaped JPEG/MP4, test user in storage, `i18nextLng=es`. Determinism, not a dummy app.
+
+Never production users, payments, tokens, or live content. Each test must run alone, in any order,
+against data it created or a documented seed — not leftovers from another spec.
+
+Composer commands and fixture regen: [`circlesfera-frontend/e2e/COMPOSER_QA.md`](../../circlesfera-frontend/e2e/COMPOSER_QA.md). Other SPA Playwright specs: [`circlesfera-frontend/e2e/README.md`](../../circlesfera-frontend/e2e/README.md). Root journeys: [`e2e/README.md`](../../e2e/README.md).
+
 ## Performance expectations on hot paths
 
 Feed, chat, stories, search, profile and notification reads. Before shipping a change there, check:

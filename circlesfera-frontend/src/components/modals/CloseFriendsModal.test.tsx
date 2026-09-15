@@ -42,24 +42,36 @@ describe('CloseFriendsModal', () => {
   });
 
   it('loads the list when open and shows the empty state', async () => {
-    renderWithProviders(<CloseFriendsModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CloseFriendsModal isOpen onClose={onClose} />,
+    );
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Close Friends')).toBeInTheDocument();
-    expect(await screen.findByText('Close Friends List')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "We don't send notifications when you edit your close friends list.",
+      screen.getByText(i18n!.t('settings.close_friends_modal.title')),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.close_friends_modal.list_title'),
       ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('settings.close_friends_modal.list_desc')),
     ).toBeInTheDocument();
     expect(closeFriendsApi.getCloseFriends).toHaveBeenCalledTimes(1);
   });
 
   it('closes from Done and the dialog X without toggling', async () => {
-    renderWithProviders(<CloseFriendsModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CloseFriendsModal isOpen onClose={onClose} />,
+    );
 
-    await screen.findByText('Close Friends List');
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    await screen.findByText(i18n!.t('settings.close_friends_modal.list_title'));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.close_friends_modal.done'),
+      }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -67,15 +79,24 @@ describe('CloseFriendsModal', () => {
   });
 
   it('asks for two characters before searching', async () => {
-    renderWithProviders(<CloseFriendsModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CloseFriendsModal isOpen onClose={onClose} />,
+    );
 
-    await screen.findByText('Close Friends List');
-    fireEvent.change(screen.getByPlaceholderText('Search...'), {
-      target: { value: 'a' },
-    });
+    await screen.findByText(i18n!.t('settings.close_friends_modal.list_title'));
+    fireEvent.change(
+      screen.getByPlaceholderText(
+        i18n!.t('settings.close_friends_modal.search'),
+      ),
+      {
+        target: { value: 'a' },
+      },
+    );
 
     expect(
-      await screen.findByText('Type at least 2 characters to search.'),
+      await screen.findByText(
+        i18n!.t('settings.close_friends_modal.search_min'),
+      ),
     ).toBeInTheDocument();
     expect(searchApi.searchUsers).not.toHaveBeenCalled();
   });

@@ -191,7 +191,7 @@ export default function NewPromoModal({
 
             <fieldset className="space-y-3 border-none p-0 m-0">
               <legend className="block text-xs text-white/50 mb-2">
-                {t('creator.promotions.objective', 'Objective')}
+                {t('creator.promotions.objective')}
               </legend>
               <select
                 value={objective}
@@ -199,36 +199,27 @@ export default function NewPromoModal({
                 className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
               >
                 <option value="PROFILE_VISITS">
-                  {t('creator.promotions.objective_profile', 'Profile Visits')}
+                  {t('creator.promotions.objective_profile')}
                 </option>
                 <option value="FOLLOWS">
-                  {t('creator.promotions.objective_follows', 'Get Followers')}
+                  {t('creator.promotions.objective_follows')}
                 </option>
                 <option value="TIER_CONVERSIONS">
-                  {t(
-                    'creator.promotions.objective_conversions',
-                    'Subscription Conversions',
-                  )}
+                  {t('creator.promotions.objective_conversions')}
                 </option>
               </select>
               <input
                 type="text"
                 value={countries}
                 onChange={(e) => setCountries(e.target.value)}
-                placeholder={t(
-                  'creator.promotions.countries_placeholder',
-                  'Countries (comma-separated, optional)',
-                )}
+                placeholder={t('creator.promotions.countries_placeholder')}
                 className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
               />
               <input
                 type="text"
                 value={interests}
                 onChange={(e) => setInterests(e.target.value)}
-                placeholder={t(
-                  'creator.promotions.interests_placeholder',
-                  'Interests (comma-separated, optional)',
-                )}
+                placeholder={t('creator.promotions.interests_placeholder')}
                 className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-white text-sm"
               />
             </fieldset>
@@ -264,7 +255,7 @@ export default function NewPromoModal({
           <div className="mb-3 bg-white/5 border border-white/10 rounded-xl p-3 flex items-center justify-between">
             <span className="text-white/60 text-sm font-bold flex items-center gap-2">
               <Megaphone size={16} className="text-brand-accent" />
-              {t('creator.promotions.estimated_reach', 'Alcance estimado')}
+              {t('creator.promotions.estimated_reach')}
             </span>
             <span className="text-white font-bold text-sm">
               {minReach.toLocaleString()} - {maxReach.toLocaleString()}

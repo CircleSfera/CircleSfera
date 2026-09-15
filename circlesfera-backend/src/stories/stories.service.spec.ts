@@ -5,11 +5,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
+import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import type { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoriesService } from './stories.service.js';
 
 describe('StoriesService', () => {
   let service: StoriesService;
+  let eventEmitter: EventEmitter2;
 
   const mockPrismaService = {
     story: {
@@ -63,6 +65,7 @@ describe('StoriesService', () => {
     }).compile();
 
     service = module.get<StoriesService>(StoriesService);
+    eventEmitter = module.get<EventEmitter2>(EventEmitter2);
     vi.clearAllMocks();
   });
 
@@ -260,6 +263,65 @@ describe('StoriesService', () => {
         ]);
         const result = await service.getReactions('s1');
         expect(result).toHaveLength(1);
+      });
+    });
+
+    describe('handleUserDeleted (LIFE-002)', () => {
+      it('cleans up media for stories belonging to all profileIds in the canonical event', async () => {
+        mockPrismaService.story.findMany.mockResolvedValue([
+          {
+            id: 's1',
+            url: 'https://cdn.example.com/s1.jpg',
+            thumbnailUrl: 'https://cdn.example.com/s1-thumb.jpg',
+          },
+          {
+            id: 's2',
+            url: 'https://cdn.example.com/s2.mp4',
+            thumbnailUrl: null,
+          },
+        ]);
+
+        const event = new UserHardDeletedEvent({
+          userId: 'user-1',
+          profileIds: ['prof-1', 'prof-2'],
+        });
+
+        await service.handleUserDeleted(event);
+
+        expect(mockPrismaService.story.findMany).toHaveBeenCalledWith({
+          where: { profileId: { in: ['prof-1', 'prof-2'] } },
+        });
+        expect(eventEmitter.emit).toHaveBeenCalledWith('media.delete_batch', {
+          mediaUrls: expect.arrayContaining([
+            'https://cdn.example.com/s1.jpg',
+            'https://cdn.example.com/s1-thumb.jpg',
+            'https://cdn.example.com/s2.mp4',
+          ]),
+        });
+      });
+
+      it('does nothing when profileIds and profileId are empty', async () => {
+        const event = new UserHardDeletedEvent({
+          userId: 'user-empty',
+          profileIds: [],
+        });
+
+        await service.handleUserDeleted(event);
+
+        expect(mockPrismaService.story.findMany).not.toHaveBeenCalled();
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+      });
+
+      it('handles post-cascade state gracefully when stories are already removed or query fails', async () => {
+        mockPrismaService.story.findMany.mockResolvedValue([]);
+
+        const event = new UserHardDeletedEvent({
+          userId: 'user-cascaded',
+          profileIds: ['prof-cascaded'],
+        });
+
+        await expect(service.handleUserDeleted(event)).resolves.toBeUndefined();
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
       });
     });
   });

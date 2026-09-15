@@ -1,13 +1,30 @@
-import { BadRequestException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import { UserEventType } from '@prisma/client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { AdminGuard } from '../auth/guards/admin.guard.js';
+import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { AnalyticsController } from './analytics.controller.js';
 import { AnalyticsService } from './analytics.service.js';
 
 describe('AnalyticsController', () => {
-  let controller: AnalyticsController;
-  let service: AnalyticsService;
+  let app: INestApplication;
 
   const mockAnalyticsService = {
     logEvent: vi.fn(),
@@ -20,37 +37,97 @@ describe('AnalyticsController', () => {
     performDailyAggregation: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AnalyticsController],
       providers: [
-        {
-          provide: AnalyticsService,
-          useValue: mockAnalyticsService,
-        },
+        { provide: AnalyticsService, useValue: mockAnalyticsService },
       ],
-    }).compile();
+      guards: [
+        { guard: JwtOptionalGuard, mode: 'optional' },
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AnalyticsController>(AnalyticsController);
-    service = module.get<AnalyticsService>(AnalyticsService);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects a dashboard read without a session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/analytics/dashboard')
+      .expect(401);
+
+    expect(mockAnalyticsService.getCreatorDashboard).not.toHaveBeenCalled();
   });
 
-  it('should call logEvent', async () => {
-    const dto = {
+  it('rejects an event with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/events')
+      .send({
+        eventType: UserEventType.IMPRESSION,
+        targetId: 'post-1',
+        targetType: 'POST',
+        userId: 'attacker',
+      })
+      .expect(400);
+
+    expect(mockAnalyticsService.logEvent).not.toHaveBeenCalled();
+  });
+
+  it('logs an event without a profile when anonymous', async () => {
+    mockAnalyticsService.logEvent.mockResolvedValue(undefined);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/analytics/events')
+      .send({
+        eventType: UserEventType.IMPRESSION,
+        targetId: 'post-1',
+        targetType: 'POST',
+      })
+      .expect(201);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockAnalyticsService.logEvent).toHaveBeenCalledWith(null, {
       eventType: UserEventType.IMPRESSION,
       targetId: 'post-1',
       targetType: 'POST',
-    };
-    await controller.logEvent('user-1', dto);
-    expect(service.logEvent).toHaveBeenCalledWith('user-1', dto);
+    });
   });
 
-  it('should call logEventsBatch', async () => {
+  it('logs an event as the session userId', async () => {
+    mockAnalyticsService.logEvent.mockResolvedValue(undefined);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/events')
+      .set(BEARER)
+      .send({
+        eventType: UserEventType.IMPRESSION,
+        targetId: 'post-1',
+        targetType: 'POST',
+      })
+      .expect(201);
+
+    expect(mockAnalyticsService.logEvent).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      {
+        eventType: UserEventType.IMPRESSION,
+        targetId: 'post-1',
+        targetType: 'POST',
+      },
+    );
+  });
+
+  it('logs a batch as the session userId', async () => {
+    mockAnalyticsService.logEventsBatch.mockResolvedValue(undefined);
+
     const dto = {
       events: [
         {
@@ -60,15 +137,51 @@ describe('AnalyticsController', () => {
         },
       ],
     };
-    await controller.logEventsBatch('user-1', dto);
-    expect(service.logEventsBatch).toHaveBeenCalledWith('user-1', dto);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/events/batch')
+      .set(BEARER)
+      .send(dto)
+      .expect(201);
+
+    expect(mockAnalyticsService.logEventsBatch).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      dto,
+    );
   });
 
-  it('debugAggregate requires profileId query param', async () => {
-    await expect(controller.debugAggregate(undefined)).rejects.toThrow(
-      BadRequestException,
+  it('rejects debug aggregate with a user session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/debug/aggregate')
+      .query({ profileId: 'profile-1' })
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockAnalyticsService.performDailyAggregation).not.toHaveBeenCalled();
+  });
+
+  it('rejects debug aggregate without a profileId query', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/debug/aggregate')
+      .set(ADMIN_BEARER)
+      .expect(400);
+
+    expect(mockAnalyticsService.performDailyAggregation).not.toHaveBeenCalled();
+  });
+
+  it('runs debug aggregate with an admin session', async () => {
+    mockAnalyticsService.performDailyAggregation.mockResolvedValue({
+      ok: true,
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/debug/aggregate')
+      .query({ profileId: 'profile-1' })
+      .set(ADMIN_BEARER)
+      .expect(201);
+
+    expect(mockAnalyticsService.performDailyAggregation).toHaveBeenCalledWith(
+      'profile-1',
     );
-    await controller.debugAggregate('profile-1');
-    expect(service.performDailyAggregation).toHaveBeenCalledWith('profile-1');
   });
 });

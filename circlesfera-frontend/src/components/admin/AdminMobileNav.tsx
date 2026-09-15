@@ -115,7 +115,7 @@ export function AdminMobileDrawer({
       <button
         type="button"
         tabIndex={isOpen ? 0 : -1}
-        aria-label={t('common.close', 'Cerrar')}
+        aria-label={t('common.close')}
         onClick={onClose}
         className={clsx(
           'fixed inset-0 z-50 bg-black/70 transition-opacity duration-200 ease-out',
@@ -153,17 +153,17 @@ export function AdminMobileDrawer({
               id="admin-mobile-nav-title"
               className="text-base font-bold text-white tracking-tight"
             >
-              {t('admin.mobile_nav_title', 'Navegación')}
+              {t('admin.mobile_nav_title')}
             </h2>
             <p className="text-xs text-white/40 mt-0.5">
-              {t('admin.mobile_nav_subtitle', 'Elige una sección')}
+              {t('admin.mobile_nav_subtitle')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="w-11 h-11 flex items-center justify-center text-white/50 hover:text-white rounded-xl hover:bg-white/5 shrink-0"
-            aria-label={t('common.close', 'Cerrar')}
+            aria-label={t('common.close')}
           >
             <X size={20} />
           </button>
@@ -180,7 +180,7 @@ export function AdminMobileDrawer({
             return (
               <div key={group.labelKey} className="space-y-1.5">
                 <h3 className="text-[11px] font-bold uppercase tracking-wider text-white/40 px-1 mb-2">
-                  {t(group.labelKey, group.labelFallback)}
+                  {t(group.labelKey)}
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
                   {visibleItems.map((item) => {
@@ -208,9 +208,7 @@ export function AdminMobileDrawer({
                                 : 'text-white/50'
                             }
                           />
-                          <span className="truncate">
-                            {t(item.labelKey, item.labelFallback)}
-                          </span>
+                          <span className="truncate">{t(item.labelKey)}</span>
                         </div>
                         {badge && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30 shrink-0">

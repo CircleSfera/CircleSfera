@@ -805,7 +805,7 @@ export default function ReportsTab({ onToast }: Props) {
                             <img
                               src={selectedReport.targetContent.thumbnail}
                               className="w-full h-full object-contain max-h-[min(60vh,28rem)]"
-                              alt="Reported content"
+                              alt={t('common.alt.reported')}
                             />
                           ) : (
                             <div className="text-white/30 flex flex-col items-center">

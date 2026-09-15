@@ -85,8 +85,8 @@ export default function StoryComposerShellChrome(
         />
       </div>
 
-      <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none">
-        <div className="pointer-events-auto flex flex-col rounded-t-2xl border-t border-white/10 bg-zinc-950/92 backdrop-blur-2xl shadow-[0_-12px_40px_rgba(0,0,0,0.45)] safe-area-bottom">
+      <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex justify-center md:pb-6 md:px-4">
+        <div className="pointer-events-auto flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-zinc-950/92 backdrop-blur-2xl shadow-[0_-12px_40px_rgba(0,0,0,0.45)] safe-area-bottom md:max-w-md">
           <StoryPanelSheet open={p.panelOpen}>
             <StoryDockContent
               selectedElementId={p.selectedElementId}

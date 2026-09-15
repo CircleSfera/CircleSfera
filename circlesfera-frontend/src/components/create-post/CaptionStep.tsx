@@ -9,7 +9,13 @@ import {
   UserPlus,
   X,
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   CreateMode,
@@ -19,7 +25,6 @@ import type {
 } from '../../hooks/useCreatePost';
 import { useAuthStore } from '../../stores/authStore';
 import type { Audio as AudioTrack } from '../../types';
-import Carousel from '../Carousel';
 import UserAvatar from '../UserAvatar';
 import InteractiveMediaPreview from './InteractiveMediaPreview';
 
@@ -31,13 +36,22 @@ interface CaptionStepProps {
   location: string;
   setSubScreen: (screen: SubScreen) => void;
   selectedAudio: AudioTrack | null;
-  setSelectedAudio: (audio: AudioTrack | null) => void;
-  setShowMusicPicker: (show: boolean) => void;
+  onClearAudio: () => void;
+  onOpenMusic: () => void;
   isPremium?: boolean;
   interactiveDraft?: InteractiveDraft;
 }
 
 const MAX_CAPTION_LENGTH = 2200;
+
+type OptionRow = {
+  key: string;
+  icon: typeof MapPin;
+  label: string;
+  isActive: boolean;
+  onClick: () => void;
+  suffix?: ReactNode;
+};
 
 export default function CaptionStep({
   mediaFiles,
@@ -47,8 +61,8 @@ export default function CaptionStep({
   location,
   setSubScreen,
   selectedAudio,
-  setSelectedAudio,
-  setShowMusicPicker,
+  onClearAudio,
+  onOpenMusic,
   isPremium,
   interactiveDraft,
 }: CaptionStepProps) {
@@ -73,7 +87,10 @@ export default function CaptionStep({
     autoResize();
   }, [autoResize]);
 
-  const optionRows = [
+  const hasImageMedia = mediaFiles.some((m) => m.type === 'image');
+  const showTagPeople = mode !== 'FRAME' && hasImageMedia;
+
+  const primaryRows: OptionRow[] = [
     {
       key: 'location',
       icon: MapPin,
@@ -81,13 +98,17 @@ export default function CaptionStep({
       isActive: !!location,
       onClick: () => setSubScreen('location'),
     },
-    {
-      key: 'tags',
-      icon: UserPlus,
-      label: t('createPost.caption.tag_people'),
-      isActive: false,
-      onClick: () => setSubScreen('tags'),
-    },
+    ...(showTagPeople
+      ? [
+          {
+            key: 'tags',
+            icon: UserPlus,
+            label: t('createPost.caption.tag_people'),
+            isActive: false,
+            onClick: () => setSubScreen('tags'),
+          } satisfies OptionRow,
+        ]
+      : []),
     {
       key: 'music',
       icon: MusicIcon,
@@ -95,21 +116,32 @@ export default function CaptionStep({
         ? `${selectedAudio.title} — ${selectedAudio.artist}`
         : t('createPost.caption.add_music'),
       isActive: !!selectedAudio,
-      onClick: () => setShowMusicPicker(true),
+      onClick: onOpenMusic,
       suffix: selectedAudio ? (
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            setSelectedAudio(null);
+            onClearAudio();
           }}
-          className="p-2 min-h-11 min-w-11 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+          className="p-1.5 min-h-9 min-w-9 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('createPost.caption.clear_music')}
         >
           <X size={14} className="text-white/40 hover:text-white/70" />
         </button>
       ) : null,
     },
+  ];
+
+  if (mode === 'FRAME') {
+    const musicIdx = primaryRows.findIndex((r) => r.key === 'music');
+    if (musicIdx > 0) {
+      const [music] = primaryRows.splice(musicIdx, 1);
+      primaryRows.unshift(music);
+    }
+  }
+
+  const moreRows: OptionRow[] = [
     ...(mode === 'POST' || mode === 'FRAME'
       ? [
           {
@@ -122,7 +154,7 @@ export default function CaptionStep({
               : t('createPost.interactive.add'),
             isActive: !!interactiveDraft,
             onClick: () => setSubScreen('interactive'),
-          },
+          } satisfies OptionRow,
         ]
       : []),
     {
@@ -152,39 +184,74 @@ export default function CaptionStep({
 
   const username = profile?.username || t('createPost.caption.you');
 
+  const renderRows = (rows: OptionRow[]) => (
+    <div className="rounded-xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
+      {rows.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            type="button"
+            key={item.key}
+            onClick={item.onClick}
+            className="w-full flex items-center justify-between min-h-11 px-3 py-2 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
+          >
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              <div
+                className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                  item.isActive
+                    ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary'
+                    : 'bg-white/5 border-white/8 text-white/70 group-hover:text-white'
+                }`}
+              >
+                <Icon size={14} strokeWidth={1.8} />
+              </div>
+              <span
+                className={`text-[13px] font-semibold text-left wrap-break-word line-clamp-2 ${
+                  item.isActive ? 'text-white' : 'text-white/90'
+                }`}
+              >
+                {item.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0 ml-2">
+              {item.suffix ?? null}
+              <ChevronRight
+                size={16}
+                className="text-white/30 group-hover:text-white/60 transition-colors"
+              />
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="flex flex-col md:flex-row h-full overflow-y-auto md:overflow-hidden bg-surface-elevated">
-      {/* Desktop media column */}
-      <div className="hidden md:flex w-full md:w-[42%] bg-surface-base items-center justify-center border-r border-white/6 p-6 relative shrink-0">
+      <div className="hidden md:flex w-[38%] min-w-37 max-w-50 bg-surface-base items-center justify-center border-r border-white/8 p-3 relative shrink-0">
         <div
           className={`relative w-full ${
-            mode === 'POST' ? 'max-w-64 aspect-4/5' : 'max-w-48 aspect-9/16'
-          } bg-black rounded-2xl border border-white/10 overflow-hidden shadow-2xl z-10`}
+            mode === 'POST' ? 'max-w-37 aspect-4/5' : 'max-w-30 aspect-9/16'
+          } bg-black rounded-xl border border-white/10 overflow-hidden shadow-xl z-10`}
         >
-          <Carousel
-            media={mediaFiles.map((m) => ({
-              id: m.url,
-              url: m.url,
-              type: m.type,
-              filter: m.filter,
-            }))}
-            aspectRatio={mode === 'POST' ? 'aspect-4/5' : 'aspect-9/16'}
-            objectFit="cover"
+          <InteractiveMediaPreview
+            mediaFiles={mediaFiles}
+            mode={mode}
+            className="w-full! h-full! max-h-none! rounded-xl border-0 shadow-none"
           />
         </div>
       </div>
 
       <div className="flex-1 flex flex-col min-h-0 overflow-y-auto no-scrollbar">
-        {/* Caption block */}
-        <div className="flex items-start gap-3 px-4 py-3 border-b border-white/8 shrink-0">
+        <div className="flex items-start gap-2.5 px-3 py-2.5 border-b border-white/8 shrink-0">
           <div className="md:hidden shrink-0">
             <InteractiveMediaPreview mediaFiles={mediaFiles} mode={mode} />
           </div>
 
-          <div className="flex-1 min-w-0 flex flex-col gap-2">
+          <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <UserAvatar src={profile?.avatar} alt={username} size="sm" />
-              <span className="font-bold text-sm text-white/90 truncate">
+              <span className="font-bold text-[13px] text-white/90 truncate">
                 {username}
               </span>
             </div>
@@ -208,12 +275,12 @@ export default function CaptionStep({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={t('createPost.caption.write_caption')}
-                className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/30 text-base leading-relaxed min-h-24 max-h-48 p-0 md:p-3"
+                className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/30 text-sm leading-relaxed min-h-20 max-h-40 p-0 md:p-2.5"
                 aria-label={t('createPost.caption.write_caption')}
               />
-              <div className="flex items-center justify-end md:px-3 md:pb-2">
+              <div className="flex items-center justify-end md:px-2.5 md:pb-1.5">
                 <span
-                  className={`text-xs font-bold tabular-nums ${
+                  className={`text-[11px] font-bold tabular-nums ${
                     isOverLimit
                       ? 'text-brand-secondary'
                       : isNearLimit
@@ -228,50 +295,16 @@ export default function CaptionStep({
           </div>
         </div>
 
-        {/* Single options list */}
-        <div className="px-3 py-2 space-y-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))]">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white/40 px-1 block">
+        <div className="px-3 py-2.5 space-y-2.5 pb-3">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 px-1 block">
             {t('createPost.caption.options')}
           </span>
-          <div className="rounded-xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
-            {optionRows.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  type="button"
-                  key={item.key}
-                  onClick={item.onClick}
-                  className="w-full flex items-center justify-between min-h-12 px-3 py-2 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div
-                      className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 transition-all ${
-                        item.isActive
-                          ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary'
-                          : 'bg-white/5 border-white/8 text-white/70 group-hover:text-white'
-                      }`}
-                    >
-                      <Icon size={16} strokeWidth={1.8} />
-                    </div>
-                    <span
-                      className={`text-sm font-semibold truncate ${
-                        item.isActive ? 'text-white' : 'text-white/90'
-                      }`}
-                    >
-                      {item.label}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 shrink-0">
-                    {'suffix' in item ? item.suffix : null}
-                    <ChevronRight
-                      size={16}
-                      className="text-white/30 group-hover:text-white/60 transition-colors"
-                    />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+          {renderRows(primaryRows)}
+
+          <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
+            {t('createPost.caption.more_options')}
+          </span>
+          {renderRows(moreRows)}
         </div>
       </div>
     </div>

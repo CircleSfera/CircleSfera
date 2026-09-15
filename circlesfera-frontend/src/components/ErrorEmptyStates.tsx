@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface ErrorStateProps {
   title?: string;
@@ -6,11 +7,11 @@ interface ErrorStateProps {
   onRetry?: () => void;
 }
 
-export function ErrorState({
-  title = 'Something went wrong',
-  message = 'An unexpected error occurred. Please try again.',
-  onRetry,
-}: ErrorStateProps) {
+export function ErrorState({ title, message, onRetry }: ErrorStateProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t('common.error_title');
+  const resolvedMessage = message ?? t('common.error_message');
+
   return (
     <motion.div
       className="flex flex-col items-center justify-center py-10 px-6 text-center mx-auto max-w-sm rounded-2xl"
@@ -53,9 +54,11 @@ export function ErrorState({
       </div>
 
       <h3 className="text-base font-bold text-white mb-1.5 tracking-tight">
-        {title}
+        {resolvedTitle}
       </h3>
-      <p className="text-zinc-500 mb-6 text-sm leading-relaxed">{message}</p>
+      <p className="text-zinc-500 mb-6 text-sm leading-relaxed">
+        {resolvedMessage}
+      </p>
 
       {onRetry && (
         <motion.button
@@ -71,7 +74,7 @@ export function ErrorState({
             boxShadow: '0 4px 16px rgba(var(--brand-primary-rgb),0.15)',
           }}
         >
-          Try Again
+          {t('common.try_again')}
         </motion.button>
       )}
     </motion.div>

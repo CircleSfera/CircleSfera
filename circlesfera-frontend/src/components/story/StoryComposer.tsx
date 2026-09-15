@@ -15,7 +15,7 @@ interface StoryComposerProps {
   onBackgroundChange?: (file: File) => void;
 }
 
-/** Immersive Story create path (ADR-0018). Layout shell only — state in hooks. */
+/** Immersive Story create path. Layout shell only — state in hooks. */
 export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
 
@@ -24,6 +24,7 @@ export default function StoryComposer(props: StoryComposerProps) {
       <StoryComposerStage
         stagePadClass={s.stagePadClass}
         cardSizeClass={s.cardSizeClass}
+        panelOpen={s.panelOpen}
         textTakeoverActive={s.textTakeoverActive}
         textTakeover={s.textTakeover}
         containerRef={s.containerRef}

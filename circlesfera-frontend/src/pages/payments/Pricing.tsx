@@ -84,7 +84,7 @@ export default function Pricing() {
   const checkoutMutation = useMutation({
     mutationFn: async (plan: PlatformPlanDto) => {
       const verificationLevel =
-        currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
+        currentUser?.verificationLevel || currentUser?.verificationLevel;
       const mappedLevel = planVerificationMap[plan.name];
       const isActiveByBilling =
         !!billingStatus?.hasActiveSubscription &&
@@ -166,7 +166,7 @@ export default function Pricing() {
   };
 
   const verificationLevel =
-    currentUser?.user?.verificationLevel || currentUser?.verificationLevel;
+    currentUser?.verificationLevel || currentUser?.verificationLevel;
 
   const hasYearlyPlans =
     plans?.some((p) => p.yearlyPriceCents != null && p.yearlyPriceCents > 0) ??

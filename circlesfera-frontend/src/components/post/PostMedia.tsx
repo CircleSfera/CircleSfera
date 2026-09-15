@@ -9,24 +9,10 @@ import PaywallOverlay from '../monetization/PaywallOverlay';
 interface PostMediaProps {
   post: Post;
   className?: string;
+  /** Feed Post shell — Instagram preferred portrait slot is 4:5 (vertical). */
   aspectRatio?: string;
   objectFit?: 'cover' | 'contain';
   priority?: boolean;
-}
-
-function getSmartAspectRatio(
-  mediaList: any[],
-  fallbackRatio = 'aspect-4/5',
-): string {
-  if (!mediaList || mediaList.length === 0) return fallbackRatio;
-  const first = mediaList[0];
-  if (first.width && first.height) {
-    const ratio = first.width / first.height;
-    if (ratio >= 1.25) return 'aspect-video'; // Landscape (16:9)
-    if (ratio >= 0.92 && ratio < 1.25) return 'aspect-square'; // Square (1:1)
-    if (ratio < 0.92) return 'aspect-4/5'; // Portrait standard (4:5)
-  }
-  return fallbackRatio;
 }
 
 export default function PostMedia({
@@ -59,59 +45,57 @@ export default function PostMedia({
     },
   });
 
-  // Use new media array if available
-  if (post.media && post.media.length > 0) {
-    const displayPrice = post.priceCents ? post.priceCents / 100 : 0;
-    const isFullHeight = className.includes('h-full');
-    const computedAspectRatio = getSmartAspectRatio(post.media, aspectRatio);
-
-    const hasTransparentBg = className.includes('bg-transparent');
-    const bgClass = hasTransparentBg ? '' : 'bg-black';
-    // Use aspect-auto if we want full height, so aspect ratio doesn't conflict with parent container dimensions
-    const finalAspectRatio = isFullHeight
-      ? `${computedAspectRatio} aspect-auto`
-      : computedAspectRatio;
-
-    return (
-      <div
-        className={`relative w-full ${bgClass} overflow-hidden group flex items-center justify-center ${className}`}
-      >
-        <div
-          className={`w-full ${isFullHeight ? 'h-full' : ''} ${
-            post.shouldBlurSensitive ? 'blur-xl brightness-75 select-none' : ''
-          }`}
-        >
-          <Carousel
-            media={post.media.map((m) => ({
-              ...m,
-              standardUrl: m.standardUrl || undefined,
-              thumbnailUrl: m.thumbnailUrl || undefined,
-              filter: m.filter || undefined,
-            }))}
-            aspectRatio={finalAspectRatio}
-            className={`${isFullHeight ? 'h-full' : ''} ${hasTransparentBg ? 'bg-transparent!' : ''}`.trim()}
-            objectFit={objectFit}
-            isLocked={post.isLocked}
-            priority={priority}
-          />
-        </div>
-        {post.shouldBlurSensitive && !post.isLocked && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
-            <span className="text-xs font-bold uppercase tracking-wide text-white/90 px-3 py-2 rounded-lg bg-black/50 border border-white/10">
-              {t('post.media.sensitive', 'Sensitive content blurred')}
-            </span>
-          </div>
-        )}
-        {post.isLocked && (
-          <PaywallOverlay
-            price={displayPrice}
-            onUnlock={() => unlockMutation.mutate()}
-            isLoading={unlockMutation.isPending}
-          />
-        )}
-      </div>
-    );
+  if (!post.media || post.media.length === 0) {
+    return null;
   }
 
-  return null;
+  const displayPrice = post.priceCents ? post.priceCents / 100 : 0;
+  const isFullHeight = className.includes('h-full');
+  const hasTransparentBg = className.includes('bg-transparent');
+  const bgClass = hasTransparentBg ? '' : 'bg-black';
+  const finalAspectRatio = isFullHeight
+    ? `${aspectRatio} aspect-auto`
+    : aspectRatio;
+
+  return (
+    <div
+      className={`relative w-full ${bgClass} overflow-hidden group flex items-center justify-center ${className}`}
+    >
+      <div
+        className={`w-full ${isFullHeight ? 'h-full' : ''} ${
+          post.shouldBlurSensitive ? 'blur-xl brightness-75 select-none' : ''
+        }`}
+      >
+        <Carousel
+          media={post.media.map((m) => ({
+            ...m,
+            standardUrl: m.standardUrl || undefined,
+            thumbnailUrl: m.thumbnailUrl || undefined,
+            filter: m.filter || undefined,
+          }))}
+          aspectRatio={finalAspectRatio}
+          className={`${isFullHeight ? 'h-full' : ''} ${hasTransparentBg ? 'bg-transparent!' : ''}`.trim()}
+          objectFit={objectFit}
+          isLocked={post.isLocked}
+          priority={priority}
+          libraryAudioUrl={post.audio?.url}
+          libraryAudioStartMs={post.audioStartMs ?? 0}
+        />
+      </div>
+      {post.shouldBlurSensitive && !post.isLocked && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+          <span className="text-xs font-bold uppercase tracking-wide text-white/90 px-3 py-2 rounded-lg bg-black/50 border border-white/10">
+            {t('post.media.sensitive')}
+          </span>
+        </div>
+      )}
+      {post.isLocked && (
+        <PaywallOverlay
+          price={displayPrice}
+          onUnlock={() => unlockMutation.mutate()}
+          isLoading={unlockMutation.isPending}
+        />
+      )}
+    </div>
+  );
 }

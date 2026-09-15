@@ -70,7 +70,7 @@ export default function Frames() {
 
   const displayFrames = useMemo(() => {
     const target = targetPostResponse?.data;
-    if (!target || target.type !== 'FRAME') return frames;
+    if (target?.type !== 'FRAME') return frames;
     if (frames.some((frame) => frame.id === target.id)) return frames;
     return [target, ...frames];
   }, [frames, targetPostResponse]);
@@ -84,15 +84,10 @@ export default function Frames() {
     handledCheckoutReturn.current = true;
 
     if (success) {
-      toast.success(
-        t(
-          'frames.checkout_success',
-          'Payment successful. Content will unlock shortly.',
-        ),
-      );
+      toast.success(t('frames.checkout_success'));
       queryClient.invalidateQueries({ queryKey: ['frames'] });
     } else {
-      toast.error(t('frames.checkout_canceled', 'Checkout was canceled.'));
+      toast.error(t('frames.checkout_canceled'));
     }
 
     const next = new URLSearchParams(searchParams);
@@ -215,11 +210,8 @@ export default function Frames() {
     return (
       <div className="h-full min-h-0 w-full flex items-center justify-center">
         <ErrorState
-          title={t('frames.load_error_title', 'Could not load Frames')}
-          message={t(
-            'frames.load_error_message',
-            'Something went wrong while loading Frames. Please try again.',
-          )}
+          title={t('frames.load_error_title')}
+          message={t('frames.load_error_message')}
           onRetry={() => refetch()}
         />
       </div>
@@ -248,7 +240,7 @@ export default function Frames() {
 
   const activeFrame = displayFrames[activeFrameIndex];
   const verificationLevel =
-    profile?.user?.verificationLevel || profile?.verificationLevel;
+    profile?.verificationLevel || profile?.verificationLevel;
   const isFrameOwner = profile?.id === activeFrame?.profileId;
   const canPromoteFrame = verificationLevel === 'ELITE' && isFrameOwner;
   const blurredBgImage =
@@ -281,11 +273,11 @@ export default function Frames() {
       >
         <div
           className={`flex h-full min-h-0 w-full max-md:flex-col md:flex-row md:items-stretch md:overflow-hidden md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10 md:rounded-[20px] ${
-            commentsOpen ? 'md:w-auto' : 'md:w-[390px]'
+            commentsOpen ? 'md:w-auto' : 'md:w-97.5'
           }`}
         >
           <div
-            className={`relative h-full min-h-0 w-full max-md:max-w-[390px] max-md:mx-auto md:w-[390px] md:shrink-0 ${
+            className={`relative h-full min-h-0 w-full max-md:max-w-97.5 max-md:mx-auto md:w-97.5 md:shrink-0 ${
               commentsOpen ? 'md:rounded-l-[20px]' : 'md:rounded-[20px]'
             }`}
           >
@@ -403,7 +395,7 @@ export default function Frames() {
           </div>
 
           {commentsOpen && activeFrame && (
-            <div className="hidden md:flex md:w-[360px] md:shrink-0 md:min-h-0 md:h-full md:border-l md:border-white/10 relative z-10">
+            <div className="hidden md:flex md:w-90 md:shrink-0 md:min-h-0 md:h-full md:border-l md:border-white/10 relative z-10">
               <FrameCommentsModal
                 variant="sidebar"
                 isOpen

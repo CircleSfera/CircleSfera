@@ -170,7 +170,7 @@ describe('PostsService', () => {
         caption: 'Post with media',
         media: [
           { url: 'url1', type: 'image' },
-          { url: 'url2', type: 'video' },
+          { url: 'url2', type: 'image' },
         ],
         type: 'POST',
       };
@@ -207,9 +207,18 @@ describe('PostsService', () => {
       expect(mockTx.postMedia.createMany).toHaveBeenCalledWith({
         data: expect.arrayContaining([
           expect.objectContaining({ url: 'url1', type: 'image', order: 0 }),
-          expect.objectContaining({ url: 'url2', type: 'video', order: 1 }),
+          expect.objectContaining({ url: 'url2', type: 'image', order: 1 }),
         ]),
       });
+    });
+
+    it('rejects a Frame that is not video', async () => {
+      await expect(
+        service.create('user-1', {
+          type: 'FRAME',
+          media: [{ url: 'url1', type: 'image' }],
+        }),
+      ).rejects.toThrow('FRAME_VIDEO_ONLY');
     });
   });
 
@@ -238,6 +247,13 @@ describe('PostsService', () => {
 
       await service.remove('post-1');
       expect(mockPrismaService.post.delete).toHaveBeenCalled();
+    });
+
+    it('throws when the post is missing', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.delete.mockClear();
+      await expect(service.remove('missing')).rejects.toThrow('Post not found');
+      expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
     });
   });
 

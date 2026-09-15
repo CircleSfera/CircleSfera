@@ -56,28 +56,28 @@ export default function CreateBottomSheet() {
     {
       id: 'post',
       icon: Grid,
-      label: t('create_menu.post', 'Publicación'),
-      action: () => handleNavigation('/create'),
+      label: t('create_menu.post'),
+      action: () => handleNavigation('/create?mode=post'),
       primary: true,
     },
     {
       id: 'frame',
       icon: Clapperboard,
-      label: t('create_menu.frame', 'Frame'),
+      label: t('create_menu.frame'),
       action: () => handleNavigation('/create?mode=frame'),
       primary: true,
     },
     {
       id: 'story',
       icon: PlusCircle,
-      label: t('create_menu.story', 'Historia'),
+      label: t('create_menu.story'),
       action: () => handleNavigation('/create?mode=story'),
       primary: true,
     },
     {
       id: 'circle',
       icon: Users,
-      label: t('create_menu.circle', 'Círculo'),
+      label: t('create_menu.circle'),
       action: () => handleNavigation('/create?mode=circle'),
       primary: true,
     },
@@ -87,13 +87,13 @@ export default function CreateBottomSheet() {
     {
       id: 'live',
       icon: Radio,
-      label: t('create_menu.live', 'Directo'),
+      label: t('create_menu.live'),
       action: () => handleNavigation('/live/broadcast'),
     },
     {
       id: 'highlights',
       icon: Star,
-      label: t('create_menu.highlights', 'Destacadas'),
+      label: t('create_menu.highlights'),
       action: () => {
         closeCreateMenu();
         useUIStore.getState().openCreateHighlight();
@@ -102,8 +102,8 @@ export default function CreateBottomSheet() {
     {
       id: 'studio',
       icon: Wand2,
-      label: t('create_menu.studio', 'Studio'),
-      badge: t('create_menu.new', 'Nuevo'),
+      label: t('create_menu.studio'),
+      badge: t('create_menu.new'),
       action: () => handleNavigation('/edits'),
     },
   ];
@@ -225,14 +225,14 @@ export default function CreateBottomSheet() {
 
             <div className="text-center pb-3 md:pt-4 border-b border-white/10">
               <h2 className="text-white font-bold text-lg">
-                {t('create_menu.title', 'Crear')}
+                {t('create_menu.title')}
               </h2>
             </div>
 
             <div className="overflow-y-auto overscroll-contain px-3.5 pt-4 pb-6 md:pb-10 space-y-5">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/35 px-1 mb-2.5">
-                  {t('create_menu.section_content', 'Contenido')}
+                  {t('create_menu.section_content')}
                 </p>
                 <div className="grid grid-cols-2 gap-2.5 md:gap-3">
                   {primaryItems.map((item) => renderItem(item))}
@@ -241,7 +241,7 @@ export default function CreateBottomSheet() {
 
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-white/35 px-1 mb-2.5">
-                  {t('create_menu.section_more', 'Más')}
+                  {t('create_menu.section_more')}
                 </p>
                 <div className="grid grid-cols-3 gap-2 md:gap-2.5">
                   {secondaryItems.map((item) => renderItem(item, true))}

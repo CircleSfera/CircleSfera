@@ -23,14 +23,12 @@ export type CreatorLegacyTab = CreatorTab | 'finance';
 export interface CreatorNavItem {
   id: CreatorTab;
   labelKey: string;
-  labelFallback: string;
   icon: LucideIcon;
   badge?: string;
 }
 
 export interface CreatorNavGroup {
   labelKey: string;
-  labelFallback: string;
   icon: LucideIcon;
   items: CreatorNavItem[];
 }
@@ -38,50 +36,42 @@ export interface CreatorNavGroup {
 export const CREATOR_NAV_GROUPS: CreatorNavGroup[] = [
   {
     labelKey: 'creator.nav.dashboard',
-    labelFallback: 'Dashboard',
     icon: LayoutDashboard,
     items: [
       {
         id: 'overview',
         labelKey: 'creator.nav.overview',
-        labelFallback: 'Resumen',
         icon: LayoutDashboard,
       },
       {
         id: 'analytics',
         labelKey: 'creator.nav.analytics',
-        labelFallback: 'Analíticas',
         icon: BarChart3,
       },
       {
         id: 'monetization',
         labelKey: 'creator.nav.monetization',
-        labelFallback: 'Monetización',
         icon: DollarSign,
       },
       {
         id: 'ads',
         labelKey: 'creator.nav.ads',
-        labelFallback: 'Publicidad',
         icon: Megaphone,
       },
     ],
   },
   {
     labelKey: 'creator.nav.content_group',
-    labelFallback: 'Contenido',
     icon: ImageIcon,
     items: [
       {
         id: 'content',
         labelKey: 'creator.nav.content',
-        labelFallback: 'Publicaciones',
         icon: ImageIcon,
       },
       {
         id: 'stories',
         labelKey: 'creator.nav.stories',
-        labelFallback: 'Historias',
         icon: Clock,
       },
     ],

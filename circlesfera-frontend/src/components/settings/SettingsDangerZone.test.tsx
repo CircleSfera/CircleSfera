@@ -1,16 +1,18 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderWithProviders } from '../../test/test-utils';
+import { createTestI18n, renderWithProviders } from '../../test/test-utils';
 import SettingsDangerZone from './SettingsDangerZone';
 
-const labels = {
-  title: 'Delete account',
-  description: 'This cannot be undone.',
-  actionLabel: 'Delete my account',
-  confirmTitle: 'Are you sure?',
-  confirmBody: 'Your profile and posts will be permanently removed.',
-  confirmLabel: 'Delete forever',
-};
+function deleteZoneLabels(i18n: ReturnType<typeof createTestI18n>) {
+  return {
+    title: i18n.t('settings.account.delete.title'),
+    description: i18n.t('settings.account.delete.desc'),
+    actionLabel: i18n.t('settings.account.delete.btn'),
+    confirmTitle: i18n.t('settings.account.delete.title'),
+    confirmBody: i18n.t('settings.account.delete.confirm'),
+    confirmLabel: i18n.t('settings.account.delete.btn'),
+  };
+}
 
 describe('SettingsDangerZone', () => {
   const onConfirm = vi.fn();
@@ -20,72 +22,98 @@ describe('SettingsDangerZone', () => {
   });
 
   it('shows the zone copy without opening a dialog', () => {
+    const i18n = createTestI18n();
+    const labels = deleteZoneLabels(i18n);
     renderWithProviders(
       <SettingsDangerZone {...labels} onConfirm={onConfirm} />,
+      { i18n },
     );
 
-    expect(screen.getByText('Delete account')).toBeInTheDocument();
-    expect(screen.getByText('This cannot be undone.')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: labels.title }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(labels.description)).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('opens the confirm dialog from the action and renders a secondary action', () => {
+    const i18n = createTestI18n();
+    const labels = deleteZoneLabels(i18n);
     renderWithProviders(
       <SettingsDangerZone
         {...labels}
         onConfirm={onConfirm}
         secondaryAction={<button type="button">Export data</button>}
       />,
+      { i18n },
     );
 
     expect(
       screen.getByRole('button', { name: 'Export data' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
+    fireEvent.click(screen.getByRole('button', { name: labels.actionLabel }));
 
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Are you sure?')).toBeInTheDocument();
+    const dialog = screen.getByRole('dialog');
+    expect(dialog).toBeInTheDocument();
     expect(
-      screen.getByText('Your profile and posts will be permanently removed.'),
+      within(dialog).getByRole('heading', { name: labels.confirmTitle }),
     ).toBeInTheDocument();
+    expect(screen.getByText(labels.confirmBody)).toBeInTheDocument();
   });
 
   it('closes from cancel and the dialog X without confirming', () => {
+    const i18n = createTestI18n();
+    const labels = deleteZoneLabels(i18n);
     renderWithProviders(
       <SettingsDangerZone {...labels} onConfirm={onConfirm} />,
+      { i18n },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(screen.getByRole('button', { name: labels.actionLabel }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n.t('common.cancel'),
+      }),
+    );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
+    fireEvent.click(screen.getByRole('button', { name: labels.actionLabel }));
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(onConfirm).not.toHaveBeenCalled();
   });
 
   it('confirms and closes the dialog', () => {
+    const i18n = createTestI18n();
+    const labels = deleteZoneLabels(i18n);
     renderWithProviders(
       <SettingsDangerZone {...labels} onConfirm={onConfirm} />,
+      { i18n },
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete my account' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Delete forever' }));
+    fireEvent.click(screen.getByRole('button', { name: labels.actionLabel }));
+    fireEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {
+        name: labels.confirmLabel,
+      }),
+    );
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('disables the action while loading', () => {
+    const i18n = createTestI18n();
+    const labels = deleteZoneLabels(i18n);
     renderWithProviders(
       <SettingsDangerZone {...labels} onConfirm={onConfirm} isLoading />,
+      { i18n },
     );
 
     expect(
-      screen.getByRole('button', { name: 'Delete my account' }),
+      screen.getByRole('button', { name: labels.actionLabel }),
     ).toBeDisabled();
   });
 });

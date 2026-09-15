@@ -49,7 +49,7 @@ export default function FrameActionRail({
           <div className="mt-0.5 w-7 h-7 rounded-full bg-surface-raised border-2 border-surface-high overflow-hidden flex items-center justify-center shadow-[0_0_12px_rgba(0,0,0,0.5)] shrink-0 motion-reduce:animate-none animate-[spin_4s_linear_infinite]">
             <UserAvatar
               src={post.profile.avatar}
-              alt={t('frames.audio_disc', 'Audio disc')}
+              alt={t('frames.audio_disc')}
               size="sm"
               className="w-full h-full"
             />

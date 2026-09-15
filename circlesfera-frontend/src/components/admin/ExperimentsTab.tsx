@@ -98,6 +98,7 @@ function PercentageSlider({
   id?: string;
   className?: string;
 }) {
+  const { t } = useTranslation();
   const clamp = (v: number) => Math.min(100, Math.max(0, v));
 
   return (
@@ -109,7 +110,7 @@ function PercentageSlider({
         value={value}
         onChange={(e) => onChange(clamp(Number(e.target.value)))}
         className="flex-1 h-1.5 rounded-full appearance-none bg-white/10 accent-brand-primary cursor-pointer [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:shadow-md"
-        aria-label="Percentage"
+        aria-label={t('admin.experiments.percentage')}
       />
       <Input
         id={id}

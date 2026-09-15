@@ -46,7 +46,7 @@ export function StoryViewersSheet({
     <>
       <button
         type="button"
-        aria-label={t('common.close', 'Close')}
+        aria-label={t('common.close')}
         className="absolute inset-0 bg-black/50 z-40 cursor-default"
         onClick={onClose}
       />
@@ -63,7 +63,7 @@ export function StoryViewersSheet({
       >
         <button
           type="button"
-          aria-label={t('common.close', 'Close')}
+          aria-label={t('common.close')}
           className="w-full flex justify-center pt-3 pb-1"
           onClick={onClose}
         >
@@ -73,15 +73,13 @@ export function StoryViewersSheet({
         <div className="px-4 pb-3 border-b border-white/5 space-y-3">
           <div className="flex items-center justify-between">
             <h3 id="viewers-title" className="text-white font-bold text-lg">
-              {hasQna
-                ? t('story.insights_title', 'Story activity')
-                : t('story.viewers')}
+              {hasQna ? t('story.insights_title') : t('story.viewers')}
             </h3>
             <button
               type="button"
               onClick={onClose}
               className="text-white/60 hover:text-white bg-white/5 p-1 rounded-full"
-              aria-label={t('common.close', 'Close')}
+              aria-label={t('common.close')}
             >
               <X size={20} />
             </button>
@@ -104,7 +102,7 @@ export function StoryViewersSheet({
                 }`}
               >
                 <HelpCircle size={14} />
-                {t('story.questions_tab', 'Questions')}
+                {t('story.questions_tab')}
                 <span className="text-xs opacity-70">
                   ({qnaAnswers.length})
                 </span>
@@ -121,7 +119,7 @@ export function StoryViewersSheet({
                 }`}
               >
                 <Eye size={14} />
-                {t('story.views_tab', 'Views')}
+                {t('story.views_tab')}
                 <span className="text-xs opacity-70">({viewers.length})</span>
               </button>
             </div>
@@ -145,7 +143,7 @@ export function StoryViewersSheet({
               <div className="space-y-2 p-1">
                 {qnaPrompt ? (
                   <p className="px-3 pt-1 pb-2 text-xs text-white/40">
-                    {t('story.qna_prompt_label', 'Prompt')}: {qnaPrompt}
+                    {t('story.qna_prompt_label')}: {qnaPrompt}
                   </p>
                 ) : null}
                 {qnaAnswers.map((answer) => (
@@ -178,13 +176,10 @@ export function StoryViewersSheet({
               <div className="flex flex-col items-center justify-center py-16 opacity-40">
                 <HelpCircle size={48} className="mb-3 text-white/50" />
                 <p className="text-white font-medium">
-                  {t('story.no_questions', 'No questions yet')}
+                  {t('story.no_questions')}
                 </p>
                 <p className="text-white/50 text-sm text-center px-8">
-                  {t(
-                    'story.no_questions_desc',
-                    'When people answer your Q&A sticker, they show up here.',
-                  )}
+                  {t('story.no_questions_desc')}
                 </p>
               </div>
             )
@@ -221,7 +216,7 @@ export function StoryViewersSheet({
                   <button
                     type="button"
                     className="text-white/40 hover:text-white p-2"
-                    aria-label={t('common.more', 'More')}
+                    aria-label={t('common.more')}
                   >
                     <MoreHorizontal size={16} />
                   </button>

@@ -24,7 +24,7 @@ export default function Saved() {
           <Link
             to="/"
             className="w-11 h-11 flex items-center justify-center hover:bg-white/8 rounded-xl text-white/60 hover:text-white transition-colors"
-            aria-label="Volver al inicio"
+            aria-label={t('common.back_home')}
           >
             <ArrowLeft size={20} />
           </Link>
@@ -39,14 +39,8 @@ export default function Saved() {
           </div>
         ) : isError ? (
           <ErrorState
-            title={t(
-              'collections.load_error_title',
-              'Could not load saved posts',
-            )}
-            message={t(
-              'collections.load_error_message',
-              'Something went wrong. Please try again.',
-            )}
+            title={t('collections.load_error_title')}
+            message={t('collections.load_error_message')}
             onRetry={() => refetch()}
           />
         ) : posts.length === 0 ? (

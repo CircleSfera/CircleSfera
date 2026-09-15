@@ -98,7 +98,6 @@ export default function Onboarding() {
     },
     onSuccess: (_data, username) => {
       queryClient.invalidateQueries({ queryKey: ['follow', username] });
-      toast.success(t('onboarding.followed', 'Followed successfully'));
     },
   });
 

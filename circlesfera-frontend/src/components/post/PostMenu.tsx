@@ -150,7 +150,7 @@ export default function PostMenu({
           {onPromote && (
             <MenuItem
               icon={Megaphone}
-              label={t('post.menu.promote', 'Boost Post')}
+              label={t('post.menu.promote')}
               onClick={onPromote}
               variant="highlight"
             />
@@ -173,21 +173,21 @@ export default function PostMenu({
           {onHidePost && (
             <MenuItem
               icon={EyeOff}
-              label={t('post.menu.not_interested', 'Not interested')}
+              label={t('post.menu.not_interested')}
               onClick={onHidePost}
             />
           )}
           {onHideAuthor && (
             <MenuItem
               icon={UserX}
-              label={t('post.menu.hide_author', 'Hide author')}
+              label={t('post.menu.hide_author')}
               onClick={onHideAuthor}
             />
           )}
           {onMute && (
             <MenuItem
               icon={VolumeX}
-              label={t('post.menu.mute', 'Mute user')}
+              label={t('post.menu.mute')}
               onClick={onMute}
             />
           )}

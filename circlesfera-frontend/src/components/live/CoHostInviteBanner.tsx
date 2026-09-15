@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { Radio, UserPlus, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
 
 interface CoHostInvite {
@@ -23,6 +24,7 @@ export default function CoHostInviteBanner({
   onAccepted,
   onDismiss,
 }: CoHostInviteBannerProps) {
+  const { t } = useTranslation();
   const handleAccept = async () => {
     if (!invite) return;
     try {
@@ -51,7 +53,7 @@ export default function CoHostInviteBanner({
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
               </span>
               <span className="text-xs font-bold text-red-400 uppercase tracking-widest">
-                Invitación en directo
+                {t('live.cohost_invite.badge')}
               </span>
             </div>
 
@@ -60,7 +62,7 @@ export default function CoHostInviteBanner({
                 {invite.host.avatar ? (
                   <img
                     src={invite.host.avatar}
-                    alt={invite.host.username || 'Host'}
+                    alt={invite.host.username || t('common.alt.host')}
                     className="w-12 h-12 rounded-full object-cover border-2 border-purple-500"
                   />
                 ) : (
@@ -78,9 +80,9 @@ export default function CoHostInviteBanner({
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm leading-tight">
                   <span className="text-purple-300">
-                    @{invite.host.username || 'usuario'}
+                    @{invite.host.username || t('live.anonymous')}
                   </span>{' '}
-                  te invita como co-anfitrión
+                  {t('live.cohost_invite.body')}
                 </p>
                 {invite.streamTitle && (
                   <p className="text-white/50 text-xs mt-0.5 truncate">
@@ -93,6 +95,7 @@ export default function CoHostInviteBanner({
                 type="button"
                 onClick={onDismiss}
                 className="shrink-0 p-1.5 text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
+                aria-label={t('common.close')}
               >
                 <X size={16} />
               </button>
@@ -105,14 +108,14 @@ export default function CoHostInviteBanner({
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-purple-500/20 active:scale-95"
               >
                 <UserPlus size={16} />
-                Unirme como co-host
+                {t('live.cohost_invite.join')}
               </button>
               <button
                 type="button"
                 onClick={onDismiss}
                 className="py-2.5 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-xl transition-all active:scale-95"
               >
-                Rechazar
+                {t('live.cohost_invite.decline')}
               </button>
             </div>
           </div>

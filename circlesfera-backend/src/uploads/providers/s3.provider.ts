@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { StorageProvider } from '../interfaces/storage-provider.interface.js';
 import { UploadedFile } from '../interfaces/uploaded-file.interface.js';
+import { mimetypeToExt } from '../mime-to-ext.js';
 
 @Injectable()
 export class S3Provider implements StorageProvider {
@@ -37,9 +39,8 @@ export class S3Provider implements StorageProvider {
         ? 'video'
         : 'other';
 
-    // Generate a unique key for the file
-    const fileExt = file.originalname.split('.').pop();
-    const key = `circlesfera/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+    // Generate an opaque key — never use file.originalname to avoid path manipulation.
+    const key = `circlesfera/${randomUUID()}${mimetypeToExt(file.mimetype)}`;
 
     try {
       this.logger.debug(`Uploading file to S3: ${key}`);

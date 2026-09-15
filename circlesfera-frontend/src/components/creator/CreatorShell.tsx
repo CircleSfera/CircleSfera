@@ -19,9 +19,7 @@ export default function CreatorShell({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const mainRef = useRef<HTMLElement>(null);
   const activeItem = findCreatorNavItem(activeTab);
-  const title = activeItem
-    ? t(activeItem.labelKey, activeItem.labelFallback)
-    : t('creator.title', 'Creator Studio');
+  const title = activeItem ? t(activeItem.labelKey) : t('creator.title');
 
   // Focus main when switching studio tabs (a11y).
   // biome-ignore lint/correctness/useExhaustiveDependencies: activeTab is the intentional trigger
@@ -37,7 +35,7 @@ export default function CreatorShell({
             type="button"
             onClick={() => setDrawerOpen(true)}
             className="md:hidden flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
-            aria-label={t('creator.open_nav', 'Open navigation')}
+            aria-label={t('creator.open_nav')}
           >
             <Menu size={20} />
           </button>

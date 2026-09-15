@@ -106,8 +106,13 @@ Rules:
 - Backend unit: `src/**/*.spec.ts`, Vitest, run with `npm test`.
 - Backend e2e: `test/*.e2e-spec.ts`, needs Postgres + Redis, `fileParallelism: false`.
 - Frontend: `src/**/*.{test,spec}.{ts,tsx}`, Vitest + Testing Library, setup in
-  `src/test/setup.ts` (mocks `matchMedia`, `IntersectionObserver`, `react-i18next`).
-- Playwright: `e2e/*.spec.ts` at the root, `baseURL` `http://localhost:5173`.
+  `src/test/setup.ts` (mocks `matchMedia` and `IntersectionObserver`; real i18n
+  catalogs, language `en`). Composer `create-post` tests pass `{ lng: 'es' }` to
+  `renderWithProviders` so they match E2E.
+- Playwright (journeys): repo-root `e2e/*.spec.ts`, `baseURL` `http://localhost:5173`, live Nest +
+  Postgres. Each spec registers its own user (`e2e/helpers/session.ts`). Playwright (SPA, API
+  stubbed): `circlesfera-frontend/e2e/*.spec.ts` (composer + feed/login/profile/search/messages/stripe).
+  Pyramid: [`quality.md`](./quality.md).
 
 Coverage thresholds are deliberately low (statements/lines 30%). That is a floor, not a target, and
 not an excuse to skip tests on logic you changed.

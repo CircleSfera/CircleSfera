@@ -1,8 +1,21 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { ChatController } from './chat.controller.js';
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
@@ -18,18 +31,7 @@ import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
 
 describe('ChatController', () => {
-  let controller: ChatController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
-
-  const req = { user: mockUser } as Parameters<
-    ChatController['getConversations']
-  >[0];
+  let app: INestApplication;
 
   const mockGetConversationsQuery = { execute: vi.fn() };
   const mockGetMessagesQuery = { execute: vi.fn() };
@@ -44,8 +46,8 @@ describe('ChatController', () => {
   const mockLeaveGroupUseCase = { execute: vi.fn() };
   const mockDeleteConversationUseCase = { execute: vi.fn() };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [ChatController],
       providers: [
         { provide: GetConversationsQuery, useValue: mockGetConversationsQuery },
@@ -67,175 +69,203 @@ describe('ChatController', () => {
           useValue: mockDeleteConversationUseCase,
         },
       ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(EmailVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: EmailVerifiedGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<ChatController>(ChatController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects conversations without a session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations')
+      .expect(401);
+
+    expect(mockGetConversationsQuery.execute).not.toHaveBeenCalled();
   });
 
-  describe('getConversations', () => {
-    it('delegates to GetConversationsQuery with profileId', async () => {
-      const conversations = [{ id: 'conv-1' }];
-      mockGetConversationsQuery.execute.mockResolvedValue(conversations);
+  it('rejects send with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
+        recipientId: 'profile-2',
+        content: 'Hello',
+        senderId: 'attacker',
+      })
+      .expect(400);
 
-      const result = await controller.getConversations(req);
-
-      expect(mockGetConversationsQuery.execute).toHaveBeenCalledWith(
-        'profile-1',
-      );
-      expect(result).toEqual(conversations);
-    });
+    expect(mockSendMessageUseCase.execute).not.toHaveBeenCalled();
   });
 
-  describe('getUnreadCount', () => {
-    it('returns unread count for profile', async () => {
-      mockGetUnreadCountQuery.execute.mockResolvedValue(3);
+  it('lists conversations as the session profileId', async () => {
+    const conversations = [{ id: 'conv-1' }];
+    mockGetConversationsQuery.execute.mockResolvedValue(conversations);
 
-      const result = await controller.getUnreadCount(req);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockGetUnreadCountQuery.execute).toHaveBeenCalledWith('profile-1');
-      expect(result).toEqual({ count: 3 });
-    });
+    expect(res.body).toEqual(conversations);
+    expect(mockGetConversationsQuery.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
   });
 
-  describe('getMessages', () => {
-    it('delegates to GetMessagesQuery with conversation id and profileId', async () => {
-      const messages = [{ id: 'msg-1' }];
-      mockGetMessagesQuery.execute.mockResolvedValue(messages);
+  it('returns unread count for the session profile', async () => {
+    mockGetUnreadCountQuery.execute.mockResolvedValue(3);
 
-      const result = await controller.getMessages(req, 'conv-1');
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/unread-count')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockGetMessagesQuery.execute).toHaveBeenCalledWith(
-        'conv-1',
-        50,
-        'profile-1',
-      );
-      expect(result).toEqual(messages);
-    });
+    expect(res.body).toEqual({ count: 3 });
+    expect(mockGetUnreadCountQuery.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
   });
 
-  describe('sendMessage', () => {
-    it('delegates to SendMessageUseCase with dto fields', async () => {
-      const message = { id: 'msg-1', content: 'Hello' };
-      mockSendMessageUseCase.execute.mockResolvedValue(message);
+  it('lists messages as the session profileId', async () => {
+    const messages = [{ id: 'msg-1' }];
+    mockGetMessagesQuery.execute.mockResolvedValue(messages);
 
-      const dto = {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1/messages')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(messages);
+    expect(mockGetMessagesQuery.execute).toHaveBeenCalledWith(
+      'conv-1',
+      50,
+      TEST_USER.profileId,
+    );
+  });
+
+  it('sends a message as the session profileId', async () => {
+    const message = { id: 'msg-1', content: 'Hello' };
+    mockSendMessageUseCase.execute.mockResolvedValue(message);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
         recipientId: 'profile-2',
         content: 'Hello',
         conversationId: 'conv-1',
         tempId: 'temp-1',
-        mediaUrl: undefined,
-        mediaType: undefined,
-        postId: undefined,
-        storyId: undefined,
-        replyToId: undefined,
-      };
+      })
+      .expect(201);
 
-      const result = await controller.sendMessage(req, dto);
-
-      expect(mockSendMessageUseCase.execute).toHaveBeenCalledWith(
-        'profile-1',
-        'profile-2',
-        'Hello',
-        undefined,
-        undefined,
-        'conv-1',
-        'temp-1',
-        undefined,
-        undefined,
-        undefined,
-      );
-      expect(result).toEqual(message);
-    });
+    expect(res.body).toEqual(message);
+    expect(mockSendMessageUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'profile-2',
+      'Hello',
+      undefined,
+      undefined,
+      'conv-1',
+      'temp-1',
+      undefined,
+      undefined,
+      undefined,
+    );
   });
 
-  describe('markRead', () => {
-    it('marks conversation as read and returns success', async () => {
-      mockMarkAsReadUseCase.execute.mockResolvedValue(undefined);
+  it('marks a conversation as read as the session profile', async () => {
+    mockMarkAsReadUseCase.execute.mockResolvedValue(undefined);
 
-      const result = await controller.markRead(req, 'conv-1');
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/read')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockMarkAsReadUseCase.execute).toHaveBeenCalledWith(
-        'conv-1',
-        'profile-1',
-      );
-      expect(result).toEqual({ success: true });
-    });
+    expect(res.body).toEqual({ success: true });
+    expect(mockMarkAsReadUseCase.execute).toHaveBeenCalledWith(
+      'conv-1',
+      TEST_USER.profileId,
+    );
   });
 
-  describe('editMessage', () => {
-    it('delegates to EditMessageUseCase', async () => {
-      const updated = { id: 'msg-1', content: 'Updated' };
-      mockEditMessageUseCase.execute.mockResolvedValue(updated);
+  it('edits a message as the session profile', async () => {
+    const updated = { id: 'msg-1', content: 'Updated' };
+    mockEditMessageUseCase.execute.mockResolvedValue(updated);
 
-      const result = await controller.editMessage(req, 'msg-1', {
-        content: 'Updated',
-      });
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/chat/messages/msg-1')
+      .set(BEARER)
+      .send({ content: 'Updated' })
+      .expect(200);
 
-      expect(mockEditMessageUseCase.execute).toHaveBeenCalledWith(
-        'profile-1',
-        'msg-1',
-        'Updated',
-      );
-      expect(result).toEqual(updated);
-    });
+    expect(res.body).toEqual(updated);
+    expect(mockEditMessageUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'msg-1',
+      'Updated',
+    );
   });
 
-  describe('deleteMessage', () => {
-    it('delegates to DeleteMessageUseCase', async () => {
-      mockDeleteMessageUseCase.execute.mockResolvedValue({ success: true });
+  it('deletes a message as the session profile', async () => {
+    mockDeleteMessageUseCase.execute.mockResolvedValue({ success: true });
 
-      const result = await controller.deleteMessage(req, 'msg-1');
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/chat/messages/msg-1')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockDeleteMessageUseCase.execute).toHaveBeenCalledWith(
-        'profile-1',
-        'msg-1',
-      );
-      expect(result).toEqual({ success: true });
-    });
+    expect(res.body).toEqual({ success: true });
+    expect(mockDeleteMessageUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'msg-1',
+    );
   });
 
-  describe('createGroup', () => {
-    it('delegates to CreateGroupUseCase', async () => {
-      const group = { id: 'conv-1', name: 'Team' };
-      mockCreateGroupUseCase.execute.mockResolvedValue(group);
+  it('creates a group as the session profile', async () => {
+    const group = { id: 'conv-1', name: 'Team' };
+    mockCreateGroupUseCase.execute.mockResolvedValue(group);
 
-      const result = await controller.createGroup(req, {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chat/conversations')
+      .set(BEARER)
+      .send({
         participantIds: ['profile-2', 'profile-3'],
         name: 'Team',
-      });
+      })
+      .expect(201);
 
-      expect(mockCreateGroupUseCase.execute).toHaveBeenCalledWith(
-        'profile-1',
-        ['profile-2', 'profile-3'],
-        'Team',
-      );
-      expect(result).toEqual(group);
-    });
+    expect(res.body).toEqual(group);
+    expect(mockCreateGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      ['profile-2', 'profile-3'],
+      'Team',
+    );
   });
 
-  describe('deleteConversation', () => {
-    it('delegates to DeleteConversationUseCase ignoring mode query param', async () => {
-      mockDeleteConversationUseCase.execute.mockResolvedValue({
-        success: true,
-      });
-
-      const result = await controller.deleteConversation(req, 'conv-1', 'both');
-
-      expect(mockDeleteConversationUseCase.execute).toHaveBeenCalledWith(
-        'profile-1',
-        'conv-1',
-      );
-      expect(result).toEqual({ success: true });
+  it('deletes a conversation ignoring the mode query param', async () => {
+    mockDeleteConversationUseCase.execute.mockResolvedValue({
+      success: true,
     });
+
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1')
+      .query({ mode: 'both' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockDeleteConversationUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+    );
   });
 });

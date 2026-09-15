@@ -62,7 +62,7 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center py-6 text-gray-400">
         <Loader2 className="w-5 h-5 animate-spin mr-2 text-accent-blue" />
         <span className="text-xs font-medium">
-          {t('interactive.poll.loading', 'Loading poll…')}
+          {t('interactive.poll.loading')}
         </span>
       </div>
     );
@@ -77,7 +77,7 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       <div className="flex items-center space-x-2 text-accent-blue">
         <Vote className="w-4 h-4" />
         <h4 className="text-xs font-bold uppercase tracking-wider">
-          {t('interactive.poll.title', 'Poll')}
+          {t('interactive.poll.title')}
         </h4>
       </div>
 
@@ -127,15 +127,10 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       </div>
 
       <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
-        <span>
-          {t('interactive.poll.votes', {
-            count: poll.totalVotes,
-            defaultValue: '{{count}} votes',
-          })}
-        </span>
+        <span>{t('interactive.poll.votes', { count: poll.totalVotes })}</span>
         {hasVoted && (
           <span className="text-emerald-400 font-medium">
-            {t('interactive.poll.voted', '✓ Vote recorded')}
+            {t('interactive.poll.voted')}
           </span>
         )}
       </div>

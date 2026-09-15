@@ -19,20 +19,21 @@ export default function Header({
   canNext,
 }: HeaderProps) {
   const { t } = useTranslation();
+  const isShare = nextLabel === t('createPost.header.share');
 
   return (
-    <header className="px-2 sm:px-3 min-h-12 py-1 border-b border-white/8 bg-surface-elevated z-30 shrink-0 flex justify-between items-center gap-2">
+    <header className="px-3 min-h-11 py-1.5 z-30 shrink-0 flex justify-between items-center gap-2.5 bg-linear-to-b from-black/60 via-surface-elevated/95 to-transparent border-b border-white/8">
       <button
         type="button"
         onClick={onBack}
-        className="w-11 h-11 -ml-0.5 hover:bg-white/8 rounded-xl text-white/80 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/20 flex items-center justify-center shrink-0"
+        className="min-w-9 min-h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 shrink-0"
         aria-label={t('createPost.header.back')}
       >
-        <ChevronLeft size={22} strokeWidth={2} />
+        <ChevronLeft size={16} strokeWidth={2} />
       </button>
 
       <h1
-        className="font-bold text-[15px] tracking-tight text-white truncate max-w-full flex-1 text-center px-1"
+        className="font-semibold text-sm tracking-tight text-white truncate max-w-full flex-1 text-center px-1"
         id="create-composer-title"
       >
         {title}
@@ -43,17 +44,17 @@ export default function Header({
         onClick={onNext}
         disabled={isPending || !canNext || !nextLabel}
         className={`
-          min-w-16 px-4 h-11 flex items-center justify-center rounded-full font-bold text-sm transition-all duration-200 shrink-0
+          min-w-14 min-h-9 px-3 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-200 shrink-0
           disabled:opacity-30 disabled:cursor-not-allowed active:scale-95
           outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50
           ${
-            nextLabel === t('createPost.header.share')
-              ? 'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-lg shadow-brand-primary/25'
-              : 'text-brand-primary hover:text-white hover:bg-brand-primary/20 border border-brand-primary/30'
+            isShare
+              ? 'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-md shadow-brand-primary/20'
+              : 'text-brand-primary hover:text-white hover:bg-brand-primary/15 border border-brand-primary/35'
           }
         `}
       >
-        {isPending ? <Loader2 size={16} className="animate-spin" /> : nextLabel}
+        {isPending ? <Loader2 size={14} className="animate-spin" /> : nextLabel}
       </button>
     </header>
   );

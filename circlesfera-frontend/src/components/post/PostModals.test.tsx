@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 import PostModals from './PostModals';
 
 describe('PostModals', () => {
@@ -27,55 +28,84 @@ describe('PostModals', () => {
   });
 
   it('renders nothing when both modals are closed', () => {
-    render(<PostModals {...closedProps} />);
+    renderWithProviders(<PostModals {...closedProps} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('confirms delete and closes from cancel', () => {
-    render(<PostModals {...closedProps} showDeleteModal />);
+    const { i18n } = renderWithProviders(
+      <PostModals {...closedProps} showDeleteModal />,
+    );
 
-    expect(screen.getByText('Delete Post?')).toBeInTheDocument();
     expect(
-      screen.getByText('This action cannot be undone.'),
+      screen.getByText(i18n!.t('post.modals.delete_title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('post.modals.delete_warning')),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('post.modals.delete') }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('post.modals.cancel') }),
+    );
 
     expect(onDelete).toHaveBeenCalledTimes(1);
     expect(setShowDeleteModal).toHaveBeenCalledWith(false);
   });
 
   it('shows deleting copy while a delete is in flight', () => {
-    render(<PostModals {...closedProps} showDeleteModal isDeleting />);
+    const { i18n } = renderWithProviders(
+      <PostModals {...closedProps} showDeleteModal isDeleting />,
+    );
 
-    expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('post.modals.deleting') }),
+    ).toBeDisabled();
   });
 
   it('edits the caption and submits', () => {
-    render(<PostModals {...closedProps} showEditModal editCaption="Hello" />);
+    const { i18n } = renderWithProviders(
+      <PostModals {...closedProps} showEditModal editCaption="Hello" />,
+    );
 
-    expect(screen.getByText('Edit Caption')).toBeInTheDocument();
-    const textarea = screen.getByPlaceholderText('Write a caption...');
+    expect(
+      screen.getByText(i18n!.t('post.modals.edit_title')),
+    ).toBeInTheDocument();
+    const textarea = screen.getByPlaceholderText(
+      i18n!.t('post.modals.write_caption'),
+    );
     expect(textarea).toHaveValue('Hello');
 
     fireEvent.change(textarea, { target: { value: 'Edited' } });
     expect(setEditCaption).toHaveBeenCalledWith('Edited');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('post.modals.save') }),
+    );
     expect(onEdit).toHaveBeenCalled();
   });
 
   it('closes the edit dialog from cancel and shows saving while in flight', () => {
-    const { rerender } = render(<PostModals {...closedProps} showEditModal />);
+    const view = renderWithProviders(
+      <PostModals {...closedProps} showEditModal />,
+    );
+    const { i18n } = view;
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('post.modals.cancel') }),
+    );
     expect(setShowEditModal).toHaveBeenCalledWith(false);
 
-    rerender(<PostModals {...closedProps} showEditModal isEditing />);
+    view.rerender(<PostModals {...closedProps} showEditModal isEditing />);
 
-    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('post.modals.saving') }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('post.modals.cancel') }),
+    ).toBeDisabled();
   });
 });

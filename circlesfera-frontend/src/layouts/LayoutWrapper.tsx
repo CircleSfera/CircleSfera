@@ -7,18 +7,17 @@ import { OfflineIndicator } from '../components/common/OfflineIndicator';
 import BottomNav from '../components/navigation/BottomNav';
 import Sidebar from '../components/navigation/Sidebar';
 import TopNav from '../components/navigation/TopNav';
-
 import StoryViewer from '../components/StoryViewer';
-
+import { realtimeService } from '../services/realtime.service';
 import { useAuthStore } from '../stores/authStore';
 import { useNotificationsStore } from '../stores/notificationsStore';
-import { useSocketStore } from '../stores/socketStore';
 import { useStoryStore } from '../stores/storyStore';
 import {
   getContentShell,
   hidesBottomNav,
   hidesTopNav,
   isEditsPath,
+  isMapPath,
   isViewportLockedShell,
 } from './contentShell';
 
@@ -31,7 +30,6 @@ export default function LayoutWrapper({
 }) {
   const location = useLocation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  const { connect, disconnect } = useSocketStore();
   const hideNavRoutes = [
     '/accounts/login',
     '/accounts/signup',
@@ -43,6 +41,7 @@ export default function LayoutWrapper({
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isFramesRoute = shell === 'vertical';
   const isEditsRoute = isEditsPath(location.pathname);
+  const isMapRoute = isMapPath(location.pathname);
   const hideTopNavRoute = hidesTopNav(shell);
   const hideBottomNavRoute = hidesBottomNav(shell);
   const isViewportLocked = isViewportLockedShell(shell);
@@ -73,12 +72,12 @@ export default function LayoutWrapper({
 
   useEffect(() => {
     if (isAuthenticated) {
-      connect();
+      realtimeService.connect();
     } else {
-      disconnect();
+      realtimeService.disconnect();
     }
-    return () => disconnect();
-  }, [isAuthenticated, connect, disconnect]);
+    return () => realtimeService.disconnect();
+  }, [isAuthenticated]);
 
   const liveNotifications = useNotificationsStore(
     (state) => state.liveNotifications,
@@ -87,7 +86,7 @@ export default function LayoutWrapper({
 
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
 
-  const showAppSidebar = shouldShowNav && !isEditsRoute;
+  const showAppSidebar = shouldShowNav && !isEditsRoute && !isMapRoute;
   const mainHasSidebarPad = showAppSidebar;
 
   useLayoutEffect(() => {

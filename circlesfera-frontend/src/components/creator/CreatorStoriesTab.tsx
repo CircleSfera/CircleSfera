@@ -58,15 +58,13 @@ export default function CreatorStoriesTab() {
       }
 
       if (index < 0 || stories.length === 0) {
-        toast.error(
-          t('creator.stories.open_error', 'Could not open this story'),
-        );
+        toast.error(t('creator.stories.open_error'));
         return;
       }
 
       openStories(stories, index);
     } catch {
-      toast.error(t('creator.stories.open_error', 'Could not open this story'));
+      toast.error(t('creator.stories.open_error'));
     } finally {
       setOpeningId(null);
     }
@@ -94,7 +92,7 @@ export default function CreatorStoriesTab() {
               key={story.id}
               onClick={() => void handleOpenStory(story)}
               disabled={openingId === story.id}
-              aria-label={t('creator.stories.open', 'Open story')}
+              aria-label={t('creator.stories.open')}
               className="relative aspect-9/16 rounded-xl overflow-hidden border border-white/5 hover:border-brand-primary/30 transition-all group cursor-pointer text-left disabled:opacity-70"
             >
               {/* Media */}
@@ -127,11 +125,11 @@ export default function CreatorStoriesTab() {
               <div className="absolute top-4 left-4 right-4 flex justify-between items-start">
                 {isExpired(story.expiresAt) ? (
                   <span className="px-2 py-1 bg-black/50 rounded-lg text-[11px] text-white/70">
-                    {t('creator.stories.expired', 'Expired')}
+                    {t('creator.stories.expired')}
                   </span>
                 ) : (
                   <span className="px-2 py-1 bg-brand-primary/90 text-white rounded-lg text-[11px]">
-                    {t('creator.stories.active', 'Active')}
+                    {t('creator.stories.active')}
                   </span>
                 )}
 
@@ -189,11 +187,8 @@ export default function CreatorStoriesTab() {
       {!isLoading && !data?.data?.length && (
         <CreatorEmpty
           icon={Clock}
-          title={t('creator.stories.empty_title', 'No stories yet')}
-          message={t(
-            'creator.stories.empty_desc',
-            'Share ephemeral moments with your followers to grow your reach.',
-          )}
+          title={t('creator.stories.empty_title')}
+          message={t('creator.stories.empty_desc')}
         />
       )}
 
@@ -206,7 +201,7 @@ export default function CreatorStoriesTab() {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            {t('creator.posts.prev', 'Previous')}
+            {t('creator.posts.prev')}
           </Button>
           <span className="text-xs text-white/40 px-2">
             {page} / {data.meta.totalPages}
@@ -220,7 +215,7 @@ export default function CreatorStoriesTab() {
               setPage((p) => Math.min(data.meta.totalPages, p + 1))
             }
           >
-            {t('creator.posts.next', 'Next')}
+            {t('creator.posts.next')}
           </Button>
         </div>
       )}

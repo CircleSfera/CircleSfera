@@ -128,9 +128,7 @@ export default function Creator() {
             fallback={
               <div className="flex flex-col items-center justify-center py-16 text-white/50">
                 <div className="w-6 h-6 border-2 border-brand-primary border-t-transparent rounded-full animate-spin mb-3" />
-                <p className="text-sm">
-                  {t('creator.loading_module', 'Loading…')}
-                </p>
+                <p className="text-sm">{t('creator.loading_module')}</p>
               </div>
             }
           >

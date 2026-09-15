@@ -24,7 +24,7 @@ export default function StudioToolDock() {
 
   return (
     <nav
-      aria-label={t('studio.tools.dock_label', 'Studio tools')}
+      aria-label={t('studio.tools.dock_label')}
       className="shrink-0 border-t border-white/10 bg-surface-elevated safe-area-bottom"
     >
       <div className="flex items-stretch justify-around px-1 pt-1 pb-1">

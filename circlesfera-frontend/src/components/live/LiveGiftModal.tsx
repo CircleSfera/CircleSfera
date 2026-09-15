@@ -8,17 +8,15 @@ import { Dialog } from '../ui/Dialog';
 export interface VirtualGift {
   id: string;
   nameKey: string;
-  nameFallback: string;
   price: number;
   icon: React.ElementType;
   color: string;
 }
 
-const VIRTUAL_GIFTS: VirtualGift[] = [
+export const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'star',
     nameKey: 'live.gifts.star',
-    nameFallback: 'Estrella Sfera',
     price: 1,
     icon: Star,
     color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
@@ -26,7 +24,6 @@ const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'flame',
     nameKey: 'live.gifts.flame',
-    nameFallback: 'Fuego',
     price: 5,
     icon: Flame,
     color: 'text-orange-500 bg-orange-500/10 border-orange-500/30',
@@ -34,7 +31,6 @@ const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'crown',
     nameKey: 'live.gifts.crown',
-    nameFallback: 'Corona Real',
     price: 10,
     icon: Crown,
     color: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
@@ -42,7 +38,6 @@ const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'gem',
     nameKey: 'live.gifts.gem',
-    nameFallback: 'Diamante',
     price: 25,
     icon: Gem,
     color: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
@@ -50,7 +45,6 @@ const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'rocket',
     nameKey: 'live.gifts.rocket',
-    nameFallback: 'Cohete Sfera',
     price: 50,
     icon: Rocket,
     color: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
@@ -86,13 +80,11 @@ export default function LiveGiftModal({
         window.location.href = result.url;
         return;
       }
-      toast.error(
-        t('live.gift_checkout_missing', 'No se pudo iniciar el pago'),
-      );
+      toast.error(t('live.gift_checkout_missing'));
     } catch (err: unknown) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t('live.gift_error', 'Error al enviar el regalo');
+          ?.message || t('live.gift_error');
       toast.error(message);
     } finally {
       setIsSending(false);
@@ -107,11 +99,9 @@ export default function LiveGiftModal({
         </div>
         <div>
           <h3 className="text-lg font-black text-white tracking-tight">
-            {t('live.send_gift_title', 'Enviar Regalo Virtual')}
+            {t('live.send_gift_title')}
           </h3>
-          <p className="text-xs text-gray-400">
-            {t('live.send_gift_desc', 'Apoya al creador en tiempo real')}
-          </p>
+          <p className="text-xs text-gray-400">{t('live.send_gift_desc')}</p>
         </div>
       </div>
 
@@ -134,7 +124,7 @@ export default function LiveGiftModal({
                 <Icon size={24} />
               </div>
               <span className="text-xs font-bold truncate max-w-full">
-                {t(gift.nameKey, gift.nameFallback)}
+                {t(gift.nameKey)}
               </span>
               <span className="text-[11px] font-extrabold text-brand-primary mt-1">
                 €{gift.price}
@@ -151,7 +141,7 @@ export default function LiveGiftModal({
         className="w-full py-3 min-h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/30 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         <Sparkles size={18} aria-hidden />
-        {t('live.confirm_send_gift', 'Enviar Regalo')} (€
+        {t('live.confirm_send_gift')} (€
         {selectedGift.price})
       </button>
     </Dialog>

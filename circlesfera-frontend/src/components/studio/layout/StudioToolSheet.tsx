@@ -44,7 +44,7 @@ export default function StudioToolSheet({
       <button
         type="button"
         className="absolute inset-0 bg-black/50 pointer-events-auto border-0 cursor-default"
-        aria-label={t('common.cancel', 'Cancel')}
+        aria-label={t('common.cancel')}
         onClick={() => setOpenSheet(null)}
       />
       <div
@@ -67,7 +67,7 @@ export default function StudioToolSheet({
             type="button"
             onClick={() => setOpenSheet(null)}
             className="min-h-11 min-w-11 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/10"
-            aria-label={t('common.cancel', 'Cancel')}
+            aria-label={t('common.cancel')}
           >
             <X size={18} />
           </button>

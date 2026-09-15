@@ -27,25 +27,27 @@ describe('BlockModal', () => {
   });
 
   it('shows the username in the title', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <BlockModal isOpen onClose={onClose} username="alice" />,
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Block @alice?')).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "They won't be able to find your profile, posts, or story on CircleSfera.",
-      ),
+      screen.getByText(i18n!.t('modals.block.title', { username: 'alice' })),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('modals.block.message')),
     ).toBeInTheDocument();
   });
 
   it('closes from cancel and the dialog X without blocking', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <BlockModal isOpen onClose={onClose} username="alice" />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.block.cancel') }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -53,11 +55,13 @@ describe('BlockModal', () => {
   });
 
   it('blocks the username and closes on success', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <BlockModal isOpen onClose={onClose} username="alice" />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Block' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.block.confirm') }),
+    );
 
     await waitFor(() => {
       expect(followsApi.block).toHaveBeenCalledWith('alice');

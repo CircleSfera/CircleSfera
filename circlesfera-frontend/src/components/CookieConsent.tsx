@@ -122,7 +122,7 @@ export default function CookieConsent() {
                 onClick={() => decide(false)}
                 whileTap={{ scale: 0.9 }}
                 className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-500 hover:text-white hover:bg-white/8 transition-all mt-0.5"
-                aria-label="Dismiss"
+                aria-label={t('cookieConsent.dismiss')}
               >
                 <X size={14} />
               </motion.button>

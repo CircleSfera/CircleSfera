@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createTestI18n, renderWithProviders } from '../../test/test-utils';
 import ConfirmModal from './ConfirmModal';
 
 describe('ConfirmModal', () => {
@@ -11,52 +12,66 @@ describe('ConfirmModal', () => {
   });
 
   it('renders nothing when closed', () => {
-    render(
+    const i18n = createTestI18n();
+    renderWithProviders(
       <ConfirmModal
         isOpen={false}
         onClose={onClose}
         onConfirm={onConfirm}
-        title="Delete?"
-        message="Cannot undo."
+        title={i18n.t('post.modals.delete_title')}
+        message={i18n.t('post.modals.delete_warning')}
       />,
+      { i18n },
     );
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('confirms and cancels from the actions', () => {
-    render(
+    const i18n = createTestI18n();
+    renderWithProviders(
       <ConfirmModal
         isOpen
         onClose={onClose}
         onConfirm={onConfirm}
-        title="Delete?"
-        message="Cannot undo."
-        confirmText="Delete"
-        cancelText="Cancel"
+        title={i18n.t('post.modals.delete_title')}
+        message={i18n.t('post.modals.delete_warning')}
+        confirmText={i18n.t('post.modals.delete')}
+        cancelText={i18n.t('post.modals.cancel')}
       />,
+      { i18n },
     );
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Delete?')).toBeInTheDocument();
-    expect(screen.getByText('Cannot undo.')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('post.modals.delete_title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('post.modals.delete_warning')),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('post.modals.delete') }),
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('post.modals.cancel') }),
+    );
 
     expect(onConfirm).toHaveBeenCalledWith(undefined);
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
   it('closes from the dialog X', () => {
-    render(
+    const i18n = createTestI18n();
+    renderWithProviders(
       <ConfirmModal
         isOpen
         onClose={onClose}
         onConfirm={onConfirm}
-        title="Delete?"
-        message="Cannot undo."
+        title={i18n.t('post.modals.delete_title')}
+        message={i18n.t('post.modals.delete_warning')}
       />,
+      { i18n },
     );
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
@@ -66,43 +81,58 @@ describe('ConfirmModal', () => {
   });
 
   it('disables confirm while loading', () => {
-    render(
+    const i18n = createTestI18n();
+    renderWithProviders(
       <ConfirmModal
         isOpen
         onClose={onClose}
         onConfirm={onConfirm}
-        title="Delete?"
-        message="Cannot undo."
-        confirmText="Deleting..."
+        title={i18n.t('post.modals.delete_title')}
+        message={i18n.t('post.modals.delete_warning')}
+        confirmText={i18n.t('post.modals.deleting')}
+        cancelText={i18n.t('post.modals.cancel')}
         isLoading
       />,
+      { i18n },
     );
 
-    expect(screen.getByRole('button', { name: 'Deleting...' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Cancel' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n.t('post.modals.deleting') }),
+    ).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: i18n.t('post.modals.cancel') }),
+    ).toBeDisabled();
   });
 
   it('requires input before confirm and passes the trimmed value', () => {
-    render(
+    const i18n = createTestI18n();
+    renderWithProviders(
       <ConfirmModal
         isOpen
         onClose={onClose}
         onConfirm={onConfirm}
-        title="Reject?"
-        message="Give a reason."
-        confirmText="Reject"
+        title={i18n.t('admin.appeals.reject')}
+        message={i18n.t('admin.appeals.notes_prompt_reject')}
+        confirmText={i18n.t('admin.appeals.reject')}
+        cancelText={i18n.t('admin.shared.cancel')}
         showInput
         inputRequired
-        inputLabel="Reason"
+        inputLabel={i18n.t('admin.appeals.admin_notes')}
       />,
+      { i18n },
     );
 
-    const confirm = screen.getByRole('button', { name: 'Reject' });
+    const confirm = screen.getByRole('button', {
+      name: i18n.t('admin.appeals.reject'),
+    });
     expect(confirm).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Reason'), {
-      target: { value: '  spam  ' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n.t('admin.appeals.admin_notes')),
+      {
+        target: { value: '  spam  ' },
+      },
+    );
     expect(confirm).toBeEnabled();
 
     fireEvent.click(confirm);

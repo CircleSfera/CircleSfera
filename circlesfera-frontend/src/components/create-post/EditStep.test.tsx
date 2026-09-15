@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 import EditStep, { fitAspectBox } from './EditStep';
 
 vi.mock('../Carousel', () => ({
@@ -63,7 +64,7 @@ describe('EditStep', () => {
     const handleRemoveFile = vi.fn();
     const fileInputRef = { current: null };
 
-    render(
+    renderWithProviders(
       <EditStep
         mediaFiles={mediaFiles}
         mode="POST"
@@ -72,6 +73,7 @@ describe('EditStep', () => {
         handleRemoveFile={handleRemoveFile}
         fileInputRef={fileInputRef}
       />,
+      { lng: 'es' },
     );
 
     expect(screen.getByText('4:5')).toBeInTheDocument();
@@ -81,14 +83,14 @@ describe('EditStep', () => {
     );
 
     const editButtons = screen.getAllByRole('button', {
-      name: /createPost\.edit\.edit_media/,
+      name: 'Editar Medio',
     });
     expect(editButtons.length).toBeGreaterThanOrEqual(1);
     fireEvent.click(editButtons[0]);
     expect(setCurrentEditIndex).toHaveBeenCalledWith(0);
 
     const removeButtons = screen.getAllByRole('button', {
-      name: /createPost\.edit\.remove_media/,
+      name: 'Eliminar medio',
     });
     expect(removeButtons).toHaveLength(2);
     fireEvent.click(removeButtons[1]);
@@ -109,7 +111,7 @@ describe('EditStep', () => {
       },
     });
 
-    render(
+    renderWithProviders(
       <EditStep
         mediaFiles={[mediaFiles[0]]}
         mode="FRAME"
@@ -118,6 +120,7 @@ describe('EditStep', () => {
         handleRemoveFile={vi.fn()}
         fileInputRef={{ current: null }}
       />,
+      { lng: 'es' },
     );
 
     const frame = screen.getByTestId('edit-preview-frame');

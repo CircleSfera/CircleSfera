@@ -57,10 +57,10 @@ export default function CollectionCard({
         name: nextName,
         description: nextDescription || null,
       });
-      toast.success(t('collections.renamed', 'Collection renamed'));
+      toast.success(t('collections.renamed'));
       setRenaming(false);
     } catch {
-      toast.error(t('collections.rename_error', 'Could not rename'));
+      toast.error(t('collections.rename_error'));
     } finally {
       setBusy(false);
     }
@@ -68,22 +68,15 @@ export default function CollectionCard({
 
   const handleDelete = async () => {
     if (!onDelete) return;
-    if (
-      !window.confirm(
-        t(
-          'collections.delete_confirm',
-          'Delete this collection? Saved posts stay in Saved.',
-        ),
-      )
-    ) {
+    if (!window.confirm(t('collections.delete_confirm'))) {
       return;
     }
     try {
       setBusy(true);
       await onDelete(collection.id);
-      toast.success(t('collections.deleted', 'Collection deleted'));
+      toast.success(t('collections.deleted'));
     } catch {
-      toast.error(t('collections.delete_error', 'Could not delete'));
+      toast.error(t('collections.delete_error'));
     } finally {
       setBusy(false);
     }
@@ -139,16 +132,10 @@ export default function CollectionCard({
                   }}
                   maxLength={300}
                   rows={2}
-                  placeholder={t(
-                    'collections.placeholder_description',
-                    'Optional description',
-                  )}
+                  placeholder={t('collections.placeholder_description')}
                   className="w-full bg-black/60 border border-white/20 rounded px-2 py-1 text-xs text-white/90 resize-none"
                   disabled={busy}
-                  aria-label={t(
-                    'collections.description_label',
-                    'Description (optional)',
-                  )}
+                  aria-label={t('collections.description_label')}
                 />
               </div>
             ) : (
@@ -189,7 +176,7 @@ export default function CollectionCard({
               }
             }}
             className="p-1.5 rounded-lg bg-black/60 border border-white/10 text-white hover:bg-white/10"
-            aria-label={t('collections.rename', 'Rename')}
+            aria-label={t('collections.rename')}
           >
             <Pencil size={14} />
           </button>
@@ -201,7 +188,7 @@ export default function CollectionCard({
               void handleDelete();
             }}
             className="p-1.5 rounded-lg bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
-            aria-label={t('collections.delete', 'Delete')}
+            aria-label={t('collections.delete')}
           >
             <Trash2 size={14} />
           </button>

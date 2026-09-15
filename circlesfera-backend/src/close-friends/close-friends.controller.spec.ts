@@ -1,60 +1,79 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { CloseFriendsController } from './close-friends.controller.js';
 import { CloseFriendsService } from './close-friends.service.js';
 
 describe('CloseFriendsController', () => {
-  let controller: CloseFriendsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     getCloseFriends: vi.fn(),
     toggleCloseFriend: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [CloseFriendsController],
       providers: [{ provide: CloseFriendsService, useValue: mockService }],
-    }).compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<CloseFriendsController>(CloseFriendsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects listing without a session', async () => {
+    await request(app.getHttpServer()).get('/api/v1/close-friends').expect(401);
+
+    expect(mockService.getCloseFriends).not.toHaveBeenCalled();
   });
 
-  describe('getCloseFriends', () => {
-    it('delegates to service with profileId', async () => {
-      mockService.getCloseFriends.mockResolvedValue([{ id: 'friend-1' }]);
+  it('lists close friends as the session profile', async () => {
+    mockService.getCloseFriends.mockResolvedValue([{ id: 'friend-1' }]);
 
-      const result = await controller.getCloseFriends(mockUser);
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/close-friends')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.getCloseFriends).toHaveBeenCalledWith('profile-1');
-      expect(result).toEqual([{ id: 'friend-1' }]);
-    });
+    expect(res.body).toEqual([{ id: 'friend-1' }]);
+    expect(mockService.getCloseFriends).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+    );
   });
 
-  describe('toggleCloseFriend', () => {
-    it('delegates to service with profileId and friendId', async () => {
-      mockService.toggleCloseFriend.mockResolvedValue({ isCloseFriend: true });
+  it('toggles a close friend as the session profile', async () => {
+    mockService.toggleCloseFriend.mockResolvedValue({ isCloseFriend: true });
 
-      const result = await controller.toggleCloseFriend(mockUser, 'friend-2');
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/close-friends/friend-2')
+      .set(BEARER)
+      .expect(201);
 
-      expect(mockService.toggleCloseFriend).toHaveBeenCalledWith(
-        'profile-1',
-        'friend-2',
-      );
-      expect(result).toEqual({ isCloseFriend: true });
-    });
+    expect(res.body).toEqual({ isCloseFriend: true });
+    expect(mockService.toggleCloseFriend).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'friend-2',
+    );
   });
 });

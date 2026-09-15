@@ -28,10 +28,7 @@ export default function ConnectStripeButton() {
       const message = axios.isAxiosError(error)
         ? error.response?.data?.message
         : undefined;
-      toast.error(
-        message ||
-          t('monetization.connect_stripe_error', 'Failed to connect Stripe.'),
-      );
+      toast.error(message || t('monetization.connect_stripe_error'));
     },
   });
 
@@ -39,16 +36,10 @@ export default function ConnectStripeButton() {
     <div className="text-center">
       <ShieldCheck className="w-10 h-10 text-brand-primary mx-auto mb-3" />
       <h3 className="text-white font-medium text-base mb-1">
-        {t(
-          'monetization.verify_identity',
-          'Verify identity to receive payouts',
-        )}
+        {t('monetization.verify_identity')}
       </h3>
       <p className="text-white/50 text-sm mb-5">
-        {t(
-          'monetization.stripe_connect_desc',
-          'To withdraw earnings, verify your identity and link a bank account with Stripe Connect.',
-        )}
+        {t('monetization.stripe_connect_desc')}
       </p>
       <Button
         onClick={() => connectMutation.mutate()}
@@ -57,7 +48,7 @@ export default function ConnectStripeButton() {
         className="w-full min-h-11"
       >
         <ExternalLink size={16} className="mr-2" aria-hidden />
-        {t('monetization.connect_with_stripe', 'Connect with Stripe')}
+        {t('monetization.connect_with_stripe')}
       </Button>
     </div>
   );

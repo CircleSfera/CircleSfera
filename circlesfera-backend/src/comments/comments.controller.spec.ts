@@ -1,21 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { CommentsController } from './comments.controller.js';
 import { CommentsService } from './comments.service.js';
 
 describe('CommentsController', () => {
-  let controller: CommentsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -25,78 +31,128 @@ describe('CommentsController', () => {
     unlikeComment: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [CommentsController],
       providers: [{ provide: CommentsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(EmailVerifiedGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtOptionalGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: EmailVerifiedGuard, mode: 'allow' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+      ],
+    });
+  });
 
-    controller = module.get<CommentsController>(CommentsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments')
+      .send({ content: 'Nice shot' })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('creates a comment as the caller profile', async () => {
-    const dto = { content: 'Nice shot' };
-    mockService.create.mockResolvedValue({ id: 'c-1', ...dto });
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments')
+      .set(BEARER)
+      .send({ content: 'Nice shot', authorId: 'attacker' })
+      .expect(400);
 
-    await controller.create('post-1', mockUser, dto);
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
 
-    expect(mockService.create).toHaveBeenCalledWith('post-1', 'profile-1', dto);
+  it('creates a comment as the session profile', async () => {
+    mockService.create.mockResolvedValue({
+      id: 'c-1',
+      content: 'Nice shot',
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments')
+      .set(BEARER)
+      .send({ content: 'Nice shot' })
+      .expect(201);
+
+    expect(res.body).toEqual({ id: 'c-1', content: 'Nice shot' });
+    expect(mockService.create).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+      { content: 'Nice shot' },
+    );
   });
 
   it('lists comments with the viewer profile when present', async () => {
     mockService.findByPost.mockResolvedValue({ data: [] });
-    const pagination = { page: 1, limit: 10 };
 
-    await controller.findByPost('post-1', pagination, mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/comments')
+      .query({ page: 1, limit: 10 })
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.findByPost).toHaveBeenCalledWith(
       'post-1',
-      pagination,
-      'profile-1',
+      expect.objectContaining({ page: 1, limit: 10 }),
+      TEST_USER.profileId,
     );
   });
 
   it('lists comments without a profile when the viewer is anonymous', async () => {
     mockService.findByPost.mockResolvedValue({ data: [] });
-    const pagination = { page: 1, limit: 10 };
 
-    await controller.findByPost('post-1', pagination, null);
+    await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/comments')
+      .query({ page: 1, limit: 10 })
+      .expect(200);
 
     expect(mockService.findByPost).toHaveBeenCalledWith(
       'post-1',
-      pagination,
+      expect.objectContaining({ page: 1, limit: 10 }),
       undefined,
     );
   });
 
-  it('deletes a comment as the caller profile', async () => {
+  it('deletes a comment as the session profile', async () => {
     mockService.remove.mockResolvedValue(undefined);
 
-    await controller.remove('c-1', mockUser);
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/comments/c-1')
+      .set(BEARER)
+      .expect(204);
 
-    expect(mockService.remove).toHaveBeenCalledWith('c-1', 'profile-1');
+    expect(mockService.remove).toHaveBeenCalledWith('c-1', TEST_USER.profileId);
   });
 
-  it('likes and unlikes a comment as the caller profile', async () => {
+  it('likes and unlikes a comment as the session profile', async () => {
     mockService.likeComment.mockResolvedValue(undefined);
     mockService.unlikeComment.mockResolvedValue(undefined);
 
-    await controller.likeComment('c-1', mockUser);
-    await controller.unlikeComment('c-1', mockUser);
+    const liked = await request(app.getHttpServer())
+      .post('/api/v1/posts/post-1/comments/c-1/like')
+      .set(BEARER)
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/api/v1/posts/post-1/comments/c-1/like')
+      .set(BEARER)
+      .expect(204);
 
-    expect(mockService.likeComment).toHaveBeenCalledWith('c-1', 'profile-1');
-    expect(mockService.unlikeComment).toHaveBeenCalledWith('c-1', 'profile-1');
+    expect(liked.body).toEqual({ success: true });
+    expect(mockService.likeComment).toHaveBeenCalledWith(
+      'c-1',
+      TEST_USER.profileId,
+    );
+    expect(mockService.unlikeComment).toHaveBeenCalledWith(
+      'c-1',
+      TEST_USER.profileId,
+    );
   });
 });

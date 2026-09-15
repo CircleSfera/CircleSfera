@@ -1,38 +1,35 @@
-import { UnauthorizedException } from '@nestjs/common';
+import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { AppealsController } from './appeals.controller.js';
 import { AppealsService } from './appeals.service.js';
 
 describe('AppealsController', () => {
-  let controller: AppealsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
-
-  const mockAdmin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['appeals'],
-    roles: ['MODERATOR'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const createDto = {
-    targetType: 'ACCOUNT_BAN' as const,
+    targetType: 'ACCOUNT_BAN',
     reason: 'Please review this ban',
   };
 
@@ -49,56 +46,79 @@ describe('AppealsController', () => {
 
   const mockConfig = {
     get: vi.fn().mockReturnValue('test-jwt-secret'),
+    getOrThrow: vi.fn().mockReturnValue('test-jwt-secret'),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AppealsController],
       providers: [
         { provide: AppealsService, useValue: mockService },
         { provide: JwtService, useValue: mockJwt },
         { provide: ConfigService, useValue: mockConfig },
       ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(JwtOptionalGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AppealsController>(AppealsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
     mockConfig.get.mockReturnValue('test-jwt-secret');
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects my appeals without a session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/appeals/my-appeals')
+      .expect(401);
+
+    expect(mockService.findMyUserAppeals).not.toHaveBeenCalled();
+  });
+
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set(BEARER)
+      .send({ ...createDto, appealToken: 'token-2' })
+      .expect(400);
+
+    expect(mockJwt.verify).not.toHaveBeenCalled();
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
   it('creates an appeal as the JWT userId when present', async () => {
     mockService.create.mockResolvedValue({ id: 'appeal-1' });
 
-    await controller.create(
-      { user: mockUser, headers: {}, body: {} },
-      createDto,
-    );
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set(BEARER)
+      .send(createDto)
+      .expect(201);
 
     expect(mockJwt.verify).not.toHaveBeenCalled();
-    expect(mockService.create).toHaveBeenCalledWith('user-1', createDto);
+    expect(mockService.create).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      createDto,
+    );
   });
 
   it('creates an appeal from an x-appeal-token payload', async () => {
     mockJwt.verify.mockReturnValue({ isAppealToken: true, sub: 'banned-1' });
     mockService.create.mockResolvedValue({ id: 'appeal-1' });
 
-    await controller.create(
-      { headers: { 'x-appeal-token': 'token-1' }, body: {} },
-      createDto,
-    );
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'token-1')
+      .send(createDto)
+      .expect(201);
 
     expect(mockJwt.verify).toHaveBeenCalledWith('token-1', {
       secret: 'test-jwt-secret',
@@ -106,66 +126,82 @@ describe('AppealsController', () => {
     expect(mockService.create).toHaveBeenCalledWith('banned-1', createDto);
   });
 
-  it('creates an appeal from a body appealToken when the header is absent', async () => {
-    mockJwt.verify.mockReturnValue({ isAppealToken: true, sub: 'banned-2' });
-    mockService.create.mockResolvedValue({ id: 'appeal-1' });
-
-    await controller.create(
-      { headers: {}, body: { appealToken: 'token-2' } },
-      createDto,
-    );
-
-    expect(mockJwt.verify).toHaveBeenCalledWith('token-2', {
-      secret: 'test-jwt-secret',
-    });
-    expect(mockService.create).toHaveBeenCalledWith('banned-2', createDto);
-  });
-
   it('rejects an invalid appeal token', async () => {
     mockJwt.verify.mockImplementation(() => {
       throw new Error('expired');
     });
 
-    expect(() =>
-      controller.create(
-        { headers: { 'x-appeal-token': 'bad-token' }, body: {} },
-        createDto,
-      ),
-    ).toThrow(UnauthorizedException);
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'bad-token')
+      .send(createDto)
+      .expect(401);
+
     expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('rejects create without JWT user or appeal token', () => {
-    expect(() =>
-      controller.create({ headers: {}, body: {} }, createDto),
-    ).toThrow(UnauthorizedException);
+  it('rejects create without JWT user or appeal token', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .send(createDto)
+      .expect(401);
+
     expect(mockService.create).not.toHaveBeenCalled();
   });
 
   it('lists the caller appeals by userId', async () => {
     mockService.findMyUserAppeals.mockResolvedValue([]);
 
-    await controller.findMyUserAppeals(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/appeals/my-appeals')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findMyUserAppeals).toHaveBeenCalledWith('user-1');
+    expect(mockService.findMyUserAppeals).toHaveBeenCalledWith(
+      TEST_USER.userId,
+    );
+  });
+
+  it('rejects the admin list with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/appeals/admin')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.findAll).not.toHaveBeenCalled();
   });
 
   it('lists admin appeals with default and parsed pagination', async () => {
     mockService.findAll.mockResolvedValue({ data: [] });
 
-    await controller.findAll();
-    await controller.findAll('2', '10', 'PENDING');
+    await request(app.getHttpServer())
+      .get('/api/v1/appeals/admin')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/appeals/admin')
+      .query({ page: 2, limit: 10, status: 'PENDING' })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.findAll).toHaveBeenNthCalledWith(1, 1, 20, undefined);
     expect(mockService.findAll).toHaveBeenNthCalledWith(2, 2, 10, 'PENDING');
   });
 
   it('updates an appeal as the staff adminId', async () => {
-    const dto = { status: 'APPROVED' as const };
+    const dto = { status: 'APPROVED' };
     mockService.update.mockResolvedValue({ id: 'appeal-1' });
 
-    await controller.update('appeal-1', dto, mockAdmin);
+    await request(app.getHttpServer())
+      .patch('/api/v1/appeals/admin/appeal-1')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(200);
 
-    expect(mockService.update).toHaveBeenCalledWith('appeal-1', dto, 'admin-1');
+    expect(mockService.update).toHaveBeenCalledWith(
+      'appeal-1',
+      dto,
+      TEST_ADMIN.adminId,
+    );
   });
 });

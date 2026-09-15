@@ -113,15 +113,23 @@ export default function UploadStep({
         const input = fileInputRef.current;
         if (input) {
           const dt = new DataTransfer();
-          for (let i = 0; i < files.length; i++) {
-            dt.items.add(files[i]);
+          const list = Array.from(files);
+          const accepted =
+            mode === 'FRAME'
+              ? list.filter((f) => f.type.startsWith('video/')).slice(0, 1)
+              : list;
+          if (mode === 'FRAME' && accepted.length === 0) {
+            return;
+          }
+          for (const file of accepted) {
+            dt.items.add(file);
           }
           input.files = dt.files;
           input.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
     },
-    [fileInputRef],
+    [fileInputRef, mode],
   );
 
   const openCamera = async (e: React.MouseEvent) => {
@@ -178,9 +186,9 @@ export default function UploadStep({
         ref={dropRef}
         className={`
           flex-1 flex flex-col min-h-0 relative z-10
-          max-md:px-4 max-md:pt-5 max-md:gap-3
+          max-md:px-4 max-md:pt-4 max-md:gap-2.5
           md:px-3 md:pt-3 md:gap-2
-          ${allowModeSwitch ? 'max-md:pb-[5.25rem] md:pb-[4.5rem]' : 'pb-4'}
+          ${allowModeSwitch ? 'max-md:pb-[4.75rem] md:pb-16' : 'pb-3'}
           transition-colors duration-300
           ${isDragging ? 'bg-white/[0.03]' : ''}
         `}
@@ -194,9 +202,9 @@ export default function UploadStep({
         <motion.div
           className={`
             relative w-full min-h-0
-            flex flex-col items-center gap-3
-            max-md:flex-none max-md:justify-start max-md:pt-2
-            md:flex-1 md:justify-center md:rounded-2xl md:border md:p-4
+            flex flex-col items-center gap-2.5
+            max-md:flex-none max-md:justify-start max-md:pt-1
+            md:flex-1 md:justify-center md:rounded-xl md:border md:p-3
             transition-colors duration-300
             ${
               isDragging
@@ -208,7 +216,7 @@ export default function UploadStep({
           transition={{ duration: 0.2 }}
         >
           <div
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center border shrink-0 ${
+            className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${
               isDragging
                 ? 'bg-white/10 border-white/15'
                 : 'bg-white/6 border-white/8'
@@ -224,13 +232,13 @@ export default function UploadStep({
               >
                 {isDragging ? (
                   <ArrowUpFromLine
-                    size={26}
+                    size={22}
                     className={translatedConfig.accent}
                     strokeWidth={1.5}
                   />
                 ) : (
                   <translatedConfig.icon
-                    size={26}
+                    size={22}
                     className={translatedConfig.accent}
                     strokeWidth={1.5}
                   />
@@ -239,14 +247,14 @@ export default function UploadStep({
             </AnimatePresence>
           </div>
 
-          <div className="text-center space-y-1 w-full px-1">
-            <p className="text-sm font-semibold text-white/90">
+          <div className="text-center space-y-0.5 w-full px-1">
+            <p className="text-[13px] font-semibold text-white/90">
               {isDragging
                 ? t('createPost.upload.drop_files')
                 : translatedConfig.description}
             </p>
             {!isDragging ? (
-              <p className="text-xs text-white/35 font-medium">
+              <p className="text-[11px] text-white/35 font-medium">
                 <span className="hidden md:inline">
                   {t('createPost.upload.drag_files')}
                   {' · '}
@@ -256,28 +264,32 @@ export default function UploadStep({
             ) : null}
           </div>
 
-          <div className="flex flex-col w-full gap-2 mt-1 max-md:mt-2 md:max-w-sm">
+          <div className="flex flex-col w-full gap-2 mt-1.5 max-md:mt-2 md:max-w-sm">
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-12 px-4 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
-                         shadow-lg shadow-brand-primary/20 active:scale-[0.98] transition-transform
+              className="w-full h-10 min-h-10 px-4 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
+                         shadow-md shadow-brand-primary/20 active:scale-[0.98] transition-transform
                          outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
             >
-              {t('createPost.upload.select_device')}
+              {mode === 'FRAME'
+                ? t('createPost.upload.select_video')
+                : t('createPost.upload.select_device')}
             </button>
 
-            <button
-              type="button"
-              onClick={openCamera}
-              className="w-full h-12 px-4 flex items-center justify-center gap-2 rounded-xl font-bold text-sm
+            {mode !== 'FRAME' ? (
+              <button
+                type="button"
+                onClick={openCamera}
+                className="w-full h-10 min-h-10 px-4 flex items-center justify-center gap-2 rounded-xl font-bold text-sm
                          bg-white/6 border border-white/10 text-white/90 hover:bg-white/10
                          active:scale-[0.98] transition-all md:hidden
                          outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-            >
-              <Camera size={18} />
-              {t('createPost.upload.take_photo')}
-            </button>
+              >
+                <Camera size={16} />
+                {t('createPost.upload.take_photo')}
+              </button>
+            ) : null}
           </div>
 
           <AnimatePresence>
@@ -285,7 +297,7 @@ export default function UploadStep({
               <motion.button
                 type="button"
                 onClick={onTextStory}
-                className="flex items-center gap-3 w-full px-3 h-12 rounded-xl shrink-0 mt-1 md:max-w-sm
+                className="flex items-center gap-2.5 w-full px-3 min-h-11 h-11 rounded-xl shrink-0 mt-0.5 md:max-w-sm
                            bg-white/[0.04] border border-white/8
                            hover:bg-white/[0.07] hover:border-white/15
                            transition-colors duration-200 group
@@ -295,11 +307,11 @@ export default function UploadStep({
                 exit={{ opacity: 0, y: 8 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="w-9 h-9 rounded-lg bg-brand-accent/15 border border-brand-accent/20 flex items-center justify-center shrink-0">
-                  <Sparkles size={16} className="text-brand-accent" />
+                <div className="w-8 h-8 rounded-lg bg-brand-accent/15 border border-brand-accent/20 flex items-center justify-center shrink-0">
+                  <Sparkles size={14} className="text-brand-accent" />
                 </div>
                 <div className="text-left min-w-0">
-                  <p className="text-sm font-bold text-white/90 truncate">
+                  <p className="text-[13px] font-bold text-white/90 truncate">
                     {t('createPost.upload.create_text_story')}
                   </p>
                   <p className="text-[11px] text-white/30 font-medium truncate">
@@ -315,7 +327,7 @@ export default function UploadStep({
       <input
         ref={fileInputRef}
         type="file"
-        multiple
+        multiple={mode !== 'FRAME'}
         accept={translatedConfig.accept}
         className="hidden"
         onChange={handleFileSelect}
@@ -323,13 +335,13 @@ export default function UploadStep({
 
       {allowModeSwitch ? (
         <div
-          className="absolute bottom-0 left-0 right-0 z-20 max-md:px-4 max-md:pt-2 md:px-3 md:pt-3 bg-linear-to-t from-surface-elevated from-50% via-surface-elevated/90 to-transparent"
+          className="absolute bottom-0 left-0 right-0 z-20 max-md:px-4 max-md:pt-2 md:px-3 md:pt-2 bg-linear-to-t from-surface-elevated from-50% via-surface-elevated/90 to-transparent"
           style={{
-            paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: '0.5rem',
           }}
         >
           <div
-            className="flex w-full md:max-w-sm md:mx-auto bg-white/[0.04] rounded-xl p-1 border border-white/8"
+            className="flex w-full md:max-w-sm md:mx-auto bg-white/4 rounded-xl p-1 border border-white/8"
             role="tablist"
             aria-label={t('createPost.upload.mode_switcher')}
           >
@@ -344,12 +356,12 @@ export default function UploadStep({
                   aria-selected={isActive}
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative flex-1 min-h-11 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="relative flex-1 min-h-10 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
                   {isActive && (
                     <motion.div
                       layoutId="mode-pill-bg"
-                      className="absolute inset-0 bg-white/8 border border-white/10 rounded-lg"
+                      className="absolute inset-0 bg-white/10 border border-white/12 rounded-lg"
                       transition={{
                         type: 'spring',
                         stiffness: 400,
@@ -360,13 +372,13 @@ export default function UploadStep({
                   <Icon
                     size={15}
                     className={`relative z-10 ${
-                      isActive ? cfg.accent : 'text-white/25'
+                      isActive ? cfg.accent : 'text-white/30'
                     }`}
                     strokeWidth={2}
                   />
                   <span
                     className={`relative z-10 text-xs font-bold tracking-wide ${
-                      isActive ? 'text-white' : 'text-white/30'
+                      isActive ? 'text-white' : 'text-white/35'
                     }`}
                   >
                     {t(`createPost.upload.${cfg.label.toLowerCase()}`)}

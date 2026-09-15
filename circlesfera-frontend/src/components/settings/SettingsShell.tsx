@@ -20,9 +20,7 @@ export default function SettingsShell({
   const { t } = useTranslation();
   const mainRef = useRef<HTMLElement>(null);
   const navItem = section ? findSettingsNavItem(section) : null;
-  const title = navItem
-    ? t(navItem.labelKey, navItem.labelFallback)
-    : t('settings.hub.title', 'Your account');
+  const title = navItem ? t(navItem.labelKey) : t('settings.hub.title');
   const isHub = section === null;
 
   // Focus main when navigating between hub index and sections (a11y).
@@ -43,7 +41,7 @@ export default function SettingsShell({
             <Link
               to="/accounts"
               className="flex items-center justify-center w-11 h-11 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:text-white shrink-0"
-              aria-label={t('settings.hub.back', 'Back to account')}
+              aria-label={t('settings.hub.back')}
             >
               <ArrowLeft size={20} />
             </Link>
@@ -54,10 +52,7 @@ export default function SettingsShell({
             </h1>
             {!section && (
               <p className="text-sm text-white/50 mt-0.5">
-                {t(
-                  'settings.hub.subtitle',
-                  'Manage your CircleSfera experience',
-                )}
+                {t('settings.hub.subtitle')}
               </p>
             )}
           </div>
@@ -67,14 +62,14 @@ export default function SettingsShell({
           {/* Desktop sidebar — only on section pages */}
           {!isHub && (
             <nav
-              aria-label={t('settings.hub.nav_label', 'Account settings')}
+              aria-label={t('settings.hub.nav_label')}
               className="hidden md:block w-56 shrink-0"
             >
               <div className="sticky top-24 space-y-5">
                 {SETTINGS_NAV_GROUPS.map((group) => (
                   <div key={group.id}>
                     <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-1.5 px-2">
-                      {t(group.labelKey, group.labelFallback)}
+                      {t(group.labelKey)}
                     </p>
                     <ul className="space-y-0.5">
                       {group.items.map((item) => {
@@ -103,7 +98,7 @@ export default function SettingsShell({
                                     aria-hidden
                                   />
                                   <span className="truncate">
-                                    {t(item.labelKey, item.labelFallback)}
+                                    {t(item.labelKey)}
                                   </span>
                                 </>
                               )}

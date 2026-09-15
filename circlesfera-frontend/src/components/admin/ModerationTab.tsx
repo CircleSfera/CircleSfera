@@ -299,7 +299,7 @@ export default function ModerationTab({ onToast }: Props) {
                   onClick={() =>
                     batchModerationMutation.mutate({
                       status: 'VISIBLE',
-                      note: 'Batch Approved',
+                      note: t('admin.moderation.note_batch_approved'),
                     })
                   }
                   label={t('admin.moderation.approve_false_positive')}
@@ -311,7 +311,7 @@ export default function ModerationTab({ onToast }: Props) {
                   onClick={() =>
                     batchModerationMutation.mutate({
                       status: 'HIDDEN',
-                      note: 'Batch Hidden',
+                      note: t('admin.moderation.note_batch_hidden'),
                     })
                   }
                   label={t('admin.moderation.hide_shadowban')}
@@ -457,7 +457,7 @@ export default function ModerationTab({ onToast }: Props) {
                               id: selectedItem.id,
                               entityType: selectedItem.entityType,
                               status: 'VISIBLE',
-                              note: 'Aprobado (Falso Positivo)',
+                              note: t('admin.moderation.note_false_positive'),
                             })
                           }
                           isLoading={moderationMutation.isPending}
@@ -571,7 +571,7 @@ export default function ModerationTab({ onToast }: Props) {
                   id: actionItem.id,
                   entityType: actionItem.entityType,
                   status: actionItem.status,
-                  note: 'Eliminado permanentemente por moderación',
+                  note: t('admin.moderation.permanent_delete_note'),
                 });
               }
             }}

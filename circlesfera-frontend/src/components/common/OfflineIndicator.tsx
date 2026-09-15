@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { WifiOff } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function OfflineIndicator() {
+  const { t } = useTranslation();
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [wasOffline, setWasOffline] = useState(false);
 
@@ -75,13 +77,13 @@ export function OfflineIndicator() {
               <svg
                 viewBox="0 0 24 24"
                 fill="none"
-                aria-label="Conexión restaurada"
+                aria-label={t('common.online')}
                 role="img"
                 className="w-3.5 h-3.5 relative text-green-400"
                 stroke="currentColor"
                 strokeWidth={2.5}
               >
-                <title>Conexión restaurada</title>
+                <title>{t('common.online')}</title>
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -98,7 +100,7 @@ export function OfflineIndicator() {
                 : 'rgba(134,239,172,0.95)',
             }}
           >
-            {isOffline ? 'Sin conexión a internet' : 'Conexión restaurada'}
+            {isOffline ? t('common.offline') : t('common.online')}
           </span>
         </motion.div>
       )}

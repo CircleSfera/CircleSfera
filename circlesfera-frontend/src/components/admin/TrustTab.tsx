@@ -31,9 +31,7 @@ function formatMttrDuration(
 ): string {
   const mins = Math.round(ms / 60_000);
   if (mins < 60) {
-    return t('admin.trust.mttr_duration_minutes', {
-      count: Math.max(1, mins),
-    });
+    return t('admin.trust.mttr_duration_minutes', { count: Math.max(1, mins) });
   }
   const hrs = Math.round(mins / 60);
   if (hrs < 24) {

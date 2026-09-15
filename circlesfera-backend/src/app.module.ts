@@ -51,7 +51,9 @@ import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MonetizationModule } from './monetization/monetization.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { OutboxModule } from './outbox/outbox.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
+import { PlacesModule } from './places/places.module.js';
 import { PostsModule } from './posts/posts.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { ProfilesModule } from './profiles/profiles.module.js';
@@ -173,6 +175,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     AnalyticsModule,
     HealthModule,
     PaymentsModule,
+    PlacesModule,
     PushModule,
     MonetizationModule,
     SeoModule,
@@ -185,6 +188,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     MaintenanceModule,
     LiveModule,
     WarehouseModule,
+    OutboxModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

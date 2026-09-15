@@ -100,18 +100,28 @@ describe('GroupDetailsModal', () => {
   });
 
   it('shows the group name, members and participants', () => {
-    renderModal(group(false));
+    const { i18n } = renderModal(group(false));
 
-    expect(screen.getByText('Group details')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('chat.group_details.title')),
+    ).toBeInTheDocument();
     expect(screen.getByText('Weekend')).toBeInTheDocument();
-    expect(screen.getByText('2 members')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('chat.members', { count: 2 })),
+    ).toBeInTheDocument();
     expect(screen.getByText('Me')).toBeInTheDocument();
     expect(screen.getByText('Bob')).toBeInTheDocument();
-    expect(screen.getByText('Admin')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Edit info' }),
+      screen.getByText(i18n!.t('chat.group_details.admin_badge')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('chat.group_details.edit_info'),
+      }),
     ).not.toBeInTheDocument();
-    expect(screen.queryByTitle('Remove from group')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTitle(i18n!.t('chat.group_details.remove_title')),
+    ).not.toBeInTheDocument();
   });
 
   it('closes from the dialog X without mutating the group', () => {
@@ -126,16 +136,28 @@ describe('GroupDetailsModal', () => {
   });
 
   it('lets an admin save a new name and avatar url', () => {
-    renderModal(group(true));
+    const { i18n } = renderModal(group(true));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit info' }));
-    fireEvent.change(screen.getByLabelText('Group name'), {
-      target: { value: 'Saturday' },
-    });
-    fireEvent.change(screen.getByLabelText('Avatar image URL (optional)'), {
-      target: { value: 'https://cdn.example/group.png' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.group_details.edit_info'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('chat.group_details.name_label')),
+      {
+        target: { value: 'Saturday' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('chat.group_details.avatar_label')),
+      {
+        target: { value: 'https://cdn.example/group.png' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('chat.group_details.save') }),
+    );
 
     expect(onUpdate).toHaveBeenCalledWith({
       name: 'Saturday',
@@ -144,43 +166,62 @@ describe('GroupDetailsModal', () => {
   });
 
   it('cancels edit without saving', () => {
-    renderModal(group(true));
+    const { i18n } = renderModal(group(true));
 
-    fireEvent.click(screen.getByRole('button', { name: 'Edit info' }));
-    fireEvent.change(screen.getByLabelText('Group name'), {
-      target: { value: 'Nope' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.group_details.edit_info'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('chat.group_details.name_label')),
+      {
+        target: { value: 'Nope' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('chat.cancel') }),
+    );
 
     expect(onUpdate).not.toHaveBeenCalled();
     expect(screen.getByText('Weekend')).toBeInTheDocument();
   });
 
   it('removes another member only after confirm', () => {
-    renderModal(group(true));
+    const { i18n } = renderModal(group(true));
 
-    fireEvent.click(screen.getByTitle('Remove from group'));
+    fireEvent.click(
+      screen.getByTitle(i18n!.t('chat.group_details.remove_title')),
+    );
 
-    expect(window.confirm).toHaveBeenCalledWith('Remove @bob from this group?');
+    expect(window.confirm).toHaveBeenCalledWith(
+      i18n!.t('chat.group_details.remove_confirm', { username: 'bob' }),
+    );
     expect(onRemoveParticipant).toHaveBeenCalledWith('bob-1');
   });
 
   it('does not remove when confirm is cancelled', () => {
     vi.mocked(window.confirm).mockReturnValueOnce(false);
-    renderModal(group(true));
+    const { i18n } = renderModal(group(true));
 
-    fireEvent.click(screen.getByTitle('Remove from group'));
+    fireEvent.click(
+      screen.getByTitle(i18n!.t('chat.group_details.remove_title')),
+    );
 
     expect(onRemoveParticipant).not.toHaveBeenCalled();
   });
 
   it('leaves the group after confirm', () => {
-    renderModal(group(false));
+    const { i18n } = renderModal(group(false));
 
-    fireEvent.click(screen.getByRole('button', { name: /leave group/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.group_details.leave_group'),
+      }),
+    );
 
     expect(window.confirm).toHaveBeenCalledWith(
-      'Leave this group? You will stop receiving new messages.',
+      i18n!.t('chat.group_details.leave_confirm'),
     );
     expect(onLeaveGroup).toHaveBeenCalledTimes(1);
   });

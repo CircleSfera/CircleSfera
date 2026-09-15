@@ -1,20 +1,25 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../../common/testing/http-controller.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { TwoFactorController } from './two-factor.controller.js';
 import { TwoFactorService } from './two-factor.service.js';
 
 describe('TwoFactorController', () => {
-  let controller: TwoFactorController;
-
-  const req = {
-    user: {
-      userId: 'user-1',
-      email: 'test@example.com',
-      role: 'USER',
-    },
-  };
+  let app: INestApplication;
 
   const mockService = {
     generateTwoFactorAuthenticationSecret: vi.fn(),
@@ -23,25 +28,30 @@ describe('TwoFactorController', () => {
     turnOffTwoFactorAuthentication: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [TwoFactorController],
       providers: [{ provide: TwoFactorService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<TwoFactorController>(TwoFactorController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects generate without a session', async () => {
+    await request(app.getHttpServer()).post('/api/v1/2fa/generate').expect(401);
+    expect(
+      mockService.generateTwoFactorAuthenticationSecret,
+    ).not.toHaveBeenCalled();
   });
 
   it('generates a QR payload for the caller userId and email', async () => {
-    const res = { json: vi.fn() } as unknown as Response;
     mockService.generateTwoFactorAuthenticationSecret.mockResolvedValue({
       otpauthUrl: 'otpauth://test',
     });
@@ -49,47 +59,71 @@ describe('TwoFactorController', () => {
       'data:image/png;base64,test',
     );
 
-    await controller.generate(req, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/2fa/generate')
+      .set(BEARER)
+      .expect(201);
 
+    expect(res.body).toEqual({
+      qrCodeDataUrl: 'data:image/png;base64,test',
+    });
     expect(
       mockService.generateTwoFactorAuthenticationSecret,
     ).toHaveBeenCalledWith({
-      id: 'user-1',
-      email: 'test@example.com',
+      id: TEST_USER.userId,
+      email: TEST_USER.email,
     });
     expect(mockService.generateQrCodeDataURL).toHaveBeenCalledWith(
       'otpauth://test',
     );
-    expect(res.json).toHaveBeenCalledWith({
-      qrCodeDataUrl: 'data:image/png;base64,test',
-    });
+  });
+
+  it('rejects turn-on with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/2fa/turn-on')
+      .set(BEARER)
+      .send({
+        twoFactorAuthenticationCode: '123456',
+        userId: 'other-user',
+      })
+      .expect(400);
+
+    expect(mockService.turnOnTwoFactorAuthentication).not.toHaveBeenCalled();
   });
 
   it('turns 2FA on as the caller userId and unwraps the code', async () => {
     mockService.turnOnTwoFactorAuthentication.mockResolvedValue(undefined);
 
-    const result = await controller.turnOn(req, {
-      twoFactorAuthenticationCode: '123456',
-    });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/2fa/turn-on')
+      .set(BEARER)
+      .send({ twoFactorAuthenticationCode: '123456' })
+      .expect(200);
 
+    expect(res.body).toEqual({
+      message: '2FA has been turned on successfully',
+    });
     expect(mockService.turnOnTwoFactorAuthentication).toHaveBeenCalledWith(
-      'user-1',
+      TEST_USER.userId,
       '123456',
     );
-    expect(result).toEqual({ message: '2FA has been turned on successfully' });
   });
 
   it('turns 2FA off as the caller userId and unwraps the code', async () => {
     mockService.turnOffTwoFactorAuthentication.mockResolvedValue(undefined);
 
-    const result = await controller.turnOff(req, {
-      twoFactorAuthenticationCode: '123456',
-    });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/2fa/turn-off')
+      .set(BEARER)
+      .send({ twoFactorAuthenticationCode: '123456' })
+      .expect(200);
 
+    expect(res.body).toEqual({
+      message: '2FA has been turned off successfully',
+    });
     expect(mockService.turnOffTwoFactorAuthentication).toHaveBeenCalledWith(
-      'user-1',
+      TEST_USER.userId,
       '123456',
     );
-    expect(result).toEqual({ message: '2FA has been turned off successfully' });
   });
 });

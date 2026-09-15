@@ -1,52 +1,43 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
-import type { Request, Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import {
   ADMIN_ACCESS_TOKEN_COOKIE,
   ADMIN_REFRESH_TOKEN_COOKIE,
-  adminAccessTokenCookieOptions,
-  adminRefreshTokenCookieOptions,
-  clearCookieOptions,
 } from '../common/config/cookie.config.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+} from '../common/testing/http-controller.js';
 import { AdminAuthController } from './admin-auth.controller.js';
 import { AdminAuthService } from './admin-auth.service.js';
 
-describe('AdminAuthController', () => {
-  let controller: AdminAuthController;
+function setCookies(res: { headers: { [key: string]: unknown } }): string[] {
+  const raw = res.headers['set-cookie'];
+  if (Array.isArray(raw)) return raw as string[];
+  if (typeof raw === 'string') return [raw];
+  return [];
+}
 
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['users.read'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+describe('AdminAuthController', () => {
+  let app: INestApplication;
 
   const tokens = {
     accessToken: 'admin-access-test',
     refreshToken: 'admin-refresh-test',
   };
-
-  const req = {
-    ip: '203.0.113.10',
-    headers: { 'user-agent': 'Vitest' },
-    cookies: {},
-  } as unknown as Request;
-
-  const expectedMeta = {
-    ip: '203.0.113.10',
-    userAgent: 'Vitest',
-  };
-
-  const mockRes = () =>
-    ({
-      cookie: vi.fn(),
-      clearCookie: vi.fn(),
-    }) as unknown as Response;
 
   const mockService = {
     login: vi.fn(),
@@ -59,75 +50,128 @@ describe('AdminAuthController', () => {
     stepUp: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminAuthController],
       providers: [{ provide: AdminAuthService, useValue: mockService }],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(ThrottlerGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: ThrottlerGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminAuthController>(AdminAuthController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects me without credentials', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin-auth/me').expect(401);
+
+    expect(mockService.me).not.toHaveBeenCalled();
   });
 
-  it('logs in, sets admin cookies, and returns OK', async () => {
-    const res = mockRes();
+  it('rejects me with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin-auth/me')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.me).not.toHaveBeenCalled();
+  });
+
+  it('rejects login with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/login')
+      .send({
+        email: 'admin@example.com',
+        password: 'password1',
+        extra: 'nope',
+      })
+      .expect(400);
+
+    expect(mockService.login).not.toHaveBeenCalled();
+  });
+
+  it('rejects MFA verify with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/mfa/verify')
+      .send({
+        mfaToken: 'mfa-token-1',
+        code: '123456',
+        extra: 'nope',
+      })
+      .expect(400);
+
+    expect(mockService.verifyMfa).not.toHaveBeenCalled();
+  });
+
+  it('rejects step-up with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/step-up')
+      .set(ADMIN_BEARER)
+      .send({ password: 'password1', extra: 'nope' })
+      .expect(400);
+
+    expect(mockService.stepUp).not.toHaveBeenCalled();
+  });
+
+  it('logs in without admin credentials, sets cookies, and returns OK', async () => {
     mockService.login.mockResolvedValue({ status: 'OK', tokens });
 
-    const result = await controller.login(
-      { email: 'admin@example.com', password: 'password1' },
-      req,
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/login')
+      .set('User-Agent', 'Vitest')
+      .send({ email: 'admin@example.com', password: 'password1' })
+      .expect(200);
 
+    expect(res.body).toEqual({
+      message: 'Login successful',
+      status: 'OK',
+    });
+    const cookies = setCookies(res);
+    expect(
+      cookies.some((c) =>
+        c.includes(`${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`),
+      ),
+    ).toBe(true);
+    expect(
+      cookies.some((c) =>
+        c.includes(`${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-test`),
+      ),
+    ).toBe(true);
     expect(mockService.login).toHaveBeenCalledWith(
       'admin@example.com',
       'password1',
-      expectedMeta,
+      expect.objectContaining({ userAgent: 'Vitest' }),
     );
-    expect(res.cookie).toHaveBeenCalledWith(
-      ADMIN_ACCESS_TOKEN_COOKIE,
-      'admin-access-test',
-      adminAccessTokenCookieOptions,
-    );
-    expect(res.cookie).toHaveBeenCalledWith(
-      ADMIN_REFRESH_TOKEN_COOKIE,
-      'admin-refresh-test',
-      adminRefreshTokenCookieOptions,
-    );
-    expect(result).toEqual({ message: 'Login successful', status: 'OK' });
   });
 
   it('returns MFA required without setting cookies', async () => {
-    const res = mockRes();
     mockService.login.mockResolvedValue({
       status: 'MFA_REQUIRED',
       mfaToken: 'mfa-token-1',
     });
 
-    const result = await controller.login(
-      { email: 'admin@example.com', password: 'password1' },
-      req,
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/login')
+      .send({ email: 'admin@example.com', password: 'password1' })
+      .expect(200);
 
-    expect(res.cookie).not.toHaveBeenCalled();
-    expect(result).toEqual({
+    expect(res.body).toEqual({
       status: 'MFA_REQUIRED',
       mfaToken: 'mfa-token-1',
     });
+    expect(setCookies(res).join('')).not.toContain(
+      `${ADMIN_ACCESS_TOKEN_COOKIE}=`,
+    );
   });
 
   it('forwards MFA setup fields without setting cookies', async () => {
-    const res = mockRes();
     mockService.login.mockResolvedValue({
       status: 'MFA_SETUP_REQUIRED',
       mfaToken: 'mfa-token-1',
@@ -136,120 +180,139 @@ describe('AdminAuthController', () => {
       qrCodeDataUrl: 'data:image/png;base64,test',
     });
 
-    const result = await controller.login(
-      { email: 'admin@example.com', password: 'password1' },
-      req,
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/login')
+      .send({ email: 'admin@example.com', password: 'password1' })
+      .expect(200);
 
-    expect(res.cookie).not.toHaveBeenCalled();
-    expect(result).toEqual({
+    expect(res.body).toEqual({
       status: 'MFA_SETUP_REQUIRED',
       mfaToken: 'mfa-token-1',
       otpauthUrl: 'otpauth://test',
       secret: 'setup-secret-test',
       qrCodeDataUrl: 'data:image/png;base64,test',
     });
+    expect(setCookies(res).join('')).not.toContain(
+      `${ADMIN_ACCESS_TOKEN_COOKIE}=`,
+    );
   });
 
   it('verifies MFA and sets admin cookies', async () => {
-    const res = mockRes();
     mockService.verifyMfa.mockResolvedValue(tokens);
 
-    const result = await controller.verifyMfa(
-      { mfaToken: 'mfa-token-1', code: '123456' },
-      req,
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/mfa/verify')
+      .set('User-Agent', 'Vitest')
+      .send({ mfaToken: 'mfa-token-1', code: '123456' })
+      .expect(200);
 
+    expect(res.body).toEqual({
+      message: 'Login successful',
+      status: 'OK',
+    });
+    const cookies = setCookies(res);
+    expect(
+      cookies.some((c) =>
+        c.includes(`${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`),
+      ),
+    ).toBe(true);
     expect(mockService.verifyMfa).toHaveBeenCalledWith(
       'mfa-token-1',
       '123456',
-      expectedMeta,
+      expect.objectContaining({ userAgent: 'Vitest' }),
     );
-    expect(result).toEqual({ message: 'Login successful', status: 'OK' });
   });
 
   it('refreshes from the admin refresh cookie', async () => {
-    const res = mockRes();
     mockService.refresh.mockResolvedValue(tokens);
-    const refreshReq = {
-      ...req,
-      cookies: { [ADMIN_REFRESH_TOKEN_COOKIE]: 'admin-refresh-cookie' },
-    } as unknown as Request;
 
-    const result = await controller.refresh(refreshReq, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/refresh')
+      .set('User-Agent', 'Vitest')
+      .set('Cookie', `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-cookie`)
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Token refreshed' });
     expect(mockService.refresh).toHaveBeenCalledWith(
       'admin-refresh-cookie',
-      expectedMeta,
+      expect.objectContaining({ userAgent: 'Vitest' }),
     );
-    expect(result).toEqual({ message: 'Token refreshed' });
   });
 
   it('logs out as adminId, uses the refresh cookie, and clears cookies', async () => {
-    const res = mockRes();
     mockService.logout.mockResolvedValue(undefined);
-    const logoutReq = {
-      ...req,
-      cookies: { [ADMIN_REFRESH_TOKEN_COOKIE]: 'admin-refresh-cookie' },
-    } as unknown as Request;
 
-    const result = await controller.logout(admin, logoutReq, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/logout')
+      .set(ADMIN_BEARER)
+      .set('User-Agent', 'Vitest')
+      .set('Cookie', `${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-cookie`)
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Logged out' });
+    const cookies = setCookies(res).join(';');
+    expect(cookies).toContain(ADMIN_ACCESS_TOKEN_COOKIE);
+    expect(cookies).toContain(ADMIN_REFRESH_TOKEN_COOKIE);
     expect(mockService.logout).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'admin-refresh-cookie',
-      expectedMeta,
+      expect.objectContaining({ userAgent: 'Vitest' }),
     );
-    expect(res.clearCookie).toHaveBeenCalledWith(
-      ADMIN_ACCESS_TOKEN_COOKIE,
-      clearCookieOptions,
-    );
-    expect(res.clearCookie).toHaveBeenCalledWith(
-      ADMIN_REFRESH_TOKEN_COOKIE,
-      clearCookieOptions,
-    );
-    expect(result).toEqual({ message: 'Logged out' });
   });
 
   it('reads me and sessions as adminId', async () => {
-    mockService.me.mockResolvedValue({ id: 'admin-1' });
+    mockService.me.mockResolvedValue({ id: TEST_ADMIN.adminId });
     mockService.listSessions.mockResolvedValue([]);
 
-    await controller.me(admin);
-    await controller.sessions(admin);
+    const me = await request(app.getHttpServer())
+      .get('/api/v1/admin-auth/me')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    expect(me.body).toEqual({ id: TEST_ADMIN.adminId });
 
-    expect(mockService.me).toHaveBeenCalledWith('admin-1');
-    expect(mockService.listSessions).toHaveBeenCalledWith('admin-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/admin-auth/sessions')
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(mockService.me).toHaveBeenCalledWith(TEST_ADMIN.adminId);
+    expect(mockService.listSessions).toHaveBeenCalledWith(TEST_ADMIN.adminId);
   });
 
   it('revokes a session as adminId', async () => {
     mockService.revokeSession.mockResolvedValue(undefined);
 
-    const result = await controller.revokeSession(admin, 'session-1');
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/admin-auth/sessions/session-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Session revoked' });
     expect(mockService.revokeSession).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'session-1',
     );
-    expect(result).toEqual({ message: 'Session revoked' });
   });
 
   it('steps up as adminId and refreshes only the access cookie', async () => {
-    const res = mockRes();
-    mockService.stepUp.mockResolvedValue({ accessToken: 'admin-access-step' });
+    mockService.stepUp.mockResolvedValue({
+      accessToken: 'admin-access-step',
+    });
     const dto = { password: 'password1' };
 
-    const result = await controller.stepUp(admin, dto, res);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin-auth/step-up')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(200);
 
-    expect(mockService.stepUp).toHaveBeenCalledWith('admin-1', dto);
-    expect(res.cookie).toHaveBeenCalledWith(
-      ADMIN_ACCESS_TOKEN_COOKIE,
-      'admin-access-step',
-      adminAccessTokenCookieOptions,
+    expect(res.body).toEqual({ message: 'Step-up verified' });
+    const cookies = setCookies(res);
+    expect(cookies).toHaveLength(1);
+    expect(cookies[0]).toContain(
+      `${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-step`,
     );
-    expect(res.cookie).toHaveBeenCalledTimes(1);
-    expect(result).toEqual({ message: 'Step-up verified' });
+    expect(cookies[0]).not.toContain(ADMIN_REFRESH_TOKEN_COOKIE);
+    expect(mockService.stepUp).toHaveBeenCalledWith(TEST_ADMIN.adminId, dto);
   });
 });

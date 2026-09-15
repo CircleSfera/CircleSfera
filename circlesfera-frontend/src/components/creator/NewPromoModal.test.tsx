@@ -55,9 +55,13 @@ describe('NewPromoModal', () => {
       data: { data: [] },
     } as never);
 
-    renderWithProviders(<NewPromoModal onClose={onClose} onToast={onToast} />);
+    const { i18n } = renderWithProviders(
+      <NewPromoModal onClose={onClose} onToast={onToast} />,
+    );
 
-    expect(await screen.findByText('No posts available')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('creator.promotions.no_posts')),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -65,16 +69,30 @@ describe('NewPromoModal', () => {
   });
 
   it('creates a post promo with the default daily budget and duration', async () => {
-    renderWithProviders(<NewPromoModal onClose={onClose} onToast={onToast} />);
+    const { i18n } = renderWithProviders(
+      <NewPromoModal onClose={onClose} onToast={onToast} />,
+    );
 
     fireEvent.click(await screen.findByText('Sunset reel'));
-    expect(screen.getByText('Configure Reach')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Boost for €35 total' }),
+      screen.getByText(i18n!.t('creator.promotions.configure_reach')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 35,
+        }),
+      }),
     ).toBeInTheDocument();
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Boost for €35 total' }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 35,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -90,7 +108,7 @@ describe('NewPromoModal', () => {
       });
     });
     expect(onToast).toHaveBeenCalledWith(
-      'Redirecting to secure checkout...',
+      i18n!.t('creator.promotions.redirecting'),
       'success',
     );
     expect(window.location.href).toBe(checkoutUrl);
@@ -101,11 +119,18 @@ describe('NewPromoModal', () => {
       data: { data: [frame] },
     } as never);
 
-    renderWithProviders(<NewPromoModal onClose={onClose} onToast={onToast} />);
+    const { i18n } = renderWithProviders(
+      <NewPromoModal onClose={onClose} onToast={onToast} />,
+    );
 
     fireEvent.click(await screen.findByText('Night frame'));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Boost for €35 total' }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 35,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -119,28 +144,51 @@ describe('NewPromoModal', () => {
   });
 
   it('sends the chosen budget, duration and trimmed targeting', async () => {
-    renderWithProviders(<NewPromoModal onClose={onClose} onToast={onToast} />);
+    const { i18n } = renderWithProviders(
+      <NewPromoModal onClose={onClose} onToast={onToast} />,
+    );
 
     fireEvent.click(await screen.findByText('Sunset reel'));
     fireEvent.click(screen.getByRole('button', { name: '€10' }));
-    fireEvent.click(screen.getByRole('button', { name: '3 Days' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.days', { count: 3 }),
+      }),
+    );
     fireEvent.change(
-      screen.getByPlaceholderText('Countries (comma-separated, optional)'),
+      screen.getByPlaceholderText(
+        i18n!.t('creator.promotions.countries_placeholder'),
+      ),
       { target: { value: '  ES,PT  ' } },
     );
     fireEvent.change(
-      screen.getByPlaceholderText('Interests (comma-separated, optional)'),
+      screen.getByPlaceholderText(
+        i18n!.t('creator.promotions.interests_placeholder'),
+      ),
       { target: { value: '  music  ' } },
     );
-    fireEvent.change(screen.getByDisplayValue('Profile Visits'), {
-      target: { value: 'FOLLOWS' },
-    });
+    fireEvent.change(
+      screen.getByDisplayValue(i18n!.t('creator.promotions.objective_profile')),
+      {
+        target: { value: 'FOLLOWS' },
+      },
+    );
 
     expect(
-      screen.getByRole('button', { name: 'Boost for €30 total' }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 30,
+        }),
+      }),
     ).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Boost for €30 total' }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 30,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -162,15 +210,25 @@ describe('NewPromoModal', () => {
       data: {},
     } as never);
 
-    renderWithProviders(<NewPromoModal onClose={onClose} onToast={onToast} />);
+    const { i18n } = renderWithProviders(
+      <NewPromoModal onClose={onClose} onToast={onToast} />,
+    );
 
     fireEvent.click(await screen.findByText('Sunset reel'));
     fireEvent.click(
-      screen.getByRole('button', { name: 'Boost for €35 total' }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 35,
+        }),
+      }),
     );
 
     await waitFor(() => {
-      expect(onToast).toHaveBeenCalledWith('Error creating promotion', 'error');
+      expect(onToast).toHaveBeenCalledWith(
+        i18n!.t('creator.promotions.error_create'),
+        'error',
+      );
     });
     expect(window.location.href).toBe('http://localhost/creator/ads');
   });

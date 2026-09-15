@@ -1,10 +1,8 @@
 import { memo } from 'react';
 import { usePostInteractions } from '../../hooks/usePostInteractions';
-import { useAuthStore } from '../../stores/authStore';
 import type { Comment, Post } from '../../types';
 import CommentList from '../CommentList';
 import { PollWidget } from '../interactive/PollWidget';
-import { QnaWidget } from '../interactive/QnaWidget';
 import PostActions from './PostActions';
 import PostContent from './PostContent';
 import PostHeader from './PostHeader';
@@ -20,14 +18,13 @@ interface PostDetailViewProps {
 // Single-tree responsive layout for post detail.
 // Mobile: header → media → body (actions, caption, comments, sticky composer)
 // Desktop (md+): media | sidebar (header / scrollable comments / actions + composer)
+// Post QnA is not shown here (same as feed PostCard); story QnA stays in StoryViewer.
 export default memo(function PostDetailView({
   post,
   comments,
   priority,
 }: PostDetailViewProps) {
   const interactions = usePostInteractions(post);
-  const profile = useAuthStore((state) => state.profile);
-  const isOwner = !!profile?.id && post.profileId === profile.id;
 
   if (interactions.isDeleted) return null;
 
@@ -67,15 +64,11 @@ export default memo(function PostDetailView({
     <PostContent post={post} likesCount={likesCount} hideStats isDetailMode />
   );
 
-  const widgetsNode =
-    post.poll?.id || post.qnaBox?.id ? (
-      <div className="px-3 pb-2">
-        {post.poll?.id && <PollWidget pollId={post.poll.id} />}
-        {post.qnaBox?.id && (
-          <QnaWidget qnaBoxId={post.qnaBox.id} isOwner={isOwner} />
-        )}
-      </div>
-    ) : null;
+  const widgetsNode = post.poll?.id ? (
+    <div className="px-3 pb-2">
+      <PollWidget pollId={post.poll.id} />
+    </div>
+  ) : null;
 
   return (
     <>
@@ -107,22 +100,13 @@ export default memo(function PostDetailView({
           />
         </div>
 
-        {/* Media — full width on mobile, left column spanning rows on desktop */}
-        <div className="[grid-area:media] bg-black/60 flex justify-center items-center md:border-r md:border-white/8 relative aspect-4/5 md:aspect-auto md:min-h-112.5 overflow-hidden group">
-          {/* Blurred backdrop image to eliminate letterbox empty black space */}
-          {post.media?.[0]?.url && (
-            <img
-              src={post.media[0].thumbnailUrl || post.media[0].url}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover blur-3xl opacity-35 scale-110 pointer-events-none"
-            />
-          )}
-
+        {/* Media — Post shell is vertical 4:5 (width:height); cover fills the frame */}
+        <div className="[grid-area:media] bg-black flex justify-center items-center md:border-r md:border-white/8 relative aspect-4/5 md:aspect-auto md:min-h-112.5 overflow-hidden group">
           <PostMedia
             post={post}
             aspectRatio="aspect-4/5"
             className="w-full h-full relative z-10 bg-transparent"
-            objectFit="contain"
+            objectFit="cover"
             priority={priority}
           />
         </div>

@@ -86,8 +86,7 @@ export default function LiveBroadcaster() {
 
   const handleStart = async (e: React.FormEvent) => {
     e.preventDefault();
-    const title =
-      titleInput.trim() || t('live.default_title', 'My Live Stream');
+    const title = titleInput.trim() || t('live.default_title');
     setIsStarting(true);
     try {
       const res: any = await api.post('/live/start', { title });
@@ -257,8 +256,11 @@ export default function LiveBroadcaster() {
   };
 
   const handleSetGoal = () => {
-    const target = prompt('Ingresa el monto objetivo (ej. 1000):', '1000');
-    const title = prompt('Ingresa el título del objetivo:', 'Meta del Directo');
+    const target = prompt(t('live.goal.target_prompt'), '1000');
+    const title = prompt(
+      t('live.goal.title_prompt'),
+      t('live.goal.title_default'),
+    );
     if (!target || !title || !streamId) return;
 
     const socket = useSocketStore.getState().socket;
@@ -300,11 +302,12 @@ export default function LiveBroadcaster() {
           type="button"
           onClick={() => navigate(-1)}
           className="absolute top-4 left-4 p-2 bg-black/50 rounded-full text-white"
+          aria-label={t('common.close')}
         >
           <X className="w-6 h-6" />
         </button>
         <h1 className="text-2xl font-semibold text-white">
-          {t('live.setup_title', 'Go live')}
+          {t('live.setup_title')}
         </h1>
         <form
           onSubmit={handleStart}
@@ -312,13 +315,13 @@ export default function LiveBroadcaster() {
         >
           <label className="flex flex-col gap-2 text-left">
             <span className="text-sm text-zinc-400">
-              {t('live.title_label', 'Stream title')}
+              {t('live.title_label')}
             </span>
             <input
               type="text"
               value={titleInput}
               onChange={(e) => setTitleInput(e.target.value)}
-              placeholder={t('live.title_placeholder', 'My Live Stream')}
+              placeholder={t('live.title_placeholder')}
               maxLength={100}
               className="rounded-full bg-white/10 border border-white/10 px-4 py-2.5 text-white placeholder-white/40 outline-none focus:border-brand-primary"
             />
@@ -328,9 +331,7 @@ export default function LiveBroadcaster() {
             disabled={isStarting}
             className="rounded-full bg-brand-primary px-6 py-2.5 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {isStarting
-              ? t('live.starting')
-              : t('live.start_button', 'Start streaming')}
+            {isStarting ? t('live.starting') : t('live.start_button')}
           </button>
         </form>
       </div>
@@ -345,16 +346,16 @@ export default function LiveBroadcaster() {
             <Heart className="w-12 h-12 text-brand-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-2">Live Finalizado</h1>
+            <h1 className="text-3xl font-bold mb-2">{t('live.ended_title')}</h1>
             <p className="text-neutral-400 text-sm">
-              Resumen de tu transmisión
+              {t('live.ended_summary')}
             </p>
           </div>
           <div className="w-full flex gap-4 text-center mt-2">
             <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
               <span className="block text-2xl font-bold">{viewerCount}</span>
               <span className="text-xs text-neutral-400 uppercase tracking-wider">
-                Espectadores
+                {t('live.viewers')}
               </span>
             </div>
             <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
@@ -362,7 +363,7 @@ export default function LiveBroadcaster() {
                 {likesCount}
               </span>
               <span className="text-xs text-neutral-400 uppercase tracking-wider">
-                Me Gustas
+                {t('live.likes')}
               </span>
             </div>
           </div>
@@ -371,7 +372,7 @@ export default function LiveBroadcaster() {
             onClick={() => navigate(-1)}
             className="w-full mt-4 rounded-full bg-white/10 hover:bg-white/20 px-6 py-3 font-semibold transition-all"
           >
-            Cerrar Resumen
+            {t('live.close_summary')}
           </button>
         </div>
       </div>
@@ -398,7 +399,8 @@ export default function LiveBroadcaster() {
             type="button"
             onClick={handleEndLive}
             className="p-1.5 bg-black/60 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
-            title="Terminar transmisión"
+            title={t('live.end_stream')}
+            aria-label={t('live.end_stream')}
           >
             <X className="w-5 h-5" />
           </button>
@@ -492,7 +494,7 @@ export default function LiveBroadcaster() {
                       {highlightedQuestion.username}
                     </span>
                     <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
-                      Pregunta
+                      {t('live.qna.question')}
                     </span>
                   </div>
                 </div>
@@ -553,19 +555,20 @@ export default function LiveBroadcaster() {
                 onClick={handlePinMessage}
                 className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
               >
-                <Pin size={14} /> Fijar
+                <Pin size={14} /> {t('live.pin')}
               </button>
               <button
                 type="button"
                 onClick={handleDeleteMessage}
                 className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-xl text-xs font-semibold transition-colors"
               >
-                <Trash2 size={14} /> Eliminar
+                <Trash2 size={14} /> {t('live.delete_comment')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedMessage(null)}
                 className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-neutral-400 transition-colors"
+                aria-label={t('common.close')}
               >
                 <X size={14} />
               </button>

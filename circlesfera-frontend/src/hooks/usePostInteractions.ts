@@ -9,7 +9,7 @@ export function usePostInteractions(post: Post) {
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
-    profile?.user?.verificationLevel || profile?.verificationLevel;
+    profile?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
   const isOwner = profile?.id === post.profileId;
 

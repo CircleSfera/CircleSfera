@@ -1,5 +1,9 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MIN_PPV_PRICE_CENTS,
+  PLATFORM_FEE_DECIMAL,
+} from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MonetizationService } from './monetization.service.js';
@@ -165,12 +169,14 @@ describe('MonetizationService', () => {
   });
 
   describe('createTipSession', () => {
-    it('should throw if amount is less than 100 cents', async () => {
+    const tipCents = MIN_PPV_PRICE_CENTS * 5;
+
+    it('should throw if amount is less than the €1.00 minimum', async () => {
       await expect(
         service.createTipSession(
           'user-1',
           'creator-1',
-          50,
+          MIN_PPV_PRICE_CENTS - 1,
           'http://localhost/return',
         ),
       ).rejects.toThrow();
@@ -181,10 +187,97 @@ describe('MonetizationService', () => {
         service.createTipSession(
           'user-1',
           'user-1',
-          500,
+          tipCents,
           'http://localhost/return',
         ),
       ).rejects.toThrow();
+    });
+
+    it('creates Checkout with the requested amount and ADR-0010 fee', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({
+          id: 'creator-1',
+          email: 'creator@example.com',
+          stripeConnectAccountId: 'acct_1',
+        })
+        .mockResolvedValueOnce({
+          id: 'fan-1',
+          email: 'fan@example.com',
+        });
+      mockStripeService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.test/tip',
+      });
+
+      const result = await service.createTipSession(
+        'fan-1',
+        'creator-1',
+        tipCents,
+        'http://localhost/return',
+      );
+
+      expect(result.url).toBe('https://checkout.stripe.test/tip');
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [
+            expect.objectContaining({
+              price_data: expect.objectContaining({ unit_amount: tipCents }),
+            }),
+          ],
+          payment_intent_data: expect.objectContaining({
+            application_fee_amount: Math.floor(tipCents * PLATFORM_FEE_DECIMAL),
+          }),
+        }),
+        expect.anything(),
+      );
+    });
+  });
+
+  describe('createPostUnlockSession fee', () => {
+    it('charges the post priceCents and the ADR-0010 application fee', async () => {
+      const priceCents = 999;
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        isPremium: true,
+        priceCents,
+        profileId: 'creator-profile',
+        profile: {
+          user: {
+            id: 'creator-1',
+            email: 'creator@example.com',
+            stripeConnectAccountId: 'acct_1',
+          },
+        },
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'fan-1',
+        email: 'fan@example.com',
+      });
+      mockStripeService.createCheckoutSession.mockResolvedValue({
+        url: 'https://checkout.stripe.test/unlock',
+      });
+
+      await service.createPostUnlockSession(
+        'fan-1',
+        'fan-profile',
+        'post-1',
+        'http://localhost/return',
+      );
+
+      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          line_items: [
+            expect.objectContaining({
+              price_data: expect.objectContaining({ unit_amount: priceCents }),
+            }),
+          ],
+          payment_intent_data: expect.objectContaining({
+            application_fee_amount: Math.floor(
+              priceCents * PLATFORM_FEE_DECIMAL,
+            ),
+          }),
+        }),
+        expect.anything(),
+      );
     });
   });
 });

@@ -249,14 +249,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
             <p className="text-white/50 text-[11px] mb-1">
-              {t('creator.promotions.clicks', 'Clicks')}
+              {t('creator.promotions.clicks')}
             </p>
             <p className="text-white font-bold text-base">
               {promo.clicks?.toLocaleString() || 0}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-            <p className="text-white/50 text-[11px] mb-1">CTR</p>
+            <p className="text-white/50 text-[11px] mb-1">
+              {t('creator.promotions.ctr')}
+            </p>
             <p className="text-white font-semibold text-base tabular-nums">
               {promo.reach > 0
                 ? (((promo.clicks || 0) / promo.reach) * 100).toFixed(2)
@@ -265,7 +267,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
-            <p className="text-white/50 text-[11px] mb-1">CPC</p>
+            <p className="text-white/50 text-[11px] mb-1">
+              {t('creator.promotions.cpc')}
+            </p>
             <p className="text-brand-accent font-bold text-base">
               €
               {promo.clicks > 0
@@ -375,7 +379,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             onClick={() => handleRepeat(promo)}
           >
             <RefreshCw size={14} className="mr-2" />
-            {t('creator.promotions.repeat', 'Repetir')}
+            {t('creator.promotions.repeat')}
           </Button>
         )}
       </div>
@@ -418,7 +422,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         <AdminSplitView
           hasSelection={!!selected}
           onBack={() => setSelectedId(null)}
-          listTitle={t('creator.promotions.campaigns', 'Campañas')}
+          listTitle={t('creator.promotions.campaigns')}
           list={
             <div className="space-y-4">
               {activePromos.length > 0 && (
@@ -546,10 +550,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
           detail={selected ? renderDetail(selected) : null}
           emptyDetail={
             <div className="h-full min-h-48 flex items-center justify-center p-6 text-center text-sm text-gray-500">
-              {t(
-                'creator.promotions.select_campaign',
-                'Selecciona una campaña de la lista',
-              )}
+              {t('creator.promotions.select_campaign')}
             </div>
           }
         />
@@ -573,7 +574,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            Anterior
+            {t('creator.posts.prev')}
           </Button>
           <span className="text-xs font-semibold text-gray-400 px-2">
             {page} / {data.meta.totalPages}
@@ -587,7 +588,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               setPage((p) => Math.min(data.meta.totalPages, p + 1))
             }
           >
-            Siguiente
+            {t('creator.posts.next')}
           </Button>
         </div>
       )}

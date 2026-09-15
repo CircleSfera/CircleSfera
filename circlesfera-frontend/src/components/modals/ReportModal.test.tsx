@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { reportsApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
-import ReportModal from './ReportModal';
+import ReportModal, { REPORT_REASONS } from './ReportModal';
 
 vi.mock('../../services', () => ({
   reportsApi: {
@@ -10,12 +10,15 @@ vi.mock('../../services', () => ({
   },
 }));
 
+const spam = REPORT_REASONS.find((r) => r.id === 'SPAM');
+
 describe('ReportModal', () => {
   const onClose = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     vi.mocked(reportsApi.create).mockResolvedValue({} as never);
+    if (!spam) throw new Error('REPORT_REASONS is missing SPAM');
   });
 
   it('renders nothing when closed', () => {
@@ -31,8 +34,8 @@ describe('ReportModal', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('keeps submit disabled until a reason is chosen', () => {
-    renderWithProviders(
+  it('lists every catalog reason and keeps submit disabled until one is chosen', () => {
+    const { i18n } = renderWithProviders(
       <ReportModal
         isOpen
         onClose={onClose}
@@ -42,19 +45,31 @@ describe('ReportModal', () => {
     );
 
     expect(
-      screen.getByText('Why are you reporting this post?'),
+      screen.getByText(
+        i18n!.t('report.why_report', {
+          targetType: i18n!.t('report.targets.post'),
+        }),
+      ),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Submit report' }),
+      screen.getByRole('button', { name: i18n!.t('report.submit') }),
     ).toBeDisabled();
 
-    fireEvent.click(screen.getByText("It's spam"));
-    expect(screen.getByRole('button', { name: 'Submit report' })).toBeEnabled();
+    for (const reason of REPORT_REASONS) {
+      const label = i18n!.t(reason.labelKey);
+      expect(label).not.toBe(reason.labelKey);
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+
+    fireEvent.click(screen.getByText(i18n!.t(spam!.labelKey)));
+    expect(
+      screen.getByRole('button', { name: i18n!.t('report.submit') }),
+    ).toBeEnabled();
     expect(reportsApi.create).not.toHaveBeenCalled();
   });
 
   it('submits the selected reason and optional details', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <ReportModal
         isOpen
         onClose={onClose}
@@ -63,12 +78,14 @@ describe('ReportModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("It's spam"));
+    fireEvent.click(screen.getByText(i18n!.t(spam!.labelKey)));
     fireEvent.change(
-      screen.getByPlaceholderText('Additional details (optional)'),
+      screen.getByPlaceholderText(i18n!.t('report.placeholder')),
       { target: { value: '  repeated links  ' } },
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Submit report' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('report.submit') }),
+    );
 
     await waitFor(() => {
       expect(reportsApi.create).toHaveBeenCalledWith({
@@ -81,7 +98,7 @@ describe('ReportModal', () => {
   });
 
   it('shows success after a report without details', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <ReportModal
         isOpen
         onClose={onClose}
@@ -90,8 +107,10 @@ describe('ReportModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText("It's spam"));
-    fireEvent.click(screen.getByRole('button', { name: 'Submit report' }));
+    fireEvent.click(screen.getByText(i18n!.t(spam!.labelKey)));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('report.submit') }),
+    );
 
     await waitFor(() => {
       expect(reportsApi.create).toHaveBeenCalledWith({
@@ -101,8 +120,30 @@ describe('ReportModal', () => {
         details: undefined,
       });
     });
-    expect(screen.getByText('Thanks for your report')).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('report.success'))).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('agrees gender for a user report in Spanish', () => {
+    const { i18n } = renderWithProviders(
+      <ReportModal
+        isOpen
+        onClose={onClose}
+        targetType="USER"
+        targetId="user-2"
+      />,
+      { lng: 'es' },
+    );
+
+    expect(i18n!.t('report.targets.user')).toBe('esta cuenta');
+    expect(
+      screen.getByText(
+        i18n!.t('report.why_report', {
+          targetType: i18n!.t('report.targets.user'),
+        }),
+      ),
+    ).toHaveTextContent('esta cuenta');
+    expect(screen.queryByText(/este cuenta/)).not.toBeInTheDocument();
   });
 
   it('closes from the dialog X without creating a report', () => {

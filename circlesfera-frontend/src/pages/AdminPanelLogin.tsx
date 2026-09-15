@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { Copy, ShieldCheck } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,17 @@ export default function AdminPanelLogin() {
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  const mfaInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (step === 'mfa' || step === 'mfa-setup') {
+      // Focus the input when entering the MFA step
+      setTimeout(() => {
+        mfaInputRef.current?.focus();
+      }, 100);
+    }
+  }, [step]);
+
   const finishLogin = async () => {
     setAuthenticated();
     const { data } = await adminAuthApi.me();
@@ -45,9 +56,9 @@ export default function AdminPanelLogin() {
     if (!secret) return;
     try {
       await navigator.clipboard.writeText(secret);
-      toast.success(t('adminPanel.login.secret_copied', 'Secret copied'));
+      toast.success(t('adminPanel.login.secret_copied'));
     } catch {
-      toast.error(t('adminPanel.login.secret_copy_failed', 'Could not copy'));
+      toast.error(t('adminPanel.login.secret_copy_failed'));
     }
   };
 
@@ -75,17 +86,10 @@ export default function AdminPanelLogin() {
       const status = err?.response?.status;
       const apiMessage = err?.response?.data?.message;
       if (status >= 500) {
-        setError(
-          t(
-            'adminPanel.login.server_error',
-            'Server error. Try again in a moment.',
-          ),
-        );
+        setError(t('adminPanel.login.server_error'));
         return;
       }
-      setError(
-        apiMessage || t('adminPanel.login.invalid', 'Invalid credentials'),
-      );
+      setError(apiMessage || t('adminPanel.login.invalid'));
     },
   });
 
@@ -99,17 +103,10 @@ export default function AdminPanelLogin() {
       const status = err?.response?.status;
       const apiMessage = err?.response?.data?.message;
       if (status >= 500) {
-        setError(
-          t(
-            'adminPanel.login.server_error',
-            'Server error. Try again in a moment.',
-          ),
-        );
+        setError(t('adminPanel.login.server_error'));
         return;
       }
-      setError(
-        apiMessage || t('adminPanel.login.invalid_mfa', 'Invalid MFA code'),
-      );
+      setError(apiMessage || t('adminPanel.login.invalid_mfa'));
     },
   });
 
@@ -137,14 +134,14 @@ export default function AdminPanelLogin() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 mb-3">
             <ShieldCheck size={12} className="text-brand-primary" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
-              {t('adminPanel.title', 'Admin Panel')}
+              {t('adminPanel.title')}
             </span>
           </div>
           <h1 className="text-lg sm:text-xl md:text-2xl font-black text-center tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
-            {t('adminPanel.login.heading', 'Administrative access')}
+            {t('adminPanel.login.heading')}
           </h1>
           <p className="text-gray-500 text-center font-bold mt-2 tracking-wide uppercase text-xs">
-            {t('adminPanel.login.subtitle', 'Authorized staff only')}
+            {t('adminPanel.login.subtitle')}
           </p>
         </div>
 
@@ -158,7 +155,7 @@ export default function AdminPanelLogin() {
                 htmlFor="admin-email"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
-                {t('adminPanel.login.email', 'Email')}
+                {t('adminPanel.login.email')}
               </label>
               <input
                 id="admin-email"
@@ -169,10 +166,7 @@ export default function AdminPanelLogin() {
                 autoComplete="username"
                 className="input-glass w-full px-4 rounded-xl text-white placeholder-gray-600 text-sm"
                 style={{ height: 'var(--input-height-standard, 48px)' }}
-                placeholder={t(
-                  'adminPanel.login.email_placeholder',
-                  'admin@circlesfera.com',
-                )}
+                placeholder={t('adminPanel.login.email_placeholder')}
               />
             </div>
             <div>
@@ -180,7 +174,7 @@ export default function AdminPanelLogin() {
                 htmlFor="admin-password"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
               >
-                {t('adminPanel.login.password', 'Password')}
+                {t('adminPanel.login.password')}
               </label>
               <input
                 id="admin-password"
@@ -209,7 +203,7 @@ export default function AdminPanelLogin() {
                 disabled={loginMutation.isPending || !email || !password}
                 className="w-full font-black text-sm tracking-wide"
               >
-                {t('adminPanel.login.continue', 'Continue')}
+                {t('adminPanel.login.continue')}
               </Button>
             </div>
           </form>
@@ -223,20 +217,14 @@ export default function AdminPanelLogin() {
             {step === 'mfa-setup' && (
               <div className="p-3 bg-white/5 border border-white/10 rounded-lg space-y-3">
                 <p className="text-xs text-white/70 font-medium leading-relaxed">
-                  {t(
-                    'adminPanel.login.mfa_setup',
-                    'Install an authenticator app (Google Authenticator, Authy, 1Password…). Scan the QR or enter the secret, then type the 6-digit code.',
-                  )}
+                  {t('adminPanel.login.mfa_setup')}
                 </p>
                 {qrCodeDataUrl && (
                   <div className="flex justify-center">
                     <div className="bg-white p-2.5 rounded-xl">
                       <img
                         src={qrCodeDataUrl}
-                        alt={t(
-                          'adminPanel.login.mfa_qr_alt',
-                          'Authenticator QR code',
-                        )}
+                        alt={t('adminPanel.login.mfa_qr_alt')}
                         className="w-44 h-44"
                       />
                     </div>
@@ -245,7 +233,7 @@ export default function AdminPanelLogin() {
                 {secret && (
                   <div className="space-y-1.5">
                     <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500 text-center">
-                      {t('adminPanel.login.manual_secret', 'Manual secret')}
+                      {t('adminPanel.login.manual_secret')}
                     </p>
                     <div className="flex items-center gap-2">
                       <p className="flex-1 text-xs font-mono text-brand-primary text-center tracking-wider break-all">
@@ -255,10 +243,7 @@ export default function AdminPanelLogin() {
                         type="button"
                         onClick={() => void copySecret()}
                         className="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 text-white/60 hover:text-white shrink-0"
-                        aria-label={t(
-                          'adminPanel.login.copy_secret',
-                          'Copy secret',
-                        )}
+                        aria-label={t('adminPanel.login.copy_secret')}
                       >
                         <Copy size={16} />
                       </button>
@@ -272,14 +257,14 @@ export default function AdminPanelLogin() {
                 htmlFor="admin-mfa"
                 className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
               >
-                {t('adminPanel.login.mfa_code', 'Authenticator code')}
+                {t('adminPanel.login.mfa_code')}
               </label>
               <input
                 id="admin-mfa"
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                maxLength={6}
+                ref={mfaInputRef}
                 value={code}
                 onChange={(e) =>
                   setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
@@ -288,10 +273,7 @@ export default function AdminPanelLogin() {
                 placeholder="000000"
               />
               <p className="text-xs text-gray-500 mt-2 text-center">
-                {t(
-                  'adminPanel.login.mfa_hint',
-                  'Enter the 6-digit code from your authenticator app.',
-                )}
+                {t('adminPanel.login.mfa_hint')}
               </p>
             </div>
 
@@ -309,7 +291,7 @@ export default function AdminPanelLogin() {
               disabled={mfaMutation.isPending || code.trim().length < 6}
               className="w-full font-black text-sm tracking-wide"
             >
-              {t('adminPanel.login.verify', 'Verify')}
+              {t('adminPanel.login.verify')}
             </Button>
             <button
               type="button"
@@ -320,13 +302,13 @@ export default function AdminPanelLogin() {
               }}
               className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-1"
             >
-              {t('adminPanel.login.back', 'Back')}
+              {t('adminPanel.login.back')}
             </button>
           </form>
         )}
 
         <p className="mt-8 text-center text-gray-600 text-xs font-medium relative z-10">
-          {t('adminPanel.login.footer', 'Protected administrative system')}
+          {t('adminPanel.login.footer')}
         </p>
       </div>
     </div>

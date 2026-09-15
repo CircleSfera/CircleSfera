@@ -1,19 +1,25 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { BookmarksController } from './bookmarks.controller.js';
 import { BookmarksService } from './bookmarks.service.js';
 
 describe('BookmarksController', () => {
-  let controller: BookmarksController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     toggle: vi.fn(),
@@ -22,80 +28,94 @@ describe('BookmarksController', () => {
     check: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [BookmarksController],
       providers: [{ provide: BookmarksService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<BookmarksController>(BookmarksController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects toggle without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/bookmarks/post-1')
+      .send({ collectionId: 'col-1' })
+      .expect(401);
+
+    expect(mockService.toggle).not.toHaveBeenCalled();
   });
 
-  describe('toggle', () => {
-    it('delegates to service with profileId, postId and optional collection', async () => {
-      mockService.toggle.mockResolvedValue({ bookmarked: true });
+  it('toggles a bookmark as the session profile', async () => {
+    mockService.toggle.mockResolvedValue({ bookmarked: true });
 
-      const result = await controller.toggle(mockUser, 'post-1', 'col-1');
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/bookmarks/post-1')
+      .set(BEARER)
+      .send({ collectionId: 'col-1' })
+      .expect(201);
 
-      expect(mockService.toggle).toHaveBeenCalledWith(
-        'profile-1',
-        'post-1',
-        'col-1',
-      );
-      expect(result).toEqual({ bookmarked: true });
-    });
+    expect(res.body).toEqual({ bookmarked: true });
+    expect(mockService.toggle).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'post-1',
+      'col-1',
+    );
   });
 
-  describe('updateCollection', () => {
-    it('moves a bookmark using the caller profileId', async () => {
-      mockService.updateCollection.mockResolvedValue({ ok: true });
+  it('moves a bookmark using the session profileId', async () => {
+    mockService.updateCollection.mockResolvedValue({ ok: true });
 
-      const result = await controller.updateCollection(
-        mockUser,
-        'post-1',
-        'col-2',
-      );
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/bookmarks/post-1/collection')
+      .set(BEARER)
+      .send({ collectionId: 'col-2' })
+      .expect(200);
 
-      expect(mockService.updateCollection).toHaveBeenCalledWith(
-        'profile-1',
-        'post-1',
-        'col-2',
-      );
-      expect(result).toEqual({ ok: true });
-    });
+    expect(res.body).toEqual({ ok: true });
+    expect(mockService.updateCollection).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'post-1',
+      'col-2',
+    );
   });
 
-  describe('getBookmarks', () => {
-    it('parses pagination and filters by collection', async () => {
-      mockService.getBookmarks.mockResolvedValue({ data: [] });
+  it('lists bookmarks with page, limit and collection', async () => {
+    mockService.getBookmarks.mockResolvedValue({ data: [] });
 
-      await controller.getBookmarks(mockUser, 2, 20, 'col-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/bookmarks')
+      .query({ page: 2, limit: 20, collectionId: 'col-1' })
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.getBookmarks).toHaveBeenCalledWith(
-        'profile-1',
-        2,
-        20,
-        'col-1',
-      );
-    });
+    expect(mockService.getBookmarks).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      2,
+      20,
+      'col-1',
+    );
   });
 
-  describe('check', () => {
-    it('delegates bookmark check to the service', async () => {
-      mockService.check.mockResolvedValue({ bookmarked: false });
+  it('checks a bookmark as the session profile', async () => {
+    mockService.check.mockResolvedValue({ bookmarked: false });
 
-      const result = await controller.check(mockUser, 'post-9');
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/bookmarks/post-9/check')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.check).toHaveBeenCalledWith('profile-1', 'post-9');
-      expect(result).toEqual({ bookmarked: false });
-    });
+    expect(res.body).toEqual({ bookmarked: false });
+    expect(mockService.check).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'post-9',
+    );
   });
 });

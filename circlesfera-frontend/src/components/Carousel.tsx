@@ -1,5 +1,7 @@
 import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import ProgressiveImage from './common/ProgressiveImage';
@@ -16,12 +18,18 @@ interface MediaItem {
 
 interface CarouselProps {
   media: MediaItem[];
-  aspectRatio?: string; // E.g. "aspect-square"
+  aspectRatio?: string;
   objectFit?: 'cover' | 'contain';
   className?: string;
   isLocked?: boolean;
   priority?: boolean;
+  activeIndex?: number;
+  onActiveIndexChange?: (index: number) => void;
+  libraryAudioUrl?: string | null;
+  libraryAudioStartMs?: number | null;
 }
+
+const IMAGE_AUDIO_WINDOW_MS = 15_000;
 
 export default function Carousel({
   media,
@@ -30,14 +38,53 @@ export default function Carousel({
   className = '',
   isLocked = false,
   priority = false,
+  activeIndex,
+  onActiveIndexChange,
+  libraryAudioUrl,
+  libraryAudioStartMs = 0,
 }: CarouselProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const { t } = useTranslation();
+  const [internalIndex, setInternalIndex] = useState(0);
+  const isControlled = typeof activeIndex === 'number';
+  const currentIndex = isControlled ? activeIndex : internalIndex;
+  const setCurrentIndex = (next: number | ((prev: number) => number)) => {
+    const resolved =
+      typeof next === 'function'
+        ? next(isControlled ? activeIndex : internalIndex)
+        : next;
+    if (!isControlled) setInternalIndex(resolved);
+    onActiveIndexChange?.(resolved);
+  };
   const [isMuted, setIsMuted] = useState(true);
+  const [isInView, setIsInView] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
+  const activeVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Automatically play active video and pause others
+  const hasLibraryAudio = Boolean(libraryAudioUrl);
+  const activeIsVideo = media[currentIndex]?.type === 'video';
+  const imageOnlyWithAudio =
+    hasLibraryAudio && media.every((m) => m.type !== 'video');
+
   useEffect(() => {
-    // Pause all videos
+    if (!isControlled) return;
+    if (activeIndex < 0 || activeIndex >= (media?.length || 0)) return;
+    setInternalIndex(activeIndex);
+  }, [activeIndex, isControlled, media?.length]);
+
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) =>
+        setIsInView(entry.isIntersecting && entry.intersectionRatio >= 0.45),
+      { threshold: [0, 0.45, 1] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     for (const video of videoRefs.current) {
       if (video) {
         try {
@@ -46,14 +93,51 @@ export default function Carousel({
       }
     }
 
-    // Play current video if applicable
     const activeVideo = videoRefs.current[currentIndex];
+    activeVideoRef.current = activeVideo;
     if (activeVideo) {
+      if (hasLibraryAudio) {
+        activeVideo.muted = true;
+      }
       activeVideo.play().catch((err) => {
         console.warn('Video autoplay failed:', err);
       });
     }
-  }, [currentIndex]);
+  }, [currentIndex, hasLibraryAudio]);
+
+  useSyncedLibraryAudio({
+    enabled: isInView && hasLibraryAudio && activeIsVideo,
+    trackUrl: libraryAudioUrl,
+    audioStartMs: libraryAudioStartMs,
+    isMuted,
+    videoRef: activeVideoRef,
+  });
+
+  useEffect(() => {
+    if (!imageOnlyWithAudio || !libraryAudioUrl || !isInView) return;
+
+    const startSec = Math.max(0, libraryAudioStartMs ?? 0) / 1000;
+    const audio = new window.Audio(libraryAudioUrl);
+    audio.muted = isMuted;
+    audio.currentTime = startSec;
+    audio.play().catch(() => {});
+
+    const stopAt = window.setTimeout(() => {
+      audio.pause();
+    }, IMAGE_AUDIO_WINDOW_MS);
+
+    return () => {
+      window.clearTimeout(stopAt);
+      audio.pause();
+      audio.src = '';
+    };
+  }, [
+    imageOnlyWithAudio,
+    libraryAudioUrl,
+    libraryAudioStartMs,
+    isInView,
+    isMuted,
+  ]);
 
   if (!media || media.length === 0) return null;
 
@@ -79,6 +163,9 @@ export default function Carousel({
           <HlsVideoPlayer
             ref={(el) => {
               videoRefs.current[index] = el;
+              if (index === currentIndex) {
+                activeVideoRef.current = el;
+              }
             }}
             src={item.url}
             hlsUrl={
@@ -87,7 +174,7 @@ export default function Carousel({
             className={`w-full h-full ${fitClass} ${filterClass} ${blurClass} transition-all duration-300`}
             style={filterStyle}
             autoPlay
-            muted={isMuted}
+            muted={hasLibraryAudio ? true : isMuted}
             loop
             playsInline
             disablePictureInPicture
@@ -99,6 +186,7 @@ export default function Carousel({
             <button
               type="button"
               onClick={toggleMute}
+              aria-label={isMuted ? t('common.unmute') : t('common.mute')}
               className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
             >
               {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
@@ -108,7 +196,6 @@ export default function Carousel({
       );
     }
 
-    // Build srcSet for responsive images (exclude blob and data URLs)
     const isLocalUrl =
       item.url.startsWith('blob:') || item.url.startsWith('data:');
     const srcSet = !isLocalUrl
@@ -143,6 +230,7 @@ export default function Carousel({
   if (media.length === 1) {
     return (
       <div
+        ref={rootRef}
         className={`relative w-full overflow-hidden ${ratioClass} bg-black ${className}`}
       >
         {renderMediaItem(media[0], 0)}
@@ -169,11 +257,11 @@ export default function Carousel({
 
   return (
     <section
+      ref={rootRef}
       className={`relative w-full overflow-hidden group ${ratioClass} bg-black ${className}`}
       onKeyDown={handleKeyDown}
-      aria-label="Media carousel"
+      aria-label={t('post.media.carousel')}
     >
-      {/* Media Slides */}
       <div
         className="flex transition-transform duration-300 ease-out h-full"
         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
@@ -190,12 +278,11 @@ export default function Carousel({
         ))}
       </div>
 
-      {/* Navigation Arrows */}
       {currentIndex > 0 && (
         <button
           type="button"
           onClick={prevSlide}
-          aria-label="Previous slide"
+          aria-label={t('post.media.previous_slide')}
           className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-30 focus:opacity-100 outline-none focus:ring-2 focus:ring-primary"
         >
           <svg
@@ -219,7 +306,7 @@ export default function Carousel({
         <button
           type="button"
           onClick={nextSlide}
-          aria-label="Next slide"
+          aria-label={t('post.media.next_slide')}
           className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-30 focus:opacity-100 outline-none focus:ring-2 focus:ring-primary"
         >
           <svg
@@ -239,7 +326,6 @@ export default function Carousel({
         </button>
       )}
 
-      {/* Dots */}
       <div
         className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 shadow-sm z-30"
         role="tablist"
@@ -250,7 +336,7 @@ export default function Carousel({
             type="button"
             role="tab"
             aria-selected={i === currentIndex}
-            aria-label={`Go to slide ${i + 1}`}
+            aria-label={t('post.media.go_to_slide', { n: i + 1 })}
             onClick={(e) => {
               e.stopPropagation();
               setCurrentIndex(i);
@@ -264,7 +350,6 @@ export default function Carousel({
         ))}
       </div>
 
-      {/* Counter Bubble */}
       <div
         className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
         aria-hidden="true"

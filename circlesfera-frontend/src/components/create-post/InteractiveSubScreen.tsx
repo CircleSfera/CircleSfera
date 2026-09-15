@@ -1,7 +1,9 @@
-import { BarChart2, ChevronLeft, HelpCircle } from 'lucide-react';
+import { BarChart2, HelpCircle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '../ui';
+import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import SubScreenHeader from './SubScreenHeader';
 
 export type InteractiveDraft =
   | { kind: 'poll'; question: string; options: [string, string] }
@@ -27,10 +29,10 @@ export default function InteractiveSubScreen({
     value?.kind === 'poll' ? value.question : '',
   );
   const [option1, setOption1] = useState(
-    value?.kind === 'poll' ? value.options[0] : 'Yes',
+    value?.kind === 'poll' ? value.options[0] : t('createPost.interactive.yes'),
   );
   const [option2, setOption2] = useState(
-    value?.kind === 'poll' ? value.options[1] : 'No',
+    value?.kind === 'poll' ? value.options[1] : t('createPost.interactive.no'),
   );
   const [prompt, setPrompt] = useState(
     value?.kind === 'qna' ? value.prompt : '',
@@ -54,23 +56,14 @@ export default function InteractiveSubScreen({
   };
 
   return (
-    <div className="absolute inset-0 z-50 bg-surface-base flex flex-col">
-      <div className="sticky top-0 z-10 flex items-center gap-2 px-2 h-(--nav-top-height,52px) bg-surface-elevated border-b border-white/10 shrink-0">
-        <button
-          type="button"
-          onClick={onClose}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white hover:bg-white/8 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-          aria-label={t('createPost.header.back')}
-        >
-          <ChevronLeft size={22} strokeWidth={2} />
-        </button>
-        <h2 className="font-bold text-base text-white">
-          {t('createPost.interactive.title')}
-        </h2>
-      </div>
+    <div className={SUBSCREEN_SHELL}>
+      <SubScreenHeader
+        title={t('createPost.interactive.title')}
+        onClose={onClose}
+      />
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="grid grid-cols-3 gap-2">
+      <div className={SUBSCREEN_BODY}>
+        <div className="flex gap-1 p-0.5 rounded-xl bg-white/5 border border-white/8">
           {(
             [
               { id: 'none' as const, label: t('createPost.interactive.none') },
@@ -90,10 +83,10 @@ export default function InteractiveSubScreen({
               key={item.id}
               type="button"
               onClick={() => setKind(item.id)}
-              className={`min-h-11 px-3 py-2 rounded-xl text-xs font-bold uppercase tracking-wide border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+              className={`flex-1 min-h-9 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 kind === item.id
-                  ? 'bg-brand-primary/20 border-brand-primary/40 text-white'
-                  : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                  ? 'bg-white/12 text-white'
+                  : 'text-white/45 hover:text-white/70'
               }`}
             >
               {item.label}
@@ -102,21 +95,24 @@ export default function InteractiveSubScreen({
         </div>
 
         {kind === 'poll' && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <Input
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('createPost.interactive.poll_question')}
+              className="!h-10 !rounded-lg !px-3"
             />
             <Input
               value={option1}
               onChange={(e) => setOption1(e.target.value)}
               placeholder={t('createPost.interactive.option_a')}
+              className="!h-10 !rounded-lg !px-3"
             />
             <Input
               value={option2}
               onChange={(e) => setOption2(e.target.value)}
               placeholder={t('createPost.interactive.option_b')}
+              className="!h-10 !rounded-lg !px-3"
             />
           </div>
         )}
@@ -126,15 +122,16 @@ export default function InteractiveSubScreen({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('createPost.interactive.qna_prompt')}
+            className="!h-10 !rounded-lg !px-3"
           />
         )}
 
         <button
           type="button"
           onClick={save}
-          className="w-full h-12 rounded-xl bg-brand-primary text-white font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+          className="w-full h-10 rounded-lg bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-sm shadow-md shadow-brand-primary/20 hover:opacity-95 active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
         >
-          {t('common.save', 'Save')}
+          {t('createPost.interactive.save')}
         </button>
       </div>
     </div>

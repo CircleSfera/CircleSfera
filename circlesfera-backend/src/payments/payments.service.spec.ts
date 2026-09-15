@@ -2,6 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -339,6 +340,8 @@ describe('PaymentsService', () => {
     });
 
     it('7. should handle checkout.session.completed for DIRECT_POST_UNLOCK', async () => {
+      const grossCents = 1000;
+      const creatorShareCents = Math.floor(grossCents * CREATOR_SHARE_DECIMAL);
       const event = {
         id: 'evt_unlock_1',
         type: 'checkout.session.completed',
@@ -346,7 +349,7 @@ describe('PaymentsService', () => {
           object: {
             id: 'cs_unlock_1',
             client_reference_id: 'buyer1',
-            amount_total: 1000,
+            amount_total: grossCents,
             currency: 'eur',
             payment_intent: 'pi_12345',
             metadata: {
@@ -379,6 +382,13 @@ describe('PaymentsService', () => {
       expect(prisma.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { userId: 'creator1' },
+          update: {
+            lifetimeEarningsCents: { increment: creatorShareCents },
+          },
+          create: {
+            userId: 'creator1',
+            lifetimeEarningsCents: creatorShareCents,
+          },
         }),
       );
       expect(slackService.sendPaymentAlert).toHaveBeenCalled();

@@ -19,6 +19,7 @@ import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
 import { Logger } from 'nestjs-pino';
+import qs from 'qs';
 import { AppModule } from './app.module.js';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
 import { doubleCsrfProtection } from './common/config/csrf.config.js';
@@ -34,6 +35,22 @@ async function bootstrap(): Promise<void> {
 
   // Trust reverse proxies (Nginx / Cloudflare / Docker ingress) for correct IP rate-limiting
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
+
+  // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution (INPUT-002)
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set('query parser', (str: string) => {
+      const boundedStr =
+        typeof str === 'string' && str.length > 4096 ? str.slice(0, 4096) : str;
+      return qs.parse(boundedStr, {
+        depth: 5,
+        parameterLimit: 100,
+        arrayLimit: 50,
+        allowPrototypes: false,
+      });
+    });
 
   // Enable CORS with strict origin check
   const configService = app.get(ConfigService);
@@ -84,7 +101,7 @@ async function bootstrap(): Promise<void> {
         },
       },
       crossOriginEmbedderPolicy: false,
-      crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow frontend to access media
+      crossOriginResourcePolicy: { policy: 'same-site' }, // Restrict to same-site for API resources
     }),
   );
 
@@ -127,15 +144,22 @@ async function bootstrap(): Promise<void> {
   // Exception filter is registered via APP_FILTER in AppModule (with SlackService DI).
   // Do not register a second instance here.
 
-  // Stripe Webhook needs raw body for signature verification
+  // Stripe Webhook needs raw body for signature verification (bounded to 1MB)
   app.use(
     '/api/v1/payments/webhook',
-    bodyParser.raw({ type: 'application/json' }),
+    bodyParser.raw({ type: 'application/json', limit: '1mb' }),
   );
 
-  // Use sensible global body parser limits (Dos protection)
-  app.use(bodyParser.json({ limit: '100mb' }));
-  app.use(bodyParser.urlencoded({ limit: '100mb', extended: true }));
+  // Use sensible global body parser limits (DoS protection, INPUT-002)
+  // Bounded to 2MB for JSON and URL-encoded payloads; file uploads go through multipart
+  app.use(bodyParser.json({ limit: '2mb' }));
+  app.use(
+    bodyParser.urlencoded({
+      limit: '2mb',
+      extended: true,
+      parameterLimit: 1000,
+    }),
+  );
 
   // WebSocket Redis Adapter
   const redisIoAdapter = new RedisIoAdapter(app, configService);

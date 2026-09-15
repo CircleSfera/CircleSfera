@@ -46,17 +46,12 @@ export default function Login() {
       return res.data;
     },
     onSuccess: () => {
-      toast.success(
-        t(
-          'auth.login.appeal_success',
-          'Appeal submitted successfully. Our team will review it.',
-        ),
-      );
+      toast.success(t('auth.login.appeal_success'));
       setAppealToken(null);
       setAppealReason('');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || 'Failed to submit appeal');
+      toast.error(err.response?.data?.message || t('auth.login.appeal_error'));
     },
   });
 
@@ -129,18 +124,11 @@ export default function Login() {
     e.preventDefault();
     setError(null);
     if (siteKey && !captchaToken) {
-      setError(
-        t('auth.captcha_required', 'Please complete the security check.'),
-      );
+      setError(t('auth.captcha_required'));
       return;
     }
     if (import.meta.env.PROD && !siteKey) {
-      setError(
-        t(
-          'auth.captcha_unavailable',
-          'Security check is not ready yet. Wait for the deploy to finish and refresh.',
-        ),
-      );
+      setError(t('auth.captcha_unavailable'));
       return;
     }
     loginMutation.mutate({ identifier, password });
@@ -221,7 +209,7 @@ export default function Login() {
             <div className="flex justify-end">
               <Link
                 to="/forgot-password"
-                title="Forgot password"
+                title={t('auth.login.forgot_password')}
                 className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
               >
                 {t('auth.login.forgot_password')}
@@ -245,10 +233,7 @@ export default function Login() {
                 <div className="flex items-center gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <AlertOctagon className="text-red-400 w-5 h-5 shrink-0" />
                   <p className="text-xs text-red-400 font-medium leading-tight">
-                    {t(
-                      'auth.login.banned_message',
-                      'Your account has been deactivated. You may submit an appeal below.',
-                    )}
+                    {t('auth.login.banned_message')}
                   </p>
                 </div>
                 <div>
@@ -256,7 +241,7 @@ export default function Login() {
                     htmlFor="appealReason"
                     className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
                   >
-                    {t('auth.login.appeal_reason_label', 'Reason for Appeal')}
+                    {t('auth.login.appeal_reason_label')}
                   </label>
                   <textarea
                     id="appealReason"
@@ -265,10 +250,7 @@ export default function Login() {
                     required
                     rows={4}
                     className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-sm shadow-[0_0_15px_rgba(255,255,255,0.02)] resize-none"
-                    placeholder={t(
-                      'auth.login.appeal_reason_placeholder',
-                      'Explain why your account should be reinstated...',
-                    )}
+                    placeholder={t('auth.login.appeal_reason_placeholder')}
                   />
                 </div>
                 <div className="space-y-3 pt-2">
@@ -282,7 +264,7 @@ export default function Login() {
                     }
                     className="w-full font-black text-xs md:text-sm tracking-wide uppercase py-1.5"
                   >
-                    {t('auth.login.submit_appeal', 'Submit Appeal')}
+                    {t('auth.login.submit_appeal')}
                   </Button>
                   <button
                     type="button"
@@ -292,7 +274,7 @@ export default function Login() {
                     }}
                     className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
                   >
-                    {t('auth.login.back_to_login', 'Back')}
+                    {t('auth.login.back_to_login')}
                   </button>
                 </div>
               </div>
@@ -303,7 +285,7 @@ export default function Login() {
                     htmlFor="twoFactorCode"
                     className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 px-1"
                   >
-                    {t('auth.login.2fa_code', 'Authentication Code')}
+                    {t('auth.login.2fa_code')}
                   </label>
                   <input
                     id="twoFactorCode"
@@ -324,10 +306,7 @@ export default function Login() {
                     autoComplete="one-time-code"
                   />
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    {t(
-                      'auth.login.2fa_hint',
-                      'Enter the 6-digit code from your authenticator app.',
-                    )}
+                    {t('auth.login.2fa_hint')}
                   </p>
                 </div>
                 <button
@@ -335,7 +314,7 @@ export default function Login() {
                   onClick={() => loginMutation.reset()}
                   className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-2"
                 >
-                  {t('auth.login.back_to_login', 'Back')}
+                  {t('auth.login.back_to_login')}
                 </button>
               </div>
             ) : (

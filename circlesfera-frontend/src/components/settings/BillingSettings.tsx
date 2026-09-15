@@ -30,9 +30,7 @@ export default function BillingSettings() {
         window.location.href = response.url;
       }
     } catch {
-      toast.error(
-        t('settings.billing.portal_error', 'Could not access billing portal.'),
-      );
+      toast.error(t('settings.billing.portal_error'));
     } finally {
       setIsProcessingPortal(false);
     }
@@ -59,20 +57,19 @@ export default function BillingSettings() {
         <div className="rounded-xl border border-white/5 bg-brand-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <p className="text-xs font-medium text-brand-primary mb-1">
-              {t('settings.billing.current_plan', 'Current plan')}
+              {t('settings.billing.current_plan')}
             </p>
             <h3 className="text-xl font-semibold text-white">
-              {subscription?.planName || t('settings.billing.free', 'Free')}
+              {subscription?.planName || t('settings.billing.free')}
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              {subscription?.status ||
-                t('settings.billing.no_subscription', 'No active subscription')}
+              {subscription?.status || t('settings.billing.no_subscription')}
             </p>
             {subscription?.currentPeriodEnd && (
               <p className="text-xs text-white/40 mt-1">
                 {subscription.cancelAtPeriodEnd
-                  ? t('settings.billing.cancels_on', 'Cancels on')
-                  : t('settings.billing.renews_on', 'Renews on')}{' '}
+                  ? t('settings.billing.cancels_on')
+                  : t('settings.billing.renews_on')}{' '}
                 {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
               </p>
             )}
@@ -86,8 +83,8 @@ export default function BillingSettings() {
             className="min-h-11 px-6 text-sm font-semibold shrink-0"
           >
             {hasActiveSubscription
-              ? t('settings.billing.manage', 'Manage billing')
-              : t('settings.billing.view_plans', 'View plans')}
+              ? t('settings.billing.manage')
+              : t('settings.billing.view_plans')}
           </Button>
         </div>
       </SettingsSection>

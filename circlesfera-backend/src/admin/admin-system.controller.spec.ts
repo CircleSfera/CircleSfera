@@ -1,22 +1,27 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+} from '../common/testing/http-controller.js';
 import { AdminService } from './admin.service.js';
 import { AdminSystemController } from './admin-system.controller.js';
 
 describe('AdminSystemController', () => {
-  let controller: AdminSystemController;
-
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['system', 'moderation', 'users.read'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     getStats: vi.fn(),
@@ -29,23 +34,38 @@ describe('AdminSystemController', () => {
     updateSystemSettings: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminSystemController],
       providers: [{ provide: AdminService, useValue: mockService }],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminSystemController>(AdminSystemController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects stats without credentials', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/stats').expect(401);
+
+    expect(mockService.getStats).not.toHaveBeenCalled();
+  });
+
+  it('rejects stats with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockService.getStats).not.toHaveBeenCalled();
   });
 
   it('reads stats, health and settings without an actor', async () => {
@@ -53,9 +73,18 @@ describe('AdminSystemController', () => {
     mockService.getSystemHealth.mockResolvedValue({});
     mockService.getSystemSettings.mockResolvedValue([]);
 
-    await controller.getStats();
-    await controller.getSystemHealth();
-    await controller.getSystemSettings();
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/stats')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/health')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/settings')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockService.getStats).toHaveBeenCalledWith();
     expect(mockService.getSystemHealth).toHaveBeenCalledWith();
@@ -70,23 +99,38 @@ describe('AdminSystemController', () => {
     mockService.updateFirewallRule.mockResolvedValue({ id: 'rule-1' });
     mockService.deleteFirewallRule.mockResolvedValue({ ok: true });
 
-    await controller.getFirewallRules({ search: 'spam' });
-    await controller.addFirewallRule(createBody, admin);
-    await controller.updateFirewallRule('rule-1', updateBody, admin);
-    await controller.deleteFirewallRule('rule-1', admin);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/firewall/rules')
+      .query({ search: 'spam' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/firewall/rules')
+      .set(ADMIN_BEARER)
+      .send(createBody)
+      .expect(201);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/firewall/rules/rule-1')
+      .set(ADMIN_BEARER)
+      .send(updateBody)
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/firewall/rules/rule-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
-    expect(mockService.getFirewallRules).toHaveBeenCalledWith(1, 20, 'spam');
+    expect(mockService.getFirewallRules).toHaveBeenCalledWith(1, 10, 'spam');
     expect(mockService.createFirewallRule).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       createBody,
     );
     expect(mockService.updateFirewallRule).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'rule-1',
       updateBody,
     );
     expect(mockService.deleteFirewallRule).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       'rule-1',
     );
   });
@@ -95,10 +139,15 @@ describe('AdminSystemController', () => {
     const updates = [{ key: 'maintenance', value: 'false' }];
     mockService.updateSystemSettings.mockResolvedValue({ ok: true });
 
-    await controller.updateSystemSettings({ updates }, admin);
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/admin/settings')
+      .set(ADMIN_BEARER)
+      .send({ updates })
+      .expect(200);
 
+    expect(res.body).toEqual({ ok: true });
     expect(mockService.updateSystemSettings).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       updates,
     );
   });

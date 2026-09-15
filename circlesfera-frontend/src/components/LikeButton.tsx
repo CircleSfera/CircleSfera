@@ -3,6 +3,7 @@ import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { likesApi } from '../services';
 
 interface LikeButtonProps {
@@ -18,6 +19,7 @@ export default function LikeButton({
   iconClassName = 'w-5 h-5',
   className = '',
 }: LikeButtonProps) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isLiked, setIsLiked] = useState<boolean | null>(null);
 
@@ -72,8 +74,9 @@ export default function LikeButton({
       type="button"
       onClick={handleLike}
       className={`relative inline-flex items-center justify-center transition-colors focus:outline-none bg-transparent border-none ${className}`}
-      aria-label={liked ? 'Unlike post' : 'Like post'}
+      aria-label={liked ? t('post.actions.unlike') : t('post.actions.like')}
       data-testid="like-button"
+      data-liked={String(liked)}
       whileHover={{ scale: 1.1 }}
       whileTap={{ scale: 0.9 }}
     >

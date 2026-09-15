@@ -1,19 +1,25 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { EditsController } from './edits.controller.js';
 import { EditsService } from './edits.service.js';
 
 describe('EditsController', () => {
-  let controller: EditsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -25,79 +31,144 @@ describe('EditsController', () => {
     remove: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [EditsController],
       providers: [{ provide: EditsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<EditsController>(EditsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/edits')
+      .send({
+        mediaUrl: 'https://cdn.example/clip.mp4',
+        state: { clips: [] },
+      })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  it('creates an edit as the caller profile', async () => {
-    const dto = {
-      mediaUrl: 'https://cdn.example/clip.mp4',
-      state: { clips: [] },
-    };
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/edits')
+      .set(BEARER)
+      .send({
+        mediaUrl: 'https://cdn.example/clip.mp4',
+        state: { clips: [] },
+        ownerId: 'attacker',
+      })
+      .expect(400);
+
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
+
+  it('creates an edit as the session profile', async () => {
     mockService.create.mockResolvedValue({ id: 'edit-1' });
 
-    await controller.create(mockUser, dto);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/edits')
+      .set(BEARER)
+      .send({
+        mediaUrl: 'https://cdn.example/clip.mp4',
+        state: { clips: [] },
+      })
+      .expect(201);
 
-    expect(mockService.create).toHaveBeenCalledWith('profile-1', dto);
+    expect(res.body).toEqual({ id: 'edit-1' });
+    expect(mockService.create).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      expect.objectContaining({
+        mediaUrl: 'https://cdn.example/clip.mp4',
+        state: { clips: [] },
+      }),
+    );
   });
 
-  it('lists edits as the caller profile', async () => {
+  it('lists edits as the session profile', async () => {
     mockService.findAll.mockResolvedValue([]);
 
-    await controller.findAll(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/edits')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findAll).toHaveBeenCalledWith('profile-1');
+    expect(mockService.findAll).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 
-  it('starts captions as the caller profile and unwraps clipId', async () => {
+  it('starts captions as the session profile and unwraps clipId', async () => {
     mockService.startCaptions.mockResolvedValue({ jobId: 'job-1' });
 
-    await controller.startCaptions(mockUser, 'edit-1', { clipId: 'clip-1' });
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/edits/edit-1/captions')
+      .set(BEARER)
+      .send({ clipId: 'clip-1' })
+      .expect(201);
 
+    expect(res.body).toEqual({ jobId: 'job-1' });
     expect(mockService.startCaptions).toHaveBeenCalledWith(
-      'profile-1',
+      TEST_USER.profileId,
       'edit-1',
       'clip-1',
     );
   });
 
-  it('reads a captions job as the caller profile', async () => {
+  it('reads a captions job as the session profile', async () => {
     mockService.getCaptionsJob.mockResolvedValue({ status: 'done' });
 
-    await controller.getCaptionsJob(mockUser, 'edit-1', 'job-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/edits/edit-1/captions/job-1')
+      .set(BEARER)
+      .expect(200);
 
     expect(mockService.getCaptionsJob).toHaveBeenCalledWith(
-      'profile-1',
+      TEST_USER.profileId,
       'edit-1',
       'job-1',
     );
   });
 
-  it('reads, updates and deletes an edit as the caller profile', async () => {
-    const dto = { name: 'Cut 2' };
+  it('reads, updates and deletes an edit as the session profile', async () => {
     mockService.findOne.mockResolvedValue({ id: 'edit-1' });
     mockService.update.mockResolvedValue({ id: 'edit-1' });
     mockService.remove.mockResolvedValue(undefined);
 
-    await controller.findOne(mockUser, 'edit-1');
-    await controller.update(mockUser, 'edit-1', dto);
-    await controller.remove(mockUser, 'edit-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/edits/edit-1')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .put('/api/v1/edits/edit-1')
+      .set(BEARER)
+      .send({ name: 'Cut 2' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .delete('/api/v1/edits/edit-1')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockService.findOne).toHaveBeenCalledWith('profile-1', 'edit-1');
-    expect(mockService.update).toHaveBeenCalledWith('profile-1', 'edit-1', dto);
-    expect(mockService.remove).toHaveBeenCalledWith('profile-1', 'edit-1');
+    expect(mockService.findOne).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'edit-1',
+    );
+    expect(mockService.update).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'edit-1',
+      { name: 'Cut 2' },
+    );
+    expect(mockService.remove).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'edit-1',
+    );
   });
 });

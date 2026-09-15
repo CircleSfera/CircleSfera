@@ -72,7 +72,7 @@ export default function BottomNav() {
 
   return (
     <nav
-      aria-label="Mobile navigation"
+      aria-label={t('nav.mobile')}
       className="flex flex-col justify-start md:hidden fixed bottom-0 left-0 right-0 z-50"
       style={{
         background: 'rgba(18, 18, 18, 0.85)',

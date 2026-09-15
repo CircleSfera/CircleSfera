@@ -124,11 +124,19 @@ describe('NewChatModal', () => {
       data: [],
     } as never);
 
-    renderWithProviders(<NewChatModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <NewChatModal isOpen onClose={onClose} />,
+    );
 
-    expect(await screen.findByText('New Message')).toBeInTheDocument();
-    expect(await screen.findByText('No Following')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Chat' })).toBeDisabled();
+    expect(
+      await screen.findByText(i18n!.t('chat.new_message')),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('chat.no_following')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('chat.chat') }),
+    ).toBeDisabled();
     expect(followsApi.getFollowing).toHaveBeenCalledWith('me');
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
@@ -137,10 +145,12 @@ describe('NewChatModal', () => {
   });
 
   it('starts a DM without a group name', async () => {
-    renderWithProviders(<NewChatModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <NewChatModal isOpen onClose={onClose} />,
+    );
 
     fireEvent.click(await screen.findByRole('button', { name: /bob/i }));
-    fireEvent.click(screen.getByRole('button', { name: 'Chat' }));
+    fireEvent.click(screen.getByRole('button', { name: i18n!.t('chat.chat') }));
 
     await waitFor(() => {
       expect(chatApi.createGroup).toHaveBeenCalledWith({
@@ -153,15 +163,17 @@ describe('NewChatModal', () => {
   });
 
   it('starts a named group when two people are selected', async () => {
-    renderWithProviders(<NewChatModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <NewChatModal isOpen onClose={onClose} />,
+    );
 
     fireEvent.click(await screen.findByRole('button', { name: /bob/i }));
     fireEvent.click(screen.getByRole('button', { name: /cara/i }));
     fireEvent.change(
-      screen.getByPlaceholderText('Name your group (optional)'),
+      screen.getByPlaceholderText(i18n!.t('chat.name_group_optional')),
       { target: { value: 'Weekend' } },
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Chat' }));
+    fireEvent.click(screen.getByRole('button', { name: i18n!.t('chat.chat') }));
 
     await waitFor(() => {
       expect(chatApi.createGroup).toHaveBeenCalledWith({
@@ -173,10 +185,12 @@ describe('NewChatModal', () => {
   });
 
   it('does not search until the query has two characters', async () => {
-    renderWithProviders(<NewChatModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <NewChatModal isOpen onClose={onClose} />,
+    );
 
-    await screen.findByText('Suggested');
-    fireEvent.change(screen.getByPlaceholderText('Search...'), {
+    await screen.findByText(i18n!.t('chat.suggested'));
+    fireEvent.change(screen.getByPlaceholderText(i18n!.t('chat.search_dots')), {
       target: { value: 'b' },
     });
 
@@ -191,9 +205,11 @@ describe('NewChatModal', () => {
       data: [me, bob],
     } as never);
 
-    renderWithProviders(<NewChatModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <NewChatModal isOpen onClose={onClose} />,
+    );
 
-    fireEvent.change(screen.getByPlaceholderText('Search...'), {
+    fireEvent.change(screen.getByPlaceholderText(i18n!.t('chat.search_dots')), {
       target: { value: 'bo' },
     });
 

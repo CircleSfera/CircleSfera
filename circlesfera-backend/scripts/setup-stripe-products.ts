@@ -23,7 +23,7 @@ if (!stripeKey) {
 }
 
 const stripe = new Stripe(stripeKey, {
-  apiVersion: '2026-03-25.dahlia' as any,
+  apiVersion: '2026-08-26.dahlia' as any,
 });
 
 const PLANS = [

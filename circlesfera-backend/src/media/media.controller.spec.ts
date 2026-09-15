@@ -1,30 +1,27 @@
 import * as fs from 'node:fs';
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Request, Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { AppException } from '../common/errors/app.exception.js';
+import * as path from 'node:path';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { createControllerApp } from '../common/testing/http-controller.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MediaController } from './media.controller.js';
+import { MediaAuthService } from './media-auth.service.js';
 
-vi.mock('node:fs', () => ({
-  existsSync: vi.fn(),
-  readFileSync: vi.fn(),
-}));
-
-function createMockResponse(): Response {
-  return {
-    setHeader: vi.fn(),
-    send: vi.fn(),
-    sendFile: vi.fn(),
-  } as unknown as Response;
-}
-
-function createMockRequest(): Request {
-  return { ip: '127.0.0.1' } as unknown as Request;
-}
+const MEDIA_FOLDER = 'video_teaser_http_spec';
+const mediaDir = path.resolve(process.cwd(), 'uploads', MEDIA_FOLDER);
+const standardUrl = `/uploads/${MEDIA_FOLDER}/master.m3u8`;
 
 describe('MediaController', () => {
-  let controller: MediaController;
+  let app: INestApplication;
 
   const mockPrismaService = {
     postMedia: {
@@ -32,86 +29,75 @@ describe('MediaController', () => {
     },
   };
 
-  beforeEach(async () => {
-    vi.clearAllMocks();
+  const mockMediaAuthService = {
+    isAccessAllowed: vi.fn().mockResolvedValue(true),
+  };
 
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [MediaController],
-      providers: [{ provide: PrismaService, useValue: mockPrismaService }],
-    }).compile();
-
-    controller = module.get<MediaController>(MediaController);
+      providers: [
+        { provide: PrismaService, useValue: mockPrismaService },
+        { provide: MediaAuthService, useValue: mockMediaAuthService },
+      ],
+    });
+    fs.mkdirSync(mediaDir, { recursive: true });
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  afterAll(async () => {
+    await app.close();
+    fs.rmSync(mediaDir, { recursive: true, force: true });
   });
 
-  it('throws NotFoundException when the media record has no standardUrl', async () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('returns 404 when the media record has no standardUrl', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue(null);
 
-    await expect(
-      controller.serveTeaser(
-        'media-1',
-        'master.m3u8',
-        createMockRequest(),
-        createMockResponse(),
-      ),
-    ).rejects.toThrow(AppException);
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(404);
   });
 
-  it('throws NotFoundException when standardUrl has an unexpected format', async () => {
+  it('returns 404 when standardUrl has an unexpected format', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
       standardUrl: 'https://cdn.example.com/not-a-local-path.mp4',
     });
 
-    await expect(
-      controller.serveTeaser(
-        'media-1',
-        'master.m3u8',
-        createMockRequest(),
-        createMockResponse(),
-      ),
-    ).rejects.toThrow(AppException);
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(404);
   });
 
   it('blocks path traversal attempts outside the media folder', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
 
-    await expect(
-      controller.serveTeaser(
-        'media-1',
-        ['..', '..', 'etc', 'passwd'],
-        createMockRequest(),
-        createMockResponse(),
-      ),
-    ).rejects.toThrow(AppException);
+    const traversal = encodeURIComponent('../../etc/passwd');
+    await request(app.getHttpServer())
+      .get(`/api/v1/media/teaser/media-1/${traversal}`)
+      .expect(403);
   });
 
-  it('throws NotFoundException when the resolved file does not exist on disk', async () => {
+  it('returns 404 when the resolved file does not exist on disk', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
-    vi.mocked(fs.existsSync).mockReturnValue(false);
 
-    await expect(
-      controller.serveTeaser(
-        'media-1',
-        'master.m3u8',
-        createMockRequest(),
-        createMockResponse(),
-      ),
-    ).rejects.toThrow(AppException);
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/missing.m3u8')
+      .expect(404);
   });
 
-  it('truncates an .m3u8 playlist to the first two segments and appends ENDLIST', async () => {
+  it('truncates an .m3u8 playlist to the first two segments', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
-    vi.mocked(fs.existsSync).mockReturnValue(true);
-    vi.mocked(fs.readFileSync).mockReturnValue(
+    fs.writeFileSync(
+      path.join(mediaDir, 'master.m3u8'),
       [
         '#EXTM3U',
         '#EXTINF:2.0,',
@@ -124,74 +110,54 @@ describe('MediaController', () => {
       ].join('\n'),
     );
 
-    const res = createMockResponse();
-    await controller.serveTeaser(
-      'media-1',
-      'master.m3u8',
-      createMockRequest(),
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/master.m3u8')
+      .expect(200);
 
-    expect(res.setHeader).toHaveBeenCalledWith(
-      'Content-Type',
-      'application/vnd.apple.mpegurl',
+    expect(res.headers['content-type']).toMatch(
+      /application\/vnd\.apple\.mpegurl/,
     );
-    const sentBody = vi.mocked(res.send).mock.calls[0][0] as string;
-    expect(sentBody).toContain('stream_0.ts');
-    expect(sentBody).toContain('stream_1.ts');
-    expect(sentBody).not.toContain('stream_2.ts');
-    expect(sentBody.trim().endsWith('#EXT-X-ENDLIST')).toBe(true);
+    expect(res.text).toContain('stream_0.ts');
+    expect(res.text).toContain('stream_1.ts');
+    expect(res.text).not.toContain('stream_2.ts');
+    expect(res.text.trim().endsWith('#EXT-X-ENDLIST')).toBe(true);
   });
 
   it('serves the first two .ts segments', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
-    vi.mocked(fs.existsSync).mockReturnValue(true);
+    fs.writeFileSync(path.join(mediaDir, 'stream_1.ts'), 'segment-bytes');
 
-    const res = createMockResponse();
-    await controller.serveTeaser(
-      'media-1',
-      'stream_1.ts',
-      createMockRequest(),
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/stream_1.ts')
+      .expect(200);
 
-    expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'video/MP2T');
-    expect(res.sendFile).toHaveBeenCalled();
+    expect(res.headers['content-type']).toMatch(/video\/MP2T/i);
+    expect(res.body.toString()).toBe('segment-bytes');
   });
 
   it('locks .ts segments beyond the free preview window', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
-    vi.mocked(fs.existsSync).mockReturnValue(true);
+    fs.writeFileSync(path.join(mediaDir, 'stream_2.ts'), 'locked');
 
-    await expect(
-      controller.serveTeaser(
-        'media-1',
-        'stream_2.ts',
-        createMockRequest(),
-        createMockResponse(),
-      ),
-    ).rejects.toThrow(AppException);
+    await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/stream_2.ts')
+      .expect(403);
   });
 
   it('serves other file types (e.g. thumbnails) directly', async () => {
     mockPrismaService.postMedia.findUnique.mockResolvedValue({
-      standardUrl: '/uploads/video_123/master.m3u8',
+      standardUrl,
     });
-    vi.mocked(fs.existsSync).mockReturnValue(true);
+    fs.writeFileSync(path.join(mediaDir, 'thumb.jpg'), 'jpeg-bytes');
 
-    const res = createMockResponse();
-    await controller.serveTeaser(
-      'media-1',
-      'thumb.jpg',
-      createMockRequest(),
-      res,
-    );
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/media/teaser/media-1/thumb.jpg')
+      .expect(200);
 
-    expect(res.sendFile).toHaveBeenCalled();
-    expect(res.setHeader).not.toHaveBeenCalled();
+    expect(res.body.toString()).toBe('jpeg-bytes');
   });
 });

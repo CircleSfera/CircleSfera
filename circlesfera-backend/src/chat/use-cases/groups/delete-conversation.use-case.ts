@@ -1,20 +1,15 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
-import { AppGateway } from '../../../socket/app.gateway.js';
 
 @Injectable()
 export class DeleteConversationUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(ModuleRef) private moduleRef: ModuleRef,
+    @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
   ) {}
-
-  private get gateway(): AppGateway {
-    return this.moduleRef.get(AppGateway, { strict: false });
-  }
 
   async execute(profileId: string, conversationId: string) {
     const participant = await this.prisma.participant.findFirst({
@@ -40,10 +35,9 @@ export class DeleteConversationUseCase {
         where: { id: conversationId },
       });
 
-      participant.conversation.participants.forEach((p) => {
-        this.gateway.server
-          .to(`user:${p.profileId}`)
-          .emit('conversationDeleted', { conversationId });
+      this.eventEmitter.emit('chat.conversation.deleted', {
+        participants: participant.conversation.participants,
+        payload: { conversationId },
       });
 
       return { success: true };
@@ -57,9 +51,10 @@ export class DeleteConversationUseCase {
       },
     });
 
-    this.gateway.server
-      .to(`user:${profileId}`)
-      .emit('conversationDeleted', { conversationId });
+    this.eventEmitter.emit('chat.conversation.deleted', {
+      participants: [{ profileId }],
+      payload: { conversationId },
+    });
 
     const allDeleted = await this.prisma.participant.findMany({
       where: { conversationId, deletedAt: null },

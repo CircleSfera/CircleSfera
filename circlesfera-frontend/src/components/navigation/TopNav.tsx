@@ -1,5 +1,6 @@
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { Bell, MessageCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import logoSrc from '../../assets/logo.png';
 import { useNotificationsStore } from '../../stores/notificationsStore';
@@ -8,6 +9,7 @@ import { useNotificationsStore } from '../../stores/notificationsStore';
 // Compact: logo center, notifications + DMs right
 // Mobile only (hidden on md+)
 export default function TopNav() {
+  const { t } = useTranslation();
   const unreadMessagesCount = useNotificationsStore(
     (state) => state.unreadMessagesCount,
   );
@@ -43,7 +45,7 @@ export default function TopNav() {
         to="/"
         onClick={triggerHaptic}
         className="flex items-center justify-center gap-1.5 flex-none focus:outline-none"
-        aria-label="CircleSfera inicio"
+        aria-label={t('nav.home')}
       >
         <img
           src={logoSrc}
@@ -62,7 +64,7 @@ export default function TopNav() {
           to="/activity"
           onClick={triggerHaptic}
           className="relative flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
-          aria-label="Notificaciones"
+          aria-label={t('nav.notifications')}
           style={{ width: 44, height: 44 }}
         >
           <Bell size={20} strokeWidth={1.8} />
@@ -86,7 +88,7 @@ export default function TopNav() {
           to="/direct/inbox"
           onClick={triggerHaptic}
           className="relative flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
-          aria-label="Mensajes directos"
+          aria-label={t('nav.messages')}
           style={{ width: 44, height: 44 }}
         >
           <MessageCircle size={20} strokeWidth={1.8} />

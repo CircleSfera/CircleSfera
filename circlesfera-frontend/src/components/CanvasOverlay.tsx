@@ -3,6 +3,8 @@ import { Image, Layer, Line, Stage, Text, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import type { OverlayElement } from '../services/edits.service';
 
+/** Konva overlay layer for PhotoEditor (draw / text / stickers). */
+
 interface CanvasOverlayProps {
   width: number;
   height: number;

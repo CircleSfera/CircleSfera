@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 
+// Keep in sync with the installed `stripe` package's LatestApiVersion.
+const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-08-26.dahlia';
+
 @Injectable()
 export class StripeService implements OnModuleInit {
   public readonly stripe: Stripe;
@@ -11,7 +14,7 @@ export class StripeService implements OnModuleInit {
   constructor(@Inject(ConfigService) private configService: ConfigService) {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
-      apiVersion: '2026-03-25.dahlia',
+      apiVersion: STRIPE_API_VERSION,
     });
   }
 
@@ -125,8 +128,12 @@ export class StripeService implements OnModuleInit {
     );
   }
 
-  async createCustomer(email: string, name?: string): Promise<Stripe.Customer> {
-    return this.stripe.customers.create({ email, name });
+  async createCustomer(
+    email: string,
+    name?: string,
+    options?: Stripe.RequestOptions,
+  ): Promise<Stripe.Customer> {
+    return this.stripe.customers.create({ email, name }, options);
   }
 
   async createPortalSession(

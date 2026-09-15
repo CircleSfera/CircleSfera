@@ -87,14 +87,18 @@ describe('SharePostModal', () => {
   });
 
   it('closes from Done and the dialog X without sending', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal isOpen onClose={onClose} post={post} />,
     );
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('Share to...')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('modals.share.share_to')),
+    ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.share.done') }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -112,14 +116,17 @@ describe('SharePostModal', () => {
   });
 
   it('filters conversations by search', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal isOpen onClose={onClose} post={post} />,
     );
 
     await screen.findByText('bob');
-    fireEvent.change(screen.getByPlaceholderText('Search conversations...'), {
-      target: { value: 'week' },
-    });
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n!.t('modals.share.search_conversations')),
+      {
+        target: { value: 'week' },
+      },
+    );
 
     expect(screen.getByText('Weekend plans')).toBeInTheDocument();
     expect(screen.queryByText('bob')).not.toBeInTheDocument();
@@ -130,12 +137,12 @@ describe('SharePostModal', () => {
       data: [],
     } as never);
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal isOpen onClose={onClose} post={post} />,
     );
 
     expect(
-      await screen.findByText('No conversations found'),
+      await screen.findByText(i18n!.t('modals.share.no_conversations')),
     ).toBeInTheDocument();
     expect(chatApi.sendMessage).not.toHaveBeenCalled();
   });
@@ -145,23 +152,29 @@ describe('SharePostModal', () => {
       data: [dm],
     } as never);
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal isOpen onClose={onClose} post={post} />,
     );
 
     await screen.findByText('bob');
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.share.send') }),
+    );
 
     await waitFor(() => {
       expect(chatApi.sendMessage).toHaveBeenCalledWith({
         conversationId: 'conv-dm',
-        content: 'Shared a post',
+        content: i18n!.t('chat.shared_post'),
         postId: 'post-1',
       });
     });
 
-    expect(screen.getByRole('button', { name: 'Sent' })).toBeDisabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Sent' }));
+    expect(
+      screen.getByRole('button', { name: i18n!.t('modals.share.sent') }),
+    ).toBeDisabled();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.share.sent') }),
+    );
     expect(chatApi.sendMessage).toHaveBeenCalledTimes(1);
     expect(onClose).not.toHaveBeenCalled();
   });
@@ -174,26 +187,32 @@ describe('SharePostModal', () => {
       .mockRejectedValueOnce(new Error('network'))
       .mockResolvedValueOnce({} as never);
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal isOpen onClose={onClose} post={post} />,
     );
 
     await screen.findByText('bob');
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.share.send') }),
+    );
 
     await waitFor(() => {
       expect(chatApi.sendMessage).toHaveBeenCalledTimes(1);
     });
-    expect(await screen.findByRole('button', { name: 'Send' })).toBeEnabled();
+    expect(
+      await screen.findByRole('button', { name: i18n!.t('modals.share.send') }),
+    ).toBeEnabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.share.send') }),
+    );
     await waitFor(() => {
       expect(chatApi.sendMessage).toHaveBeenCalledTimes(2);
     });
   });
 
   it('uses the frame sheet title and preview and closes without sending', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <SharePostModal
         isOpen
         onClose={onClose}
@@ -202,15 +221,21 @@ describe('SharePostModal', () => {
       />,
     );
 
-    expect(await screen.findByText('Share frame')).toBeInTheDocument();
-    expect(screen.getByText('Sunset at the pier')).toBeInTheDocument();
-    expect(screen.queryByText('Share to...')).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Done' }),
+      await screen.findByText(i18n!.t('frames.share_frame')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sunset at the pier')).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('modals.share.share_to')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n!.t('modals.share.done') }),
     ).not.toBeInTheDocument();
     expect(await screen.findByText('bob')).toBeInTheDocument();
 
-    const closeButtons = screen.getAllByRole('button', { name: 'Close' });
+    const closeButtons = screen.getAllByRole('button', {
+      name: i18n!.t('frames.close'),
+    });
     fireEvent.click(closeButtons[closeButtons.length - 1]);
 
     expect(onClose).toHaveBeenCalledTimes(1);

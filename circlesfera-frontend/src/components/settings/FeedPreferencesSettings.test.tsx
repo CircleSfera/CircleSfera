@@ -1,8 +1,8 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
+import { renderWithProviders } from '../../test/test-utils';
 import FeedPreferencesSettings from './FeedPreferencesSettings';
 
 vi.mock('../../services', () => ({
@@ -27,17 +27,6 @@ vi.mock('react-hot-toast', () => ({
   },
 }));
 
-function renderSettings() {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <FeedPreferencesSettings />
-    </QueryClientProvider>,
-  );
-}
-
 describe('FeedPreferencesSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -54,25 +43,24 @@ describe('FeedPreferencesSettings', () => {
   });
 
   it('shows a sensitive-content toggle and no adult or 18+ language', async () => {
-    renderSettings();
+    const { i18n } = renderWithProviders(<FeedPreferencesSettings />);
 
     expect(
-      await screen.findByLabelText(
-        /show sensitive content in for you and explore/i,
-      ),
+      await screen.findByLabelText(i18n!.t('feedPrefs.show_sensitive')),
     ).toBeInTheDocument();
-    expect(screen.getByText(/graphic violence/i)).toBeInTheDocument();
-    expect(screen.getByText(/not allowed on circlesfera/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('feedPrefs.show_sensitive_desc')),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/18\+/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/mature/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('persists GENERAL vs MATURE from the sensitive-content switch', async () => {
-    renderSettings();
+    const { i18n } = renderWithProviders(<FeedPreferencesSettings />);
 
     const toggle = await screen.findByLabelText(
-      /show sensitive content in for you and explore/i,
+      i18n!.t('feedPrefs.show_sensitive'),
     );
     expect(toggle).not.toBeChecked();
 

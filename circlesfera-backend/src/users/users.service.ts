@@ -53,7 +53,7 @@ export class UsersService {
       },
       include: {
         user: {
-          select: { id: true, verificationLevel: true },
+          select: { id: true },
         },
         _count: {
           select: {
@@ -71,7 +71,7 @@ export class UsersService {
       fullName: profile.fullName,
       avatar: profile.avatar,
       bio: profile.bio,
-      verificationLevel: profile.user.verificationLevel,
+      verificationLevel: profile.verificationLevel,
       followersCount: profile._count.followers,
       reason:
         profile._count.followers > 50
@@ -115,8 +115,6 @@ export class UsersService {
           updatedAt: true,
           isActive: true,
           role: true,
-          verificationLevel: true,
-          accountType: true,
           dateOfBirth: true,
           identityVerifiedAt: true,
           emailVerified: true,
@@ -176,32 +174,6 @@ export class UsersService {
                   updatedAt: true,
                 },
               },
-              sentTransactions: {
-                select: {
-                  id: true,
-                  type: true,
-                  amount: true,
-                  currency: true,
-                  status: true,
-                  createdAt: true,
-                  receiverId: true,
-                  postId: true,
-                  storyId: true,
-                },
-              },
-              receivedTransactions: {
-                select: {
-                  id: true,
-                  type: true,
-                  amount: true,
-                  currency: true,
-                  status: true,
-                  createdAt: true,
-                  senderId: true,
-                  postId: true,
-                  storyId: true,
-                },
-              },
               followers: {
                 include: {
                   follower: {
@@ -235,12 +207,34 @@ export class UsersService {
                   expiresAt: true,
                 },
               },
+              reports: true,
             },
           },
           settings: true,
           appeals: true,
           supportTickets: true,
-          reports: true,
+          sentTransactions: {
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              currency: true,
+              status: true,
+              createdAt: true,
+              receiverId: true,
+            },
+          },
+          receivedTransactions: {
+            select: {
+              id: true,
+              type: true,
+              amount: true,
+              currency: true,
+              status: true,
+              createdAt: true,
+              senderId: true,
+            },
+          },
         },
       }),
     ]);
@@ -256,8 +250,6 @@ export class UsersService {
       updatedAt: account.updatedAt,
       isActive: account.isActive,
       role: account.role,
-      verificationLevel: account.verificationLevel,
-      accountType: account.accountType,
       dateOfBirth: account.dateOfBirth,
       identityVerifiedAt: account.identityVerifiedAt,
       emailVerified: account.emailVerified,
@@ -289,7 +281,9 @@ export class UsersService {
       settings: relations.settings,
       appeals: relations.appeals,
       supportTickets: relations.supportTickets,
-      reportsFiled: relations.reports,
+      reportsFiled: undefined, // removed because reports are on profiles
+      sentTransactions: relations.sentTransactions,
+      receivedTransactions: relations.receivedTransactions,
     };
 
     return safeData as Record<string, unknown>;
@@ -307,6 +301,24 @@ export class UsersService {
       return tx.user.delete({
         where: { id: userId },
       });
+    });
+  }
+
+  // Atomically deletes a user scheduled for deletion, guarding against concurrent restoration.
+  // Returns true if the account was deleted, false if the account was restored or cancelled concurrently.
+  async deleteScheduledUser(userId: string): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.deleteMany({
+        where: {
+          id: userId,
+          isActive: false,
+          OR: [
+            { scheduledDeletionAt: { not: null } },
+            { deletedAt: { not: null } },
+          ],
+        },
+      });
+      return result.count > 0;
     });
   }
 
@@ -523,7 +535,6 @@ export class UsersService {
       where: { id: userId },
       select: {
         stripeIdentitySessionId: true,
-        verificationLevel: true,
         identityVerifiedAt: true,
       },
     });
@@ -564,59 +575,64 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        platformSubscriptions: {
-          where: {
-            status: {
-              in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        profiles: {
+          include: {
+            platformSubscriptions: {
+              where: {
+                status: {
+                  in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+                },
+              },
+              include: { plan: true },
             },
           },
-          include: { plan: true },
         },
       },
     });
 
     if (!user) return;
 
-    let targetAccountType = AccountType.PERSONAL as AccountType;
-    let targetVerificationLevel = VerificationLevel.BASIC as VerificationLevel;
+    for (const profile of user.profiles ?? []) {
+      let targetAccountType = AccountType.PERSONAL as AccountType;
+      let targetVerificationLevel =
+        VerificationLevel.BASIC as VerificationLevel;
 
-    // 1. Evaluate highest active subscription tier
-    let hasPremium = false;
-    let hasElite = false;
-    let hasBusiness = false;
+      let hasBusiness = false;
+      let hasElite = false;
+      let hasPremium = false;
 
-    for (const sub of user.platformSubscriptions) {
-      const name = sub.plan.name.toLowerCase();
-      if (name.includes('business')) hasBusiness = true;
-      else if (name.includes('elite')) hasElite = true;
-      else if (name.includes('premium')) hasPremium = true;
-    }
+      for (const sub of profile.platformSubscriptions) {
+        const name = sub.plan.name.toLowerCase();
+        if (name.includes('business')) hasBusiness = true;
+        else if (name.includes('elite')) hasElite = true;
+        else if (name.includes('premium')) hasPremium = true;
+      }
 
-    if (hasBusiness) {
-      targetAccountType = AccountType.BUSINESS;
-      targetVerificationLevel = VerificationLevel.BUSINESS;
-    } else if (hasElite) {
-      targetAccountType = AccountType.CREATOR;
-      targetVerificationLevel = VerificationLevel.ELITE;
-    } else if (hasPremium) {
-      targetVerificationLevel = VerificationLevel.VERIFIED;
-    }
-    // IdentityVerifiedAt is independent of verificationLevel (plan badge).
+      if (hasBusiness) {
+        targetAccountType = AccountType.BUSINESS;
+        targetVerificationLevel = VerificationLevel.BUSINESS;
+      } else if (hasElite) {
+        targetAccountType = AccountType.CREATOR;
+        targetVerificationLevel = VerificationLevel.ELITE;
+      } else if (hasPremium) {
+        targetVerificationLevel = VerificationLevel.VERIFIED;
+      }
 
-    if (
-      user.accountType !== targetAccountType ||
-      user.verificationLevel !== targetVerificationLevel
-    ) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          accountType: targetAccountType,
-          verificationLevel: targetVerificationLevel,
-        },
-      });
-      console.log(
-        `User ${userId} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
-      );
+      if (
+        profile.accountType !== targetAccountType ||
+        profile.verificationLevel !== targetVerificationLevel
+      ) {
+        await this.prisma.profile.update({
+          where: { id: profile.id },
+          data: {
+            accountType: targetAccountType,
+            verificationLevel: targetVerificationLevel,
+          },
+        });
+        console.log(
+          `Profile ${profile.id} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
+        );
+      }
     }
   }
 }

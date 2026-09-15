@@ -11,17 +11,14 @@ export type MoneySection = 'income' | 'plans';
 const SECTIONS: {
   id: MoneySection;
   labelKey: string;
-  labelFallback: string;
 }[] = [
   {
     id: 'income',
     labelKey: 'creator.money.income',
-    labelFallback: 'Ingresos',
   },
   {
     id: 'plans',
     labelKey: 'creator.money.plans',
-    labelFallback: 'Planes',
   },
 ];
 
@@ -66,7 +63,7 @@ export default function CreatorMoneyTab({ onToast }: Props) {
       <div className="sticky top-[calc(env(safe-area-inset-top)+4.25rem)] sm:top-2 z-20 p-1 rounded-xl border border-white/10 bg-surface-elevated">
         <div
           role="tablist"
-          aria-label={t('creator.money.sections', 'Secciones de monetización')}
+          aria-label={t('creator.money.sections')}
           className="flex gap-1 overflow-x-auto no-scrollbar"
         >
           {SECTIONS.map((item) => {
@@ -85,7 +82,7 @@ export default function CreatorMoneyTab({ onToast }: Props) {
                     : 'text-white/60 hover:text-white hover:bg-white/5',
                 )}
               >
-                {t(item.labelKey, item.labelFallback)}
+                {t(item.labelKey)}
               </button>
             );
           })}

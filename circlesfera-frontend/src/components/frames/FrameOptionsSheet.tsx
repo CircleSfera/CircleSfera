@@ -87,7 +87,7 @@ function OptionsBody({
           {onPromote && (
             <OptionRow
               icon={Megaphone}
-              label={t('post.menu.promote', 'Boost Post')}
+              label={t('post.menu.promote')}
               onClick={() => run(onPromote)}
               variant="highlight"
             />
@@ -166,7 +166,7 @@ export default function FrameOptionsSheet({
       <FrameBottomSheet
         isOpen
         onClose={onClose}
-        title={t('frames.options', 'Options')}
+        title={t('frames.options')}
         maxHeightClass="max-h-[min(70%,320px)]"
         align="center"
         showHandle={false}
@@ -215,7 +215,7 @@ export default function FrameOptionsSheet({
 
               <div className="p-4 pt-2 md:pt-4 border-b border-white/10 flex items-center justify-between shrink-0">
                 <h2 className="text-lg font-bold text-white">
-                  {t('frames.options', 'Options')}
+                  {t('frames.options')}
                 </h2>
                 <Button
                   onClick={onClose}

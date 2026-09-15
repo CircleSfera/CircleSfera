@@ -31,7 +31,7 @@ export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
             className="fixed inset-x-0 bottom-0 z-[60] max-h-[85vh] bg-surface-elevated border-t border-white/10 flex flex-col md:hidden pb-[env(safe-area-inset-bottom)] rounded-t-2xl"
             role="dialog"
             aria-modal="true"
-            aria-label={t('creator.nav_label', 'Creator Studio')}
+            aria-label={t('creator.nav_label')}
           >
             <div className="flex justify-center pt-3 pb-1 shrink-0">
               <div className="w-12 h-1.5 bg-white/20 rounded-full" />
@@ -42,7 +42,7 @@ export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
                 type="button"
                 onClick={onClose}
                 className="w-11 h-11 flex items-center justify-center text-white/50 hover:text-white rounded-xl hover:bg-white/5"
-                aria-label={t('common.close', 'Close')}
+                aria-label={t('common.close')}
               >
                 <X size={20} />
               </button>

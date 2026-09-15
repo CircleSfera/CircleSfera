@@ -54,11 +54,13 @@ describe('PostInsightsModal', () => {
   });
 
   it('loads insights for the post and closes from the dialog X', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
-    expect(await screen.findByText('Post Statistics')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('modals.insights.post_stats')),
+    ).toBeInTheDocument();
     expect(creatorApi.getPostInsights).toHaveBeenCalledWith('post-1');
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
@@ -66,7 +68,7 @@ describe('PostInsightsModal', () => {
   });
 
   it('renders counts, dwell seconds and conversion percent', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
@@ -79,7 +81,7 @@ describe('PostInsightsModal', () => {
     expect(screen.getByText('45s')).toBeInTheDocument();
     expect(screen.getByText('3.2%')).toBeInTheDocument();
     expect(
-      screen.getByText('Not enough historical data yet'),
+      screen.getByText(i18n!.t('modals.insights.not_enough_data')),
     ).toBeInTheDocument();
   });
 
@@ -96,15 +98,22 @@ describe('PostInsightsModal', () => {
   });
 
   it('keeps promoting when views are 100 or below', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
     expect(
-      await screen.findByText(/engagement rate of\s+12\.5%/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/Keep promoting to gain more reach/i),
+      await screen.findByText((_, el) => {
+        const text = el?.textContent ?? '';
+        return (
+          el?.tagName === 'P' &&
+          text.includes(
+            i18n!.t('modals.insights.engagement_rate_prefix').trim(),
+          ) &&
+          /12\.5\s*%/.test(text) &&
+          text.includes(i18n!.t('modals.insights.keep_promoting').trim())
+        );
+      }),
     ).toBeInTheDocument();
   });
 
@@ -113,15 +122,22 @@ describe('PostInsightsModal', () => {
       data: insights({ views: 200, likes: 10, comments: 10 }),
     } as never);
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
     expect(
-      await screen.findByText(/engagement rate of\s+10\.0%/i),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(/beating your category average/i),
+      await screen.findByText((_, el) => {
+        const text = el?.textContent ?? '';
+        return (
+          el?.tagName === 'P' &&
+          text.includes(
+            i18n!.t('modals.insights.engagement_rate_prefix').trim(),
+          ) &&
+          /10\.0\s*%/.test(text) &&
+          text.includes(i18n!.t('modals.insights.above_average').trim())
+        );
+      }),
     ).toBeInTheDocument();
   });
 });

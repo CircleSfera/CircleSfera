@@ -43,9 +43,7 @@ export function AdminSplitView({
       className={`flex flex-col lg:flex-row min-h-0 lg:min-h-[18rem] lg:h-[calc(100vh-13rem)] glass-panel rounded-xl overflow-hidden ${className || ''}`}
     >
       <section
-        aria-label={
-          listAriaLabel || listTitle || t('admin.split.list_region', 'Lista')
-        }
+        aria-label={listAriaLabel || listTitle || t('admin.split.list_region')}
         className={`
           flex flex-col min-h-0 min-w-0
           lg:w-[min(100%,340px)] xl:w-[360px] lg:shrink-0 lg:border-r lg:border-white/5 lg:overflow-hidden
@@ -65,9 +63,7 @@ export function AdminSplitView({
       </section>
 
       <section
-        aria-label={
-          detailAriaLabel || t('admin.split.detail_region', 'Detalle')
-        }
+        aria-label={detailAriaLabel || t('admin.split.detail_region')}
         aria-live="polite"
         className={`
           flex flex-col min-h-0 min-w-0 flex-1 lg:overflow-hidden
@@ -83,7 +79,7 @@ export function AdminSplitView({
               className="min-h-11 gap-2 text-white/70 hover:text-white px-2"
             >
               <ArrowLeft size={18} />
-              {t('common.back', 'Volver')}
+              {t('common.back')}
             </Button>
           </div>
         )}

@@ -66,7 +66,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                   size={11}
                   className="text-brand-primary opacity-80"
                 />
-                <span>{t(group.labelKey, group.labelFallback)}</span>
+                <span>{t(group.labelKey)}</span>
               </h3>
               <div className="space-y-1">
                 {visibleItems.map((item) => {
@@ -93,9 +93,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                             isSelected ? 'text-brand-primary' : 'text-white/50'
                           }
                         />
-                        <span className="truncate">
-                          {t(item.labelKey, item.labelFallback)}
-                        </span>
+                        <span className="truncate">{t(item.labelKey)}</span>
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">

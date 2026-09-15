@@ -40,11 +40,11 @@ describe('PromoteModal', () => {
   });
 
   it('closes from the dialog X without creating', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal post={post} onClose={onClose} onToast={onToast} />,
     );
 
-    expect(screen.getByText('Boost Post')).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('post.menu.promote'))).toBeInTheDocument();
     expect(screen.getByText('Sunset reel')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
@@ -53,12 +53,17 @@ describe('PromoteModal', () => {
   });
 
   it('creates with the default 5 EUR for 3 days and empty targeting strings', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal post={post} onClose={onClose} onToast={onToast} />,
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: /boost for €15 total/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 15,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -74,14 +79,14 @@ describe('PromoteModal', () => {
       });
     });
     expect(onToast).toHaveBeenCalledWith(
-      'Redirecting to secure checkout...',
+      i18n!.t('creator.promotions.redirecting'),
       'success',
     );
     expect(window.location.href).toBe(checkoutUrl);
   });
 
   it('lowercases FRAME to frame', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal
         post={{ ...post, id: 'frame-1', type: 'FRAME' }}
         onClose={onClose}
@@ -90,7 +95,12 @@ describe('PromoteModal', () => {
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: /boost for €15 total/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 15,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -104,27 +114,50 @@ describe('PromoteModal', () => {
   });
 
   it('sends the edited budget, duration, objective and trimmed targeting', async () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal post={post} onClose={onClose} onToast={onToast} />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'Get Followers' }));
-    fireEvent.change(screen.getByLabelText('Daily Budget (EUR)'), {
-      target: { value: '10' },
-    });
-    fireEvent.change(screen.getByLabelText('Campaign Duration'), {
-      target: { value: '7' },
-    });
-    fireEvent.change(screen.getByLabelText(/Countries/i), {
-      target: { value: '  ES,PT  ' },
-    });
-    fireEvent.change(screen.getByLabelText(/Interests/i), {
-      target: { value: '  music  ' },
-    });
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.objective_follows'),
+      }),
+    );
+    fireEvent.change(
+      screen.getByLabelText(
+        i18n!.t('creator.promotions.daily_budget', { currency: 'EUR' }),
+      ),
+      {
+        target: { value: '10' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('creator.promotions.campaign_duration')),
+      {
+        target: { value: '7' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('creator.promotions.countries_hint')),
+      {
+        target: { value: '  ES,PT  ' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('creator.promotions.interests_hint')),
+      {
+        target: { value: '  music  ' },
+      },
+    );
 
     expect(screen.getByText('€70')).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: /boost for €70 total/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 70,
+        }),
+      }),
     );
 
     await waitFor(() => {
@@ -142,16 +175,26 @@ describe('PromoteModal', () => {
   });
 
   it('disables boost when the total is not positive', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal post={post} onClose={onClose} onToast={onToast} />,
     );
 
-    fireEvent.change(screen.getByLabelText('Daily Budget (EUR)'), {
-      target: { value: '0' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(
+        i18n!.t('creator.promotions.daily_budget', { currency: 'EUR' }),
+      ),
+      {
+        target: { value: '0' },
+      },
+    );
 
     expect(
-      screen.getByRole('button', { name: /boost for €0 total/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 0,
+        }),
+      }),
     ).toBeDisabled();
     expect(creatorApi.createPromotion).not.toHaveBeenCalled();
   });
@@ -161,16 +204,24 @@ describe('PromoteModal', () => {
       data: {},
     } as never);
 
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <PromoteModal post={post} onClose={onClose} onToast={onToast} />,
     );
 
     fireEvent.click(
-      screen.getByRole('button', { name: /boost for €15 total/i }),
+      screen.getByRole('button', {
+        name: i18n!.t('creator.promotions.boost_total', {
+          currency: '€',
+          total: 15,
+        }),
+      }),
     );
 
     await waitFor(() => {
-      expect(onToast).toHaveBeenCalledWith('Error creating promotion', 'error');
+      expect(onToast).toHaveBeenCalledWith(
+        i18n!.t('creator.promotions.error_create'),
+        'error',
+      );
     });
     expect(window.location.href).toBe('http://localhost/p/post-1');
   });

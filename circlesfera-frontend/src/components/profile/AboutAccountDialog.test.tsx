@@ -56,7 +56,7 @@ describe('AboutAccountDialog', () => {
   });
 
   it('shows mapped fields, country, strikes and the bot label', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AboutAccountDialog
         isOpen
         onClose={onClose}
@@ -76,22 +76,30 @@ describe('AboutAccountDialog', () => {
       />,
     );
 
-    expect(screen.getByText('About this account')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.about.title')),
+    ).toBeInTheDocument();
     expect(screen.getByText('Alice Doe')).toBeInTheDocument();
     expect(screen.getByText('@alice')).toBeInTheDocument();
     expect(screen.getByText('January 2026')).toBeInTheDocument();
-    expect(screen.getByText('Yes')).toBeInTheDocument();
-    expect(screen.getByText('No')).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('profile.about.yes'))).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('profile.about.no'))).toBeInTheDocument();
     expect(screen.getByText('creator')).toBeInTheDocument();
     expect(screen.getByText('ES')).toBeInTheDocument();
-    expect(screen.getByText('today')).toBeInTheDocument();
-    expect(screen.getByText('In good standing')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.about.activity.today')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.about.in_good_standing')),
+    ).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('Possibly automated')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.about.bot_label')),
+    ).toBeInTheDocument();
   });
 
   it('marks a suspended account and closes from the dialog X', () => {
-    renderWithProviders(
+    const { i18n } = renderWithProviders(
       <AboutAccountDialog
         isOpen
         onClose={onClose}
@@ -102,8 +110,27 @@ describe('AboutAccountDialog', () => {
       />,
     );
 
-    expect(screen.getByText('Suspended')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('profile.about.suspended')),
+    ).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows Spanish about title when locale is es', () => {
+    const { i18n } = renderWithProviders(
+      <AboutAccountDialog
+        isOpen
+        onClose={onClose}
+        account={{ username: 'alice' }}
+      />,
+      { lng: 'es' },
+    );
+
+    expect(
+      screen.getByText(i18n!.t('profile.about.title')),
+    ).toBeInTheDocument();
+    expect(i18n!.t('profile.about.title')).not.toBe('About this account');
+    expect(screen.queryByText('About this account')).not.toBeInTheDocument();
   });
 });

@@ -1,4 +1,5 @@
-// Photo editor filter + adjustment presets (extracted from PhotoEditor monolith)
+// Photo editor filter + adjustment presets (stepped Post/Frame composer).
+// Keep names short for the filter strip; classes map to Tailwind + export pipeline.
 
 export const PHOTO_FILTERS = [
   { name: 'Normal', class: '' },

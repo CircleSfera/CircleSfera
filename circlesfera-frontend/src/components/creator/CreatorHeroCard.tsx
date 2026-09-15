@@ -74,14 +74,14 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
           <div>
             <p className="text-xs text-white/50 mb-1">
-              {t('creator.dashboard.live_performance', 'Live performance')}
+              {t('creator.dashboard.live_performance')}
             </p>
             <div className="flex items-baseline gap-2">
               <h2 className="text-3xl font-semibold tracking-tight text-white tabular-nums">
                 {stats?.followerCount.toLocaleString() || '0'}
               </h2>
               <span className="text-sm text-white/50">
-                {t('creator.dashboard.total_followers', 'total followers')}
+                {t('creator.dashboard.total_followers')}
               </span>
             </div>
           </div>
@@ -103,7 +103,6 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
                 {t('creator.dashboard.growth_this_month', {
                   sign: isPositiveGrowth ? '+' : '',
                   value: stats.followerGrowth,
-                  defaultValue: '{{sign}}{{value}}% this month',
                 })}
               </span>
             </div>
@@ -113,22 +112,22 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
           <MetricTile
             icon={Zap}
-            label={t('creator.dashboard.engagement', 'Engagement')}
+            label={t('creator.dashboard.engagement')}
             value={`${stats?.engagementRate || 0}%`}
           />
           <MetricTile
             icon={Users}
-            label={t('creator.dashboard.total_reach', 'Total reach')}
+            label={t('creator.dashboard.total_reach')}
             value={formatReach(stats?.totalReach)}
           />
           <MetricTile
             icon={DollarSign}
-            label={t('creator.dashboard.mrr_est', 'Est. MRR')}
+            label={t('creator.dashboard.mrr_est')}
             value={`$${stats?.mrr || 0}`}
           />
           <MetricTile
             icon={Award}
-            label={t('creator.dashboard.subscribers', 'Subscribers')}
+            label={t('creator.dashboard.subscribers')}
             value={String(stats?.subscriberCount || 0)}
           />
         </div>

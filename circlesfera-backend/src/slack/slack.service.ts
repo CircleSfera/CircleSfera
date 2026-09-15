@@ -355,7 +355,7 @@ export class SlackService {
               },
               {
                 type: 'mrkdwn',
-                text: `*Verificado:*\n${user.verificationLevel}`,
+                text: `*Verificado:*\n${user.profiles?.[0]?.verificationLevel || 'BASIC'}`,
               },
               {
                 type: 'mrkdwn',

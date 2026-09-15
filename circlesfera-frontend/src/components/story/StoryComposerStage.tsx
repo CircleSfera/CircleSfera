@@ -12,6 +12,7 @@ import type { StoryComposerTab } from './storyComposer.types';
 export interface StoryComposerStageProps {
   stagePadClass: string;
   cardSizeClass: string;
+  panelOpen: boolean;
   textTakeoverActive: boolean;
   textTakeover: 'create' | 'edit' | null;
   containerRef: RefObject<HTMLDivElement | null>;
@@ -51,7 +52,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
 
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center bg-zinc-950 px-0 md:px-10 transition-[padding] duration-200 ${p.stagePadClass}`}
+      className={`absolute inset-0 flex items-center justify-center bg-zinc-950 px-4 md:px-10 transition-[padding] duration-200 ${p.stagePadClass}`}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget && !p.textTakeoverActive) {
           p.setSelectedElementId(null);
@@ -65,7 +66,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             p.setSelectedElementId(null);
           }
         }}
-        className={`relative aspect-[9/16] shrink-0 overflow-hidden bg-black transition-[width,height,border-radius] duration-200 rounded-none border-0 md:rounded-[32px] md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)] ${p.cardSizeClass}`}
+        className={`relative aspect-9/16 shrink-0 overflow-hidden bg-black transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] rounded-4xl border border-white/10 shadow-[0_12px_48px_rgba(0,0,0,0.55)] ${p.cardSizeClass}`}
         style={{
           ...(p.bgStyle?.startsWith('linear-gradient') ||
           p.bgStyle?.startsWith('radial-gradient')
@@ -134,7 +135,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
 
         {p.textTakeoverActive && (p.backgroundUrl || p.bgStyle) && (
           <div
-            className="absolute inset-0 bg-black/45 pointer-events-none z-[5]"
+            className="absolute inset-0 bg-black/45 pointer-events-none z-5"
             data-export-ignore="true"
           />
         )}

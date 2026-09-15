@@ -27,7 +27,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
-    profile?.user?.verificationLevel || profile?.verificationLevel;
+    profile?.verificationLevel || profile?.verificationLevel;
   const canPromote = verificationLevel === 'ELITE';
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState<string>('');
@@ -60,10 +60,10 @@ export default function CreatorPostsTab({ onPromote }: Props) {
             }}
           >
             {filter === ''
-              ? t('creator.posts.filter_all', 'All')
+              ? t('creator.posts.filter_all')
               : filter === 'POST'
-                ? t('creator.posts.filter_posts', 'Posts')
-                : t('creator.posts.filter_frames', 'Frames')}
+                ? t('creator.posts.filter_posts')
+                : t('creator.posts.filter_frames')}
           </button>
         ))}
       </div>
@@ -112,14 +112,12 @@ export default function CreatorPostsTab({ onPromote }: Props) {
               <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                 <div>
                   <p className="text-white text-xs line-clamp-1 mb-3 font-bold">
-                    {post.caption || 'Publicación sin título'}
+                    {post.caption || t('creator.dashboard.untitled_post')}
                   </p>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex items-center justify-between text-xs text-white/40">
-                      <span>
-                        {t('creator.dashboard.performance', 'Performance')}
-                      </span>
+                      <span>{t('creator.dashboard.performance')}</span>
                       <span className="tabular-nums text-white/70">
                         {post.performanceScore || 0}%
                       </span>
@@ -160,19 +158,15 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                       size={14}
                       className="group-hover:scale-110 transition-transform mr-2"
                     />
-                    Insights
+                    {t('creator.posts.insights')}
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={() => {
                       if (!canPromote) {
-                        toast(
-                          t(
-                            'creator.promotions.elite_required',
-                            'Promotions are available on the Elite plan.',
-                          ),
-                          { icon: '✨' },
-                        );
+                        toast(t('creator.promotions.elite_required'), {
+                          icon: '✨',
+                        });
                         return;
                       }
                       onPromote(post);
@@ -183,7 +177,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                       size={14}
                       className="group-hover:rotate-12 transition-transform mr-2"
                     />
-                    Boost
+                    {t('creator.posts.boost')}
                   </Button>
                 </div>
               </div>
@@ -195,11 +189,8 @@ export default function CreatorPostsTab({ onPromote }: Props) {
       {!isLoading && !data?.data?.length && (
         <CreatorEmpty
           icon={ImageIcon}
-          title={t('creator.posts.empty_title', 'No posts yet')}
-          message={t(
-            'creator.posts.empty_desc',
-            'Publish your first post to see it here.',
-          )}
+          title={t('creator.posts.empty_title')}
+          message={t('creator.posts.empty_desc')}
         />
       )}
 
@@ -213,7 +204,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
             disabled={page <= 1}
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
-            {t('creator.posts.prev', 'Previous')}
+            {t('creator.posts.prev')}
           </Button>
           <span className="text-xs text-white/40 px-2">
             {page} / {data.meta.totalPages}
@@ -227,7 +218,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
               setPage((p) => Math.min(data.meta.totalPages, p + 1))
             }
           >
-            {t('creator.posts.next', 'Next')}
+            {t('creator.posts.next')}
           </Button>
         </div>
       )}

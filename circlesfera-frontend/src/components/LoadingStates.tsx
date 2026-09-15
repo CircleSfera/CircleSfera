@@ -1,9 +1,10 @@
+import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+
 interface LoadingSpinnerProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
 }
-
-import { motion } from 'framer-motion';
 
 export function LoadingSpinner({
   size = 'md',
@@ -73,7 +74,10 @@ interface LoadingPageProps {
   message?: string;
 }
 
-export function LoadingPage({ message = 'Loading...' }: LoadingPageProps) {
+export function LoadingPage({ message }: LoadingPageProps) {
+  const { t } = useTranslation();
+  const resolved = message ?? t('common.loading');
+
   return (
     <div className="min-h-dvh flex flex-col items-center justify-center">
       <LoadingSpinner size="lg" />
@@ -84,7 +88,7 @@ export function LoadingPage({ message = 'Loading...' }: LoadingPageProps) {
           animation: 'pulse-slow 2s ease-in-out infinite',
         }}
       >
-        {message}
+        {resolved}
       </p>
     </div>
   );

@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { StorageProvider } from '../interfaces/storage-provider.interface.js';
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
+import { mimetypeToExt } from '../mime-to-ext.js';
 
 @Injectable()
 export class LocalStorageProvider implements StorageProvider {
@@ -37,7 +38,8 @@ export class LocalStorageProvider implements StorageProvider {
 
   async upload(file: UploadedFile): Promise<{ url: string; type: string }> {
     const isImage = file.mimetype.startsWith('image/');
-    const ext = isImage ? '.webp' : path.extname(file.originalname);
+    // Use MIME-derived extension only — never trust file.originalname for paths.
+    const ext = mimetypeToExt(file.mimetype);
     const filename = `${randomUUID()}${ext}`;
     const filepath = path.join(this.uploadDir, filename);
 

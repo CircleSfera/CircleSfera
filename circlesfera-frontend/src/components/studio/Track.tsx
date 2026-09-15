@@ -143,6 +143,7 @@ interface ClipItemProps {
 }
 
 function ClipItem({ clip, zoom }: ClipItemProps) {
+  const { t } = useTranslation();
   const { selectedClipId, selectClip, updateClip, beginHistoryTransaction } =
     useStudioStore();
   const isSelected = selectedClipId === clip.id;
@@ -283,7 +284,7 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
           type="button"
           onPointerDown={(e) => handleTrimStart(e, 'left')}
           className="absolute left-0 top-0 bottom-0 w-11 min-w-11 bg-black/40 hover:bg-black/60 cursor-ew-resize touch-none flex items-center justify-center border-r border-white/40"
-          aria-label="Trim start"
+          aria-label={t('studio.trim_start')}
         >
           <div className="w-1 h-5 bg-white rounded-full shadow-sm" />
         </button>
@@ -294,7 +295,7 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
           type="button"
           onPointerDown={(e) => handleTrimStart(e, 'right')}
           className="absolute right-0 top-0 bottom-0 w-11 min-w-11 bg-black/40 hover:bg-black/60 cursor-ew-resize touch-none flex items-center justify-center border-l border-white/40"
-          aria-label="Trim end"
+          aria-label={t('studio.trim_end')}
         >
           <div className="w-1 h-5 bg-white rounded-full shadow-sm" />
         </button>

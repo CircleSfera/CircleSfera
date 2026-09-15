@@ -37,9 +37,7 @@ export const QnaWidget: React.FC<{
   const [loadingAnswers, setLoadingAnswers] = useState(false);
 
   const displayPrompt =
-    prompt ||
-    box?.prompt ||
-    t('interactive.qna.default_prompt', 'Ask me anything…');
+    prompt || box?.prompt || t('interactive.qna.default_prompt');
 
   const loadAnswers = useCallback(async () => {
     if (!isOwner) return;
@@ -84,7 +82,7 @@ export const QnaWidget: React.FC<{
       <div className="flex items-center space-x-2 text-purple-400">
         <HelpCircle className="w-4 h-4" />
         <h4 className="text-xs font-bold uppercase tracking-wider">
-          {t('interactive.qna.title', 'Q&A')}
+          {t('interactive.qna.title')}
         </h4>
       </div>
 
@@ -97,17 +95,16 @@ export const QnaWidget: React.FC<{
           <p className="text-[11px] text-white/50 font-medium">
             {t('interactive.qna.answers_heading', {
               count: box?.totalAnswers ?? 0,
-              defaultValue: '{{count}} answers',
             })}
           </p>
           {loadingAnswers ? (
             <div className="flex items-center gap-2 text-white/40 text-xs py-2">
               <Loader2 className="w-4 h-4 animate-spin" />
-              {t('interactive.qna.loading_answers', 'Loading answers…')}
+              {t('interactive.qna.loading_answers')}
             </div>
           ) : (box?.answers?.length ?? 0) === 0 ? (
             <p className="text-xs text-white/40">
-              {t('interactive.qna.no_answers', 'No answers yet.')}
+              {t('interactive.qna.no_answers')}
             </p>
           ) : (
             <ul className="space-y-2 max-h-48 overflow-y-auto">
@@ -129,7 +126,7 @@ export const QnaWidget: React.FC<{
         </div>
       ) : sent ? (
         <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-xs font-semibold text-center">
-          {t('interactive.qna.sent', 'Answer sent to the creator!')}
+          {t('interactive.qna.sent')}
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex items-center space-x-2">
@@ -137,7 +134,7 @@ export const QnaWidget: React.FC<{
             type="text"
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
-            placeholder={t('interactive.qna.placeholder', 'Write your answer…')}
+            placeholder={t('interactive.qna.placeholder')}
             className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
           />
           <button

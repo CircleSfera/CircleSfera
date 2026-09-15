@@ -25,22 +25,10 @@ export const AppLockScreen: React.FC = () => {
 
     try {
       await NativeBiometric.verifyIdentity({
-        reason: t(
-          'settings.security.biometric_reason',
-          'Desbloquear CircleSfera',
-        ),
-        title: t(
-          'settings.security.biometric_title',
-          'Autenticación Requerida',
-        ),
-        subtitle: t(
-          'settings.security.biometric_subtitle',
-          'Verifica tu identidad',
-        ),
-        description: t(
-          'settings.security.biometric_description',
-          'Usa FaceID o TouchID para acceder.',
-        ),
+        reason: t('settings.security.biometric_reason'),
+        title: t('settings.security.biometric_title'),
+        subtitle: t('settings.security.biometric_subtitle'),
+        description: t('settings.security.biometric_description'),
       });
 
       try {
@@ -59,12 +47,7 @@ export const AppLockScreen: React.FC = () => {
         // Ignore
       }
       // Don't unlock
-      setError(
-        t(
-          'settings.security.biometric_failed',
-          'Autenticación fallida. Inténtalo de nuevo.',
-        ),
-      );
+      setError(t('settings.security.biometric_failed'));
     }
   }, [setLocked, t]);
 
@@ -84,13 +67,10 @@ export const AppLockScreen: React.FC = () => {
       </div>
 
       <h1 className="text-2xl font-bold text-white mb-2">
-        {t('settings.security.app_locked_title', 'Aplicación Bloqueada')}
+        {t('settings.security.app_locked_title')}
       </h1>
       <p className="text-white/60 text-center mb-8 max-w-sm">
-        {t(
-          'settings.security.app_locked_desc',
-          'CircleSfera está protegida. Verifica tu identidad para continuar.',
-        )}
+        {t('settings.security.app_locked_desc')}
       </p>
 
       {error && (
@@ -105,7 +85,7 @@ export const AppLockScreen: React.FC = () => {
         className="w-full max-w-xs bg-brand-primary text-white font-medium py-4 px-6 rounded-2xl shadow-xl shadow-brand-primary/20 active:scale-[0.98] transition-transform flex items-center justify-center gap-2 mb-4"
       >
         <LockKeyhole className="w-5 h-5" />
-        {t('settings.security.unlock_button', 'Desbloquear')}
+        {t('settings.security.unlock_button')}
       </button>
 
       <button
@@ -116,7 +96,7 @@ export const AppLockScreen: React.FC = () => {
         }}
         className="text-white/60 hover:text-white transition-colors text-sm font-medium py-2"
       >
-        {t('settings.logout', 'Cerrar sesión')}
+        {t('settings.logout')}
       </button>
     </div>
   );

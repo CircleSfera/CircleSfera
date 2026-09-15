@@ -177,7 +177,7 @@ export default function SystemHealthTab() {
           <div className="flex items-center gap-2">
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 text-[11px] font-semibold uppercase tracking-wide">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              {t('admin.health.live_badge', 'Live')}
+              {t('admin.health.live_badge')}
               {secondsAgo !== null && (
                 <span className="text-emerald-400/70 font-normal normal-case tracking-normal">
                   · {t('admin.health.updated_ago', { seconds: secondsAgo })}
@@ -459,8 +459,8 @@ export default function SystemHealthTab() {
                           className="min-h-10 min-w-10 text-white/50"
                           aria-label={
                             isExpanded
-                              ? t('common.collapse', 'Contraer')
-                              : t('common.expand', 'Expandir')
+                              ? t('common.collapse')
+                              : t('common.expand')
                           }
                         >
                           {isExpanded ? (

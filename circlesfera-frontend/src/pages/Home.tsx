@@ -21,9 +21,12 @@ import { feedApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
 
+/** Desktop feed column max width (4:5 media ≈ 400×500). Mobile stays full-width. */
+export const FEED_COLUMN_MAX_PX = 400;
+
 // Mobile: single column, full-width
-// Desktop: feed column (max 470px) + right sidebar
-// Feed tabs: Para Ti / Siguiendo
+// Desktop: feed column (FEED_COLUMN_MAX_PX) + right sidebar
+// Feed tabs: For You / Following (catalog: feed.for_you / feed.following)
 // Stories strip above feed
 // High information density: spacing between posts 12–16px
 export default function Home() {
@@ -62,7 +65,7 @@ export default function Home() {
   const posts = data?.pages.flatMap((page) => page.data) ?? [];
   const virtualizer = useWindowVirtualizer({
     count: posts.length,
-    estimateSize: () => 560,
+    estimateSize: () => 500,
     overscan: 2,
   });
 
@@ -98,7 +101,7 @@ export default function Home() {
           {/* Main Feed Column — story strip + feed as one composition */}
           <div
             className="flex-1 w-full min-w-0 space-y-1"
-            style={{ maxWidth: 470 }}
+            style={{ maxWidth: FEED_COLUMN_MAX_PX }}
           >
             {' '}
             {/* Header Logo — Larger, centered, elegant vertical breathing room (desktop only to prevent duplication with mobile TopNav) */}
@@ -144,8 +147,8 @@ export default function Home() {
                     )}
                     <span className="relative z-10">
                       {tab === 'foryou'
-                        ? t('feed.foryou', 'Para ti')
-                        : t('feed.following', 'Siguiendo')}
+                        ? t('feed.for_you')
+                        : t('feed.following')}
                     </span>
                   </button>
                 ))}
@@ -173,11 +176,8 @@ export default function Home() {
                 <div className="px-3 pt-3">
                   <EmptyState
                     icon="followers"
-                    title={t('feed.login_required_title', 'Inicia sesión')}
-                    message={t(
-                      'feed.login_required',
-                      'Inicia sesión para ver tu feed personalizado de los creadores que sigues.',
-                    )}
+                    title={t('feed.login_required_title')}
+                    message={t('feed.login_required')}
                   />
                 </div>
               ) : isLoading ? (
@@ -189,11 +189,8 @@ export default function Home() {
               ) : isError ? (
                 <div className="px-3 pt-3">
                   <ErrorState
-                    title={t('feed.error_title', "Couldn't load feed")}
-                    message={t(
-                      'feed.error_message',
-                      'Something went wrong while loading posts. Please try again.',
-                    )}
+                    title={t('feed.error_title')}
+                    message={t('feed.error_message')}
                     onRetry={() => refetch()}
                   />
                 </div>
@@ -203,27 +200,18 @@ export default function Home() {
                     icon="posts"
                     title={
                       activeTab === 'following'
-                        ? t(
-                            'feed.no_following_posts_title',
-                            'Aún no sigues a nadie o no hay publicaciones',
-                          )
-                        : t(
-                            'feed.no_posts_title',
-                            'Sin publicaciones recientes',
-                          )
+                        ? t('feed.no_following_posts_title')
+                        : t('feed.no_posts_title')
                     }
                     message={
                       activeTab === 'following'
-                        ? t(
-                            'feed.no_following_posts_desc',
-                            'Explora creadores sugeridos a la derecha o pasa a "Para ti" para descubrir contenido trending.',
-                          )
+                        ? t('feed.no_following_posts_desc')
                         : t('feed.no_posts')
                     }
                     action={
                       activeTab === 'following'
                         ? {
-                            label: t('feed.switch_to_foryou', 'Ir a Para ti'),
+                            label: t('feed.switch_to_foryou'),
                             onClick: () => setActiveTab('foryou'),
                           }
                         : undefined

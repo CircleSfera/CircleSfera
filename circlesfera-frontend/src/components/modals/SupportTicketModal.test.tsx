@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import type { i18n as I18nInstance } from 'i18next';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -55,13 +56,19 @@ function mockAuth(profile: ProfileWithUser | null = me) {
   );
 }
 
-function fillTicket() {
-  fireEvent.change(screen.getByLabelText('Subject'), {
-    target: { value: '  Charge failed  ' },
-  });
-  fireEvent.change(screen.getByLabelText('Detailed message'), {
-    target: { value: '  Card was declined  ' },
-  });
+function fillTicket(i18n: I18nInstance) {
+  fireEvent.change(
+    screen.getByLabelText(i18n.t('modals.support.subject_label')),
+    {
+      target: { value: '  Charge failed  ' },
+    },
+  );
+  fireEvent.change(
+    screen.getByLabelText(i18n.t('modals.support.message_label')),
+    {
+      target: { value: '  Card was declined  ' },
+    },
+  );
 }
 
 describe('SupportTicketModal', () => {
@@ -86,10 +93,16 @@ describe('SupportTicketModal', () => {
   });
 
   it('prefills the profile email and closes without sending', () => {
-    renderWithProviders(<SupportTicketModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <SupportTicketModal isOpen onClose={onClose} />,
+    );
 
-    expect(screen.getByText('Help & Support')).toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toHaveValue('me@circlesfera.test');
+    expect(
+      screen.getByText(i18n!.t('modals.support.title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(i18n!.t('modals.support.email_label')),
+    ).toHaveValue('me@circlesfera.test');
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
@@ -98,21 +111,36 @@ describe('SupportTicketModal', () => {
   });
 
   it('does not post when subject or message is blank', () => {
-    renderWithProviders(<SupportTicketModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <SupportTicketModal isOpen onClose={onClose} />,
+    );
 
-    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('modals.support.send_button'),
+      }),
+    );
 
     expect(apiClient.post).not.toHaveBeenCalled();
   });
 
   it('posts a prefixed subject, trimmed body and identity', async () => {
-    renderWithProviders(<SupportTicketModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <SupportTicketModal isOpen onClose={onClose} />,
+    );
 
-    fireEvent.change(screen.getByLabelText('Category'), {
-      target: { value: 'BILLING' },
-    });
-    fillTicket();
-    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('modals.support.category_label')),
+      {
+        target: { value: 'BILLING' },
+      },
+    );
+    fillTicket(i18n!);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('modals.support.send_button'),
+      }),
+    );
 
     await waitFor(() => {
       expect(apiClient.post).toHaveBeenCalledWith('/support/tickets', {
@@ -122,12 +150,16 @@ describe('SupportTicketModal', () => {
         userId: 'user-me',
       });
     });
-    expect(await screen.findByText('Ticket sent!')).toBeInTheDocument();
+    expect(
+      await screen.findByText(i18n!.t('modals.support.success_title')),
+    ).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
   });
 
   it('appends the uploaded screenshot url to the message', async () => {
-    renderWithProviders(<SupportTicketModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <SupportTicketModal isOpen onClose={onClose} />,
+    );
 
     const file = new File(['png'], 'shot.png', { type: 'image/png' });
     const input = document.querySelector(
@@ -136,18 +168,21 @@ describe('SupportTicketModal', () => {
     fireEvent.change(input, { target: { files: [file] } });
 
     expect(
-      await screen.findByText('Screenshot attached ✓'),
+      await screen.findByText(i18n!.t('modals.support.attachment_attached')),
     ).toBeInTheDocument();
 
-    fillTicket();
-    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+    fillTicket(i18n!);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('modals.support.send_button'),
+      }),
+    );
 
     await waitFor(() => {
       expect(apiClient.post).toHaveBeenCalledWith('/support/tickets', {
         email: 'me@circlesfera.test',
         subject: '[TECHNICAL] Charge failed',
-        message:
-          'Card was declined\n\n📎 Attachment: https://cdn.example.com/shot.png',
+        message: `Card was declined\n\n📎 ${i18n!.t('modals.support.attachment_label')}: https://cdn.example.com/shot.png`,
         userId: 'user-me',
       });
     });
@@ -156,9 +191,15 @@ describe('SupportTicketModal', () => {
   it('shows the server error without closing', async () => {
     vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('Rate limited'));
 
-    renderWithProviders(<SupportTicketModal isOpen onClose={onClose} />);
-    fillTicket();
-    fireEvent.click(screen.getByRole('button', { name: /send ticket/i }));
+    const { i18n } = renderWithProviders(
+      <SupportTicketModal isOpen onClose={onClose} />,
+    );
+    fillTicket(i18n!);
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('modals.support.send_button'),
+      }),
+    );
 
     expect(await screen.findByText('Rate limited')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();

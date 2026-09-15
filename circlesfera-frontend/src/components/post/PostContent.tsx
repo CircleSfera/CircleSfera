@@ -1,3 +1,4 @@
+import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types';
@@ -49,6 +50,15 @@ export default function PostContent({
           </Link>
           <RichText text={post.caption} />
         </div>
+      )}
+
+      {(post.place?.name || post.location) && (
+        <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1 min-w-0">
+          <MapPin size={12} className="shrink-0 text-gray-500" aria-hidden />
+          <span className="truncate">
+            {post.place?.fullName || post.place?.name || post.location}
+          </span>
+        </p>
       )}
 
       {!hideStats && !isDetailMode && (post._count?.comments ?? 0) > 0 && (

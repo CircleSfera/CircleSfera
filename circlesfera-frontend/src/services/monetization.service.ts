@@ -1,4 +1,4 @@
-import { api } from './index';
+import { apiClient as api } from './api';
 
 export const monetizationApi = {
   getStatus: async () => {

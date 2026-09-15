@@ -75,8 +75,7 @@ export class ProfilesService {
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
-            verificationLevel: true,
-            accountType: true,
+
             settings: {
               select: {
                 privacyLevel: true,
@@ -113,9 +112,9 @@ export class ProfilesService {
 
     const planVerified =
       !!isVerifiedResult ||
-      profile.user?.verificationLevel === 'VERIFIED' ||
-      profile.user?.verificationLevel === 'ELITE' ||
-      profile.user?.verificationLevel === 'BUSINESS';
+      profile.verificationLevel === 'VERIFIED' ||
+      profile.verificationLevel === 'ELITE' ||
+      profile.verificationLevel === 'BUSINESS';
 
     // Never expose email, role, or abuse hashes on the public profile.
     const { user, ...profileRest } = profile;
@@ -127,8 +126,8 @@ export class ProfilesService {
             createdAt: user.createdAt,
           }
         : undefined,
-      verificationLevel: user?.verificationLevel,
-      accountType: user?.accountType,
+      verificationLevel: profile.verificationLevel,
+      accountType: profile.accountType,
       privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
       isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
@@ -170,7 +169,6 @@ export class ProfilesService {
         avatar: true,
         user: {
           select: {
-            verificationLevel: true,
             settings: {
               select: {
                 privacyLevel: true,
@@ -280,8 +278,7 @@ export class ProfilesService {
             email: true,
             role: true,
             createdAt: true,
-            verificationLevel: true,
-            accountType: true,
+
             settings: {
               select: { privacyLevel: true },
             },
@@ -299,8 +296,8 @@ export class ProfilesService {
     // Flatten for UI convenience
     const flattened = {
       ...updated,
-      accountType: updated.user?.accountType,
-      verificationLevel: updated.user?.verificationLevel,
+      accountType: updated.accountType,
+      verificationLevel: updated.verificationLevel,
       isPrivate: updated.user?.settings?.privacyLevel === 'PRIVATE',
     };
 
@@ -332,7 +329,8 @@ export class ProfilesService {
           select: {
             id: true,
             createdAt: true,
-            profile: {
+            profiles: {
+              take: 1,
               select: {
                 username: true,
                 fullName: true,
@@ -353,7 +351,11 @@ export class ProfilesService {
       inviteCode: user.inviteCode,
       maxReferrals: 3,
       referralCount: user.referrals.length,
-      referrals: user.referrals,
+      referrals: user.referrals.map((r) => ({
+        ...r,
+        profile: r.profiles[0],
+        profiles: undefined,
+      })),
     };
   }
 
@@ -371,8 +373,7 @@ export class ProfilesService {
             isActive: true,
             strikeCount: true,
             emailVerified: true,
-            verificationLevel: true,
-            accountType: true,
+
             inviteCode: true,
             referredById: true,
             identityVerifiedAt: true,
@@ -411,15 +412,15 @@ export class ProfilesService {
 
     const planVerified =
       !!isVerifiedResult ||
-      profile.user?.verificationLevel === 'VERIFIED' ||
-      profile.user?.verificationLevel === 'ELITE' ||
-      profile.user?.verificationLevel === 'BUSINESS';
+      profile.verificationLevel === 'VERIFIED' ||
+      profile.verificationLevel === 'ELITE' ||
+      profile.verificationLevel === 'BUSINESS';
 
     // Flatten for UI convenience
     return {
       ...profile,
-      accountType: profile.user?.accountType,
-      verificationLevel: profile.user?.verificationLevel,
+      accountType: profile.accountType,
+      verificationLevel: profile.verificationLevel,
       inviteCode: profile.user?.inviteCode,
       referredById: profile.user?.referredById,
       identityVerifiedAt: profile.user?.identityVerifiedAt,

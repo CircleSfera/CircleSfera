@@ -200,8 +200,9 @@ export class AdminUsersService {
           ),
           identityVerifiedAt: u.identityVerifiedAt,
           stripeIdentitySessionId: u.stripeIdentitySessionId,
-          verificationLevel: (u.verificationLevel as VLevel) || 'BASIC',
-          accountType: (u.accountType as AType) || 'PERSONAL',
+          verificationLevel:
+            (u.profiles[0]?.verificationLevel as VLevel) || 'BASIC',
+          accountType: (u.profiles[0]?.accountType as AType) || 'PERSONAL',
         }),
       ),
       meta: {
@@ -489,16 +490,26 @@ export class AdminUsersService {
       isActive?: boolean;
     },
   ) {
-    const updateData: Record<string, string | boolean | undefined> = {
+    if (data.verificationLevel || data.accountType) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: { profiles: { take: 1 } },
+      });
+      if (user?.profiles[0]) {
+        const updateData: any = {};
+        if (data.verificationLevel)
+          updateData.verificationLevel = data.verificationLevel;
+        if (data.accountType) updateData.accountType = data.accountType;
+        await this.prisma.profile.update({
+          where: { id: user.profiles[0].id },
+          data: updateData,
+        });
+      }
+    }
+
+    const updateData: Record<string, boolean | undefined> = {
       isActive: data.isActive,
     };
-
-    if (data.verificationLevel) {
-      updateData.verificationLevel = data.verificationLevel;
-    }
-    if (data.accountType) {
-      updateData.accountType = data.accountType;
-    }
 
     const result = await this.prisma.user.update({
       where: { id: userId },

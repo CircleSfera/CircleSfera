@@ -4,10 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useDwellTime } from '../hooks/useDwellTime';
 import { usePostInteractions } from '../hooks/usePostInteractions';
-import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
 import { PollWidget } from './interactive/PollWidget';
-import { QnaWidget } from './interactive/QnaWidget';
 import PostActions from './post/PostActions';
 import PostContent from './post/PostContent';
 import PostHeader from './post/PostHeader';
@@ -22,11 +20,9 @@ interface PostCardProps {
 export default memo(function PostCard({ post, priority }: PostCardProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const profile = useAuthStore((state) => state.profile);
   const [showWhy, setShowWhy] = useState(false);
   const interactions = usePostInteractions(post);
   useDwellTime(post.id, interactions.postRef);
-  const isOwner = !!profile?.id && post.profileId === profile.id;
 
   if (interactions.isDeleted) return null;
 
@@ -79,21 +75,21 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
                   <span className="font-semibold text-green-400">
-                    {t('post.recommendation.close_friends', 'Mejores Amigos')}
+                    {t('post.recommendation.close_friends')}
                   </span>
                 </>
               )}
               {post.recommendationReason === 'following' && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                  <span>{t('post.recommendation.following', 'Siguiendo')}</span>
+                  <span>{t('post.recommendation.following')}</span>
                 </>
               )}
               {post.recommendationReason === 'interest' && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse" />
                   <span className="text-purple-300 font-medium">
-                    {t('post.recommendation.interest', 'Recomendado para ti')}
+                    {t('post.recommendation.interest')}
                   </span>
                 </>
               )}
@@ -101,14 +97,14 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                   <span className="text-amber-300 font-medium">
-                    {t('post.recommendation.popular', 'Popular')}
+                    {t('post.recommendation.popular')}
                   </span>
                 </>
               )}
               {post.recommendationReason === 'new' && (
                 <>
                   <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                  <span>{t('post.recommendation.new', 'Nuevo para ti')}</span>
+                  <span>{t('post.recommendation.new')}</span>
                 </>
               )}
             </div>
@@ -123,7 +119,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                     <span className="text-[10px] opacity-70">
                       {showWhy ? '▼' : '▶'}
                     </span>
-                    {t('post.recommendation.why', 'Why?')}
+                    {t('post.recommendation.why')}
                   </button>
                   {showWhy && (
                     <div className="mt-1.5 pl-2 space-y-1.5 border-l-2 border-white/10 ml-1">
@@ -133,39 +129,30 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                           case 'ranked_for_you':
                             explanation = t(
                               'post.recommendation.signals_desc.ranked_for_you',
-                              'Nuestro algoritmo ha clasificado este contenido como altamente relevante para ti basándose en tus intereses y actividad.',
                             );
                             break;
                           case 'popular':
                             explanation = t(
                               'post.recommendation.signals_desc.popular',
-                              'Esta publicación está recibiendo mucha interacción en la plataforma en este momento.',
                             );
                             break;
                           case 'network':
                           case 'popular_in_network':
                             explanation = t(
                               'post.recommendation.signals_desc.network',
-                              'Personas de tu red o a las que sigues están interactuando con esta publicación.',
                             );
                             break;
                           case 'close_friend':
                             explanation = t(
                               'post.recommendation.signals_desc.close_friend',
-                              'El autor de esta publicación está en tu lista de Mejores Amigos.',
                             );
                             break;
-                          default: {
-                            const fallbackName = t(
-                              `post.recommendation.signals.${signal}`,
-                              signal.replace(/_/g, ' '),
-                            );
+                          default:
                             explanation = t(
-                              `post.recommendation.signals_desc.generic`,
-                              `Te recomendamos esto por: ${fallbackName}`,
+                              'post.recommendation.signals_desc.generic',
+                              { signal: signal.replace(/_/g, ' ') },
                             );
                             break;
-                          }
                         }
 
                         return (
@@ -197,12 +184,9 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
           priority={priority}
         />
 
-        {(post.poll?.id || post.qnaBox?.id) && (
+        {post.poll?.id && (
           <div className="px-3 pb-2 md:px-4 md:pb-3">
-            {post.poll?.id && <PollWidget pollId={post.poll.id} />}
-            {post.qnaBox?.id && (
-              <QnaWidget qnaBoxId={post.qnaBox.id} isOwner={isOwner} />
-            )}
+            <PollWidget pollId={post.poll.id} />
           </div>
         )}
 

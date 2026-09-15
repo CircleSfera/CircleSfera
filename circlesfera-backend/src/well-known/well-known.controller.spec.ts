@@ -1,31 +1,46 @@
+import type { INestApplication } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import { createControllerApp } from '../common/testing/http-controller.js';
 import { WellKnownController } from './well-known.controller.js';
 
 describe('WellKnownController', () => {
-  let controller: WellKnownController;
+  let app: INestApplication;
 
   const mockConfig = {
     get: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [WellKnownController],
       providers: [{ provide: ConfigService, useValue: mockConfig }],
-    }).compile();
+    });
+  });
 
-    controller = module.get<WellKnownController>(WellKnownController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
-  });
+  it('returns the Apple app site association', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/.well-known/apple-app-site-association')
+      .expect(200);
 
-  it('returns the Apple app site association', () => {
-    expect(controller.getAppleAppSiteAssociation()).toEqual({
+    expect(res.body).toEqual({
       applinks: {
         apps: [],
         details: [
@@ -38,10 +53,14 @@ describe('WellKnownController', () => {
     });
   });
 
-  it('returns Android asset links with the configured fingerprint', () => {
+  it('returns Android asset links with the configured fingerprint', async () => {
     mockConfig.get.mockReturnValue('aa:bb:cc');
 
-    expect(controller.getAssetLinks()).toEqual([
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/.well-known/assetlinks.json')
+      .expect(200);
+
+    expect(res.body).toEqual([
       {
         relation: ['delegate_permission/common.handle_all_urls'],
         target: {
@@ -54,11 +73,13 @@ describe('WellKnownController', () => {
     expect(mockConfig.get).toHaveBeenCalledWith('ANDROID_SHA256');
   });
 
-  it('returns Android asset links with an empty fingerprint list when unset', () => {
+  it('returns Android asset links with an empty fingerprint list when unset', async () => {
     mockConfig.get.mockReturnValue(undefined);
 
-    const [entry] = controller.getAssetLinks();
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/.well-known/assetlinks.json')
+      .expect(200);
 
-    expect(entry?.target.sha256_cert_fingerprints).toEqual([]);
+    expect(res.body[0]?.target.sha256_cert_fingerprints).toEqual([]);
   });
 });

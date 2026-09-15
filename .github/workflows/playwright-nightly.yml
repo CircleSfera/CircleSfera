@@ -53,34 +53,16 @@ jobs:
       ABUSE_HASH_PEPPER: ci-nightly-abuse-hash-pepper-not-for-production-use!!
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
-      CLOUDINARY_NAME: dummy
-      CLOUDINARY_API_KEY: dummy
-      CLOUDINARY_API_SECRET: dummy
       CORS_ORIGIN: http://localhost:5173
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1
       # Frontend must talk to the CI backend (PORT=3005), not the local default :3000
       VITE_API_URL: http://localhost:3005/api/v1
       VITE_API_PROXY_TARGET: http://localhost:3005
-      SKIP_GLOBAL_SETUP: 'false'
       CI: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      # secrets cannot appear in job/step `if:` — check in a shell step.
-      # Stable CI suite (smoke + auth) is auth-free; secrets are only needed when
-      # expanding back to the authenticated full tree (SKIP_GLOBAL_SETUP=false).
-      - name: Note E2E secrets (optional for stable suite)
-        env:
-          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
-          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
-        run: |
-          if [ -z "$E2E_USER_EMAIL" ] || [ -z "$E2E_USER_PASSWORD" ]; then
-            echo "E2E_USER_* secrets not set — OK for smoke/auth suite (SKIP_GLOBAL_SETUP=true)."
-          else
-            echo "E2E_USER_* secrets present."
-          fi
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -146,14 +128,9 @@ jobs:
 
       - name: Run Playwright E2E
         env:
-          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
-          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
-          # Auth-free suite is the CI gate until authenticated flows (creator/live/money)
-          # are repaired against the current UI. Full tree remains runnable locally.
-          SKIP_GLOBAL_SETUP: 'true'
         run: |
-          npm run test:e2e -- e2e/smoke.spec.ts e2e/auth.spec.ts
+          npm run test:e2e -- --project=chromium
 
       - name: Dump backend logs on failure
         if: failure()

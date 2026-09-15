@@ -46,34 +46,40 @@ describe('ExportModal', () => {
   });
 
   it('starts export with the default ultrafast preset', () => {
-    renderModal();
+    const { i18n } = renderModal();
 
-    expect(screen.getByText('Export settings')).toBeInTheDocument();
-    expect(screen.getByLabelText('Fastest (draft)')).toBeChecked();
+    expect(
+      screen.getByText(i18n!.t('studio.export_options_title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByLabelText(i18n!.t('studio.export_presets.ultrafast')),
+    ).toBeChecked();
     fireEvent.click(screen.getByTestId('studio-export-start'));
 
     expect(onStartExport).toHaveBeenCalledWith('ultrafast');
   });
 
   it('starts export with the chosen preset', () => {
-    renderModal();
+    const { i18n } = renderModal();
 
-    fireEvent.click(screen.getByLabelText('Higher quality'));
+    fireEvent.click(
+      screen.getByLabelText(i18n!.t('studio.export_presets.fast')),
+    );
     fireEvent.click(screen.getByTestId('studio-export-start'));
 
     expect(onStartExport).toHaveBeenCalledWith('fast');
   });
 
   it('shows a long-duration hint and closes without starting', () => {
-    renderModal({ projectDuration: 91 });
+    const { i18n } = renderModal({ projectDuration: 91 });
 
     expect(
-      screen.getByText(
-        'Long projects take longer to encode on-device. Prefer shorter cuts on mobile.',
-      ),
+      screen.getByText(i18n!.t('studio.export_long_duration_hint')),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.cancel') }),
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
@@ -81,10 +87,14 @@ describe('ExportModal', () => {
   });
 
   it('shows progress and cancels an in-flight export without closing', () => {
-    renderModal({ isExporting: true, exportProgress: 42 });
+    const { i18n } = renderModal({ isExporting: true, exportProgress: 42 });
 
-    expect(screen.getByText('Rendering…')).toBeInTheDocument();
-    expect(screen.getByText('Rendering… 42%')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('studio.export_rendering')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('studio.export_progress', { percent: 42 })),
+    ).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
     expect(onClose).not.toHaveBeenCalled();
@@ -94,9 +104,11 @@ describe('ExportModal', () => {
   });
 
   it('publishes the scheduled time and can download the ready video', () => {
-    renderModal({ exportedBlob });
+    const { i18n } = renderModal({ exportedBlob });
 
-    expect(screen.getByText('Video ready')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('studio.export_ready')),
+    ).toBeInTheDocument();
     expect(screen.getByTestId('studio-export-preview')).toHaveAttribute(
       'src',
       'blob:export-preview',
@@ -106,7 +118,11 @@ describe('ExportModal', () => {
       target: { value: '2026-09-05T18:00' },
     });
     fireEvent.click(screen.getByTestId('studio-export-publish'));
-    fireEvent.click(screen.getByRole('button', { name: 'Download to device' }));
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('studio.export_download'),
+      }),
+    );
 
     expect(onPublish).toHaveBeenCalledWith('2026-09-05T18:00');
     expect(onDownload).toHaveBeenCalledTimes(1);
@@ -115,7 +131,9 @@ describe('ExportModal', () => {
   it('resets the preset when the dialog reopens', () => {
     const view = renderModal();
 
-    fireEvent.click(screen.getByLabelText('Higher quality'));
+    fireEvent.click(
+      screen.getByLabelText(view.i18n!.t('studio.export_presets.fast')),
+    );
     view.rerender(
       <ExportModal
         isOpen={false}

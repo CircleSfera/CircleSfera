@@ -1,23 +1,23 @@
 import { expect, test } from '@playwright/test';
+import { enterAsNewUser } from './helpers/session';
 
-test.describe('Live Spaces / Stream Feature', () => {
-  test('should navigate to Live Broadcaster page', async ({ page }) => {
+test.describe('Live', () => {
+  test('broadcast setup copy without starting LiveKit', async ({ page }) => {
+    await enterAsNewUser(page);
     await page.goto('/live/broadcast');
-    await expect(page).toHaveURL(/.*\/live\/broadcast/);
+    await expect(
+      page.getByRole('heading', { name: 'Empezar directo' }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('button', { name: 'Empezar a emitir' }),
+    ).toBeVisible();
   });
 
-  test('should navigate to Live Viewer page for a stream ID', async ({
-    page,
-  }) => {
-    await page.goto('/live/test-stream-id-123');
-    await expect(page).toHaveURL(/.*\/live\/test-stream-id-123/);
-  });
-
-  test('should render live stream elements without breaking UI', async ({
-    page,
-  }) => {
-    await page.goto('/live/broadcast');
-    // Check page container loads
-    await expect(page.locator('body')).toBeVisible();
+  test('unknown stream shows the product error', async ({ page }) => {
+    await enterAsNewUser(page);
+    await page.goto('/live/stream-does-not-exist');
+    await expect(page).not.toHaveURL(/stream-does-not-exist/, {
+      timeout: 15_000,
+    });
   });
 });

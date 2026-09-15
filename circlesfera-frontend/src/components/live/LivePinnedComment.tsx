@@ -1,5 +1,6 @@
 import { Pin, X } from 'lucide-react';
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 import UserAvatar from '../UserAvatar';
 
 export interface PinnedCommentData {
@@ -21,6 +22,7 @@ export const LivePinnedComment: React.FC<LivePinnedCommentProps> = ({
   onUnpin,
   canUnpin = false,
 }) => {
+  const { t } = useTranslation();
   if (!pinnedComment) return null;
 
   return (
@@ -38,7 +40,7 @@ export const LivePinnedComment: React.FC<LivePinnedCommentProps> = ({
               {pinnedComment.username}
             </span>
             <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">
-              • Fijado
+              • {t('live.pinned')}
             </span>
           </div>
           <p className="text-gray-100 font-medium wrap-break-word mt-0.5">
@@ -52,7 +54,8 @@ export const LivePinnedComment: React.FC<LivePinnedCommentProps> = ({
           type="button"
           onClick={onUnpin}
           className="p-1 hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors shrink-0 ml-2"
-          title="Des-fijar comentario"
+          title={t('live.unpin')}
+          aria-label={t('live.unpin')}
         >
           <X className="w-3.5 h-3.5" />
         </button>

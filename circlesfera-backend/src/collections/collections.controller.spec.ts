@@ -1,19 +1,25 @@
-import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../common/testing/http-controller.js';
 import { CollectionsController } from './collections.controller.js';
 import { CollectionsService } from './collections.service.js';
 
 describe('CollectionsController', () => {
-  let controller: CollectionsController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
+  let app: INestApplication;
 
   const mockService = {
     create: vi.fn(),
@@ -23,79 +29,109 @@ describe('CollectionsController', () => {
     delete: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [CollectionsController],
       providers: [{ provide: CollectionsService, useValue: mockService }],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<CollectionsController>(CollectionsController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects create without a session', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/collections')
+      .send({ name: 'Saved' })
+      .expect(401);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
-  describe('create', () => {
-    it('creates a collection for the caller profile', async () => {
-      mockService.create.mockResolvedValue({ id: 'col-1', name: 'Saved' });
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/collections')
+      .set(BEARER)
+      .send({ name: 'Saved', ownerId: 'attacker' })
+      .expect(400);
 
-      const result = await controller.create(mockUser, {
-        name: 'Saved',
-        description: 'Inbox',
-      });
+    expect(mockService.create).not.toHaveBeenCalled();
+  });
 
-      expect(mockService.create).toHaveBeenCalledWith('profile-1', {
-        name: 'Saved',
-        description: 'Inbox',
-      });
-      expect(result).toEqual({ id: 'col-1', name: 'Saved' });
+  it('creates a collection for the session profile', async () => {
+    mockService.create.mockResolvedValue({ id: 'col-1', name: 'Saved' });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/collections')
+      .set(BEARER)
+      .send({ name: 'Saved', description: 'Inbox' })
+      .expect(201);
+
+    expect(res.body).toEqual({ id: 'col-1', name: 'Saved' });
+    expect(mockService.create).toHaveBeenCalledWith(TEST_USER.profileId, {
+      name: 'Saved',
+      description: 'Inbox',
     });
   });
 
-  describe('findAll', () => {
-    it('lists collections for the caller profile', async () => {
-      mockService.findAll.mockResolvedValue([]);
+  it('lists collections for the session profile', async () => {
+    mockService.findAll.mockResolvedValue([]);
 
-      await controller.findAll(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/collections')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.findAll).toHaveBeenCalledWith('profile-1');
-    });
+    expect(mockService.findAll).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 
-  describe('findOne', () => {
-    it('loads a collection scoped to the caller', async () => {
-      mockService.findOne.mockResolvedValue({ id: 'col-1' });
+  it('loads a collection scoped to the session profile', async () => {
+    mockService.findOne.mockResolvedValue({ id: 'col-1' });
 
-      await controller.findOne(mockUser, 'col-1');
+    await request(app.getHttpServer())
+      .get('/api/v1/collections/col-1')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.findOne).toHaveBeenCalledWith('profile-1', 'col-1');
-    });
+    expect(mockService.findOne).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'col-1',
+    );
   });
 
-  describe('update', () => {
-    it('renames a collection scoped to the caller', async () => {
-      mockService.update.mockResolvedValue({ id: 'col-1', name: 'Later' });
+  it('renames a collection scoped to the session profile', async () => {
+    mockService.update.mockResolvedValue({ id: 'col-1', name: 'Later' });
 
-      await controller.update(mockUser, 'col-1', { name: 'Later' });
+    await request(app.getHttpServer())
+      .patch('/api/v1/collections/col-1')
+      .set(BEARER)
+      .send({ name: 'Later' })
+      .expect(200);
 
-      expect(mockService.update).toHaveBeenCalledWith('profile-1', 'col-1', {
-        name: 'Later',
-      });
-    });
+    expect(mockService.update).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'col-1',
+      { name: 'Later' },
+    );
   });
 
-  describe('remove', () => {
-    it('deletes a collection scoped to the caller', async () => {
-      mockService.delete.mockResolvedValue({ ok: true });
+  it('deletes a collection scoped to the session profile', async () => {
+    mockService.delete.mockResolvedValue({ ok: true });
 
-      await controller.remove(mockUser, 'col-1');
+    await request(app.getHttpServer())
+      .delete('/api/v1/collections/col-1')
+      .set(BEARER)
+      .expect(200);
 
-      expect(mockService.delete).toHaveBeenCalledWith('profile-1', 'col-1');
-    });
+    expect(mockService.delete).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'col-1',
+    );
   });
 });

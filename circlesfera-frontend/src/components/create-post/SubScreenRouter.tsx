@@ -1,13 +1,18 @@
 import type { Dispatch, SetStateAction } from 'react';
 import type { MediaFile } from '../../hooks/useCreatePost';
+import type { Audio } from '../../types';
 import AccessibilitySubScreen from './AccessibilitySubScreen';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
+import CloseFriendsSubScreen from './CloseFriendsSubScreen';
 import InteractiveSubScreen, {
   type InteractiveDraft,
 } from './InteractiveSubScreen';
 import LocationSubScreen from './LocationSubScreen';
 import MonetizationSubScreen from './MonetizationSubScreen';
+import MusicSubScreen, { type AudioSelection } from './MusicSubScreen';
 import TagPeopleSubScreen from './TagPeopleSubScreen';
+
+/** Routes caption sub-screens for the stepped Post/Frame composer. */
 
 interface SubScreenRouterProps {
   subScreen:
@@ -17,7 +22,9 @@ interface SubScreenRouterProps {
     | 'advanced'
     | 'tags'
     | 'monetization'
-    | 'interactive';
+    | 'interactive'
+    | 'music'
+    | 'close_friends';
   setSubScreen: (
     screen:
       | 'none'
@@ -26,7 +33,9 @@ interface SubScreenRouterProps {
       | 'advanced'
       | 'tags'
       | 'monetization'
-      | 'interactive',
+      | 'interactive'
+      | 'music'
+      | 'close_friends',
   ) => void;
   mediaFiles: MediaFile[];
   altTextMap: Record<number, string>;
@@ -43,6 +52,18 @@ interface SubScreenRouterProps {
   showSensitiveToggle: boolean;
   setLocation: (loc: string) => void;
   location: string;
+  setSelectedPlace: (
+    place: {
+      mapboxId: string;
+      name: string;
+      fullName?: string;
+      latitude: number;
+      longitude: number;
+      country?: string;
+      region?: string;
+      locality?: string;
+    } | null,
+  ) => void;
   onGenerateAltText: (index: number) => Promise<void>;
   isPremium?: boolean;
   setIsPremium?: (val: boolean) => void;
@@ -52,6 +73,10 @@ interface SubScreenRouterProps {
   setScheduledAt?: (val: string) => void;
   interactiveDraft?: InteractiveDraft;
   setInteractiveDraft?: (val: InteractiveDraft) => void;
+  selectedAudio?: Audio | null;
+  setSelectedAudio?: (val: AudioSelection | null) => void;
+  audioStartMs?: number;
+  clipWindowMs?: number;
 }
 
 export default function SubScreenRouter({
@@ -72,6 +97,7 @@ export default function SubScreenRouter({
   showSensitiveToggle,
   setLocation,
   location,
+  setSelectedPlace,
   onGenerateAltText,
   isPremium,
   setIsPremium,
@@ -81,14 +107,24 @@ export default function SubScreenRouter({
   setScheduledAt,
   interactiveDraft = null,
   setInteractiveDraft,
+  selectedAudio,
+  setSelectedAudio,
+  audioStartMs,
+  clipWindowMs,
 }: SubScreenRouterProps) {
   if (subScreen === 'location') {
     return (
       <LocationSubScreen
         currentLocation={location}
         onClose={() => setSubScreen('none')}
-        onSelect={(loc) => {
-          setLocation(loc);
+        onSelect={(selection) => {
+          setLocation(selection.location);
+          setSelectedPlace(selection.place);
+          setSubScreen('none');
+        }}
+        onClear={() => {
+          setLocation('');
+          setSelectedPlace(null);
           setSubScreen('none');
         }}
       />
@@ -156,6 +192,22 @@ export default function SubScreenRouter({
         onClose={() => setSubScreen('none')}
       />
     );
+  }
+
+  if (subScreen === 'music' && setSelectedAudio) {
+    return (
+      <MusicSubScreen
+        selectedAudioId={selectedAudio?.id}
+        selectedAudioStartMs={audioStartMs}
+        clipWindowMs={clipWindowMs}
+        onSelectAudio={setSelectedAudio}
+        onClose={() => setSubScreen('none')}
+      />
+    );
+  }
+
+  if (subScreen === 'close_friends') {
+    return <CloseFriendsSubScreen onClose={() => setSubScreen('none')} />;
   }
 
   return null;

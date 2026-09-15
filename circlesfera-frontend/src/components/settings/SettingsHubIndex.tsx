@@ -24,7 +24,7 @@ export default function SettingsHubIndex() {
   const logout = useAuthStore((state) => state.logout);
   const [filter, setFilter] = useState('');
   const [showAbout, setShowAbout] = useState(false);
-  const logoutLabel = t('settings.logout', 'Log out');
+  const logoutLabel = t('settings.logout');
 
   const { data: profileData } = useQuery({
     queryKey: ['myProfile'],
@@ -40,19 +40,16 @@ export default function SettingsHubIndex() {
   });
 
   const planName =
-    billingStatus?.subscription?.planName || t('settings.billing.free', 'Free');
+    billingStatus?.subscription?.planName || t('settings.billing.free');
   const isPrivate = !!(
     profile?.isPrivate || profile?.user?.settings?.privacyLevel === 'PRIVATE'
   );
 
-  const aboutLabel = t('settings.hub.about', 'About this account');
+  const aboutLabel = t('settings.hub.about');
   const showAboutRow = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return true;
-    const hint = t(
-      'settings.hub.about_hint',
-      'Joined date, verification, and account status',
-    ).toLowerCase();
+    const hint = t('settings.hub.about_hint').toLowerCase();
     return aboutLabel.toLowerCase().includes(q) || hint.includes(q);
   }, [filter, aboutLabel, t]);
 
@@ -62,7 +59,7 @@ export default function SettingsHubIndex() {
     return SETTINGS_NAV_GROUPS.map((group) => ({
       ...group,
       items: group.items.filter((item) => {
-        const label = t(item.labelKey, item.labelFallback).toLowerCase();
+        const label = t(item.labelKey).toLowerCase();
         return label.includes(q) || item.id.includes(q);
       }),
     })).filter((g) => g.items.length > 0);
@@ -110,14 +107,11 @@ export default function SettingsHubIndex() {
           <div className="flex flex-wrap gap-1.5 mt-2">
             <ChipLink
               to="/accounts/billing"
-              label={t('settings.hub.plan_a11y', {
-                plan: planName,
-                defaultValue: `Subscription: ${planName}`,
-              })}
+              label={t('settings.hub.plan_a11y', { plan: planName })}
             />
             {profile?.identityVerifiedAt ? (
               <Chip icon={<BadgeCheck size={12} />}>
-                {t('settings.hub.verified', 'Verified')}
+                {t('settings.hub.verified')}
               </Chip>
             ) : null}
             <ChipLink
@@ -125,13 +119,8 @@ export default function SettingsHubIndex() {
               icon={<Shield size={12} />}
               label={t('settings.hub.privacy_a11y', {
                 visibility: isPrivate
-                  ? t('settings.hub.private', 'Private')
-                  : t('settings.hub.public', 'Public'),
-                defaultValue: `Privacy: ${
-                  isPrivate
-                    ? t('settings.hub.private', 'Private')
-                    : t('settings.hub.public', 'Public')
-                }`,
+                  ? t('settings.hub.private')
+                  : t('settings.hub.public'),
               })}
             />
           </div>
@@ -140,7 +129,7 @@ export default function SettingsHubIndex() {
           to="/accounts/profile"
           className="text-sm font-medium text-brand-primary hover:underline shrink-0 min-h-11 inline-flex items-center"
         >
-          {t('settings.hub.edit_profile', 'Edit')}
+          {t('settings.hub.edit_profile')}
         </Link>
       </div>
 
@@ -158,10 +147,7 @@ export default function SettingsHubIndex() {
                   {aboutLabel}
                 </span>
                 <span className="block text-xs text-white/50 mt-0.5 truncate">
-                  {t(
-                    'settings.hub.about_hint',
-                    'Joined date, verification, and account status',
-                  )}
+                  {t('settings.hub.about_hint')}
                 </span>
               </span>
               <ChevronRight
@@ -184,8 +170,8 @@ export default function SettingsHubIndex() {
           type="search"
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          placeholder={t('settings.hub.filter', 'Filter settings…')}
-          aria-label={t('settings.hub.filter', 'Filter settings…')}
+          placeholder={t('settings.hub.filter')}
+          aria-label={t('settings.hub.filter')}
           className="w-full min-h-11 bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
         />
       </div>
@@ -194,7 +180,7 @@ export default function SettingsHubIndex() {
         {filteredGroups.map((group) => (
           <section key={group.id}>
             <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-2 px-1">
-              {t(group.labelKey, group.labelFallback)}
+              {t(group.labelKey)}
             </h2>
             <ul className="glass-panel rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">
               {group.items.map((item) => (
@@ -205,7 +191,7 @@ export default function SettingsHubIndex() {
         ))}
         {filteredGroups.length === 0 && !showAboutRow && !showLogoutRow && (
           <p className="text-sm text-white/50 text-center py-8">
-            {t('settings.hub.no_results', 'No matching settings')}
+            {t('settings.hub.no_results')}
           </p>
         )}
       </div>
@@ -280,7 +266,7 @@ function HubNavRow({ item }: { item: SettingsNavItem }) {
       >
         <Icon size={18} className="text-white/50 shrink-0" aria-hidden />
         <span className="flex-1 text-sm font-medium text-white truncate">
-          {t(item.labelKey, item.labelFallback)}
+          {t(item.labelKey)}
         </span>
         <ChevronRight
           size={16}

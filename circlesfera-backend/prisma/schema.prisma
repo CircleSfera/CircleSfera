@@ -34,9 +34,7 @@ model User {
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
 
-  role              Role              @default(USER)
-  verificationLevel VerificationLevel @default(BASIC)
-  accountType       AccountType       @default(PERSONAL)
+  role Role @default(USER)
 
   // Identity & KYC
   identityVerifiedAt      DateTime?
@@ -68,8 +66,8 @@ model User {
   referrals    User[]  @relation("UserReferrals")
 
   // Stripe Connect / platform billing
-  stripeCustomerId       String?                @unique
-  stripeConnectAccountId String?                @unique
+  stripeCustomerId       String? @unique
+  stripeConnectAccountId String? @unique
 
   // Relations (account-scoped; social content lives on Profile)
   profiles              Profile[]
@@ -107,17 +105,21 @@ model User {
 }
 
 model RefreshToken {
-  id        String   @id @default(uuid())
-  token     String   @unique
+  id        String    @id @default(uuid())
+  token     String    @unique
   userId    String
+  familyId  String?
+  isRevoked Boolean   @default(false)
+  revokedAt DateTime?
   userAgent String?
   ipAddress String?
   expiresAt DateTime
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([familyId])
   @@map("refresh_tokens")
 }
 
@@ -220,6 +222,9 @@ model Profile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  verificationLevel VerificationLevel @default(BASIC)
+  accountType       AccountType       @default(PERSONAL)
+
   // Account Ban Flags
 
   isAccountBanned  Boolean   @default(false)
@@ -230,44 +235,45 @@ model Profile {
 
   // Social Relations Moved from User
 
-  posts               Post[]
-  stories             Story[]
-  liveStreams         LiveStream[]       @relation("LiveStreamHost")
-  coHostedStreams     LiveStream[]       @relation("LiveStreamCoHost")
-  comments            Comment[]
-  likes               Like[]
-  commentLikes        CommentLike[]
-  followers           Follow[]           @relation("UserFollowing")
-  following           Follow[]           @relation("UserFollowers")
-  notifications       Notification[]     @relation("NotificationRecipient")
-  sentNotifications   Notification[]     @relation("NotificationSender")
-  participants        Participant[]
-  messages            Message[]
-  messageReactions    MessageReaction[] // New: User reactions to messages
-  blockedBy           Block[]            @relation("BlockedBy")
-  blocking            Block[]            @relation("Blocking")
-  mutedBy             Mute[]             @relation("MutedBy")
-  muting              Mute[]             @relation("Muting")
-  bookmarks           Bookmark[]
-  collections         Collection[]
-  highlights          Highlight[]
-  closeFriends        CloseFriend[] @relation("CloseFriendOwner")
-  closeFriendOf       CloseFriend[] @relation("CloseFriendTarget")
-  storyViews          StoryView[]
-  storyReactions      StoryReaction[]
-  taggedPosts         PostTag[]
-  reports             Report[]           @relation("ReportReporter")
-  searchHistory       SearchHistory[]
-  postViews           PostView[]
-  feedHiddenPosts     FeedHiddenPost[]
-  feedHiddenAuthors   FeedHiddenAuthor[] @relation("FeedHidingAuthor")
-  feedHiddenByAuthors FeedHiddenAuthor[] @relation("FeedHiddenAsAuthor")
-  feedMutedKeywords   FeedMutedKeyword[]
-  editProjects        EditProject[]
-  pollVotes           PollVote[]
-  qnaAnswers          QnaAnswer[]
-  metrics             ProfileMetric[]
-  embedding           ProfileEmbedding?
+  posts                 Post[]
+  stories               Story[]
+  liveStreams           LiveStream[]           @relation("LiveStreamHost")
+  coHostedStreams       LiveStream[]           @relation("LiveStreamCoHost")
+  comments              Comment[]
+  likes                 Like[]
+  commentLikes          CommentLike[]
+  followers             Follow[]               @relation("UserFollowing")
+  following             Follow[]               @relation("UserFollowers")
+  notifications         Notification[]         @relation("NotificationRecipient")
+  sentNotifications     Notification[]         @relation("NotificationSender")
+  participants          Participant[]
+  messages              Message[]
+  messageReactions      MessageReaction[] // New: User reactions to messages
+  blockedBy             Block[]                @relation("BlockedBy")
+  blocking              Block[]                @relation("Blocking")
+  mutedBy               Mute[]                 @relation("MutedBy")
+  muting                Mute[]                 @relation("Muting")
+  bookmarks             Bookmark[]
+  collections           Collection[]
+  highlights            Highlight[]
+  closeFriends          CloseFriend[]          @relation("CloseFriendOwner")
+  closeFriendOf         CloseFriend[]          @relation("CloseFriendTarget")
+  storyViews            StoryView[]
+  storyReactions        StoryReaction[]
+  taggedPosts           PostTag[]
+  reports               Report[]               @relation("ReportReporter")
+  searchHistory         SearchHistory[]
+  postViews             PostView[]
+  feedHiddenPosts       FeedHiddenPost[]
+  feedHiddenAuthors     FeedHiddenAuthor[]     @relation("FeedHidingAuthor")
+  feedHiddenByAuthors   FeedHiddenAuthor[]     @relation("FeedHiddenAsAuthor")
+  feedMutedKeywords     FeedMutedKeyword[]
+  editProjects          EditProject[]
+  pollVotes             PollVote[]
+  qnaAnswers            QnaAnswer[]
+  metrics               ProfileMetric[]
+  embedding             ProfileEmbedding?
+  platformSubscriptions PlatformSubscription[]
 
   @@index([userId])
   @@map("profiles")
@@ -297,6 +303,8 @@ model Post {
   tags PostTag[] // New: Tagged users
 
   location        String?
+  placeId         String?
+  place           Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
   hideLikes       Boolean @default(false)
   turnOffComments Boolean @default(false)
 
@@ -309,6 +317,8 @@ model Post {
   visibility       Visibility    @default(PUBLIC)
   audioId          String?
   audio            Audio?        @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  // Offset into the selected track (ms). Clip window length = media duration at playback.
+  audioStartMs     Int           @default(0)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?          @db.Text
@@ -336,6 +346,7 @@ model Post {
   @@index([contentRating])
   @@index([moderationStatus, visibility, createdAt(sort: Desc)])
   @@index([scheduledStatus, scheduledAt])
+  @@index([placeId])
   @@map("posts")
 }
 
@@ -413,6 +424,27 @@ model Audio {
   @@map("audio_tracks")
 }
 
+model Place {
+  id        String   @id @default(uuid())
+  mapboxId  String   @unique
+  name      String
+  fullName  String?
+  latitude  Float
+  longitude Float
+  country   String?
+  region    String?
+  locality  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts   Post[]
+  stories Story[]
+
+  @@index([name])
+  @@index([latitude, longitude])
+  @@map("places")
+}
+
 model Story {
   id           String   @id @default(uuid())
   profileId    String
@@ -429,8 +461,14 @@ model Story {
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
-  audioId String?
-  audio   Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  audioId      String?
+  audio        Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
+  /// Offset into the selected track (ms). Clip window length = media duration at playback.
+  audioStartMs Int     @default(0)
+
+  location String?
+  placeId  String?
+  place    Place?  @relation(fields: [placeId], references: [id], onDelete: SetNull)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
@@ -470,6 +508,7 @@ model Story {
   @@index([profileId, createdAt])
   @@index([expiresAt])
   @@index([createdAt])
+  @@index([placeId])
   @@map("stories")
 }
 
@@ -1031,6 +1070,7 @@ model PlatformSubscription {
   id                   String             @id @default(uuid())
   userId               String
   planId               String
+  profileId            String?
   status               SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
   stripeSubscriptionId String             @unique
   currentPeriodStart   DateTime
@@ -1039,11 +1079,12 @@ model PlatformSubscription {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
-  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan PlatformPlan @relation(fields: [planId], references: [id])
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profile Profile?     @relation(fields: [profileId], references: [id])
+  plan    PlatformPlan @relation(fields: [planId], references: [id])
 
-  @@unique([userId, planId])
   @@index([userId])
+  @@index([profileId])
   @@index([status])
   @@map("platform_subscriptions")
 }
@@ -1063,17 +1104,17 @@ model WebhookEvent {
 }
 
 model Promotion {
-  id         String              @id @default(uuid())
-  userId     String
-  targetType PromotionTargetType
-  targetId   String
-  budgetCents Int                @default(0) // Remaining budget in cents
-  currency   String              @default("EUR") // INC-13: Default to EUR
-  status     PromotionStatus     @default(PENDING) // INC-02: Use enum and PENDING default
-  startDate  DateTime            @default(now())
-  endDate    DateTime
-  reach      Int                 @default(0)
-  clicks     Int                 @default(0)
+  id          String              @id @default(uuid())
+  userId      String
+  targetType  PromotionTargetType
+  targetId    String
+  budgetCents Int                 @default(0) // Remaining budget in cents
+  currency    String              @default("EUR") // INC-13: Default to EUR
+  status      PromotionStatus     @default(PENDING) // INC-02: Use enum and PENDING default
+  startDate   DateTime            @default(now())
+  endDate     DateTime
+  reach       Int                 @default(0)
+  clicks      Int                 @default(0)
 
   // Sponsored Placements Segmentation
 
@@ -1376,16 +1417,16 @@ model SystemSetting {
 }
 
 model SupportTicket {
-  id        String       @id @default(uuid())
-  userId    String?
-  email     String
-  subject   String
-  message   String
-  status    TicketStatus @default(OPEN)
-  reply     String?
+  id         String       @id @default(uuid())
+  userId     String?
+  email      String
+  subject    String
+  message    String
+  status     TicketStatus @default(OPEN)
+  reply      String?
   resolvedAt DateTime?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -1630,7 +1671,6 @@ enum AccountType {
 }
 
 enum AdminAction {
-
   // User Management
 
   BAN_USER

@@ -62,7 +62,7 @@ export default function Register() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!dateOfBirth) {
-      toast.error(t('auth.register.dob_required', 'Date of birth is required'));
+      toast.error(t('auth.register.dob_required'));
       return;
     }
     const dob = new Date(dateOfBirth);
@@ -73,18 +73,11 @@ export default function Register() {
       age -= 1;
     }
     if (age < 16) {
-      toast.error(
-        t(
-          'auth.register.age_error',
-          'You must be at least 16 years old to register.',
-        ),
-      );
+      toast.error(t('auth.register.age_error'));
       return;
     }
     if (siteKey && !captchaToken) {
-      toast.error(
-        t('auth.captcha_required', 'Please complete the security check.'),
-      );
+      toast.error(t('auth.captcha_required'));
       return;
     }
     registerMutation.mutate();

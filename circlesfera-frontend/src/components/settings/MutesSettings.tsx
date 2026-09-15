@@ -110,9 +110,8 @@ export default function MutesSettings() {
               {formatMuteExpiry(
                 entry.expiresAt,
                 i18n.language,
-                t('settings.mutes.expires_forever', 'Forever'),
-                (date) =>
-                  t('settings.mutes.expires_on', 'Until {{date}}', { date }),
+                t('settings.mutes.expires_forever'),
+                (date) => t('settings.mutes.expires_on', { date }),
               )}
             </p>
           </div>
@@ -123,7 +122,7 @@ export default function MutesSettings() {
             variant="outline"
             className="min-h-11 text-sm font-semibold px-4"
           >
-            {t('settings.mutes.change_duration', 'Duration')}
+            {t('settings.mutes.change_duration')}
           </Button>
           <Button
             onClick={() =>
@@ -133,7 +132,7 @@ export default function MutesSettings() {
             isLoading={unmuteMutation.isPending}
             className="min-h-11 text-sm font-semibold px-4"
           >
-            {t('settings.mutes.unmute', 'Unmute')}
+            {t('settings.mutes.unmute')}
           </Button>
         </div>
       </li>
@@ -142,14 +141,11 @@ export default function MutesSettings() {
 
   return (
     <div className="max-w-xl space-y-8">
-      <SettingsSection
-        title={t('settings.mutes.blocked_title', 'Blocked users')}
-        card={false}
-      >
+      <SettingsSection title={t('settings.mutes.blocked_title')} card={false}>
         {blockedUsers.length === 0 ? (
           <EmptyState
             icon="followers"
-            title={t('settings.mutes.blocked_empty', 'No blocked users')}
+            title={t('settings.mutes.blocked_empty')}
           />
         ) : (
           <ul className="space-y-2">
@@ -160,14 +156,11 @@ export default function MutesSettings() {
         )}
       </SettingsSection>
 
-      <SettingsSection
-        title={t('settings.mutes.muted_title', 'Muted users')}
-        card={false}
-      >
+      <SettingsSection title={t('settings.mutes.muted_title')} card={false}>
         {mutedEntries.length === 0 ? (
           <EmptyState
             icon="followers"
-            title={t('settings.mutes.muted_empty', 'No muted users')}
+            title={t('settings.mutes.muted_empty')}
           />
         ) : (
           <ul className="space-y-2">{mutedEntries.map(renderMutedRow)}</ul>

@@ -88,7 +88,7 @@ export default function PostHeader({
           type="button"
           onClick={() => navigate(-1)}
           className="p-1.5 -ml-1 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all shrink-0 active:scale-95 cursor-pointer"
-          aria-label={t('common.back', 'Volver')}
+          aria-label={t('common.back')}
         >
           <ArrowLeft size={20} />
         </button>
@@ -98,7 +98,9 @@ export default function PostHeader({
         to={`/${post.profile.username}`}
         className="relative shrink-0"
         onClick={handleProfileClick}
-        aria-label={`Ver perfil de ${post.profile.username}`}
+        aria-label={t('common.view_profile', {
+          username: post.profile.username,
+        })}
       >
         <div
           className="absolute -inset-0.5 rounded-full opacity-55"
@@ -128,7 +130,7 @@ export default function PostHeader({
             {post.profile.fullName || post.profile.username}
           </span>
           <VerificationBadge
-            level={post.profile.user?.verificationLevel as VerificationLevel}
+            level={post.profile.verificationLevel as VerificationLevel}
           />
           {post.isPromoted && (
             <>
@@ -178,7 +180,7 @@ export default function PostHeader({
         variant="ghost"
         size="icon"
         className="text-gray-400 hover:text-white hover:bg-white/8 rounded-full shrink-0 w-11 h-11"
-        aria-label={t('post.header.more_options', 'Más opciones')}
+        aria-label={t('post.header.more_options')}
       >
         <MoreHorizontal size={18} />
       </Button>

@@ -22,7 +22,12 @@ permissions:
 jobs:
   test:
     name: Run Lint and Unit Tests
-    uses: ./.github/workflows/ci-quality.yml
+    # Prefer owner/repo@ref over `./.github/workflows/...`: the Actions language
+    # service fails to resolve relative reusable workflows in this workspace
+    # (path with spaces → "Unable to find reusable workflow"). Pin to main so
+    # the call matches the shared gate on origin; change ci-quality.yml on main.
+    uses: CircleSfera/CircleSfera/.github/workflows/ci-quality.yml@main
+    secrets: inherit
 
   build:
     name: Build and Push Docker Images

@@ -20,6 +20,7 @@ and go read the right file.
 | How do we operate an incident? | `circlesfera-documentation/runbooks/` | `incident-response.md`, `rollback-deploy.md`, `restore-postgres.md`. |
 | What types cross the boundary? | `circlesfera-shared/src/` | Partial shared package. Not generated from Prisma. |
 | What does CI enforce? | `.github/workflows/pr.yml` → `.github/workflows/ci-quality.yml` | `pr.yml` calls the reusable quality gate. That workflow is the real definition of "green". |
+| What does each test layer stub vs run for real? | [`.ai/core/quality.md`](./quality.md) (pyramid) + `circlesfera-frontend/e2e/COMPOSER_QA.md` | Locations: [`conventions.md`](./conventions.md). Do not invent a root `tests/` tree. |
 
 ## Rules for agents
 

@@ -1,8 +1,7 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { followsApi, usersApi } from '../services';
+import { renderWithProviders } from '../test/test-utils';
 import Onboarding from './Onboarding';
 
 vi.mock('../services', () => ({
@@ -51,19 +50,7 @@ const suggestedUsers = [
 ];
 
 function renderOnboarding() {
-  const queryClient = new QueryClient({
-    defaultOptions: {
-      queries: { retry: false },
-      mutations: { retry: false },
-    },
-  });
-  return render(
-    <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <Onboarding />
-      </MemoryRouter>
-    </QueryClientProvider>,
-  );
+  return renderWithProviders(<Onboarding />);
 }
 
 describe('Onboarding follow state', () => {
@@ -78,7 +65,7 @@ describe('Onboarding follow state', () => {
   });
 
   it('changes Follow to Following for the tapped user only', async () => {
-    renderOnboarding();
+    const { i18n } = renderOnboarding();
 
     fireEvent.click(screen.getByTestId('onboarding-continue'));
 
@@ -87,21 +74,23 @@ describe('Onboarding follow state', () => {
     );
     const otherFollow = screen.getByTestId('onboarding-follow-CircleSfera');
 
-    expect(elenaFollow).toHaveTextContent(/follow/i);
-    expect(otherFollow).toHaveTextContent(/follow/i);
+    expect(elenaFollow).toHaveTextContent(i18n!.t('onboarding.follow'));
+    expect(otherFollow).toHaveTextContent(i18n!.t('onboarding.follow'));
 
     fireEvent.click(elenaFollow);
 
     await waitFor(() => {
-      expect(elenaFollow).toHaveTextContent(/following/i);
+      expect(elenaFollow).toHaveTextContent(i18n!.t('onboarding.following'));
     });
-    expect(otherFollow).toHaveTextContent(/^follow$/i);
+    expect(otherFollow).toHaveTextContent(
+      new RegExp(`^${i18n!.t('onboarding.follow')}$`, 'i'),
+    );
     expect(followsApi.toggle).toHaveBeenCalledWith('ElenaTech');
   });
 
   it('rolls the button back to Follow when the request fails', async () => {
     vi.mocked(followsApi.toggle).mockRejectedValueOnce(new Error('network'));
-    renderOnboarding();
+    const { i18n } = renderOnboarding();
 
     fireEvent.click(screen.getByTestId('onboarding-continue'));
     const elenaFollow = await screen.findByTestId(
@@ -110,7 +99,9 @@ describe('Onboarding follow state', () => {
     fireEvent.click(elenaFollow);
 
     await waitFor(() => {
-      expect(elenaFollow).toHaveTextContent(/^follow$/i);
+      expect(elenaFollow).toHaveTextContent(
+        new RegExp(`^${i18n!.t('onboarding.follow')}$`, 'i'),
+      );
     });
     expect(elenaFollow).not.toBeDisabled();
   });
@@ -125,15 +116,17 @@ describe('Onboarding empty suggestions', () => {
   });
 
   it('shows where to find people and can refresh suggestions', async () => {
-    renderOnboarding();
+    const { i18n } = renderOnboarding();
     fireEvent.click(screen.getByTestId('onboarding-continue'));
 
     expect(
       await screen.findByTestId('onboarding-empty-suggestions'),
     ).toBeInTheDocument();
-    expect(screen.getByText(/where to find people/i)).toBeInTheDocument();
-    expect(screen.getByText(/^home$/i)).toBeInTheDocument();
-    expect(screen.getByText(/^explore$/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('onboarding.empty_places_label')),
+    ).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('nav.home'))).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('nav.explore'))).toBeInTheDocument();
     expect(screen.queryByText(/no suggestions yet/i)).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByTestId('onboarding-retry-suggestions'));

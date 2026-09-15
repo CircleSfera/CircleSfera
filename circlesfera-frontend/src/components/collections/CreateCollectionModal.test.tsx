@@ -28,28 +28,40 @@ describe('CreateCollectionModal', () => {
   });
 
   it('keeps create disabled until the name has a non-space character', () => {
-    renderWithProviders(<CreateCollectionModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateCollectionModal isOpen onClose={onClose} />,
+    );
 
-    expect(screen.getByText('New Collection')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Create Collection' }),
+      screen.getByText(i18n!.t('collections.new_collection')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('collections.create') }),
     ).toBeDisabled();
 
-    fireEvent.change(screen.getByLabelText('Collection Name'), {
-      target: { value: '   ' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: '   ' },
+      },
+    );
     expect(
-      screen.getByRole('button', { name: 'Create Collection' }),
+      screen.getByRole('button', { name: i18n!.t('collections.create') }),
     ).toBeDisabled();
     expect(collectionsApi.create).not.toHaveBeenCalled();
   });
 
   it('closes from the dialog X without creating', () => {
-    renderWithProviders(<CreateCollectionModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateCollectionModal isOpen onClose={onClose} />,
+    );
 
-    fireEvent.change(screen.getByLabelText('Collection Name'), {
-      target: { value: 'Travel' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: 'Travel' },
+      },
+    );
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -57,15 +69,25 @@ describe('CreateCollectionModal', () => {
   });
 
   it('creates with a trimmed name, optional description, and closes', async () => {
-    renderWithProviders(<CreateCollectionModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateCollectionModal isOpen onClose={onClose} />,
+    );
 
-    fireEvent.change(screen.getByLabelText('Collection Name'), {
-      target: { value: '  Travel  ' },
-    });
-    fireEvent.change(screen.getByLabelText('Description (optional)'), {
-      target: { value: '  Summer trips  ' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Create Collection' }));
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: '  Travel  ' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.description_label')),
+      {
+        target: { value: '  Summer trips  ' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('collections.create') }),
+    );
 
     await waitFor(() => {
       expect(collectionsApi.create).toHaveBeenCalledWith({
@@ -82,20 +104,31 @@ describe('CreateCollectionModal', () => {
     const view = renderWithProviders(
       <CreateCollectionModal isOpen onClose={onClose} />,
     );
+    const { i18n } = view;
 
-    fireEvent.change(screen.getByLabelText('Collection Name'), {
-      target: { value: 'Travel' },
-    });
-    fireEvent.change(screen.getByLabelText('Description (optional)'), {
-      target: { value: 'Notes' },
-    });
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.collection_name')),
+      {
+        target: { value: 'Travel' },
+      },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('collections.description_label')),
+      {
+        target: { value: 'Notes' },
+      },
+    );
     view.rerender(<CreateCollectionModal isOpen={false} onClose={onClose} />);
     view.rerender(<CreateCollectionModal isOpen onClose={onClose} />);
 
-    expect(screen.getByLabelText('Collection Name')).toHaveValue('');
-    expect(screen.getByLabelText('Description (optional)')).toHaveValue('');
     expect(
-      screen.getByRole('button', { name: 'Create Collection' }),
+      screen.getByLabelText(i18n!.t('collections.collection_name')),
+    ).toHaveValue('');
+    expect(
+      screen.getByLabelText(i18n!.t('collections.description_label')),
+    ).toHaveValue('');
+    expect(
+      screen.getByRole('button', { name: i18n!.t('collections.create') }),
     ).toBeDisabled();
   });
 });

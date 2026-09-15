@@ -1,24 +1,29 @@
-import { Test, type TestingModule } from '@nestjs/testing';
+import type { INestApplication } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import request from 'supertest';
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
 import { AudioService } from '../audio/audio.service.js';
-import type { CurrentAdminData } from '../auth/decorators/current-admin.decorator.js';
 import { AdminGuard } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import {
+  ADMIN_BEARER,
+  BEARER,
+  createControllerApp,
+  TEST_ADMIN,
+} from '../common/testing/http-controller.js';
 import { AdminService } from './admin.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
 
 describe('AdminMediaController', () => {
-  let controller: AdminMediaController;
-
-  const admin: CurrentAdminData = {
-    adminId: 'admin-1',
-    email: 'admin@example.com',
-    displayName: 'Staff',
-    permissions: ['content'],
-    roles: ['ADMIN'],
-    userId: 'admin-1',
-  };
+  let app: INestApplication;
 
   const dto = {
     title: 'Track',
@@ -38,33 +43,65 @@ describe('AdminMediaController', () => {
     logAction: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [AdminMediaController],
       providers: [
         { provide: AudioService, useValue: mockAudio },
         { provide: AdminService, useValue: mockAdmin },
       ],
-    })
-      .overrideGuard(AdminJwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(AdminGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [
+        { guard: AdminJwtAuthGuard, mode: 'admin' },
+        { guard: AdminGuard, mode: 'allow' },
+      ],
+    });
+  });
 
-    controller = module.get<AdminMediaController>(AdminMediaController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects audio list without credentials', async () => {
+    await request(app.getHttpServer()).get('/api/v1/admin/audio').expect(401);
+
+    expect(mockAudio.findAllPaginated).not.toHaveBeenCalled();
+  });
+
+  it('rejects audio list with a user session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audio')
+      .set(BEARER)
+      .expect(401);
+
+    expect(mockAudio.findAllPaginated).not.toHaveBeenCalled();
+  });
+
+  it('rejects create with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/audio')
+      .set(ADMIN_BEARER)
+      .send({ ...dto, extra: 'nope' })
+      .expect(400);
+
+    expect(mockAudio.create).not.toHaveBeenCalled();
   });
 
   it('lists audio with default and parsed pagination', async () => {
     mockAudio.findAllPaginated.mockResolvedValue({ data: [] });
 
-    await controller.getAudio();
-    await controller.getAudio(2, 5, 'jazz');
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audio')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audio')
+      .query({ page: 2, limit: 5, search: 'jazz' })
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockAudio.findAllPaginated).toHaveBeenNthCalledWith(
       1,
@@ -79,28 +116,36 @@ describe('AdminMediaController', () => {
     mockAudio.create.mockResolvedValue({ id: 'audio-1' });
     mockAdmin.logAction.mockResolvedValue(undefined);
 
-    const result = await controller.createAudio(dto, admin);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/admin/audio')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(201);
 
+    expect(res.body).toEqual({ id: 'audio-1' });
     expect(mockAudio.create).toHaveBeenCalledWith(dto);
     expect(mockAdmin.logAction).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       AdminAction.CREATE_AUDIO,
       'audio',
       'audio-1',
       'Track: Track by Artist',
     );
-    expect(result).toEqual({ id: 'audio-1' });
   });
 
   it('updates audio then logs UPDATE_AUDIO as adminId', async () => {
     mockAudio.update.mockResolvedValue({ id: 'audio-1' });
     mockAdmin.logAction.mockResolvedValue(undefined);
 
-    await controller.updateAudio('audio-1', dto, admin);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/audio/audio-1')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(200);
 
     expect(mockAudio.update).toHaveBeenCalledWith('audio-1', dto);
     expect(mockAdmin.logAction).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       AdminAction.UPDATE_AUDIO,
       'audio',
       'audio-1',
@@ -112,11 +157,14 @@ describe('AdminMediaController', () => {
     mockAudio.delete.mockResolvedValue({ ok: true });
     mockAdmin.logAction.mockResolvedValue(undefined);
 
-    await controller.deleteAudio('audio-1', admin);
+    await request(app.getHttpServer())
+      .delete('/api/v1/admin/audio/audio-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
 
     expect(mockAudio.delete).toHaveBeenCalledWith('audio-1');
     expect(mockAdmin.logAction).toHaveBeenCalledWith(
-      'admin-1',
+      TEST_ADMIN.adminId,
       AdminAction.DELETE_AUDIO,
       'audio',
       'audio-1',

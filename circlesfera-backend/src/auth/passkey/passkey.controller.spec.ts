@@ -1,43 +1,44 @@
-import { UnauthorizedException } from '@nestjs/common';
-import { Test, type TestingModule } from '@nestjs/testing';
-import type { Request, Response } from 'express';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { INestApplication } from '@nestjs/common';
+import request from 'supertest';
 import {
-  ACCESS_TOKEN_COOKIE,
-  accessTokenCookieOptions,
-  REFRESH_TOKEN_COOKIE,
-  refreshTokenCookieOptions,
-} from '../../common/config/cookie.config.js';
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest';
+import {
+  BEARER,
+  createControllerApp,
+  TEST_USER,
+} from '../../common/testing/http-controller.js';
 import { AuthService } from '../auth.service.js';
-import type { CurrentUserData } from '../decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import { PasskeyController } from './passkey.controller.js';
 import { PasskeyService } from './passkey.service.js';
 
+const ABUSE_HEADERS = {
+  'User-Agent': 'Vitest',
+  'x-forwarded-for': '203.0.113.10',
+  'cf-ipcountry': 'ES',
+} as const;
+
+const expectedAbuseMeta = {
+  ip: '203.0.113.10',
+  userAgent: 'Vitest',
+  country: 'ES',
+};
+
+function cookieHeader(res: { headers: Record<string, unknown> }): string {
+  const raw = res.headers['set-cookie'];
+  if (!raw) return '';
+  return Array.isArray(raw) ? raw.join('\n') : String(raw);
+}
+
 describe('PasskeyController', () => {
-  let controller: PasskeyController;
-
-  const mockUser: CurrentUserData = {
-    userId: 'user-1',
-    email: 'test@example.com',
-    role: 'USER',
-    profileId: 'profile-1',
-  };
-
-  const abuseReq = {
-    ip: '203.0.113.10',
-    headers: {
-      'user-agent': 'Vitest',
-      'x-forwarded-for': '203.0.113.10',
-      'cf-ipcountry': 'ES',
-    },
-  } as unknown as Request;
-
-  const expectedAbuseMeta = {
-    ip: '203.0.113.10',
-    userAgent: 'Vitest',
-    country: 'ES',
-  };
+  let app: INestApplication;
 
   const mockPasskey = {
     getUserPasskeys: vi.fn(),
@@ -52,24 +53,28 @@ describe('PasskeyController', () => {
     loginById: vi.fn(),
   };
 
-  beforeEach(async () => {
-    const module: TestingModule = await Test.createTestingModule({
+  beforeAll(async () => {
+    app = await createControllerApp({
       controllers: [PasskeyController],
       providers: [
         { provide: PasskeyService, useValue: mockPasskey },
         { provide: AuthService, useValue: mockAuth },
       ],
-    })
-      .overrideGuard(JwtAuthGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+    });
+  });
 
-    controller = module.get<PasskeyController>(PasskeyController);
+  afterAll(async () => {
+    await app.close();
+  });
+
+  beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(controller).toBeDefined();
+  it('rejects listing passkeys without a session', async () => {
+    await request(app.getHttpServer()).get('/api/v1/auth/passkey').expect(401);
+    expect(mockPasskey.getUserPasskeys).not.toHaveBeenCalled();
   });
 
   it('lists passkeys and registration options as the caller userId', async () => {
@@ -78,12 +83,18 @@ describe('PasskeyController', () => {
       challenge: 'c',
     });
 
-    await controller.listPasskeys(mockUser);
-    await controller.generateRegistrationOptions(mockUser);
+    await request(app.getHttpServer())
+      .get('/api/v1/auth/passkey')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/register-options')
+      .set(BEARER)
+      .expect(201);
 
-    expect(mockPasskey.getUserPasskeys).toHaveBeenCalledWith('user-1');
+    expect(mockPasskey.getUserPasskeys).toHaveBeenCalledWith(TEST_USER.userId);
     expect(mockPasskey.generateRegistrationOptions).toHaveBeenCalledWith(
-      'user-1',
+      TEST_USER.userId,
     );
   });
 
@@ -91,14 +102,25 @@ describe('PasskeyController', () => {
     const registrationResponse = { id: 'cred-1' };
     mockPasskey.verifyRegistration.mockResolvedValue({ verified: true });
 
-    await controller.verifyRegistration(mockUser, {
-      registrationResponse: registrationResponse as never,
-    });
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/register-verify')
+      .set(BEARER)
+      .send({ registrationResponse })
+      .expect(201);
 
     expect(mockPasskey.verifyRegistration).toHaveBeenCalledWith(
-      'user-1',
+      TEST_USER.userId,
       registrationResponse,
     );
+  });
+
+  it('rejects login options with a non-whitelisted body field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/login-options')
+      .send({ email: 'test@example.com', userId: 'attacker' })
+      .expect(400);
+
+    expect(mockPasskey.generateAuthenticationOptions).not.toHaveBeenCalled();
   });
 
   it('generates login options from the email body', async () => {
@@ -106,9 +128,10 @@ describe('PasskeyController', () => {
       challenge: 'c',
     });
 
-    await controller.generateAuthenticationOptions({
-      email: 'test@example.com',
-    });
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/login-options')
+      .send({ email: 'test@example.com' })
+      .expect(201);
 
     expect(mockPasskey.generateAuthenticationOptions).toHaveBeenCalledWith(
       'test@example.com',
@@ -116,9 +139,6 @@ describe('PasskeyController', () => {
   });
 
   it('verifies login, issues cookies via loginById, and returns success', async () => {
-    const res = {
-      cookie: vi.fn(),
-    } as unknown as Response;
     mockPasskey.verifyAuthentication.mockResolvedValue({
       verified: true,
       userId: 'user-1',
@@ -128,15 +148,18 @@ describe('PasskeyController', () => {
       refreshToken: 'refresh-test',
     });
 
-    const result = await controller.verifyAuthentication(
-      abuseReq,
-      {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/login-verify')
+      .set(ABUSE_HEADERS)
+      .send({
         email: 'test@example.com',
-        authenticationResponse: { id: 'cred-1' } as never,
-      },
-      res,
-    );
+        authenticationResponse: { id: 'cred-1' },
+      })
+      .expect(200);
 
+    expect(res.body).toEqual({ message: 'Passkey login successful' });
+    expect(cookieHeader(res)).toContain('access_token=access-test');
+    expect(cookieHeader(res)).toContain('refresh_token=refresh-test');
     expect(mockPasskey.verifyAuthentication).toHaveBeenCalledWith(
       'test@example.com',
       { id: 'cred-1' },
@@ -145,42 +168,35 @@ describe('PasskeyController', () => {
       'user-1',
       expectedAbuseMeta,
     );
-    expect(res.cookie).toHaveBeenCalledWith(
-      ACCESS_TOKEN_COOKIE,
-      'access-test',
-      accessTokenCookieOptions,
-    );
-    expect(res.cookie).toHaveBeenCalledWith(
-      REFRESH_TOKEN_COOKIE,
-      'refresh-test',
-      refreshTokenCookieOptions,
-    );
-    expect(result).toEqual({ message: 'Passkey login successful' });
   });
 
   it('rejects a failed passkey login without issuing cookies', async () => {
-    const res = { cookie: vi.fn() } as unknown as Response;
     mockPasskey.verifyAuthentication.mockResolvedValue({ verified: false });
 
-    await expect(
-      controller.verifyAuthentication(
-        abuseReq,
-        {
-          email: 'test@example.com',
-          authenticationResponse: { id: 'cred-1' } as never,
-        },
-        res,
-      ),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/login-verify')
+      .set(ABUSE_HEADERS)
+      .send({
+        email: 'test@example.com',
+        authenticationResponse: { id: 'cred-1' },
+      })
+      .expect(401);
+
     expect(mockAuth.loginById).not.toHaveBeenCalled();
-    expect(res.cookie).not.toHaveBeenCalled();
+    expect(cookieHeader(res)).not.toContain('access_token=');
   });
 
   it('deletes a passkey as the caller userId', async () => {
     mockPasskey.deletePasskey.mockResolvedValue({ ok: true });
 
-    await controller.deletePasskey(mockUser, 'pk-1');
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/passkey/pk-1')
+      .set(BEARER)
+      .expect(200);
 
-    expect(mockPasskey.deletePasskey).toHaveBeenCalledWith('user-1', 'pk-1');
+    expect(mockPasskey.deletePasskey).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'pk-1',
+    );
   });
 });

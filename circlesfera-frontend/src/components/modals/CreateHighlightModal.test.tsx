@@ -89,9 +89,13 @@ describe('CreateHighlightModal', () => {
   it('does not fetch the archive without a profile', () => {
     mockAuth(null);
 
-    renderWithProviders(<CreateHighlightModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateHighlightModal isOpen onClose={onClose} />,
+    );
 
-    expect(screen.getByText('New Highlight')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('modals.highlight.new_highlight')),
+    ).toBeInTheDocument();
     expect(storiesApi.getArchive).not.toHaveBeenCalled();
   });
 
@@ -100,17 +104,25 @@ describe('CreateHighlightModal', () => {
       data: [],
     } as never);
 
-    renderWithProviders(<CreateHighlightModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateHighlightModal isOpen onClose={onClose} />,
+    );
 
-    expect(await screen.findByText('No stories found.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    expect(
+      await screen.findByText(i18n!.t('modals.highlight.no_stories')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('modals.highlight.next') }),
+    ).toBeDisabled();
     expect(highlightsApi.create).not.toHaveBeenCalled();
   });
 
   it('closes from the dialog X without creating', async () => {
-    renderWithProviders(<CreateHighlightModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateHighlightModal isOpen onClose={onClose} />,
+    );
 
-    await screen.findAllByAltText('Story');
+    await screen.findAllByAltText(i18n!.t('common.alt.story'));
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
 
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -118,20 +130,33 @@ describe('CreateHighlightModal', () => {
   });
 
   it('creates a highlight with the first selected story as cover', async () => {
-    renderWithProviders(<CreateHighlightModal isOpen onClose={onClose} />);
+    const { i18n } = renderWithProviders(
+      <CreateHighlightModal isOpen onClose={onClose} />,
+    );
 
-    const thumbs = await screen.findAllByAltText('Story');
+    const thumbs = await screen.findAllByAltText(i18n!.t('common.alt.story'));
     fireEvent.click(thumbs[1].closest('button')!);
     fireEvent.click(thumbs[0].closest('button')!);
-    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.highlight.next') }),
+    );
 
-    expect(screen.getByText('Title & Cover')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Done' })).toBeDisabled();
+    expect(
+      screen.getByText(i18n!.t('modals.highlight.title_and_cover')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: i18n!.t('modals.highlight.done') }),
+    ).toBeDisabled();
 
-    fireEvent.change(screen.getByPlaceholderText('Highlight Name'), {
-      target: { value: 'Summer' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n!.t('modals.highlight.highlight_name')),
+      {
+        target: { value: 'Summer' },
+      },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('modals.highlight.done') }),
+    );
 
     await waitFor(() => {
       expect(highlightsApi.create).toHaveBeenCalled();

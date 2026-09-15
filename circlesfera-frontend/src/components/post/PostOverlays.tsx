@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence } from 'framer-motion';
 import { lazy, Suspense } from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import type { UsePostInteractionsReturn } from '../../hooks/usePostInteractions';
 import { api } from '../../services';
 import type { Post } from '../../types';
@@ -24,6 +25,7 @@ export default function PostOverlays({
   post,
   interactions,
 }: PostOverlaysProps) {
+  const { t } = useTranslation();
   const {
     menuRef,
     isOwner,
@@ -62,11 +64,11 @@ export default function PostOverlays({
     setShowMenu(false);
     try {
       await api.post(`/feed/preferences/hide-post/${post.id}`);
-      toast.success('Post hidden from your feed');
+      toast.success(t('feedPrefs.post_hidden'));
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['forYou'] });
     } catch {
-      toast.error('Could not hide post');
+      toast.error(t('feedPrefs.post_hide_error'));
     }
   };
 
@@ -76,11 +78,11 @@ export default function PostOverlays({
     if (!authorId) return;
     try {
       await api.post(`/feed/preferences/hide-author/${authorId}`);
-      toast.success('Author hidden from your feed');
+      toast.success(t('feedPrefs.author_hidden'));
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['forYou'] });
     } catch {
-      toast.error('Could not hide author');
+      toast.error(t('feedPrefs.author_hide_error'));
     }
   };
 

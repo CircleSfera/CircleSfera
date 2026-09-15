@@ -23,24 +23,14 @@ export function TwoFactorSettings() {
       setQrCodeDataUrl(res.data.qrCodeDataUrl);
     },
     onError: () => {
-      toast.error(
-        t(
-          'settings.security.2fa.generate_error',
-          'Failed to generate 2FA secret',
-        ),
-      );
+      toast.error(t('settings.security.2fa.generate_error'));
     },
   });
 
   const enableMutation = useMutation({
     mutationFn: (code: string) => authApi.enable2fa({ code }),
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.security.2fa.enable_success',
-          'Two-Factor Authentication enabled!',
-        ),
-      );
+      toast.success(t('settings.security.2fa.enable_success'));
       setQrCodeDataUrl(null);
       setVerificationCode('');
       if (profile?.user) {
@@ -52,21 +42,14 @@ export function TwoFactorSettings() {
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
     onError: () => {
-      toast.error(
-        t('settings.security.2fa.invalid_code', 'Invalid verification code'),
-      );
+      toast.error(t('settings.security.2fa.invalid_code'));
     },
   });
 
   const disableMutation = useMutation({
     mutationFn: () => authApi.disable2fa(),
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.security.2fa.disable_success',
-          'Two-Factor Authentication disabled',
-        ),
-      );
+      toast.success(t('settings.security.2fa.disable_success'));
       if (profile?.user) {
         setProfile({
           ...profile,
@@ -76,9 +59,7 @@ export function TwoFactorSettings() {
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
     onError: () => {
-      toast.error(
-        t('settings.security.2fa.disable_error', 'Failed to disable 2FA'),
-      );
+      toast.error(t('settings.security.2fa.disable_error'));
     },
   });
 
@@ -101,21 +82,12 @@ export function TwoFactorSettings() {
         </div>
         <div>
           <h3 className="font-bold text-white text-lg tracking-tight">
-            {t(
-              'settings.security.2fa.title',
-              'Two-Factor Authentication (TOTP)',
-            )}
+            {t('settings.security.2fa.title')}
           </h3>
           <p className="text-xs text-gray-300">
             {is2FAEnabled
-              ? t(
-                  'settings.security.2fa.status_enabled',
-                  'Your account is secured with 2FA.',
-                )
-              : t(
-                  'settings.security.2fa.status_disabled',
-                  'Protect your account by enabling 2FA.',
-                )}
+              ? t('settings.security.2fa.status_enabled')
+              : t('settings.security.2fa.status_disabled')}
           </p>
         </div>
       </div>
@@ -132,20 +104,21 @@ export function TwoFactorSettings() {
           ) : (
             <QrCode size={16} />
           )}
-          {t('settings.security.2fa.setup_btn', 'Set Up Authenticator App')}
+          {t('settings.security.2fa.setup_btn')}
         </button>
       )}
 
       {qrCodeDataUrl && !is2FAEnabled && (
         <div className="bg-white/5 border border-white/10 rounded-lg p-6 space-y-4">
           <p className="text-sm text-gray-300 font-medium">
-            {t(
-              'settings.security.2fa.instructions',
-              'Scan this QR code with an authenticator app (like Google Authenticator or Authy), then enter the 6-digit code below.',
-            )}
+            {t('settings.security.2fa.instructions')}
           </p>
           <div className="bg-white inline-block p-4 rounded-xl">
-            <img src={qrCodeDataUrl} alt="2FA QR Code" className="w-48 h-48" />
+            <img
+              src={qrCodeDataUrl}
+              alt={t('settings.security.2fa.qr_alt')}
+              className="w-48 h-48"
+            />
           </div>
 
           <form onSubmit={handleEnableSubmit} className="flex gap-3 max-w-sm">
@@ -169,7 +142,7 @@ export function TwoFactorSettings() {
               {enableMutation.isPending ? (
                 <Loader2 size={20} className="animate-spin" />
               ) : (
-                t('settings.security.2fa.verify_btn', 'Verify')
+                t('settings.security.2fa.verify_btn')
               )}
             </button>
           </form>
@@ -180,14 +153,7 @@ export function TwoFactorSettings() {
         <button
           type="button"
           onClick={() => {
-            if (
-              window.confirm(
-                t(
-                  'settings.security.2fa.confirm_disable',
-                  'Are you sure you want to disable 2FA? This will make your account less secure.',
-                ),
-              )
-            ) {
+            if (window.confirm(t('settings.security.2fa.confirm_disable'))) {
               disableMutation.mutate();
             }
           }}
@@ -195,8 +161,8 @@ export function TwoFactorSettings() {
           className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
         >
           {disableMutation.isPending
-            ? t('settings.security.2fa.disabling', 'Disabling...')
-            : t('settings.security.2fa.disable_btn', 'Disable 2FA')}
+            ? t('settings.security.2fa.disabling')
+            : t('settings.security.2fa.disable_btn')}
         </button>
       )}
     </div>

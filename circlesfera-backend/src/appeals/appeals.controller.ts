@@ -52,8 +52,9 @@ export class AppealsController {
       const appealToken = req.headers['x-appeal-token'] || req.body.appealToken;
       if (appealToken) {
         try {
+          const secret = this.configService.getOrThrow<string>('JWT_SECRET');
           const payload = this.jwtService.verify(appealToken, {
-            secret: this.configService.get('JWT_SECRET'),
+            secret,
           });
           if (payload.isAppealToken) {
             userId = payload.sub;

@@ -157,12 +157,8 @@ export class BookmarksService {
                   id: true,
                   username: true,
                   avatar: true,
-                  user: {
-                    select: {
-                      verificationLevel: true,
-                      accountType: true,
-                    },
-                  },
+                  verificationLevel: true,
+                  accountType: true,
                 },
               },
               _count: {

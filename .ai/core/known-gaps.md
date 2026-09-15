@@ -22,7 +22,7 @@ chat list surfaces. See `14-uiux-improvement-roadmap.md`.)*
 
 *(No open known gaps — PR/deploy quality gates unified via `.github/workflows/ci-quality.yml`
 (includes root `npx biome ci .` and backend `npm run build`), Playwright nightly boots
-Postgres/Redis/backend and discovers `e2e/**/*.spec.ts`, Dependabot covers shared/Actions/Docker,
+Postgres/Redis/backend and runs chromium Playwright journeys (each spec creates its own user), Dependabot covers shared/Actions/Docker,
 and `security.yml` runs CodeQL + informative npm audit as of August 2026. Former T1 / B2 closed:
 platform fee lives in `src/common/constants/monetization.constants.ts`.)*
 

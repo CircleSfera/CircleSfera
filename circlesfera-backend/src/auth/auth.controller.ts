@@ -170,6 +170,12 @@ export class AuthController {
   // Verify user's email with a one-time token.
   @Post('verify-email')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 100 : 5,
+      ttl: 60000,
+    },
+  })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
@@ -191,6 +197,12 @@ export class AuthController {
   // Request a password reset email.
   @Post('request-reset')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 100 : 3,
+      ttl: 60000,
+    },
+  })
   async requestReset(@Body() dto: RequestResetDto) {
     return this.authService.requestPasswordReset(dto);
   }
@@ -198,6 +210,12 @@ export class AuthController {
   // Reset password using a valid reset token.
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @Throttle({
+    short: {
+      limit: process.env.NODE_ENV !== 'production' ? 100 : 5,
+      ttl: 60000,
+    },
+  })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }

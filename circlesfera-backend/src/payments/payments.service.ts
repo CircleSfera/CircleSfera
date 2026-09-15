@@ -1,6 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
@@ -13,9 +14,15 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
 
+export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly checkoutInFlight = new Map<
+    string,
+    Promise<Stripe.Checkout.Session>
+  >();
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -112,6 +119,7 @@ export class PaymentsService {
     userId: string,
     planId: string,
     billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
+    profileId?: string,
   ): Promise<Stripe.Checkout.Session | { url: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -161,35 +169,98 @@ export class PaymentsService {
       );
     }
 
-    // Ensure customer exists in Stripe
-    let customerId = user.stripeCustomerId;
-    if (!customerId) {
-      const customer = await this.stripeService.createCustomer(user.email);
-      customerId = customer.id;
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customerId },
-      });
+    const intentKey = `${userId}:${plan.id}:${billingCycle}`;
+    const inFlight = this.checkoutInFlight.get(intentKey);
+    if (inFlight) {
+      return inFlight;
     }
 
-    if (!customerId)
+    const checkoutPromise = (async () => {
+      try {
+        const customerId = await this.ensureStripeCustomer(user);
+
+        return await this.stripeService.createCheckoutSession(
+          {
+            customer: customerId,
+            line_items: [{ price: stripePriceId, quantity: 1 }],
+            mode: 'subscription',
+            success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?success=false`,
+            metadata: {
+              userId,
+              planId: plan.id,
+              billingCycle,
+              ...(profileId && { profileId }),
+            },
+          },
+          {
+            idempotencyKey: `checkout_sub_${intentKey}`,
+          },
+        );
+      } finally {
+        this.checkoutInFlight.delete(intentKey);
+      }
+    })();
+
+    this.checkoutInFlight.set(intentKey, checkoutPromise);
+    return checkoutPromise;
+  }
+
+  /**
+   * Ensures the user has a canonical Stripe customer ID idempotently and concurrency-safely.
+   * Uses Stripe idempotency keys to guarantee only one customer is ever created in Stripe for a user.
+   * Uses atomic database updates to resolve any race conditions locally.
+   */
+  async ensureStripeCustomer(user: {
+    id: string;
+    email: string;
+    stripeCustomerId?: string | null;
+  }): Promise<string> {
+    if (user.stripeCustomerId) {
+      return user.stripeCustomerId;
+    }
+
+    // Check database to ensure fresh state under concurrency
+    const freshUser = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, stripeCustomerId: true },
+    });
+    if (freshUser?.stripeCustomerId) {
+      return freshUser.stripeCustomerId;
+    }
+
+    // Idempotent customer creation in Stripe keyed by userId
+    const customer = await this.stripeService.createCustomer(
+      freshUser?.email || user.email,
+      undefined,
+      { idempotencyKey: `stripe_cust_${user.id}` },
+    );
+
+    if (!customer?.id) {
       throw AppException.BadRequest(
         ErrorCode.STRIPE_CUSTOMER_MISSING,
-        'Stripe customer ID is missing',
+        'Stripe customer creation failed',
       );
+    }
 
-    return this.stripeService.createCheckoutSession({
-      customer: customerId as string,
-      line_items: [{ price: stripePriceId, quantity: 1 }],
-      mode: 'subscription',
-      success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
-      cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?success=false`,
-      metadata: {
-        userId,
-        planId: plan.id,
-        billingCycle,
-      },
+    // Atomic update only if stripeCustomerId is still null
+    const updateResult = await this.prisma.user.updateMany({
+      where: { id: user.id, stripeCustomerId: null },
+      data: { stripeCustomerId: customer.id },
     });
+
+    if (updateResult.count === 0) {
+      // Another concurrent process won the local update race; read canonical value
+      const canonicalUser = await this.prisma.user.findUnique({
+        where: { id: user.id },
+        select: { stripeCustomerId: true },
+      });
+      if (canonicalUser?.stripeCustomerId) {
+        return canonicalUser.stripeCustomerId;
+      }
+    }
+
+    return customer.id;
   }
 
   async getBillingStatus(userId: string) {
@@ -294,15 +365,7 @@ export class PaymentsService {
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
-    let customerId = user.stripeCustomerId;
-    if (!customerId) {
-      const customer = await this.stripeService.createCustomer(user.email);
-      customerId = customer.id;
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: { stripeCustomerId: customerId },
-      });
-    }
+    const customerId = await this.ensureStripeCustomer(user);
 
     return this.stripeService.createPortalSession(
       customerId,
@@ -318,6 +381,7 @@ export class PaymentsService {
   // Main processor for incoming Stripe webhook events.
   // Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
   // On handler failure marks FAILED and rethrows (controller returns 5xx).
+  // Includes lease-based crash recovery and duplicate delivery protection.
   async processWebhookEvent(event: any) {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { externalId: event.id },
@@ -326,6 +390,9 @@ export class PaymentsService {
     if (existing?.status === 'PROCESSED') {
       return;
     }
+
+    const now = new Date();
+    const leaseCutoff = new Date(now.getTime() - WEBHOOK_LEASE_DURATION_MS);
 
     if (!existing) {
       try {
@@ -347,12 +414,28 @@ export class PaymentsService {
           const raced = await this.prisma.webhookEvent.findUnique({
             where: { externalId: event.id },
           });
-          if (
-            !raced ||
-            raced.status === 'PROCESSED' ||
-            raced.status === 'PENDING'
-          ) {
+          if (!raced || raced.status === 'PROCESSED') {
             return;
+          }
+          if (raced.status === 'PENDING') {
+            if (raced.updatedAt > leaseCutoff) {
+              return; // Actively held lease
+            }
+            const { count } = await this.prisma.webhookEvent.updateMany({
+              where: {
+                externalId: event.id,
+                status: 'PENDING',
+                updatedAt: { lte: leaseCutoff },
+              },
+              data: { updatedAt: now },
+            });
+            if (count === 0) return;
+          } else if (raced.status === 'FAILED') {
+            const { count } = await this.prisma.webhookEvent.updateMany({
+              where: { externalId: event.id, status: 'FAILED' },
+              data: { status: 'PENDING', updatedAt: now },
+            });
+            if (count === 0) return;
           }
         } else {
           throw err;
@@ -361,11 +444,34 @@ export class PaymentsService {
     } else if (existing.status === 'FAILED') {
       const { count } = await this.prisma.webhookEvent.updateMany({
         where: { externalId: event.id, status: 'FAILED' },
-        data: { status: 'PENDING' },
+        data: { status: 'PENDING', updatedAt: now },
       });
       if (count === 0) return;
     } else if (existing.status === 'PENDING') {
-      return; // Already being processed by another worker
+      // Lease check:
+      // If lease is still active, another worker is actively processing it.
+      if (existing.updatedAt > leaseCutoff) {
+        this.logger.debug(
+          `Webhook event ${event.id} is actively being processed (lease active).`,
+        );
+        return;
+      }
+
+      // If lease expired, the previous worker crashed. Atomically claim the expired lease.
+      const { count } = await this.prisma.webhookEvent.updateMany({
+        where: {
+          externalId: event.id,
+          status: 'PENDING',
+          updatedAt: { lte: leaseCutoff },
+        },
+        data: { updatedAt: now },
+      });
+      if (count === 0) {
+        return; // Another worker claimed it or state changed
+      }
+      this.logger.warn(
+        `Recovered stuck PENDING webhook event ${event.id} (lease expired, claimed for retry).`,
+      );
     }
 
     try {
@@ -375,17 +481,6 @@ export class PaymentsService {
         data: { status: 'PROCESSED', processedAt: new Date() },
       });
     } catch (err: any) {
-      if (err?.code === 'P2002') {
-        this.logger.warn(
-          `Idempotency hit (P2002) for event ${event.id}, marking PROCESSED.`,
-        );
-        await this.prisma.webhookEvent.update({
-          where: { externalId: event.id },
-          data: { status: 'PROCESSED', processedAt: new Date() },
-        });
-        return;
-      }
-
       await this.prisma.webhookEvent
         .update({
           where: { externalId: event.id },
@@ -394,6 +489,75 @@ export class PaymentsService {
         .catch(() => undefined);
       throw err;
     }
+  }
+
+  /**
+   * Periodic reconciliation job:
+   * Recovers and processes stuck PENDING webhook events whose lease has expired.
+   */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async reconcileStuckWebhookEvents(limit = 25): Promise<number> {
+    const leaseCutoff = new Date(Date.now() - WEBHOOK_LEASE_DURATION_MS);
+
+    const stuckEvents = await this.prisma.webhookEvent.findMany({
+      where: {
+        status: 'PENDING',
+        updatedAt: { lte: leaseCutoff },
+      },
+      take: limit,
+      orderBy: { updatedAt: 'asc' },
+    });
+
+    if (stuckEvents.length === 0) {
+      return 0;
+    }
+
+    this.logger.log(
+      `Found ${stuckEvents.length} stuck PENDING webhook events. Starting reconciliation...`,
+    );
+
+    let recoveredCount = 0;
+
+    for (const webhook of stuckEvents) {
+      // Atomically claim the expired lease
+      const now = new Date();
+      const { count } = await this.prisma.webhookEvent.updateMany({
+        where: {
+          id: webhook.id,
+          status: 'PENDING',
+          updatedAt: { lte: leaseCutoff },
+        },
+        data: { updatedAt: now },
+      });
+
+      if (count === 0) {
+        continue; // Claimed by another worker
+      }
+
+      try {
+        await this.dispatchStripeEvent(webhook.payload);
+        await this.prisma.webhookEvent.update({
+          where: { id: webhook.id },
+          data: { status: 'PROCESSED', processedAt: new Date() },
+        });
+        recoveredCount++;
+        this.logger.log(
+          `Reconciled and processed stuck webhook event ${webhook.externalId}`,
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `Failed to reconcile webhook event ${webhook.externalId}: ${err?.message || err}`,
+        );
+        await this.prisma.webhookEvent
+          .update({
+            where: { id: webhook.id },
+            data: { status: 'FAILED' },
+          })
+          .catch(() => undefined);
+      }
+    }
+
+    return recoveredCount;
   }
 
   private async dispatchStripeEvent(event: any) {
@@ -772,6 +936,7 @@ export class PaymentsService {
           // Handle Subscriptions (Existing logic)
           const userId = metadata?.userId;
           const planId = metadata?.planId;
+          const profileId = metadata?.profileId || null;
           const stripeSubscriptionId = session.subscription as string;
 
           if (!userId || !planId || !stripeSubscriptionId) {
@@ -791,10 +956,9 @@ export class PaymentsService {
           };
 
           await this.prisma.platformSubscription.upsert({
-            where: { userId_planId: { userId, planId } },
+            where: { stripeSubscriptionId },
             update: {
               status: this.mapStripeStatus(stripeSubscription.status),
-              stripeSubscriptionId: stripeSubscriptionId,
               currentPeriodStart: new Date(
                 stripeSubscription.current_period_start * 1000,
               ),
@@ -802,10 +966,12 @@ export class PaymentsService {
                 stripeSubscription.current_period_end * 1000,
               ),
               cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+              profileId,
             },
             create: {
               userId,
               planId,
+              profileId,
               status: this.mapStripeStatus(stripeSubscription.status),
               stripeSubscriptionId: stripeSubscriptionId,
               currentPeriodStart: new Date(

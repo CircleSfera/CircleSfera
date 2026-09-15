@@ -62,9 +62,8 @@ export class CommentsService {
             username: true,
             avatar: true,
             fullName: true,
-            user: {
-              select: { verificationLevel: true, accountType: true },
-            },
+            verificationLevel: true,
+            accountType: true,
           },
         },
       },
@@ -176,9 +175,8 @@ export class CommentsService {
       username: true,
       avatar: true,
       fullName: true,
-      user: {
-        select: { verificationLevel: true, accountType: true },
-      },
+      verificationLevel: true,
+      accountType: true,
     } as const;
 
     const [comments, total] = await Promise.all([

@@ -28,18 +28,11 @@ export function DataExportSettings() {
   const exportDataMutation = useMutation({
     mutationFn: () => usersApi.requestExport(),
     onSuccess: () => {
-      toast.success(
-        t(
-          'settings.account.export_success',
-          'Data export started. You will receive an email when it is ready.',
-        ),
-      );
+      toast.success(t('settings.account.export_success'));
       queryClient.invalidateQueries({ queryKey: ['exportHistory'] });
     },
     onError: () => {
-      toast.error(
-        t('settings.account.export_error', 'Failed to request data export.'),
-      );
+      toast.error(t('settings.account.export_error'));
     },
   });
 
@@ -53,12 +46,10 @@ export function DataExportSettings() {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      toast.success(t('settings.account.ledger_success', 'Ledger downloaded.'));
+      toast.success(t('settings.account.ledger_success'));
     },
     onError: () => {
-      toast.error(
-        t('settings.account.ledger_error', 'Failed to download ledger.'),
-      );
+      toast.error(t('settings.account.ledger_error'));
     },
   });
 
@@ -70,13 +61,10 @@ export function DataExportSettings() {
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-white text-lg tracking-tight">
-            {t('settings.account.export.title', 'Download Your Data')}
+            {t('settings.account.export.title')}
           </h3>
           <p className="text-xs text-gray-300">
-            {t(
-              'settings.account.export.desc',
-              'Download a copy of your data including your profile, posts, and messages. This process may take a few minutes.',
-            )}
+            {t('settings.account.export.desc')}
           </p>
         </div>
         <button
@@ -90,7 +78,7 @@ export function DataExportSettings() {
           ) : (
             <Download size={16} />
           )}
-          {t('settings.account.export.btn', 'Request Export')}
+          {t('settings.account.export.btn')}
         </button>
       </div>
 
@@ -101,13 +89,10 @@ export function DataExportSettings() {
         </div>
         <div className="flex-1">
           <h3 className="font-bold text-white text-lg tracking-tight">
-            {t('settings.account.ledger.title', 'Financial Ledger')}
+            {t('settings.account.ledger.title')}
           </h3>
           <p className="text-xs text-gray-300">
-            {t(
-              'settings.account.ledger.desc',
-              'Download a complete CSV record of all your financial transactions.',
-            )}
+            {t('settings.account.ledger.desc')}
           </p>
         </div>
 
@@ -122,7 +107,7 @@ export function DataExportSettings() {
           ) : (
             <Download size={16} />
           )}
-          {t('settings.account.ledger.button', 'Download Ledger')}
+          {t('settings.account.ledger.button')}
         </button>
       </div>
 
@@ -134,7 +119,7 @@ export function DataExportSettings() {
         <div className="bg-white/5 border border-white/10 rounded-lg overflow-hidden">
           <div className="px-5 py-3 border-b border-white/10 bg-white/2">
             <h4 className="text-xs font-bold uppercase tracking-wide text-gray-300">
-              {t('settings.account.export.history', 'Export History')}
+              {t('settings.account.export.history')}
             </h4>
           </div>
           <div className="divide-y divide-white/10">
@@ -177,7 +162,7 @@ export function DataExportSettings() {
                     className="px-4 py-2 bg-white/10 text-white rounded-lg font-bold text-xs hover:bg-white/20 transition-colors flex items-center gap-2"
                   >
                     <Download size={14} />
-                    {t('settings.account.export.download', 'Download')}
+                    {t('settings.account.export.download')}
                   </a>
                 )}
               </div>
