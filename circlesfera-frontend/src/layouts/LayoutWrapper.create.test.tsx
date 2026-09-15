@@ -4,9 +4,19 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/test-utils';
 import LayoutWrapper from './LayoutWrapper';
 
-vi.mock('../stores/authStore', () => ({
-  useAuthStore: (selector: (s: { isAuthenticated: boolean }) => unknown) =>
-    selector({ isAuthenticated: true }),
+vi.mock('../stores/authStore', () => {
+  const state = { isAuthenticated: true };
+  const fn = (selector: (s: typeof state) => unknown) => selector(state);
+  fn.getState = () => state;
+  return { useAuthStore: fn };
+});
+
+vi.mock('../services/realtime.service', () => ({
+  realtimeService: {
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    getSocket: vi.fn(() => null),
+  },
 }));
 
 vi.mock('../stores/socketStore', () => ({
