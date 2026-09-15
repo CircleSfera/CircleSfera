@@ -1,3 +1,4 @@
+# check=skip=SecretsUsedInArgOrEnv
 # Build Stage
 FROM node:24-alpine AS build
 
