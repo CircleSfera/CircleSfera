@@ -20,8 +20,7 @@ const OUT = path.join(
 
 const METHOD_RE =
   /@(Get|Post|Put|Patch|Delete)\(\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)?\s*\)/g;
-const CONTROLLER_RE =
-  /@Controller\(\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)?\s*\)/;
+const CONTROLLER_RE = /@Controller\(\s*(?:'([^']*)'|"([^"]*)"|`([^`]*)`)?\s*\)/;
 
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -84,7 +83,10 @@ async function main() {
     const rel = path.relative(SRC, file);
     const parsed = parseController(source, rel);
     if (!parsed) continue;
-    if (parsed.routes.length === 0 && path.basename(file) === 'admin.controller.ts') {
+    if (
+      parsed.routes.length === 0 &&
+      path.basename(file) === 'admin.controller.ts'
+    ) {
       // Empty barrel / placeholder — skip silent empties with no routes
       continue;
     }
@@ -115,9 +117,7 @@ async function main() {
   for (const section of sections) {
     if (section.routes.length === 0) continue;
     const heading =
-      section.prefix === '(root)'
-        ? '`(root)`'
-        : `\`${section.prefix}\``;
+      section.prefix === '(root)' ? '`(root)`' : `\`${section.prefix}\``;
     lines.push(`### ${heading}`);
     lines.push('');
     lines.push(`Source: \`${section.source}\``);
@@ -137,7 +137,9 @@ async function main() {
   lines.push('');
 
   await writeFile(OUT, `${lines.join('\n')}\n`, 'utf8');
-  console.log(`Wrote ${OUT} (${routeCount} routes from ${files.length} controllers)`);
+  console.log(
+    `Wrote ${OUT} (${routeCount} routes from ${files.length} controllers)`,
+  );
 }
 
 main().catch((err) => {

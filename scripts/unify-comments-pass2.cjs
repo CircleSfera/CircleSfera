@@ -44,16 +44,22 @@ function stripAdr(text) {
 function sentenceCase(text) {
   let t = text.trim();
   if (!t) return '';
-  t = t.replace(/^[─\-–—=\s]+/, '').replace(/[─\-–—=\s]+$/, '').trim();
+  t = t
+    .replace(/^[─\-–—=\s]+/, '')
+    .replace(/[─\-–—=\s]+$/, '')
+    .trim();
   t = stripAdr(t);
   if (!t) return '';
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
 
-function rewriteInner(inner, isCss) {
+function rewriteInner(inner, _isCss) {
   const lines = [];
   for (const raw of inner.split(/\r?\n/)) {
-    let line = raw.replace(/^\s*\*\s?/, '').replace(/^\s*\*/, '').trim();
+    let line = raw
+      .replace(/^\s*\*\s?/, '')
+      .replace(/^\s*\*/, '')
+      .trim();
     if (!line) continue;
     if (PRESERVE_RE.test(line)) {
       lines.push(line);

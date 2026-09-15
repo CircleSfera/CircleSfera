@@ -4,9 +4,11 @@ module.exports = {
     {
       name: 'no-circular',
       severity: 'error',
-      comment: 'This dependency is part of a circular relationship. You might want to revise your solution.',
+      comment:
+        'This dependency is part of a circular relationship. You might want to revise your solution.',
       from: {
-        pathNot: '^(src/services/realtime\\.service\\.ts|src/stores/socketStore\\.ts)$'
+        pathNot:
+          '^(src/services/realtime\\.service\\.ts|src/stores/socketStore\\.ts)$',
       },
       to: {
         circular: true,
@@ -15,18 +17,15 @@ module.exports = {
     {
       name: 'strict-ui',
       severity: 'error',
-      comment: 'UI components should be pure and not depend on pages, specific feature modules, stores, or API services.',
+      comment:
+        'UI components should be pure and not depend on pages, specific feature modules, stores, or API services.',
       from: {
         path: '^src/components/ui/',
       },
       to: {
-        path: [
-          '^src/pages/',
-          '^src/stores/',
-          '^src/services/'
-        ]
-      }
-    }
+        path: ['^src/pages/', '^src/stores/', '^src/services/'],
+      },
+    },
   ],
   options: {
     doNotFollow: {
