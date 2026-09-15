@@ -111,6 +111,7 @@ describe('VideoProcessor', () => {
     }).compile();
 
     processor = module.get<VideoProcessor>(VideoProcessor);
+    vi.spyOn((processor as any).logger, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

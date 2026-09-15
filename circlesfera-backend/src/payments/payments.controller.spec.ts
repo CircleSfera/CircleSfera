@@ -191,6 +191,8 @@ describe('PaymentsController', () => {
   it('maps unexpected webhook errors to 5xx so Stripe can retry', async () => {
     mockService.constructEvent.mockReturnValue({ id: 'evt_test' });
     mockService.processWebhookEvent.mockRejectedValue(new Error('downstream'));
+    const controller = app.get(PaymentsController);
+    vi.spyOn((controller as any).logger, 'error').mockImplementation(() => {});
 
     await request(app.getHttpServer())
       .post('/api/v1/payments/webhook')

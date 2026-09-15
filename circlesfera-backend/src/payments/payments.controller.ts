@@ -8,6 +8,7 @@ import {
   HttpStatus,
   Inject,
   InternalServerErrorException,
+  Logger,
   Post,
   Req,
   UseGuards,
@@ -30,6 +31,8 @@ interface RequestWithUser extends Request {
 
 @Controller('payments')
 export class PaymentsController {
+  private readonly logger = new Logger(PaymentsController.name);
+
   constructor(
     @Inject(PaymentsService)
     private readonly paymentsService: PaymentsService,
@@ -110,7 +113,7 @@ export class PaymentsController {
         throw err;
       }
       const message = err instanceof Error ? err.message : 'Unknown error';
-      console.error(`Webhook Error: ${message}`);
+      this.logger.error(`Webhook Error: ${message}`);
       // 5xx so Stripe retries; processWebhookEvent marks FAILED for reprocess
       throw new InternalServerErrorException(message);
     }

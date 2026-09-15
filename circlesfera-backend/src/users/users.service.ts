@@ -1,5 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import {
   AccountType,
   ContentRating,
@@ -17,6 +17,8 @@ import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 // Service for user management: follow suggestions, banning, and unbanning.
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
@@ -629,7 +631,7 @@ export class UsersService {
             verificationLevel: targetVerificationLevel,
           },
         });
-        console.log(
+        this.logger.log(
           `Profile ${profile.id} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
         );
       }

@@ -92,6 +92,7 @@ describe('UploadsService', () => {
 
     service = module.get<UploadsService>(UploadsService);
     provider = module.get(STORAGE_PROVIDER);
+    vi.spyOn((service as any).logger, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
