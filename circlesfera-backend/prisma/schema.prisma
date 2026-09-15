@@ -1103,6 +1103,23 @@ model WebhookEvent {
   @@map("webhook_events")
 }
 
+model OutboxEvent {
+  id          String    @id @default(uuid())
+  queueName   String
+  eventName   String
+  payload     Json
+  options     Json?
+  status      String    @default("PENDING")
+  retryCount  Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
 model Promotion {
   id          String              @id @default(uuid())
   userId      String
