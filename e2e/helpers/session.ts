@@ -5,8 +5,8 @@ import {
   type Page,
   request,
 } from '@playwright/test';
-import { backendApiUrl, markEmailVerified } from './backend';
-import { type E2eAccount, uniqueAccount } from './unique';
+import { backendApiUrl, markEmailVerified } from './backend.js';
+import { type E2eAccount, uniqueAccount } from './unique.js';
 
 /** Visible Post still (same fixture as SPA composer e2e — not a solid colour). */
 export const POST_IMAGE = path.resolve(

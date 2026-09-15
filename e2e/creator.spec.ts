@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser } from './helpers/session';
+import { enterAsNewUser } from './helpers/session.js';
 
 test.describe('Creator studio', () => {
   test('CREATOR can open analytics and monetization', async ({ page }) => {

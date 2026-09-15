@@ -3,7 +3,7 @@ import {
   enterAsNewUser,
   openOwnLatestPost,
   publishPostWithCaption,
-} from './helpers/session';
+} from './helpers/session.js';
 
 test.describe('Happy path', () => {
   test('register → onboard → publish → bio on profile', async ({ page }) => {

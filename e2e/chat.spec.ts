@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser } from './helpers/session';
+import { enterAsNewUser } from './helpers/session.js';
 
 test.describe('Direct', () => {
   test('two users can start a thread and send a message', async ({
@@ -9,7 +9,7 @@ test.describe('Direct', () => {
     test.setTimeout(120_000);
     const ctxOpts = {
       baseURL,
-      storageState: { cookies: [], origins: [] } as const,
+      storageState: { cookies: [], origins: [] },
     };
     const contextA = await browser.newContext(ctxOpts);
     const contextB = await browser.newContext(ctxOpts);

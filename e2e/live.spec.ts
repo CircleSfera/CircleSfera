@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser } from './helpers/session';
+import { enterAsNewUser } from './helpers/session.js';
 
 test.describe('Live', () => {
   test('broadcast setup copy without starting LiveKit', async ({ page }) => {

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
-import { prepareGuest } from './helpers/session';
-import { uniqueAccount } from './helpers/unique';
+import { prepareGuest } from './helpers/session.js';
+import { uniqueAccount } from './helpers/unique.js';
 
 test.describe('Authentication Flow', () => {
   test('login form is visible', async ({ page }) => {

@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser, prepareGuest } from './helpers/session';
+import { enterAsNewUser, prepareGuest } from './helpers/session.js';
 
 test.describe('Support', () => {
   test('guest sees the portal and login hint', async ({ page }) => {

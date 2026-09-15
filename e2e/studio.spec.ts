@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { enterAsNewUser, POST_IMAGE } from './helpers/session';
+import { enterAsNewUser, POST_IMAGE } from './helpers/session.js';
 
 test.describe('Edits Studio', () => {
   test('loads studio chrome and can import a still', async ({ page }) => {
