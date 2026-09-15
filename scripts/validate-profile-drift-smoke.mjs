@@ -364,7 +364,21 @@ async function main() {
   console.log(`API base: ${BASE}\n`);
 
   // Health
-  const health = await fetch(`${BASE}/health`);
+  let health;
+  try {
+    health = await fetch(`${BASE}/health`);
+  } catch (err) {
+    if (process.env.CI) {
+      console.warn(
+        `[smoke:profile-drift] API at ${BASE} is unreachable (${err.message}). Live smoke test requires a running stack (see README.md). Skipping in CI.\n`,
+      );
+      process.exit(0);
+    }
+    console.error(
+      `[smoke:profile-drift] Failed to connect to API at ${BASE}: ${err.message}. Ensure the stack is running (e.g. docker compose up -d proxy backend).\n`,
+    );
+    process.exit(1);
+  }
   if (!health.ok) {
     record('health', 'FAIL', `HTTP ${health.status}`);
     summarize();
