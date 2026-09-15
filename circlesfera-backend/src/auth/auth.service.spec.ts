@@ -13,10 +13,17 @@ import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeviceSignalService } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { AuthService } from './auth.service.js';
+
+vi.mock('otplib', () => ({
+  verifySync: vi.fn(({ token, secret }: { token: string; secret: string }) => ({
+    valid: token === '123456' && secret === 'totp-base32-secret',
+  })),
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -26,7 +33,7 @@ describe('AuthService', () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
-      update: vi.fn(),
+      update: vi.fn().mockResolvedValue({}),
     },
     profile: {
       findUnique: vi.fn(),
@@ -79,6 +86,13 @@ describe('AuthService', () => {
     }),
   };
 
+  const mockCryptoService = {
+    encrypt: vi.fn((val: string) => `enc:${val}`),
+    decrypt: vi.fn((val: string) =>
+      val.startsWith('enc:') ? val.slice(4) : val,
+    ),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -109,6 +123,10 @@ describe('AuthService', () => {
         {
           provide: CACHE_MANAGER,
           useValue: { get: vi.fn(), set: vi.fn(), del: vi.fn() },
+        },
+        {
+          provide: CryptoService,
+          useValue: mockCryptoService,
         },
       ],
     }).compile();
@@ -322,6 +340,90 @@ describe('AuthService', () => {
           { expiresIn: '15m', secret: 'configured-production-secret' },
         );
       }
+    });
+
+    it('should require 2FA code when user has 2FA enabled', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '2fa-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'enc:totp-base32-secret',
+      });
+
+      await expect(service.login(dto)).rejects.toThrow('2FA_REQUIRED');
+    });
+
+    it('should decrypt secret and login successfully when 2FA code is valid', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '2fa-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'enc:totp-base32-secret',
+      });
+
+      const result = await service.login({
+        ...dto,
+        twoFactorCode: '123456',
+      });
+
+      expect(mockCryptoService.decrypt).toHaveBeenCalledWith(
+        'enc:totp-base32-secret',
+      );
+      expect(result).toHaveProperty('accessToken');
+    });
+
+    it('should opportunistically migrate legacy plaintext 2FA secret on successful login', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '2fa-legacy-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'totp-base32-secret', // no colon, plaintext legacy
+      });
+
+      const result = await service.login({
+        ...dto,
+        twoFactorCode: '123456',
+      });
+
+      expect(mockCryptoService.decrypt).toHaveBeenCalledWith(
+        'totp-base32-secret',
+      );
+      expect(mockCryptoService.encrypt).toHaveBeenCalledWith(
+        'totp-base32-secret',
+      );
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '2fa-legacy-user' },
+        data: { twoFactorSecret: 'enc:totp-base32-secret' },
+      });
+      expect(result).toHaveProperty('accessToken');
+    });
+
+    it('should throw UnauthorizedException when 2FA code is invalid', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '2fa-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'enc:totp-base32-secret',
+      });
+
+      await expect(
+        service.login({
+          ...dto,
+          twoFactorCode: '999999',
+        }),
+      ).rejects.toThrow('Invalid 2FA code');
     });
   });
 

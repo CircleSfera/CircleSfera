@@ -13,6 +13,7 @@ import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
 import { ADMIN_JWT_AUDIENCE } from '../auth/strategies/admin-jwt.strategy.js';
 import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const LOCKOUT_THRESHOLD = 5;
@@ -33,6 +34,7 @@ export class AdminAuthService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(ConfigService) private readonly config: ConfigService,
+    @Inject(CryptoService) private readonly cryptoService: CryptoService,
   ) {}
 
   private adminSecret(): string {
@@ -199,11 +201,13 @@ export class AdminAuthService {
 
     if (admin.mfaRequired && !admin.totpEnabled) {
       // Keep an existing enrollment secret so re-login does not invalidate the authenticator.
-      const secret = admin.totpSecret || generateSecret();
+      const secret = admin.totpSecret
+        ? this.cryptoService.decrypt(admin.totpSecret)
+        : generateSecret();
       if (!admin.totpSecret) {
         await this.prisma.adminIdentity.update({
           where: { id: admin.id },
-          data: { totpSecret: secret },
+          data: { totpSecret: this.cryptoService.encrypt(secret) },
         });
       }
       const otpauthUrl = generateURI({
@@ -278,18 +282,10 @@ export class AdminAuthService {
       throw new UnauthorizedException('MFA not configured');
     }
 
-    if (!this.isTotpValid(code, admin.totpSecret)) {
-      if (process.env.NODE_ENV !== 'production') {
-        const { generateSync } = require('otplib');
-        const expected = generateSync({
-          secret: admin.totpSecret,
-          strategy: 'totp',
-        });
-        console.error(
-          `[MFA DEBUG] Expected code around: ${expected}. User provided: ${code}`,
-        );
-      }
+    const rawSecret = admin.totpSecret;
+    const decryptedSecret = this.cryptoService.decrypt(rawSecret);
 
+    if (!this.isTotpValid(code, decryptedSecret)) {
       await this.prisma.adminAuditLog.create({
         data: {
           adminId: admin.id,
@@ -302,6 +298,16 @@ export class AdminAuthService {
         },
       });
       throw new UnauthorizedException('Invalid MFA code');
+    }
+
+    // Opportunistic rolling migration for legacy plaintext secrets
+    if (!rawSecret.includes(':')) {
+      void this.prisma.adminIdentity
+        .update({
+          where: { id: admin.id },
+          data: { totpSecret: this.cryptoService.encrypt(decryptedSecret) },
+        })
+        .catch(() => undefined);
     }
 
     if (payload.purpose === 'admin-mfa-setup' && !admin.totpEnabled) {
@@ -450,7 +456,19 @@ export class AdminAuthService {
         .valid;
     }
     if (!ok && dto.totpCode && admin.totpSecret) {
-      ok = this.isTotpValid(dto.totpCode, admin.totpSecret);
+      const rawSecret = admin.totpSecret;
+      const decryptedSecret = this.cryptoService.decrypt(rawSecret);
+      ok = this.isTotpValid(dto.totpCode, decryptedSecret);
+
+      // Opportunistic rolling migration for legacy plaintext secrets
+      if (ok && !rawSecret.includes(':')) {
+        void this.prisma.adminIdentity
+          .update({
+            where: { id: admin.id },
+            data: { totpSecret: this.cryptoService.encrypt(decryptedSecret) },
+          })
+          .catch(() => undefined);
+      }
     }
     if (!ok) {
       throw new UnauthorizedException('Step-up verification failed');

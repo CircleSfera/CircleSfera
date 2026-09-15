@@ -36,6 +36,7 @@ import { RedisCacheModule } from './common/cache/cache.module.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
+import { CryptoModule } from './common/services/crypto.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
 import { EmailModule } from './email/email.module.js';
@@ -96,6 +97,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     RedisCacheModule,
+    CryptoModule,
     SystemSettingsModule,
     AbuseModule,
     BullModule.forRootAsync({

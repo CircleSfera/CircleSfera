@@ -22,6 +22,7 @@ import {
   DeviceSignalService,
 } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
@@ -55,6 +56,7 @@ export class AuthService {
     @Inject(DeviceSignalService)
     private readonly deviceSignals: DeviceSignalService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CryptoService) private readonly cryptoService: CryptoService,
   ) {}
 
   // Register a new user with email, username, and password.
@@ -439,13 +441,26 @@ export class AuthService {
 
       try {
         const { verifySync } = await import('otplib');
+        const rawSecret = user.twoFactorSecret;
+        const secret = this.cryptoService.decrypt(rawSecret);
         const isTwoFactorCodeValid = verifySync({
           token: dto.twoFactorCode,
-          secret: user.twoFactorSecret,
+          secret,
+          epochTolerance: 120,
         })?.valid;
 
         if (!isTwoFactorCodeValid) {
           throw new UnauthorizedException('Invalid 2FA code');
+        }
+
+        // Opportunistic rolling migration for legacy plaintext secrets
+        if (!rawSecret.includes(':')) {
+          void this.prisma.user
+            .update({
+              where: { id: user.id },
+              data: { twoFactorSecret: this.cryptoService.encrypt(secret) },
+            })
+            .catch(() => undefined);
         }
       } catch (err) {
         if (err instanceof UnauthorizedException) throw err;
