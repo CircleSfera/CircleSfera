@@ -231,38 +231,36 @@ export class ProfilesService {
       );
     }
 
-    const { accountType, isPrivate, ...profileData } = dto;
+    const { isPrivate, ...profileData } = dto;
 
-    // If accountType or isPrivate is provided, update the User and UserSettings models
-    if (accountType || isPrivate !== undefined) {
+    // If isPrivate is provided, update the UserSettings model
+    if (isPrivate !== undefined) {
       await this.prisma.user.update({
         where: { id: profile.userId },
         data: {
-          ...(accountType ? { accountType: accountType as AccountType } : {}),
-          ...(isPrivate !== undefined
-            ? {
-                settings: {
-                  upsert: {
-                    create: {
-                      privacyLevel: isPrivate
-                        ? Visibility.PRIVATE
-                        : Visibility.PUBLIC,
-                    },
-                    update: {
-                      privacyLevel: isPrivate
-                        ? Visibility.PRIVATE
-                        : Visibility.PUBLIC,
-                    },
-                  },
-                },
-              }
-            : {}),
+          settings: {
+            upsert: {
+              create: {
+                privacyLevel: isPrivate
+                  ? Visibility.PRIVATE
+                  : Visibility.PUBLIC,
+              },
+              update: {
+                privacyLevel: isPrivate
+                  ? Visibility.PRIVATE
+                  : Visibility.PUBLIC,
+              },
+            },
+          },
         },
       });
     }
 
     const updateData = {
       ...profileData,
+      ...(profileData.accountType
+        ? { accountType: profileData.accountType as AccountType }
+        : {}),
       ...(profileData.avatar !== undefined
         ? { thumbnailUrl: null, standardUrl: null }
         : {}),

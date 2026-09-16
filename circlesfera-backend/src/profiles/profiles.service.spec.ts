@@ -16,6 +16,9 @@ describe('ProfilesService', () => {
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    user: {
+      update: vi.fn(),
+    },
   };
 
   const mockCacheManager = {
@@ -95,6 +98,70 @@ describe('ProfilesService', () => {
     it('should return available false if username format is invalid', async () => {
       const result = await service.checkUsernameAvailability('a');
       expect(result.available).toBe(false);
+    });
+  });
+
+  describe('updateProfile', () => {
+    it('should update accountType on Profile and not call user.update when isPrivate is undefined', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+        accountType: 'CREATOR',
+        verificationLevel: 'BASIC',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      const result = await service.updateProfile('p-1', {
+        accountType: 'CREATOR',
+        bio: 'New bio',
+      });
+
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'p-1' },
+          data: expect.objectContaining({
+            accountType: 'CREATOR',
+            bio: 'New bio',
+          }),
+        }),
+      );
+      expect(result.accountType).toBe('CREATOR');
+    });
+
+    it('should update user settings when isPrivate is provided', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+        accountType: 'PERSONAL',
+        verificationLevel: 'BASIC',
+        user: { settings: { privacyLevel: 'PRIVATE' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', {
+        isPrivate: true,
+      });
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u-1' },
+        data: expect.objectContaining({
+          settings: expect.any(Object),
+        }),
+      });
     });
   });
 });
