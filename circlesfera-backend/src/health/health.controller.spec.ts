@@ -68,4 +68,28 @@ describe('HealthController', () => {
     expect(Array.isArray(callArgs)).toBe(true);
     expect(callArgs.length).toBe(5);
   });
+
+  it('runs liveness probe focusing strictly on process memory indicators', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/health/liveness')
+      .expect(200);
+
+    expect(res.body).toEqual({ status: 'ok' });
+    expect(mockCheck).toHaveBeenCalled();
+    const callArgs = mockCheck.mock.calls[0][0] as unknown[];
+    expect(Array.isArray(callArgs)).toBe(true);
+    expect(callArgs.length).toBe(2); // memory_heap, memory_rss
+  });
+
+  it('runs readiness probe focusing on external dependencies', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/health/readiness')
+      .expect(200);
+
+    expect(res.body).toEqual({ status: 'ok' });
+    expect(mockCheck).toHaveBeenCalled();
+    const callArgs = mockCheck.mock.calls[0][0] as unknown[];
+    expect(Array.isArray(callArgs)).toBe(true);
+    expect(callArgs.length).toBe(3); // database, redis, storage
+  });
 });

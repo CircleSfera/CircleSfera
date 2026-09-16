@@ -51,4 +51,46 @@ export class HealthController {
       () => this.memory.checkRSS('memory_rss', 1024 * 1024 * 1024), // 1GB
     ]);
   }
+
+  /**
+   * Liveness probe: verifies the node process is alive and memory resources are healthy.
+   * Does NOT check external dependencies to prevent cascading restart storms.
+   */
+  @Get('liveness')
+  @HealthCheck()
+  checkLiveness(): Promise<HealthCheckResult> {
+    return this.health.check([
+      () => this.memory.checkHeap('memory_heap', 1024 * 1024 * 1024), // 1GB
+      () => this.memory.checkRSS('memory_rss', 1024 * 1024 * 1024), // 1GB
+    ]);
+  }
+
+  /**
+   * Readiness probe: verifies external dependencies (Database, Redis, Storage) are available
+   * and capable of receiving traffic.
+   */
+  @Get('readiness')
+  @HealthCheck()
+  checkReadiness(): Promise<HealthCheckResult> {
+    const redisHost =
+      this.configService.get<string>('REDIS_HOST') || 'localhost';
+    const redisPort = this.configService.get<number>('REDIS_PORT') || 6379;
+    const redisPassword =
+      this.configService.get<string>('REDIS_PASSWORD') || undefined;
+
+    return this.health.check([
+      () => this.prismaHealth.pingCheck('database', this.prisma),
+      () =>
+        this.microservice.pingCheck('redis', {
+          transport: Transport.REDIS,
+          options: {
+            host: redisHost,
+            port: redisPort,
+            ...(redisPassword ? { password: redisPassword } : {}),
+          },
+        }),
+      () =>
+        this.disk.checkStorage('storage', { path: '/', thresholdPercent: 0.9 }),
+    ]);
+  }
 }
