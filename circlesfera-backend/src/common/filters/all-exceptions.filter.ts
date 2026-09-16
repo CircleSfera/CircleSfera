@@ -11,6 +11,7 @@ import {
 import { HttpAdapterHost } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
+import { CorrelationContext } from '../correlation/correlation.context.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -62,10 +63,21 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
 
+    const correlationId =
+      CorrelationContext.getId() ||
+      (request?.headers as Record<string, unknown> | undefined)?.[
+        'x-correlation-id'
+      ] ||
+      (request?.headers as Record<string, unknown> | undefined)?.[
+        'x-request-id'
+      ] ||
+      undefined;
+
     const responseBody: Record<string, unknown> = {
       statusCode: httpStatus,
       timestamp: new Date().toISOString(),
       path,
+      ...(correlationId && { correlationId }),
       message: 'Internal server error',
       errorCode: 'INTERNAL_SERVER_ERROR',
       details: null as unknown,
@@ -112,6 +124,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
           method,
           statusCode: httpStatus,
           timestamp: new Date().toISOString(),
+          ...(correlationId && { correlationId }),
         });
       }
     }

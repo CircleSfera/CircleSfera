@@ -1,6 +1,7 @@
 import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CorrelationContext } from '../correlation/correlation.context.js';
 import { AllExceptionsFilter } from './all-exceptions.filter.js';
 
 describe('AllExceptionsFilter', () => {
@@ -75,5 +76,27 @@ describe('AllExceptionsFilter', () => {
       expect.objectContaining({ statusCode: HttpStatus.BAD_REQUEST }),
       HttpStatus.BAD_REQUEST,
     );
+  });
+
+  it('propagates correlationId from active context into response and incident event', () => {
+    CorrelationContext.run('cs_incident_test_corr', () => {
+      filter.catch(new Error('critical failure'), host);
+
+      expect(reply).toHaveBeenCalledWith(
+        {},
+        expect.objectContaining({
+          statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+          correlationId: 'cs_incident_test_corr',
+        }),
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'system.incident',
+        expect.objectContaining({
+          message: 'critical failure',
+          correlationId: 'cs_incident_test_corr',
+        }),
+      );
+    });
   });
 });

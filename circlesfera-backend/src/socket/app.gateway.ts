@@ -11,6 +11,7 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import { CorrelationContext } from '../common/correlation/correlation.context.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -43,6 +44,7 @@ export interface SocketWithAuth extends Socket {
   data: {
     user: SocketAuthUser;
     conversationIds?: Set<string>;
+    correlationId?: string;
   };
 }
 
@@ -78,27 +80,42 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const auth = await this.socketAuthService.authenticate(client);
 
+      const rawCorrelation =
+        client.handshake?.headers?.['x-correlation-id'] ||
+        client.handshake?.headers?.['x-request-id'] ||
+        (client.handshake?.auth as Record<string, unknown> | undefined)
+          ?.correlationId;
+
+      const correlationId =
+        typeof rawCorrelation === 'string' && rawCorrelation.trim() !== ''
+          ? rawCorrelation.trim()
+          : CorrelationContext.generateId();
+
       (client as SocketWithAuth).data = {
         user: auth.user,
         conversationIds: auth.conversationIds,
+        correlationId,
       };
 
       const profileId = auth.user.profileId;
-      await client.join(`user:${profileId}`);
 
-      const followRooms =
-        await this.socketPresenceService.getFollowPresenceRooms(profileId);
-      if (followRooms.length > 0) {
-        await client.join(followRooms);
-      }
+      await CorrelationContext.run(correlationId, async () => {
+        await client.join(`user:${profileId}`);
 
-      await client.join(`presence:${profileId}`);
+        const followRooms =
+          await this.socketPresenceService.getFollowPresenceRooms(profileId);
+        if (followRooms.length > 0) {
+          await client.join(followRooms);
+        }
 
-      await this.socketPresenceService.setUserOnline(auth.user.sub);
+        await client.join(`presence:${profileId}`);
 
-      this.server.to(`presence:${profileId}`).emit('user_status', {
-        profileId,
-        isOnline: true,
+        await this.socketPresenceService.setUserOnline(auth.user.sub);
+
+        this.server.to(`presence:${profileId}`).emit('user_status', {
+          profileId,
+          isOnline: true,
+        });
       });
 
       this.logger.log(

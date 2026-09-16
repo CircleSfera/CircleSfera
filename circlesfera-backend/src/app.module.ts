@@ -6,7 +6,9 @@ import { join } from 'node:path';
 import { BullModule } from '@nestjs/bullmq';
 import {
   ClassSerializerInterceptor,
+  type MiddlewareConsumer,
   Module,
+  type NestModule,
   ValidationPipe,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -35,6 +37,7 @@ import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { validateEnv } from './common/config/env.validation.js';
+import { CorrelationMiddleware } from './common/correlation/correlation.middleware.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
@@ -225,4 +228,8 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(CorrelationMiddleware).forRoutes('*');
+  }
+}

@@ -8,6 +8,7 @@ import {
 import type { Request, Response } from 'express';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
+import { CorrelationContext } from '../correlation/correlation.context.js';
 import { sanitizeUrl } from '../utils/url-sanitizer.util.js';
 
 @Injectable()
@@ -30,6 +31,17 @@ export class ObservabilityInterceptor implements NestInterceptor {
       return next.handle();
     }
 
+    const correlationId =
+      CorrelationContext.getId() ||
+      (req.headers?.['x-correlation-id'] as string) ||
+      (req.headers?.['x-request-id'] as string) ||
+      '';
+
+    if (correlationId && !res.getHeader('x-correlation-id')) {
+      res.setHeader('x-correlation-id', correlationId);
+    }
+
+    const prefix = correlationId ? `[${correlationId}] ` : '';
     const sanitizedUrl = sanitizeUrl(originalUrl);
     const startTime = Date.now();
 
@@ -41,7 +53,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
 
           if (duration > this.SLOW_THRESHOLD_MS) {
             this.logger.warn(
-              `[SLOW REQUEST] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms`,
+              `${prefix}[SLOW REQUEST] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms`,
             );
           }
         },
@@ -50,7 +62,7 @@ export class ObservabilityInterceptor implements NestInterceptor {
           const statusCode = error?.status || error?.statusCode || 500;
 
           this.logger.error(
-            `[ERROR] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms - ${error.message}`,
+            `${prefix}[ERROR] ${method} ${sanitizedUrl} ${statusCode} - ${duration}ms - ${error.message}`,
             error.stack,
           );
         },

@@ -161,6 +161,28 @@ describe('AppGateway connection and presence routing', () => {
     });
   });
 
+  it('propagates correlation id from handshake headers onto socket client data', async () => {
+    const mockAuthService = {
+      authenticate: vi.fn().mockResolvedValue({
+        user: { sub: 'user-1', email: 'u1@example.com', profileId: 'prof-1' },
+        conversationIds: new Set(),
+      }),
+    };
+    const gateway = gatewayWithServer(
+      { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+      { socketAuthService: mockAuthService },
+    );
+
+    const client = mockSocket('prof-init');
+    (client as any).handshake = {
+      headers: { 'x-correlation-id': 'realtime-corr-123' },
+    };
+
+    await gateway.handleConnection(client);
+
+    expect(client.data.correlationId).toBe('realtime-corr-123');
+  });
+
   it('sets user offline and cleans up calls on handleDisconnect', async () => {
     const mockEmit = vi.fn();
     const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });

@@ -65,6 +65,7 @@ export class SlackService {
     message: string;
     stack?: string;
     path?: string;
+    correlationId?: string;
   }): Promise<void> {
     await this.sendProductionAlert(event);
   }
@@ -73,6 +74,7 @@ export class SlackService {
     message: string;
     stack?: string;
     path?: string;
+    correlationId?: string;
   }): Promise<void> {
     const payload = {
       blocks: [
@@ -85,6 +87,14 @@ export class SlackService {
           fields: [
             { type: 'mrkdwn', text: `*Path:*\n${errorInfo.path || 'Unknown'}` },
             { type: 'mrkdwn', text: `*Message:*\n${errorInfo.message}` },
+            ...(errorInfo.correlationId
+              ? [
+                  {
+                    type: 'mrkdwn',
+                    text: `*Correlation ID:*\n\`${errorInfo.correlationId}\``,
+                  },
+                ]
+              : []),
           ],
         },
         ...(errorInfo.stack

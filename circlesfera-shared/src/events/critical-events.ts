@@ -70,6 +70,7 @@ export interface SystemIncidentEvent {
     method?: string;
     statusCode?: number;
     timestamp?: string;
+    correlationId?: string;
   };
 }
 
