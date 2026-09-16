@@ -320,4 +320,37 @@ export class WebrtcSignalingService {
       }
     }
   }
+
+  /**
+   * Retrieves caller profile information for call notifications.
+   */
+  async getCallerProfile(callerId: string): Promise<{
+    id: string;
+    profile: {
+      username: string;
+      fullName?: string;
+      avatar: string | null;
+    };
+  } | null> {
+    const callerProfile = await this.prisma.profile.findUnique({
+      where: { id: callerId },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        avatar: true,
+      },
+    });
+
+    if (!callerProfile) return null;
+
+    return {
+      id: callerProfile.id,
+      profile: {
+        username: callerProfile.username,
+        fullName: callerProfile.fullName ?? undefined,
+        avatar: callerProfile.avatar,
+      },
+    };
+  }
 }

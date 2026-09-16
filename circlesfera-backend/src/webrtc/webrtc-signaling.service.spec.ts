@@ -13,6 +13,9 @@ describe('WebrtcSignalingService', () => {
     conversation: {
       findFirst: vi.fn(),
     },
+    profile: {
+      findUnique: vi.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -213,6 +216,44 @@ describe('WebrtcSignalingService', () => {
 
     it('returns empty array if disconnected user was not in any call', () => {
       expect(service.handleUserDisconnect('user-idle')).toEqual([]);
+    });
+  });
+
+  describe('getCallerProfile', () => {
+    it('returns formatted caller profile when profile exists', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'prof-1',
+        username: 'caller1',
+        fullName: 'Caller One',
+        avatar: 'avatar.jpg',
+      });
+
+      const result = await service.getCallerProfile('prof-1');
+
+      expect(mockPrismaService.profile.findUnique).toHaveBeenCalledWith({
+        where: { id: 'prof-1' },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          avatar: true,
+        },
+      });
+      expect(result).toEqual({
+        id: 'prof-1',
+        profile: {
+          username: 'caller1',
+          fullName: 'Caller One',
+          avatar: 'avatar.jpg',
+        },
+      });
+    });
+
+    it('returns null when caller profile is not found', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+
+      const result = await service.getCallerProfile('nonexistent');
+      expect(result).toBeNull();
     });
   });
 });

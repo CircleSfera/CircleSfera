@@ -1,13 +1,6 @@
 import * as crypto from 'node:crypto';
-import {
-  forwardRef,
-  Inject,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { Inject, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { JwtService } from '@nestjs/jwt';
 import {
   ConnectedSocket,
   MessageBody,
@@ -17,11 +10,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets';
-import * as cookie from 'cookie';
 import type { Server, Socket } from 'socket.io';
-import { AddReactionUseCase } from '../chat/use-cases/messages/add-reaction.use-case.js';
-import { ACCESS_TOKEN_COOKIE } from '../common/config/cookie.config.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
   CallAcceptDeclineDto,
@@ -39,15 +28,16 @@ import type {
   SendReactionDto,
   TypingEventDto,
 } from './dto/socket-events.dto.js';
+import { ChatRealtimeService } from './services/chat-realtime.service.js';
+import { LiveRealtimeService } from './services/live-realtime.service.js';
+import {
+  type JwtPayload,
+  SocketAuthService,
+  type SocketAuthUser,
+} from './services/socket-auth.service.js';
+import { SocketPresenceService } from './services/socket-presence.service.js';
 
-interface JwtPayload {
-  sub: string;
-  email: string;
-}
-
-interface SocketAuthUser extends JwtPayload {
-  profileId: string;
-}
+export type { JwtPayload, SocketAuthUser };
 
 export interface SocketWithAuth extends Socket {
   data: {
@@ -63,7 +53,7 @@ export interface SocketWithAuth extends Socket {
   },
   namespace: 'events',
   path: '/socket.io',
-  maxHttpBufferSize: 128 * 1024, // 128 KB max packet size (INPUT-002)
+  maxHttpBufferSize: 128 * 1024, // 128 KB max packet size
 })
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -72,85 +62,48 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger = new Logger(AppGateway.name);
 
   constructor(
-    @Inject(JwtService) private jwtService: JwtService,
-    @Inject(ConfigService) private configService: ConfigService,
-    @Inject(PrismaService) private prisma: PrismaService,
-    @Inject(forwardRef(() => AddReactionUseCase))
-    private addReactionUseCase: AddReactionUseCase,
+    @Inject(SocketAuthService)
+    private readonly socketAuthService: SocketAuthService,
+    @Inject(SocketPresenceService)
+    private readonly socketPresenceService: SocketPresenceService,
+    @Inject(ChatRealtimeService)
+    private readonly chatRealtimeService: ChatRealtimeService,
     @Inject(WebrtcSignalingService)
-    private webrtcSignalingService: WebrtcSignalingService,
+    private readonly webrtcSignalingService: WebrtcSignalingService,
+    @Inject(LiveRealtimeService)
+    private readonly liveRealtimeService: LiveRealtimeService,
   ) {}
 
   async handleConnection(client: Socket) {
     try {
-      const token = this.extractToken(client);
-      if (!token) {
-        throw new UnauthorizedException('No token found');
-      }
-
-      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
-      const payload = await this.jwtService.verifyAsync<JwtPayload>(token, {
-        secret,
-      });
-
-      // Validate user in DB (matching REST jwt.strategy.ts)
-      const user = await this.prisma.user.findUnique({
-        where: { id: payload.sub },
-        include: { profiles: true },
-      });
-
-      if (!user?.isActive) {
-        throw new UnauthorizedException(
-          'User not found or account deactivated',
-        );
-      }
-
-      if (
-        user.profiles[0]?.suspendedUntil &&
-        user.profiles[0]?.suspendedUntil > new Date()
-      ) {
-        throw new UnauthorizedException('Account suspended');
-      }
-
-      const profileId = user.profiles[0]?.id;
-      if (!profileId) {
-        throw new UnauthorizedException('Profile not found');
-      }
-
-      const userConvs = await this.prisma.participant.findMany({
-        where: { profileId, deletedAt: null },
-        select: { conversationId: true },
-      });
+      const auth = await this.socketAuthService.authenticate(client);
 
       (client as SocketWithAuth).data = {
-        user: { ...payload, profileId },
-        conversationIds: new Set(userConvs.map((c) => c.conversationId)),
+        user: auth.user,
+        conversationIds: auth.conversationIds,
       };
 
+      const profileId = auth.user.profileId;
       await client.join(`user:${profileId}`);
 
-      const following = await this.prisma.follow.findMany({
-        where: { followerId: profileId },
-        select: { followingId: true },
-      });
-      const followRooms = following.map((f) => `presence:${f.followingId}`);
+      const followRooms =
+        await this.socketPresenceService.getFollowPresenceRooms(profileId);
       if (followRooms.length > 0) {
         await client.join(followRooms);
       }
 
       await client.join(`presence:${profileId}`);
 
-      await this.prisma.user.update({
-        where: { id: payload.sub },
-        data: { isOnline: true },
-      });
+      await this.socketPresenceService.setUserOnline(auth.user.sub);
 
       this.server.to(`presence:${profileId}`).emit('user_status', {
         profileId,
         isOnline: true,
       });
 
-      this.logger.log(`User connected: ${payload.sub} (profile ${profileId})`);
+      this.logger.log(
+        `User connected: ${auth.user.sub} (profile ${profileId})`,
+      );
     } catch (e: unknown) {
       this.logger.error(
         `Socket connection failed: ${e instanceof Error ? e.message : 'Unknown'}`,
@@ -165,20 +118,16 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const user = (client as SocketWithAuth).data?.user;
       if (user) {
-        // Only update if user still exists (prevents crash on stale sessions after DB wipe)
-        await this.prisma.user.update({
-          where: { id: user.sub },
-          data: { isOnline: false, lastSeenAt: new Date() },
-        });
+        const { lastSeenAt } = await this.socketPresenceService.setUserOffline(
+          user.sub,
+        );
 
-        // Notify anyone tracking this user
         this.server.to(`presence:${user.profileId}`).emit('user_status', {
           profileId: user.profileId,
           isOnline: false,
-          lastSeenAt: new Date().toISOString(),
+          lastSeenAt: lastSeenAt.toISOString(),
         });
 
-        // Clean up any ongoing or ringing WebRTC calls for the disconnected user (RT-003)
         if (this.webrtcSignalingService) {
           const terminatedCalls =
             this.webrtcSignalingService.handleUserDisconnect(user.profileId);
@@ -292,62 +241,36 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isMember = client.data.conversationIds?.has(payload.conversationId);
-    if (!isMember) {
-      const participant = await this.prisma.participant.findUnique({
-        where: {
-          conversationId_profileId: {
-            conversationId: payload.conversationId,
-            profileId: callerProfileId,
-          },
-        },
-      });
-      if (!participant || participant.deletedAt) {
-        this.logger.warn(
-          `Unauthorized send_reaction attempt by profile ${callerProfileId} in conversation ${payload.conversationId}`,
-        );
-        return;
-      }
+    const hasConversationAccess =
+      client.data.conversationIds?.has(payload.conversationId) ?? false;
+
+    const result = await this.chatRealtimeService.addReaction(
+      payload.messageId,
+      payload.conversationId,
+      callerProfileId,
+      payload.reaction,
+      hasConversationAccess,
+    );
+
+    if (!result.success || !result.reactionRecord) return;
+
+    if (result.grantConversationAccess) {
       if (!client.data.conversationIds) {
         client.data.conversationIds = new Set();
       }
       client.data.conversationIds.add(payload.conversationId);
     }
 
-    try {
-      const reactionRecord = await this.addReactionUseCase.execute(
-        payload.messageId,
-        callerProfileId,
-        payload.reaction,
-      );
+    const eventPayload = {
+      messageId: payload.messageId,
+      profileId: callerProfileId,
+      reaction: result.reactionRecord.reaction,
+      id: result.reactionRecord.id,
+    };
 
-      const eventPayload = {
-        messageId: payload.messageId,
-        profileId: callerProfileId,
-        reaction: reactionRecord.reaction,
-        id: reactionRecord.id,
-      };
-
-      // Get all participants of this conversation to notify them
-      const conv = await this.prisma.conversation.findUnique({
-        where: { id: payload.conversationId },
-        select: { participants: { select: { profileId: true } } },
-      });
-
-      if (conv) {
-        conv.participants.forEach((p) => {
-          this.server
-            .to(`user:${p.profileId}`)
-            .emit('message_reaction', eventPayload);
-        });
-      }
-    } catch (err: unknown) {
-      this.logger.warn(
-        `Failed to add reaction to message ${payload.messageId}: ${
-          err instanceof Error ? err.message : 'Unknown'
-        }`,
-      );
-    }
+    result.participantProfileIds?.forEach((pId) => {
+      this.server.to(`user:${pId}`).emit('message_reaction', eventPayload);
+    });
   }
 
   @SubscribeMessage('mark_read')
@@ -380,7 +303,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const callType = payload?.type || 'audio';
 
-    // Server-side authorization: relationship (blocks, active conversation) and state (neither busy)
     const authResult =
       await this.webrtcSignalingService.authorizeAndInitiateCall(
         callerId,
@@ -398,15 +320,8 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const callerProfile = await this.prisma.profile.findUnique({
-      where: { id: callerId },
-      select: {
-        id: true,
-        username: true,
-        fullName: true,
-        avatar: true,
-      },
-    });
+    const callerProfile =
+      await this.webrtcSignalingService.getCallerProfile(callerId);
 
     this.logger.log(
       `Call invite from ${callerId} to ${targetId} (${callType}) [callId: ${authResult.session?.callId}]`,
@@ -414,16 +329,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.server.to(`user:${targetId}`).emit('call:incoming', {
       callId: authResult.session?.callId,
-      caller: callerProfile
-        ? {
-            id: callerProfile.id,
-            profile: {
-              username: callerProfile.username,
-              fullName: callerProfile.fullName ?? undefined,
-              avatar: callerProfile.avatar,
-            },
-          }
-        : null,
+      caller: callerProfile,
       type: callType,
       signalData: null,
     });
@@ -437,7 +343,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const receiverId = client.data.user?.profileId;
     if (!receiverId || !payload?.callerId) return;
 
-    // Server-side authorization: valid RINGING call session where caller is payload.callerId
     const auth = this.webrtcSignalingService.authorizeAndAcceptCall(
       receiverId,
       payload.callerId,
@@ -466,7 +371,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const receiverId = client.data.user?.profileId;
     if (!receiverId || !payload?.callerId) return;
 
-    // Server-side authorization: valid RINGING call session where caller is payload.callerId
     const auth = this.webrtcSignalingService.authorizeAndDeclineCall(
       receiverId,
       payload.callerId,
@@ -508,7 +412,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Server-side authorization for every signaling event (RT-003)
     const isAuthorized = this.webrtcSignalingService.authorizeSignal(
       senderId,
       payload.targetId,
@@ -521,7 +424,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    // Forward WebRTC signaling data (OFFER, ANSWER, ICE Candidates)
     this.server.to(`user:${payload.targetId}`).emit('call:signal', {
       signal: payload.signal,
       fromId: senderId,
@@ -553,22 +455,6 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Live Streams
 
-  // Helper for live stream ownership checks
-  private async isStreamHostOrCoHost(
-    streamId: string,
-    profileId: string,
-  ): Promise<boolean> {
-    if (!streamId || !profileId) return false;
-    const stream = await this.prisma.liveStream.findUnique({
-      where: { id: streamId },
-      select: { hostId: true, coHostId: true },
-    });
-    if (!stream) return false;
-    return stream.hostId === profileId || stream.coHostId === profileId;
-  }
-
-  // Live Streams
-
   @SubscribeMessage('live:join')
   async handleLiveJoin(
     @MessageBody() payload: LiveStreamIdDto,
@@ -585,23 +471,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await client.join(`live:${payload.streamId}`);
 
-    // Update DB viewer count & broadcast
-    const updatedStream = await this.prisma.liveStream
-      .update({
-        where: { id: payload.streamId },
-        data: { viewerCount: { increment: 1 } },
-        select: { viewerCount: true },
-      })
-      .catch((error) => {
-        this.logger.warn(
-          `Failed to increment viewer count for ${payload.streamId}: ${
-            error instanceof Error ? error.message : 'Unknown'
-          }`,
-        );
-        return null;
-      });
-
-    const count = updatedStream?.viewerCount ?? 1;
+    const count = await this.liveRealtimeService.incrementViewerCount(
+      payload.streamId,
+    );
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_joined', {
       profileId,
@@ -632,22 +504,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await client.leave(`live:${payload.streamId}`);
 
-    const updatedStream = await this.prisma.liveStream
-      .update({
-        where: { id: payload.streamId },
-        data: { viewerCount: { decrement: 1 } },
-        select: { viewerCount: true },
-      })
-      .catch((error) => {
-        this.logger.warn(
-          `Failed to decrement viewer count for ${payload.streamId}: ${
-            error instanceof Error ? error.message : 'Unknown'
-          }`,
-        );
-        return null;
-      });
-
-    const count = Math.max(0, updatedStream?.viewerCount ?? 0);
+    const count = await this.liveRealtimeService.decrementViewerCount(
+      payload.streamId,
+    );
 
     this.server.to(`live:${payload.streamId}`).emit('live:viewer_left', {
       profileId,
@@ -678,19 +537,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const cleanMessage = payload.message.trim().slice(0, 500);
     if (!cleanMessage) return;
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: client.data?.user?.sub },
-      include: { profiles: true },
-    });
+    const userProfile = await this.liveRealtimeService.getUserProfile(
+      client.data?.user?.sub,
+    );
 
-    if (user?.profiles[0]) {
+    if (userProfile) {
       this.server.to(`live:${payload.streamId}`).emit('live:chat_message', {
         id: crypto.randomUUID(),
-        profile: {
-          id: user.profiles[0].id,
-          username: user.profiles[0].username,
-          avatar: user.profiles[0].avatar,
-        },
+        profile: userProfile,
         message: cleanMessage,
         timestamp: new Date().toISOString(),
       });
@@ -715,7 +569,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isAuthorized = await this.isStreamHostOrCoHost(
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
       payload.streamId,
       callerProfileId,
     );
@@ -751,7 +605,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isAuthorized = await this.isStreamHostOrCoHost(
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
       payload.streamId,
       callerProfileId,
     );
@@ -858,7 +712,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isAuthorized = await this.isStreamHostOrCoHost(
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
       payload.streamId,
       callerProfileId,
     );
@@ -894,7 +748,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isAuthorized = await this.isStreamHostOrCoHost(
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
       payload.streamId,
       callerProfileId,
     );
@@ -928,7 +782,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const isAuthorized = await this.isStreamHostOrCoHost(
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
       payload.streamId,
       callerProfileId,
     );
@@ -948,7 +802,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // --- EDA Domain Event Listeners (BE-003) ---
+  // --- EDA Domain Event Listeners ---
 
   @OnEvent('chat.message.sent')
   handleChatMessageSent(event: {
@@ -1036,34 +890,5 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (event?.recipientId && event?.notification) {
       this.sendNotification(event.recipientId, event.notification);
     }
-  }
-
-  // Extract JWT token from socket handshake.
-  // Priority: 1) HTTP-only cookie 2) Authorization Bearer header
-  private extractToken(client: Socket): string | undefined {
-    const cookieHeader = client.handshake.headers.cookie;
-
-    if (cookieHeader) {
-      try {
-        const cookies = cookie.parse(cookieHeader);
-
-        if (cookies[ACCESS_TOKEN_COOKIE]) {
-          return cookies[ACCESS_TOKEN_COOKIE];
-        }
-      } catch (parseError: unknown) {
-        this.logger.error(
-          `Failed to parse socket handshake cookies: ${
-            parseError instanceof Error ? parseError.message : 'Unknown'
-          }`,
-        );
-      }
-    }
-
-    // 2. Fall back to Authorization header
-    const authHeader = client.handshake.headers.authorization;
-    if (authHeader?.startsWith('Bearer ')) {
-      return authHeader.split(' ')[1];
-    }
-    return undefined;
   }
 }
