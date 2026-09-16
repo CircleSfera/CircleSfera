@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
+import { StripeModule } from '../common/stripe/stripe.module.js';
 import { MonetizationModule } from '../monetization/monetization.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { CreatorController } from './creator.controller.js';
@@ -24,10 +24,9 @@ import { RefundPromotionUseCase } from './use-cases/promotions/commands/refund-p
 import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotions.query.js';
 
 @Module({
-  imports: [PrismaModule, AnalyticsModule, MonetizationModule],
+  imports: [PrismaModule, AnalyticsModule, MonetizationModule, StripeModule],
   controllers: [CreatorController],
   providers: [
-    StripeService,
     // Analytics
     GetCreatorStatsQuery,
     GetRevenueAnalyticsQuery,
