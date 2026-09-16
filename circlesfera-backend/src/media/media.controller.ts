@@ -1,5 +1,3 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
 import { ErrorCode } from '@circlesfera/shared';
 import {
   Controller,
@@ -7,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Logger,
   Param,
   Req,
@@ -18,6 +17,10 @@ import { Request, Response } from 'express';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  STORAGE_PROVIDER,
+  type StorageProvider,
+} from '../uploads/interfaces/storage-provider.interface.js';
 import { MediaAuthService } from './media-auth.service.js';
 
 @ApiTags('Media')
@@ -28,6 +31,8 @@ export class MediaController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly mediaAuthService: MediaAuthService,
+    @Inject(STORAGE_PROVIDER)
+    private readonly storageProvider: StorageProvider,
   ) {}
 
   /**
@@ -88,9 +93,16 @@ export class MediaController {
       throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'Media not found');
     }
 
-    // Determine the base upload directory from standardUrl (e.g., "/uploads/video_123/master.m3u8")
-    const match = media.standardUrl.match(/^\/uploads\/(.+)\/[^/]+$/);
-    if (!match) {
+    // Resolve the base folder from standardUrl.
+    // Supports both local paths (/uploads/<baseName>/...) and
+    // remote URLs (https://.../.../circlesfera/hls/<baseName>/...).
+    const localMatch = media.standardUrl.match(/^\/uploads\/(.+)\/[^/]+$/);
+    const remoteMatch = media.standardUrl.match(
+      /circlesfera\/hls\/([^/]+)\/[^/]+$/,
+    );
+    const baseFolder = (localMatch ?? remoteMatch)?.[1] ?? null;
+
+    if (!baseFolder) {
       this.logger.error(
         `Invalid media path format for media ${mediaId}: ${media.standardUrl}`,
       );
@@ -100,16 +112,11 @@ export class MediaController {
       );
     }
 
-    const baseFolder = match[1];
-    const relativeFile = Array.isArray(file) ? path.join(...file) : file;
-    const uploadsRoot = path.resolve(process.cwd(), 'uploads', baseFolder);
-    const absolutePath = path.resolve(uploadsRoot, relativeFile);
+    // Build the relative path from the wildcard parameter
+    const relativeFile = Array.isArray(file) ? file.join('/') : file;
 
-    // Prevent path traversal outside the media folder
-    if (
-      absolutePath !== uploadsRoot &&
-      !absolutePath.startsWith(uploadsRoot + path.sep)
-    ) {
+    // Reject obvious path traversal at the param level (before storage call)
+    if (relativeFile.includes('..') || relativeFile.startsWith('/')) {
       this.logger.warn(
         `Path traversal blocked for media ${mediaId}: ${relativeFile}`,
       );
@@ -119,18 +126,38 @@ export class MediaController {
       );
     }
 
-    if (!fs.existsSync(absolutePath)) {
+    // If it's a TS segment, only allow the first two segments (free preview window)
+    if (relativeFile.endsWith('.ts')) {
+      const segmentMatch = relativeFile.match(/_(\d+)\.ts$/);
+      if (segmentMatch) {
+        const segmentIndex = parseInt(segmentMatch[1], 10);
+        if (segmentIndex >= 2) {
+          throw AppException.Forbidden(
+            ErrorCode.PREMIUM_CONTENT_LOCKED,
+            'Premium content locked',
+          );
+        }
+      }
+    }
+
+    // Retrieve artifact through the storage provider abstraction
+    const artifact = await this.storageProvider.getMediaArtifact?.({
+      baseFolder,
+      relativePath: relativeFile,
+    });
+
+    if (!artifact) {
       throw AppException.NotFound(ErrorCode.MEDIA_NOT_FOUND, 'File not found');
     }
 
-    // If it's a playlist (.m3u8), we slice it to keep only the first 5 seconds (usually ~2 segments)
+    // If it's a playlist (.m3u8), slice to first 2 segments (teaser preview)
     if (relativeFile.endsWith('.m3u8')) {
-      const content = fs.readFileSync(absolutePath, 'utf8');
+      const content = artifact.content.toString('utf8');
       const lines = content.split('\n');
 
       const processedLines: string[] = [];
       let segmentCount = 0;
-      const MAX_SEGMENTS = 2; // Roughly 4-5 seconds depending on HLS segment target duration
+      const MAX_SEGMENTS = 2; // Roughly 4–5 seconds depending on HLS segment target duration
 
       for (const line of lines) {
         if (line.startsWith('#EXTINF:')) {
@@ -152,24 +179,7 @@ export class MediaController {
       return res.send(processedLines.join('\n'));
     }
 
-    // If it's a TS segment, only allow the first few segments (e.g., stream_0.ts, stream_1.ts)
-    if (relativeFile.endsWith('.ts')) {
-      const segmentMatch = relativeFile.match(/_(\d+)\.ts$/);
-      if (segmentMatch) {
-        const segmentIndex = parseInt(segmentMatch[1], 10);
-        if (segmentIndex >= 2) {
-          throw AppException.Forbidden(
-            ErrorCode.PREMIUM_CONTENT_LOCKED,
-            'Premium content locked',
-          );
-        }
-      }
-
-      res.setHeader('Content-Type', 'video/MP2T');
-      return res.sendFile(absolutePath);
-    }
-
-    // Other files (like thumb.jpg)
-    return res.sendFile(absolutePath);
+    res.setHeader('Content-Type', artifact.contentType);
+    return res.send(artifact.content);
   }
 }

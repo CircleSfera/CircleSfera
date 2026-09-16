@@ -11,6 +11,11 @@ export interface HlsArtifactsResult {
   thumbnailUrl: string;
 }
 
+export interface StorageMediaItem {
+  content: Buffer;
+  contentType: string;
+}
+
 export interface StorageProvider {
   // Uploads a file and returns its public URL and metadata.
   upload(file: UploadedFile): Promise<{ url: string; type: string }>;
@@ -30,6 +35,13 @@ export interface StorageProvider {
     baseName: string;
     outputDir: string;
   }): Promise<HlsArtifactsResult>;
+
+  // (Optional) Retrieves a stored media artifact by base folder and relative path.
+  // Returns null when the artifact does not exist in the provider.
+  getMediaArtifact?(params: {
+    baseFolder: string;
+    relativePath: string;
+  }): Promise<StorageMediaItem | null>;
 }
 
 export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';

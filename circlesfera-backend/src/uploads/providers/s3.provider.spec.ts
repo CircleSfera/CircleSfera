@@ -141,4 +141,80 @@ describe('S3Provider', () => {
       );
     });
   });
+
+  describe('getMediaArtifact', () => {
+    it('should fetch the artifact from S3 and return buffer + content type', async () => {
+      const fakeBody = (async function* () {
+        yield Buffer.from('playlist-content');
+      })();
+
+      vi.spyOn((provider as any).s3Client, 'send').mockResolvedValueOnce({
+        Body: fakeBody,
+        ContentType: 'application/vnd.apple.mpegurl',
+      } as any);
+
+      const result = await provider.getMediaArtifact({
+        baseFolder: 'test-uuid-1234',
+        relativePath: 'master.m3u8',
+      });
+
+      expect(result).not.toBeNull();
+      expect(result?.content.toString()).toBe('playlist-content');
+      expect(result?.contentType).toBe('application/vnd.apple.mpegurl');
+    });
+
+    it('should return null when S3 returns NoSuchKey', async () => {
+      const err = new Error('NoSuchKey');
+      err.name = 'NoSuchKey';
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(err);
+
+      const result = await provider.getMediaArtifact({
+        baseFolder: 'test-uuid-1234',
+        relativePath: 'master.m3u8',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should return null when S3 returns a 404 status', async () => {
+      const err = Object.assign(new Error('NotFound'), {
+        $metadata: { httpStatusCode: 404 },
+      });
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(err);
+
+      const result = await provider.getMediaArtifact({
+        baseFolder: 'test-uuid-1234',
+        relativePath: 'thumb.jpg',
+      });
+
+      expect(result).toBeNull();
+    });
+
+    it('should rethrow unexpected S3 errors', async () => {
+      const serverErr = new Error('ServiceUnavailable');
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
+        serverErr,
+      );
+
+      await expect(
+        provider.getMediaArtifact({
+          baseFolder: 'test-uuid-1234',
+          relativePath: 'master.m3u8',
+        }),
+      ).rejects.toThrow('ServiceUnavailable');
+    });
+
+    it('should return null when response Body is absent', async () => {
+      vi.spyOn((provider as any).s3Client, 'send').mockResolvedValueOnce({
+        Body: undefined,
+      } as any);
+
+      const result = await provider.getMediaArtifact({
+        baseFolder: 'test-uuid-1234',
+        relativePath: 'master.m3u8',
+      });
+
+      expect(result).toBeNull();
+    });
+  });
 });

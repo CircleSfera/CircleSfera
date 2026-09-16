@@ -5,11 +5,32 @@ import { Injectable, Logger } from '@nestjs/common';
 import {
   type HlsArtifactsResult,
   type StorageFileMeta,
+  type StorageMediaItem,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
 
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
+
+function extToContentType(ext: string): string {
+  switch (ext.toLowerCase()) {
+    case '.m3u8':
+      return 'application/vnd.apple.mpegurl';
+    case '.ts':
+      return 'video/MP2T';
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.webp':
+      return 'image/webp';
+    case '.mp4':
+      return 'video/mp4';
+    default:
+      return 'application/octet-stream';
+  }
+}
 
 @Injectable()
 export class LocalStorageProvider implements StorageProvider {
@@ -145,5 +166,35 @@ export class LocalStorageProvider implements StorageProvider {
       masterPlaylistUrl: `/uploads/${params.baseName}/master.m3u8`,
       thumbnailUrl: `/uploads/${params.baseName}/thumb.jpg`,
     };
+  }
+
+  async getMediaArtifact(params: {
+    baseFolder: string;
+    relativePath: string;
+  }): Promise<StorageMediaItem | null> {
+    const baseDir = path.resolve(this.uploadDir, params.baseFolder);
+    const absolutePath = path.resolve(baseDir, params.relativePath);
+
+    // Enforce path confinement — reject traversal outside the base folder
+    if (
+      absolutePath !== baseDir &&
+      !absolutePath.startsWith(`${baseDir}${path.sep}`)
+    ) {
+      return null;
+    }
+
+    try {
+      const content = await fs.promises.readFile(absolutePath);
+      const ext = path.extname(params.relativePath);
+      return { content, contentType: extToContentType(ext) };
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') {
+        return null;
+      }
+      this.logger.error(
+        `Failed to read media artifact at ${absolutePath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
   }
 }

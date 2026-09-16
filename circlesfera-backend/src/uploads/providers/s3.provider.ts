@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   ListObjectsV2Command,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -12,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   type HlsArtifactsResult,
   type StorageFileMeta,
+  type StorageMediaItem,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
 
@@ -218,5 +220,69 @@ export class S3Provider implements StorageProvider {
       masterPlaylistUrl,
       thumbnailUrl,
     };
+  }
+
+  async getMediaArtifact(params: {
+    baseFolder: string;
+    relativePath: string;
+  }): Promise<StorageMediaItem | null> {
+    const key = `circlesfera/hls/${params.baseFolder}/${params.relativePath}`;
+
+    // Infer content type from extension
+    const ext = path.extname(params.relativePath).toLowerCase();
+    let contentType: string;
+    switch (ext) {
+      case '.m3u8':
+        contentType = 'application/vnd.apple.mpegurl';
+        break;
+      case '.ts':
+        contentType = 'video/MP2T';
+        break;
+      case '.jpg':
+      case '.jpeg':
+        contentType = 'image/jpeg';
+        break;
+      case '.png':
+        contentType = 'image/png';
+        break;
+      case '.webp':
+        contentType = 'image/webp';
+        break;
+      default:
+        contentType = 'application/octet-stream';
+    }
+
+    try {
+      this.logger.debug(`Fetching media artifact from S3: ${key}`);
+      const response = await this.s3Client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+
+      if (!response.Body) {
+        return null;
+      }
+
+      // Convert the readable stream to a Buffer
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
+        chunks.push(chunk);
+      }
+      const content = Buffer.concat(chunks);
+
+      return { content, contentType };
+    } catch (error: any) {
+      if (
+        error?.name === 'NoSuchKey' ||
+        error?.$metadata?.httpStatusCode === 404
+      ) {
+        return null;
+      }
+      this.logger.error(
+        `Failed to fetch media artifact from S3 (${key}): ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      throw error;
+    }
   }
 }
