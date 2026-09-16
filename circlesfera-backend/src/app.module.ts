@@ -33,6 +33,8 @@ import { CollectionsModule } from './collections/collections.module.js';
 import { CommentsModule } from './comments/comments.module.js';
 import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
+import { AppConfigModule } from './common/config/app-config.module.js';
+import { validateEnv } from './common/config/env.validation.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
@@ -113,7 +115,9 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
+      validate: validateEnv,
     }),
+    AppConfigModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

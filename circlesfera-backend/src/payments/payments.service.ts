@@ -3,6 +3,7 @@ import {
   type PaymentLiveGiftCompletedEvent,
 } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus } from '@prisma/client';
@@ -34,8 +35,17 @@ export class PaymentsService {
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
     @Optional()
+    @Inject(ConfigService)
+    private readonly configService?: ConfigService,
+    @Optional()
     private readonly eventEmitter?: EventEmitter2,
   ) {}
+
+  private get frontendUrl(): string {
+    return (
+      this.configService?.get<string>('FRONTEND_URL') || 'http://localhost:5173'
+    );
+  }
 
   private async emitPaymentNotification(params: {
     recipientUserId: string;
@@ -187,8 +197,8 @@ export class PaymentsService {
             customer: customerId,
             line_items: [{ price: stripePriceId, quantity: 1 }],
             mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
-            cancel_url: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing?success=false`,
+            success_url: `${this.frontendUrl}/accounts/billing?session_id={CHECKOUT_SESSION_ID}&success=true`,
+            cancel_url: `${this.frontendUrl}/accounts/billing?success=false`,
             metadata: {
               userId,
               planId: plan.id,
@@ -372,7 +382,7 @@ export class PaymentsService {
 
     return this.stripeService.createPortalSession(
       customerId,
-      `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/billing`,
+      `${this.frontendUrl}/accounts/billing`,
     );
   }
 

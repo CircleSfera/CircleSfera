@@ -12,6 +12,12 @@ export class SlackService {
 
   private readonly slackBotToken: string | undefined;
 
+  private readonly defaultWebhookUrl: string | undefined;
+  private readonly alertsWebhookUrl: string | undefined;
+  private readonly moderationWebhookUrl: string | undefined;
+  private readonly paymentsWebhookUrl: string | undefined;
+  private readonly supportWebhookUrl: string | undefined;
+
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -19,17 +25,21 @@ export class SlackService {
     private configService: ConfigService,
   ) {
     this.slackBotToken = this.configService.get<string>('SLACK_BOT_TOKEN');
+    this.defaultWebhookUrl =
+      this.configService.get<string>('SLACK_WEBHOOK_URL');
+    this.alertsWebhookUrl =
+      this.configService.get<string>('SLACK_WEBHOOK_ALERTS') ||
+      this.defaultWebhookUrl;
+    this.moderationWebhookUrl =
+      this.configService.get<string>('SLACK_WEBHOOK_MODERATION') ||
+      this.defaultWebhookUrl;
+    this.paymentsWebhookUrl =
+      this.configService.get<string>('SLACK_WEBHOOK_PAYMENTS') ||
+      this.defaultWebhookUrl;
+    this.supportWebhookUrl =
+      this.configService.get<string>('SLACK_WEBHOOK_SUPPORT') ||
+      this.defaultWebhookUrl;
   }
-
-  private readonly defaultWebhookUrl = process.env.SLACK_WEBHOOK_URL;
-  private readonly alertsWebhookUrl =
-    process.env.SLACK_WEBHOOK_ALERTS || this.defaultWebhookUrl;
-  private readonly moderationWebhookUrl =
-    process.env.SLACK_WEBHOOK_MODERATION || this.defaultWebhookUrl;
-  private readonly paymentsWebhookUrl =
-    process.env.SLACK_WEBHOOK_PAYMENTS || this.defaultWebhookUrl;
-  private readonly supportWebhookUrl =
-    process.env.SLACK_WEBHOOK_SUPPORT || this.defaultWebhookUrl;
 
   private async sendMessage(
     webhookUrl: string | undefined,

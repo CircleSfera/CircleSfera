@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Inject,
+  Optional,
   Param,
   Patch,
   Post,
@@ -12,6 +13,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import {
@@ -38,6 +40,9 @@ export class UsersController {
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(DataExportService)
     private readonly dataExportService: DataExportService,
+    @Optional()
+    @Inject(ConfigService)
+    private readonly configService?: ConfigService,
   ) {}
 
   // Get suggested users to follow based on popularity.
@@ -149,10 +154,12 @@ export class UsersController {
     @CurrentUser() user: CurrentUserData,
     @Body() body: { returnUrl?: string },
   ): Promise<{ url: string }> {
+    const frontendUrl =
+      this.configService?.get<string>('FRONTEND_URL') ||
+      'http://localhost:5173';
     return this.usersService.createIdentitySession(
       user.userId,
-      body.returnUrl ||
-        `${process.env.FRONTEND_URL || 'http://localhost:5173'}/accounts/account`,
+      body.returnUrl || `${frontendUrl}/accounts/account`,
     );
   }
 
