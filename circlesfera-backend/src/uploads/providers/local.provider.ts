@@ -3,9 +3,11 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import {
-  StorageFileMeta,
+  type HlsArtifactsResult,
+  type StorageFileMeta,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
+
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
 
@@ -127,5 +129,21 @@ export class LocalStorageProvider implements StorageProvider {
       );
       return [];
     }
+  }
+
+  async storeHlsArtifacts(params: {
+    baseName: string;
+    outputDir: string;
+  }): Promise<HlsArtifactsResult> {
+    const targetDir = path.join(this.uploadDir, params.baseName);
+    if (path.resolve(params.outputDir) !== path.resolve(targetDir)) {
+      await fs.promises.mkdir(targetDir, { recursive: true });
+      await fs.promises.cp(params.outputDir, targetDir, { recursive: true });
+    }
+
+    return {
+      masterPlaylistUrl: `/uploads/${params.baseName}/master.m3u8`,
+      thumbnailUrl: `/uploads/${params.baseName}/thumb.jpg`,
+    };
   }
 }

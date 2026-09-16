@@ -1,21 +1,31 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import {
+  STORAGE_PROVIDER,
+  type StorageProvider,
+} from '../interfaces/storage-provider.interface.js';
 
 const VIDEO_CONCURRENCY = Math.max(
   1,
   Number.parseInt(process.env.VIDEO_TRANSCODING_CONCURRENCY || '2', 10),
 );
 
+@Injectable()
 @Processor('video-transcoding', { concurrency: VIDEO_CONCURRENCY })
 export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name);
 
-  constructor(private readonly prisma: PrismaService) {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(STORAGE_PROVIDER)
+    private readonly storageProvider?: StorageProvider,
+  ) {
     super();
   }
 
@@ -188,9 +198,33 @@ export class VideoProcessor extends WorkerHost {
         });
       }
 
-      // 5. Update Database entries with new URLs
-      const m3u8Url = `/uploads/${baseName}/master.m3u8`;
-      const thumbUrl = `/uploads/${baseName}/thumb.jpg`;
+      // 5. Store HLS artifacts via StorageProvider abstraction
+      let m3u8Url = `/uploads/${baseName}/master.m3u8`;
+      let thumbUrl = `/uploads/${baseName}/thumb.jpg`;
+
+      if (this.storageProvider?.storeHlsArtifacts) {
+        this.logger.debug(
+          `Delegating HLS artifact storage for ${baseName} to StorageProvider...`,
+        );
+        const artifacts = await this.storageProvider.storeHlsArtifacts({
+          baseName,
+          outputDir,
+        });
+        m3u8Url = artifacts.masterPlaylistUrl;
+        thumbUrl = artifacts.thumbnailUrl;
+
+        // If artifacts were uploaded to a remote provider (e.g. S3 / CDN), clean up local working dir
+        if (m3u8Url.startsWith('http://') || m3u8Url.startsWith('https://')) {
+          try {
+            await fs.promises.rm(outputDir, { recursive: true, force: true });
+            createdOutputDir = undefined;
+          } catch (cleanupErr) {
+            this.logger.warn(
+              `Failed to clean up local staging directory for ${baseName}: ${cleanupErr}`,
+            );
+          }
+        }
+      }
 
       // Update PostMedia
       const updatedPosts = await this.prisma.postMedia.updateMany({

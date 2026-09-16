@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import {
   DeleteObjectCommand,
   ListObjectsV2Command,
@@ -8,9 +10,11 @@ import { Upload } from '@aws-sdk/lib-storage';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
-  StorageFileMeta,
+  type HlsArtifactsResult,
+  type StorageFileMeta,
   StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
+
 import { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
 
@@ -159,5 +163,60 @@ export class S3Provider implements StorageProvider {
       );
       return [];
     }
+  }
+
+  async storeHlsArtifacts(params: {
+    baseName: string;
+    outputDir: string;
+  }): Promise<HlsArtifactsResult> {
+    const files = await fs.promises.readdir(params.outputDir);
+
+    for (const file of files) {
+      const filePath = path.join(params.outputDir, file);
+      const stat = await fs.promises.stat(filePath);
+      if (!stat.isFile()) continue;
+
+      const buffer = await fs.promises.readFile(filePath);
+      const ext = path.extname(file).toLowerCase();
+      const contentType =
+        ext === '.m3u8'
+          ? 'application/vnd.apple.mpegurl'
+          : ext === '.ts'
+            ? 'video/MP2T'
+            : ext === '.jpg' || ext === '.jpeg'
+              ? 'image/jpeg'
+              : 'application/octet-stream';
+
+      const key = `circlesfera/hls/${params.baseName}/${file}`;
+
+      const upload = new Upload({
+        client: this.s3Client,
+        params: {
+          Bucket: this.bucket,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+          ACL: 'public-read',
+        },
+      });
+
+      await upload.done();
+    }
+
+    const masterKey = `circlesfera/hls/${params.baseName}/master.m3u8`;
+    const thumbKey = `circlesfera/hls/${params.baseName}/thumb.jpg`;
+
+    const masterPlaylistUrl = this.cdnUrl
+      ? `${this.cdnUrl}/${masterKey}`
+      : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${masterKey}`;
+
+    const thumbnailUrl = this.cdnUrl
+      ? `${this.cdnUrl}/${thumbKey}`
+      : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${thumbKey}`;
+
+    return {
+      masterPlaylistUrl,
+      thumbnailUrl,
+    };
   }
 }

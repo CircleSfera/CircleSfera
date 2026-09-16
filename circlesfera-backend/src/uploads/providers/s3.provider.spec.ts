@@ -1,6 +1,16 @@
+import * as fs from 'node:fs';
 import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { S3Provider } from './s3.provider.js';
+
+vi.mock('@aws-sdk/lib-storage', () => {
+  class MockUpload {
+    done = vi.fn().mockResolvedValue({});
+  }
+  return {
+    Upload: MockUpload,
+  };
+});
 
 describe('S3Provider', () => {
   let provider: S3Provider;
@@ -101,6 +111,34 @@ describe('S3Provider', () => {
 
       const files = await provider.listFiles();
       expect(files).toEqual([]);
+    });
+  });
+
+  describe('storeHlsArtifacts', () => {
+    it('should upload all HLS files and return public URLs', async () => {
+      vi.spyOn(fs.promises, 'readdir').mockResolvedValue([
+        'master.m3u8' as any,
+        'thumb.jpg' as any,
+        '720p_000.ts' as any,
+      ]);
+      vi.spyOn(fs.promises, 'stat').mockResolvedValue({
+        isFile: () => true,
+      } as any);
+      vi.spyOn(fs.promises, 'readFile').mockResolvedValue(
+        Buffer.from('fake-artifact-bytes'),
+      );
+
+      const result = await provider.storeHlsArtifacts({
+        baseName: 'test-uuid-1234',
+        outputDir: '/tmp/hls-out',
+      });
+
+      expect(result.masterPlaylistUrl).toBe(
+        'https://cdn.example.com/circlesfera/hls/test-uuid-1234/master.m3u8',
+      );
+      expect(result.thumbnailUrl).toBe(
+        'https://cdn.example.com/circlesfera/hls/test-uuid-1234/thumb.jpg',
+      );
     });
   });
 });

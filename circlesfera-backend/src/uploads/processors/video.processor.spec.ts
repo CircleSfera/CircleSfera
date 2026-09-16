@@ -268,4 +268,60 @@ describe('VideoProcessor', () => {
       { recursive: true, force: true },
     );
   });
+
+  it('should delegate HLS artifact storage to injected StorageProvider and update DB with provider URLs', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const mockStorageProvider = {
+      upload: vi.fn(),
+      delete: vi.fn(),
+      storeHlsArtifacts: vi.fn().mockResolvedValue({
+        masterPlaylistUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/master.m3u8`,
+        thumbnailUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/thumb.jpg`,
+      }),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        VideoProcessor,
+        {
+          provide: PrismaService,
+          useValue: mockPrisma,
+        },
+        {
+          provide: 'STORAGE_PROVIDER',
+          useValue: mockStorageProvider,
+        },
+      ],
+    }).compile();
+
+    const procWithStorage = module.get<VideoProcessor>(VideoProcessor);
+
+    const job = {
+      id: 'job-storage',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        originalname: 'clip.mp4',
+        userId: 'user-valid',
+      },
+    } as unknown as Job<{
+      url: string;
+      originalname?: string;
+      userId?: string;
+    }>;
+
+    await procWithStorage.process(job);
+
+    expect(mockStorageProvider.storeHlsArtifacts).toHaveBeenCalledWith({
+      baseName: validUuid,
+      outputDir: expect.stringContaining(validUuid),
+    });
+
+    expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
+      where: { url: `/uploads/${validUuid}.mp4` },
+      data: {
+        standardUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/master.m3u8`,
+        thumbnailUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/thumb.jpg`,
+      },
+    });
+  });
 });
