@@ -74,6 +74,19 @@ export interface SystemIncidentEvent {
   };
 }
 
+export interface SystemOperationalMetricsEvent {
+  type: 'system.metrics.operational';
+  payload: {
+    timestamp: string;
+    overallStatus: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
+    queuesCount: number;
+    totalWaitingJobs: number;
+    totalFailedJobs: number;
+    mediaBacklogStatus: 'HEALTHY' | 'DEGRADED' | 'CRITICAL';
+    alertsCount: number;
+  };
+}
+
 /**
  * Discriminated union of all critical domain events in the system.
  */
@@ -83,7 +96,8 @@ export type CriticalDomainEvent =
   | UserHardDeletedEvent
   | NotificationDispatchedEvent
   | MediaDeleteBatchEvent
-  | SystemIncidentEvent;
+  | SystemIncidentEvent
+  | SystemOperationalMetricsEvent;
 
 export type CriticalEventType = CriticalDomainEvent['type'];
 

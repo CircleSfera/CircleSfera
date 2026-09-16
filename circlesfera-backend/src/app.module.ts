@@ -41,6 +41,7 @@ import { CorrelationMiddleware } from './common/correlation/correlation.middlewa
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
+import { ObservabilityModule } from './common/observability/observability.module.js';
 import { CryptoModule } from './common/services/crypto.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
@@ -121,6 +122,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
       validate: validateEnv,
     }),
     AppConfigModule,
+    ObservabilityModule,
     ThrottlerModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

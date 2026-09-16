@@ -37,4 +37,13 @@ export class SocketPresenceService {
     });
     return { lastSeenAt };
   }
+
+  /**
+   * Retrieves the current count of online users.
+   */
+  async getOnlineUsersCount(): Promise<number> {
+    return this.prisma.user.count({
+      where: { isOnline: true },
+    });
+  }
 }
