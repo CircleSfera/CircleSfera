@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
 import { AIService } from '../ai/ai.service.js';
@@ -57,6 +58,15 @@ export class SlackService {
     } catch (error) {
       this.logger.error('Failed to send Slack message', error);
     }
+  }
+
+  @OnEvent('system.incident', { async: true })
+  async handleSystemIncident(event: {
+    message: string;
+    stack?: string;
+    path?: string;
+  }): Promise<void> {
+    await this.sendProductionAlert(event);
   }
 
   async sendProductionAlert(errorInfo: {

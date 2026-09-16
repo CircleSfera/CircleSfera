@@ -61,6 +61,18 @@ export interface MediaDeleteBatchEvent {
   };
 }
 
+export interface SystemIncidentEvent {
+  type: 'system.incident';
+  payload: {
+    message: string;
+    stack?: string;
+    path?: string;
+    method?: string;
+    statusCode?: number;
+    timestamp?: string;
+  };
+}
+
 /**
  * Discriminated union of all critical domain events in the system.
  */
@@ -69,7 +81,8 @@ export type CriticalDomainEvent =
   | PaymentPromotionCompletedEvent
   | UserHardDeletedEvent
   | NotificationDispatchedEvent
-  | MediaDeleteBatchEvent;
+  | MediaDeleteBatchEvent
+  | SystemIncidentEvent;
 
 export type CriticalEventType = CriticalDomainEvent['type'];
 

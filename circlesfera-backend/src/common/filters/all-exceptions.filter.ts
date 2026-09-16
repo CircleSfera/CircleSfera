@@ -4,11 +4,13 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Inject,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
-import { SlackService } from '../../slack/slack.service.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -16,7 +18,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
   constructor(
     private readonly httpAdapterHost: HttpAdapterHost,
-    private readonly slackService?: SlackService,
+    @Optional()
+    @Inject(EventEmitter2)
+    private readonly eventEmitter?: EventEmitter2,
   ) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
@@ -100,18 +104,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       if (httpStatus >= 500) {
         Sentry.captureException(exception);
 
-        if (this.slackService) {
-          this.slackService
-            .sendProductionAlert({
-              message:
-                exception instanceof Error
-                  ? exception.message
-                  : 'Unknown Error',
-              stack: errorStack,
-              path,
-            })
-            .catch((e) => this.logger.error('Failed to send slack alert', e));
-        }
+        this.eventEmitter?.emit('system.incident', {
+          message:
+            exception instanceof Error ? exception.message : 'Unknown Error',
+          stack: errorStack,
+          path,
+          method,
+          statusCode: httpStatus,
+          timestamp: new Date().toISOString(),
+        });
       }
     }
 

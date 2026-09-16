@@ -7,8 +7,8 @@ describe('AllExceptionsFilter', () => {
   const reply = vi.fn();
   const getRequestUrl = vi.fn(() => '/api/v1/analytics/events/batch');
   const getRequestMethod = vi.fn(() => 'POST');
-  const slackService = {
-    sendProductionAlert: vi.fn().mockResolvedValue(undefined),
+  const eventEmitter = {
+    emit: vi.fn(),
   };
 
   let filter: AllExceptionsFilter;
@@ -19,7 +19,7 @@ describe('AllExceptionsFilter', () => {
     const httpAdapterHost = {
       httpAdapter: { reply, getRequestUrl, getRequestMethod },
     } as unknown as HttpAdapterHost;
-    filter = new AllExceptionsFilter(httpAdapterHost, slackService as never);
+    filter = new AllExceptionsFilter(httpAdapterHost, eventEmitter as never);
     host = {
       switchToHttp: () => ({
         getRequest: () => ({}),
@@ -28,7 +28,7 @@ describe('AllExceptionsFilter', () => {
     } as ArgumentsHost;
   });
 
-  it('maps CSRF ForbiddenError to 403 without Slack/Sentry noise', () => {
+  it('maps CSRF ForbiddenError to 403 without incident event noise', () => {
     const err = Object.assign(new Error('invalid csrf token'), {
       code: 'EBADCSRFTOKEN',
     });
@@ -44,10 +44,10 @@ describe('AllExceptionsFilter', () => {
       }),
       HttpStatus.FORBIDDEN,
     );
-    expect(slackService.sendProductionAlert).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
   });
 
-  it('still alerts Slack for unexpected non-HttpException 500s', () => {
+  it('emits system.incident event for unexpected non-HttpException 500s', () => {
     filter.catch(new Error('boom'), host);
 
     expect(reply).toHaveBeenCalledWith(
@@ -55,13 +55,21 @@ describe('AllExceptionsFilter', () => {
       expect.objectContaining({ statusCode: HttpStatus.INTERNAL_SERVER_ERROR }),
       HttpStatus.INTERNAL_SERVER_ERROR,
     );
-    expect(slackService.sendProductionAlert).toHaveBeenCalled();
+    expect(eventEmitter.emit).toHaveBeenCalledWith(
+      'system.incident',
+      expect.objectContaining({
+        message: 'boom',
+        statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+        path: '/api/v1/analytics/events/batch',
+        method: 'POST',
+      }),
+    );
   });
 
-  it('does not alert Slack for HttpException 4xx', () => {
+  it('does not emit system.incident event for HttpException 4xx', () => {
     filter.catch(new HttpException('nope', HttpStatus.BAD_REQUEST), host);
 
-    expect(slackService.sendProductionAlert).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
     expect(reply).toHaveBeenCalledWith(
       {},
       expect.objectContaining({ statusCode: HttpStatus.BAD_REQUEST }),

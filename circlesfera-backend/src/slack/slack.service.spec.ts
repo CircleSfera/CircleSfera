@@ -65,4 +65,24 @@ describe('SlackService', () => {
       ).resolves.not.toThrow();
     });
   });
+
+  describe('handleSystemIncident', () => {
+    it('delegates system incident events to sendProductionAlert', async () => {
+      const spy = vi
+        .spyOn(service, 'sendProductionAlert')
+        .mockResolvedValue(undefined);
+
+      await service.handleSystemIncident({
+        message: 'Fatal 500 error',
+        stack: 'Error at foo.ts:10',
+        path: '/api/v1/critical',
+      });
+
+      expect(spy).toHaveBeenCalledWith({
+        message: 'Fatal 500 error',
+        stack: 'Error at foo.ts:10',
+        path: '/api/v1/critical',
+      });
+    });
+  });
 });
