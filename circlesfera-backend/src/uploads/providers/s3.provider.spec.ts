@@ -24,11 +24,83 @@ describe('S3Provider', () => {
   });
 
   it('should generate a CDN URL when CDN_URL is provided', async () => {
-    // We mock the upload part as it involves complex S3 client mocking
-    // For now we just test the URL logic if we were to expose it or via upload result
-    // Since upload is private and returns the URL, we can check it
-
-    // This is a simplified test as the real S3 client is hard to mock without extra libs
     expect(provider).toBeDefined();
+  });
+
+  describe('delete', () => {
+    it('should delete object from S3 successfully', async () => {
+      const sendSpy = vi
+        .spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({} as any);
+
+      await provider.delete('https://cdn.example.com/circlesfera/item.jpg');
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'circlesfera/item.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('should treat NoSuchKey as idempotent success', async () => {
+      const noSuchKeyErr = new Error('NoSuchKey');
+      noSuchKeyErr.name = 'NoSuchKey';
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
+        noSuchKeyErr,
+      );
+
+      await expect(
+        provider.delete('https://cdn.example.com/circlesfera/missing.jpg'),
+      ).resolves.not.toThrow();
+    });
+
+    it('should re-throw unexpected S3 network/5xx errors to enable retries', async () => {
+      const serverErr = new Error('Internal S3 Error');
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
+        serverErr,
+      );
+
+      await expect(
+        provider.delete('https://cdn.example.com/circlesfera/broken.jpg'),
+      ).rejects.toThrow('Internal S3 Error');
+    });
+
+    it('should return early without calling S3 if key cannot be extracted', async () => {
+      const sendSpy = vi.spyOn((provider as any).s3Client, 'send');
+
+      await provider.delete('');
+      expect(sendSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('listFiles', () => {
+    it('should list S3 objects and format them with CDN URLs', async () => {
+      const now = new Date();
+      vi.spyOn((provider as any).s3Client, 'send').mockResolvedValueOnce({
+        Contents: [
+          { Key: 'circlesfera/video1.mp4', LastModified: now, Size: 1048576 },
+        ],
+      } as any);
+
+      const files = await provider.listFiles();
+      expect(files).toHaveLength(1);
+      expect(files[0].url).toBe(
+        'https://cdn.example.com/circlesfera/video1.mp4',
+      );
+      expect(files[0].lastModified).toEqual(now);
+      expect(files[0].sizeBytes).toBe(1048576);
+    });
+
+    it('should return empty list on error', async () => {
+      vi.spyOn((provider as any).s3Client, 'send').mockRejectedValueOnce(
+        new Error('AccessDenied'),
+      );
+
+      const files = await provider.listFiles();
+      expect(files).toEqual([]);
+    });
   });
 });

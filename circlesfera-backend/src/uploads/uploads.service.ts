@@ -11,7 +11,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
+import type { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import { OutboxService } from '../outbox/outbox.service.js';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
@@ -42,6 +44,12 @@ export class UploadsService {
     private readonly signatureValidator: MediaSignatureValidator,
     @InjectQueue('video-transcoding') private readonly videoQueue: Queue,
     @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    @InjectQueue('media-cleanup')
+    private readonly mediaCleanupQueue?: Queue,
+    @Optional()
+    @Inject(OutboxService)
+    private readonly outboxService?: OutboxService,
   ) {}
 
   /**
@@ -206,27 +214,98 @@ export class UploadsService {
     await this.storageProvider.delete(fileUrl);
   }
 
+  /**
+   * Schedules durable deletion for a batch of media URLs.
+   * - If a Prisma transaction client is provided and OutboxService is available,
+   *   the cleanup event is persisted transactionally to the outbox.
+   * - Otherwise, if the mediaCleanupQueue is available, it is enqueued directly to BullMQ
+   *   with exponential backoff and up to 5 retry attempts.
+   * - If neither queue is available, falls back to direct deletion.
+   */
+  async scheduleMediaDeletion(
+    mediaUrls: string[],
+    options?: { tx?: Prisma.TransactionClient },
+  ): Promise<void> {
+    if (!mediaUrls || mediaUrls.length === 0) {
+      return;
+    }
+
+    const validUrls = Array.from(
+      new Set(
+        mediaUrls
+          .filter(
+            (u): u is string => typeof u === 'string' && u.trim().length > 0,
+          )
+          .map((u) => u.trim()),
+      ),
+    );
+
+    if (validUrls.length === 0) {
+      return;
+    }
+
+    // 1. Transactional Outbox path if within transaction
+    if (options?.tx && this.outboxService) {
+      await this.outboxService.enqueue(options.tx, {
+        queueName: 'media-cleanup',
+        eventName: 'delete-media-batch',
+        payload: { mediaUrls: validUrls },
+        options: {
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 2000 },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      });
+      this.logger.log(
+        `Enqueued durable media deletion for ${validUrls.length} files via Outbox transaction.`,
+      );
+      return;
+    }
+
+    // 2. Direct BullMQ queue path
+    if (this.mediaCleanupQueue) {
+      await this.mediaCleanupQueue.add(
+        'delete-media-batch',
+        { mediaUrls: validUrls },
+        {
+          attempts: 5,
+          backoff: {
+            type: 'exponential',
+            delay: 2000,
+          },
+          removeOnComplete: {
+            count: 500,
+            age: 24 * 3600,
+          },
+          removeOnFail: {
+            count: 1000,
+            age: 7 * 24 * 3600,
+          },
+        },
+      );
+      this.logger.log(
+        `Enqueued durable media deletion for ${validUrls.length} files to BullMQ media-cleanup queue.`,
+      );
+      return;
+    }
+
+    // 3. Fallback when queues are not configured (e.g. lightweight test environments)
+    this.logger.debug(
+      `Queue not available; deleting ${validUrls.length} media files directly.`,
+    );
+    for (const url of validUrls) {
+      await this.deleteFile(url).catch((err) => {
+        this.logger.warn(`Fallback delete failed for ${url}: ${err?.message}`);
+      });
+    }
+  }
+
   @OnEvent('media.delete_batch', { async: true })
   async handleMediaDeleteBatch(payload: { mediaUrls: string[] }) {
     this.logger.log(
-      `Processing media.delete_batch for ${payload.mediaUrls.length} files...`,
+      `Processing media.delete_batch for ${payload.mediaUrls?.length ?? 0} files...`,
     );
-
-    // We intentionally don't await this so it runs completely in the background,
-    // Though the 'async: true' flag in @OnEvent already helps with this.
-    Promise.allSettled(
-      payload.mediaUrls.map((url) => this.deleteFile(url)),
-    ).then((results) => {
-      const failures = results.filter((r) => r.status === 'rejected');
-      if (failures.length > 0) {
-        this.logger.warn(
-          `Failed to delete ${failures.length} media files during batch deletion.`,
-        );
-      } else {
-        this.logger.log(
-          `Successfully deleted all ${payload.mediaUrls.length} media files.`,
-        );
-      }
-    });
+    await this.scheduleMediaDeletion(payload.mediaUrls);
   }
 }

@@ -52,9 +52,15 @@ export class CloudinaryProvider implements StorageProvider {
       const filenameWithExt = parts[parts.length - 1];
       const publicId = `circlesfera/${filenameWithExt.split('.')[0]}`;
 
-      await cloudinary.uploader.destroy(publicId);
-    } catch (error) {
+      const result = await cloudinary.uploader.destroy(publicId);
+      if (result && result.result !== 'ok' && result.result !== 'not found') {
+        throw new Error(
+          `Cloudinary deletion failed with result: ${result.result}`,
+        );
+      }
+    } catch (error: unknown) {
       console.error('Failed to delete from Cloudinary:', error);
+      throw error;
     }
   }
 }

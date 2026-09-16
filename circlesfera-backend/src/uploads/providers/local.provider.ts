@@ -2,7 +2,10 @@ import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
-import { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import {
+  StorageFileMeta,
+  StorageProvider,
+} from '../interfaces/storage-provider.interface.js';
 import type { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
 
@@ -78,11 +81,51 @@ export class LocalStorageProvider implements StorageProvider {
     try {
       const filename = path.basename(url);
       const filepath = path.join(this.uploadDir, filename);
-      if (fs.existsSync(filepath)) {
-        await fs.promises.unlink(filepath);
+      await fs.promises.unlink(filepath);
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') {
+        return;
       }
-    } catch (error) {
-      console.error('Failed to delete local file:', error);
+      this.logger.error(
+        `Failed to delete local file ${url}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  async listFiles(): Promise<StorageFileMeta[]> {
+    try {
+      const filenames = await fs.promises.readdir(this.uploadDir);
+      const results: StorageFileMeta[] = [];
+
+      for (const filename of filenames) {
+        if (filename.startsWith('.')) {
+          continue;
+        }
+        const filepath = path.join(this.uploadDir, filename);
+        try {
+          const stat = await fs.promises.stat(filepath);
+          if (stat.isFile()) {
+            results.push({
+              url: `/uploads/${filename}`,
+              lastModified: stat.mtime,
+              sizeBytes: stat.size,
+            });
+          }
+        } catch {
+          // File was removed concurrently
+        }
+      }
+
+      return results;
+    } catch (error: any) {
+      if (error?.code === 'ENOENT') {
+        return [];
+      }
+      this.logger.error(
+        `Failed to list files in ${this.uploadDir}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
     }
   }
 }

@@ -1,9 +1,16 @@
 import { randomUUID } from 'node:crypto';
-import { DeleteObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  ListObjectsV2Command,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { StorageProvider } from '../interfaces/storage-provider.interface.js';
+import {
+  StorageFileMeta,
+  StorageProvider,
+} from '../interfaces/storage-provider.interface.js';
 import { UploadedFile } from '../interfaces/uploaded-file.interface.js';
 import { mimetypeToExt } from '../mime-to-ext.js';
 
@@ -109,8 +116,48 @@ export class S3Provider implements StorageProvider {
           Key: key,
         }),
       );
-    } catch (error) {
+    } catch (error: any) {
+      if (
+        error?.name === 'NoSuchKey' ||
+        error?.$metadata?.httpStatusCode === 404
+      ) {
+        return;
+      }
       this.logger.error(`S3 Delete Error for ${url}:`, error);
+      throw error;
+    }
+  }
+
+  async listFiles(): Promise<StorageFileMeta[]> {
+    try {
+      const response = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: 'circlesfera/',
+        }),
+      );
+
+      if (!response.Contents) {
+        return [];
+      }
+
+      return response.Contents.map((item) => {
+        const key = item.Key ?? '';
+        const url = this.cdnUrl
+          ? `${this.cdnUrl}/${key}`
+          : `https://${this.bucket}.s3.${this.region}.amazonaws.com/${key}`;
+
+        return {
+          url,
+          lastModified: item.LastModified,
+          sizeBytes: item.Size,
+        };
+      });
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to list files in S3 bucket ${this.bucket}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return [];
     }
   }
 }
