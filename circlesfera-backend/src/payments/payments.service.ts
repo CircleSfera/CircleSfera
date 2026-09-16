@@ -1,4 +1,7 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  type PaymentLiveGiftCompletedEvent,
+} from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -382,7 +385,7 @@ export class PaymentsService {
   // Idempotent: PROCESSED events are skipped; PENDING/FAILED are reprocessed.
   // On handler failure marks FAILED and rethrows (controller returns 5xx).
   // Includes lease-based crash recovery and duplicate delivery protection.
-  async processWebhookEvent(event: any) {
+  async processWebhookEvent(event: Stripe.Event) {
     const existing = await this.prisma.webhookEvent.findUnique({
       where: { externalId: event.id },
     });
@@ -535,7 +538,9 @@ export class PaymentsService {
       }
 
       try {
-        await this.dispatchStripeEvent(webhook.payload);
+        await this.dispatchStripeEvent(
+          webhook.payload as unknown as Stripe.Event,
+        );
         await this.prisma.webhookEvent.update({
           where: { id: webhook.id },
           data: { status: 'PROCESSED', processedAt: new Date() },
@@ -560,7 +565,7 @@ export class PaymentsService {
     return recoveredCount;
   }
 
-  private async dispatchStripeEvent(event: any) {
+  private async dispatchStripeEvent(event: Stripe.Event) {
     const { type, data } = event;
 
     this.logger.log(`Processing Stripe webhook event: ${type}`);
@@ -766,7 +771,7 @@ export class PaymentsService {
               : session.payment_intent?.id || session.id;
 
           if (clientReferenceId && messageId && creatorId) {
-            await this.prisma.$transaction(async (tx: any) => {
+            await this.prisma.$transaction(async (tx) => {
               await tx.messageUnlock.upsert({
                 where: {
                   userId_messageId: { userId: clientReferenceId, messageId },
@@ -901,7 +906,7 @@ export class PaymentsService {
 
           if (clientReferenceId && liveGiftId && streamId && creatorId) {
             if (this.eventEmitter) {
-              this.eventEmitter.emit('payment.live_gift_completed', {
+              const payload: PaymentLiveGiftCompletedEvent['payload'] = {
                 liveGiftId,
                 senderId: clientReferenceId,
                 streamId,
@@ -910,7 +915,8 @@ export class PaymentsService {
                 amountCents: amount,
                 currency: session.currency || 'eur',
                 paymentIntentId,
-              });
+              };
+              this.eventEmitter.emit('payment.live_gift_completed', payload);
             }
             this.logger.log(
               `Successfully processed Live Gift ${liveGiftId} from ${clientReferenceId}`,

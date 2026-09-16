@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { AdminAction, type Prisma, type TicketStatus } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import type Stripe from 'stripe';
 import { AIService } from '../ai/ai.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
@@ -460,7 +461,7 @@ export class AdminOpsService {
       data: { status: 'PENDING' },
     });
 
-    const payload = stored.payload as { id?: string };
+    const payload = stored.payload as unknown as Stripe.Event;
     if (!payload?.id) {
       throw new BadRequestException('Stored payload missing Stripe event id');
     }

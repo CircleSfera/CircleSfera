@@ -1,4 +1,7 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  type PaymentLiveGiftCompletedEvent,
+} from '@circlesfera/shared';
 import {
   BadRequestException,
   ForbiddenException,
@@ -553,16 +556,9 @@ export class LiveService {
   // Called from Stripe webhook after successful payment.
   // Persists ledger rows, updates earnings, broadcasts to the live room.
   @OnEvent('payment.live_gift_completed')
-  async handleLiveGiftPayment(payload: {
-    liveGiftId: string;
-    senderId: string;
-    streamId: string;
-    giftId: string;
-    creatorId: string;
-    amountCents: number;
-    currency: string;
-    paymentIntentId: string;
-  }) {
+  async handleLiveGiftPayment(
+    payload: PaymentLiveGiftCompletedEvent['payload'],
+  ) {
     this.logger.log(
       `Received payment.live_gift_completed for ${payload.liveGiftId}`,
     );

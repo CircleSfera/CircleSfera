@@ -1,6 +1,7 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionStatus } from '@prisma/client';
+import type Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -9,6 +10,8 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PaymentsService } from './payments.service.js';
+
+const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
 describe('PaymentsService', () => {
   let service: PaymentsService;
@@ -115,7 +118,9 @@ describe('PaymentsService', () => {
         data: {},
       };
 
-      await expect(service.processWebhookEvent(event)).resolves.toBeUndefined();
+      await expect(
+        service.processWebhookEvent(asEvent(event)),
+      ).resolves.toBeUndefined();
       expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
     });
 
@@ -140,7 +145,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await expect(service.processWebhookEvent(event)).rejects.toThrow(
+      await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
         'db down',
       );
       expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
@@ -177,7 +182,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
       expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
       expect(prisma.promotion.update).toHaveBeenCalled();
       expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
@@ -214,7 +219,7 @@ describe('PaymentsService', () => {
         name: 'Elite',
       });
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.upsert).toHaveBeenCalled();
 
@@ -243,7 +248,7 @@ describe('PaymentsService', () => {
         stripeSubscriptionId: 'sub_456',
       });
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
         where: { stripeSubscriptionId: 'sub_456' },
@@ -271,7 +276,7 @@ describe('PaymentsService', () => {
         stripeSubscriptionId: 'sub_789',
       });
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.platformSubscription.updateMany).toHaveBeenCalledWith({
         where: { stripeSubscriptionId: 'sub_789' },
@@ -301,7 +306,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.promotion.update).toHaveBeenCalledWith({
         where: { id: 'promo_test_id' },
@@ -332,7 +337,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(usersService.handleIdentityWebhook).toHaveBeenCalledWith(
         event.data.object,
@@ -361,7 +366,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(prisma.postUnlock.upsert).toHaveBeenCalledWith(
@@ -419,7 +424,7 @@ describe('PaymentsService', () => {
         .mockResolvedValueOnce({ id: 'creator-profile-2' })
         .mockResolvedValueOnce({ id: 'tipper-profile-1' });
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.$transaction).toHaveBeenCalled();
       expect(prisma.transaction.create).toHaveBeenCalledWith(
@@ -461,7 +466,7 @@ describe('PaymentsService', () => {
         },
       };
 
-      await service.processWebhookEvent(event);
+      await service.processWebhookEvent(asEvent(event));
 
       expect(prisma.storyUnlock.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -488,15 +493,17 @@ describe('PaymentsService', () => {
         stripePaymentIntentId: 'pi_story_1',
       });
 
-      await service.processWebhookEvent({
-        id: 'evt_refund_1',
-        type: 'charge.refunded',
-        data: {
-          object: {
-            payment_intent: 'pi_story_1',
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_refund_1',
+          type: 'charge.refunded',
+          data: {
+            object: {
+              payment_intent: 'pi_story_1',
+            },
           },
-        },
-      });
+        }),
+      );
 
       expect(prisma.transaction.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -512,17 +519,19 @@ describe('PaymentsService', () => {
     it('8d. should sync Connect flags on account.updated', async () => {
       (prisma.user.findFirst as any).mockResolvedValue({ id: 'creator1' });
 
-      await service.processWebhookEvent({
-        id: 'evt_acct_1',
-        type: 'account.updated',
-        data: {
-          object: {
-            id: 'acct_1',
-            charges_enabled: true,
-            capabilities: { transfers: 'active' },
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_acct_1',
+          type: 'account.updated',
+          data: {
+            object: {
+              id: 'acct_1',
+              charges_enabled: true,
+              capabilities: { transfers: 'active' },
+            },
           },
-        },
-      });
+        }),
+      );
 
       expect(prisma.monetization.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -543,20 +552,22 @@ describe('PaymentsService', () => {
         prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>
       ).mockResolvedValue({});
 
-      await service.processWebhookEvent({
-        id: 'evt_po_1',
-        type: 'payout.paid',
-        account: 'acct_1',
-        data: {
-          object: {
-            id: 'po_1',
-            amount: 2500,
-            currency: 'eur',
-            status: 'paid',
-            arrival_date: 1_714_521_600,
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_po_1',
+          type: 'payout.paid',
+          account: 'acct_1',
+          data: {
+            object: {
+              id: 'po_1',
+              amount: 2500,
+              currency: 'eur',
+              status: 'paid',
+              arrival_date: 1_714_521_600,
+            },
           },
-        },
-      });
+        }),
+      );
 
       expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -581,20 +592,22 @@ describe('PaymentsService', () => {
           id: 'creator1',
         },
       );
-      await service.processWebhookEvent({
-        id: 'evt_po_2',
-        type: 'payout.created',
-        account: 'acct_1',
-        data: {
-          object: {
-            id: 'po_2',
-            amount: 100,
-            currency: 'eur',
-            status: 'in_transit',
-            arrival_date: 1_714_521_600,
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_po_2',
+          type: 'payout.created',
+          account: 'acct_1',
+          data: {
+            object: {
+              id: 'po_2',
+              amount: 100,
+              currency: 'eur',
+              status: 'in_transit',
+              arrival_date: 1_714_521_600,
+            },
           },
-        },
-      });
+        }),
+      );
       expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({ status: 'pending' }),
@@ -606,12 +619,14 @@ describe('PaymentsService', () => {
         null,
       );
       (prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>).mockClear();
-      await service.processWebhookEvent({
-        id: 'evt_po_3',
-        type: 'payout.failed',
-        account: 'acct_unknown',
-        data: { object: { id: 'po_3', amount: 1, status: 'failed' } },
-      });
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_po_3',
+          type: 'payout.failed',
+          account: 'acct_unknown',
+          data: { object: { id: 'po_3', amount: 1, status: 'failed' } },
+        }),
+      );
       expect(prisma.stripePayoutLog.upsert).not.toHaveBeenCalled();
     });
 
@@ -622,7 +637,9 @@ describe('PaymentsService', () => {
         data: {},
       };
 
-      await expect(service.processWebhookEvent(event)).resolves.toBeUndefined();
+      await expect(
+        service.processWebhookEvent(asEvent(event)),
+      ).resolves.toBeUndefined();
       expect(prisma.webhookEvent.create).toHaveBeenCalled(); // Should log event
       // Should not throw, should just log and return
     });
