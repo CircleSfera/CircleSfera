@@ -1,7 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AIService } from '../ai/ai.service.js';
+import { AIModule } from '../ai/ai.module.js';
 import { ExperimentsModule } from '../experiments/experiments.module.js';
 import { FeedController } from './feed.controller.js';
 import { FeedService } from './feed.service.js';
@@ -14,6 +14,7 @@ import { FeedFanoutProcessor } from './processors/feed-fanout.processor.js';
   imports: [
     ConfigModule,
     ExperimentsModule,
+    AIModule,
     BullModule.registerQueue({
       name: 'feed-fanout',
     }),
@@ -21,7 +22,6 @@ import { FeedFanoutProcessor } from './processors/feed-fanout.processor.js';
   controllers: [FeedController, FeedPreferencesController],
   providers: [
     FeedService,
-    AIService,
     FeedInboxService,
     FeedFanoutProcessor,
     FeedPreferencesService,
