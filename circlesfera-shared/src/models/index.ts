@@ -163,13 +163,6 @@ export interface Comment {
   };
 }
 
-export interface CommentLike {
-  id: string;
-  commentId: string;
-  profileId: string;
-  createdAt: Date | string;
-}
-
 export interface Story {
   id: string;
   profileId: string;
@@ -316,45 +309,6 @@ export interface Purchase {
   updatedAt: Date | string;
   seller?: ProfileWithUser;
   buyer?: ProfileWithUser;
-}
-
-export interface WebhookEvent {
-  id: string;
-  provider: string;
-  externalId: string;
-  payload: any;
-  status: 'PENDING' | 'PROCESSED' | 'FAILED';
-  processedAt?: Date | string | null;
-  createdAt: Date | string;
-}
-
-export interface StoryElement {
-  id: string;
-  /** Composer canvas layer. poll/qna persist via interactive API after story create. */
-  type: 'text' | 'sticker' | 'poll' | 'qna';
-  content: string;
-  x: number;
-  y: number;
-  scale: number;
-  rotation: number;
-  color?: string;
-  bg?: string;
-  textStyle?:
-    | 'classic'
-    | 'box'
-    | 'box-shadow'
-    | 'neon'
-    | 'outline'
-    | 'shadow'
-    | 'retro';
-  width?: number;
-  align?: 'left' | 'center' | 'right';
-  fontFamily?: string;
-  fontSize?: number;
-  letterSpacing?: number;
-  opacity?: number;
-  gradientColors?: [string, string];
-  zIndex?: number;
 }
 
 export interface SuggestedUser {

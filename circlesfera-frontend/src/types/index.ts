@@ -20,12 +20,11 @@ import type {
   Report as IReport,
   SearchResult as ISearchResult,
   Story as IStory,
-  StoryElement as IStoryElement,
   SuggestedUser as ISuggestedUser,
   UpdateProfileDto as IUpdateProfileDto,
   User as IUser,
-  WebhookEvent as IWebhookEvent,
 } from '@circlesfera/shared';
+import type { StoryElement } from './story-element.types';
 
 export type User = IUser;
 export type Profile = IProfile & { isVerified?: boolean };
@@ -68,8 +67,16 @@ export type Place = IPlace;
 export type PlaceMapPin = IPlaceMapPin;
 export type PlaceDetail = IPlaceDetail;
 export type Purchase = IPurchase;
-export type WebhookEvent = IWebhookEvent;
-export type StoryElement = IStoryElement;
+export interface WebhookEvent {
+  id: string;
+  provider: string;
+  externalId: string;
+  payload: unknown;
+  status: 'PENDING' | 'PROCESSED' | 'FAILED';
+  processedAt?: Date | string | null;
+  createdAt: Date | string;
+}
+export type { StoryElement };
 export type SuggestedUser = ISuggestedUser;
 export type PlatformPlanDto = IPlatformPlanDto;
 
