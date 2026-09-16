@@ -1071,7 +1071,7 @@ export class PaymentsService {
           where: { stripeSubscriptionId: subscription.id },
           select: { userId: true },
         });
-        if (platformSub) {
+        if (platformSub?.userId) {
           await this.usersService.syncUserTier(platformSub.userId);
         }
 
@@ -1118,7 +1118,7 @@ export class PaymentsService {
             where: { stripeSubscriptionId: subscriptionId },
             select: { userId: true },
           });
-          if (platformSub) {
+          if (platformSub?.userId) {
             await this.usersService.syncUserTier(platformSub.userId);
           }
         }

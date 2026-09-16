@@ -359,7 +359,7 @@ export class AdminStatsService {
     return {
       data: data.map((payout) => ({
         ...payout,
-        user: withPrimaryProfile(payout.user),
+        user: payout.user ? withPrimaryProfile(payout.user) : null,
       })),
       meta: { total, page, limit },
     };

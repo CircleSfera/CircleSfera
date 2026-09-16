@@ -5,6 +5,7 @@ import type { Prisma } from '@prisma/client';
 import type { Job, Queue } from 'bullmq';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { getFinancialAuditRecords } from './data-retention.constants.js';
 import {
   USER_HARD_DELETED_EVENT,
   UserHardDeletedEvent,
@@ -145,6 +146,30 @@ export class AccountDeletionProcessor extends WorkerHost {
           );
         }
       }
+
+      // Phase 2.5: Financial Record Retention Inventory
+      // Records classified as FINANCIAL_AUDIT survive user hard-deletion.
+      // Their userId FK is set to NULL (onDelete: SetNull) when the User row
+      // is deleted, preserving the row for fiscal compliance (7-year window).
+      //
+      //   Transaction        — senderId/receiverId SetNull (pre-existing)
+      //   StripePayoutLog    — userId SetNull (migration 20260916220736)
+      //   PlatformSubscription — userId SetNull (migration 20260916220736)
+      //
+      // Cascade-deleted (OPERATIONAL, no retention obligation):
+      //   Monetization, Promotion, DataExportRequest
+      //
+      // This log entry provides an auditable record of the retention decision.
+      const financialAuditRecords = getFinancialAuditRecords();
+      this.logger.log(
+        `Financial retention inventory for user ${userId}: ` +
+          financialAuditRecords
+            .map(
+              (r) =>
+                `${r.label} (${r.model}) — ${r.retentionDays / 365}yr retention, disposal: ${r.disposalMethod}`,
+            )
+            .join(' | '),
+      );
 
       // Phase 3: Event Emission with explicit ordering & durable payloads
       const profileIds = (user.profiles ?? []).map((p) => p.id);

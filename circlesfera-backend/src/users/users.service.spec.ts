@@ -2,6 +2,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from './users.service.js';
 
@@ -9,6 +10,9 @@ describe('UsersService', () => {
   let service: UsersService;
 
   const mockPrismaService = {
+    $transaction: vi
+      .fn()
+      .mockImplementation((cb: any) => cb(mockPrismaService)),
     user: {
       findUnique: vi.fn(),
       findMany: vi.fn(),
@@ -37,12 +41,18 @@ describe('UsersService', () => {
     getJob: vi.fn(),
   };
 
+  const mockOutboxService = {
+    enqueue: vi.fn().mockResolvedValue({ id: 'outbox-1' }),
+    triggerImmediatePublish: vi.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
+        { provide: OutboxService, useValue: mockOutboxService },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -52,6 +62,9 @@ describe('UsersService', () => {
 
     service = module.get<UsersService>(UsersService);
     vi.clearAllMocks();
+    mockPrismaService.$transaction.mockImplementation((cb: any) =>
+      cb(mockPrismaService),
+    );
   });
 
   it('should be defined', () => {
@@ -112,6 +125,57 @@ describe('UsersService', () => {
       data: { suspendedUntil: null },
     });
     expect(result.isActive).toBe(true);
+  });
+
+  describe('scheduleDeletion', () => {
+    it('atomically enqueues the hard-delete job via OutboxService inside a transaction', async () => {
+      mockPrismaService.user.update.mockResolvedValue({});
+
+      const result = await service.scheduleDeletion('user-abc');
+
+      // Returns the scheduled date (30 days from now)
+      expect(result).toBeInstanceOf(Date);
+      const thirtyDays = 30 * 24 * 60 * 60 * 1000;
+      expect(result.getTime()).toBeGreaterThanOrEqual(
+        Date.now() + thirtyDays - 5000,
+      );
+
+      // DB update called inside transaction
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'user-abc' },
+          data: expect.objectContaining({
+            isActive: false,
+            scheduledDeletionAt: result,
+          }),
+        }),
+      );
+
+      // Outbox enqueue called inside transaction (not usersQueue.add)
+      expect(mockOutboxService.enqueue).toHaveBeenCalledWith(
+        mockPrismaService, // tx = mock prisma (passed through $transaction cb)
+        expect.objectContaining({
+          queueName: 'users-processing',
+          eventName: 'hard-delete-user',
+          payload: { userId: 'user-abc' },
+          options: expect.objectContaining({
+            jobId: 'delete-user-abc',
+          }),
+        }),
+      );
+
+      // Immediate publish triggered after commit
+      expect(mockOutboxService.triggerImmediatePublish).toHaveBeenCalledOnce();
+
+      // Direct queue.add must NOT be called from scheduleDeletion
+      expect(mockUsersQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('uses $transaction to wrap both DB update and outbox enqueue', async () => {
+      mockPrismaService.user.update.mockResolvedValue({});
+      await service.scheduleDeletion('user-xyz');
+      expect(mockPrismaService.$transaction).toHaveBeenCalledOnce();
+    });
   });
 
   describe('syncUserTier', () => {
