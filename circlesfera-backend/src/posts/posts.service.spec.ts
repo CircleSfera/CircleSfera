@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { getQueueToken } from '@nestjs/bullmq';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
@@ -9,6 +7,9 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
+import { PostDistributionService } from './services/post-distribution.service.js';
+import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
+import { PostPaywallService } from './services/post-paywall.service.js';
 
 describe('PostsService', () => {
   let service: PostsService;
@@ -32,6 +33,7 @@ describe('PostsService', () => {
     },
     follow: {
       findMany: vi.fn(),
+      findUnique: vi.fn(),
     },
     postMedia: {
       createMany: vi.fn(),
@@ -43,22 +45,6 @@ describe('PostsService', () => {
     postHashtag: {
       create: vi.fn(),
     },
-    promotion: {
-      findMany: vi.fn(),
-    },
-    creatorSubscription: {
-      findMany: vi.fn(),
-    },
-    unlockedPost: {
-      findMany: vi.fn(),
-    },
-    transaction: {
-      findMany: vi.fn(),
-    },
-  };
-
-  const mockEventEmitter = {
-    emit: vi.fn(),
   };
 
   const mockAIService = {
@@ -70,29 +56,42 @@ describe('PostsService', () => {
     }),
   };
 
+  const mockPostPaywallService = {
+    applyPaywall: vi.fn(async (posts) => posts),
+  };
+
+  const mockPostDistributionService = {
+    dispatchPostPublished: vi.fn().mockResolvedValue(undefined),
+  };
+
+  const mockPostMediaCleanupService = {
+    cleanupMedia: vi.fn().mockResolvedValue(undefined),
+  };
+
   beforeEach(async () => {
+    vi.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: AIService, useValue: mockAIService },
-        { provide: AnalyticsService, useValue: { trackEvent: vi.fn() } },
         {
-          provide: getQueueToken('ai-processing'),
-          useValue: { add: vi.fn() },
-        },
-        {
-          provide: getQueueToken('posts-processing'),
-          useValue: { add: vi.fn() },
-        },
-        {
-          provide: getQueueToken('feed-fanout'),
-          useValue: { add: vi.fn() },
+          provide: AnalyticsService,
+          useValue: { trackPostView: vi.fn().mockResolvedValue(undefined) },
         },
         {
           provide: SystemSettingsService,
           useValue: { isEnabled: vi.fn(async () => true) },
+        },
+        { provide: PostPaywallService, useValue: mockPostPaywallService },
+        {
+          provide: PostDistributionService,
+          useValue: mockPostDistributionService,
+        },
+        {
+          provide: PostMediaCleanupService,
+          useValue: mockPostMediaCleanupService,
         },
       ],
     }).compile();
@@ -120,7 +119,6 @@ describe('PostsService', () => {
             .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        postEmbedding: { create: vi.fn() },
         hashtag: { upsert: vi.fn().mockResolvedValue({ id: 'tag-1' }) },
         postHashtag: { create: vi.fn() },
       };
@@ -132,7 +130,6 @@ describe('PostsService', () => {
           callback(mockTx as unknown as Partial<PrismaService>),
       );
 
-      mockPrismaService.profile.findMany.mockResolvedValue([{ id: 'user-2' }]);
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world @user2',
@@ -155,13 +152,12 @@ describe('PostsService', () => {
         }),
       );
 
-      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
-        'notification.create',
-        expect.objectContaining({
-          recipientId: 'user-2',
-          type: 'MENTION',
-        }),
-      );
+      expect(
+        mockPostDistributionService.dispatchPostPublished,
+      ).toHaveBeenCalledWith(expect.objectContaining({ id: 'post-1' }), {
+        caption: 'Hello #world @user2',
+        uniqueMentions: ['user2'],
+      });
     });
 
     it('should create post with multiple media items', async () => {
@@ -237,16 +233,22 @@ describe('PostsService', () => {
   });
 
   describe('remove', () => {
-    it('should delete post if user is author', async () => {
+    it('should delete post and trigger media cleanup', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({
         id: 'post-1',
         profileId: 'me',
+        media: [{ url: 'https://cdn/img.jpg' }],
       });
 
       mockPrismaService.post.delete.mockResolvedValue({ id: 'post-1' });
 
       await service.remove('post-1');
-      expect(mockPrismaService.post.delete).toHaveBeenCalled();
+      expect(mockPrismaService.post.delete).toHaveBeenCalledWith({
+        where: { id: 'post-1' },
+      });
+      expect(mockPostMediaCleanupService.cleanupMedia).toHaveBeenCalledWith([
+        { url: 'https://cdn/img.jpg' },
+      ]);
     });
 
     it('throws when the post is missing', async () => {
@@ -254,11 +256,12 @@ describe('PostsService', () => {
       mockPrismaService.post.delete.mockClear();
       await expect(service.remove('missing')).rejects.toThrow('Post not found');
       expect(mockPrismaService.post.delete).not.toHaveBeenCalled();
+      expect(mockPostMediaCleanupService.cleanupMedia).not.toHaveBeenCalled();
     });
   });
 
   describe('findAll', () => {
-    it('should return paginated posts', async () => {
+    it('should return paginated posts and invoke paywall service', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([
         { id: '1', type: 'POST', profile: { profile: {} }, likes: [] },
       ]);
@@ -267,6 +270,7 @@ describe('PostsService', () => {
       const result = await service.findAll({ page: 1, limit: 10 });
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
+      expect(mockPostPaywallService.applyPaywall).toHaveBeenCalled();
     });
   });
 
@@ -285,6 +289,7 @@ describe('PostsService', () => {
       });
       expect(result.data).toHaveLength(1);
       expect(mockPrismaService.post.findMany).toHaveBeenCalled();
+      expect(mockPostPaywallService.applyPaywall).toHaveBeenCalled();
     });
   });
 });

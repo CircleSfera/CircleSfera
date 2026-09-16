@@ -7,6 +7,9 @@ import { UploadsModule } from '../uploads/uploads.module.js';
 import { PostsController } from './posts.controller.js';
 import { PostsProcessor } from './posts.processor.js';
 import { PostsService } from './posts.service.js';
+import { PostDistributionService } from './services/post-distribution.service.js';
+import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
+import { PostPaywallService } from './services/post-paywall.service.js';
 
 @Module({
   imports: [
@@ -22,7 +25,18 @@ import { PostsService } from './posts.service.js';
     UploadsModule,
   ],
   controllers: [PostsController],
-  providers: [PostsService, PostsProcessor],
-  exports: [PostsService],
+  providers: [
+    PostsService,
+    PostsProcessor,
+    PostPaywallService,
+    PostDistributionService,
+    PostMediaCleanupService,
+  ],
+  exports: [
+    PostsService,
+    PostPaywallService,
+    PostDistributionService,
+    PostMediaCleanupService,
+  ],
 })
 export class PostsModule {}

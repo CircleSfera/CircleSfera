@@ -1,5 +1,3 @@
-// Trigger re-index
-import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
   ForbiddenException,
@@ -7,15 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
-  $Enums,
   ContentRating,
   type PostType,
   type Prisma,
   Visibility,
 } from '@prisma/client';
-import { Queue } from 'bullmq';
 import { AIService } from '../ai/ai.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import {
@@ -34,24 +29,26 @@ import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constant
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
-
-const NotificationType = $Enums.NotificationType;
+import { PostDistributionService } from './services/post-distribution.service.js';
+import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
+import { PostPaywallService } from './services/post-paywall.service.js';
 
 // Core service for post CRUD, feed generation, pagination, and hashtag/mention extraction.
-// Integrates with BullMQ for async AI embedding and NotificationsService for mention alerts.
 @Injectable()
 export class PostsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    private readonly eventEmitter: EventEmitter2,
-    @InjectQueue('ai-processing') private readonly aiQueue: Queue,
-    @InjectQueue('posts-processing') private readonly postsQueue: Queue,
     @Inject(AnalyticsService)
     private readonly analyticsService: AnalyticsService,
-    @InjectQueue('feed-fanout') private readonly feedFanoutQueue: Queue,
     @Inject(AIService) private readonly aiService: AIService,
     @Inject(SystemSettingsService)
     private readonly systemSettings: SystemSettingsService,
+    @Inject(PostPaywallService)
+    private readonly postPaywallService: PostPaywallService,
+    @Inject(PostDistributionService)
+    private readonly postDistributionService: PostDistributionService,
+    @Inject(PostMediaCleanupService)
+    private readonly postMediaCleanupService: PostMediaCleanupService,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -250,59 +247,10 @@ export class PostsService {
       return post;
     }
 
-    // Generate and store embedding for the post in the background
-    await this.aiQueue.add('generate-embedding', {
-      postId: post.id,
-      text: dto.caption || '',
+    await this.postDistributionService.dispatchPostPublished(post, {
+      caption: dto.caption,
+      uniqueMentions,
     });
-
-    // Moderate content in the background
-    await this.aiQueue.add('moderate-content', {
-      targetId: post.id,
-      text: dto.caption || '',
-      targetType: 'POST',
-      mediaUrls: post.media.map((m) => m.thumbnailUrl || m.url),
-    });
-
-    // Generate alt-text for accessibility in the background
-    await this.aiQueue.add('generate-alt-text', {
-      postId: post.id,
-    });
-
-    // Enqueue Feed Fan-out for followers if post is somewhat public
-    if (
-      post.visibility === Visibility.PUBLIC ||
-      post.visibility === Visibility.FOLLOWERS
-    ) {
-      await this.feedFanoutQueue.add('distribute', {
-        postId: post.id,
-        authorId: post.profileId,
-      });
-    }
-
-    // Handle Mentions (outside transaction to avoid blocking)
-    if (uniqueMentions.length > 0) {
-      // Find users mentioned
-      const profiles = await this.prisma.profile.findMany({
-        where: {
-          username: { in: uniqueMentions },
-          id: { not: profileId }, // Don't notify self
-        },
-        select: { id: true },
-      });
-
-      // Create notifications
-      await Promise.all(
-        profiles.map((profile) =>
-          this.eventEmitter.emit('notification.create', {
-            recipientId: profile.id,
-            senderId: profileId,
-            type: NotificationType.MENTION,
-            content: `mentioned you in a post`,
-          }),
-        ),
-      );
-    }
 
     return post;
   }
@@ -433,7 +381,7 @@ export class PostsService {
       };
     });
 
-    const processedPosts = await this.applyPaywall(
+    const processedPosts = await this.postPaywallService.applyPaywall(
       formattedPosts,
       currentProfileId,
     );
@@ -504,7 +452,7 @@ export class PostsService {
       };
     });
 
-    const processedPosts = await this.applyPaywall(
+    const processedPosts = await this.postPaywallService.applyPaywall(
       formattedPosts,
       currentProfileId,
     );
@@ -685,7 +633,7 @@ export class PostsService {
     const postsWithLikes = posts.map((post) =>
       this.injectIsLiked(post, currentProfileId),
     );
-    const processedPosts = await this.applyPaywall(
+    const processedPosts = await this.postPaywallService.applyPaywall(
       postsWithLikes,
       currentProfileId,
     );
@@ -816,24 +764,8 @@ export class PostsService {
     }
 
     // Ownership check is handled by OwnershipGuard at the controller level
-
-    // Enqueue background job to delete associated media files
-    const mediaUrls = new Set<string>();
-    if (post.media && post.media.length > 0) {
-      for (const m of post.media) {
-        if (m.url) mediaUrls.add(m.url);
-        if (m.standardUrl) mediaUrls.add(m.standardUrl);
-        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
-      }
-    }
-
     await this.prisma.post.delete({ where: { id } });
-
-    if (mediaUrls.size > 0) {
-      await this.postsQueue.add('delete-post-media', {
-        mediaUrls: Array.from(mediaUrls),
-      });
-    }
+    await this.postMediaCleanupService.cleanupMedia(post.media);
   }
 
   // Admin-only post deletion (bypasses ownership check).
@@ -848,23 +780,8 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    // Enqueue background job to delete associated media files
-    const mediaUrls = new Set<string>();
-    if (post.media && post.media.length > 0) {
-      for (const m of post.media) {
-        if (m.url) mediaUrls.add(m.url);
-        if (m.standardUrl) mediaUrls.add(m.standardUrl);
-        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
-      }
-    }
-
     await this.prisma.post.delete({ where: { id } });
-
-    if (mediaUrls.size > 0) {
-      await this.postsQueue.add('delete-post-media', {
-        mediaUrls: Array.from(mediaUrls),
-      });
-    }
+    await this.postMediaCleanupService.cleanupMedia(post.media);
   }
 
   // Returns a Prisma filter for global/discovery feeds.
@@ -921,13 +838,16 @@ export class PostsService {
     };
   }
 
-  private injectIsLiked(post: Record<string, any>, currentProfileId?: string) {
-    const { likes, ...rest } = post as { likes?: any[] } & Record<string, any>;
+  private injectIsLiked<T extends Record<string, any>>(
+    post: T,
+    currentProfileId?: string,
+  ): T & { isLiked: boolean } {
+    const { likes, ...rest } = post as T & { likes?: unknown[] };
     const isLiked =
       currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
 
     return {
-      ...(rest as Record<string, unknown>),
+      ...(rest as T),
       isLiked,
     };
   }
@@ -945,98 +865,5 @@ export class PostsService {
       },
     });
     return follow?.status === 'ACCEPTED';
-  }
-
-  // Applies the paywall to a list of posts, blurring media if the user hasn't paid or subscribed.
-  private async applyPaywall(posts: any[], currentProfileId?: string) {
-    if (!posts || posts.length === 0) return posts;
-
-    // If guest, blur all premium posts
-    if (!currentProfileId) {
-      return posts.map((post) => {
-        if (post.isPremium) {
-          return {
-            ...post,
-            isLocked: true,
-            media: post.media?.map((m: any) => ({
-              ...m,
-              url: m.url
-                ? `/media/teaser/${m.id}/${m.url.split('/').pop()}`
-                : '',
-              standardUrl: m.standardUrl
-                ? `/media/teaser/${m.id}/master.m3u8`
-                : '',
-            })),
-          };
-        }
-        return post;
-      });
-    }
-
-    // VIP subscriptions removed
-    const subscribedCreatorIds = new Set<string>();
-
-    // Fetch user's unlocked posts (PostUnlock is keyed by User, not Profile)
-    let unlockedPostIds = new Set<string>();
-    if (currentProfileId) {
-      const viewer = await this.prisma.profile.findUnique({
-        where: { id: currentProfileId },
-        select: { userId: true },
-      });
-      const unlocks = viewer
-        ? await this.prisma.postUnlock.findMany({
-            where: { userId: viewer.userId },
-            select: { postId: true },
-          })
-        : [];
-      unlockedPostIds = new Set(unlocks.map((u) => u.postId));
-    }
-
-    return posts.map((post) => {
-      if (post.isPremium && post.profileId !== currentProfileId) {
-        const isSubscribed = subscribedCreatorIds.has(post.profileId);
-        const isUnlocked = unlockedPostIds.has(post.id);
-
-        if (!isSubscribed && !isUnlocked) {
-          return {
-            ...post,
-            isLocked: true,
-            media: post.media?.map((m: any) => ({
-              ...m,
-              url: m.url
-                ? `/media/teaser/${m.id}/${m.url.split('/').pop()}`
-                : '',
-              standardUrl: m.standardUrl
-                ? `/media/teaser/${m.id}/master.m3u8`
-                : '',
-            })),
-          };
-        }
-      }
-      return post;
-    });
-  }
-
-  @OnEvent('user.hard_deleted')
-  async handleUserDeleted(payload: { profileId: string }) {
-    const userPosts = await this.prisma.post.findMany({
-      where: { profileId: payload.profileId },
-      include: { media: true },
-    });
-
-    const mediaUrls = new Set<string>();
-    for (const post of userPosts) {
-      for (const m of post.media) {
-        if (m.url) mediaUrls.add(m.url);
-        if (m.standardUrl) mediaUrls.add(m.standardUrl);
-        if (m.thumbnailUrl) mediaUrls.add(m.thumbnailUrl);
-      }
-    }
-
-    if (mediaUrls.size > 0) {
-      this.eventEmitter.emit('media.delete_batch', {
-        mediaUrls: Array.from(mediaUrls),
-      });
-    }
   }
 }
