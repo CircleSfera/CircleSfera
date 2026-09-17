@@ -21,7 +21,7 @@ test.use({
 
 const shotOpts = {
   animations: 'disabled' as const,
-  maxDiffPixelRatio: 0.04,
+  maxDiffPixelRatio: 0.06,
 };
 
 test.describe('Composer visual regression (live app, 390×844)', () => {

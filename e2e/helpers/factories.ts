@@ -1,48 +1,72 @@
-import { type E2eAccount, uniqueAccount, uniqueSuffix } from './unique.js';
+import {
+  E2E_PASSWORD,
+  type E2eAccount,
+  uniqueAccount,
+  uniqueSuffix,
+} from './unique.js';
 
-export interface E2eAccountOverrides {
-  username?: string;
-  email?: string;
+export interface ScenarioAccountOptions {
+  scenario: string;
+  role?: 'USER' | 'CREATOR' | 'ADMIN';
+  prefix?: string;
   fullName?: string;
-  password?: string;
-  dateOfBirth?: string;
+}
+
+export interface ScenarioPostPayload {
+  caption: string;
+  mode: 'POST' | 'FRAME';
+}
+
+export interface ScenarioCommentPayload {
+  content: string;
 }
 
 /**
- * Build a deterministic E2E account payload with optional overrides.
+ * Creates an isolated E2E account keyed to a specific test scenario.
+ * Ensures usernames incorporate both scenario prefix and process-level entropy
+ * while strictly adhering to the 24-character maximum handle limit.
  */
-export function buildE2eAccount(
-  prefix = 'e2e',
-  overrides: E2eAccountOverrides = {},
+export function createScenarioAccount(
+  options: ScenarioAccountOptions,
 ): E2eAccount {
-  const base = uniqueAccount(prefix);
-  return {
-    ...base,
-    ...overrides,
-  };
-}
-
-/**
- * Build a deterministic Creator account payload.
- */
-export function buildCreatorAccount(
-  overrides: E2eAccountOverrides = {},
-): E2eAccount {
-  return buildE2eAccount('creator', {
-    fullName: 'E2E Verified Creator',
-    ...overrides,
-  });
-}
-
-/**
- * Build a deterministic Post payload for UI composer or API tests.
- */
-export function buildE2ePostData(
-  overrides: { caption?: string; mode?: string } = {},
-) {
+  const sanitizedScenario = options.scenario
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 8);
+  const basePrefix = options.prefix ?? sanitizedScenario ?? 'e2e';
   const suffix = uniqueSuffix();
+  const username = `${basePrefix}_${suffix}`.slice(0, 24);
+
   return {
-    caption: overrides.caption ?? `E2E scenario post #${suffix}`,
-    mode: overrides.mode ?? 'post',
+    email: `${username}@circlesfera.test`,
+    username,
+    fullName: options.fullName ?? `E2E ${options.scenario.toUpperCase()}`,
+    password: E2E_PASSWORD,
+    dateOfBirth: '1995-06-15',
   };
 }
+
+export function createScenarioPostPayload(
+  options: {
+    scenario?: string;
+    caption?: string;
+    mode?: 'POST' | 'FRAME';
+  } = {},
+): ScenarioPostPayload {
+  const scenarioTag = options.scenario ? ` [${options.scenario}]` : '';
+  return {
+    caption: options.caption ?? `Automated E2E Post${scenarioTag}`,
+    mode: options.mode ?? 'POST',
+  };
+}
+
+export function createScenarioCommentPayload(
+  options: { scenario?: string; content?: string } = {},
+): ScenarioCommentPayload {
+  const scenarioTag = options.scenario ? ` [${options.scenario}]` : '';
+  return {
+    content: options.content ?? `Automated E2E Comment${scenarioTag}`,
+  };
+}
+
+export { E2E_PASSWORD, type E2eAccount, uniqueAccount, uniqueSuffix };

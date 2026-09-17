@@ -8,7 +8,7 @@ import {
   uploadFixture,
   waitEditPreviewReady,
 } from './helpers/composer';
-import { emptyPage, TEST_USER, testPost } from './helpers/session';
+import { createScenarioUser, emptyPage, testPost } from './helpers/session';
 
 const CAPTION = 'Publicación E2E del feed';
 const CDN = 'https://cdn.example.com/uploads/test.jpg';
@@ -18,8 +18,9 @@ test.use({ viewport: { width: 390, height: 844 } });
 test.describe('Feed (390×844)', () => {
   test('Post: upload → caption → share → aparece en Home', async ({ page }) => {
     const feedPosts: Record<string, unknown>[] = [];
+    const user = createScenarioUser({ scenario: 'feed' });
 
-    await prepareComposerSession(page);
+    await prepareComposerSession(page, { scenario: 'feed' });
 
     await page.route('https://cdn.example.com/**', async (route) => {
       await route.fulfill({
@@ -61,7 +62,7 @@ test.describe('Feed (390×844)', () => {
         const created = testPost({
           id: 'post-feed-e2e',
           caption,
-          profileId: TEST_USER.id,
+          profileId: user.id,
           media: [{ id: 'media-feed', url: CDN, type: 'image', order: 0 }],
         });
         feedPosts.unshift(created);

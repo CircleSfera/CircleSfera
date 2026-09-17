@@ -6,7 +6,11 @@ import {
   request,
 } from '@playwright/test';
 import { backendApiUrl, markEmailVerified } from './backend.js';
-import { type E2eAccount, uniqueAccount } from './unique.js';
+import {
+  createScenarioAccount,
+  type E2eAccount,
+  uniqueAccount,
+} from './factories.js';
 
 /** Visible Post still (same fixture as SPA composer e2e — not a solid colour). */
 export const POST_IMAGE = path.resolve(
@@ -86,15 +90,32 @@ export async function becomeCreator(page: Page): Promise<void> {
   await expect(page.getByText('Perfil actualizado con éxito')).toBeVisible();
 }
 
+export interface EnterUserOptions {
+  creator?: boolean;
+  role?: 'USER' | 'CREATOR' | 'ADMIN';
+  scenario?: string;
+  prefix?: string;
+  fullName?: string;
+}
+
 /**
  * Unique user against the live API: register → verify email in DB → UI login → onboarding.
  * Each spec must call this (or register via the form) — do not share storageState.
+ * When scenario is provided, generates an isolated namespace for parallel safety.
  */
 export async function enterAsNewUser(
   page: Page,
-  options: { creator?: boolean } = {},
+  options: EnterUserOptions = {},
 ): Promise<E2eAccount> {
-  const account = uniqueAccount();
+  const account = options.scenario
+    ? createScenarioAccount({
+        scenario: options.scenario,
+        role: options.role,
+        prefix: options.prefix,
+        fullName: options.fullName,
+      })
+    : uniqueAccount(options.prefix ?? 'e2e');
+
   await prepareGuest(page);
   const api = await request.newContext({
     extraHTTPHeaders: { 'Content-Type': 'application/json' },
