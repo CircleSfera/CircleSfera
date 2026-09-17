@@ -69,9 +69,13 @@ The backend architecture classifies server logic into four high-risk tiers:
 | Domain / Target Component | Path Pattern | Minimum Lines | Minimum Statements | CI Enforcement |
 | :--- | :--- | :--- | :--- | :--- |
 | **Global Backend Baseline** | Global (`**`) | **45%** | **45%** | `npm run test:cov` |
-| **Security & Auth** | `src/auth/**` | **65%** | **65%** | `npm run test:cov` |
-| **Admin Authorization** | `src/auth/guards/admin.guard.ts` | **90%** | **90%** | `npm run test:cov` |
-| **Ownership Authorization** | `src/auth/guards/ownership.guard.ts` | **75%** | **75%** | `npm run test:cov` |
+| **Security & Auth Domain** | `src/auth/**` | **65%** | **65%** | `npm run test:cov` |
+| **Admin RBAC Authorization** | `src/auth/guards/admin.guard.ts` | **100%** | **100%** | `npm run test:cov` |
+| **Resource Ownership Guard** | `src/auth/guards/ownership.guard.ts` | **100%** | **100%** | `npm run test:cov` |
+| **Two-Factor Auth Service** | `src/auth/two-factor/two-factor.service.ts` | **100%** | **100%** | `npm run test:cov` |
+| **Two-Factor Controller** | `src/auth/two-factor/two-factor.controller.ts` | **100%** | **100%** | `npm run test:cov` |
+| **Stripe Webhook Secret Security** | `src/common/stripe/stripe-webhook-secrets.ts` | **100%** | **100%** | `npm run test:cov` |
+| **User Hard-Deleted Domain Event** | `src/users/events/user-hard-deleted.event.ts` | **100%** | **100%** | `npm run test:cov` |
 | **Payments Processing** | `src/payments/**` | **45%** | **45%** | `npm run test:cov` |
 | **Monetization Engine** | `src/monetization/**` | **30%** | **30%** | `npm run test:cov` |
 | **GDPR Data Export** | `src/users/services/data-export.service.ts` | **85%** | **85%** | `npm run test:cov` |

@@ -30,16 +30,38 @@ export default defineConfig({
           lines: 65,
         },
 
-        // Authorization: Admin RBAC access control
+        // Authorization: Admin RBAC access control (100% fully covered)
         'src/auth/guards/admin.guard.ts': {
-          statements: 90,
-          lines: 90,
+          statements: 100,
+          lines: 100,
         },
 
-        // Authorization: Horizontal resource ownership validation
+        // Authorization: Horizontal resource ownership validation (100% fully covered)
         'src/auth/guards/ownership.guard.ts': {
-          statements: 75,
-          lines: 75,
+          statements: 100,
+          lines: 100,
+        },
+
+        // Security: Two-factor authentication service and controller (100% fully covered)
+        'src/auth/two-factor/two-factor.service.ts': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/auth/two-factor/two-factor.controller.ts': {
+          statements: 100,
+          lines: 100,
+        },
+
+        // Payments: Stripe webhook secret security validation (100% fully covered)
+        'src/common/stripe/stripe-webhook-secrets.ts': {
+          statements: 100,
+          lines: 100,
+        },
+
+        // Data Lifecycle: Hard deletion domain event definition (100% fully covered)
+        'src/users/events/user-hard-deleted.event.ts': {
+          statements: 100,
+          lines: 100,
         },
 
         // Payments: Stripe integration, checkout sessions, invoices, and billing

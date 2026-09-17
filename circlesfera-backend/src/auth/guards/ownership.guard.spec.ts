@@ -35,13 +35,36 @@ describe('OwnershipGuard', () => {
     } as never;
   };
 
+  const commentFindUnique = vi.fn();
+  const storyFindUnique = vi.fn();
+  const highlightFindUnique = vi.fn();
+  const supportTicketFindUnique = vi.fn();
+  const notificationFindUnique = vi.fn();
+  const profileFindUnique = vi.fn();
+  const userFindUnique = vi.fn();
+
   beforeEach(() => {
     reflector = new Reflector();
     postFindUnique.mockReset();
     exportFindUnique.mockReset();
+    commentFindUnique.mockReset();
+    storyFindUnique.mockReset();
+    highlightFindUnique.mockReset();
+    supportTicketFindUnique.mockReset();
+    notificationFindUnique.mockReset();
+    profileFindUnique.mockReset();
+    userFindUnique.mockReset();
+
     guard = new OwnershipGuard(reflector, {
       post: { findUnique: postFindUnique },
       dataExportRequest: { findUnique: exportFindUnique },
+      comment: { findUnique: commentFindUnique },
+      story: { findUnique: storyFindUnique },
+      highlight: { findUnique: highlightFindUnique },
+      supportTicket: { findUnique: supportTicketFindUnique },
+      notification: { findUnique: notificationFindUnique },
+      profile: { findUnique: profileFindUnique },
+      user: { findUnique: userFindUnique },
     } as unknown as PrismaService);
   });
 
@@ -173,5 +196,96 @@ describe('OwnershipGuard', () => {
         ),
       ),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('supports custom route paramKey', async () => {
+    commentFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          {
+            user: { userId: 'u1', profileId: 'p1' },
+            params: { commentId: 'c-1' },
+          },
+          { model: 'Comment', paramKey: 'commentId' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(commentFindUnique).toHaveBeenCalledWith({
+      where: { id: 'c-1' },
+      select: { profileId: true },
+    });
+  });
+
+  it('validates ownership for Story, Highlight, Notification, and Profile', async () => {
+    storyFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 's-1' } },
+          { model: 'Story' },
+        ),
+      ),
+    ).resolves.toBe(true);
+
+    highlightFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'h-1' } },
+          { model: 'Highlight' },
+        ),
+      ),
+    ).resolves.toBe(true);
+
+    notificationFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'n-1' } },
+          { model: 'Notification' },
+        ),
+      ),
+    ).resolves.toBe(true);
+
+    profileFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'p-1' } },
+          { model: 'Profile' },
+        ),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('validates ownership for SupportTicket (userId) and User (id === userId)', async () => {
+    supportTicketFindUnique.mockResolvedValue({ userId: 'u1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 't-1' } },
+          { model: 'SupportTicket' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(supportTicketFindUnique).toHaveBeenCalledWith({
+      where: { id: 't-1' },
+      select: { userId: true },
+    });
+
+    userFindUnique.mockResolvedValue({ id: 'u1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'u1' } },
+          { model: 'User' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(userFindUnique).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      select: { id: true },
+    });
   });
 });
