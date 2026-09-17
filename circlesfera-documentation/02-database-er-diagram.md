@@ -1,23 +1,22 @@
-# 02-Database-ER-Diagram
-## CircleSfera
-**Version:** 3.2 aligned with the real schema (User/Profile split, Aug–Sep 2026)  
-**Database:** PostgreSQL  
-**ORM:** Prisma  
-**Source of truth:** current project `schema.prisma`
+# CircleSfera: Database Architecture & ER Diagram
 
-> Prefer `schema.prisma` when this ERD and older snapshots disagree. Present tense means shipped. See [00-status.md](./00-status.md).
+> **Source of Truth:** `circlesfera-backend/prisma/schema.prisma`.
+> If this document conflicts with the active Prisma schema, the schema takes precedence.
+> Present tense reflects shipped production models. Refer to [00-status.md](./00-status.md).
 
 ---
 
-## 1. Modeling criteria
+## 1. Architecture & Identity Separation (ADR-0015)
 
-This ERD describes the reality of the project's current model. It does not simplify toward an outdated MVP, nor does it add entities that do not exist in the shared `schema.prisma`.
-
-**Identity model (Aug 2026):** platform **`User`** = account/money/auth; **`Profile`** = social identity (`username`, content FKs); **`AdminIdentity`** = admin panel operators. See [ADR-0015](./adr/0015-user-profile-identity-split.md).
+CircleSfera enforces a strict separation between account ownership and social personas:
+- **`User`**: Manages credentials, security settings (passkeys, MFA), billing identity (`stripeCustomerId`), account status, and subscription entitlements.
+- **`Profile`**: Represents the social actor (`username`, avatar, bio, follower graph). All social interactions and content foreign keys (`postId`, `commentId`, `likeId`, `followId`, `conversationId`) attach exclusively to `Profile.id` ([ADR-0015](./adr/0015-user-profile-identity-split.md)).
+- **`AdminIdentity`**: Completely segregated operational identities for Admin Panel operators (`/api/v1/admin/*`), requiring MFA/TOTP and granular RBAC ([ADR-0013](./adr/0013-admin-panel-admin-identity.md)).
+- **Monetary Precision**: All financial amounts are modeled strictly as integer cents (`priceCents`, `budgetCents`, `amountCents`, `Transaction.amount`). Floating-point currency representation is prohibited.
 
 ---
 
-## 2. Identity entities
+## 2. Core Identity & Authentication Entities
 
 ### users
 - `id` (PK)
@@ -30,18 +29,18 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `isOnline`
 - `lastSeenAt`
 - `stripeCustomerId` (UNIQUE, nullable)
-- `role`
+- `role` (`Role` enum: `USER`, `ADMIN`, `MODERATOR`)
 - `emailVerified`
 - `verificationToken` (UNIQUE, nullable)
 - `resetToken` (UNIQUE, nullable)
 - `resetTokenExpires`
-- `verificationLevel`
-- `accountType`
-- `currentChallenge`
+- `verificationLevel` (`VerificationLevel`: `BASIC`, `VERIFIED`, `BUSINESS`, `ELITE`)
+- `accountType` (`AccountType`: `PERSONAL`, `CREATOR`, `BUSINESS`)
+- `currentChallenge` (WebAuthn challenge)
 
 ### profiles
 - `id` (PK)
-- `userId` (FK → users.id; indexed, not unique — account may own multiple profiles)
+- `userId` (FK → users.id; indexed)
 - `username` (UNIQUE)
 - `fullName`
 - `bio`
@@ -52,9 +51,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `location`
 - `createdAt`
 - `updatedAt`
-- `cover`
-- `coverStandardUrl`
-- `coverThumbnailUrl`
+- `cover`, `coverStandardUrl`, `coverThumbnailUrl`
 - `isAccountBanned`
 - `accountBanReason`
 - `suspendedUntil`
@@ -75,20 +72,21 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `transports`
 - `createdAt`
 
-### admin_identities
+### passkey_challenges
 - `id` (PK)
-- `email` (UNIQUE)
-- `passwordHash`
-- `displayName`
-- `status` (`AdminIdentityStatus`)
-- `totpSecret`, `totpEnabled`, `mfaRequired`
-- `linkedUserId` (nullable FK → users.id — correlation only)
-- `lastLoginAt`, `lastActivityAt`, `failedLoginCount`, `lockedUntil`
-- `createdAt`, `updatedAt`
-- Separate from platform `User`; authorizes `/api/v1/admin/*` ([ADR-0013](./adr/0013-admin-panel-admin-identity.md)).
+- `challenge`
+- `userId` (FK → users.id)
+- `expiresAt`
+- `createdAt`
 
-### admin_roles / admin_permissions / join tables
-- RBAC for Admin Panel (`AdminRole`, `AdminPermission`, `AdminIdentityRole`, `AdminRolePermission`).
+### device_signals
+- `id` (PK)
+- `userId` (FK → users.id)
+- `visitorHash` (HMAC of visitor ID)
+- `userAgentHash` (nullable)
+- `firstSeenAt`, `lastSeenAt`
+- UNIQUE (`userId`, `visitorHash`)
+- Account trust and device risk scoring ([ADR-0014](./adr/0014-account-trust-signals.md)).
 
 ### user_settings
 - `id` (PK)
@@ -97,9 +95,44 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `emailNotifications`, `pushNotifications`, `isOnboarded`
 - `updatedAt`
 
+### data_export_requests
+- `id` (PK)
+- `userId` (FK → users.id)
+- `status` (`ExportStatus`: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`)
+- `downloadUrl` (nullable)
+- `expiresAt` (nullable)
+- `createdAt`, `updatedAt`
+
+### push_subscriptions
+- `id` (PK)
+- `userId` (FK → users.id)
+- `endpoint` (UNIQUE)
+- `p256dh`
+- `auth`
+- `createdAt`
+
+### admin_identities
+- `id` (PK)
+- `email` (UNIQUE)
+- `passwordHash`
+- `displayName`
+- `status` (`AdminIdentityStatus`: `ACTIVE`, `SUSPENDED`, `PENDING_SETUP`)
+- `totpSecret`, `totpEnabled`, `mfaRequired`
+- `linkedUserId` (nullable FK → users.id — correlation only)
+- `lastLoginAt`, `lastActivityAt`, `failedLoginCount`, `lockedUntil`
+- `createdAt`, `updatedAt`
+
+### admin_roles / admin_permissions / join tables
+- `AdminRole` (`id`, `name`, `description`, `isSystem`)
+- `AdminPermission` (`id`, `action`, `resource`, `description`)
+- `AdminIdentityRole` (Composite PK `[identityId, roleId]`)
+- `AdminRolePermission` (Composite PK `[roleId, permissionId]`)
+- `AdminRefreshToken` (`id`, `token`, `identityId`, `expiresAt`)
+- `AdminPasskey` (`id`, `identityId`, `credentialId`, `publicKey`, `counter`)
+
 ---
 
-## 3. Primary content
+## 3. Content Publishing & Media Tier
 
 ### posts
 - `id` (PK)
@@ -110,19 +143,17 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `location`
 - `hideLikes`
 - `turnOffComments`
-- `type` (`POST | FRAME`)
-- `contentRating` (`GENERAL | MATURE`)
+- `type` (`PostType`: `POST`, `FRAME`)
+- `contentRating` (`ContentRating`: `GENERAL`, `MATURE`)
 - `views`
-- `visibility` (`PUBLIC | FOLLOWERS | PRIVATE`)
-- `priceCents`
+- `visibility` (`Visibility`: `PUBLIC`, `FOLLOWERS`, `PRIVATE`)
+- `priceCents` (integer cents; pay-per-view content)
 - `audioId` (nullable FK → audio_tracks.id)
 
 ### post_media
 - `id` (PK)
 - `postId` (FK → posts.id)
-- `url`
-- `standardUrl`
-- `thumbnailUrl`
+- `url`, `standardUrl`, `thumbnailUrl`
 - `type`
 - `order`
 - `filter`
@@ -132,8 +163,7 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### post_tags
 - `postId` (FK → posts.id)
 - `profileId` (FK → profiles.id)
-- `x`
-- `y`
+- `x`, `y`
 - `createdAt`
 - UNIQUE (`postId`, `profileId`)
 
@@ -156,30 +186,31 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### profile_embeddings
 - `profileId` (PK, FK → profiles.id)
 - `vector` (`vector(1536)` via pgvector)
-- Read path: `SearchService.semanticSearchProfiles` (`GET /search/ai/profiles`). Write path: `ProfilesService` enqueues `generate-profile-embedding` on profile update (`username`/`fullName`/`bio` change); backfill via `npm run embeddings:backfill`. See [ADR-0001](./adr/0001-profile-embedding-retention.md).
+- Read path: `SearchService.semanticSearchProfiles` (`GET /search/ai/profiles`). Write path: `ProfilesService` background worker on profile update; backfill via `npm run embeddings:backfill` ([ADR-0001](./adr/0001-profile-embedding-retention.md)).
 
 ### audio_tracks
 - `id` (PK)
-- `title`
-- `artist`
-- `url`
-- `thumbnailUrl`
+- `title`, `artist`, `url`, `thumbnailUrl`
 - `duration`
+- `createdAt`, `updatedAt`
+
+### places
+- `id` (PK)
+- `name`
+- `latitude`, `longitude`
+- `address`
 - `createdAt`
-- `updatedAt`
 
 ---
 
-## 4. Stories and derivatives
+## 4. Stories & Ephemeral Content
 
 ### stories
 - `id` (PK)
 - `profileId` (FK → profiles.id)
-- `mediaUrl`
-- `standardUrl`
-- `thumbnailUrl`
+- `mediaUrl`, `standardUrl`, `thumbnailUrl`
 - `mediaType`
-- `expiresAt`
+- `expiresAt` (24-hour default window)
 - `createdAt`
 - `isCloseFriendsOnly`
 - `audioId` (nullable FK → audio_tracks.id)
@@ -202,10 +233,8 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### highlights
 - `id` (PK)
 - `profileId` (FK → profiles.id)
-- `title`
-- `coverUrl`
-- `createdAt`
-- `updatedAt`
+- `title`, `coverUrl`
+- `createdAt`, `updatedAt`
 
 ### highlight_stories
 - `id` (PK)
@@ -223,18 +252,16 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ---
 
-## 5. Interactions
+## 5. Interactions & Engagement
 
 ### comments
 - `id` (PK)
 - `postId` (FK → posts.id)
 - `profileId` (FK → profiles.id)
 - `content`
-- `mediaUrl`
-- `mediaType`
-- `createdAt`
-- `updatedAt`
-- `parentId` (nullable FK → comments.id)
+- `mediaUrl`, `mediaType`
+- `createdAt`, `updatedAt`
+- `parentId` (nullable FK → comments.id — threaded replies)
 
 ### likes
 - `id` (PK)
@@ -261,23 +288,19 @@ This ERD describes the reality of the project's current model. It does not simpl
 ### collections
 - `id` (PK)
 - `profileId` (FK → profiles.id)
-- `name`
-- `description` (nullable) — optional short note shown on collection cards
-- `coverUrl`
-- `standardUrl`
-- `thumbnailUrl`
-- `createdAt`
-- `updatedAt`
+- `name`, `description`
+- `coverUrl`, `standardUrl`, `thumbnailUrl`
+- `createdAt`, `updatedAt`
 
 ---
 
-## 6. Social graph
+## 6. Social Graph
 
 ### follows
 - `id` (PK)
 - `followerId` (FK → profiles.id)
 - `followingId` (FK → profiles.id)
-- `status` (`PENDING | ACCEPTED`)
+- `status` (`FollowStatus`: `PENDING`, `ACCEPTED`)
 - `createdAt`
 - UNIQUE (`followerId`, `followingId`)
 
@@ -292,11 +315,11 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `id` (PK)
 - `muterId` (FK → profiles.id)
 - `mutedId` (FK → profiles.id)
-- `expiresAt` (nullable) — `null` = forever; timed mutes stop suppressing feed content after this instant
+- `expiresAt` (nullable — null = permanent; timestamp = timed mute)
 - `createdAt`
 - UNIQUE (`muterId`, `mutedId`)
 - INDEX (`muterId`, `expiresAt`)
-- Excludes the muted user's posts from `FeedService` queries (`foryou` and `following`) while the mute is active; exposed via `POST /users/:username/follow/mute` (optional body `{ duration: '24h'|'7d'|'30d'|'forever' }`), unmute, and `GET /users/me/follow/muted` (returns `{ profile, expiresAt, createdAt }[]`). Full-account mute is separate from feed preferences (hide post/author, mute keywords) — see [ADR-0004](./adr/0004-feed-preferences.md).
+- Excludes the muted user's posts from `FeedService` (`foryou` and `following`) while active ([ADR-0004](./adr/0004-feed-preferences.md)).
 
 ---
 
@@ -306,27 +329,22 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `id` (PK)
 - `recipientId` (FK → profiles.id)
 - `senderId` (nullable FK → profiles.id)
-- `type` (`NotificationType` enum)
+- `type` (`NotificationType`: `LIKE`, `COMMENT`, `FOLLOW`, `MENTION`, `SYSTEM`, `MESSAGE`, `TRANSACTION`)
 - `content`
-- `read`
-- `postId` (nullable FK → posts.id)
-- `storyId` (nullable FK → stories.id)
-- `reportId` (nullable FK → reports.id)
-- `messageId` (nullable FK → messages.id)
-- `targetType`
-- `targetId`
+- `read` (boolean)
+- `postId`, `storyId`, `reportId`, `messageId` (nullable FKs)
+- `targetType`, `targetId`
 - `createdAt`
 
 ---
 
-## 8. Messaging
+## 8. Real-Time Messaging & Direct
 
 ### conversations
 - `id` (PK)
-- `createdAt`
-- `updatedAt`
-- `name`
-- `isGroup`
+- `createdAt`, `updatedAt`
+- `name` (nullable)
+- `isGroup` (boolean)
 
 ### participants
 - `id` (PK)
@@ -341,13 +359,9 @@ This ERD describes the reality of the project's current model. It does not simpl
 - `conversationId` (FK → conversations.id)
 - `senderId` (FK → profiles.id)
 - `content`
-- `mediaUrl`
-- `mediaType`
-- `postId` (nullable FK → posts.id)
-- `storyId` (nullable FK → stories.id)
-- `replyToId` (nullable FK → messages.id)
-- `createdAt`
-- `updatedAt`
+- `mediaUrl`, `mediaType`
+- `postId`, `storyId`, `replyToId` (nullable FKs)
+- `createdAt`, `updatedAt`
 
 ### message_reactions
 - `id` (PK)
@@ -359,357 +373,216 @@ This ERD describes the reality of the project's current model. It does not simpl
 
 ---
 
-## 9. Monetization
+## 9. Monetization & Ledger Tier
 
 ### platform_plans
 - `id` (PK)
-- `name`
-- `description`
-- `priceCents` (source of truth)
+- `name`, `description`
+- `priceCents` (integer cents)
 - `yearlyPriceCents` (nullable)
 - `currency`
 - `interval`
 - `stripeProductId` (UNIQUE)
 - `stripePriceId` (UNIQUE)
 - `yearlyStripePriceId` (UNIQUE)
-- `features` (JSON — see internal schema below)
+- `features` (JSON array)
 - `isActive`
-- `createdAt`
-- `updatedAt`
-
-**Internal schema of the `features` field (JSON array)**
-
-```json
-[
-  {
-    "key": "string",
-    "label": "string",
-    "enabled": true,
-    "limit": null
-  }
-]
-```
-
-| Field     | Type             | Description                                                             |
-|-----------|------------------|-------------------------------------------------------------------------|
-| `key`     | string (enum)    | Business identifier for the benefit (see feature keys table)            |
-| `label`   | string           | UI text to show the user                                                |
-| `enabled` | boolean          | Whether the benefit is active on this plan                              |
-| `limit`   | number \| null   | Numeric limit if applicable (e.g. posts per day); null = unlimited      |
-
-**Valid feature keys**
-
-| Key                    | Description                                         |
-|------------------------|-----------------------------------------------------|
-| `verified_badge`       | Verification badge visible on profile               |
-| `analytics_basic`      | Basic analytics for posts and profile               |
-| `analytics_advanced`   | Advanced analytics with history and demographics    |
-| `priority_support`     | Priority support                                    |
-| `promotions_enabled`   | Access to launch promotions                         |
-| `extended_storage`     | Extended storage for media                          |
-| `hide_ads`             | No ads in feed (if applicable in the future)        |
-| `early_access`         | Early access to new features                        |
-
-**Example real value for a Premium plan**
-```json
-[
-  { "key": "verified_badge", "label": "Verified badge", "enabled": true, "limit": null },
-  { "key": "analytics_basic", "label": "Basic analytics", "enabled": true, "limit": null },
-  { "key": "analytics_advanced", "label": "Advanced analytics", "enabled": false, "limit": null },
-  { "key": "promotions_enabled", "label": "Promotions", "enabled": true, "limit": null },
-  { "key": "priority_support", "label": "Priority support", "enabled": true, "limit": null }
-]
-```
+- `createdAt`, `updatedAt`
 
 ### platform_subscriptions
 - `id` (PK)
 - `userId` (FK → users.id)
 - `planId` (FK → platform_plans.id)
-- `status`
+- `status` (`SubscriptionStatus`: `ACTIVE`, `CANCELED`, `PAST_DUE`, `UNPAID`)
 - `stripeSubscriptionId` (UNIQUE)
-- `currentPeriodStart`
-- `currentPeriodEnd`
+- `currentPeriodStart`, `currentPeriodEnd`
 - `cancelAtPeriodEnd`
-- `createdAt`
-- `updatedAt`
+- `createdAt`, `updatedAt`
 - UNIQUE (`userId`, `planId`)
 
-### webhook_events
+### transactions
 - `id` (PK)
-- `provider`
-- `externalId` (UNIQUE)
-- `payload` (JSON)
-- `status`
-- `createdAt`
-- `updatedAt`
-- `processedAt`
+- `userId` (FK → users.id)
+- `amount` (integer cents; legacy column name preserved per API contract)
+- `currency`
+- `type` (`TransactionType`: `DIRECT_POST_UNLOCK`, `DIRECT_MESSAGE_UNLOCK`, `DIRECT_STORY_UNLOCK`, `DIRECT_LIVE_GIFT`, `PLATFORM_SUBSCRIPTION`, `PROMOTION_CHARGE`)
+- `status` (`TransactionStatus`: `PENDING`, `COMPLETED`, `FAILED`, `REFUNDED`)
+- `stripePaymentIntentId` (UNIQUE, nullable)
+- `platformFee` (integer cents; 20% platform fee per [ADR-0010](./adr/0010-platform-fee-20-percent.md))
+- `createdAt`, `updatedAt`
+
+### post_unlocks / message_unlocks / story_unlocks
+- Relational mapping of direct digital purchases:
+  - `PostUnlock` (`id`, `userId`, `postId`, `pricePaid`, `createdAt`)
+  - `MessageUnlock` (`id`, `userId`, `messageId`, `pricePaid`, `createdAt`)
+  - `StoryUnlock` (`id`, `userId`, `storyId`, `pricePaid`, `createdAt`)
 
 ### promotions
 - `id` (PK)
-- `userId` (FK → users.id) — billing account (not profile)
-- `targetType`
+- `userId` (FK → users.id — billing account)
+- `targetType` (`PromotionTargetType`: `POST`, `PROFILE`, `STORY`)
 - `targetId`
-- `budgetCents` (remaining budget; integer cents)
-- `dailyBudgetCents` (nullable; integer cents)
+- `budgetCents`, `dailyBudgetCents` (integer cents)
 - `currency`
-- `status` (`PENDING | ACTIVE | COMPLETED | REJECTED | CANCELLED | FAILED`)
+- `status` (`PromotionStatus`: `PENDING`, `ACTIVE`, `COMPLETED`, `REJECTED`, `CANCELLED`, `FAILED`)
 - `stripePaymentIntentId` (UNIQUE)
-- `chargedAt`
-- `refundPolicy` (`PROPORTIONAL | NONE`)
-- `refundedAt`
-- `startDate`
-- `endDate`
-- `reach`
-- `createdAt`
-- `updatedAt`
+- `refundPolicy` (`PromotionRefundPolicy`: `PROPORTIONAL`, `NONE`)
+- `startDate`, `endDate`, `reach`
+- `createdAt`, `updatedAt`
 
-### creator_subscriptions
+### stripe_payout_logs
+- `id` (PK)
+- `stripePayoutId` (UNIQUE)
+- `userId` (FK → users.id — Connect account holder)
+- `amountCents`
+- `currency`
+- `status`
+- `arrivalDate`
+- `failureReason` (nullable)
+- `createdAt`, `updatedAt`
+- Synced from Stripe Connect webhooks ([ADR-0002](./adr/0002-stripe-connect-payouts.md)).
 
-**Removed** from live schema (migration `20260729154648_sync_schema_again`). Creator VIP billing paths use Stripe + `Transaction` / application logic; do not reintroduce this table without a new ADR.
+### webhook_events & outbox_events
+- `WebhookEvent` (`id`, `provider`, `externalId`, `payload`, `status`, `processedAt`)
+- `OutboxEvent` (`id`, `aggregateType`, `aggregateId`, `eventType`, `payload`, `status`, `createdAt`)
 
 ---
 
-## 10. Live, polls, and Q&A
+## 10. Interactive & Live Streaming Tier
 
 ### live_streams
 - `id` (PK)
 - `hostId` (FK → profiles.id)
 - `coHostId` (nullable FK → profiles.id)
 - `title` (nullable)
-- `status` (`LiveStatus`: `LIVE | ENDED`)
+- `status` (`LiveStatus`: `LIVE`, `ENDED`)
 - `viewerCount`
-- `startedAt`
-- `endedAt` (nullable)
-- `hlsUrl` (nullable)
-- `replayUrl` (nullable)
-- Endpoints: `POST /live/start`, `POST /live/end`, `GET /live/active`, `GET /live/:streamId`, `GET /live/join/:streamId`, co-host invite/accept/remove, `POST /live/:streamId/gift`.
-- **Gifts are billed**: Stripe Checkout + `LiveGift` + `TransactionType.DIRECT_LIVE_GIFT` (20% application fee); webhook completion emits `live:gift`; catalog prices are server-side.
+- `startedAt`, `endedAt`
+- `hlsUrl`, `replayUrl`
 
-### polls
+### live_gifts
 - `id` (PK)
-- `postId` (nullable, UNIQUE, FK → posts.id)
-- `storyId` (nullable, UNIQUE, FK → stories.id)
-- `question`
-- `options` (string array)
-- `createdAt`
-- A poll belongs to exactly one post or story.
-
-### poll_votes
-- `id` (PK)
-- `pollId` (FK → polls.id)
-- `profileId` (FK → profiles.id)
-- `optionIndex`
-- `createdAt`
-- UNIQUE (`pollId`, `profileId`)
-
-### qna_boxes
-- `id` (PK)
-- `postId` (nullable, UNIQUE, FK → posts.id)
-- `storyId` (nullable, UNIQUE, FK → stories.id)
-- `prompt`
+- `streamId` (FK → live_streams.id)
+- `senderId` (FK → profiles.id)
+- `amountCents` (integer cents)
+- `giftType`
+- `stripePaymentIntentId` (UNIQUE, nullable)
 - `createdAt`
 
-### qna_answers
-- `id` (PK)
-- `qnaBoxId` (FK → qna_boxes.id)
-- `profileId` (FK → profiles.id)
-- `answerText`
-- `createdAt`
-- Endpoints: `POST /interactive/poll`, `GET /interactive/poll/:id`, `POST /interactive/poll/vote`, `POST /interactive/qna`, `GET /interactive/qna/:id`, `POST /interactive/qna/answer`.
+### polls & poll_votes
+- `Poll` (`id`, `postId` [nullable UNIQUE], `storyId` [nullable UNIQUE], `question`, `options` [string array], `createdAt`)
+- `PollVote` (`id`, `pollId`, `profileId`, `optionIndex`, `createdAt`; UNIQUE `[pollId, profileId]`)
+
+### qna_boxes & qna_answers
+- `QnaBox` (`id`, `postId` [nullable UNIQUE], `storyId` [nullable UNIQUE], `prompt`, `createdAt`)
+- `QnaAnswer` (`id`, `qnaBoxId`, `profileId`, `answerText`, `createdAt`)
 
 ---
 
-## 11. Moderation and operations
+## 11. Trust, Safety, Moderation & Compliance
 
 ### reports
 - `id` (PK)
 - `reporterId` (FK → profiles.id)
-- `reason`
-- `details`
-- `status` (`PENDING | REVIEWING | RESOLVED | REJECTED`)
-- `targetType` (`post | comment | user | story | message`)
+- `reason` (`ReportReason`: `SPAM`, `HARASSMENT`, `HATE_SPEECH`, `NUDITY`, `VIOLENCE`, `COPYRIGHT`, `OTHER`)
+- `details` (nullable)
+- `status` (`ReportStatus`: `PENDING`, `REVIEWING`, `RESOLVED`, `REJECTED`)
+- `targetType` (`ReportTargetType`: `POST`, `COMMENT`, `USER`, `STORY`, `MESSAGE`)
 - `targetId`
-- `assignedAdminId` (nullable FK → admin_identities.id) — operator who claimed/handled the report
-- `resolvedAt` (nullable timestamp)
-- `internalNotes`
-- `createdAt`
-- `updatedAt`
-
-### admin_audit_logs
-- `id` (PK)
-- `adminId` (nullable FK → admin_identities.id)
-- `legacyUserId` (nullable — pre–AdminIdentity migration rows)
-- `action`
-- `targetType`
-- `targetId`
-- `details`
-- `ipAddress`, `userAgent`, `requestId`
-- `createdAt`
+- `assignedAdminId` (nullable FK → admin_identities.id)
+- `resolvedAt`, `internalNotes`
+- `createdAt`, `updatedAt`
 
 ### appeals
 - `id` (PK)
 - `userId` (FK → users.id)
-- `targetType` (`AppealTargetType`: `ACCOUNT_BAN | POST_REMOVAL`)
+- `targetType` (`AppealTargetType`: `ACCOUNT_BAN`, `POST_REMOVAL`)
 - `targetId` (nullable)
 - `reason`
-- `status` (`AppealStatus`: `PENDING | APPROVED | REJECTED`)
+- `status` (`AppealStatus`: `PENDING`, `APPROVED`, `REJECTED`)
 - `adminNotes` (nullable)
-- `createdAt`
-- `updatedAt`
-- Persisted appeals module, exposed at `POST /appeals`, `GET /appeals/my-appeals`, `GET /appeals/admin`, `PATCH /appeals/admin/:id`; surfaced in the app under `Settings → Appeals`. Note: `AdminAuditLog`/`Report` still model general moderation trace; there is no separate `ModerationAction` table.
+- `createdAt`, `updatedAt`
 
-### search_history
+### admin_audit_logs
 - `id` (PK)
-- `profileId` (FK → profiles.id)
-- `query`
-- `createdAt`
-- `expiresAt` (GDPR retention)
-
-### whitelist_entries
-- `id` (PK)
-- `email` (UNIQUE)
-- `name`
-- `status`
-- `createdAt`
-- `updatedAt`
-
-### system_settings
-- `key` (PK)
-- `value`
-- `description` (nullable)
-- `updatedAt`
-- `updatedBy` (admin id string)
-
-### moderation_rules
-- `id` (PK)
-- `keyword` (UNIQUE)
-- `action` (`RuleAction`: `BLOCK | FLAG | MUTE`)
-- `isActive`
-- `createdBy` (admin id string)
-- `createdAt`
-- `updatedAt`
-
-### moderation_signatures
-- `id` (PK)
-- `vector` (pgvector)
-- `category`
-- `textPreview` (nullable)
+- `adminId` (nullable FK → admin_identities.id)
+- `legacyUserId` (nullable)
+- `action` (`AdminAction` enum)
+- `targetType`, `targetId`, `details`
+- `ipAddress`, `userAgent`, `requestId`
 - `createdAt`
 
-### stripe_payout_logs
-- `id` (PK)
-- `stripePayoutId` (UNIQUE)
-- `userId` (FK → users.id — Connect account owner)
-- `amountCents`
-- `currency`
-- `status` (Stripe payout status string)
-- `arrivalDate`
-- `failureReason` (nullable)
-- `createdAt`
-- `updatedAt`
-- Synced from Connect `payout.*` webhooks for Admin Payouts ([ADR-0002](./adr/0002-stripe-connect-payouts.md)).
-
-### message_unlocks
-- `id` (PK)
-- `userId` (FK → users.id)
-- `messageId` (FK → messages.id)
-- `pricePaid` (integer cents)
-- `createdAt`
-- `@@unique([userId, messageId])`
-
-### device_signals
-- `id` (PK)
-- `userId` (FK → users.id)
-- `visitorHash` (HMAC of visitor id)
-- `userAgentHash` (nullable)
-- `firstSeenAt`, `lastSeenAt`
-- `@@unique([userId, visitorHash])`
-- Account trust path ([ADR-0014](./adr/0014-account-trust-signals.md)).
+### feed preferences (ADR-0004)
+- `FeedHiddenPost` (`id`, `profileId`, `postId`, `createdAt`; UNIQUE `[profileId, postId]`)
+- `FeedHiddenAuthor` (`id`, `profileId`, `targetProfileId`, `createdAt`; UNIQUE `[profileId, targetProfileId]`)
+- `FeedMutedKeyword` (`id`, `profileId`, `keyword`, `createdAt`; UNIQUE `[profileId, keyword]`)
 
 ### support_tickets
 - `id` (PK)
 - `userId` (nullable FK → users.id)
 - `email`, `subject`, `message`
-- `status` (`TicketStatus`)
-- `reply`, `resolvedAt` (nullable)
+- `status` (`TicketStatus`: `OPEN`, `IN_PROGRESS`, `RESOLVED`, `CLOSED`)
+- `reply`, `resolvedAt`
 - `createdAt`, `updatedAt`
 
----
+### whitelist_entries & system_settings
+- `WhitelistEntry` (`id`, `email` [UNIQUE], `name`, `status`, `createdAt`, `updatedAt`)
+- `SystemSetting` (`key` [PK], `value`, `description`, `updatedAt`, `updatedBy`)
 
-## 12. Main relationships
-
-- `users` 1 ── N `profiles` (v1 product uses one primary profile per account)
-- `users` 1 ── N `refresh_tokens`
-- `users` 1 ── N `passkeys`
-- `profiles` 1 ── N `posts`
-- `posts` 1 ── N `post_media`
-- `posts` 1 ── N `comments`
-- `posts` 1 ── N `likes`
-- `posts` 1 ── N `bookmarks`
-- `posts` N ── N `hashtags` via `post_hashtags`
-- `posts` 1 ── 1 `post_embeddings`
-- `profiles` N ── N `posts` via `post_tags`
-- `profiles` 1 ── N `stories`
-- `stories` 1 ── N `story_views`
-- `stories` 1 ── N `story_reactions`
-- `profiles` 1 ── N `highlights`
-- `highlights` N ── N `stories` via `highlight_stories`
-- `profiles` 1 ── N `comments`
-- `comments` 1 ── N `comment_likes`
-- `comments` 1 ── N `comments` (self-reference)
-- `profiles` 1 ── N `bookmarks`
-- `profiles` 1 ── N `collections`
-- `profiles` 1 ── N `follows` as follower
-- `profiles` 1 ── N `follows` as following
-- `profiles` 1 ── N `blocks` as blocker
-- `profiles` 1 ── N `blocks` as blocked
-- `profiles` 1 ── N `notifications` as recipient
-- `profiles` 1 ── N `notifications` as sender
-- `conversations` 1 ── N `participants`
-- `conversations` 1 ── N `messages`
-- `messages` 1 ── N `message_reactions`
-- `messages` 1 ── N `messages` (reply chain)
-- `users` 1 ── N `platform_subscriptions`
-- `platform_plans` 1 ── N `platform_subscriptions`
-- `users` 1 ── N `promotions`
-- `profiles` 1 ── N `close_friends` as owner (`profileId`)
-- `profiles` 1 ── N `close_friends` as friend (`friendId`)
-- `profiles` 1 ── N `reports` as reporter
-- `admin_identities` 1 ── N `reports` as assignee
-- `admin_identities` 1 ── N `admin_audit_logs`
-
-### Money units
-- Prefer `*Cents` Int columns (`priceCents`, `budgetCents`, `amountCents`, `lifetimeEarningsCents`).
-- `transactions.amount` is **already integer cents** under the legacy field name `amount` (public API contract — do not rename without a versioned migration).
-- `users` 1 ── 1 `user_settings`
-- `audio_tracks` 1 ── N `posts`
-- `audio_tracks` 1 ── N `stories`
-- `profiles` 1 ── N `mutes` as muter
-- `profiles` 1 ── N `mutes` as muted
-- `users` 1 ── N `appeals`
-- `profiles` 1 ── N `live_streams` as host
-- `profiles` 1 ── N `live_streams` as co-host
-- `posts` 1 ── 0..1 `polls` / `qna_boxes`
-- `stories` 1 ── 0..1 `polls` / `qna_boxes`
-- `profiles` 1 ── 1 `profile_embeddings`
-- `profiles` 1 ── N `search_history`
+### moderation_rules & moderation_signatures
+- `ModerationRule` (`id`, `keyword` [UNIQUE], `action` [`RuleAction`], `isActive`, `createdBy`, `createdAt`, `updatedAt`)
+- `ModerationSignature` (`id`, `vector` [`vector(1536)`], `category`, `textPreview`, `createdAt`)
 
 ---
 
-## 13. Differences from prior documentation
+## 12. Entity Relational Graph & Cardinalities
 
-### Corrected (superseded — see revision note below)
-- `frames` are no longer documented as a separate table; they become `Post.type = FRAME`.
-- `likes` are no longer polymorphic; separate `Like` and `CommentLike` exist.
-- `user_settings`, `feature_entitlements`, and separate analytics tables are removed from the current official ERD.
-- `chat`, `highlights`, `collections`, `passkeys`, `promotions`, `audio`, `search_history`, `whitelist_entries`, `user_settings`, and `post_embeddings` now appear in the official ERD.
+```mermaid
+erDiagram
+    User ||--o{ Profile : "owns (1..N)"
+    User ||--o{ RefreshToken : "sessions"
+    User ||--o{ Passkey : "credentials"
+    User ||--|| UserSettings : "preferences"
+    User ||--o{ PlatformSubscription : "bills"
+    User ||--o{ Transaction : "ledger"
+    User ||--o{ Appeal : "files"
 
-### Revision note (Aug 2026)
-**User/Profile split:** Social FKs documented as `profileId` / `profiles.id` (not `userId` on posts, likes, follows, chat, etc.). `username` lives on `Profile`. Admin audit/assignee references `AdminIdentity`. `creator_subscriptions` table removed from schema. See [ADR-0015](./adr/0015-user-profile-identity-split.md).
+    Profile ||--o{ Post : "authors"
+    Profile ||--o{ Story : "publishes"
+    Profile ||--o{ Comment : "writes"
+    Profile ||--o{ Like : "reacts"
+    Profile ||--o{ Bookmark : "saves"
+    Profile ||--o{ Follow : "follower / following"
+    Profile ||--o{ Block : "blocks"
+    Profile ||--o{ Mute : "mutes"
+    Profile ||--o{ Participant : "joins"
+    Profile ||--o{ Report : "reports"
 
-An earlier revision (Jul 2026) stated that `mutes`, `appeals`, and `moderation_actions` were "removed from the official ERD." That was inaccurate for `mutes` and `appeals`: both are real, persisted models in the live `schema.prisma` (`mutes` → section 6, `appeals` → section 11) and are wired to shipped API endpoints and UI (mute/unmute on profile and post menus; `Settings → Appeals`). There is still **no** separate `moderation_actions` table — `Report` + `AdminAuditLog` (+ `Appeal`) remain the persisted moderation surface. Feed-preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) **are implemented** — see [ADR-0004](./adr/0004-feed-preferences.md). Live gifts are billed (`LiveGift` + `DIRECT_LIVE_GIFT`).
+    Post ||--o{ PostMedia : "contains"
+    Post ||--o{ Comment : "threads"
+    Post ||--o{ Like : "receives"
+    Post ||--o{ PostHashtag : "tagged"
+    Post ||--o| Poll : "interactive"
+    Post ||--o| QnaBox : "interactive"
 
-### Kept as future application logic
-- A dedicated `ModerationAction` table (currently unmodeled; traceability lives in `AdminAuditLog`/`Report`).
-- Aggregated analytics persisted in dedicated tables.
-- Communities and marketplace.
+    Story ||--o{ StoryView : "tracks"
+    Story ||--o{ StoryReaction : "reacts"
+
+    Conversation ||--o{ Participant : "includes"
+    Conversation ||--o{ Message : "contains"
+    Message ||--o{ MessageReaction : "reacts"
+
+    AdminIdentity ||--o{ AdminIdentityRole : "has"
+    AdminIdentity ||--o{ AdminAuditLog : "audits"
+    AdminIdentity ||--o{ Report : "handles"
+```
+
+---
+
+## 13. Architectural Constraints & Relational Boundaries
+
+1. **Strict ADR-0015 Enforcement**: No social content attaches to `User.id`. `Profile.id` is the single social FK.
+2. **Financial Precision**: All monetary values are integer cents. Floating-point types are forbidden in financial tables.
+3. **Platform Fee**: Fixed at 20% on all creator monetization transactions ([ADR-0010](./adr/0010-platform-fee-20-percent.md)).
+4. **Moderation Traceability**: Operational moderation traceability lives directly in `Report` + `AdminAuditLog` + `Appeal` without an unmodeled `ModerationAction` table.
+5. **Feed Preferences**: User content suppression operates via dedicated preference tables (`feed_hidden_posts`, `feed_hidden_authors`, `feed_muted_keywords`) and `mutes` ([ADR-0004](./adr/0004-feed-preferences.md)).
