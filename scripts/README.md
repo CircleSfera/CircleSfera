@@ -11,6 +11,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | `npm run repo:verify-protection`<br>`node scripts/verify-branch-protection.mjs` | Local / CI | Audits GitHub branch protection rules on `main` (reviews, status checks, admin enforcement). | **Low** (Read-only) |
 | `npm run repo:enforce-protection`<br>`node scripts/verify-branch-protection.mjs --enforce` | Local / CI | Synchronizes and enforces target branch protection rules on `main` via GitHub API. | **Medium** (Updates repo rules) |
 | `npm run nginx:lint`<br>`node scripts/test-nginx-config.mjs` | Local / CI | Validates Nginx syntax, bounded defaults (60s), and scoped upload/streaming exceptions. | **Low** (Static analysis) |
+| `npm run docker:verify-digests`<br>`node scripts/verify-container-digests.mjs` | Local / CI | Validates that all Dockerfiles, Compose manifests, and CI workflows specify immutable `@sha256:` digests. | **Low** (Static analysis) |
 | `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Logical PostgreSQL dump (`pg_dump -Fc`), TOC integrity validation, local retention, and optional S3 sync. | **Low** (Read-only) |
 | `./scripts/backup-uploads.sh` | VPS / Local | Compressed archive (`.tar.gz`) of the uploaded media volume (`uploads/`) with retention and S3 sync. | **Low** (Read-only) |
 | `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restores a custom-format dump produced by `backup-postgres.sh`. Requires explicit `CONFIRM=YES`. | **High** (Destructive on target DB) |
@@ -63,6 +64,18 @@ Statically audits and validates `nginx/master.conf.template` ensuring compliance
 ```bash
 # Run static Nginx traffic policy linter
 npm run nginx:lint
+```
+
+#### `verify-container-digests.mjs`
+Statically audits all Dockerfiles, Compose manifests, and CI service containers to ensure complete cryptographic immutability:
+- Asserts that all `FROM` statements in backend and frontend Dockerfiles specify an `@sha256:` digest.
+- Asserts that all 3rd-party service container definitions in `docker-compose.prod.yml`, `docker-compose.yml`, `docker-compose.dev.yml`, and `docker-compose.e2e.yml` specify an `@sha256:` digest.
+- Asserts that CI workflow service containers in `ci-quality.yml`, `pr.yml`, and `playwright-nightly.yml` specify immutable digests.
+- Prevents unpinned floating tags (e.g. `latest`, `alpine`, `pg16`) from introducing supply chain drift.
+
+```bash
+# Verify container image digests across the entire repository
+npm run docker:verify-digests
 ```
 
 ---

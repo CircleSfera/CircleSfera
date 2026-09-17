@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 45
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
@@ -33,7 +33,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: redis:7-alpine
+        image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         ports:
           - 6379:6379
         options: >-
@@ -59,6 +59,9 @@ jobs:
 
       - name: "Nginx: Config & Traffic Policy Lint"
         run: npm run nginx:lint
+
+      - name: "Containers: Verify Base & Service Image Digests"
+        run: npm run docker:verify-digests
 
       - name: "Shared: Install and Build"
         run: |

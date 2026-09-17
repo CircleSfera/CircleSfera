@@ -10,7 +10,7 @@ services:
 
   nginx-proxy:
     <<: *default-logging
-    image: nginx:alpine
+    image: nginx:alpine@sha256:c8497b180665e631ec92a5091125bec5b214f0e2b99409e30653a125b37557da
     container_name: CircleSfera-Proxy
     ports:
       - "8082:80"
@@ -33,7 +33,7 @@ services:
 
   postgres:
     <<: *default-logging
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
     container_name: CircleSfera-Postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER}
@@ -52,7 +52,7 @@ services:
 
   redis:
     <<: *default-logging
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     container_name: CircleSfera-Redis
     command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env.production}"]
     volumes:

@@ -1,5 +1,5 @@
 # Build Stage
-FROM node:24-alpine AS build
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS build
 
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production Stage
-FROM node:24-alpine AS production
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS production
 
 WORKDIR /app
 

@@ -1,6 +1,6 @@
 # check=skip=SecretsUsedInArgOrEnv
 # Build Stage
-FROM node:24-alpine AS build
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS build
 
 WORKDIR /app
 
@@ -36,7 +36,7 @@ ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 RUN npm run build
 
 # Production Stage
-FROM nginx:alpine AS production
+FROM nginx:alpine@sha256:c8497b180665e631ec92a5091125bec5b214f0e2b99409e30653a125b37557da AS production
 
 # Copy the built application from the build stage to Nginx html directory
 COPY --from=build /app/circlesfera-frontend/dist /usr/share/nginx/html
