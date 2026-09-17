@@ -37,6 +37,7 @@ import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { validateEnv } from './common/config/env.validation.js';
+import { GLOBAL_DEFAULT_JOB_OPTIONS } from './common/constants/queue-policy.constants.js';
 import { CorrelationMiddleware } from './common/correlation/correlation.middleware.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
@@ -115,6 +116,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
           port: configService.get<number>('REDIS_PORT') || 6379,
           password: configService.get<string>('REDIS_PASSWORD') || undefined,
         },
+        defaultJobOptions: GLOBAL_DEFAULT_JOB_OPTIONS,
       }),
     }),
     ConfigModule.forRoot({

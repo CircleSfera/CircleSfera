@@ -3,11 +3,18 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { UserEventType } from '@prisma/client';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AnalyticsService } from '../analytics.service.js';
 
-@Processor('analytics-processing')
+@Processor(
+  QUEUE_NAMES.ANALYTICS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.ANALYTICS_PROCESSING),
+)
 export class AnalyticsProcessor extends WorkerHost {
   private readonly logger = new Logger(AnalyticsProcessor.name);
 

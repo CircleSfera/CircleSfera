@@ -1,6 +1,10 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import { Job } from 'bullmq';
+import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { FeedInboxService } from '../feed-inbox.service.js';
 
@@ -9,7 +13,7 @@ interface FanoutJobData {
   authorId: string;
 }
 
-@Processor('feed-fanout', { concurrency: 5 })
+@Processor(QUEUE_NAMES.FEED_FANOUT, getWorkerOptions(QUEUE_NAMES.FEED_FANOUT))
 export class FeedFanoutProcessor extends WorkerHost {
   private readonly logger = new Logger(FeedFanoutProcessor.name);
   private readonly BATCH_SIZE = 1000;

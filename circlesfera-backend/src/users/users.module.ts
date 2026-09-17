@@ -1,6 +1,10 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { StripeModule } from '../common/stripe/stripe.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { OutboxModule } from '../outbox/outbox.module.js';
@@ -19,9 +23,9 @@ import { UsersService } from './users.service.js';
     UploadsModule,
     OutboxModule,
     StripeModule,
-    BullModule.registerQueue({
-      name: 'users-processing',
-    }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.USERS_PROCESSING),
+    ),
   ],
   controllers: [UsersController],
   providers: [

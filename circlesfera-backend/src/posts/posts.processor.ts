@@ -1,9 +1,16 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
-@Processor('posts-processing')
+@Processor(
+  QUEUE_NAMES.POSTS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.POSTS_PROCESSING),
+)
 export class PostsProcessor extends WorkerHost {
   private readonly logger = new Logger(PostsProcessor.name);
 

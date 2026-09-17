@@ -1,9 +1,16 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { WarehouseExportService } from '../warehouse-export.service.js';
 
-@Processor('warehouse-export')
+@Processor(
+  QUEUE_NAMES.WAREHOUSE_EXPORT,
+  getWorkerOptions(QUEUE_NAMES.WAREHOUSE_EXPORT),
+)
 export class WarehouseExportProcessor extends WorkerHost {
   private readonly logger = new Logger(WarehouseExportProcessor.name);
 

@@ -1,10 +1,17 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
 
-@Processor('notifications-processing', { concurrency: 10 })
+@Processor(
+  QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.NOTIFICATIONS_PROCESSING),
+)
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 

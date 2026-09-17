@@ -5,6 +5,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
@@ -14,7 +18,10 @@ import { UsersService } from './users.service.js';
 const require = createRequire(import.meta.url);
 const archiver = require('archiver');
 
-@Processor('users-processing')
+@Processor(
+  QUEUE_NAMES.USERS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.USERS_PROCESSING),
+)
 export class DataExportProcessor extends WorkerHost {
   private readonly logger = new Logger(DataExportProcessor.name);
 

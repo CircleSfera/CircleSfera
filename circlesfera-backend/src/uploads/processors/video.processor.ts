@@ -4,6 +4,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { Job } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
@@ -16,7 +20,12 @@ const VIDEO_CONCURRENCY = Math.max(
 );
 
 @Injectable()
-@Processor('video-transcoding', { concurrency: VIDEO_CONCURRENCY })
+@Processor(
+  QUEUE_NAMES.VIDEO_TRANSCODING,
+  getWorkerOptions(QUEUE_NAMES.VIDEO_TRANSCODING, {
+    concurrency: VIDEO_CONCURRENCY,
+  }),
+)
 export class VideoProcessor extends WorkerHost {
   private readonly logger = new Logger(VideoProcessor.name);
 

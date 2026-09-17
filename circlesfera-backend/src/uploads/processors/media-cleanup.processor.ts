@@ -2,6 +2,10 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Job } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { UploadsService } from '../uploads.service.js';
 
 export interface DeleteMediaBatchJobData {
@@ -9,7 +13,10 @@ export interface DeleteMediaBatchJobData {
 }
 
 @Injectable()
-@Processor('media-cleanup')
+@Processor(
+  QUEUE_NAMES.MEDIA_CLEANUP,
+  getWorkerOptions(QUEUE_NAMES.MEDIA_CLEANUP),
+)
 export class MediaCleanupProcessor extends WorkerHost {
   private readonly logger = new Logger(MediaCleanupProcessor.name);
 

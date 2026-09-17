@@ -1,6 +1,10 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ClickHouseLoadService } from './clickhouse-load.service.js';
 import { WarehouseExportProcessor } from './processors/warehouse-export.processor.js';
@@ -9,7 +13,9 @@ import { WarehouseExportService } from './warehouse-export.service.js';
 @Module({
   imports: [
     PrismaModule,
-    BullModule.registerQueue({ name: 'warehouse-export' }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.WAREHOUSE_EXPORT),
+    ),
   ],
   providers: [
     WarehouseExportService,

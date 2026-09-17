@@ -4,10 +4,17 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationStatus, NotificationType } from '@prisma/client';
 import type { Job } from 'bullmq';
 import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 
-@Processor('ai-processing')
+@Processor(
+  QUEUE_NAMES.AI_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.AI_PROCESSING),
+)
 export class AIProcessor extends WorkerHost {
   private readonly logger = new Logger(AIProcessor.name);
 

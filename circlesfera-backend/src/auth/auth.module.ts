@@ -2,6 +2,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AbuseModule } from '../common/abuse/abuse.module.js';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AuthController } from './auth.controller.js';
@@ -18,9 +22,9 @@ import { TwoFactorModule } from './two-factor/two-factor.module.js';
     AbuseModule,
     forwardRef(() => PasskeyModule),
     TwoFactorModule,
-    BullModule.registerQueue({
-      name: 'users-processing',
-    }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.USERS_PROCESSING),
+    ),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
