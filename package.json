@@ -13,6 +13,7 @@
     "docs:api-inventory": "node scripts/generate-api-inventory.mjs",
     "db:backup": "./scripts/backup-postgres.sh",
     "db:restore": "./scripts/restore-postgres.sh",
+    "db:verify-restore": "./scripts/verify-backup-restore.sh",
     "db:check-migrations": "./scripts/check-prisma-schema-migrations.sh",
     "env:upload": "./scripts/upload-prod-env.sh",
     "ops:diagnose-crypto": "node scripts/diagnose-message-crypto.mjs",

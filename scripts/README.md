@@ -11,6 +11,7 @@ Colección de herramientas de automatización, base de datos, diagnóstico, desp
 | `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Dump lógico de PostgreSQL (`pg_dump -Fc`), verificación de integridad TOC, retención local y subida S3 opcional. | **Bajo** (Sólo lectura) |
 | `./scripts/backup-uploads.sh` | VPS / Local | Archivo comprimido (`.tar.gz`) del volumen de archivos subidos (`uploads/`) con retención y subida S3 opcional. | **Bajo** (Sólo lectura) |
 | `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restaura un dump custom-format generado por `backup-postgres.sh`. Requiere `CONFIRM=YES`. | **Alto** (Destructivo en BD destino) |
+| `npm run db:verify-restore`<br>`./scripts/verify-backup-restore.sh` | CI / Local / Ops | Drill automatizado de DR: genera/recibe un volcado, verifica TOC, restaura en base de datos efímera y valida tablas/migraciones. | **Bajo** (Aislado en BD temporal) |
 | `./scripts/install-backup-cron.sh` | VPS (OVH) | Instala cron diario (02:00 UTC) en el servidor de producción usando Docker Compose. | **Medio** (Modifica `crontab`) |
 | `npm run db:check-migrations`<br>`./scripts/check-prisma-schema-migrations.sh` | CI / Local | Detecta desalineaciones (drift) entre `schema.prisma` y las migraciones físicas de Prisma. | **Bajo** (Sólo lectura en BD temporal) |
 | `./scripts/prisma-migrate-deploy.sh` | Contenedor Prod | Ejecuta `prisma migrate deploy` en el arranque con recuperación automática de incidencias históricas. | **Medio** (Aplica migraciones) |
@@ -41,6 +42,17 @@ Restaura un dump previamente generado. Por seguridad operativa, exige la variabl
 ```bash
 CONFIRM=YES DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera_restore" \
   ./scripts/restore-postgres.sh /path/to/pg_backup_YYYYMMDD_HHMMSS.dump
+```
+
+#### `verify-backup-restore.sh`
+Simulacro automatizado de restauración ante desastres (Disaster Recovery Drill). Realiza una prueba completa end-to-end de respaldo y restauración en una base de datos efímera aislada (`CircleSfera_restore_test`), verificando la integridad del catálogo TOC, tablas públicas, migraciones de Prisma y consistencia de datos sin afectar a producción.
+```bash
+# Test integral desatendido (crea dump temporal, restaura, valida y limpia)
+DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" npm run db:verify-restore
+
+# Test de un dump específico ya generado
+DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" \
+  ./scripts/verify-backup-restore.sh /path/to/pg_backup_20260917_020000.dump
 ```
 
 #### `install-backup-cron.sh`
