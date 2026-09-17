@@ -35,7 +35,7 @@ The following modules are implemented, QA-tested, secured, and their architectur
 - **Production Change Control:** Strict `main` branch protection enforcing peer reviews, stale review dismissal, conversation thread resolution, required CI Quality and Playwright smoke status checks, and gated deployments to OVH VPS. Audit tooling via `npm run repo:verify-protection`. Details in [07-production-change-control.md](07-production-change-control.md).
 
 ## 🟡 In Development (Transition)
-- **Technical Documentation:** Authoring definitive system schemas and retiring legacy exploratory drafts.
+- **Technical Documentation:** Definitive system architecture, entity relationship models ([02-database-er-diagram.md](02-database-er-diagram.md)), and functional user stories ([04-user-stories.md](04-user-stories.md)) are synchronized with `schema.prisma` and live API controllers.
 
 ## 🔴 Out of Scope (Explicitly Not Implemented)
 - Separate microservices (splitting the modular monolith without an approved ADR is strictly forbidden).
