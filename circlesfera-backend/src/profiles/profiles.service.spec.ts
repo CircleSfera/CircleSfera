@@ -10,14 +10,19 @@ import { ProfilesService } from './profiles.service.js';
 describe('ProfilesService', () => {
   let service: ProfilesService;
 
-  const mockPrismaService = {
+  const mockPrismaService: any = {
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
     },
     user: {
       update: vi.fn(),
+      findUnique: vi.fn(),
+    },
+    platformSubscription: {
+      findFirst: vi.fn(),
     },
   };
 
@@ -246,7 +251,7 @@ describe('ProfilesService', () => {
         findFirst: vi.fn().mockResolvedValue({ id: 'sub-active' }),
       };
 
-      const res = await service.getProfile('dbuser');
+      const res: any = await service.getProfile('dbuser');
       expect(res.username).toBe('dbuser');
       expect(res.isVerified).toBe(true);
       expect(res.identityVerified).toBe(true);
@@ -272,7 +277,7 @@ describe('ProfilesService', () => {
         findFirst: vi.fn().mockResolvedValue(null),
       };
 
-      const res = await service.getProfile('eliteuser');
+      const res: any = await service.getProfile('eliteuser');
       expect(res.isVerified).toBe(true);
       expect(res.user).toBeUndefined();
     });

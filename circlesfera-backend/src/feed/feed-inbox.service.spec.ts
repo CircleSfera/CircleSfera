@@ -5,6 +5,19 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 
+vi.mock('ioredis', () => {
+  return {
+    Redis: vi.fn().mockImplementation(function (this: any, opts: any) {
+      this.on = vi.fn((event: string, cb: (...args: any[]) => void) => {
+        if (event === 'connect') cb();
+        if (event === 'error') cb(new Error('redis error'));
+      });
+      this.disconnect = vi.fn();
+      if (opts?.retryStrategy) opts.retryStrategy(2);
+    }),
+  };
+});
+
 describe('FeedInboxService', () => {
   let service: FeedInboxService;
 
@@ -58,11 +71,38 @@ describe('FeedInboxService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('lifecycle onModuleInit and onModuleDestroy', () => {
+    it('initializes Redis client and handles disconnect', () => {
+      service.onModuleInit();
+      expect((service as any).redisClient).toBeDefined();
+      service.onModuleDestroy();
+      expect((service as any).redisClient.disconnect).toHaveBeenCalled();
+    });
+  });
+
   describe('fanoutToFollowers', () => {
     it('should return early if followerIds is empty', async () => {
       await expect(
         service.fanoutToFollowers([], 'post-1'),
       ).resolves.not.toThrow();
+    });
+
+    it('fans out to followers via pipeline and logs completion', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      await service.fanoutToFollowers(['user-1', 'user-2'], 'post-1');
+      expect(mockRedisClient.pipeline).toHaveBeenCalled();
+      expect(mockPipeline.zadd).toHaveBeenCalledTimes(2);
+      expect(mockPipeline.exec).toHaveBeenCalled();
+    });
+
+    it('rethrows error when pipeline.exec fails', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockPipeline.exec.mockRejectedValueOnce(new Error('pipeline error'));
+      await expect(
+        service.fanoutToFollowers(['user-1'], 'post-1'),
+      ).rejects.toThrow('pipeline error');
     });
   });
 
@@ -215,6 +255,15 @@ describe('FeedInboxService', () => {
         service.invalidateUserFeedCache('user-1'),
       ).resolves.not.toThrow();
     });
+
+    it('catches and logs error when del fails', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.del.mockRejectedValueOnce(new Error('del failed'));
+      await expect(
+        service.invalidateUserFeedCache('user-1'),
+      ).resolves.not.toThrow();
+    });
   });
 
   describe('removePostsFromInbox (Stale Post Eviction)', () => {
@@ -242,6 +291,15 @@ describe('FeedInboxService', () => {
 
       expect(mockRedisClient.zrem).not.toHaveBeenCalled();
     });
+
+    it('catches and logs error when zrem fails', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zrem.mockRejectedValueOnce(new Error('zrem failed'));
+      await expect(
+        service.removePostsFromInbox('profile-1', ['p-1']),
+      ).resolves.not.toThrow();
+    });
   });
 
   describe('rebuildInbox (Rebuild Semantics)', () => {
@@ -260,6 +318,29 @@ describe('FeedInboxService', () => {
       expect(count).toBe(0);
       expect(mockRedisClient.del).toHaveBeenCalledWith('user:profile-1:inbox');
       expect(mockPrismaService.post.findMany).not.toHaveBeenCalled();
+    });
+
+    it('returns 0 when followed profiles have no recent posts', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'creator-A' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+
+      const count = await service.rebuildInbox('viewer-empty');
+      expect(count).toBe(0);
+    });
+
+    it('catches error and returns 0 when rebuild throws', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockPrismaService.follow.findMany.mockRejectedValueOnce(
+        new Error('DB crash'),
+      );
+
+      const count = await service.rebuildInbox('viewer-err');
+      expect(count).toBe(0);
     });
 
     it('should query canonical DB posts from followed profiles and populate Redis ZSET', async () => {

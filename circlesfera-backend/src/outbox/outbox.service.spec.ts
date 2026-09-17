@@ -90,7 +90,7 @@ describe('OutboxService', () => {
       await service.enqueue(mockTx, {
         queueName: 'users-processing',
         eventName: 'simple-event',
-      });
+      } as any);
 
       expect(mockTx.outboxEvent.create).toHaveBeenCalledWith({
         data: {

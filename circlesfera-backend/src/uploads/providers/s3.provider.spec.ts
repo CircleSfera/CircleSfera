@@ -3,9 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { S3Provider } from './s3.provider.js';
 
+const mockUploadDone = vi.fn().mockResolvedValue({});
+
 vi.mock('@aws-sdk/lib-storage', () => {
   class MockUpload {
-    done = vi.fn().mockResolvedValue({});
+    done = mockUploadDone;
   }
   return {
     Upload: MockUpload,
@@ -37,7 +39,111 @@ describe('S3Provider', () => {
     expect(provider).toBeDefined();
   });
 
+  describe('upload', () => {
+    it('uploads an image to S3 and returns CDN URL', async () => {
+      const file = {
+        buffer: Buffer.from('img'),
+        mimetype: 'image/png',
+        originalname: 'test.png',
+      };
+
+      const result = await provider.upload(file);
+      expect(result.type).toBe('image');
+      expect(result.url).toMatch(
+        /^https:\/\/cdn\.example\.com\/circlesfera\/.+\.png$/,
+      );
+    });
+
+    it('uploads a video to S3 without CDN URL and returns S3 URL', async () => {
+      const noCdnConfig: Record<string, string> = {
+        AWS_S3_BUCKET: 'raw-bucket',
+        AWS_S3_REGION: 'eu-west-1',
+        AWS_ACCESS_KEY_ID: 'key',
+        AWS_SECRET_ACCESS_KEY: 'secret',
+      };
+      const noCdnConfigService = {
+        getOrThrow: vi.fn((k: string) => noCdnConfig[k]),
+        get: vi.fn((k: string) => noCdnConfig[k]),
+      } as any;
+      const noCdnProvider = new S3Provider(noCdnConfigService);
+
+      const file = {
+        buffer: Buffer.from('video-data'),
+        mimetype: 'video/mp4',
+        originalname: 'clip.mp4',
+      };
+
+      const result = await noCdnProvider.upload(file);
+      expect(result.type).toBe('video');
+      expect(result.url).toMatch(
+        /^https:\/\/raw-bucket\.s3\.eu-west-1\.amazonaws\.com\/circlesfera\/.+\.mp4$/,
+      );
+    });
+
+    it('uploads other media formats and sets type other', async () => {
+      const file = {
+        buffer: Buffer.from('audio'),
+        mimetype: 'audio/mp3',
+        originalname: 'song.mp3',
+      };
+
+      const result = await provider.upload(file);
+      expect(result.type).toBe('other');
+    });
+
+    it('throws wrapped Error when S3 Upload fails', async () => {
+      mockUploadDone.mockRejectedValueOnce(new Error('S3 Network Timeout'));
+
+      const file = {
+        buffer: Buffer.from('error-data'),
+        mimetype: 'image/jpeg',
+        originalname: 'fail.jpg',
+      };
+
+      await expect(provider.upload(file)).rejects.toThrow(
+        'Failed to upload to S3: S3 Network Timeout',
+      );
+    });
+  });
+
   describe('delete', () => {
+    it('should extract key from standard amazonaws.com URL', async () => {
+      const sendSpy = vi
+        .spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({} as any);
+
+      await provider.delete(
+        'https://test-bucket.s3.us-east-1.amazonaws.com/circlesfera/direct.jpg',
+      );
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'circlesfera/direct.jpg',
+          }),
+        }),
+      );
+    });
+
+    it('should extract key using circlesfera/ fallback index', async () => {
+      const sendSpy = vi
+        .spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({} as any);
+
+      await provider.delete(
+        'https://custom-proxy.io/static/circlesfera/fallback.jpg',
+      );
+
+      expect(sendSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          input: expect.objectContaining({
+            Bucket: 'test-bucket',
+            Key: 'circlesfera/fallback.jpg',
+          }),
+        }),
+      );
+    });
     it('should delete object from S3 successfully', async () => {
       const sendSpy = vi
         .spyOn((provider as any).s3Client, 'send')
@@ -102,6 +208,37 @@ describe('S3Provider', () => {
       );
       expect(files[0].lastModified).toEqual(now);
       expect(files[0].sizeBytes).toBe(1048576);
+    });
+
+    it('should return empty list when response Contents is undefined', async () => {
+      vi.spyOn((provider as any).s3Client, 'send').mockResolvedValueOnce(
+        {} as any,
+      );
+
+      const files = await provider.listFiles();
+      expect(files).toEqual([]);
+    });
+
+    it('should format URLs with standard S3 format when cdnUrl is absent', async () => {
+      const noCdnConfig: Record<string, string> = {
+        AWS_S3_BUCKET: 'raw-bucket',
+        AWS_S3_REGION: 'eu-west-1',
+        AWS_ACCESS_KEY_ID: 'key',
+        AWS_SECRET_ACCESS_KEY: 'secret',
+      };
+      const noCdnProvider = new S3Provider({
+        getOrThrow: vi.fn((k: string) => noCdnConfig[k]),
+        get: vi.fn((k: string) => noCdnConfig[k]),
+      } as any);
+
+      vi.spyOn((noCdnProvider as any).s3Client, 'send').mockResolvedValueOnce({
+        Contents: [{ Key: 'circlesfera/file.png' }],
+      } as any);
+
+      const files = await noCdnProvider.listFiles();
+      expect(files[0].url).toBe(
+        'https://raw-bucket.s3.eu-west-1.amazonaws.com/circlesfera/file.png',
+      );
     });
 
     it('should return empty list on error', async () => {
@@ -215,6 +352,43 @@ describe('S3Provider', () => {
       });
 
       expect(result).toBeNull();
+    });
+
+    it('should map various extensions to correct contentType', async () => {
+      const makeBody = () =>
+        (async function* () {
+          yield Buffer.from('data');
+        })();
+
+      vi.spyOn((provider as any).s3Client, 'send')
+        .mockResolvedValueOnce({ Body: makeBody() } as any)
+        .mockResolvedValueOnce({ Body: makeBody() } as any)
+        .mockResolvedValueOnce({ Body: makeBody() } as any)
+        .mockResolvedValueOnce({ Body: makeBody() } as any);
+
+      const ts = await provider.getMediaArtifact({
+        baseFolder: 'hls',
+        relativePath: 'chunk.ts',
+      });
+      expect(ts?.contentType).toBe('video/MP2T');
+
+      const png = await provider.getMediaArtifact({
+        baseFolder: 'hls',
+        relativePath: 'cover.png',
+      });
+      expect(png?.contentType).toBe('image/png');
+
+      const webp = await provider.getMediaArtifact({
+        baseFolder: 'hls',
+        relativePath: 'cover.webp',
+      });
+      expect(webp?.contentType).toBe('image/webp');
+
+      const bin = await provider.getMediaArtifact({
+        baseFolder: 'hls',
+        relativePath: 'manifest.dat',
+      });
+      expect(bin?.contentType).toBe('application/octet-stream');
     });
   });
 });

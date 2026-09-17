@@ -83,6 +83,7 @@ describe('FeedService', () => {
     }).compile();
 
     service = module.get<FeedService>(FeedService);
+    vi.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -297,6 +298,377 @@ describe('FeedService', () => {
 
       expect(result.data).toHaveLength(1);
       expect(result.meta.total).toBe(1);
+    });
+
+    it('catches and logs warning when prune stale posts fails', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(['p1', 'p2']);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'p1', likes: [] },
+      ]);
+      mockFeedInboxService.removePostsFromInbox.mockRejectedValueOnce(
+        new Error('Redis fail'),
+      );
+
+      await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
+      expect(mockFeedInboxService.removePostsFromInbox).toHaveBeenCalledWith(
+        'user-1',
+        ['p2'],
+      );
+    });
+
+    it('catches and logs warning when background rebuild fails', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce([]);
+      mockFeedInboxService.rebuildInbox.mockRejectedValueOnce(
+        new Error('Rebuild fail'),
+      );
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'u2' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
+      expect(mockFeedInboxService.rebuildInbox).toHaveBeenCalledWith('user-1');
+    });
+
+    it('filters hidden posts, authors, and muted keywords in SQL fallback', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(null);
+      mockFeedPreferences.getFilterSets.mockResolvedValueOnce({
+        hiddenPostIds: ['hid-post'],
+        hiddenAuthorIds: ['hid-author'],
+        mutedKeywords: ['spam'],
+      });
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'hid-author' },
+        { followingId: 'good-author' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'p1', caption: 'Clean post', likes: [] },
+        { id: 'p2', caption: 'Contains SPAM here', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(2);
+
+      const res = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      // p2 contains 'spam' so it should be filtered out
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].id).toBe('p1');
+    });
+
+    it('locks premium posts in following feed if not subscribed or unlocked', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(['prem-1']);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'prem-1',
+          profileId: 'creator-x',
+          isPremium: true,
+          media: [{ url: 'secret.mp4', standardUrl: 'std.mp4' }],
+          likes: [],
+        },
+      ]);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
+
+      const res = await service.getFollowingFeed('viewer-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(res.data[0].isLocked).toBe(true);
+      expect(res.data[0].media[0].url).toBe('');
+    });
+  });
+
+  describe('getHybridFeed additional edge cases', () => {
+    it('returns cached hybrid feed when cache hit occurs', async () => {
+      mockCache.get.mockResolvedValueOnce({ data: [{ id: 'cached-hybrid' }] });
+
+      const res = (await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].id).toBe('cached-hybrid');
+    });
+
+    it('handles user with zero likes by running non-AI vector query', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        {
+          id: 'post-no-ai',
+          social_weight: 2.0,
+          ai_score: 0.9,
+          final_score: 8.8,
+        },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'post-no-ai',
+          performanceScore: 50,
+          likes: [{ profileId: 'user-1' }],
+        },
+      ]);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'acc-1',
+      });
+
+      const res = (await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].id).toBe('post-no-ai');
+      expect(res.data[0].recommendationReason).toBe('close_friend');
+      expect(res.data[0].recommendationSignals).toContain('close_friend');
+      expect(res.data[0].recommendationSignals).toContain('interest_match');
+      expect(res.data[0].recommendationSignals).toContain('high_engagement');
+    });
+
+    it('falls back to trending when hybrid query returns 0 posts', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]); // 0 posts
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'trending-fallback', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+
+      const res = (await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].id).toBe('trending-fallback');
+    });
+
+    it('catches hybrid query errors and falls back to trending', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockRejectedValueOnce(
+        new Error('SQL crash'),
+      );
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'trending-after-error', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+
+      const res = (await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].id).toBe('trending-after-error');
+    });
+
+    it('locks premium posts in hybrid feed and handles recommendation signals', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([
+        { postId: 'p-liked' },
+      ]);
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([{ vector: '[0.1]' }])
+        .mockResolvedValueOnce([
+          {
+            id: 'prem-hybrid',
+            social_weight: 1.5,
+            ai_score: 0.2,
+            final_score: 3.0,
+          },
+        ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'prem-hybrid',
+          profileId: 'author-y',
+          isPremium: true,
+          media: [{ url: 'locked.mp4' }],
+          likes: [],
+        },
+      ]);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u-viewer',
+      });
+      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
+
+      const res = (await service.getHybridFeed('viewer-prof', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].isLocked).toBe(true);
+      expect(res.data[0].recommendationReason).toBe('following');
+    });
+  });
+
+  describe('getTrendingFeed and injectPromotions', () => {
+    it('returns cached trending feed if present', async () => {
+      mockCache.get.mockResolvedValueOnce({
+        data: [{ id: 'trending-cached' }],
+      });
+
+      const res = (await service.getHybridFeed(null, {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].id).toBe('trending-cached');
+    });
+
+    it('injects promotions matching viewer location into feed with >= 5 posts', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: 'post-1' },
+        { id: 'post-2' },
+        { id: 'post-3' },
+        { id: 'post-4' },
+        { id: 'post-5' },
+      ]);
+      const posts = Array.from({ length: 5 }, (_, i) => ({
+        id: `post-${i + 1}`,
+        type: 'POST',
+        likes: [],
+        contentRating: 'GENERAL',
+      }));
+      mockPrismaService.post.findMany
+        .mockResolvedValueOnce(posts) // Hybrid hydrated posts
+        .mockResolvedValueOnce([
+          { id: 'promoted-p1', caption: 'Buy now', likes: [] },
+        ]); // Promoted post hydration
+      mockPrismaService.post.count.mockResolvedValueOnce(5);
+
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ userId: 'viewer-user' }) // viewerContentSettings
+        .mockResolvedValueOnce({ userId: 'viewer-user' }) // postUnlock
+        .mockResolvedValueOnce({
+          userId: 'viewer-user',
+          location: 'Madrid, Spain',
+        }); // injectPromotions
+
+      mockPrismaService.promotion.findMany.mockResolvedValueOnce([
+        {
+          id: 'promo-1',
+          targetId: 'promoted-p1',
+          countries: 'Spain, France',
+        },
+        {
+          id: 'promo-nomatch',
+          targetId: 'promoted-p2',
+          countries: 'Germany',
+        },
+      ]);
+
+      const res = (await service.getHybridFeed('viewer-prof', {
+        page: 1,
+        limit: 10,
+      })) as any;
+
+      // The promoted post should be injected
+      const injected = res.data.find((p: any) => p.isPromoted);
+      expect(injected).toBeDefined();
+      expect(injected.id).toBe('promoted-p1');
+      expect(injected.promotionId).toBe('promo-1');
+    });
+
+    it('returns default content settings when viewer profile does not exist', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(null);
+      mockFeedPreferences.getFilterSets.mockResolvedValueOnce({
+        hiddenPostIds: [],
+        hiddenAuthorIds: [],
+        mutedKeywords: [],
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.mute.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      const res = (await service.getFollowingFeed('missing-profile', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data).toEqual([]);
+    });
+
+    it('filters active mutes in following feed fallback', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(null);
+      mockFeedPreferences.getFilterSets.mockResolvedValueOnce({
+        hiddenPostIds: [],
+        hiddenAuthorIds: [],
+        mutedKeywords: [],
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'muted-1' },
+      ]);
+      mockPrismaService.mute.findMany.mockResolvedValueOnce([
+        { mutedId: 'muted-1' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      const res = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+      expect(res.data).toEqual([]);
+    });
+
+    it('locks premium posts and tests mutes in trending feed for authenticated viewer', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]); // 0 posts triggers getTrendingFeed(page, limit, skip, profileId)
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ userId: 'u-viewer' }) // getViewerContentSettings in hybrid
+        .mockResolvedValueOnce({ userId: 'u-viewer' }) // getViewerContentSettings in trending
+        .mockResolvedValueOnce({ userId: 'u-viewer' }); // postUnlock in trending
+      mockPrismaService.mute.findMany.mockResolvedValueOnce([
+        { mutedId: 'muted-creator' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        {
+          id: 'prem-trend',
+          profileId: 'creator-z',
+          isPremium: true,
+          media: [{ url: 'secret.mp4', standardUrl: 'std.mp4' }],
+          likes: [],
+        },
+      ]);
+      mockPrismaService.post.count.mockResolvedValueOnce(1);
+      mockPrismaService.postUnlock.findMany.mockResolvedValueOnce([]);
+
+      const res = (await service.getHybridFeed('viewer-auth', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].isLocked).toBe(true);
+      expect(res.data[0].media[0].url).toBe('');
+    });
+
+    it('sets recommendationReason to interest and popular when social_weight is neutral', async () => {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: 'p-interest', social_weight: 1.0, ai_score: 0.9, final_score: 5 },
+        { id: 'p-popular', social_weight: 1.0, ai_score: 0.1, final_score: 4 },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'p-interest', performanceScore: 5, likes: [] },
+        { id: 'p-popular', performanceScore: 50, likes: [] },
+      ]);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'u1',
+      });
+
+      const res = (await service.getHybridFeed('viewer-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      expect(res.data[0].recommendationReason).toBe('interest');
+      expect(res.data[1].recommendationReason).toBe('popular');
     });
   });
 });
