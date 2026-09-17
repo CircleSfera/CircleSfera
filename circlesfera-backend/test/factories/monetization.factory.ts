@@ -113,6 +113,7 @@ export async function createTransaction(
   receiverId: string,
   options: {
     amountCents?: number;
+    amount?: number;
     type?: TransactionType;
     status?: TransactionStatus;
   } = {},
@@ -122,9 +123,9 @@ export async function createTransaction(
     data: {
       senderId,
       receiverId,
-      amountCents: options.amountCents ?? 1000,
-      type: options.type ?? 'PPV_POST',
-      status: options.status ?? 'SUCCEEDED',
+      amount: options.amount ?? options.amountCents ?? 1000,
+      type: options.type ?? 'DIRECT_POST_UNLOCK',
+      status: options.status ?? 'COMPLETED',
       currency: 'EUR',
       stripePaymentIntentId: `pi_test_${suffix}`,
     },

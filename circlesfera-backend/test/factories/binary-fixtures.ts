@@ -23,6 +23,19 @@ export const TINY_MP4_BUFFER: Buffer = Buffer.from([
   0x00, 0x02, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32,
 ]);
 
+export interface MockMulterFile {
+  fieldname: string;
+  originalname: string;
+  encoding: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+  destination: string;
+  filename: string;
+  path: string;
+  stream: any;
+}
+
 /**
  * Build a mock Multer file payload for service-level upload testing.
  */
@@ -30,7 +43,7 @@ export function createMockMulterFile(options?: {
   filename?: string;
   mimetype?: string;
   buffer?: Buffer;
-}): Express.Multer.File {
+}): MockMulterFile {
   const buf = options?.buffer ?? TINY_JPEG_BUFFER;
   const filename = options?.filename ?? 'test-fixture.jpg';
   const mimetype = options?.mimetype ?? 'image/jpeg';

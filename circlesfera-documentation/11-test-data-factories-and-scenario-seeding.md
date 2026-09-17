@@ -74,7 +74,7 @@ const { user, profile } = await createUserWithProfile(prisma, {
   user: { email: 'creator@example.test' },
   profile: {
     accountType: 'CREATOR',
-    verificationLevel: 'VERIFIED_CREATOR',
+    verificationLevel: 'VERIFIED',
     fullName: 'Verified Creator',
   },
 });

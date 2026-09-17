@@ -35,7 +35,7 @@ export interface PostFactoryOverrides {
 export function buildPostAttributes(
   profileId: string,
   overrides: PostFactoryOverrides = {},
-): Prisma.PostCreateUncheckedInput {
+): Prisma.PostUncheckedCreateInput {
   const suffix = generateTestSuffix();
   return {
     profileId,

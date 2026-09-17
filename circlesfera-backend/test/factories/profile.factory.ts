@@ -30,7 +30,7 @@ export interface ProfileFactoryOverrides {
 export function buildProfileAttributes(
   userId: string,
   overrides: ProfileFactoryOverrides = {},
-): Prisma.ProfileCreateUncheckedInput {
+): Prisma.ProfileUncheckedCreateInput {
   const suffix = generateTestSuffix();
   return {
     userId,

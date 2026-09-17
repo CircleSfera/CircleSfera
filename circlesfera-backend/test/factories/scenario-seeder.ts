@@ -103,7 +103,7 @@ export class ScenarioSeeder {
     const creator = await createUserWithProfile(this.prisma, {
       profile: {
         accountType: 'CREATOR',
-        verificationLevel: 'VERIFIED_CREATOR',
+        verificationLevel: 'VERIFIED',
         fullName: 'Test Creator',
       },
     });
