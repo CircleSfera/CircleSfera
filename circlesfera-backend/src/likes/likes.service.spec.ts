@@ -130,6 +130,53 @@ describe('LikesService', () => {
         NotFoundException,
       );
     });
+
+    it('should catch and log error if analyticsQueue.add rejects on unlike', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        profileId: 'owner-1',
+      });
+      mockPrismaService.like.findUnique.mockResolvedValue({ id: 'like-1' });
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const mockQueueAdd = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Queue down'));
+      (service as any).analyticsQueue.add = mockQueueAdd;
+
+      const result = await service.toggle(postId, profileId, userId);
+      expect(result).toEqual({ liked: false });
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to enqueue analytics',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
+
+    it('should catch and log error if analyticsQueue.add rejects on like', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        profileId: 'owner-1',
+      });
+      mockPrismaService.like.findUnique.mockResolvedValue(null);
+      mockPrismaService.like.create.mockResolvedValue({ id: 'like-2' });
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+      const mockQueueAdd = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('Queue down'));
+      (service as any).analyticsQueue.add = mockQueueAdd;
+
+      const result = await service.toggle(postId, profileId, userId);
+      expect(result).toEqual({ liked: true });
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Failed to enqueue analytics',
+        expect.any(Error),
+      );
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('checkLike', () => {

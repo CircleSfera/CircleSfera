@@ -65,6 +65,44 @@ describe('BookmarksService', () => {
       expect(result).toEqual({ bookmarked: true });
     });
 
+    it('should create bookmark with collectionId if provided', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
+      mockPrismaService.bookmark.create.mockResolvedValue({
+        id: 'b-1',
+        profileId: 'user-1',
+        postId: 'post-1',
+        collectionId: 'col-1',
+      });
+
+      const result = await service.toggle('user-1', 'post-1', 'col-1');
+      expect(mockPrismaService.bookmark.create).toHaveBeenCalledWith({
+        data: { profileId: 'user-1', postId: 'post-1', collectionId: 'col-1' },
+      });
+      expect(result).toEqual({ bookmarked: true });
+    });
+
+    it('should update collection if already bookmarked but different collectionId requested', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.bookmark.findUnique.mockResolvedValue({
+        id: 'b-1',
+        profileId: 'user-1',
+        postId: 'post-1',
+        collectionId: 'col-old',
+      });
+      mockPrismaService.bookmark.update.mockResolvedValue({
+        id: 'b-1',
+        collectionId: 'col-new',
+      });
+
+      const result = await service.toggle('user-1', 'post-1', 'col-new');
+      expect(mockPrismaService.bookmark.update).toHaveBeenCalledWith({
+        where: { id: 'b-1' },
+        data: { collectionId: 'col-new' },
+      });
+      expect(result).toEqual({ id: 'b-1', collectionId: 'col-new' });
+    });
+
     it('should delete bookmark if already bookmarked', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
       mockPrismaService.bookmark.findUnique.mockResolvedValue({
@@ -81,6 +119,41 @@ describe('BookmarksService', () => {
     });
   });
 
+  describe('updateCollection', () => {
+    it('should create a new bookmark in collection if bookmark does not exist', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
+      mockPrismaService.bookmark.create.mockResolvedValue({
+        id: 'b-new',
+        profileId: 'user-1',
+        postId: 'post-1',
+        collectionId: 'col-1',
+      });
+
+      const res = await service.updateCollection('user-1', 'post-1', 'col-1');
+      expect(res.id).toBe('b-new');
+      expect(mockPrismaService.bookmark.create).toHaveBeenCalledWith({
+        data: { profileId: 'user-1', postId: 'post-1', collectionId: 'col-1' },
+      });
+    });
+
+    it('should update existing bookmark collectionId if bookmark exists', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue({
+        id: 'b-existing',
+      });
+      mockPrismaService.bookmark.update.mockResolvedValue({
+        id: 'b-existing',
+        collectionId: 'col-2',
+      });
+
+      const res = await service.updateCollection('user-1', 'post-1', 'col-2');
+      expect(res.collectionId).toBe('col-2');
+      expect(mockPrismaService.bookmark.update).toHaveBeenCalledWith({
+        where: { id: 'b-existing' },
+        data: { collectionId: 'col-2' },
+      });
+    });
+  });
+
   describe('check', () => {
     it('should return bookmarked true if record exists', async () => {
       mockPrismaService.bookmark.findUnique.mockResolvedValue({ id: 'b-1' });
@@ -94,6 +167,45 @@ describe('BookmarksService', () => {
 
       const result = await service.check('user-1', 'post-1');
       expect(result).toEqual({ bookmarked: false });
+    });
+  });
+
+  describe('getBookmarks', () => {
+    it('should retrieve bookmarks with default pagination and without collectionId', async () => {
+      const mockPost = { id: 'post-1', caption: 'Test post' };
+      mockPrismaService.bookmark.findMany.mockResolvedValue([
+        { id: 'b-1', post: mockPost },
+      ]);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      const res = await service.getBookmarks('user-1');
+      expect(res.data).toEqual([mockPost]);
+      expect(res.meta.total).toBe(1);
+      expect(res.meta.page).toBe(1);
+      expect(res.meta.collectionName).toBeUndefined();
+    });
+
+    it('should retrieve bookmarks with collectionId and lookup collection name', async () => {
+      mockPrismaService.bookmark.findMany.mockResolvedValue([]);
+      mockPrismaService.bookmark.count.mockResolvedValue(0);
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        name: 'Design Ideas',
+      });
+
+      const res = await service.getBookmarks('user-1', 2, 5, 'col-1');
+      expect(res.meta.collectionName).toBe('Design Ideas');
+      expect(res.meta.page).toBe(2);
+      expect(res.meta.limit).toBe(5);
+
+      // Also cover missing collection
+      mockPrismaService.collection.findUnique.mockResolvedValue(null);
+      const resMissingCol = await service.getBookmarks(
+        'user-1',
+        1,
+        10,
+        'col-none',
+      );
+      expect(resMissingCol.meta.collectionName).toBeUndefined();
     });
   });
 
@@ -115,6 +227,24 @@ describe('BookmarksService', () => {
       await expect(service.getByCollection('user-1', 'col-1')).rejects.toThrow(
         ForbiddenException,
       );
+    });
+
+    it('should return paginated posts for valid collection owned by user', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        name: 'Favorites',
+        profileId: 'user-1',
+      });
+      const mockPost = { id: 'p-fav' };
+      mockPrismaService.bookmark.findMany.mockResolvedValue([
+        { id: 'b-fav', post: mockPost },
+      ]);
+      mockPrismaService.bookmark.count.mockResolvedValue(1);
+
+      const res = await service.getByCollection('user-1', 'col-1');
+      expect(res.data).toEqual([mockPost]);
+      expect(res.total).toBe(1);
+      expect(res.collectionName).toBe('Favorites');
     });
   });
 });

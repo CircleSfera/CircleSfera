@@ -163,5 +163,248 @@ describe('ProfilesService', () => {
         }),
       });
     });
+
+    it('should throw NotFoundException if profile does not exist when updating', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      await expect(service.updateProfile('p-missing', {})).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('should reset thumbnail/standard URLs when avatar is provided and enqueue embedding', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'avataruser',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'avataruser',
+        fullName: 'Avatar User',
+        bio: 'Bio text',
+        accountType: 'PERSONAL',
+        verificationLevel: 'BASIC',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', {
+        avatar: 'https://cdn.example.com/avatar.jpg',
+        fullName: 'Avatar User',
+      });
+
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            thumbnailUrl: null,
+            standardUrl: null,
+          }),
+        }),
+      );
+      expect(mockAiQueue.add).toHaveBeenCalledWith(
+        'generate-profile-embedding',
+        expect.objectContaining({
+          profileId: 'p-1',
+          text: 'avataruser Avatar User Bio text',
+        }),
+      );
+
+      // Verify catch handler when aiQueue.add rejects
+      mockAiQueue.add.mockRejectedValueOnce(new Error('Queue failure'));
+      await expect(
+        service.updateProfile('p-1', { bio: 'Another bio' }),
+      ).resolves.toBeDefined();
+    });
+  });
+
+  describe('getProfile DB fallback and verification', () => {
+    it('loads profile from DB when not in cache and calculates verification and standing', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-db',
+        userId: 'u-db',
+        username: 'dbuser',
+        verificationLevel: 'BASIC',
+        accountType: 'PERSONAL',
+        suspendedUntil: null,
+        user: {
+          id: 'u-db',
+          createdAt: new Date('2026-01-01'),
+          lastSeenAt: new Date(),
+          isActive: true,
+          strikeCount: 0,
+          emailVerified: new Date(),
+          identityVerifiedAt: new Date(),
+          signupCountry: 'ES',
+          botLabeledAt: null,
+          settings: { privacyLevel: 'PUBLIC' },
+        },
+        _count: { posts: 5, followers: 10, following: 2 },
+      });
+      mockPrismaService.platformSubscription = {
+        findFirst: vi.fn().mockResolvedValue({ id: 'sub-active' }),
+      };
+
+      const res = await service.getProfile('dbuser');
+      expect(res.username).toBe('dbuser');
+      expect(res.isVerified).toBe(true);
+      expect(res.identityVerified).toBe(true);
+      expect(mockCacheManager.set).toHaveBeenCalledWith(
+        'profile:dbuser',
+        expect.any(Object),
+        600000,
+      );
+    });
+
+    it('handles ELITE verificationLevel without platformSubscription', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-elite',
+        userId: 'u-elite',
+        username: 'eliteuser',
+        verificationLevel: 'ELITE',
+        accountType: 'CREATOR',
+        user: null,
+        _count: { posts: 0, followers: 0, following: 0 },
+      });
+      mockPrismaService.platformSubscription = {
+        findFirst: vi.fn().mockResolvedValue(null),
+      };
+
+      const res = await service.getProfile('eliteuser');
+      expect(res.isVerified).toBe(true);
+      expect(res.user).toBeUndefined();
+    });
+  });
+
+  describe('searchProfiles', () => {
+    it('returns empty array when query is empty', async () => {
+      const res = await service.searchProfiles('');
+      expect(res).toEqual([]);
+    });
+
+    it('searches profiles by username or fullName', async () => {
+      mockPrismaService.profile.findMany = vi
+        .fn()
+        .mockResolvedValue([
+          { id: 'p-1', username: 'alice', fullName: 'Alice Wonderland' },
+        ]);
+
+      const res = await service.searchProfiles('alice');
+      expect(res).toHaveLength(1);
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 10,
+        }),
+      );
+    });
+  });
+
+  describe('getMyReferrals', () => {
+    it('throws NotFound if user not found', async () => {
+      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue(null);
+      await expect(service.getMyReferrals('u-missing')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('returns user referrals when found', async () => {
+      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
+        inviteCode: 'INVITE123',
+        referrals: [
+          {
+            id: 'ref-1',
+            createdAt: new Date(),
+            profiles: [
+              { username: 'refUser', fullName: 'Ref User', avatar: null },
+            ],
+          },
+        ],
+      });
+
+      const res = await service.getMyReferrals('u-1');
+      expect(res.inviteCode).toBe('INVITE123');
+      expect(res.referralCount).toBe(1);
+      expect(res.referrals[0].profile.username).toBe('refUser');
+    });
+  });
+
+  describe('getMyProfile', () => {
+    it('throws NotFound if profile not found', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue(null);
+      await expect(service.getMyProfile('p-missing')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('returns own profile with subscription check and flattened settings', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-me',
+        userId: 'u-me',
+        username: 'myuser',
+        verificationLevel: 'BUSINESS',
+        accountType: 'BUSINESS',
+        suspendedUntil: null,
+        user: {
+          id: 'u-me',
+          email: 'me@example.com',
+          role: 'USER',
+          createdAt: new Date(),
+          lastSeenAt: new Date(),
+          isActive: true,
+          strikeCount: 0,
+          emailVerified: new Date(),
+          inviteCode: 'MYINVITE',
+          referredById: null,
+          identityVerifiedAt: null,
+          signupCountry: 'US',
+          botLabeledAt: null,
+          settings: { isOnboarded: true, privacyLevel: 'PRIVATE' },
+        },
+        _count: { followers: 100, following: 50 },
+      });
+      mockPrismaService.platformSubscription = {
+        findFirst: vi.fn().mockResolvedValue(null),
+      };
+
+      const res = await service.getMyProfile('p-me');
+      expect(res.username).toBe('myuser');
+      expect(res.isPrivate).toBe(true);
+      expect(res.isVerified).toBe(true);
+    });
+  });
+
+  describe('deactivateAccount & deleteAccount', () => {
+    it('deactivates account and deletes cache', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        username: 'deactivateuser',
+      });
+      mockPrismaService.user.update.mockResolvedValue({
+        id: 'p-1',
+        isActive: false,
+      });
+
+      const res = await service.deactivateAccount('p-1');
+      expect(res.isActive).toBe(false);
+      expect(mockCacheManager.del).toHaveBeenCalledWith(
+        'profile:deactivateuser',
+      );
+    });
+
+    it('schedules account deletion and deletes cache', async () => {
+      const scheduledDate = new Date('2026-10-15T00:00:00.000Z');
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-del',
+        username: 'deleteuser',
+      });
+      mockUsersService.scheduleDeletion.mockResolvedValue(scheduledDate);
+
+      const res = await service.deleteAccount('p-del');
+      expect(res.success).toBe(true);
+      expect(res.scheduled_deletion_at).toBe(scheduledDate.toISOString());
+      expect(mockCacheManager.del).toHaveBeenCalledWith('profile:deleteuser');
+    });
   });
 });
