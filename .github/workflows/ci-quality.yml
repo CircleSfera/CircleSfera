@@ -77,6 +77,9 @@ jobs:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
 
+      - name: "Migration safety check (Expand/Contract)"
+        run: npm run db:lint-migrations
+
       - name: "Smoke: User/Profile identity drift (ADR-0015)"
         run: npm run smoke:profile-drift
 

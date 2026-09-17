@@ -1,149 +1,156 @@
-# Scripts Operativos y de Soporte — CircleSfera
+# Operational and Support Scripts — CircleSfera
 
-Colección de herramientas de automatización, base de datos, diagnóstico, despliegue y documentación para CircleSfera.
+Collection of automation, database, diagnostic, deployment, verification, and documentation tools for CircleSfera.
 
 ---
 
-## 1. Matriz de Scripts
+## 1. Script Matrix
 
-| Comando / Script | Entorno | Propósito | Nivel de Riesgo |
+| Command / Script | Environment | Purpose | Risk Level |
 | :--- | :--- | :--- | :--- |
-| `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Dump lógico de PostgreSQL (`pg_dump -Fc`), verificación de integridad TOC, retención local y subida S3 opcional. | **Bajo** (Sólo lectura) |
-| `./scripts/backup-uploads.sh` | VPS / Local | Archivo comprimido (`.tar.gz`) del volumen de archivos subidos (`uploads/`) con retención y subida S3 opcional. | **Bajo** (Sólo lectura) |
-| `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restaura un dump custom-format generado por `backup-postgres.sh`. Requiere `CONFIRM=YES`. | **Alto** (Destructivo en BD destino) |
-| `npm run db:verify-restore`<br>`./scripts/verify-backup-restore.sh` | CI / Local / Ops | Drill automatizado de DR: genera/recibe un volcado, verifica TOC, restaura en base de datos efímera y valida tablas/migraciones. | **Bajo** (Aislado en BD temporal) |
-| `./scripts/install-backup-cron.sh` | VPS (OVH) | Instala cron diario (02:00 UTC) en el servidor de producción usando Docker Compose. | **Medio** (Modifica `crontab`) |
-| `npm run db:check-migrations`<br>`./scripts/check-prisma-schema-migrations.sh` | CI / Local | Detecta desalineaciones (drift) entre `schema.prisma` y las migraciones físicas de Prisma. | **Bajo** (Sólo lectura en BD temporal) |
-| `npm run db:lint-migrations`<br>`node scripts/lint-migration-safety.mjs` | CI / Pre-commit | Audita sentencias destructivas (`DROP COLUMN`, `RENAME`, `SET NOT NULL`) garantizando Expand/Contract. | **Bajo** (Análisis estático) |
-| `npm run db:test-rollback`<br>`./scripts/test-migration-rollback.sh` | CI / Local / Ops | Simula la reversión de migraciones en BD efímera ejecutando `down.sql` y validando reentrada hacia adelante. | **Bajo** (Aislado en BD temporal) |
-| `./scripts/prisma-migrate-deploy.sh` | Contenedor Prod | Ejecuta `prisma migrate deploy` en el arranque con recuperación automática de incidencias históricas. | **Medio** (Aplica migraciones) |
-| `npm run env:upload`<br>`./scripts/upload-prod-env.sh` | Local Ops | Valida variables críticas de `.env.production` y actualiza el secret `ENV_PRODUCTION_B64` en GitHub vía `gh`. | **Medio** (Actualiza secretos) |
-| `./scripts/setup-github-e2e.sh` | Local Ops | Configura credenciales y flags de pruebas E2E en GitHub Secrets/Variables. | **Bajo** (Configuración) |
-| `npm run ops:diagnose-crypto`<br>`node scripts/diagnose-message-crypto.mjs` | Contenedor Ops | Diagnostica el estado de cifrado AES-256-GCM de los mensajes (`Message.content`) contra candidatos de claves. | **Bajo** (Sólo lectura) |
-| `npm run smoke:profile-drift`<br>`node scripts/validate-profile-drift-smoke.mjs` | Local / Post-deploy | Smoke test HTTP contra contratos de identidad de usuario y perfil (ADR-0015). | **Bajo** (Pruebas controladas) |
-| `npm run docs:api-inventory`<br>`node scripts/generate-api-inventory.mjs` | Local | Escanea controladores NestJS y regenera `circlesfera-documentation/03-api-catalog.generated.md`. | **Bajo** (Documentación) |
+| `npm run repo:verify-protection`<br>`node scripts/verify-branch-protection.mjs` | Local / CI | Audits GitHub branch protection rules on `main` (reviews, status checks, admin enforcement). | **Low** (Read-only) |
+| `npm run repo:enforce-protection`<br>`node scripts/verify-branch-protection.mjs --enforce` | Local / CI | Synchronizes and enforces target branch protection rules on `main` via GitHub API. | **Medium** (Updates repo rules) |
+| `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Logical PostgreSQL dump (`pg_dump -Fc`), TOC integrity validation, local retention, and optional S3 sync. | **Low** (Read-only) |
+| `./scripts/backup-uploads.sh` | VPS / Local | Compressed archive (`.tar.gz`) of the uploaded media volume (`uploads/`) with retention and S3 sync. | **Low** (Read-only) |
+| `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restores a custom-format dump produced by `backup-postgres.sh`. Requires explicit `CONFIRM=YES`. | **High** (Destructive on target DB) |
+| `npm run db:verify-restore`<br>`./scripts/verify-backup-restore.sh` | CI / Local / Ops | Automated DR drill: creates/receives dump, asserts TOC, restores to ephemeral DB, and verifies tables/migrations. | **Low** (Isolated in temp DB) |
+| `./scripts/install-backup-cron.sh` | VPS (OVH) | Installs daily 02:00 UTC cron schedule on the production server using Docker Compose. | **Medium** (Updates `crontab`) |
+| `npm run db:check-migrations`<br>`./scripts/check-prisma-schema-migrations.sh` | CI / Local | Detects drift between `schema.prisma` and physical Prisma migrations. | **Low** (Read-only against temp DB) |
+| `npm run db:lint-migrations`<br>`node scripts/lint-migration-safety.mjs` | CI / Pre-commit | Audits destructive SQL statements (`DROP COLUMN`, `RENAME`, `SET NOT NULL`), enforcing Expand/Contract. | **Low** (Static analysis) |
+| `npm run db:test-rollback`<br>`./scripts/test-migration-rollback.sh` | CI / Local / Ops | Simulates schema rollback in ephemeral DB by applying `down.sql` and verifying forward re-entrancy. | **Low** (Isolated in temp DB) |
+| `./scripts/prisma-migrate-deploy.sh` | Prod Container | Executes `prisma migrate deploy` during startup with automated recovery from historical issues. | **Medium** (Applies migrations) |
+| `npm run env:upload`<br>`./scripts/upload-prod-env.sh` | Local Ops | Validates critical secrets in `.env.production` and updates `ENV_PRODUCTION_B64` secret via `gh`. | **Medium** (Updates secrets) |
+| `./scripts/setup-github-e2e.sh` | Local Ops | Configures E2E testing credentials and feature flags in GitHub Secrets/Variables. | **Low** (Configuration) |
+| `npm run ops:diagnose-crypto`<br>`node scripts/diagnose-message-crypto.mjs` | Ops Container | Diagnoses AES-256-GCM encryption status of messages (`Message.content`) against key candidates. | **Low** (Read-only) |
+| `npm run smoke:profile-drift`<br>`node scripts/validate-profile-drift-smoke.mjs` | Local / Post-deploy | HTTP smoke test verifying User vs Profile identity segregation contracts (ADR-0015). | **Low** (Controlled probes) |
+| `npm run docs:api-inventory`<br>`node scripts/generate-api-inventory.mjs` | Local | Scans NestJS controllers statically and regenerates `circlesfera-documentation/03-api-catalog.generated.md`. | **Low** (Documentation) |
 
 ---
 
-## 2. Guía de Uso por Dominio
+## 2. Usage Guide by Domain
 
-### A. Base de Datos y Backups (P0)
+### A. Repository & Change Control Governance
+
+#### `verify-branch-protection.mjs`
+Audits and enforces branch protection rules on the `main` branch to guarantee production change control:
+- Mandates at least 1 approving review with automatic dismissal of stale approvals.
+- Enforces conversation resolution on all pull request threads.
+- Enforces CI Quality and Playwright Smoke required status checks.
+- Enforces protections on repository administrators.
+- Blocks branch deletion and force pushes.
+
+```bash
+# Verify branch protection rules (returns exit code 0 on pass, 1 on violation)
+npm run repo:verify-protection
+
+# Output machine-readable JSON metrics for CI audit
+node scripts/verify-branch-protection.mjs --json
+
+# Apply/synchronize required protection rules via GitHub API
+npm run repo:enforce-protection
+```
+
+---
+
+### B. Database Backups and Disaster Recovery
 
 #### `backup-postgres.sh`
-Genera un volcado lógico comprimido de PostgreSQL, valida su tabla de contenidos (TOC) y rota volcados antiguos.
+Generates a compressed custom-format logical dump, verifies Table of Contents (TOC) integrity, and rotates historical backups:
 ```bash
-# Backup local con retención de 30 días
+# Local backup with 30-day retention
 DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" ./scripts/backup-postgres.sh
 
-# Backup con subida automática a bucket S3 / MinIO
+# Backup with automated off-host S3 upload
 DATABASE_URL="..." S3_BACKUP_BUCKET="circlesfera-backups" ./scripts/backup-postgres.sh
 ```
 
 #### `restore-postgres.sh`
-Restaura un dump previamente generado. Por seguridad operativa, exige la variable explícita `CONFIRM=YES`.
+Restores a verified dump. For operational safety, requires explicit confirmation:
 ```bash
 CONFIRM=YES DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera_restore" \
   ./scripts/restore-postgres.sh /path/to/pg_backup_YYYYMMDD_HHMMSS.dump
 ```
 
 #### `verify-backup-restore.sh`
-Simulacro automatizado de restauración ante desastres (Disaster Recovery Drill). Realiza una prueba completa end-to-end de respaldo y restauración en una base de datos efímera aislada (`CircleSfera_restore_test`), verificando la integridad del catálogo TOC, tablas públicas, migraciones de Prisma y consistencia de datos sin afectar a producción.
+Automated Disaster Recovery (DR) restore drill. Performs an end-to-end backup and restore cycle in an isolated ephemeral database (`CircleSfera_restore_test`), validating TOC integrity, public table counts, Prisma migrations, and referential consistency without impacting production:
 ```bash
-# Test integral desatendido (crea dump temporal, restaura, valida y limpia)
+# Unattended drill (creates temp dump, restores, verifies, and tears down)
 DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" npm run db:verify-restore
 
-# Test de un dump específico ya generado
+# Verify a specific existing dump file
 DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" \
   ./scripts/verify-backup-restore.sh /path/to/pg_backup_20260917_020000.dump
 ```
 
 #### `install-backup-cron.sh`
-Diseñado para ejecutarse una vez en el servidor de producción (VPS):
+Configures daily 02:00 UTC logical backup execution on the production host:
 ```bash
 cd /srv/circlesfera && ./scripts/install-backup-cron.sh
 ```
 
 ---
 
-### B. Migraciones y Esquema de Prisma
+### C. Migrations and Schema Governance
 
 #### `check-prisma-schema-migrations.sh`
-Utilizado tanto en GitHub Actions (`ci-quality.yml`) como en desarrollo local para garantizar que nunca se comiteen cambios a `schema.prisma` sin su correspondiente migración SQL en `prisma/migrations/`.
+Validates that changes in `schema.prisma` are strictly backed by physical SQL migrations in `prisma/migrations/`:
 ```bash
 DATABASE_URL="postgresql://prisma:prisma@localhost:5432/schema_check" \
   ./scripts/check-prisma-schema-migrations.sh
 ```
 
 #### `lint-migration-safety.mjs`
-Auditor estático de seguridad de migraciones que verifica el cumplimiento del patrón Expand/Contract para compatibilidad con versiones anteriores ($N-1$).
+Static migration linter preventing destructive operations (`DROP COLUMN`, `RENAME`, `SET NOT NULL` without default) to maintain Expand/Contract backward compatibility ($N-1$):
 ```bash
-# Escaneo general de migraciones
+# General scan of all migrations
 npm run db:lint-migrations
 
-# Escaneo únicamente de migraciones en staging de Git
+# Scan only staged migrations in Git
 npm run db:lint-migrations -- --staged
 ```
 
 #### `test-migration-rollback.sh`
-Simulacro automatizado de reversión de esquema en una base de datos efímera. Ejecuta el script `down.sql`, resuelve la migración como revertida en `_prisma_migrations`, comprueba el retorno al estado previo y valida la reaplicación hacia adelante.
+Simulates migration rollback in an isolated ephemeral database, executing `down.sql`, resolving Prisma state, and verifying forward re-entrancy:
 ```bash
 DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" npm run db:test-rollback
 ```
 
-#### `prisma-migrate-deploy.sh`
-Script de entrypoint utilizado por `circlesfera-backend/docker-entrypoint.sh` y `docker-compose.prod.yml` para desplegar migraciones de forma segura antes de iniciar el proceso de Node.js.
-
 ---
 
-### C. Gestión de Secretos y Despliegue
+### D. Secrets Management & Deployment
 
 #### `upload-prod-env.sh`
-Valida la presencia y longitud mínima de secretos críticos (`JWT_SECRET`, `ENCRYPTION_KEY`, `TURNSTILE_SECRET_KEY`, etc.) antes de codificarlos en base64 y subirlos a GitHub Actions.
+Validates critical environment variables (`JWT_SECRET`, `ENCRYPTION_KEY`, `TURNSTILE_SECRET_KEY`, etc.) before encoding to base64 and uploading to GitHub Secrets (`ENV_PRODUCTION_B64`):
 ```bash
-# Validar y subir secreto a GitHub
+# Validate and upload secret
 ./scripts/upload-prod-env.sh
 
-# Validar, subir secreto y disparar despliegue a producción
+# Validate, upload secret, and trigger production deploy
 ./scripts/upload-prod-env.sh --deploy
 ```
 
 ---
 
-### D. Diagnóstico y Criptografía
+### E. Diagnostics & Crypto
 
 #### `diagnose-message-crypto.mjs`
-Se utiliza durante o después de la rotación de claves de cifrado de mensajes (`ENCRYPTION_KEY`). Clasifica los mensajes en la base de datos según si están en texto plano, cifrados con la clave actual o cifrados con claves legacy.
+Analyzes message encryption status during key rotation, classifying rows by plain text, active key encryption, or legacy keys:
 ```bash
 DATABASE_URL="..." ENCRYPTION_KEY="..." node scripts/diagnose-message-crypto.mjs
 ```
-> Para re-cifrar los mensajes detectados con claves legacy, ejecutar:
-> `cd circlesfera-backend && npx tsx src/scripts/reencrypt-messages.ts`
 
 ---
 
-### E. Pruebas de Humo (Smoke) y Catálogo de APIs
+### F. Smoke Checks & API Catalog
 
 #### `validate-profile-drift-smoke.mjs`
-Verifica la integridad de las respuestas de la API en relación con la separación de identidades `User` vs `Profile` (ADR-0015).
+Smoke test verifying User vs Profile identity segregation contracts:
 ```bash
-# Ejecutar contra el proxy local en puerto 8080 (requiere stack levantado)
 npm run smoke:profile-drift
-
-# O especificando una URL base distinta
-API_BASE="http://localhost:3000/api/v1" npm run smoke:profile-drift
 ```
 
 #### `generate-api-inventory.mjs`
-Inspecciona estáticamente el código fuente de los controladores NestJS (`*.controller.ts`) y compila la lista oficial de endpoints sin inventar rutas ni depender de suposiciones.
+Statically scans NestJS controllers to compile the official API route inventory:
 ```bash
 npm run docs:api-inventory
 ```
-
----
-
-### F. Pipeline de Analítica y ETL (`scripts/etl/`)
-
-Contiene las herramientas para exportar eventos relacionales de PostgreSQL hacia ClickHouse:
-- `export-analytics-tables.sh`: Dump por lotes de tablas de analítica e interacción.
-- `clickhouse-schema.sql`: DDL de las tablas optimizadas para ClickHouse.
-- Consultar [`scripts/etl/README.md`](./etl/README.md) para más detalles.

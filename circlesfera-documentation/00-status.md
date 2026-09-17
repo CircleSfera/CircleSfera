@@ -26,6 +26,7 @@ The following modules are implemented, QA-tested, secured, and their architectur
 - **Docker Compose:** Full service orchestration for frontend, backend, PostgreSQL (`pgvector`), and Redis.
 - **Backup & Disaster Recovery:** Formalized SLAs (RPO $\le 24$h core, RPO = 0 financial ledger, cold RTO $\le 30$m). Automated logical dumps (`backup-postgres.sh`), restore tooling (`restore-postgres.sh`), unattended restore drill verification (`verify-backup-restore.sh`), and daily 02:00 UTC cron with 30-day retention and S3 off-host replication. Details in [05-disaster-recovery.md](05-disaster-recovery.md).
 - **Backward-Compatible Migrations & Rollback:** Mandatory Expand/Contract schema discipline ensuring compatibility between application version $N-1$ and schema version $N$. Static breaking change linter (`lint-migration-safety.mjs`), reversible `down.sql` scripts, and isolated rollback drill testing (`test-migration-rollback.sh`). Details in [06-migration-rollback-policy.md](06-migration-rollback-policy.md).
+- **Production Change Control:** Strict `main` branch protection enforcing peer reviews, stale review dismissal, conversation thread resolution, required CI Quality and Playwright smoke status checks, and gated deployments to OVH VPS. Audit tooling via `npm run repo:verify-protection`. Details in [07-production-change-control.md](07-production-change-control.md).
 
 ## 🟡 In Development (Transition)
 - **Technical Documentation:** Authoring definitive system schemas and retiring legacy exploratory drafts.
