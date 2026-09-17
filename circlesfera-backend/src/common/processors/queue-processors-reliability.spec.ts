@@ -4,7 +4,7 @@ import { AIProcessor } from '../../ai/processors/ai.processor.js';
 import { AnalyticsProcessor } from '../../analytics/processors/analytics.processor.js';
 import { ChatProcessor } from '../../chat/processors/chat.processor.js';
 import { CleanupExpiredMessagesUseCase } from '../../chat/use-cases/system/cleanup-expired-messages.use-case.js';
-import { EditsProcessor } from '../../edits/processors/edits.processor.ts';
+import { EditsProcessor } from '../../edits/processors/edits.processor.js';
 import { FeedFanoutProcessor } from '../../feed/processors/feed-fanout.processor.js';
 import { NotificationsProcessor } from '../../notifications/processors/notifications.processor.js';
 import { PostsProcessor } from '../../posts/posts.processor.js';
