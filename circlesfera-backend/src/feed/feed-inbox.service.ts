@@ -1,11 +1,18 @@
 import {
+  Inject,
   Injectable,
   Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { OnEvent } from '@nestjs/event-emitter';
 import { Redis } from 'ioredis';
+import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  USER_HARD_DELETED_EVENT,
+  type UserHardDeletedEvent,
+} from '../users/events/user-hard-deleted.event.js';
 
 @Injectable()
 export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
@@ -13,7 +20,10 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   private redisClient: Redis | null = null;
   private readonly INBOX_LIMIT = 1000;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+  ) {}
 
   onModuleInit() {
     const host = this.configService.get<string>('REDIS_HOST') || 'localhost';
@@ -145,5 +155,90 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
       );
       return 0;
     }
+  }
+
+  // Evicts specific post IDs from a user's inbox (e.g. upon post deletion or stale eviction).
+  async removePostsFromInbox(
+    profileId: string,
+    postIds: string[],
+  ): Promise<void> {
+    if (!this.redisClient || postIds.length === 0) return;
+
+    try {
+      const key = `user:${profileId}:inbox`;
+      await this.redisClient.zrem(key, ...postIds);
+      this.logger.debug(
+        `Pruned ${postIds.length} posts from inbox for profile ${profileId}.`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Error pruning posts from inbox for profile ${profileId}: ${error}`,
+      );
+    }
+  }
+
+  // Reconstructs the user's feed inbox from canonical database state (DATA-001).
+  // Fetches recent published posts from accepted followed profiles
+  // and repopulates the Redis Sorted Set.
+  async rebuildInbox(profileId: string): Promise<number> {
+    if (!this.redisClient) return 0;
+
+    try {
+      // 1. Purge existing derived state
+      await this.invalidateUserFeedCache(profileId);
+
+      // 2. Query canonical follow relationships
+      const follows = await this.prisma.follow.findMany({
+        where: { followerId: profileId, status: 'ACCEPTED' },
+        select: { followingId: true },
+      });
+
+      const followingIds = follows.map((f) => f.followingId);
+      if (followingIds.length === 0) return 0;
+
+      // 3. Query canonical posts from followed profiles
+      const recentPosts = await this.prisma.post.findMany({
+        where: {
+          profileId: { in: followingIds },
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          scheduledStatus: 'PUBLISHED',
+        },
+        select: { id: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: this.INBOX_LIMIT,
+      });
+
+      if (recentPosts.length === 0) return 0;
+
+      // 4. Repopulate Redis ZSET in pipeline
+      const key = `user:${profileId}:inbox`;
+      const pipeline = this.redisClient.pipeline();
+      for (const post of recentPosts) {
+        pipeline.zadd(key, post.createdAt.getTime(), post.id);
+      }
+      await pipeline.exec();
+
+      this.logger.debug(
+        `Successfully rebuilt inbox for profile ${profileId} with ${recentPosts.length} posts.`,
+      );
+      return recentPosts.length;
+    } catch (error) {
+      this.logger.error(
+        `Error rebuilding inbox for profile ${profileId}: ${error}`,
+      );
+      return 0;
+    }
+  }
+
+  // Purges all Redis derived inbox state when a user account is hard-deleted (DATA-001).
+  @OnEvent(USER_HARD_DELETED_EVENT)
+  async handleUserHardDeleted(event: UserHardDeletedEvent): Promise<void> {
+    if (!event.profileIds || event.profileIds.length === 0) return;
+    for (const profileId of event.profileIds) {
+      await this.invalidateUserFeedCache(profileId);
+    }
+    this.logger.log(
+      `Purged feed inbox caches for hard-deleted user ${event.userId} (profiles: ${event.profileIds.join(', ')})`,
+    );
   }
 }

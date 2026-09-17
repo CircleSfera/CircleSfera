@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { SearchService } from './search.service.js';
 
 describe('SearchService', () => {
@@ -110,6 +111,41 @@ describe('SearchService', () => {
       expect(mockAIService.generateEmbedding).toHaveBeenCalled();
       expect(mockCacheManager.set).toHaveBeenCalled();
       expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('handleUserHardDeleted (DATA-001)', () => {
+    it('should clear search history for all profiles of the deleted user', async () => {
+      mockPrismaService.searchHistory.deleteMany.mockResolvedValue({
+        count: 5,
+      });
+
+      await service.handleUserHardDeleted(
+        new UserHardDeletedEvent({
+          userId: 'user-1',
+          profileIds: ['prof-1', 'prof-2'],
+          mediaUrls: [],
+        }),
+      );
+
+      expect(mockPrismaService.searchHistory.deleteMany).toHaveBeenCalledWith({
+        where: { profileId: 'prof-1' },
+      });
+      expect(mockPrismaService.searchHistory.deleteMany).toHaveBeenCalledWith({
+        where: { profileId: 'prof-2' },
+      });
+    });
+
+    it('should do nothing if profileIds is empty', async () => {
+      await service.handleUserHardDeleted(
+        new UserHardDeletedEvent({
+          userId: 'user-1',
+          profileIds: [],
+          mediaUrls: [],
+        }),
+      );
+
+      expect(mockPrismaService.searchHistory.deleteMany).not.toHaveBeenCalled();
     });
   });
 });

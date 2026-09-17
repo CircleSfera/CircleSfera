@@ -53,6 +53,8 @@ describe('FeedService', () => {
   const mockFeedInboxService = {
     getInbox: vi.fn().mockResolvedValue([]),
     getInboxCount: vi.fn().mockResolvedValue(0),
+    removePostsFromInbox: vi.fn().mockResolvedValue(undefined),
+    rebuildInbox: vi.fn().mockResolvedValue(0),
   };
 
   const mockFeedPreferences = {
@@ -214,6 +216,44 @@ describe('FeedService', () => {
       });
 
       expect(result.data[0].shouldBlurSensitive).toBe(true);
+    });
+
+    it('prunes stale/deleted post IDs from Redis inbox when DB returns fewer posts (DATA-001)', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce([
+        'post-active',
+        'post-deleted',
+      ]);
+      mockFeedInboxService.getInboxCount.mockResolvedValueOnce(2);
+
+      // Only post-active exists in DB
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'post-active', likes: [] },
+      ]);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('post-active');
+      expect(mockFeedInboxService.removePostsFromInbox).toHaveBeenCalledWith(
+        'user-1',
+        ['post-deleted'],
+      );
+    });
+
+    it('triggers background rebuild of inbox when empty on page 1 (DATA-001)', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce([]);
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.getFollowingFeed('user-1', { page: 1, limit: 10 });
+
+      expect(mockFeedInboxService.rebuildInbox).toHaveBeenCalledWith('user-1');
     });
   });
 });

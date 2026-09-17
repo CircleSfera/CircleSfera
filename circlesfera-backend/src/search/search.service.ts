@@ -1,9 +1,14 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { OnEvent } from '@nestjs/event-emitter';
 import type { Hashtag, Post } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  USER_HARD_DELETED_EVENT,
+  type UserHardDeletedEvent,
+} from '../users/events/user-hard-deleted.event.js';
 
 export interface SearchResponse {
   users: any[];
@@ -16,6 +21,8 @@ export interface SearchResponse {
 // Uses cache-manager for embedding caching and AIService for vector similarity.
 @Injectable()
 export class SearchService {
+  private readonly logger = new Logger(SearchService.name);
+
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
@@ -253,6 +260,18 @@ export class SearchService {
     return this.prisma.searchHistory.deleteMany({
       where: { profileId },
     });
+  }
+
+  // Purges search derived state (history) on account hard deletion (DATA-001).
+  @OnEvent(USER_HARD_DELETED_EVENT)
+  async handleUserHardDeleted(event: UserHardDeletedEvent): Promise<void> {
+    if (!event.profileIds || event.profileIds.length === 0) return;
+    for (const profileId of event.profileIds) {
+      await this.clearHistory(profileId);
+    }
+    this.logger.log(
+      `Purged search history for hard-deleted user ${event.userId} (profiles: ${event.profileIds.join(', ')})`,
+    );
   }
 
   // Search for users with Social Discovery ranking.
