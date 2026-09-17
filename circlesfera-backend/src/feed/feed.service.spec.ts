@@ -255,5 +255,48 @@ describe('FeedService', () => {
 
       expect(mockFeedInboxService.rebuildInbox).toHaveBeenCalledWith('user-1');
     });
+
+    it('handles Redis failure (null) safely by falling back to SQL without triggering rebuild (REDIS-002)', async () => {
+      // Redis unavailable returns null
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(null);
+
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'sql-post-1', likes: [] },
+      ]);
+      mockPrismaService.post.count.mockResolvedValue(1);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      // Safely returned SQL results
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('sql-post-1');
+
+      // Crucial: Must NOT attempt rebuild into a failing/unavailable Redis instance
+      expect(mockFeedInboxService.rebuildInbox).not.toHaveBeenCalled();
+    });
+
+    it('falls back to posts length when getInboxCount returns null during Redis failure (REDIS-002)', async () => {
+      mockFeedInboxService.getInbox.mockResolvedValueOnce(['post-1']);
+      // getInboxCount returns null due to Redis failure
+      mockFeedInboxService.getInboxCount.mockResolvedValueOnce(null);
+
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'post-1', likes: [] },
+      ]);
+
+      const result = await service.getFollowingFeed('user-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+    });
   });
 });

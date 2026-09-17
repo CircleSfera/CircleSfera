@@ -83,29 +83,53 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Reads the inbox for a specific user with pagination.
+  // Returns string[] of post IDs on success (can be [] if genuinely empty).
+  // Returns null if Redis is unavailable or throws an error (REDIS-002),
+  // preventing infrastructure failure from masquerading as an empty feed.
   async getInbox(
     profileId: string,
     skip: number,
     limit: number,
-  ): Promise<string[]> {
-    if (!this.redisClient) return [];
+  ): Promise<string[] | null> {
+    if (!this.redisClient) {
+      this.logger.warn(
+        `Redis client unavailable when reading inbox for profile ${profileId}`,
+      );
+      return null;
+    }
 
     const key = `user:${profileId}:inbox`;
     try {
       const end = skip + limit - 1;
       return await this.redisClient.zrevrange(key, skip, end);
     } catch (error) {
-      this.logger.error(`Error getting inbox for user ${profileId}: ${error}`);
-      return [];
+      this.logger.error(
+        `Redis failure reading inbox for user ${profileId}: ${error}`,
+      );
+      return null;
     }
   }
 
   // Utility to check if a user's inbox is empty (cache miss or inactive user).
+  // Uses ZCARD for Sorted Set (REDIS-001).
+  // Throws if Redis is unavailable to prevent failure from masquerading as empty (REDIS-002).
   async isInboxEmpty(profileId: string): Promise<boolean> {
-    if (!this.redisClient) return true;
+    if (!this.redisClient) {
+      this.logger.warn(
+        `Redis client unavailable when checking inbox empty for ${profileId}`,
+      );
+      throw new Error('Redis client unavailable');
+    }
     const key = `user:${profileId}:inbox`;
-    const length = await this.redisClient.llen(key);
-    return length === 0;
+    try {
+      const length = await this.redisClient.zcard(key);
+      return length === 0;
+    } catch (error) {
+      this.logger.error(
+        `Redis error checking if inbox is empty for ${profileId}: ${error}`,
+      );
+      throw error;
+    }
   }
 
   // Smart Fan-out strategy:
@@ -142,9 +166,15 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Gets the total count of posts in the user's inbox
-  async getInboxCount(profileId: string): Promise<number> {
-    if (!this.redisClient) return 0;
+  // Gets the total count of posts in the user's inbox.
+  // Returns number on success, or null if Redis is unavailable/fails (REDIS-002).
+  async getInboxCount(profileId: string): Promise<number | null> {
+    if (!this.redisClient) {
+      this.logger.warn(
+        `Redis client unavailable when reading inbox count for profile ${profileId}`,
+      );
+      return null;
+    }
     const key = `user:${profileId}:inbox`;
     try {
       const count = await this.redisClient.zcard(key);
@@ -153,7 +183,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
       this.logger.error(
         `Error getting inbox count for user ${profileId}: ${error}`,
       );
-      return 0;
+      return null;
     }
   }
 

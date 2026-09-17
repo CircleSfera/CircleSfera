@@ -66,10 +66,21 @@ describe('FeedInboxService (DATA-001)', () => {
     });
   });
 
-  describe('getInbox', () => {
-    it('should return empty array if redis client is not connected', async () => {
+  describe('getInbox (REDIS-002 Failure Distinction)', () => {
+    it('should return null if redis client is not connected', async () => {
       const inbox = await service.getInbox('user-1', 0, 10);
-      expect(inbox).toEqual([]);
+      expect(inbox).toBeNull();
+    });
+
+    it('should return null when Redis throws an error instead of masquerading as empty', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zrevrange.mockRejectedValueOnce(
+        new Error('Redis connection lost'),
+      );
+
+      const inbox = await service.getInbox('user-1', 0, 10);
+      expect(inbox).toBeNull();
     });
 
     it('should return post IDs from Redis sorted set when connected', async () => {
@@ -85,12 +96,82 @@ describe('FeedInboxService (DATA-001)', () => {
         9,
       );
     });
+
+    it('should return empty array when inbox is genuinely empty', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zrevrange.mockResolvedValueOnce([]);
+
+      const inbox = await service.getInbox('user-1', 0, 10);
+      expect(inbox).toEqual([]);
+    });
   });
 
-  describe('isInboxEmpty', () => {
-    it('should return true if redis client is not connected', async () => {
+  describe('isInboxEmpty (REDIS-001 ZCARD & REDIS-002 Observable Failure)', () => {
+    it('should throw if redis client is not connected instead of masquerading as empty', async () => {
+      await expect(service.isInboxEmpty('user-1')).rejects.toThrow(
+        'Redis client unavailable',
+      );
+    });
+
+    it('should call zcard (not llen) on the sorted set and return true when 0 (REDIS-001)', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zcard.mockResolvedValueOnce(0);
+
       const empty = await service.isInboxEmpty('user-1');
+
       expect(empty).toBe(true);
+      expect(mockRedisClient.zcard).toHaveBeenCalledWith('user:user-1:inbox');
+      expect(mockRedisClient.llen).not.toHaveBeenCalled();
+    });
+
+    it('should call zcard and return false when inbox has items', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zcard.mockResolvedValueOnce(5);
+
+      const empty = await service.isInboxEmpty('user-1');
+
+      expect(empty).toBe(false);
+      expect(mockRedisClient.zcard).toHaveBeenCalledWith('user:user-1:inbox');
+    });
+
+    it('should rethrow error when zcard fails (REDIS-002)', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zcard.mockRejectedValueOnce(
+        new Error('CLUSTERDOWN Hash slot not served'),
+      );
+
+      await expect(service.isInboxEmpty('user-1')).rejects.toThrow(
+        'CLUSTERDOWN Hash slot not served',
+      );
+    });
+  });
+
+  describe('getInboxCount (REDIS-002)', () => {
+    it('should return null when redis client is not connected', async () => {
+      const count = await service.getInboxCount('user-1');
+      expect(count).toBeNull();
+    });
+
+    it('should return null when zcard throws error', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zcard.mockRejectedValueOnce(new Error('Timeout'));
+
+      const count = await service.getInboxCount('user-1');
+      expect(count).toBeNull();
+    });
+
+    it('should return count on success', async () => {
+      // @ts-expect-error - inject mocked redis client
+      service.redisClient = mockRedisClient;
+      mockRedisClient.zcard.mockResolvedValueOnce(42);
+
+      const count = await service.getInboxCount('user-1');
+      expect(count).toBe(42);
     });
   });
 
