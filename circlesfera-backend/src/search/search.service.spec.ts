@@ -114,7 +114,7 @@ describe('SearchService', () => {
     });
   });
 
-  describe('handleUserHardDeleted (DATA-001)', () => {
+  describe('handleUserHardDeleted', () => {
     it('should clear search history for all profiles of the deleted user', async () => {
       mockPrismaService.searchHistory.deleteMany.mockResolvedValue({
         count: 5,

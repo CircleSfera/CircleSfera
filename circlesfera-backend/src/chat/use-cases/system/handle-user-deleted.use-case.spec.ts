@@ -4,7 +4,7 @@ import type { PrismaService } from '../../../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../../../users/events/user-hard-deleted.event.js';
 import { HandleUserDeletedUseCase } from './handle-user-deleted.use-case.js';
 
-describe('HandleUserDeletedUseCase (LIFE-002)', () => {
+describe('HandleUserDeletedUseCase', () => {
   let useCase: HandleUserDeletedUseCase;
 
   const mockPrisma = {

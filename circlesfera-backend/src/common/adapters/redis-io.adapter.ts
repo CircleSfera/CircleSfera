@@ -54,7 +54,7 @@ export class RedisIoAdapter extends IoAdapter {
 
   createIOServer(port: number, options?: ServerOptions): Server {
     const defaultOptions: Partial<ServerOptions> = {
-      maxHttpBufferSize: 128 * 1024, // 128 KB max payload per packet (INPUT-002)
+      maxHttpBufferSize: 128 * 1024, // 128 KB max payload per packet
     };
     const mergedOptions = { ...defaultOptions, ...options };
     const server = super.createIOServer(port, mergedOptions) as Server;

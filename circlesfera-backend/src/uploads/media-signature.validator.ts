@@ -45,7 +45,7 @@ export class MediaSignatureValidator {
   private readonly logger = new Logger(MediaSignatureValidator.name);
 
   async validate(buffer: Buffer, declaredMimetype: string): Promise<void> {
-    // --- SVG Security Policy (UPLOAD-002: Gate A — Security) ---
+    // --- SVG Security Policy ---
     // User-uploaded SVGs are prohibited to prevent Stored XSS, XML external entity
     // attacks (XXE), and script execution in user browsers.
     if (declaredMimetype === 'image/svg+xml') {
@@ -104,7 +104,7 @@ export class MediaSignatureValidator {
 
   /**
    * Scans a text or polyglot buffer to ensure no active SVG, XML entities, or
-   * script payloads reach the storage or delivery layer (UPLOAD-002).
+   * script payloads reach the storage or delivery layer.
    */
   private assertNoActiveSvgContent(buffer: Buffer): void {
     // Only inspect the first 4KB for efficiency and to catch headers/scripts

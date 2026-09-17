@@ -440,7 +440,7 @@ export class FeedService {
         .map((id) => rawPosts.find((p) => p.id === id))
         .filter(Boolean);
 
-      // DATA-001: Prune stale or deleted post IDs from Redis inbox
+      // Prune stale or deleted post IDs from Redis inbox
       if (rawPosts.length < inboxPostIds.length) {
         const foundIds = new Set(rawPosts.map((p) => p.id));
         const staleIds = inboxPostIds.filter((id) => !foundIds.has(id));
@@ -459,7 +459,7 @@ export class FeedService {
     } else {
       // 2. Fallback to Slow SQL JOIN (Legacy Path)
       if (inboxPostIds === null) {
-        // REDIS-002: Failure is observable; safe fallback without masquerading as empty feed
+        // Failure is observable; safe fallback without masquerading as empty feed
         this.logger.warn(
           `Redis feed inbox unavailable for ${profileId}; safely falling back to canonical SQL`,
         );
@@ -469,7 +469,7 @@ export class FeedService {
           `Redis inbox empty for ${profileId}, falling back to SQL...`,
         );
 
-        // DATA-001: Trigger background rebuild of Redis inbox if empty on initial page
+        // Trigger background rebuild of Redis inbox if empty on initial page
         if (page === 1) {
           this.feedInbox.rebuildInbox(profileId).catch((err) => {
             this.logger.warn(

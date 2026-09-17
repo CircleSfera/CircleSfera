@@ -97,7 +97,7 @@ describe('MediaSignatureValidator', () => {
     ).resolves.toBeUndefined();
   });
 
-  // ── SVG Security Policy (UPLOAD-002: Gate A — Security) ───────────────────
+  // ── SVG Security Policy ───────────────────
 
   it('rejects SVG uploads under platform security policy (mitigates Stored XSS / XXE)', async () => {
     await expect(

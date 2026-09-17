@@ -262,7 +262,7 @@ export class SearchService {
     });
   }
 
-  // Purges search derived state (history) on account hard deletion (DATA-001).
+  // Purges search derived state (history) on account hard deletion.
   @OnEvent(USER_HARD_DELETED_EVENT)
   async handleUserHardDeleted(event: UserHardDeletedEvent): Promise<void> {
     if (!event.profileIds || event.profileIds.length === 0) return;

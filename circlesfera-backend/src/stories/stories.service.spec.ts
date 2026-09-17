@@ -266,7 +266,7 @@ describe('StoriesService', () => {
       });
     });
 
-    describe('handleUserDeleted (LIFE-002)', () => {
+    describe('handleUserDeleted', () => {
       it('cleans up media for stories belonging to all profileIds in the canonical event', async () => {
         mockPrismaService.story.findMany.mockResolvedValue([
           {

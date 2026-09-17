@@ -5,7 +5,7 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 import { AccountDeletionProcessor } from './account-deletion.processor.js';
 import type { UsersService } from './users.service.js';
 
-describe('AccountDeletionProcessor (LIFE-001)', () => {
+describe('AccountDeletionProcessor', () => {
   let processor: AccountDeletionProcessor;
   let mockPrisma: any;
   let mockUsersService: any;
@@ -56,7 +56,7 @@ describe('AccountDeletionProcessor (LIFE-001)', () => {
     );
   });
 
-  describe('hardDeleteUser - Stale Job & Race Condition Protection (LIFE-001)', () => {
+  describe('hardDeleteUser - Stale Job & Race Condition Protection', () => {
     it('aborts hard delete and protects restored accounts (isActive=true, deletedAt=null)', async () => {
       // User was restored during 30-day grace period
       mockPrisma.user.findUnique.mockResolvedValue({
@@ -163,7 +163,7 @@ describe('AccountDeletionProcessor (LIFE-001)', () => {
     });
   });
 
-  describe('LIFE-003 — Cascade Deletion & Explicit Ordering', () => {
+  describe('Cascade Deletion & Explicit Ordering', () => {
     it('strictly awaits emitAsync before calling deleteScheduledUser (explicit ordering)', async () => {
       const executionOrder: string[] = [];
 

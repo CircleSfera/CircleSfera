@@ -7,7 +7,7 @@ import {
   RESTORE_DRILL_POLICY,
 } from './disaster-recovery.constants.js';
 
-describe('Disaster Recovery Constants & SLAs (Order 57 / INFRA-001)', () => {
+describe('Disaster Recovery Constants & SLAs', () => {
   describe('DISASTER_RECOVERY_SLA', () => {
     it('defines explicit PostgreSQL RPO and RTO within SLA targets', () => {
       expect(DISASTER_RECOVERY_SLA.POSTGRES_RPO_HOURS).toBeLessThanOrEqual(24);

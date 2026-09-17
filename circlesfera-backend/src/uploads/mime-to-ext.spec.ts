@@ -42,7 +42,7 @@ describe('mimetypeToExt', () => {
   // ── Fallback ──────────────────────────────────────────────────────────────
   it('falls back to .bin for unknown or prohibited types', () => {
     expect(mimetypeToExt('application/octet-stream')).toBe('.bin');
-    expect(mimetypeToExt('image/svg+xml')).toBe('.bin'); // UPLOAD-002: prohibited
+    expect(mimetypeToExt('image/svg+xml')).toBe('.bin'); // prohibited
     expect(mimetypeToExt('text/html')).toBe('.bin');
   });
 

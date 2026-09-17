@@ -1,5 +1,5 @@
 /**
- * Disaster Recovery and Backup Policy Constants (Order 57 / INFRA-001)
+ * Disaster Recovery and Backup Policy Constants
  *
  * Defines explicit RPO/RTO SLAs, retention schedules, staleness thresholds,
  * and drill verification standards for the CircleSfera infrastructure.

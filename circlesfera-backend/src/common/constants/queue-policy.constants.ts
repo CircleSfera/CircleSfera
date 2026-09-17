@@ -25,7 +25,7 @@ export const QUEUE_NAMES = {
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
 
 /**
- * CircleSfera Queue Workload Classes (Order 55 / QUEUE-001)
+ * CircleSfera Queue Workload Classes
  */
 export const QUEUE_WORKLOAD_CLASSES = {
   CRITICAL_DATA: 'CRITICAL_DATA',

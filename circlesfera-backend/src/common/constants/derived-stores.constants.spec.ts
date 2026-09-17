@@ -4,7 +4,7 @@ import {
   getRebuildableDerivedStores,
 } from './derived-stores.constants.js';
 
-describe('DERIVED_STORES Registry (DATA-001)', () => {
+describe('DERIVED_STORES Registry', () => {
   it('defines all required derived stores in the platform', () => {
     const expectedStores = [
       'REDIS_FEED_INBOX',

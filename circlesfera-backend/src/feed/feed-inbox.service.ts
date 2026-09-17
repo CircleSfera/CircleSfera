@@ -207,7 +207,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Reconstructs the user's feed inbox from canonical database state (DATA-001).
+  // Reconstructs the user's feed inbox from canonical database state.
   // Fetches recent published posts from accepted followed profiles
   // and repopulates the Redis Sorted Set.
   async rebuildInbox(profileId: string): Promise<number> {
@@ -260,7 +260,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  // Purges all Redis derived inbox state when a user account is hard-deleted (DATA-001).
+  // Purges all Redis derived inbox state when a user account is hard-deleted.
   @OnEvent(USER_HARD_DELETED_EVENT)
   async handleUserHardDeleted(event: UserHardDeletedEvent): Promise<void> {
     if (!event.profileIds || event.profileIds.length === 0) return;

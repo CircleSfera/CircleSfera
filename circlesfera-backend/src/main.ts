@@ -37,7 +37,7 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
-  // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution (INPUT-002)
+  // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution
   app
     .getHttpAdapter()
     .getInstance()
@@ -150,7 +150,7 @@ async function bootstrap(): Promise<void> {
     bodyParser.raw({ type: 'application/json', limit: '1mb' }),
   );
 
-  // Use sensible global body parser limits (DoS protection, INPUT-002)
+  // Use sensible global body parser limits (DoS protection)
   // Bounded to 2MB for JSON and URL-encoded payloads; file uploads go through multipart
   app.use(bodyParser.json({ limit: '2mb' }));
   app.use(

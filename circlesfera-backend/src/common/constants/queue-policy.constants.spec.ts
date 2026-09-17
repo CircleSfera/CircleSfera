@@ -12,7 +12,7 @@ import {
   type QueueName,
 } from './queue-policy.constants.js';
 
-describe('Queue Policy Constants & Helpers (QUEUE-001)', () => {
+describe('Queue Policy Constants & Helpers', () => {
   it('defines all 13 canonical queues in the system', () => {
     const queueValues = Object.values(QUEUE_NAMES);
     expect(queueValues).toHaveLength(13);

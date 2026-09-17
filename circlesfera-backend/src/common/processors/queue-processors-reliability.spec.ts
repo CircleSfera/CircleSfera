@@ -15,7 +15,7 @@ import { DataExportProcessor } from '../../users/data-export.processor.js';
 import { UsersProcessor } from '../../users/users.processor.js';
 import { WarehouseExportProcessor } from '../../warehouse/processors/warehouse-export.processor.js';
 
-describe('Queue Processors Reliability & Error Handling (Order 56 / QUEUE-002)', () => {
+describe('Queue Processors Reliability & Error Handling', () => {
   describe('UsersProcessor & Users Sub-Processors', () => {
     let usersProcessor: UsersProcessor;
     let mockAccountDeletion: any;

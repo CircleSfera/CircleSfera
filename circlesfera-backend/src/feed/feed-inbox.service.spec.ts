@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
 import { FeedInboxService } from './feed-inbox.service.js';
 
-describe('FeedInboxService (DATA-001)', () => {
+describe('FeedInboxService', () => {
   let service: FeedInboxService;
 
   const mockConfigService = {
@@ -198,7 +198,7 @@ describe('FeedInboxService (DATA-001)', () => {
     });
   });
 
-  describe('invalidateUserFeedCache (DATA-001 Deletion Semantics)', () => {
+  describe('invalidateUserFeedCache (Deletion Semantics)', () => {
     it('should delete user inbox key from Redis', async () => {
       // @ts-expect-error - inject mocked redis client
       service.redisClient = mockRedisClient;
@@ -217,7 +217,7 @@ describe('FeedInboxService (DATA-001)', () => {
     });
   });
 
-  describe('removePostsFromInbox (DATA-001 Stale Post Eviction)', () => {
+  describe('removePostsFromInbox (Stale Post Eviction)', () => {
     it('should evict specific post IDs from user inbox', async () => {
       // @ts-expect-error - inject mocked redis client
       service.redisClient = mockRedisClient;
@@ -244,7 +244,7 @@ describe('FeedInboxService (DATA-001)', () => {
     });
   });
 
-  describe('rebuildInbox (DATA-001 Rebuild Semantics)', () => {
+  describe('rebuildInbox (Rebuild Semantics)', () => {
     it('should return 0 when redis client is not available', async () => {
       const count = await service.rebuildInbox('profile-1');
       expect(count).toBe(0);
@@ -317,7 +317,7 @@ describe('FeedInboxService (DATA-001)', () => {
     });
   });
 
-  describe('handleUserHardDeleted (DATA-001 Hard Deletion Event)', () => {
+  describe('handleUserHardDeleted (Hard Deletion Event)', () => {
     it('should purge inboxes for all profiles of the hard-deleted user', async () => {
       // @ts-expect-error - inject mocked redis client
       service.redisClient = mockRedisClient;

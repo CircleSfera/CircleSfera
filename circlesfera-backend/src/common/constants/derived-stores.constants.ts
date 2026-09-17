@@ -1,5 +1,5 @@
 /**
- * Authoritative registry of derived data stores in CircleSfera (DATA-001).
+ * Authoritative registry of derived data stores in CircleSfera.
  *
  * A derived store holds cached, indexed, or projected state whose canonical
  * source of truth resides elsewhere (typically PostgreSQL primary tables).

@@ -2,7 +2,7 @@
 
 > **Source of Truth:** Este documento define la política oficial de copias de seguridad,
 > recuperación ante desastres (Disaster Recovery) y los objetivos de RPO y RTO para la
-> plataforma CircleSfera. Satisface los requerimientos de Gate B Reliability (Order 57 / INFRA-001).
+> plataforma CircleSfera. Satisface los requerimientos de confiabilidad y continuidad operativa.
 
 ---
 

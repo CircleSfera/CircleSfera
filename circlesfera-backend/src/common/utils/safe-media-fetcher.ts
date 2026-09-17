@@ -121,7 +121,7 @@ export async function safeFetchMedia(
       continue;
     }
 
-    // ─── 3. Magic-byte signature verification (UPLOAD-001) ─────────────────
+    // ─── 3. Magic-byte signature verification ─────────────────
     const detected = await fileTypeFromBuffer(result.buffer);
 
     if (allowedMimeTypes && allowedMimeTypes.length > 0) {

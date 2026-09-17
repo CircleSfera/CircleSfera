@@ -218,7 +218,7 @@ describe('FeedService', () => {
       expect(result.data[0].shouldBlurSensitive).toBe(true);
     });
 
-    it('prunes stale/deleted post IDs from Redis inbox when DB returns fewer posts (DATA-001)', async () => {
+    it('prunes stale/deleted post IDs from Redis inbox when DB returns fewer posts', async () => {
       mockFeedInboxService.getInbox.mockResolvedValueOnce([
         'post-active',
         'post-deleted',
@@ -243,7 +243,7 @@ describe('FeedService', () => {
       );
     });
 
-    it('triggers background rebuild of inbox when empty on page 1 (DATA-001)', async () => {
+    it('triggers background rebuild of inbox when empty on page 1', async () => {
       mockFeedInboxService.getInbox.mockResolvedValueOnce([]);
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },

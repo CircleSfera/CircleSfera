@@ -12,7 +12,7 @@ function parseQuery(str: string): Record<string, unknown> {
   }) as Record<string, unknown>;
 }
 
-describe('Query Parser Bounds (INPUT-002)', () => {
+describe('Query Parser Bounds', () => {
   it('bounds query string length to 4096 characters', () => {
     const longParam = 'a'.repeat(5000);
     const result = parseQuery(`key=${longParam}`);
