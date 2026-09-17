@@ -14,6 +14,8 @@ Colección de herramientas de automatización, base de datos, diagnóstico, desp
 | `npm run db:verify-restore`<br>`./scripts/verify-backup-restore.sh` | CI / Local / Ops | Drill automatizado de DR: genera/recibe un volcado, verifica TOC, restaura en base de datos efímera y valida tablas/migraciones. | **Bajo** (Aislado en BD temporal) |
 | `./scripts/install-backup-cron.sh` | VPS (OVH) | Instala cron diario (02:00 UTC) en el servidor de producción usando Docker Compose. | **Medio** (Modifica `crontab`) |
 | `npm run db:check-migrations`<br>`./scripts/check-prisma-schema-migrations.sh` | CI / Local | Detecta desalineaciones (drift) entre `schema.prisma` y las migraciones físicas de Prisma. | **Bajo** (Sólo lectura en BD temporal) |
+| `npm run db:lint-migrations`<br>`node scripts/lint-migration-safety.mjs` | CI / Pre-commit | Audita sentencias destructivas (`DROP COLUMN`, `RENAME`, `SET NOT NULL`) garantizando Expand/Contract. | **Bajo** (Análisis estático) |
+| `npm run db:test-rollback`<br>`./scripts/test-migration-rollback.sh` | CI / Local / Ops | Simula la reversión de migraciones en BD efímera ejecutando `down.sql` y validando reentrada hacia adelante. | **Bajo** (Aislado en BD temporal) |
 | `./scripts/prisma-migrate-deploy.sh` | Contenedor Prod | Ejecuta `prisma migrate deploy` en el arranque con recuperación automática de incidencias históricas. | **Medio** (Aplica migraciones) |
 | `npm run env:upload`<br>`./scripts/upload-prod-env.sh` | Local Ops | Valida variables críticas de `.env.production` y actualiza el secret `ENV_PRODUCTION_B64` en GitHub vía `gh`. | **Medio** (Actualiza secretos) |
 | `./scripts/setup-github-e2e.sh` | Local Ops | Configura credenciales y flags de pruebas E2E en GitHub Secrets/Variables. | **Bajo** (Configuración) |
@@ -70,6 +72,22 @@ Utilizado tanto en GitHub Actions (`ci-quality.yml`) como en desarrollo local pa
 ```bash
 DATABASE_URL="postgresql://prisma:prisma@localhost:5432/schema_check" \
   ./scripts/check-prisma-schema-migrations.sh
+```
+
+#### `lint-migration-safety.mjs`
+Auditor estático de seguridad de migraciones que verifica el cumplimiento del patrón Expand/Contract para compatibilidad con versiones anteriores ($N-1$).
+```bash
+# Escaneo general de migraciones
+npm run db:lint-migrations
+
+# Escaneo únicamente de migraciones en staging de Git
+npm run db:lint-migrations -- --staged
+```
+
+#### `test-migration-rollback.sh`
+Simulacro automatizado de reversión de esquema en una base de datos efímera. Ejecuta el script `down.sql`, resuelve la migración como revertida en `_prisma_migrations`, comprueba el retorno al estado previo y valida la reaplicación hacia adelante.
+```bash
+DATABASE_URL="postgresql://user:pass@localhost:5432/CircleSfera" npm run db:test-rollback
 ```
 
 #### `prisma-migrate-deploy.sh`

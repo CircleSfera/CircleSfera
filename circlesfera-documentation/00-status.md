@@ -23,6 +23,7 @@ Los siguientes módulos están implementados, testeados (QA), asegurados (Securi
 - **Nginx (Proxy Maestro):** Entornos de Producción (`circlesfera.com`, `api.*`, `admin.*`) con HSTS. Entorno de Desarrollo (`dev.*`) asegurado detrás de Auth Basic con las exclusiones estrictas de Stripe y verificadores de estado.
 - **Docker Compose:** Orquestación completa de frontend, backend, PostgreSQL (pgvector), y Redis.
 - **Respaldo y Recuperación ante Desastres:** SLAs formalizados (RPO ≤ 24h core, RPO = 0 ledger financiero, RTO ≤ 30 min en frío). Scripts de volcado (`backup-postgres.sh`), restauración (`restore-postgres.sh`), verificación desatendida (`verify-backup-restore.sh`) y cron diario a las 02:00 UTC con retención de 30 días y replicación off-host S3. Detalle en `05-disaster-recovery.md`.
+- **Migraciones y Rollbacks Compatibles:** Política obligatoria de compatibilidad Expand/Contract entre la versión de aplicación N-1 y el esquema N. Análisis estático de sentencias destructivas (`lint-migration-safety.mjs`), scripts de reversión (`down.sql`) y simulacros automatizados de reversión en base de datos efímera (`test-migration-rollback.sh`). Detalle en `06-migration-rollback-policy.md`.
 
 ## 🟡 In Development (Refactorización / Transición)
 - **Documentación Técnica:** Creación de los esquemas definitivos y abandono de los bocetos de la carpeta `.ai/`.
