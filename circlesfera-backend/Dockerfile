@@ -6,7 +6,7 @@ WORKDIR /app
 # Copy and build shared package (dependency)
 COPY circlesfera-shared ./circlesfera-shared
 WORKDIR /app/circlesfera-shared
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ WORKDIR /app/circlesfera-backend
 RUN apk add --no-cache ffmpeg
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy backend source code
 COPY circlesfera-backend .
@@ -52,7 +52,7 @@ RUN mkdir -p uploads && chown -R node:node uploads
 
 # Install only production dependencies
 RUN apk add --no-cache ffmpeg
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copy the built application from the build stage
 COPY --chown=node:node --from=build /app/circlesfera-backend/dist ./dist

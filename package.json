@@ -25,6 +25,8 @@
     "docker:verify-digests": "node scripts/verify-container-digests.mjs",
     "audit:deps": "node scripts/audit-dependencies.mjs",
     "audit:deps:all": "node scripts/audit-dependencies.mjs --all",
+    "verify:lockfiles": "node scripts/verify-lockfile-integrity.mjs",
+    "verify:lockfiles:fast": "node scripts/verify-lockfile-integrity.mjs --skip-signatures",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
     "prepare": "husky"

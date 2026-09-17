@@ -13,6 +13,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | `npm run nginx:lint`<br>`node scripts/test-nginx-config.mjs` | Local / CI | Validates Nginx syntax, bounded defaults (60s), and scoped upload/streaming exceptions. | **Low** (Static analysis) |
 | `npm run docker:verify-digests`<br>`node scripts/verify-container-digests.mjs` | Local / CI | Validates that all Dockerfiles, Compose manifests, and CI workflows specify immutable `@sha256:` digests. | **Low** (Static analysis) |
 | `npm run audit:deps`<br>`node scripts/audit-dependencies.mjs` | Local / CI | Scans production dependencies across all workspaces, enforcing SLA thresholds and checking `.dependency-security-exceptions.json`. | **Low** (Static audit) |
+| `npm run verify:lockfiles`<br>`node scripts/verify-lockfile-integrity.mjs` | Local / CI | Validates manifest-to-lockfile synchronization, SHA-512 hashes, and registry signatures across all workspaces. | **Low** (Static audit) |
 | `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Logical PostgreSQL dump (`pg_dump -Fc`), TOC integrity validation, local retention, and optional S3 sync. | **Low** (Read-only) |
 | `./scripts/backup-uploads.sh` | VPS / Local | Compressed archive (`.tar.gz`) of the uploaded media volume (`uploads/`) with retention and S3 sync. | **Low** (Read-only) |
 | `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restores a custom-format dump produced by `backup-postgres.sh`. Requires explicit `CONFIRM=YES`. | **High** (Destructive on target DB) |
@@ -92,6 +93,23 @@ npm run audit:deps
 
 # Audit all dependencies including devDependencies (weekly security schedule)
 npm run audit:deps:all
+```
+
+#### `verify-lockfile-integrity.mjs`
+Audits lockfile consistency, cryptographic integrity, and registry provenance across all workspaces:
+- Enforces presence of `package-lock.json` with `lockfileVersion >= 2` in root, backend, frontend, and shared.
+- Validates that every declared dependency, devDependency, and override in `package.json` matches the lockfile.
+- Asserts that all external package artifacts have valid SHA-512 or SHA-1 integrity hashes.
+- Disallows insecure unencrypted `http://` transport URLs.
+- Executes `npm audit signatures` to verify digital signatures and Sigstore build attestations.
+- Supports `--skip-signatures` for rapid local offline checks and `--json` for machine-readable reporting.
+
+```bash
+# Full lockfile and signature verification (CI gate)
+npm run verify:lockfiles
+
+# Fast offline lockfile check (skips registry signature network calls)
+npm run verify:lockfiles:fast
 ```
 
 ---

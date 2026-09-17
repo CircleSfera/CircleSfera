@@ -7,7 +7,7 @@ WORKDIR /app
 # Copy shared package
 COPY circlesfera-shared ./circlesfera-shared
 WORKDIR /app/circlesfera-shared
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 # Copy frontend package files
 WORKDIR /app
@@ -17,7 +17,7 @@ COPY biome.json ./biome.json
 WORKDIR /app/circlesfera-frontend
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy frontend source code
 COPY circlesfera-frontend .

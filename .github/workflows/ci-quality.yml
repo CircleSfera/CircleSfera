@@ -51,8 +51,11 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: "Dependencies: Verify Lockfile Integrity & Provenance"
+        run: npm run verify:lockfiles
+
       - name: Install Monorepo Dependencies
-        run: npm install
+        run: npm ci
 
       - name: "Root: Biome CI (Format & Lint)"
         run: npx biome ci .
@@ -69,13 +72,13 @@ jobs:
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
-          npm install
+          npm ci
           npm run build
 
       - name: "Backend: Install, Build, Lint and Test"
         run: |
           cd circlesfera-backend
-          npm install
+          npm ci
           npx prisma generate
           npm run build
           npm run lint
@@ -121,7 +124,7 @@ jobs:
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
-          npm install
+          npm ci
           npm run lint
           npm run test
           npm run build
