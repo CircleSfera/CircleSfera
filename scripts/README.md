@@ -10,6 +10,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | :--- | :--- | :--- | :--- |
 | `npm run repo:verify-protection`<br>`node scripts/verify-branch-protection.mjs` | Local / CI | Audits GitHub branch protection rules on `main` (reviews, status checks, admin enforcement). | **Low** (Read-only) |
 | `npm run repo:enforce-protection`<br>`node scripts/verify-branch-protection.mjs --enforce` | Local / CI | Synchronizes and enforces target branch protection rules on `main` via GitHub API. | **Medium** (Updates repo rules) |
+| `npm run nginx:lint`<br>`node scripts/test-nginx-config.mjs` | Local / CI | Validates Nginx syntax, bounded defaults (60s), and scoped upload/streaming exceptions. | **Low** (Static analysis) |
 | `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Logical PostgreSQL dump (`pg_dump -Fc`), TOC integrity validation, local retention, and optional S3 sync. | **Low** (Read-only) |
 | `./scripts/backup-uploads.sh` | VPS / Local | Compressed archive (`.tar.gz`) of the uploaded media volume (`uploads/`) with retention and S3 sync. | **Low** (Read-only) |
 | `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restores a custom-format dump produced by `backup-postgres.sh`. Requires explicit `CONFIRM=YES`. | **High** (Destructive on target DB) |
@@ -48,6 +49,20 @@ node scripts/verify-branch-protection.mjs --json
 
 # Apply/synchronize required protection rules via GitHub API
 npm run repo:enforce-protection
+```
+
+#### `test-nginx-config.mjs`
+Statically audits and validates `nginx/master.conf.template` ensuring compliance with reliability and traffic management policies:
+- Asserts block syntax and brace balancing.
+- Ensures no unbounded 300s timeouts exist in global server blocks.
+- Asserts `proxy_buffering on` on standard routes with bounded read timeout ($\le 60$s).
+- Validates explicit 100MB body and unbuffered streaming exceptions for `/api/v1/uploads`.
+- Validates 3600s keepalive and unbuffered duplex transmission for `/socket.io/`.
+- Validates unbuffered chunked streaming for GDPR export downloads.
+
+```bash
+# Run static Nginx traffic policy linter
+npm run nginx:lint
 ```
 
 ---

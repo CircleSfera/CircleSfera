@@ -4,20 +4,31 @@
 server {
     listen 80;
     server_name circlesfera.com www.circlesfera.com;
-    client_max_body_size 100m;
-    client_body_buffer_size 16M;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
-    client_body_timeout 300s;
-    send_timeout 300s;
-    proxy_read_timeout 300s;
-    proxy_connect_timeout 300s;
-    proxy_send_timeout 300s;
-    proxy_request_buffering off;
-    proxy_buffering off;
+
+    # Bounded default timeouts: prevent slowloris and hung backend connections
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering: Nginx buffers backend responses to release Node.js quickly
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
 
     # Gzip Compression
     gzip on;
@@ -32,7 +43,7 @@ server {
     set $backend_upstream http://backend:${BACKEND_PORT};
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
 
-    # Socket.io Proxy (Prefixed)
+    # Realtime WebSocket Proxy (Prefixed) - Unbuffered with 3600s keepalive
     location /api/v1/socket.io/ {
         proxy_pass $backend_upstream/socket.io/;
         proxy_http_version 1.1;
@@ -42,9 +53,65 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Realtime streaming exceptions
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 
-    # API Proxy (Global v1)
+    # Realtime WebSocket Proxy - Unbuffered with 3600s keepalive
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Realtime streaming exceptions
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception (100MB body, unbuffered streaming to backend)
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # High-volume upload exceptions
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download (Unbuffered streaming)
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Streaming export exceptions
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # API Proxy (Global v1 - Bounded Defaults)
     location /api/v1/ {
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;
@@ -55,27 +122,22 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
 
-    # Socket.io Proxy
-    location /socket.io/ {
-        proxy_pass $backend_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        # Conservative bounded defaults
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
     }
 
     # Media delivery with per-file authorization via auth_request.
-    # Nginx calls /internal/media-auth before serving any file in /uploads/.
-    # The backend returns 204 (allow) or 403 (deny). Cookies are forwarded so
-    # logged-in users are transparently authorized.
     location /uploads/ {
         auth_request /internal/media-auth;
-        # Forward the original URI so the backend knows which file is requested.
         auth_request_set $auth_status $upstream_status;
 
         alias /usr/share/nginx/html/uploads/;
@@ -89,14 +151,17 @@ server {
         proxy_pass $backend_upstream/api/v1/media/auth-check;
         proxy_pass_request_body off;
         proxy_set_header Content-Length "";
-        # Provide the original URI so the backend can look up the file.
         proxy_set_header X-Original-URI $request_uri;
-        # Forward cookies so the backend can authenticate the user.
         proxy_set_header Cookie $http_cookie;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Strict internal timeouts
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+        proxy_send_timeout 10s;
     }
 
     # SEO Endpoints Proxy
@@ -116,8 +181,7 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Frontend App (Previously Landing)
-    # Frontend App (Previously Landing)
+    # Frontend App
     location / {
         if ($http_upgrade = "websocket") {
             proxy_pass $frontend_upstream;
@@ -133,18 +197,88 @@ server {
     }
 }
 
-# 1.5. Dedicated API Proxy
+# 1.5. Dedicated API Proxy (api.circlesfera.com)
 server {
     listen 80;
     server_name api.circlesfera.com;
-    client_max_body_size 100m;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    # Bounded default timeouts
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
+
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
 
+    # Realtime WebSocket Proxy
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # Dedicated API root location (Bounded defaults)
     location / {
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;
@@ -155,6 +289,16 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
     }
 }
 
@@ -162,18 +306,29 @@ server {
 server {
     listen 80;
     server_name dev.circlesfera.com;
-    client_max_body_size 100M;
-    client_body_buffer_size 16M;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    client_body_timeout 300s;
-    send_timeout 300s;
-    proxy_read_timeout 300s;
-    proxy_connect_timeout 300s;
-    proxy_send_timeout 300s;
-    proxy_request_buffering off;
-    proxy_buffering off;
+
+    # Bounded default timeouts
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
 
     resolver 127.0.0.11 valid=30s;
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
@@ -204,14 +359,73 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Backend API Proxy
-    location /api/v1/ {
-        # Specialized rewrite for Socket.io to strip prefix because NestJS doesn't prefix Engine.io
-        if ($request_uri ~* "/api/v1/socket.io/") {
-            rewrite ^/api/v1/socket.io/(.*)$ /socket.io/$1 break;
-            proxy_pass $backend_upstream;
-        }
+    # Realtime WebSocket Proxy (Prefixed)
+    location /api/v1/socket.io/ {
+        rewrite ^/api/v1/socket.io/(.*)$ /socket.io/$1 break;
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
 
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Standard Socket.io Proxy
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # Backend API Proxy (Bounded Defaults)
+    location /api/v1/ {
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
@@ -220,6 +434,16 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
     }
 
     # Media delivery with per-file authorization via auth_request.
@@ -246,18 +470,10 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
 
-    # Standard Socket.io Proxy
-    location /socket.io/ {
-        proxy_pass $backend_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+        proxy_send_timeout 10s;
     }
 
     # Vite Default HMR WebSocket & App
@@ -280,42 +496,44 @@ server {
 server {
     listen 80 default_server;
     server_name localhost 127.0.0.1;
-    client_max_body_size 100M;
-    client_body_buffer_size 16M;
-    client_body_timeout 300s;
-    send_timeout 300s;
-    proxy_read_timeout 300s;
-    proxy_connect_timeout 300s;
-    proxy_send_timeout 300s;
-    proxy_request_buffering off;
-    proxy_buffering off;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Bounded default timeouts
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
 
     resolver 127.0.0.11 valid=30s;
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
     set $backend_upstream http://backend:${BACKEND_PORT};
 
-    # Backend API Proxy
-    location /api/v1/ {
-        if ($request_uri ~* "/api/v1/socket.io/") {
-            rewrite ^/api/v1/socket.io/(.*)$ /socket.io/$1 break;
-            proxy_pass $backend_upstream;
-        }
-
+    # Realtime WebSocket Proxy (Prefixed)
+    location /api/v1/socket.io/ {
+        rewrite ^/api/v1/socket.io/(.*)$ /socket.io/$1 break;
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection 'upgrade';
+        proxy_set_header Connection "Upgrade";
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
-    }
 
-    # Internal Uploads Proxy
-    location /uploads/ {
-        alias /usr/share/nginx/html/uploads/;
-        expires 30d;
-        add_header Cache-Control "public, no-transform";
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 
     # Standard Socket.io Proxy
@@ -328,6 +546,71 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # Backend API Proxy (Bounded Defaults)
+    location /api/v1/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
+    }
+
+    # Internal Uploads Proxy
+    location /uploads/ {
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
     }
 
     # Vite Frontend & HMR
@@ -343,23 +626,41 @@ server {
     }
 }
 
-# 1.6 Admin Panel
-# Host/edge TLS must include SAN admin.circlesfera.com; this block is HTTP :80 inside the stack.
+# 1.6 Admin Panel (admin.circlesfera.com)
 server {
     listen 80;
     server_name admin.circlesfera.com;
-    client_max_body_size 100m;
-    client_body_buffer_size 16M;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Security headers
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
 
+    # Bounded default timeouts
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
+
     resolver 127.0.0.11 valid=30s;
     set $backend_upstream http://backend:${BACKEND_PORT};
     set $frontend_upstream http://frontend:${FRONTEND_PORT};
 
+    # Realtime WebSocket Proxy (Prefixed)
     location /api/v1/socket.io/ {
         proxy_pass $backend_upstream/socket.io/;
         proxy_http_version 1.1;
@@ -369,8 +670,61 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
     }
 
+    # Realtime WebSocket Proxy
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # Backend API Proxy (Bounded Defaults)
     location /api/v1/ {
         proxy_pass $backend_upstream;
         proxy_http_version 1.1;
@@ -381,20 +735,18 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
     }
 
-    location /socket.io/ {
-        proxy_pass $backend_upstream;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "Upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    # Same volume as apex — relative /uploads/* avatars & media must not fall through to the SPA.
     # Media delivery with per-file authorization via auth_request.
     location /uploads/ {
         auth_request /internal/media-auth;
@@ -417,8 +769,13 @@ server {
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+        proxy_send_timeout 10s;
     }
 
+    # Admin Frontend SPA
     location / {
         proxy_pass $frontend_upstream;
         proxy_http_version 1.1;
@@ -430,5 +787,3 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
-
-# Landing page listener removed — circlesfera-landing was deleted from the tree (Jul 2026).

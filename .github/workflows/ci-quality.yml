@@ -57,6 +57,9 @@ jobs:
       - name: "Root: Biome CI (Format & Lint)"
         run: npx biome ci .
 
+      - name: "Nginx: Config & Traffic Policy Lint"
+        run: npm run nginx:lint
+
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
