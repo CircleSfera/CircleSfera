@@ -23,6 +23,8 @@
     "repo:enforce-protection": "node scripts/verify-branch-protection.mjs --enforce",
     "nginx:lint": "node scripts/test-nginx-config.mjs",
     "docker:verify-digests": "node scripts/verify-container-digests.mjs",
+    "audit:deps": "node scripts/audit-dependencies.mjs",
+    "audit:deps:all": "node scripts/audit-dependencies.mjs --all",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
     "prepare": "husky"

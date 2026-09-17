@@ -12,6 +12,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | `npm run repo:enforce-protection`<br>`node scripts/verify-branch-protection.mjs --enforce` | Local / CI | Synchronizes and enforces target branch protection rules on `main` via GitHub API. | **Medium** (Updates repo rules) |
 | `npm run nginx:lint`<br>`node scripts/test-nginx-config.mjs` | Local / CI | Validates Nginx syntax, bounded defaults (60s), and scoped upload/streaming exceptions. | **Low** (Static analysis) |
 | `npm run docker:verify-digests`<br>`node scripts/verify-container-digests.mjs` | Local / CI | Validates that all Dockerfiles, Compose manifests, and CI workflows specify immutable `@sha256:` digests. | **Low** (Static analysis) |
+| `npm run audit:deps`<br>`node scripts/audit-dependencies.mjs` | Local / CI | Scans production dependencies across all workspaces, enforcing SLA thresholds and checking `.dependency-security-exceptions.json`. | **Low** (Static audit) |
 | `npm run db:backup`<br>`./scripts/backup-postgres.sh` | VPS / Local | Logical PostgreSQL dump (`pg_dump -Fc`), TOC integrity validation, local retention, and optional S3 sync. | **Low** (Read-only) |
 | `./scripts/backup-uploads.sh` | VPS / Local | Compressed archive (`.tar.gz`) of the uploaded media volume (`uploads/`) with retention and S3 sync. | **Low** (Read-only) |
 | `npm run db:restore`<br>`./scripts/restore-postgres.sh` | VPS / Local | Restores a custom-format dump produced by `backup-postgres.sh`. Requires explicit `CONFIRM=YES`. | **High** (Destructive on target DB) |
@@ -76,6 +77,21 @@ Statically audits all Dockerfiles, Compose manifests, and CI service containers 
 ```bash
 # Verify container image digests across the entire repository
 npm run docker:verify-digests
+```
+
+#### `audit-dependencies.mjs`
+Audits npm dependencies across root, backend, frontend, and shared workspaces against severity policies:
+- Enforces zero unexempt Critical (24h SLA) or High (7d SLA) vulnerabilities on production dependencies (`--omit=dev`).
+- Validates exception rules in `.dependency-security-exceptions.json`, requiring package, advisory ID, reason, mitigation, and approving owner.
+- Automatically fails CI if any approved exception has expired (`expiresAt` date in the past).
+- Supports `--all` for comprehensive scheduled security runs and `--json` for machine-readable output.
+
+```bash
+# Audit production dependencies (CI quality gate)
+npm run audit:deps
+
+# Audit all dependencies including devDependencies (weekly security schedule)
+npm run audit:deps:all
 ```
 
 ---

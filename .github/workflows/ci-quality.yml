@@ -63,6 +63,9 @@ jobs:
       - name: "Containers: Verify Base & Service Image Digests"
         run: npm run docker:verify-digests
 
+      - name: "Security: Audit Production Dependencies"
+        run: npm run audit:deps
+
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
