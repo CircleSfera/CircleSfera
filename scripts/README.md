@@ -28,6 +28,7 @@ Collection of automation, database, diagnostic, deployment, verification, and do
 | `npm run ops:diagnose-crypto`<br>`node scripts/diagnose-message-crypto.mjs` | Ops Container | Diagnoses AES-256-GCM encryption status of messages (`Message.content`) against key candidates. | **Low** (Read-only) |
 | `npm run smoke:profile-drift`<br>`node scripts/validate-profile-drift-smoke.mjs` | Local / Post-deploy | HTTP smoke test verifying User vs Profile identity segregation contracts (ADR-0015). | **Low** (Controlled probes) |
 | `npm run docs:api-inventory`<br>`node scripts/generate-api-inventory.mjs` | Local | Scans NestJS controllers statically and regenerates `circlesfera-documentation/03-api-catalog.generated.md`. | **Low** (Documentation) |
+| `npm run backend:cov`<br>`npm run test:cov --prefix circlesfera-backend` | CI / Local | Runs backend unit tests with V8 coverage and enforces critical-domain thresholds. | **Low** (Test runner) |
 
 ---
 
@@ -215,4 +216,16 @@ npm run smoke:profile-drift
 Statically scans NestJS controllers to compile the official API route inventory:
 ```bash
 npm run docs:api-inventory
+```
+
+---
+
+### G. Quality & Test Coverage Enforcement
+
+#### `npm run backend:cov`
+Executes backend unit tests with V8 coverage collection and enforces risk-based
+coverage thresholds across critical domains (Security, Authorization, Payments,
+Monetization, Data Lifecycle, and Global baseline):
+```bash
+npm run backend:cov
 ```

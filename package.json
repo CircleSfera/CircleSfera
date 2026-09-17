@@ -29,6 +29,7 @@
     "verify:lockfiles:fast": "node scripts/verify-lockfile-integrity.mjs --skip-signatures",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
+    "backend:cov": "npm run test:cov --prefix circlesfera-backend",
     "prepare": "husky"
   },
   "keywords": [],

@@ -75,14 +75,14 @@ jobs:
           npm ci
           npm run build
 
-      - name: "Backend: Install, Build, Lint and Test"
+      - name: "Backend: Install, Build, Lint and Test (Enforce Coverage Thresholds)"
         run: |
           cd circlesfera-backend
           npm ci
           npx prisma generate
           npm run build
           npm run lint
-          npm run test
+          npm run test:cov
 
       - name: "Prisma: schema vs migrations"
         env:
