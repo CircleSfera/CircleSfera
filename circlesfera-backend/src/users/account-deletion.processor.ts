@@ -1,12 +1,8 @@
-import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { InjectQueue, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
-import type { Job, Queue } from 'bullmq';
-import {
-  getWorkerOptions,
-  QUEUE_NAMES,
-} from '../common/constants/queue-policy.constants.js';
+import { type Job, type Queue, UnrecoverableError } from 'bullmq';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { getFinancialAuditRecords } from './data-retention.constants.js';
@@ -16,10 +12,7 @@ import {
 } from './events/user-hard-deleted.event.js';
 import { UsersService } from './users.service.js';
 
-@Processor(
-  QUEUE_NAMES.USERS_PROCESSING,
-  getWorkerOptions(QUEUE_NAMES.USERS_PROCESSING),
-)
+@Injectable()
 export class AccountDeletionProcessor extends WorkerHost {
   private readonly logger = new Logger(AccountDeletionProcessor.name);
 
@@ -40,9 +33,11 @@ export class AccountDeletionProcessor extends WorkerHost {
       case 'clean-expired-accounts':
         return this.cleanExpiredAccounts();
       case 'hard-delete-user':
-        return this.hardDeleteUser(job.data.userId);
+        return this.hardDeleteUser(job.data?.userId);
       default:
-        return undefined;
+        throw new UnrecoverableError(
+          `Unknown job name in AccountDeletionProcessor: ${job.name}`,
+        );
     }
   }
 
@@ -57,8 +52,10 @@ export class AccountDeletionProcessor extends WorkerHost {
         },
       });
       this.logger.log(`Purged ${result.count} expired search history records.`);
+      return result;
     } catch (error) {
       this.logger.error('Failed to purge expired search history', error);
+      throw error;
     }
   }
 
@@ -93,12 +90,17 @@ export class AccountDeletionProcessor extends WorkerHost {
       this.logger.log(
         `Queued ${queuedCount} expired user accounts for hard deletion.`,
       );
+      return { queuedCount };
     } catch (error) {
       this.logger.error('Failed to purge expired accounts', error);
+      throw error;
     }
   }
 
   async hardDeleteUser(userId: string) {
+    if (!userId) {
+      throw new UnrecoverableError('Missing userId for hardDeleteUser');
+    }
     this.logger.log(`Executing hard delete for user ${userId}`);
     try {
       // Phase 1: Atomic lifecycle check

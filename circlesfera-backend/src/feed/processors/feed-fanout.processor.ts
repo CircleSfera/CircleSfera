@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -26,7 +26,19 @@ export class FeedFanoutProcessor extends WorkerHost {
   }
 
   async process(job: Job<FanoutJobData>): Promise<void> {
-    const { postId, authorId } = job.data;
+    if (job.name !== 'distribute') {
+      throw new UnrecoverableError(
+        `Unknown job name in feed-fanout queue: ${job.name}`,
+      );
+    }
+
+    const { postId, authorId } = job.data ?? {};
+    if (!postId || !authorId) {
+      throw new UnrecoverableError(
+        'Missing postId or authorId for feed fan-out distribution',
+      );
+    }
+
     this.logger.log(`Starting fan-out for post ${postId} by user ${authorId}`);
 
     try {

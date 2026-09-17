@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -21,11 +21,14 @@ export class SlackProcessor extends WorkerHost {
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
+    this.logger.debug(`Processing ${job.name} (job ${job.id})`);
     switch (job.name) {
       case 'send-daily-morning-briefing':
         return this.slackService.sendDailyMorningBriefing();
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new UnrecoverableError(
+          `Unknown job name in slack queue: ${job.name}`,
+        );
     }
   }
 }

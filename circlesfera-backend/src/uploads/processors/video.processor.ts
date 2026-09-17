@@ -2,7 +2,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
-import { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
 import {
   getWorkerOptions,
@@ -41,7 +41,17 @@ export class VideoProcessor extends WorkerHost {
   async process(
     job: Job<{ url: string; originalname?: string; userId?: string }>,
   ): Promise<void> {
-    const { url, userId } = job.data;
+    if (job.name && job.name !== 'transcode' && job.name !== '__default__') {
+      throw new UnrecoverableError(
+        `Unknown job name in video-transcoding queue: ${job.name}`,
+      );
+    }
+
+    const { url, userId } = job.data ?? {};
+    if (!url) {
+      throw new UnrecoverableError('Missing url for video transcoding');
+    }
+
     this.logger.log(
       `Starting HLS transcoding for: ${url} (job ${job.id}, user: ${userId ?? 'system'})`,
     );
@@ -65,7 +75,7 @@ export class VideoProcessor extends WorkerHost {
       const UUID_REGEX =
         /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       if (!UUID_REGEX.test(baseName)) {
-        throw new Error(
+        throw new UnrecoverableError(
           `Refusing HLS transcoding: baseName "${baseName}" is not a valid UUID v4. ` +
             `Only opaque artifact IDs are permitted as output directory names.`,
         );

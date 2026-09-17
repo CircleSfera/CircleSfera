@@ -537,8 +537,10 @@ export class StoriesService {
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} expired stories.`);
       }
+      return { count: deleted.count };
     } catch (error) {
       this.logger.error('Failed to clean up expired stories', error);
+      throw error;
     }
   }
 

@@ -1,6 +1,6 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -20,8 +20,9 @@ export class WarehouseExportProcessor extends WorkerHost {
 
   async process(job: Job): Promise<void> {
     if (job.name !== 'nightly-analytics-export') {
-      this.logger.warn(`Unknown warehouse job: ${job.name}`);
-      return;
+      throw new UnrecoverableError(
+        `Unknown warehouse job in warehouse-export queue: ${job.name}`,
+      );
     }
 
     const result = await this.exportService.runNightlyExport();

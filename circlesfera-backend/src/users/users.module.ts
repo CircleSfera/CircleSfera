@@ -14,6 +14,7 @@ import { AccountDeletionProcessor } from './account-deletion.processor.js';
 import { DataExportProcessor } from './data-export.processor.js';
 import { DataExportService } from './data-export.service.js';
 import { UsersController } from './users.controller.js';
+import { UsersProcessor } from './users.processor.js';
 import { UsersService } from './users.service.js';
 
 @Module({
@@ -33,6 +34,7 @@ import { UsersService } from './users.service.js';
     DataExportService,
     DataExportProcessor,
     AccountDeletionProcessor,
+    UsersProcessor,
   ],
   exports: [UsersService],
 })
