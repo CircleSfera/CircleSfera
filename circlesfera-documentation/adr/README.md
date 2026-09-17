@@ -1,33 +1,26 @@
 # Architecture Decision Records (ADRs)
 
-Este directorio contiene los registros de decisiones de arquitectura de CircleSfera, siguiendo el patrón de Documentación de Arquitectura de Software Ligera (MADR / ADR).
+ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, and API contracts).
 
-> Un ADR es un documento breve que captura una decisión de arquitectura clave hecha junto con su contexto y sus consecuencias.
+| ADR | Title | Status |
+| --- | --- | --- |
+| [0001](./0001-profile-embedding-retention.md) | ProfileEmbedding retention | Accepted |
+| [0002](./0002-stripe-connect-payouts.md) | Stripe Connect Express payouts only, no internal payout ledger | Accepted |
+| [0003](./0003-one-active-platform-plan.md) | One active platform subscription plan per user | Accepted |
+| [0004](./0004-feed-preferences.md) | Feed preference domain tables (hide post/author, mute keywords) | Accepted |
+| [0005](./0005-livekit-live-streaming.md) | LiveKit for live streaming | Accepted |
+| [0006](./0006-redis-bullmq.md) | Redis + BullMQ for cache, pub/sub, and jobs | Accepted |
+| [0007](./0007-auth-cookies-csrf.md) | HTTP-only auth cookies + CSRF double-submit | Accepted |
+| [0008](./0008-storage-providers.md) | Pluggable storage providers (S3, Cloudinary, local) | Accepted |
+| [0009](./0009-feed-fan-out.md) | Hybrid feed fan-out | Accepted |
+| [0010](./0010-platform-fee-20-percent.md) | 20% platform application fee on Connect charges | Accepted |
+| [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
+| [0012](./0012-webrtc-signaling-architecture.md) | WebRTC Voice & Video Call Signaling Architecture and Socket Event Compatibility | Accepted |
+| [0013](./0013-admin-panel-admin-identity.md) | Admin Panel — separate Admin Identity, RBAC, MFA, admin.circlesfera.com | Accepted |
+| [0014](./0014-account-trust-signals.md) | Account trust signals (Turnstile, email gate, KYC vs plan, abuse hashes) | Accepted |
+| [0015](./0015-user-profile-identity-split.md) | User / Profile identity split — account vs social profile, JWT `profileId`, admin `user.profile` shim | Accepted |
+| [0016](./0016-analytical-warehouse-clickhouse.md) | Analytical warehouse (ClickHouse) + nightly ETL from Postgres | Proposed |
+| [0017](./0017-content-presentation-shells.md) | Content presentation shells (create / broadcast / playback / vertical / stream) | Accepted |
+| [0018](./0018-content-composer-ia.md) | Content Composer IA (dual-path Create + Mobile First) | Accepted |
 
-## Índice de ADRs Actuales
-
-- **[ADR-0009: Feed Fan-out](./0009-feed-fan-out.md)** (Referencia de modelo de Push y Vector search).
-- **[ADR-0010: Plataforma de Monetización](./0010-monetization.md)** (Plataforma y fee del 20% server-side).
-- **[ADR-0015: División de Identidad de Perfil vs Usuario](./0015-user-profile-identity-split.md)** (Independencia de Auth y entidades sociales).
-
-*(Nota: Los archivos referenciados arriba están documentados individualmente en Notion y/o en el historial del repositorio. Todo nuevo ADR debe escribirse aquí.)*
-
-## Plantilla para nuevos ADR
-
-Para crear un nuevo ADR, sigue este formato básico:
-
-```markdown
-# [Breve título descriptivo, por ejemplo: ADR-0016: Cambio a Caché Distribuido]
-
-* Estado: [Propuesto | Aceptado | Rechazado | Obsoleto]
-* Fecha: [YYYY-MM-DD]
-
-## Contexto y Definición del Problema
-Describir brevemente el problema de negocio o técnico que requiere ser resuelto.
-
-## Decisión
-Describir la decisión y su justificación. ¿Por qué se eligió sobre otras alternativas?
-
-## Consecuencias
-¿Qué pasa después de aplicar esta decisión? Positivo, negativo y neutro. (Ej: Aumento de latencia, reducción de coste, acoplamiento necesario).
-```
+When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.

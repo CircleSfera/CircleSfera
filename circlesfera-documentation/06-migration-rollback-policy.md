@@ -1,115 +1,114 @@
 # Migration Rollback & Expand/Contract Policy — CircleSfera
 
-> **Source of Truth:** Este documento establece las reglas obligatorias de diseño, despliegue
-> y reversión de migraciones de base de datos en PostgreSQL (Prisma) para CircleSfera. Garantiza
-> que cualquier despliegue pueda revertirse (rollback) sin provocar fallos en cascada por
-> desalineación de esquema.
+> **Source of Truth:** This document defines the mandatory design, deployment, and reversal
+> procedures for PostgreSQL (Prisma) database migrations in CircleSfera. It ensures that any
+> application deployment can be rolled back without cascading failures caused by schema divergence.
 
 ---
 
-## 1. Principio Fundamental: Coexistencia N-1
+## 1. Core Principle: N-1 Coexistence
 
-En el ciclo de despliegue continuo de CircleSfera, `prisma migrate deploy` se ejecuta durante el
-arranque de los contenedores antes de que el nuevo código comience a recibir tráfico. Si una versión
-de la aplicación falla en sus verificaciones de salud y se ejecuta un rollback al artefacto previo
-(versión $N-1$), la base de datos permanecerá en el esquema migrado (versión $N$).
+In CircleSfera's continuous deployment pipeline, `prisma migrate deploy` executes during container
+boot before new code receives live traffic. If an application version fails health checks and an
+immediate rollback to the previous artifact (version $N-1$) is triggered, the database remains on
+the newly migrated schema (version $N$).
 
-> **Regla de Oro:** Todo cambio de esquema en versión $N$ debe ser **100% compatible** con el código
-> de la aplicación en versión $N-1$. Ningún rollback de aplicación debe requerir una reversión
-> destructiva inmediata de la base de datos para seguir operando con normalidad.
+> **Golden Rule:** Every schema change in version $N$ must be **100% backward-compatible** with
+> application code running version $N-1$. No application rollback may require an immediate,
+> destructive schema reversal to maintain normal operation.
 
 ---
 
-## 2. Ciclo de Vida Expand/Contract (Tres Fases)
+## 2. Expand/Contract Lifecycle (Three Phases)
 
-Cualquier modificación estructural que modifique o elimine datos existentes debe dividirse en fases
-independientes a lo largo de despliegues sucesivos:
+Any structural modification that modifies, renames, or removes existing data must be separated
+into discrete phases across sequential deployments:
 
 ```mermaid
 flowchart TD
-    subgraph Fase1["Fase 1: Expand (Aditivo)"]
-        F1_DB["DB: Añadir nueva columna (Nullable o con Default)"]
-        F1_Code["App: Escribe en ambas columnas (dual-write). Lee de columna antigua."]
+    subgraph Phase1["Phase 1: Expand (Additive)"]
+        F1_DB["DB: Add new column (Nullable or with Default)"]
+        F1_Code["App: Dual-write to old and new columns. Read from old column."]
     end
 
-    subgraph Fase2["Fase 2: Migración y Backfill"]
-        F2_Data["Ops / ETL: Backfill asíncrono de filas históricas."]
-        F2_Code["App: Conmuta lecturas a la nueva columna. Mantiene escrituras seguras."]
+    subgraph Phase2["Phase 2: Migrate & Backfill"]
+        F2_Data["Ops / Jobs: Asynchronously backfill historical rows."]
+        F2_Code["App: Switch reads to new column. Maintain dual-writes."]
     end
 
-    subgraph Fase3["Fase 3: Contract (Limpieza)"]
-        F3_Code["App: Elimina dependencias y lecturas de columna antigua."]
-        F3_DB["DB: Drop de columna antigua o adición de NOT NULL definitivo."]
+    subgraph Phase3["Phase 3: Contract (Cleanup)"]
+        F3_Code["App: Remove dependencies and reads from old column."]
+        F3_DB["DB: Drop old column or enforce final NOT NULL constraints."]
     end
 
-    Fase1 --> Fase2 --> Fase3
+    Phase1 --> Phase2 --> Phase3
 ```
 
-### Fase 1 — Expand (Despliegue N)
-- Se añade la nueva columna como `NULLABLE` o con un valor `DEFAULT` estricto a nivel de base de datos.
-- El código de la aplicación escribe en ambos campos (dual-write) pero continúa leyendo de la estructura original.
-- **Capacidad de Rollback:** Si se revierte el código a $N-1$, la versión anterior simplemente ignora la nueva columna.
+### Phase 1 — Expand (Deployment N)
+- Add the new column as `NULLABLE` or configure an explicit database-level `DEFAULT`.
+- Application code dual-writes to both fields but continues reading from the original field.
+- **Rollback Safety:** If code is rolled back to $N-1$, the previous version simply ignores the new column.
 
-### Fase 2 — Backfill & Switch (Despliegue N+1)
-- Se ejecuta un script o job en segundo plano para poblar los registros históricos en la nueva columna.
-- El código de la aplicación conmuta sus lecturas a la nueva columna una vez completado el backfill.
-- **Capacidad de Rollback:** Si se revierte el código, la columna original sigue intacta y sincronizada por el dual-write.
+### Phase 2 — Backfill & Switch (Deployment N+1)
+- Execute a background job or migration script to populate historical records into the new column.
+- Application code switches reads to the new column once backfilling is verified.
+- **Rollback Safety:** If code is rolled back, the original column remains intact and up-to-date due to dual-writes.
 
-### Fase 3 — Contract (Despliegue N+2)
-- Una vez verificado en producción que ninguna instancia lee ni depende de la columna antigua, una nueva migración elimina la columna obsoleta (`DROP COLUMN`) o añade restricciones definitivas.
-- **Capacidad de Rollback:** Requiere una ventana de estabilidad previa confirmada.
+### Phase 3 — Contract (Deployment N+2)
+- Once verified in production that no active instances read from or depend on the legacy column, a final migration drops the obsolete column (`DROP COLUMN`) or tightens constraints.
+- **Rollback Safety:** Requires confirmed operational stability prior to deployment.
 
 ---
 
-## 3. Catálogo de Operaciones Prohibidas en un Solo Paso
+## 3. Operations Forbidden in Single-Step Migrations
 
-Quedan expresamente prohibidas en una única migración las siguientes sentencias destructivas o restrictivas:
+The following destructive or narrowing statements are forbidden in a single migration without following Expand/Contract:
 
-| Operación SQL | Riesgo para Versión $N-1$ | Alternativa Expand/Contract Requerida |
+| SQL Statement | Risk to Version $N-1$ | Required Expand/Contract Path |
 | :--- | :--- | :--- |
-| `DROP COLUMN` directo | Fallo inmediato si la versión $N-1$ intenta leer o proyectar la columna. | Desacoplar lecturas en $N$, eliminar en $N+1$. |
-| `ALTER COLUMN ... RENAME` | La versión $N-1$ fallará al no encontrar el identificador anterior. | Añadir nueva columna, copiar datos y retirar antigua en 3 fases. |
-| `ADD COLUMN ... NOT NULL` (sin `DEFAULT`) | La versión $N-1$ insertará registros sin el nuevo campo, violando la restricción NOT NULL. | Añadir como `NULLABLE` o con `DEFAULT` válido en la base de datos. |
-| `DROP TABLE` activa | Imposibilita el rollback a cualquier versión que consulte dicha tabla. | Retirar todas las consultas en código primero; drop en release posterior. |
-| `ALTER TYPE ... DROP VALUE` | Falla si existen filas históricas o si la versión $N-1$ emite dicho valor enum. | Deprecar valor en backend; limpiar datos antes de recrear el tipo enum. |
+| Direct `DROP COLUMN` | Immediate failure when version $N-1$ attempts to read or project the column. | Decouple reads in deployment $N$; drop column in deployment $N+1$. |
+| `ALTER COLUMN ... RENAME` | Version $N-1$ fails instantly upon missing the old identifier. | Add new column, dual-write, backfill, and drop old column in 3 phases. |
+| `ADD COLUMN ... NOT NULL` (no `DEFAULT`) | Version $N-1$ inserts records omitting the new column, violating the NOT NULL constraint. | Add as `NULLABLE` or supply an explicit database `DEFAULT`. |
+| `DROP TABLE` on active entity | Prevents rollback of any version querying the table. | Remove code queries first; drop table in a subsequent release. |
+| `ALTER TYPE ... DROP VALUE` | Fails if historical rows exist or if version $N-1$ emits the enum value. | Deprecate value in code; sanitize data before altering the enum type. |
 
 ---
 
-## 4. Procedimientos Operativos de Rollback
+## 4. Operational Rollback Procedures
 
-### Estrategia A: Rollback de Aplicación (Canónica y Recomendada)
-Al cumplir con la disciplina Expand/Contract, la reversión operativa estándar no toca la base de datos:
-1. Revertir el despliegue del contenedor a la versión anterior de la imagen Docker:
+### Strategy A: Application Rollback (Canonical & Recommended)
+Adhering to Expand/Contract guarantees that routine rollbacks do not require database alterations:
+1. Roll back the application container to the previous Docker image:
    ```bash
    docker compose -f docker-compose.prod.yml up -d --no-deps backend frontend
    ```
-2. Verificar en `/api/v1/health` que la versión $N-1$ responde con normalidad.
-3. El esquema $N$ permanece en la base de datos sin generar errores ni bloqueos.
+2. Verify `/api/v1/health` confirms normal responses on version $N-1$.
+3. Schema $N$ continues residing in the database without generating errors or query locks.
 
-### Estrategia B: Rollback de Esquema de Base de Datos (Incidencia Crítica)
-Si una migración produce bloqueos de tabla prolongados (locks), corrupción de índices o errores de sintaxis en producción:
-1. Localizar el script de reversión `down.sql` correspondiente a la migración afectada en `prisma/migrations/<timestamp_name>/down.sql`.
-2. Aplicar el script de reversión contra la base de datos:
+### Strategy B: Database Schema Rollback (Critical Emergency)
+If a migration introduces catastrophic table locks, index corruption, or syntax failures in production:
+1. Locate the corresponding rollback script `down.sql` under `prisma/migrations/<migration_dir>/down.sql`.
+2. Apply the rollback SQL against the target database:
    ```bash
    psql "${DATABASE_URL}" -f prisma/migrations/<migration_dir>/down.sql
    ```
-3. Marcar la migración como revertida en el registro interno de Prisma para evitar bloqueos futuros:
+3. Mark the migration as rolled back in Prisma's internal tracking metadata:
    ```bash
    npx prisma migrate resolve --rolled-back "<migration_name>"
    ```
-4. Confirmar el estado limpio del historial:
+4. Confirm clean migration alignment:
    ```bash
    npx prisma migrate status
    ```
 
 ---
 
-## 5. Herramientas de Automatización y CI
+## 5. Automation & CI Quality Tooling
 
-CircleSfera proporciona dos comandos canónicos para validar esta política:
+CircleSfera provides two canonical commands to validate this policy:
 
-1. **Linter Estático de Migraciones (`npm run db:lint-migrations`)**:
-   Analiza automáticamente los archivos `.sql` bajo `prisma/migrations/` en busca de sentencias destructivas (`DROP COLUMN`, `RENAME`, `SET NOT NULL` sin default) advirtiendo antes de integrar en `main`.
+1. **Static Migration Linter (`npm run db:lint-migrations`)**:
+   Analyzes all `.sql` files in `prisma/migrations/` for destructive operations (`DROP COLUMN`, `RENAME`, `SET NOT NULL` without default), alerting developers before merging into `main`.
 
-2. **Simulacro de Rollback en Base Aislada (`npm run db:test-rollback`)**:
-   Ejecuta las migraciones en una base de datos efímera, aplica la migración objetivo, ejecuta su `down.sql`, valida que el esquema retorne exactamente al estado $N-1$ y recompueba la reaplicación hacia adelante.
+2. **Isolated Rollback Drill (`npm run db:test-rollback`)**:
+   Executes migrations in an isolated ephemeral database, runs `down.sql`, confirms the database returns exactly to the $N-1$ baseline, and validates forward re-entrancy.

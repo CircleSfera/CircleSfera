@@ -1,35 +1,38 @@
 # CircleSfera: Implementation Status
 
-> **Source of Truth:** Este documento refleja el estado real de implementación del código en el repositorio. Si existe código que no se menciona aquí, este documento debe actualizarse. Si un agente de IA intenta interactuar con un módulo que figura como *Out of Scope* o que no existe, debe detenerse y pedir confirmación.
+> **Source of Truth:** This document reflects the actual state of code implementation in the repository.
+> If code exists that is not mentioned here, this document must be updated. If an AI agent attempts to
+> interact with a module listed as *Out of Scope* or that does not exist, it must stop and request confirmation.
 
-## 🟢 Shipped (Producción / Completado)
-Los siguientes módulos están implementados, testeados (QA), asegurados (Security) y su arquitectura está delimitada mecánicamente (Gates cerrados).
+## 🟢 Shipped (Production / Completed)
+The following modules are implemented, QA-tested, secured, and their architectural boundaries are mechanically verified.
 
 ### Backend
-- **Core Architecture:** Monolito modular con NestJS, Prisma (PostgreSQL), y BullMQ.
-- **Seguridad (Gate A):** Configuración estricta de Helmet (HSTS, CSP, CORP), CSRF de doble envío, `express-rate-limit`, `turnstile` contra bots, y validación severa de DTOs (`forbidNonWhitelisted: true`). 
-- **Autenticación:** Sistema JWT con cookies `httpOnly`, soporte para 2FA y Passkeys (WebAuthn).
-- **Gestión de Identidad:** División de `User` (credenciales y facturación) vs. `Profile` (entidad social e interacción), según el ADR-0015.
-- **Tiempo Real:** Socket.io implementado y escalado con Redis Adapter, con namespace de `events` asegurado por tokens.
-- **Pagos (Stripe):** Suscripciones, webhooks seguros e integración en backend sin que el frontend envíe precios (ADR-0010).
+- **Core Architecture:** Modular monolith built with NestJS, Prisma (PostgreSQL), and BullMQ.
+- **Security:** Strict Helmet configuration (HSTS, CSP, CORP), double-submit CSRF, `express-rate-limit`, Cloudflare Turnstile bot verification, and strict DTO validation (`whitelist: true`, `forbidNonWhitelisted: true`).
+- **Authentication:** JWT session system with `httpOnly` cookies, multi-factor authentication (2FA/TOTP), and WebAuthn Passkeys.
+- **Identity Architecture:** Separation of `User` (credentials and billing account) vs. `Profile` (social entity and interaction persona), adhering to [ADR-0015](adr/0015-user-profile-identity-split.md).
+- **Real-Time:** Socket.io horizontally scalable with Redis Adapter, with token-authenticated `events` namespace.
+- **Monetization (Stripe):** Creator subscriptions, pay-per-view, tips, secure webhooks, and backend-enforced catalog pricing without client-supplied amounts ([ADR-0010](adr/0010-platform-fee-20-percent.md)).
 
 ### Frontend
-- **Arquitectura:** React SPA con Vite, enrutamiento lazy (`BrowserRouter`), y gestores de estado segmentados (TanStack Query para estado de servidor y 11 `zustand` stores para cliente).
-- **Consumo de API:** Un único cliente HTTP (`ApiClient`) con interceptores para rotación automática de JWT y validación CSRF.
-- **Acoplamiento (Gate C):** Stores de Zustand (como `socketStore`) no poseen el ciclo de vida, simplemente exponen el estado reactivo proveniente de sus respectivos servicios (`realtime.service.ts`).
-- **Diseño (Mobile-first):** Resoluciones priorizadas de 390x844px, con soporte escalado sin desproporcionar componentes, uso denso de UI (inspirado en Meta/Threads).
+- **Architecture:** React SPA with Vite, code-split route lazy loading (`BrowserRouter`), and segregated state stores (TanStack Query for server cache, 11 `zustand` stores for client state).
+- **API Consumption:** Unified HTTP client (`ApiClient`) with interceptors for automatic JWT rotation and CSRF synchronization.
+- **State Decoupling:** Zustand stores (such as `socketStore`) do not manage lifecycle; they reactively expose state provided by their respective services (`realtime.service.ts`).
+- **Mobile-First Design:** Viewports prioritized at 390×844px (iPhone 15 Pro), scaled components without distortion, dense content-focused UI (inspired by Meta/Threads).
 
-### Infraestructura
-- **Nginx (Proxy Maestro):** Entornos de Producción (`circlesfera.com`, `api.*`, `admin.*`) con HSTS. Entorno de Desarrollo (`dev.*`) asegurado detrás de Auth Basic con las exclusiones estrictas de Stripe y verificadores de estado.
-- **Docker Compose:** Orquestación completa de frontend, backend, PostgreSQL (pgvector), y Redis.
-- **Respaldo y Recuperación ante Desastres:** SLAs formalizados (RPO ≤ 24h core, RPO = 0 ledger financiero, RTO ≤ 30 min en frío). Scripts de volcado (`backup-postgres.sh`), restauración (`restore-postgres.sh`), verificación desatendida (`verify-backup-restore.sh`) y cron diario a las 02:00 UTC con retención de 30 días y replicación off-host S3. Detalle en `05-disaster-recovery.md`.
-- **Migraciones y Rollbacks Compatibles:** Política obligatoria de compatibilidad Expand/Contract entre la versión de aplicación N-1 y el esquema N. Análisis estático de sentencias destructivas (`lint-migration-safety.mjs`), scripts de reversión (`down.sql`) y simulacros automatizados de reversión en base de datos efímera (`test-migration-rollback.sh`). Detalle en `06-migration-rollback-policy.md`.
+### Infrastructure
+- **Nginx (Master Proxy):** Production environments (`circlesfera.com`, `api.*`, `admin.*`) with HSTS. Development environment (`dev.*`) secured behind HTTP Basic Auth with strict bypass rules for Stripe webhooks and health probes.
+- **Docker Compose:** Full service orchestration for frontend, backend, PostgreSQL (`pgvector`), and Redis.
+- **Backup & Disaster Recovery:** Formalized SLAs (RPO $\le 24$h core, RPO = 0 financial ledger, cold RTO $\le 30$m). Automated logical dumps (`backup-postgres.sh`), restore tooling (`restore-postgres.sh`), unattended restore drill verification (`verify-backup-restore.sh`), and daily 02:00 UTC cron with 30-day retention and S3 off-host replication. Details in [05-disaster-recovery.md](05-disaster-recovery.md).
+- **Backward-Compatible Migrations & Rollback:** Mandatory Expand/Contract schema discipline ensuring compatibility between application version $N-1$ and schema version $N$. Static breaking change linter (`lint-migration-safety.mjs`), reversible `down.sql` scripts, and isolated rollback drill testing (`test-migration-rollback.sh`). Details in [06-migration-rollback-policy.md](06-migration-rollback-policy.md).
 
-## 🟡 In Development (Refactorización / Transición)
-- **Documentación Técnica:** Creación de los esquemas definitivos y abandono de los bocetos de la carpeta `.ai/`.
+## 🟡 In Development (Transition)
+- **Technical Documentation:** Authoring definitive system schemas and retiring legacy exploratory drafts.
 
-## 🔴 Out of Scope (No implementado)
-- Microservicios separados (se prohíbe explícitamente dividir el monolito sin un ADR).
-- Bus de eventos de dominio (`EventEmitter2`, CQRS, Event Sourcing). No intentes introducirlo.
-- GraphQL. Toda la API está basada en REST con controladores ligeros.
-- Almacenamiento de JWT o tokens sensibles en `localStorage` (estrictamente por cookies HTTP-only).
+## 🔴 Out of Scope (Explicitly Not Implemented)
+- Separate microservices (splitting the modular monolith without an approved ADR is strictly forbidden).
+- Domain event bus libraries (`EventEmitter2`, CQRS event sourcing). Do not attempt to introduce them.
+- GraphQL. The entire public and private API is strictly REST with lean controllers.
+- JWT storage in client `localStorage` (strictly HTTP-only secure cookies).
+- Native mobile applications (CircleSfera is mobile-first responsive web/PWA).
