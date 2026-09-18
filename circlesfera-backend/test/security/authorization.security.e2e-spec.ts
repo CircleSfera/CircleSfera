@@ -149,4 +149,79 @@ describe('Authorization Security (e2e)', () => {
       .set('x-csrf-token', userACsrf)
       .expect(401);
   });
+
+  it('should block IDOR: User B cannot delete User A comment', async () => {
+    // User A posts a comment
+    const commentRes = await request(app.getHttpServer())
+      .post(`/api/v1/posts/${postAId}/comments`)
+      .set('Cookie', [userACookie])
+      .set('x-csrf-token', userACsrf)
+      .send({ content: 'Comment by User A' })
+      .expect(201);
+    const commentId = commentRes.body.id;
+
+    // User B tries to delete User A comment
+    await request(app.getHttpServer())
+      .delete(`/api/v1/posts/${postAId}/comments/${commentId}`)
+      .set('Cookie', [userBCookie])
+      .set('x-csrf-token', userBCsrf)
+      .expect(403);
+
+    // User A can delete their own comment
+    await request(app.getHttpServer())
+      .delete(`/api/v1/posts/${postAId}/comments/${commentId}`)
+      .set('Cookie', [userACookie])
+      .set('x-csrf-token', userACsrf)
+      .expect(204);
+  });
+
+  it('should support scheduled account deletion with grace period and login restoration', async () => {
+    // User B schedules deletion
+    const scheduleRes = await request(app.getHttpServer())
+      .delete('/api/v1/users/me')
+      .set('Cookie', [userBCookie])
+      .set('x-csrf-token', userBCsrf)
+      .expect(200);
+
+    expect(scheduleRes.body.success).toBe(true);
+    expect(scheduleRes.body.scheduled_deletion_at).toBeDefined();
+
+    let userBRecord = await prisma.user.findUnique({
+      where: { email: userB.email },
+    });
+    expect(userBRecord?.isActive).toBe(false);
+    expect(userBRecord?.scheduledDeletionAt).toBeDefined();
+
+    // Authenticated requests with old cookie are now rejected because account is deactivated
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/me')
+      .set('Cookie', [userBCookie])
+      .set('x-csrf-token', userBCsrf)
+      .expect(401);
+
+    // Logging in during grace period auto-restores the account
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Cookie', [userBCookie])
+      .set('x-csrf-token', userBCsrf)
+      .send({ identifier: userB.email, password: userB.password })
+      .expect(200);
+
+    const newCookies = (loginRes.get('Set-Cookie') as string[]) || [];
+    userBCookie = [userBCookie.split(';')[0], ...newCookies].join('; ');
+
+    userBRecord = await prisma.user.findUnique({
+      where: { email: userB.email },
+    });
+    expect(userBRecord?.isActive).toBe(true);
+    expect(userBRecord?.scheduledDeletionAt).toBeNull();
+    expect(userBRecord?.deletedAt).toBeNull();
+
+    // User B can now perform authenticated requests again
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/me')
+      .set('Cookie', [userBCookie])
+      .set('x-csrf-token', userBCsrf)
+      .expect(200);
+  });
 });
