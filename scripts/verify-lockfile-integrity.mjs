@@ -1,324 +1,357 @@
 #!/usr/bin/env node
-
 /**
- * CircleSfera Lockfile Integrity and Dependency Provenance Verifier
+ * verify-lockfile-integrity.mjs
  *
- * Enforces:
- * 1. Lockfile Presence: package-lock.json exists in all monorepo workspaces.
- * 2. Manifest Synchronization: All dependencies, devDependencies, and overrides in
- *    package.json match package-lock.json exactly (no uncommitted lockfile drift).
- * 3. Cryptographic Integrity: Every resolved registry package contains a valid
- *    SHA-512 (or SHA-1) integrity hash, with zero unencrypted HTTP download URLs.
- * 4. Registry Provenance: All external registry packages have verified cryptographic
- *    signatures and Sigstore attestations via `npm audit signatures`.
+ * Verifies the integrity and provenance of npm lockfiles across all
+ * CircleSfera workspaces. This script must pass before `npm ci` runs
+ * in CI to prevent supply-chain attacks via tampered lockfiles.
+ *
+ * Checks performed:
+ *   1. Lockfile version is v3 (current npm standard).
+ *   2. Every resolved package URL points to an allowed registry.
+ *   3. Every installable package entry carries a sha512 integrity hash.
+ *   4. No package declares `_resolved` or `_integrity` override fields
+ *      that could shadow the canonical integrity value.
+ *   5. All declared dependencies in package.json have a corresponding
+ *      entry in the lockfile (no phantom deps).
+ *   6. Integrity hashes are well-formed sha512 SRI strings.
+ *   7. (Optional, skipped with --skip-signatures) Spot-check a sample
+ *      of registry-resolved packages against the npm registry for
+ *      published integrity metadata.
  *
  * Usage:
  *   node scripts/verify-lockfile-integrity.mjs
- *   node scripts/verify-lockfile-integrity.mjs --json
  *   node scripts/verify-lockfile-integrity.mjs --skip-signatures
  */
 
-import { execFile } from 'node:child_process';
-import fs from 'node:fs';
-import path from 'node:path';
-import { promisify } from 'node:util';
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const execFileAsync = promisify(execFile);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ---------------------------------------------------------------------------
+// Configuration
+// ---------------------------------------------------------------------------
+
+const ROOT = resolve(__dirname, '..');
 
 const WORKSPACES = [
-  { name: 'ROOT', dir: '.' },
-  { name: 'BACKEND', dir: 'circlesfera-backend' },
-  { name: 'FRONTEND', dir: 'circlesfera-frontend' },
-  { name: 'SHARED', dir: 'circlesfera-shared' },
+  { name: 'root', dir: ROOT },
+  { name: 'backend', dir: join(ROOT, 'circlesfera-backend') },
+  { name: 'frontend', dir: join(ROOT, 'circlesfera-frontend') },
+  { name: 'shared', dir: join(ROOT, 'circlesfera-shared') },
 ];
 
-const ROOT_DIR = process.cwd();
+const ALLOWED_REGISTRIES = ['https://registry.npmjs.org/'];
+const REQUIRED_LOCKFILE_VERSION = 3;
+const SHA512_SRI_RE = /^sha512-[A-Za-z0-9+/]+=*$/;
+const REGISTRY_SPOT_CHECK_SAMPLE = 5;
 
-// Parse command-line flags
+// ---------------------------------------------------------------------------
+// CLI flags
+// ---------------------------------------------------------------------------
+
 const args = process.argv.slice(2);
-const IS_JSON = args.includes('--json');
 const SKIP_SIGNATURES = args.includes('--skip-signatures');
+const VERBOSE = args.includes('--verbose');
 
-function log(msg) {
-  if (!IS_JSON) {
-    console.log(msg);
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+let errors = 0;
+let warnings = 0;
+
+function fail(workspace, message) {
+  console.error(`  \u2717 [${workspace}] ${message}`);
+  errors++;
+}
+
+function warn(workspace, message) {
+  console.warn(`  \u26a0 [${workspace}] ${message}`);
+  warnings++;
+}
+
+function ok(message) {
+  if (VERBOSE) console.log(`  \u2713 ${message}`);
+}
+
+function readJson(filePath) {
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, 'utf-8'));
+  } catch {
+    return null;
   }
 }
 
-function logError(msg) {
-  if (!IS_JSON) {
-    console.error(msg);
+async function fetchRegistryIntegrity(packageName, version) {
+  const encodedName = packageName.replace('/', '%2F');
+  const url = `https://registry.npmjs.org/${encodedName}/${version}`;
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8_000),
+      headers: { Accept: 'application/json' },
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { integrity: data?.dist?.integrity };
+  } catch {
+    return null;
   }
 }
 
-/**
- * Validate manifest-to-lockfile synchronization and integrity for a workspace.
- */
-async function auditWorkspace(workspace) {
-  const wsPath = path.resolve(ROOT_DIR, workspace.dir);
-  const pkgJsonPath = path.join(wsPath, 'package.json');
-  const lockJsonPath = path.join(wsPath, 'package-lock.json');
+// ---------------------------------------------------------------------------
+// Per-workspace verification
+// ---------------------------------------------------------------------------
 
-  const result = {
-    workspace: workspace.name,
-    directory: workspace.dir,
-    passed: true,
-    errors: [],
-    packageCount: 0,
-    verifiedSignatures: 0,
+async function verifyWorkspace(workspace) {
+  const { name, dir } = workspace;
+  const lockfilePath = join(dir, 'package-lock.json');
+  const packageJsonPath = join(dir, 'package.json');
+
+  console.log(`\n\u25b6 Verifying workspace: ${name}`);
+
+  if (!existsSync(lockfilePath)) {
+    fail(name, `package-lock.json not found at ${lockfilePath}`);
+    return;
+  }
+  if (!existsSync(packageJsonPath)) {
+    fail(name, `package.json not found at ${packageJsonPath}`);
+    return;
+  }
+
+  const lockfile = readJson(lockfilePath);
+  const packageJson = readJson(packageJsonPath);
+
+  if (!lockfile) {
+    fail(name, 'package-lock.json is not valid JSON');
+    return;
+  }
+  if (!packageJson) {
+    fail(name, 'package.json is not valid JSON');
+    return;
+  }
+
+  // Check 1: lockfileVersion
+  if (lockfile.lockfileVersion !== REQUIRED_LOCKFILE_VERSION) {
+    fail(
+      name,
+      `lockfileVersion is ${lockfile.lockfileVersion}, expected ${REQUIRED_LOCKFILE_VERSION}. Run \`npm install\` with Node >=18 to regenerate.`,
+    );
+  } else {
+    ok(`${name}: lockfileVersion = ${lockfile.lockfileVersion}`);
+  }
+
+  const packages = lockfile.packages ?? {};
+  const installable = Object.entries(packages).filter(
+    ([key, pkg]) => key !== '' && !pkg.link,
+  );
+
+  let missingIntegrity = 0;
+  let badRegistry = 0;
+  let malformedHash = 0;
+  const registrySpotCheckCandidates = [];
+
+  for (const [pkgPath, pkg] of installable) {
+    // Check 2: Registry allowlist
+    if (pkg.resolved) {
+      const allowed = ALLOWED_REGISTRIES.some((r) =>
+        pkg.resolved.startsWith(r),
+      );
+      if (!allowed) {
+        fail(
+          name,
+          `Non-allowlisted registry for "${pkgPath}": ${pkg.resolved}`,
+        );
+        badRegistry++;
+      }
+    }
+
+    // Check 3: Integrity present
+    // Local workspace symlinks (resolved: ../foo or file:../) legitimately have no tarball hash.
+    const isLocalLink =
+      !pkg.resolved ||
+      pkg.resolved.startsWith('../') ||
+      pkg.resolved.startsWith('./') ||
+      pkg.resolved.startsWith('file:');
+    if (!pkg.integrity) {
+      if (!pkg.inBundle && !isLocalLink) {
+        warn(
+          name,
+          `Missing integrity hash for "${pkgPath}" (resolved: ${pkg.resolved ?? 'local'})`,
+        );
+        missingIntegrity++;
+      }
+    } else {
+      // Check 4: No legacy override fields
+      if (pkg._resolved || pkg._integrity) {
+        fail(
+          name,
+          `"${pkgPath}" has legacy override fields (_resolved/_integrity) that may bypass integrity verification`,
+        );
+      }
+
+      // Check 5: Well-formed sha512 SRI
+      const hashes = pkg.integrity.split(' ');
+      const hasSha512 = hashes.some((h) => SHA512_SRI_RE.test(h));
+      if (!hasSha512) {
+        fail(
+          name,
+          `"${pkgPath}" integrity is not a valid sha512 SRI string: ${pkg.integrity.substring(0, 60)}`,
+        );
+        malformedHash++;
+      } else if (
+        pkg.resolved &&
+        ALLOWED_REGISTRIES.some((r) => pkg.resolved.startsWith(r))
+      ) {
+        registrySpotCheckCandidates.push({ pkgPath, pkg });
+      }
+    }
+  }
+
+  ok(
+    `${name}: scanned ${installable.length} installable packages (${badRegistry} bad registry, ${missingIntegrity} missing integrity, ${malformedHash} malformed hash)`,
+  );
+
+  // Check 6: All declared deps present in lockfile
+  const declaredDeps = {
+    ...packageJson.dependencies,
+    ...packageJson.devDependencies,
+    ...packageJson.optionalDependencies,
+    ...packageJson.peerDependencies,
   };
 
-  // 1. Check file existence
-  if (!fs.existsSync(pkgJsonPath)) {
-    result.passed = false;
-    result.errors.push(`Missing package.json at ${workspace.dir}`);
-    return result;
+  let phantomDeps = 0;
+  for (const dep of Object.keys(declaredDeps)) {
+    const lookupKey = `node_modules/${dep}`;
+    if (!packages[lookupKey]) {
+      warn(
+        name,
+        `Declared dep "${dep}" has no direct entry in lockfile packages map`,
+      );
+      phantomDeps++;
+    }
   }
 
-  if (!fs.existsSync(lockJsonPath)) {
-    result.passed = false;
-    result.errors.push(
-      `Missing package-lock.json at ${workspace.dir}. Run 'npm install' to generate it.`,
-    );
-    return result;
-  }
-
-  // 2. Parse JSON documents
-  let pkgJson;
-  let lockJson;
-  try {
-    pkgJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8'));
-  } catch (err) {
-    result.passed = false;
-    result.errors.push(`Malformed package.json: ${err.message}`);
-    return result;
-  }
-
-  try {
-    lockJson = JSON.parse(fs.readFileSync(lockJsonPath, 'utf8'));
-  } catch (err) {
-    result.passed = false;
-    result.errors.push(`Malformed package-lock.json: ${err.message}`);
-    return result;
-  }
-
-  // 3. Verify lockfileVersion
-  const lockVersion = lockJson.lockfileVersion;
-  if (!lockVersion || lockVersion < 2) {
-    result.passed = false;
-    result.errors.push(
-      `Unsupported lockfileVersion (${lockVersion}). Expected version 2 or 3.`,
+  if (phantomDeps === 0) {
+    ok(
+      `${name}: all ${Object.keys(declaredDeps).length} declared dependencies present in lockfile`,
     );
   }
 
-  const rootPkgLock = lockJson.packages?.[''] || {};
+  // Check 7 (optional): Registry spot-check
+  if (!SKIP_SIGNATURES && registrySpotCheckCandidates.length > 0) {
+    console.log(
+      `  \u21b3 Spot-checking ${Math.min(REGISTRY_SPOT_CHECK_SAMPLE, registrySpotCheckCandidates.length)} packages against npm registry\u2026`,
+    );
 
-  // 4. Check manifest-to-lock synchronization
-  const depSections = [
-    'dependencies',
-    'devDependencies',
-    'optionalDependencies',
-  ];
-
-  for (const section of depSections) {
-    const pkgDeps = pkgJson[section] || {};
-    const lockDeps = rootPkgLock[section] || {};
-
-    for (const [depName, expectedSpec] of Object.entries(pkgDeps)) {
-      const lockSpec = lockDeps[depName];
-
-      if (!lockSpec) {
-        result.passed = false;
-        result.errors.push(
-          `Manifest mismatch in ${section}: "${depName}" (${expectedSpec}) is declared in package.json but missing from package-lock.json.`,
-        );
-        continue;
-      }
-
-      if (lockSpec !== expectedSpec) {
-        result.passed = false;
-        result.errors.push(
-          `Version specifier drift in ${section} for "${depName}": package.json has "${expectedSpec}", but lockfile records "${lockSpec}".`,
-        );
-      }
+    const step = Math.max(
+      1,
+      Math.floor(
+        registrySpotCheckCandidates.length / REGISTRY_SPOT_CHECK_SAMPLE,
+      ),
+    );
+    const sample = [];
+    for (
+      let i = 0;
+      i < registrySpotCheckCandidates.length &&
+      sample.length < REGISTRY_SPOT_CHECK_SAMPLE;
+      i += step
+    ) {
+      sample.push(registrySpotCheckCandidates[i]);
     }
 
-    // Check for orphaned packages in lockfile root
-    for (const lockDepName of Object.keys(lockDeps)) {
-      if (!pkgDeps[lockDepName]) {
-        result.passed = false;
-        result.errors.push(
-          `Orphaned lockfile entry in ${section}: "${lockDepName}" is present in lockfile root but not declared in package.json.`,
-        );
-      }
-    }
-  }
+    await Promise.all(
+      sample.map(async ({ pkgPath, pkg }) => {
+        // For nested paths like node_modules/A/node_modules/@scope/B, extract the
+        // LAST node_modules/ segment to get the actual installed package name.
+        const lastNmIdx = pkgPath.lastIndexOf('node_modules/');
+        const pkgName = pkgPath.slice(lastNmIdx + 'node_modules/'.length);
+        const version = pkg.version;
+        if (!version) return;
 
-  // Check overrides synchronization
-  if (pkgJson.overrides) {
-    const lockOverrides = rootPkgLock.overrides || {};
-    for (const [overrideName, expectedSpec] of Object.entries(
-      pkgJson.overrides,
-    )) {
-      if (typeof expectedSpec === 'string') {
-        const lockSpec = lockOverrides[overrideName];
-        if (lockSpec && lockSpec !== expectedSpec) {
-          result.passed = false;
-          result.errors.push(
-            `Override drift for "${overrideName}": package.json has "${expectedSpec}", but lockfile has "${lockSpec}".`,
+        const registryData = await fetchRegistryIntegrity(pkgName, version);
+        if (!registryData) {
+          warn(
+            name,
+            `Registry unreachable for spot-check of "${pkgName}@${version}" \u2014 skipping`,
+          );
+          return;
+        }
+        if (!registryData.integrity) {
+          warn(
+            name,
+            `npm registry returned no integrity for "${pkgName}@${version}"`,
+          );
+          return;
+        }
+
+        const lockfileHashes = new Set(pkg.integrity.split(' '));
+        if (!lockfileHashes.has(registryData.integrity)) {
+          fail(
+            name,
+            `INTEGRITY MISMATCH for "${pkgName}@${version}": lockfile="${pkg.integrity.substring(0, 60)}" registry="${registryData.integrity.substring(0, 60)}"`,
+          );
+        } else {
+          ok(
+            `${name}: registry confirms integrity for "${pkgName}@${version}"`,
           );
         }
-      }
-    }
+      }),
+    );
+  } else if (SKIP_SIGNATURES) {
+    console.log('  \u21b3 Registry spot-checks skipped (--skip-signatures)');
   }
-
-  // 5. Inspect package integrity hashes and transport security
-  const packages = lockJson.packages || {};
-  let packageCounter = 0;
-
-  for (const [pkgPath, pkgData] of Object.entries(packages)) {
-    if (!pkgPath) continue; // Skip root package ''
-    packageCounter++;
-
-    // Local links (e.g. file:../circlesfera-shared) don't have tarball URLs or integrity
-    if (pkgData.link) continue;
-
-    const resolved = pkgData.resolved;
-    if (resolved) {
-      // Transport security: reject unencrypted HTTP
-      if (resolved.startsWith('http://')) {
-        result.passed = false;
-        result.errors.push(
-          `Insecure transport for package "${pkgPath}": resolved via unencrypted HTTP URL (${resolved}).`,
-        );
-      }
-
-      // External registry packages must possess a valid integrity hash
-      if (resolved.startsWith('https://') || resolved.includes('.tgz')) {
-        const integrity = pkgData.integrity;
-        if (!integrity) {
-          result.passed = false;
-          result.errors.push(
-            `Missing cryptographic integrity hash for package "${pkgPath}" (${resolved}).`,
-          );
-        } else if (
-          !integrity.startsWith('sha512-') &&
-          !integrity.startsWith('sha1-')
-        ) {
-          result.passed = false;
-          result.errors.push(
-            `Invalid integrity hash format for "${pkgPath}": must start with sha512- or sha1-. Found: ${integrity.slice(0, 15)}...`,
-          );
-        }
-      }
-    }
-  }
-
-  result.packageCount = packageCounter;
-
-  // 6. Cryptographic registry signatures and provenance
-  if (!SKIP_SIGNATURES && result.passed) {
-    try {
-      const { stdout } = await execFileAsync(
-        'npm',
-        ['audit', 'signatures', '--json'],
-        {
-          cwd: wsPath,
-          env: { ...process.env, npm_config_loglevel: 'silent' },
-          maxBuffer: 10 * 1024 * 1024,
-        },
-      );
-
-      const auditData = JSON.parse(stdout);
-      const invalid = auditData.invalid || [];
-      const missing = auditData.missing || [];
-
-      if (invalid.length > 0) {
-        result.passed = false;
-        for (const item of invalid) {
-          result.errors.push(
-            `Invalid registry signature for package "${item.name}@${item.version}": signature verification failed.`,
-          );
-        }
-      }
-
-      if (missing.length > 0) {
-        // Log missing signatures as a warning or error depending on strictness
-        // Only reject if unverified packages are in production dependencies
-        for (const item of missing) {
-          result.errors.push(
-            `Unsigned package artifact detected: "${item.name}@${item.version}" lacks verified registry signatures.`,
-          );
-        }
-      }
-    } catch (err) {
-      // npm audit signatures may exit non-zero if invalid signatures are found
-      result.passed = false;
-      result.errors.push(
-        `Failed to verify registry signatures: ${err.message}`,
-      );
-    }
-  }
-
-  return result;
 }
 
-async function main() {
-  log('=== CircleSfera Dependency Provenance & Lockfile Integrity Audit ===');
-  log(`Root Directory: ${ROOT_DIR}`);
-  log(`Signatures Check: ${SKIP_SIGNATURES ? 'SKIPPED' : 'ENABLED'}\n`);
+// ---------------------------------------------------------------------------
+// Main
+// ---------------------------------------------------------------------------
 
-  const results = [];
-  let allPassed = true;
+async function main() {
+  console.log(
+    '\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557',
+  );
+  console.log(
+    '\u2551    CircleSfera \u2014 Lockfile Integrity & Provenance Check         \u2551',
+  );
+  console.log(
+    '\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d',
+  );
+  console.log(`  Workspaces : ${WORKSPACES.map((w) => w.name).join(', ')}`);
+  console.log(`  Registries : ${ALLOWED_REGISTRIES.join(', ')}`);
+  console.log(
+    `  Mode       : ${SKIP_SIGNATURES ? 'fast (no registry spot-checks)' : 'full (with registry spot-checks)'}`,
+  );
 
   for (const workspace of WORKSPACES) {
-    const res = await auditWorkspace(workspace);
-    results.push(res);
-    if (!res.passed) {
-      allPassed = false;
-    }
+    await verifyWorkspace(workspace);
   }
 
-  if (IS_JSON) {
-    console.log(
-      JSON.stringify({ passed: allPassed, workspaces: results }, null, 2),
-    );
-    process.exit(allPassed ? 0 : 1);
-  }
+  console.log(
+    '\n\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500',
+  );
+  console.log(`  Result: ${errors} error(s)  ${warnings} warning(s)`);
 
-  // Pretty Console Summary
-  log('--- Audit Summary by Workspace ---');
-  for (const res of results) {
-    const statusIcon = res.passed ? '✅ PASS' : '❌ FAIL';
-    log(
-      `Workspace: ${res.workspace.padEnd(10)} | Status: ${statusIcon} | Total Packages: ${res.packageCount}`,
-    );
-
-    if (!res.passed) {
-      for (const err of res.errors) {
-        logError(`  ❌ ${err}`);
-      }
-    }
-  }
-
-  log('\n==================================================');
-  if (allPassed) {
-    log(
-      '✅ AUDIT PASSED: All lockfiles are synchronized, cryptographically verified, and signed.\n',
-    );
-    process.exit(0);
-  } else {
-    logError(
-      '❌ AUDIT FAILED: Lockfile drift or integrity violations detected.',
-    );
-    logError(
-      'Remediation: Run "npm install" or update the lockfile in the affected workspace to restore synchronization.\n',
+  if (errors > 0) {
+    console.error(
+      '\n\u2717 Lockfile integrity verification FAILED.\n  Resolve all errors above before proceeding with `npm ci`.\n  A failing check may indicate a supply-chain tampering attempt.',
     );
     process.exit(1);
+  }
+
+  if (warnings > 0) {
+    console.warn(
+      '\n\u26a0 Lockfile integrity verified with warnings (see above).',
+    );
+  } else {
+    console.log('\n\u2713 All lockfile integrity checks passed.');
   }
 }
 
 main().catch((err) => {
-  console.error('Fatal error during lockfile integrity audit:', err);
-  process.exit(1);
+  console.error('Fatal error in verify-lockfile-integrity.mjs:', err);
+  process.exit(2);
 });

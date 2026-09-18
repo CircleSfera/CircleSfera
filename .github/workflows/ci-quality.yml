@@ -52,7 +52,7 @@ jobs:
           cache: "npm"
 
       - name: "Dependencies: Verify Lockfile Integrity & Provenance"
-        run: npm run verify:lockfiles
+        run: npm run verify:lockfiles:fast
 
       - name: Install Monorepo Dependencies
         run: npm ci

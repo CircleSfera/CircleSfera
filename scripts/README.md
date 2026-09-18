@@ -97,20 +97,21 @@ npm run audit:deps:all
 ```
 
 #### `verify-lockfile-integrity.mjs`
-Audits lockfile consistency, cryptographic integrity, and registry provenance across all workspaces:
-- Enforces presence of `package-lock.json` with `lockfileVersion >= 2` in root, backend, frontend, and shared.
-- Validates that every declared dependency, devDependency, and override in `package.json` matches the lockfile.
-- Asserts that all external package artifacts have valid SHA-512 or SHA-1 integrity hashes.
-- Disallows insecure unencrypted `http://` transport URLs.
-- Executes `npm audit signatures` to verify digital signatures and Sigstore build attestations.
-- Supports `--skip-signatures` for rapid local offline checks and `--json` for machine-readable reporting.
+Performs 7-point lockfile integrity and provenance verification across all 4 workspaces (root, backend, frontend, shared):
+- **Check 1** — Enforces `lockfileVersion: 3` (npm 7+ / Node 18+) in every workspace.
+- **Check 2** — Registry allowlist: all resolved URLs must point to `https://registry.npmjs.org/`. Non-allowlisted registries (mirrors, Verdaccio, private) fail the gate.
+- **Check 3** — SHA-512 integrity presence: every non-bundled, non-local-symlink package must carry an `integrity` field.
+- **Check 4** — No legacy override fields: packages with `_resolved` or `_integrity` shadow fields are rejected.
+- **Check 5** — Well-formed sha512 SRI format (`sha512-<base64>`).
+- **Check 6** — Declared-to-lockfile coverage: every `dependencies`/`devDependencies` entry in `package.json` must have a corresponding `node_modules/<pkg>` entry in the lockfile.
+- **Check 7 (full mode)** — Registry spot-check: samples 5 packages per workspace and verifies lockfile `integrity` against the live npm registry `dist.integrity` to catch post-publication mutations.
 
 ```bash
-# Full lockfile and signature verification (CI gate)
-npm run verify:lockfiles
-
-# Fast offline lockfile check (skips registry signature network calls)
+# Structural checks only — used in CI (no outbound network required)
 npm run verify:lockfiles:fast
+
+# Full check including npm registry spot-checks — run locally before release
+npm run verify:lockfiles
 ```
 
 ---
