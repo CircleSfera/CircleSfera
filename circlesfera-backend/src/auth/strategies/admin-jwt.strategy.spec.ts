@@ -196,5 +196,58 @@ describe('AdminJwtStrategy', () => {
         UnauthorizedException,
       );
     });
+
+    it('handles fire-and-forget activity stamp update failure gracefully', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(activeAdmin);
+      mockPrisma.adminIdentity.update.mockRejectedValueOnce(
+        new Error('DB write failure during activity stamp'),
+      );
+
+      const payload: AdminJwtPayload = {
+        sub: 'admin-1',
+        email: 'ops@circlesfera.com',
+        jti: 'jwt-4',
+        aud: ADMIN_JWT_AUDIENCE,
+        stepUp: false,
+      };
+
+      const result = await strategy.validate(payload);
+      expect(result.adminId).toBe('admin-1');
+      expect(result.stepUpVerified).toBe(false);
+    });
+  });
+
+  describe('adminCookieOrHeaderExtractor', () => {
+    it('extracts token from admin cookie when present', () => {
+      const extractor = (strategy as any)._jwtFromRequest;
+      const req = {
+        cookies: {
+          admin_access_token: 'admin-cookie-jwt',
+        },
+      } as any;
+
+      expect(extractor(req)).toBe('admin-cookie-jwt');
+    });
+
+    it('falls back to Authorization Bearer header when admin cookie is missing', () => {
+      const extractor = (strategy as any)._jwtFromRequest;
+      const req = {
+        cookies: {},
+        headers: {
+          authorization: 'Bearer admin-bearer-jwt',
+        },
+      } as any;
+
+      expect(extractor(req)).toBe('admin-bearer-jwt');
+    });
+
+    it('returns null when neither cookie nor Authorization header is present', () => {
+      const extractor = (strategy as any)._jwtFromRequest;
+      const req = {
+        headers: {},
+      } as any;
+
+      expect(extractor(req)).toBeNull();
+    });
   });
 });

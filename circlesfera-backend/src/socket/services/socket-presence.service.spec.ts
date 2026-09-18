@@ -50,4 +50,15 @@ describe('SocketPresenceService', () => {
     });
     expect(lastSeenAt).toBeInstanceOf(Date);
   });
+
+  it('getOnlineUsersCount returns total count of users currently online', async () => {
+    (prisma.user as any).count = vi.fn().mockResolvedValue(42);
+
+    const count = await service.getOnlineUsersCount();
+
+    expect((prisma.user as any).count).toHaveBeenCalledWith({
+      where: { isOnline: true },
+    });
+    expect(count).toBe(42);
+  });
 });

@@ -64,6 +64,24 @@ describe('SocketAuthService', () => {
 
       expect(service.extractToken(mockClient)).toBeUndefined();
     });
+
+    it('handles cookie parsing error gracefully and falls back to Bearer header', async () => {
+      const cookie = await import('cookie');
+      vi.spyOn(cookie, 'parse').mockImplementationOnce(() => {
+        throw new Error('Malformed cookie string');
+      });
+
+      const mockClient = {
+        handshake: {
+          headers: {
+            cookie: 'invalid',
+            authorization: 'Bearer fallback-token',
+          },
+        },
+      } as unknown as Socket;
+
+      expect(service.extractToken(mockClient)).toBe('fallback-token');
+    });
   });
 
   describe('authenticate', () => {
