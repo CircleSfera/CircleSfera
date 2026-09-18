@@ -98,9 +98,12 @@ describe('SlackController', () => {
     expect(mockService.handleViewSubmission).toHaveBeenCalledWith(payload);
   });
 
-  it('fires moderation interactions without waiting', async () => {
+  it('fires moderation interactions without waiting and catches background failure', async () => {
     const payload = { type: 'block_actions' };
-    mockService.handleModerationInteraction.mockResolvedValue(undefined);
+    mockService.handleModerationInteraction.mockRejectedValue(
+      new Error('Async interaction fail'),
+    );
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await request(app.getHttpServer())
       .post('/api/v1/slack/interactions')
@@ -110,5 +113,6 @@ describe('SlackController', () => {
     expect(mockService.handleModerationInteraction).toHaveBeenCalledWith(
       payload,
     );
+    consoleSpy.mockRestore();
   });
 });

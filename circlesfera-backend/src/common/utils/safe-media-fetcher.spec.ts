@@ -303,4 +303,12 @@ describe('safeFetchMedia', () => {
       }
     });
   });
+
+  describe('fetchLocalUpload missing file', () => {
+    it('rejects when local file does not exist', async () => {
+      await expect(
+        safeFetchMedia('/uploads/nonexistent-unit-audio.wav'),
+      ).rejects.toThrow('Local media file not found');
+    });
+  });
 });
