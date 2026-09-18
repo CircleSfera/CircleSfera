@@ -9,7 +9,6 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     let monetizationService: MonetizationService;
     let mockPrisma: any;
     let mockStripeService: any;
-    let mockAuditService: any;
 
     beforeEach(() => {
       mockPrisma = {
@@ -47,14 +46,9 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         createLoginLink: vi.fn(),
       };
 
-      mockAuditService = {
-        log: vi.fn(),
-      };
-
       monetizationService = new MonetizationService(
         mockPrisma,
         mockStripeService,
-        mockAuditService,
       );
     });
 
@@ -207,8 +201,12 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     let mockConfigService: any;
     let mockEmailService: any;
     let mockSlackService: any;
+    let mockStripeService: any;
 
     beforeEach(() => {
+      mockStripeService = {
+        stripe: {},
+      };
       mockPrisma = {
         webhookEvent: {
           findUnique: vi.fn(),
@@ -234,9 +232,11 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
       paymentsService = new PaymentsService(
         mockPrisma,
-        mockConfigService,
-        mockEmailService,
+        mockStripeService,
         mockSlackService,
+        mockEmailService,
+        {} as any,
+        mockConfigService as any,
       );
     });
 
