@@ -16,6 +16,7 @@ The following modules are implemented, QA-tested, secured, and their architectur
 - **Identity Architecture:** Separation of `User` (credentials and billing account) vs. `Profile` (social entity and interaction persona), adhering to [ADR-0015](adr/0015-user-profile-identity-split.md).
 - **Real-Time:** Socket.io horizontally scalable with Redis Adapter, with token-authenticated `events` namespace.
 - **Monetization (Stripe):** Creator subscriptions, pay-per-view, tips, secure webhooks, and backend-enforced catalog pricing without client-supplied amounts ([ADR-0010](adr/0010-platform-fee-20-percent.md)).
+- **Transaction Boundaries & Concurrency Invariants:** Multi-layered defense-in-depth model combining database unique constraints, atomic optimistic webhook leasing with P2002 race resolution, interactive multi-operation ACID transactions (`$transaction`), and durable background reconciliation. Validated through automated unit and integration concurrency tests. Details in [15-transaction-boundaries-and-concurrency-invariants.md](15-transaction-boundaries-and-concurrency-invariants.md).
 
 ### Frontend
 - **Architecture:** React SPA with Vite, code-split route lazy loading (`BrowserRouter`), and segregated state stores (TanStack Query for server cache, 11 `zustand` stores for client state).
