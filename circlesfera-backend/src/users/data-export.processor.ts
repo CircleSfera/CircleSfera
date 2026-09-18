@@ -1,18 +1,15 @@
 import * as fs from 'node:fs';
-import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import { WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ZipArchive } from 'archiver';
 import { type Job, UnrecoverableError } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
 import { DataExportService } from './data-export.service.js';
 import { UsersService } from './users.service.js';
-
-const require = createRequire(import.meta.url);
-const archiver = require('archiver');
 
 @Injectable()
 export class DataExportProcessor extends WorkerHost {
@@ -181,7 +178,7 @@ export class DataExportProcessor extends WorkerHost {
       const filePath = path.join(EXPORTS_DIR, fileName);
 
       const output = fs.createWriteStream(filePath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+      const archive = new ZipArchive({ zlib: { level: 9 } });
 
       return new Promise<void>((resolve, reject) => {
         output.on('close', async () => {

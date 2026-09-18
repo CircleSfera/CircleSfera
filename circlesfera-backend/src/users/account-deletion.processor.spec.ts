@@ -261,5 +261,139 @@ describe('AccountDeletionProcessor', () => {
         'user-resilient',
       );
     });
+
+    it('throws UnrecoverableError if userId is empty', async () => {
+      await expect(processor.hardDeleteUser('')).rejects.toThrow(
+        'Missing userId for hardDeleteUser',
+      );
+    });
+
+    it('catches and logs Stripe subscription cancellation errors gracefully', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'user-stripe-err',
+        isActive: false,
+        deletedAt: new Date(Date.now() - 35 * 24 * 3600 * 1000),
+        scheduledDeletionAt: new Date(Date.now() - 1000),
+        stripeCustomerId: 'cus_err',
+        profiles: [],
+      });
+      mockStripeService.stripe.subscriptions.list.mockRejectedValue(
+        new Error('Stripe API unreachable'),
+      );
+      mockUsersService.deleteScheduledUser.mockResolvedValue(true);
+
+      await expect(
+        processor.hardDeleteUser('user-stripe-err'),
+      ).resolves.toBeUndefined();
+      expect(mockUsersService.deleteScheduledUser).toHaveBeenCalledWith(
+        'user-stripe-err',
+      );
+    });
+
+    it('rethrows unexpected error in hardDeleteUser', async () => {
+      mockPrisma.user.findUnique.mockRejectedValue(
+        new Error('Fatal DB failure'),
+      );
+
+      await expect(processor.hardDeleteUser('user-fatal')).rejects.toThrow(
+        'Fatal DB failure',
+      );
+    });
+  });
+
+  describe('process() router', () => {
+    it('dispatches clean-expired-search-history', async () => {
+      const spy = vi
+        .spyOn(processor, 'cleanExpiredSearchHistory')
+        .mockResolvedValue({ count: 5 });
+      const res = await processor.process({
+        name: 'clean-expired-search-history',
+      } as any);
+      expect(spy).toHaveBeenCalled();
+      expect(res).toEqual({ count: 5 });
+    });
+
+    it('dispatches clean-expired-accounts', async () => {
+      const spy = vi
+        .spyOn(processor, 'cleanExpiredAccounts')
+        .mockResolvedValue({ queuedCount: 3 });
+      const res = await processor.process({
+        name: 'clean-expired-accounts',
+      } as any);
+      expect(spy).toHaveBeenCalled();
+      expect(res).toEqual({ queuedCount: 3 });
+    });
+
+    it('dispatches hard-delete-user', async () => {
+      const spy = vi
+        .spyOn(processor, 'hardDeleteUser')
+        .mockResolvedValue(undefined);
+      await processor.process({
+        name: 'hard-delete-user',
+        data: { userId: 'u_job' },
+      } as any);
+      expect(spy).toHaveBeenCalledWith('u_job');
+    });
+
+    it('throws UnrecoverableError on unknown job name', async () => {
+      await expect(
+        processor.process({ name: 'unknown-job' } as any),
+      ).rejects.toThrow(
+        'Unknown job name in AccountDeletionProcessor: unknown-job',
+      );
+    });
+  });
+
+  describe('cleanExpiredSearchHistory', () => {
+    it('purges expired search histories', async () => {
+      mockPrisma.searchHistory.deleteMany.mockResolvedValue({ count: 12 });
+      const res = await processor.cleanExpiredSearchHistory();
+      expect(mockPrisma.searchHistory.deleteMany).toHaveBeenCalledWith({
+        where: { expiresAt: { lt: expect.any(Date) } },
+      });
+      expect(res).toEqual({ count: 12 });
+    });
+
+    it('rethrows if deleteMany throws error', async () => {
+      mockPrisma.searchHistory.deleteMany.mockRejectedValue(
+        new Error('DB search error'),
+      );
+      await expect(processor.cleanExpiredSearchHistory()).rejects.toThrow(
+        'DB search error',
+      );
+    });
+  });
+
+  describe('cleanExpiredAccounts', () => {
+    it('enqueues hard-delete-user jobs for expired accounts', async () => {
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: 'u_exp_1' },
+        { id: 'u_exp_2' },
+      ]);
+      mockQueue.add.mockResolvedValue({ id: 'job_id' });
+
+      const res = await processor.cleanExpiredAccounts();
+
+      expect(mockPrisma.user.findMany).toHaveBeenCalled();
+      expect(mockQueue.add).toHaveBeenCalledTimes(2);
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'hard-delete-user',
+        { userId: 'u_exp_1' },
+        { jobId: 'delete-u_exp_1' },
+      );
+      expect(mockQueue.add).toHaveBeenCalledWith(
+        'hard-delete-user',
+        { userId: 'u_exp_2' },
+        { jobId: 'delete-u_exp_2' },
+      );
+      expect(res).toEqual({ queuedCount: 2 });
+    });
+
+    it('rethrows if user query throws error', async () => {
+      mockPrisma.user.findMany.mockRejectedValue(new Error('User find error'));
+      await expect(processor.cleanExpiredAccounts()).rejects.toThrow(
+        'User find error',
+      );
+    });
   });
 });
