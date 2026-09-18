@@ -93,7 +93,7 @@ describe('HandleUserDeletedUseCase', () => {
   });
 
   it('should handle post-cascade state gracefully when messages are already removed or query fails', async () => {
-    mockPrisma.message.findMany.mockResolvedValue([]);
+    mockPrisma.message.findMany.mockRejectedValue(new Error('DB failure'));
 
     const event = new UserHardDeletedEvent({
       userId: 'user-cascaded',

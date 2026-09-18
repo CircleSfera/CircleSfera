@@ -268,4 +268,54 @@ describe('ChatController', () => {
       'conv-1',
     );
   });
+
+  it('updates a group conversation as the session profile', async () => {
+    const updated = { id: 'conv-1', name: 'New Group Name' };
+    mockUpdateGroupUseCase.execute.mockResolvedValue(updated);
+
+    const res = await request(app.getHttpServer())
+      .put('/api/v1/chat/conversations/conv-1/group')
+      .set(BEARER)
+      .send({ name: 'New Group Name', avatarUrl: 'https://cdn/avatar.jpg' })
+      .expect(200);
+
+    expect(res.body).toEqual(updated);
+    expect(mockUpdateGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'New Group Name',
+      'https://cdn/avatar.jpg',
+    );
+  });
+
+  it('removes a participant from a group conversation', async () => {
+    mockRemoveParticipantUseCase.execute.mockResolvedValue({ success: true });
+
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1/participants/prof-target')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockRemoveParticipantUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+      'prof-target',
+    );
+  });
+
+  it('leaves a group conversation as the session profile', async () => {
+    mockLeaveGroupUseCase.execute.mockResolvedValue({ success: true });
+
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/chat/conversations/conv-1/leave')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockLeaveGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+    );
+  });
 });
