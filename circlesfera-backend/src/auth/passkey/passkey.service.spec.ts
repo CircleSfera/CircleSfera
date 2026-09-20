@@ -873,4 +873,290 @@ describe('PasskeyService', () => {
       });
     });
   });
+
+  describe('User-Verification Assurance Policy (SEC-006)', () => {
+    it('sets userVerification: required and scope REGISTRATION:SENSITIVE for sensitive registration', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-sensitive-reg',
+        email: 'sens-reg@example.com',
+        passkeys: [],
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'sens-reg-challenge',
+      } as PublicKeyCredentialCreationOptionsJSON);
+
+      await service.generateRegistrationOptions(
+        'user-sensitive-reg',
+        'sensitive',
+      );
+
+      expect(mockGenerateRegistrationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authenticatorSelection: expect.objectContaining({
+            userVerification: 'required',
+          }),
+        }),
+      );
+
+      const challengeRecord = challengeStore.get('sens-reg-challenge');
+      expect(challengeRecord?.scope).toBe('REGISTRATION:SENSITIVE');
+    });
+
+    it('sets userVerification: preferred and scope REGISTRATION for standard registration', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-std-reg',
+        email: 'std-reg@example.com',
+        passkeys: [],
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'std-reg-challenge',
+      } as PublicKeyCredentialCreationOptionsJSON);
+
+      await service.generateRegistrationOptions('user-std-reg', 'standard');
+
+      expect(mockGenerateRegistrationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          authenticatorSelection: expect.objectContaining({
+            userVerification: 'preferred',
+          }),
+        }),
+      );
+
+      const challengeRecord = challengeStore.get('std-reg-challenge');
+      expect(challengeRecord?.scope).toBe('REGISTRATION');
+    });
+
+    it('rejects sensitive registration when userVerified is false', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-uv-fail',
+        email: 'uv-fail@example.com',
+        passkeys: [],
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'chall-uv-fail',
+      } as PublicKeyCredentialCreationOptionsJSON);
+
+      await service.generateRegistrationOptions('user-uv-fail', 'sensitive');
+
+      mockVerifyRegistrationResponse.mockResolvedValue({
+        verified: true,
+        registrationInfo: {
+          credential: {
+            id: 'cred-uv-fail',
+            publicKey: Buffer.from('pub'),
+            counter: 0,
+          },
+          userVerified: false, // Fails UV requirement!
+        },
+      } as unknown as VerifiedRegistrationResponse);
+
+      const body = {
+        response: {
+          clientDataJSON: Buffer.from(
+            JSON.stringify({
+              type: 'webauthn.create',
+              challenge: 'chall-uv-fail',
+              origin: 'http://localhost:5173',
+            }),
+          ).toString('base64url'),
+          transports: ['usb'],
+        },
+      };
+
+      await expect(
+        service.verifyRegistration('user-uv-fail', body),
+      ).rejects.toThrow(
+        'Passkey registration failed: User verification is required for sensitive operations',
+      );
+    });
+
+    it('sets userVerification: required and scope AUTHENTICATION:SENSITIVE for sensitive login', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'user-sens-auth',
+        passkeys: [{ credentialID: 'cred-sens' }],
+      });
+      mockGenerateAuthenticationOptions.mockResolvedValue({
+        challenge: 'sens-auth-challenge',
+      } as PublicKeyCredentialRequestOptionsJSON);
+
+      await service.generateAuthenticationOptions(
+        'sens-auth@example.com',
+        'sensitive',
+      );
+
+      expect(mockGenerateAuthenticationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userVerification: 'required',
+        }),
+      );
+
+      const challengeRecord = challengeStore.get('sens-auth-challenge');
+      expect(challengeRecord?.scope).toBe('AUTHENTICATION:SENSITIVE');
+    });
+
+    it('rejects sensitive authentication when userVerified is false', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'user-auth-uv-fail',
+        passkeys: [
+          {
+            credentialID: 'cred-auth-uv-fail',
+            publicKey: Buffer.from('pub'),
+            counter: 0,
+            transports: [],
+          },
+        ],
+      });
+      mockGenerateAuthenticationOptions.mockResolvedValue({
+        challenge: 'chall-auth-uv-fail',
+      } as PublicKeyCredentialRequestOptionsJSON);
+
+      await service.generateAuthenticationOptions(
+        'auth-uv-fail@example.com',
+        'sensitive',
+      );
+
+      mockVerifyAuthenticationResponse.mockResolvedValue({
+        verified: true,
+        authenticationInfo: {
+          newCounter: 1,
+          userVerified: false, // User presence only, no biometric UV
+        },
+      } as unknown as VerifiedAuthenticationResponse);
+
+      const body = {
+        id: 'cred-auth-uv-fail',
+        response: {
+          clientDataJSON: Buffer.from(
+            JSON.stringify({
+              type: 'webauthn.get',
+              challenge: 'chall-auth-uv-fail',
+              origin: 'http://localhost:5173',
+            }),
+          ).toString('base64url'),
+        },
+      };
+
+      await expect(
+        service.verifyAuthentication('auth-uv-fail@example.com', body),
+      ).rejects.toThrow(
+        'Passkey authentication failed: User verification is required for sensitive operations',
+      );
+    });
+
+    it('accepts standard authentication with userVerified: false (UP only allowed for login)', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue({
+        id: 'user-std-auth',
+        passkeys: [
+          {
+            credentialID: 'cred-std-auth',
+            publicKey: Buffer.from('pub'),
+            counter: 0,
+            transports: [],
+          },
+        ],
+      });
+      mockGenerateAuthenticationOptions.mockResolvedValue({
+        challenge: 'chall-std-auth',
+      } as PublicKeyCredentialRequestOptionsJSON);
+
+      await service.generateAuthenticationOptions(
+        'std-auth@example.com',
+        'standard',
+      );
+
+      mockVerifyAuthenticationResponse.mockResolvedValue({
+        verified: true,
+        authenticationInfo: {
+          newCounter: 1,
+          userVerified: false, // Security key UP without biometric
+        },
+      } as unknown as VerifiedAuthenticationResponse);
+
+      const body = {
+        id: 'cred-std-auth',
+        response: {
+          clientDataJSON: Buffer.from(
+            JSON.stringify({
+              type: 'webauthn.get',
+              challenge: 'chall-std-auth',
+              origin: 'http://localhost:5173',
+            }),
+          ).toString('base64url'),
+        },
+      };
+
+      const result = await service.verifyAuthentication(
+        'std-auth@example.com',
+        body,
+      );
+
+      expect(result.verified).toBe(true);
+      expect(result.userVerified).toBe(false);
+    });
+  });
+
+  describe('Production WebAuthn Configuration Fail-Closed Invariant (SEC-007)', () => {
+    it('throws error when initializing PasskeyService in production with localhost RP ID', () => {
+      const prodConfigService = {
+        get: vi.fn((key: string) => {
+          if (key === 'NODE_ENV') return 'production';
+          if (key === 'WEBAUTHN_RP_ID') return 'localhost';
+          if (key === 'WEBAUTHN_ORIGIN') return 'https://circlesfera.com';
+          return null;
+        }),
+      };
+
+      expect(
+        () =>
+          new PasskeyService(
+            mockPrismaService as any,
+            prodConfigService as any,
+          ),
+      ).toThrow(
+        'WEBAUTHN_RP_ID environment variable is required in production and cannot be localhost',
+      );
+    });
+
+    it('throws error when initializing PasskeyService in production with missing WEBAUTHN_ORIGIN', () => {
+      const prodConfigService = {
+        get: vi.fn((key: string) => {
+          if (key === 'NODE_ENV') return 'production';
+          if (key === 'WEBAUTHN_RP_ID') return 'circlesfera.com';
+          if (key === 'WEBAUTHN_ORIGIN') return '';
+          return null;
+        }),
+      };
+
+      expect(
+        () =>
+          new PasskeyService(
+            mockPrismaService as any,
+            prodConfigService as any,
+          ),
+      ).toThrow(
+        'WEBAUTHN_ORIGIN environment variable is required in production',
+      );
+    });
+
+    it('throws error when initializing PasskeyService in production with insecure HTTP origin', () => {
+      const prodConfigService = {
+        get: vi.fn((key: string) => {
+          if (key === 'NODE_ENV') return 'production';
+          if (key === 'WEBAUTHN_RP_ID') return 'circlesfera.com';
+          if (key === 'WEBAUTHN_ORIGIN') return 'http://circlesfera.com';
+          return null;
+        }),
+      };
+
+      expect(
+        () =>
+          new PasskeyService(
+            mockPrismaService as any,
+            prodConfigService as any,
+          ),
+      ).toThrow(
+        "Insecure WebAuthn origin 'http://circlesfera.com' is forbidden in production; HTTPS required",
+      );
+    });
+  });
 });
