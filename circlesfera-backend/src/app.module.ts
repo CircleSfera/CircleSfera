@@ -43,6 +43,10 @@ import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
 import { ObservabilityModule } from './common/observability/observability.module.js';
+import {
+  createPinoRedactPaths,
+  REDACTED_CENSOR,
+} from './common/observability/redaction.util.js';
 import { CryptoModule } from './common/services/crypto.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
@@ -97,7 +101,10 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
               }
             : undefined,
         level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
-        redact: ['req.headers.cookie', 'req.headers.authorization'],
+        redact: {
+          paths: createPinoRedactPaths(),
+          censor: REDACTED_CENSOR,
+        },
       },
     }),
 

@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import {
+  scrubSentryBreadcrumb,
+  scrubSentryEvent,
+} from './common/observability/redaction.util.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -9,6 +13,12 @@ Sentry.init({
   environment: process.env.NODE_ENV || 'development',
   tracesSampleRate: isProd ? 0.1 : 1.0,
   profilesSampleRate: isProd ? 0.1 : 1.0,
+  beforeSend(event) {
+    return scrubSentryEvent(event);
+  },
+  beforeBreadcrumb(breadcrumb) {
+    return scrubSentryBreadcrumb(breadcrumb);
+  },
 });
 
 import { ConfigService } from '@nestjs/config';
