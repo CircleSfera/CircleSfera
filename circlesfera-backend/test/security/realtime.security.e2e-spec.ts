@@ -102,6 +102,7 @@ describe('Realtime Security (e2e)', () => {
   function createMockSocket(
     cookieHeader?: string,
     authHeader?: string,
+    originHeader?: string,
   ): SocketWithAuth {
     return {
       id: `sock_${uniqueSuffix()}`,
@@ -109,6 +110,7 @@ describe('Realtime Security (e2e)', () => {
         headers: {
           cookie: cookieHeader,
           authorization: authHeader,
+          ...(originHeader !== undefined ? { origin: originHeader } : {}),
         },
       },
       disconnect: vi.fn(),
@@ -240,5 +242,32 @@ describe('Realtime Security (e2e)', () => {
     );
 
     expect(emitSpy).not.toHaveBeenCalled();
+  });
+
+  it('should immediately disconnect client and drop session when Origin is unauthorized (CSWSH guard)', async () => {
+    const client = createMockSocket(
+      `access_token=${validToken}`,
+      undefined,
+      'https://malicious-cross-site-attacker.com',
+    );
+
+    await appGateway.handleConnection(client);
+
+    expect(client.disconnect).toHaveBeenCalledWith(true);
+    expect(client.data?.user).toBeUndefined();
+  });
+
+  it('should accept connection when Origin is in allowed origins whitelist', async () => {
+    const client = createMockSocket(
+      `access_token=${validToken}`,
+      undefined,
+      'http://localhost:5173',
+    );
+
+    await appGateway.handleConnection(client);
+
+    expect(client.disconnect).not.toHaveBeenCalled();
+    expect(client.data.user).toBeDefined();
+    expect(client.data.user.sub).toBe(testUserId);
   });
 });

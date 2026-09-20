@@ -29,6 +29,9 @@ interface ServiceOverrides {
     isStreamHostOrCoHost: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
   };
+  configService?: {
+    get: ReturnType<typeof vi.fn>;
+  };
 }
 
 function gatewayWithServer(
@@ -58,6 +61,7 @@ function gatewayWithServer(
       isStreamHostOrCoHost: vi.fn().mockResolvedValue(false),
       getUserProfile: vi.fn().mockResolvedValue(null),
     },
+    overrides.configService as any,
   );
   gateway.server = server as AppGateway['server'];
 
@@ -806,6 +810,55 @@ describe('AppGateway payload bounds and authorization', () => {
       await expect(
         gateway.handleDisconnect(client as any),
       ).resolves.not.toThrow();
+    });
+
+    it('disconnects client immediately if Origin header is unauthorized (CSWSH guard)', async () => {
+      const mockAuthService = { authenticate: vi.fn() };
+      const gateway = gatewayWithServer(
+        {},
+        { socketAuthService: mockAuthService },
+      );
+      const client = mockSocket('p-attacker');
+      (client as any).handshake = {
+        headers: { origin: 'https://attacker.example.com' },
+      };
+
+      await gateway.handleConnection(client as any);
+
+      expect(client.disconnect).toHaveBeenCalledWith(true);
+      expect(mockAuthService.authenticate).not.toHaveBeenCalled();
+    });
+
+    it('allows client connection if Origin header matches allowed origins', async () => {
+      const mockAuthService = {
+        authenticate: vi.fn().mockResolvedValue({
+          user: { sub: 'user-1', email: 'u1@example.com', profileId: 'prof-1' },
+          conversationIds: new Set(),
+        }),
+      };
+      const mockConfigService = {
+        get: vi.fn((key: string) => {
+          if (key === 'CORS_ORIGIN') return 'https://app.circlesfera.com';
+          if (key === 'NODE_ENV') return 'production';
+          return undefined;
+        }),
+      };
+      const gateway = gatewayWithServer(
+        { to: vi.fn().mockReturnValue({ emit: vi.fn() }) },
+        {
+          socketAuthService: mockAuthService,
+          configService: mockConfigService,
+        },
+      );
+      const client = mockSocket('prof-init');
+      (client as any).handshake = {
+        headers: { origin: 'https://app.circlesfera.com' },
+      };
+
+      await gateway.handleConnection(client as any);
+
+      expect(client.disconnect).not.toHaveBeenCalled();
+      expect(mockAuthService.authenticate).toHaveBeenCalledWith(client);
     });
   });
 
