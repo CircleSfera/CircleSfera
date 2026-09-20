@@ -33,8 +33,8 @@ import {
 } from '../../uploads/uploads.service.js';
 import type { WebrtcSignalingService } from '../../webrtc/webrtc-signaling.service.js';
 
-describe('Failure Injection & Recovery Invariants (QA-007)', () => {
-  describe('Media Pipeline: Admission Control & Failure Injection (UPLOAD-006)', () => {
+describe('Failure Injection & Recovery Invariants', () => {
+  describe('Media Pipeline: Admission Control & Failure Injection', () => {
     let uploadsService: UploadsService;
     let mockStorageProvider: StorageProvider;
     let mockMediaProcessor: MediaProcessorService;
@@ -162,7 +162,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
     });
   });
 
-  describe('Queue Processors: Terminal Rejection & Retry Backoff (QUEUE-001, QUEUE-002)', () => {
+  describe('Queue Processors: Terminal Rejection & Retry Backoff', () => {
     let mockPrisma: PrismaService;
     let videoProcessor: VideoProcessor;
     let mockUploadsService: UploadsService;
@@ -283,7 +283,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
     });
   });
 
-  describe('Realtime & Signaling: Fail-Closed Authorization & Drops (RT-003)', () => {
+  describe('Realtime & Signaling: Fail-Closed Authorization & Drops', () => {
     let mockJwtService: JwtService;
     let mockPrisma: PrismaService;
     let mockConfigService: ConfigService;
@@ -434,7 +434,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
     });
   });
 
-  describe('Redis Degradation & Cache Fallback Invariants (REDIS-002)', () => {
+  describe('Redis Degradation & Cache Fallback Invariants', () => {
     let mockPrisma: PrismaService;
     let mockFeedInbox: FeedInboxService;
     let feedService: FeedService;
@@ -497,7 +497,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
       );
     });
 
-    it('falls back cleanly to canonical SQL when Redis getInbox returns null (REDIS-002)', async () => {
+    it('falls back cleanly to canonical SQL when Redis getInbox returns null', async () => {
       (mockFeedInbox.getInbox as ReturnType<typeof vi.fn>).mockResolvedValue(
         null,
       );

@@ -84,7 +84,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
 
   // Reads the inbox for a specific user with pagination.
   // Returns string[] of post IDs on success (can be [] if genuinely empty).
-  // Returns null if Redis is unavailable or throws an error (REDIS-002),
+  // Returns null if Redis is unavailable or throws an error,
   // preventing infrastructure failure from masquerading as an empty feed.
   async getInbox(
     profileId: string,
@@ -111,8 +111,8 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Utility to check if a user's inbox is empty (cache miss or inactive user).
-  // Uses ZCARD for Sorted Set (REDIS-001).
-  // Throws if Redis is unavailable to prevent failure from masquerading as empty (REDIS-002).
+  // Uses ZCARD for Sorted Set.
+  // Throws if Redis is unavailable to prevent failure from masquerading as empty.
   async isInboxEmpty(profileId: string): Promise<boolean> {
     if (!this.redisClient) {
       this.logger.warn(
@@ -167,7 +167,7 @@ export class FeedInboxService implements OnModuleInit, OnModuleDestroy {
   }
 
   // Gets the total count of posts in the user's inbox.
-  // Returns number on success, or null if Redis is unavailable/fails (REDIS-002).
+  // Returns number on success, or null if Redis is unavailable/fails.
   async getInboxCount(profileId: string): Promise<number | null> {
     if (!this.redisClient) {
       this.logger.warn(

@@ -159,9 +159,9 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
   });
 
   // =========================================================================
-  // 2. LIFE-001: Hard-Delete Worker Race Condition & Claim Safety
+  // 2. Hard-Delete Worker Race Condition & Claim Safety
   // =========================================================================
-  describe('LIFE-001: Hard-Delete Worker Race Protection', () => {
+  describe('Hard-Delete Worker Race Protection', () => {
     let processor: AccountDeletionProcessor;
     let mockPrisma: any;
     let mockUsersService: any;

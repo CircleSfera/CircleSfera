@@ -18,9 +18,9 @@ import { WebrtcSignalingService } from '../../webrtc/webrtc-signaling.service.js
 
 describe('Security Regression Suite: P0/P1 Findings', () => {
   // =========================================================================
-  // SEC-001: Password Authentication & Hash Integrity
+  // Password Authentication & Hash Integrity
   // =========================================================================
-  describe('SEC-001: Password Authentication & Plaintext Fallback Prevention', () => {
+  describe('Password Authentication & Plaintext Fallback Prevention', () => {
     let authService: AuthService;
     let mockPrisma: any;
     let mockJwtService: any;
@@ -227,9 +227,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
   });
 
   // =========================================================================
-  // SEC-002: JWT & Hardcoded Fallback Secret Elimination
+  // JWT & Hardcoded Fallback Secret Elimination
   // =========================================================================
-  describe('SEC-002: JWT Secret Fallback Elimination', () => {
+  describe('JWT Secret Fallback Elimination', () => {
     let appealsController: AppealsController;
     let mockAppealsService: any;
     let mockJwtService: any;
@@ -331,9 +331,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
   });
 
   // =========================================================================
-  // SEC-004: Refresh Token Family Reuse & Replay Detection
+  // Refresh Token Family Reuse & Replay Detection
   // =========================================================================
-  describe('SEC-004: Refresh Token Family Reuse & Replay Invalidation (RFC 6819)', () => {
+  describe('Refresh Token Family Reuse & Replay Invalidation (RFC 6819)', () => {
     let authService: AuthService;
     let mockPrisma: any;
     let mockJwtService: any;
@@ -476,9 +476,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
   });
 
   // =========================================================================
-  // RT-003: WebRTC Call Signaling Authorization & State Machine
+  // WebRTC Call Signaling Authorization & State Machine
   // =========================================================================
-  describe('RT-003: WebRTC Call Signaling Authorization', () => {
+  describe('WebRTC Call Signaling Authorization', () => {
     let webrtcService: WebrtcSignalingService;
     let mockPrisma: any;
 
@@ -595,9 +595,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
   });
 
   // =========================================================================
-  // PRIV-001: GDPR Data Export Artifact Protection
+  // GDPR Data Export Artifact Protection
   // =========================================================================
-  describe('PRIV-001: GDPR Export Artifact Protection', () => {
+  describe('GDPR Export Artifact Protection', () => {
     let dataExportService: DataExportService;
     let mockPrisma: any;
     let mockConfigService: any;
@@ -728,9 +728,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
   });
 
   // =========================================================================
-  // MEDIA-002: Protected & Pay-Per-View Media Access Boundary
+  // Protected & Pay-Per-View Media Access Boundary
   // =========================================================================
-  describe('MEDIA-002: Protected & PPV Media Access Boundaries', () => {
+  describe('Protected & PPV Media Access Boundaries', () => {
     let mediaAuthService: MediaAuthService;
     let mockPrisma: any;
 

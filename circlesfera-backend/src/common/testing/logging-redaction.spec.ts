@@ -14,7 +14,7 @@ import {
   scrubSentryEvent,
 } from '../observability/redaction.util.js';
 
-describe('Logging & Telemetry Sensitive Data Redaction (SEC-011)', () => {
+describe('Logging & Telemetry Sensitive Data Redaction', () => {
   describe('isSensitiveKey', () => {
     it('correctly identifies canonical sensitive keys', () => {
       expect(isSensitiveKey('password')).toBe(true);
