@@ -42,6 +42,7 @@ describe('OwnershipGuard', () => {
   const notificationFindUnique = vi.fn();
   const profileFindUnique = vi.fn();
   const userFindUnique = vi.fn();
+  const collectionFindUnique = vi.fn();
 
   beforeEach(() => {
     reflector = new Reflector();
@@ -54,6 +55,7 @@ describe('OwnershipGuard', () => {
     notificationFindUnique.mockReset();
     profileFindUnique.mockReset();
     userFindUnique.mockReset();
+    collectionFindUnique.mockReset();
 
     guard = new OwnershipGuard(reflector, {
       post: { findUnique: postFindUnique },
@@ -65,6 +67,7 @@ describe('OwnershipGuard', () => {
       notification: { findUnique: notificationFindUnique },
       profile: { findUnique: profileFindUnique },
       user: { findUnique: userFindUnique },
+      collection: { findUnique: collectionFindUnique },
     } as unknown as PrismaService);
   });
 
@@ -217,7 +220,7 @@ describe('OwnershipGuard', () => {
     });
   });
 
-  it('validates ownership for Story, Highlight, Notification, and Profile', async () => {
+  it('validates ownership for Story, Highlight, Notification, Collection, and Profile', async () => {
     storyFindUnique.mockResolvedValue({ profileId: 'p1' });
     await expect(
       guard.canActivate(
@@ -238,7 +241,7 @@ describe('OwnershipGuard', () => {
       ),
     ).resolves.toBe(true);
 
-    notificationFindUnique.mockResolvedValue({ profileId: 'p1' });
+    notificationFindUnique.mockResolvedValue({ recipientId: 'p1' });
     await expect(
       guard.canActivate(
         ctx(
@@ -247,6 +250,24 @@ describe('OwnershipGuard', () => {
         ),
       ),
     ).resolves.toBe(true);
+    expect(notificationFindUnique).toHaveBeenCalledWith({
+      where: { id: 'n-1' },
+      select: { recipientId: true },
+    });
+
+    collectionFindUnique.mockResolvedValue({ profileId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'col-1' } },
+          { model: 'Collection' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(collectionFindUnique).toHaveBeenCalledWith({
+      where: { id: 'col-1' },
+      select: { profileId: true },
+    });
 
     profileFindUnique.mockResolvedValue({ profileId: 'p1' });
     await expect(

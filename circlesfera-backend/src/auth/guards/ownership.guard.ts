@@ -43,6 +43,8 @@ function getPrismaDelegate(
       return prisma.profile;
     case 'User':
       return prisma.user;
+    case 'Collection':
+      return prisma.collection;
     default:
       return null;
   }
@@ -95,7 +97,9 @@ export class OwnershipGuard implements CanActivate {
         ? 'userId'
         : model === 'User'
           ? 'id'
-          : 'profileId');
+          : model === 'Notification'
+            ? 'recipientId'
+            : 'profileId');
 
     const expectedOwner =
       ownerField === 'userId' || (model === 'User' && ownerField === 'id')

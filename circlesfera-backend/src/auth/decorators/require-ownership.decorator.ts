@@ -12,7 +12,8 @@ export type OwnershipModelName =
   | 'SupportTicket'
   | 'Notification'
   | 'Profile'
-  | 'User';
+  | 'User'
+  | 'Collection';
 
 export interface RequireOwnershipOptions {
   model: OwnershipModelName | Prisma.ModelName;
