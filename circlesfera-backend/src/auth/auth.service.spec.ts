@@ -19,6 +19,7 @@ import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { AuthService } from './auth.service.js';
+import { AccountStateService } from './services/account-state.service.js';
 
 vi.mock('otplib', () => ({
   verifySync: vi.fn(({ token, secret }: { token: string; secret: string }) => ({
@@ -129,6 +130,7 @@ describe('AuthService', () => {
           provide: CryptoService,
           useValue: mockCryptoService,
         },
+        AccountStateService,
       ],
     }).compile();
 
@@ -480,6 +482,30 @@ describe('AuthService', () => {
 
       expect(result).toHaveProperty('accessToken');
     });
+
+    it('should throw ACCOUNT_BANNED when profile is account banned on login', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'profile-banned-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isRootBanned: false,
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'prof-banned',
+        isAccountBanned: true,
+        accountBanReason: 'Community strike 3',
+        suspendedUntil: null,
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(
+        new UnauthorizedException({
+          message: ApiErrorCode.ACCOUNT_BANNED,
+          reason: 'Community strike 3',
+        }),
+      );
+    });
   });
 
   describe('verifyEmail', () => {
@@ -549,6 +575,12 @@ describe('AuthService', () => {
         isRevoked: false,
         expiresAt: new Date(Date.now() + 100000),
       });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        isActive: true,
+        isRootBanned: false,
+        profiles: [{ id: 'p-1', isAccountBanned: false, suspendedUntil: null }],
+      });
 
       const result = await service.refreshToken({
         refreshToken: 'mock-refresh',
@@ -560,6 +592,38 @@ describe('AuthService', () => {
           data: expect.objectContaining({ isRevoked: true }),
         }),
       );
+    });
+
+    it('should throw UnauthorizedException and delete token if user is banned during refreshToken', async () => {
+      mockJwtService.verify.mockReturnValue({
+        sub: '1',
+        email: 'test@example.com',
+        familyId: 'family-1',
+      });
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
+        id: 'token-banned',
+        userId: '1',
+        familyId: 'family-1',
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 100000),
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        isActive: false,
+        isRootBanned: true,
+        rootBanReason: 'Violation',
+        profiles: [],
+      });
+
+      await expect(
+        service.refreshToken({
+          refreshToken: 'mock-refresh',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(mockPrismaService.refreshToken.delete).toHaveBeenCalledWith({
+        where: { id: 'token-banned' },
+      });
     });
 
     it('should detect token replay, revoke entire family and throw UnauthorizedException', async () => {

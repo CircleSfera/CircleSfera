@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AccountType,
   ContentRating,
@@ -25,6 +26,7 @@ export class UsersService {
     @Inject(StripeService) private readonly stripeService: StripeService,
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
     @Inject(OutboxService) private readonly outboxService: OutboxService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -87,10 +89,18 @@ export class UsersService {
   // Ban (deactivate) a user account. Admin only.
   // Param id: The user ID to ban
   async banUser(id: string) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, isRootBanned: true },
     });
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: id },
+    });
+    this.eventEmitter.emit('user.session.terminate', {
+      userId: id,
+      reason: 'Account banned by administration',
+    });
+    return updated;
   }
 
   // Unban (reactivate) a user account. Admin only.
@@ -98,11 +108,11 @@ export class UsersService {
   async unbanUser(id: string) {
     await this.prisma.profile.updateMany({
       where: { userId: id },
-      data: { suspendedUntil: null },
+      data: { suspendedUntil: null, isAccountBanned: false },
     });
     return this.prisma.user.update({
       where: { id },
-      data: { isActive: true },
+      data: { isActive: true, isRootBanned: false },
     });
   }
 
@@ -353,6 +363,10 @@ export class UsersService {
         } satisfies Prisma.UserUpdateInput,
       });
 
+      await tx.refreshToken.deleteMany({
+        where: { userId },
+      });
+
       // Enqueue hard-delete job atomically with the DB state change.
       // The OutboxService sweeper guarantees delivery even after a crash.
       await this.outboxService.enqueue(tx, {
@@ -366,6 +380,11 @@ export class UsersService {
           removeOnFail: false,
         },
       });
+    });
+
+    this.eventEmitter.emit('user.session.terminate', {
+      userId,
+      reason: 'Account scheduled for deletion',
     });
 
     // Trigger immediate outbox publish for sub-second delivery after commit.

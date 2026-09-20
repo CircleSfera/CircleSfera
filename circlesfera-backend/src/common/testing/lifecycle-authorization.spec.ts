@@ -22,6 +22,9 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
           findUnique: vi.fn(),
           update: vi.fn().mockResolvedValue({}),
         },
+        refreshToken: {
+          deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+        },
       };
 
       mockStripeService = {
@@ -43,6 +46,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         mockStripeService as any,
         mockQueue,
         mockOutbox as any,
+        { emit: vi.fn() } as any,
       );
     });
 

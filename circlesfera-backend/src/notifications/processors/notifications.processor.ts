@@ -43,12 +43,23 @@ export class NotificationsProcessor extends WorkerHost {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // Find unread notifications created or updated in the last 15 minutes
-    // Specific to batchable types (LIKE, COMMENT)
+    // Specific to batchable types (LIKE, COMMENT), excluding un-operational accounts
     const recentUnreadNotifications = await this.prisma.notification.findMany({
       where: {
         read: false,
         createdAt: { gte: fifteenMinutesAgo },
         type: { in: ['LIKE', 'COMMENT_LIKE'] },
+        recipient: {
+          user: {
+            isActive: true,
+            isRootBanned: false,
+          },
+          isAccountBanned: false,
+          OR: [
+            { suspendedUntil: null },
+            { suspendedUntil: { lte: new Date() } },
+          ],
+        },
       },
       select: {
         recipientId: true,

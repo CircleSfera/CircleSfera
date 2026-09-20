@@ -85,6 +85,14 @@ describe('VideoProcessor', () => {
   let processor: VideoProcessor;
 
   const mockPrisma = {
+    user: {
+      findUnique: vi.fn().mockResolvedValue({
+        id: 'user-1',
+        isActive: true,
+        isRootBanned: false,
+        profiles: [],
+      }),
+    },
     postMedia: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     story: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     message: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -151,6 +159,28 @@ describe('VideoProcessor', () => {
     await expect(processor.process(job)).rejects.toThrow(
       'Missing url for video transcoding',
     );
+  });
+
+  it('should abort transcoding when userId belongs to an inactive or banned user', async () => {
+    mockPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'banned-user',
+      isActive: false,
+      isRootBanned: true,
+      profiles: [],
+    });
+
+    const job = {
+      id: 'job-banned',
+      name: 'transcode',
+      data: {
+        url: '/uploads/a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d.mp4',
+        userId: 'banned-user',
+      },
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    await processor.process(job);
+
+    expect(fs.mkdirSync).not.toHaveBeenCalled();
   });
 
   it('should reject URLs whose baseName is not a valid UUID v4', async () => {

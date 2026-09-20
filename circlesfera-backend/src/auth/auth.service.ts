@@ -35,6 +35,7 @@ import type {
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto/index.js';
+import { AccountStateService } from './services/account-state.service.js';
 
 // Service responsible for authentication, registration, and session management.
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
@@ -57,6 +58,8 @@ export class AuthService {
     private readonly deviceSignals: DeviceSignalService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject(CryptoService) private readonly cryptoService: CryptoService,
+    @Inject(AccountStateService)
+    private readonly accountStateService: AccountStateService,
   ) {}
 
   // Register a new user with email, username, and password.
@@ -415,11 +418,22 @@ export class AuthService {
       });
     }
 
-    // Temporary suspensions live on Profile, not User.
+    // Profile-level bans and temporary suspensions
     const loginProfile = await this.prisma.profile.findFirst({
       where: { userId: user.id },
-      select: { id: true, suspendedUntil: true },
+      select: {
+        id: true,
+        isAccountBanned: true,
+        accountBanReason: true,
+        suspendedUntil: true,
+      },
     });
+    if (loginProfile?.isAccountBanned) {
+      throw new UnauthorizedException({
+        message: ApiErrorCode.ACCOUNT_BANNED,
+        reason: loginProfile.accountBanReason,
+      });
+    }
     if (
       loginProfile?.suspendedUntil &&
       loginProfile.suspendedUntil > new Date()
@@ -628,6 +642,31 @@ export class AuthService {
         where: { id: storedToken.id },
       });
       throw new UnauthorizedException('Refresh token expired');
+    }
+
+    // Assert user and profile operational standing before issuing new tokens
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      include: {
+        profiles: {
+          select: {
+            id: true,
+            isAccountBanned: true,
+            accountBanReason: true,
+            suspendedUntil: true,
+          },
+        },
+      },
+    });
+
+    const profile = user?.profiles?.[0];
+    try {
+      this.accountStateService.assertOperational(user, profile);
+    } catch (error) {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      throw error;
     }
 
     // Legitimate rotation: mark current token as revoked and issue a new token within the same family

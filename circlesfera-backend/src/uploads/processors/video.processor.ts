@@ -52,6 +52,36 @@ export class VideoProcessor extends WorkerHost {
       throw new UnrecoverableError('Missing url for video transcoding');
     }
 
+    if (userId) {
+      const user = await this.prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          profiles: {
+            select: {
+              id: true,
+              isAccountBanned: true,
+              suspendedUntil: true,
+            },
+          },
+        },
+      });
+
+      if (
+        !user?.isActive ||
+        user.isRootBanned ||
+        user.profiles.some(
+          (p) =>
+            p.isAccountBanned ||
+            (p.suspendedUntil && p.suspendedUntil > new Date()),
+        )
+      ) {
+        this.logger.warn(
+          `Aborting video transcoding job ${job.id} for url ${url}: user ${userId} is inactive, banned, or suspended`,
+        );
+        return;
+      }
+    }
+
     this.logger.log(
       `Starting HLS transcoding for: ${url} (job ${job.id}, user: ${userId ?? 'system'})`,
     );

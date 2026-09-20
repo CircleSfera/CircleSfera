@@ -1355,6 +1355,33 @@ describe('AppGateway payload bounds and authorization', () => {
 
       expect(socket.data.conversationIds?.has('c-new')).toBe(true);
     });
+
+    it('terminates connected sockets on user.session.terminate', () => {
+      const socket = mockSocket('p-1');
+      socket.disconnect = vi.fn();
+      socket.emit = vi.fn();
+      const mockDisconnectSockets = vi.fn();
+      const mockRoomEmit = vi.fn();
+      const gateway = gatewayWithServer({
+        sockets: new Map([['s-1', socket]]),
+        to: vi.fn().mockReturnValue({ emit: mockRoomEmit }),
+        in: vi
+          .fn()
+          .mockReturnValue({ disconnectSockets: mockDisconnectSockets }),
+      });
+
+      gateway.handleUserSessionTerminate({
+        userId: 'user-account',
+        profileId: 'p-1',
+        reason: 'Account is banned by administration',
+      });
+
+      expect(socket.disconnect).toHaveBeenCalledWith(true);
+      expect(socket.emit).toHaveBeenCalledWith('session_terminated', {
+        reason: 'Account is banned by administration',
+      });
+      expect(mockDisconnectSockets).toHaveBeenCalledWith(true);
+    });
   });
 
   describe('additional edge cases and boundary checks', () => {

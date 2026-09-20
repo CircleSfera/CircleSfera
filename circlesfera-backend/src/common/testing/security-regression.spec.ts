@@ -11,6 +11,7 @@ import * as bcrypt from 'bcrypt';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppealsController } from '../../appeals/appeals.controller.js';
 import { AuthService } from '../../auth/auth.service.js';
+import { AccountStateService } from '../../auth/services/account-state.service.js';
 import { MediaAuthService } from '../../media/media-auth.service.js';
 import { DataExportService } from '../../users/data-export.service.js';
 import { WebrtcSignalingService } from '../../webrtc/webrtc-signaling.service.js';
@@ -112,6 +113,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         mockDeviceSignal,
         mockCache,
         mockCryptoService,
+        new AccountStateService(),
       );
     });
 
@@ -342,12 +344,18 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         refreshToken: {
           findUnique: vi.fn(),
           findFirst: vi.fn(),
+          delete: vi.fn().mockResolvedValue({}),
           deleteMany: vi.fn().mockResolvedValue({ count: 3 }),
           update: vi.fn().mockResolvedValue({}),
           create: vi.fn().mockResolvedValue({ id: 'rt-new', token: 'hash' }),
         },
         user: {
-          findUnique: vi.fn(),
+          findUnique: vi.fn().mockResolvedValue({
+            id: 'user-legit',
+            isActive: true,
+            isRootBanned: false,
+            profiles: [],
+          }),
         },
       };
 
@@ -385,6 +393,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         } as any,
         {} as any,
         {} as any,
+        new AccountStateService(),
       );
     });
 

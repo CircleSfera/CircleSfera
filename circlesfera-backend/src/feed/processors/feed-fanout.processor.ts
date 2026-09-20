@@ -42,14 +42,48 @@ export class FeedFanoutProcessor extends WorkerHost {
     this.logger.log(`Starting fan-out for post ${postId} by user ${authorId}`);
 
     try {
+      // Verify author profile & user are active and not banned/suspended
+      const author = await this.prisma.profile.findUnique({
+        where: { id: authorId },
+        include: {
+          user: {
+            select: {
+              id: true,
+              isActive: true,
+              isRootBanned: true,
+            },
+          },
+        },
+      });
+
+      if (
+        !author ||
+        author.isAccountBanned ||
+        !author.user?.isActive ||
+        author.user?.isRootBanned ||
+        (author.suspendedUntil && author.suspendedUntil > new Date())
+      ) {
+        this.logger.warn(
+          `Aborting fan-out for post ${postId}: author ${authorId} is un-operational, banned, or suspended`,
+        );
+        return;
+      }
+
       let cursor: string | undefined;
       let followersCount = 0;
       let hasMore = true;
 
       while (hasMore) {
-        // Fetch a batch of followers using cursor pagination
+        // Fetch a batch of operational followers using cursor pagination
         const followers = (await this.prisma.follow.findMany({
-          where: { followingId: authorId, status: 'ACCEPTED' },
+          where: {
+            followingId: authorId,
+            status: 'ACCEPTED',
+            follower: {
+              user: { isActive: true, isRootBanned: false },
+              isAccountBanned: false,
+            },
+          },
           select: { id: true, followerId: true },
           take: this.BATCH_SIZE,
           skip: cursor ? 1 : 0,

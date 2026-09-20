@@ -11,6 +11,9 @@ describe('FeedFanoutProcessor', () => {
     follow: {
       findMany: ReturnType<typeof vi.fn>;
     };
+    profile: {
+      findUnique: ReturnType<typeof vi.fn>;
+    };
   };
   let mockFeedInbox: {
     fanoutToFollowers: ReturnType<typeof vi.fn>;
@@ -21,6 +24,13 @@ describe('FeedFanoutProcessor', () => {
     mockPrisma = {
       follow: {
         findMany: vi.fn(),
+      },
+      profile: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'a1',
+          isAccountBanned: false,
+          user: { id: 'u1', isActive: true, isRootBanned: false },
+        }),
       },
     };
     mockFeedInbox = {
@@ -75,6 +85,24 @@ describe('FeedFanoutProcessor', () => {
     await processor.process(job);
 
     expect(mockPrisma.follow.findMany).toHaveBeenCalled();
+    expect(mockFeedInbox.fanoutToFollowers).not.toHaveBeenCalled();
+  });
+
+  it('aborts fanout when author is banned or inactive', async () => {
+    mockPrisma.profile.findUnique.mockResolvedValueOnce({
+      id: 'a1',
+      isAccountBanned: true,
+      user: { id: 'u1', isActive: false, isRootBanned: true },
+    });
+
+    const job = {
+      name: 'distribute',
+      data: { postId: 'p1', authorId: 'a1' },
+    } as unknown as Job;
+
+    await processor.process(job);
+
+    expect(mockPrisma.follow.findMany).not.toHaveBeenCalled();
     expect(mockFeedInbox.fanoutToFollowers).not.toHaveBeenCalled();
   });
 

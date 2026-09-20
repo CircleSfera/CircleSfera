@@ -931,4 +931,39 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.sendNotification(event.recipientId, event.notification);
     }
   }
+
+  @OnEvent('user.session.terminate')
+  handleUserSessionTerminate(event: {
+    userId: string;
+    profileId?: string;
+    reason?: string;
+  }) {
+    const { userId, profileId, reason = 'Account state changed' } = event;
+    this.logger.log(
+      `Terminating realtime sessions for user=${userId} profile=${profileId} (reason: ${reason})`,
+    );
+
+    if (profileId) {
+      this.server
+        ?.to(`user:${profileId}`)
+        ?.emit('session_terminated', { reason });
+      if (typeof this.server?.in === 'function') {
+        const room = this.server.in(`user:${profileId}`);
+        if (typeof room?.disconnectSockets === 'function') {
+          room.disconnectSockets(true);
+        }
+      }
+    }
+
+    for (const client of this.connectedSockets()) {
+      const authData = client.data;
+      if (
+        authData?.user?.sub === userId ||
+        (profileId && authData?.user?.profileId === profileId)
+      ) {
+        client.emit('session_terminated', { reason });
+        client.disconnect(true);
+      }
+    }
+  }
 }

@@ -1,3 +1,4 @@
+import { ApiErrorCode } from '@circlesfera/shared';
 import {
   HttpException,
   HttpStatus,
@@ -10,6 +11,7 @@ import type { JwtService } from '@nestjs/jwt';
 import { type Job, UnrecoverableError } from 'bullmq';
 import type { Socket } from 'socket.io';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AccountStateService } from '../../auth/services/account-state.service.js';
 import { FeedService } from '../../feed/feed.service.js';
 import type { FeedInboxService } from '../../feed/feed-inbox.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
@@ -305,6 +307,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
         mockJwtService,
         mockConfigService,
         mockPrisma,
+        new AccountStateService(),
       );
     });
 
@@ -376,7 +379,7 @@ describe('Failure Injection & Recovery Invariants (QA-007)', () => {
       });
 
       await expect(socketAuthService.authenticate(mockClient)).rejects.toThrow(
-        'Account suspended',
+        ApiErrorCode.ACCOUNT_SUSPENDED,
       );
     });
 

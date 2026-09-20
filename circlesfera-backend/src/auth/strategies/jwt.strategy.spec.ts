@@ -5,6 +5,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AccountStateService } from '../services/account-state.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
 
 describe('JwtStrategy', () => {
@@ -32,6 +33,7 @@ describe('JwtStrategy', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JwtStrategy,
+        AccountStateService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: ConfigService, useValue: mockConfigService },
       ],
@@ -112,6 +114,27 @@ describe('JwtStrategy', () => {
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           reason: 'Abusive spam behavior',
+        }),
+      );
+    });
+
+    it('throws UnauthorizedException with ACCOUNT_BANNED when profile is banned', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        isActive: true,
+        isRootBanned: false,
+        email: 'test@example.com',
+      });
+      mockPrisma.profile.findFirst.mockResolvedValue({
+        id: 'prof-1',
+        isAccountBanned: true,
+        accountBanReason: 'Profile violated community terms',
+      });
+
+      await expect(strategy.validate(payload)).rejects.toThrow(
+        new UnauthorizedException({
+          message: ApiErrorCode.ACCOUNT_BANNED,
+          reason: 'Profile violated community terms',
         }),
       );
     });

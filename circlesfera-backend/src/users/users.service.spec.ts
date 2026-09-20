@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bullmq';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
   AccountType,
@@ -42,6 +43,9 @@ describe('UsersService', () => {
       create: vi.fn(),
       upsert: vi.fn(),
     },
+    refreshToken: {
+      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     follow: {
       findMany: vi.fn(),
     },
@@ -65,6 +69,10 @@ describe('UsersService', () => {
     triggerImmediatePublish: vi.fn(),
   };
 
+  const mockEventEmitter = {
+    emit: vi.fn(),
+  };
+
   beforeEach(async () => {
     vi.clearAllMocks();
     mockPrismaService.$transaction.mockImplementation((cb: any) =>
@@ -77,6 +85,7 @@ describe('UsersService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: StripeService, useValue: mockStripeService },
         { provide: OutboxService, useValue: mockOutboxService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -129,13 +138,24 @@ describe('UsersService', () => {
       mockPrismaService.user.update.mockResolvedValue({
         id: '1',
         isActive: false,
+        isRootBanned: true,
       });
       const result = await service.banUser('1');
       expect(result.isActive).toBe(false);
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: '1' },
-        data: { isActive: false },
+        data: { isActive: false, isRootBanned: true },
       });
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: '1' },
+      });
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'user.session.terminate',
+        {
+          userId: '1',
+          reason: 'Account banned by administration',
+        },
+      );
     });
 
     it('should unban a user', async () => {
@@ -143,11 +163,16 @@ describe('UsersService', () => {
       mockPrismaService.user.update.mockResolvedValue({
         id: '1',
         isActive: true,
+        isRootBanned: false,
       });
       const result = await service.unbanUser('1');
       expect(mockPrismaService.profile.updateMany).toHaveBeenCalledWith({
         where: { userId: '1' },
-        data: { suspendedUntil: null },
+        data: { suspendedUntil: null, isAccountBanned: false },
+      });
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { isActive: true, isRootBanned: false },
       });
       expect(result.isActive).toBe(true);
     });
@@ -312,6 +337,13 @@ describe('UsersService', () => {
           where: { id: 'user-abc' },
           data: expect.objectContaining({ isActive: false }),
         }),
+      );
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: { userId: 'user-abc' },
+      });
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'user.session.terminate',
+        expect.objectContaining({ userId: 'user-abc' }),
       );
       expect(mockOutboxService.enqueue).toHaveBeenCalled();
       expect(mockOutboxService.triggerImmediatePublish).toHaveBeenCalled();
