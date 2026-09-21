@@ -31,7 +31,7 @@ The system is built as a **Modular Monolith** implemented in TypeScript:
 
 ## 4. Permanently Forbidden Patterns (Without an Approved ADR)
 - **Microservices Architecture:** Premature decomposition of the monolith is prohibited.
-- **Local Domain Event Buses:** Avoid replacing direct service calls or BullMQ jobs with loose in-process event buses (`EventEmitter2`, CQRS event sourcing).
+- **Local Domain Event Buses:** Do not use `EventEmitter2` to replace direct service calls or BullMQ jobs for state transitions or durable work, and CQRS event sourcing remains fully forbidden. `EventEmitter2` is accepted only for the closed list of realtime/notification/cleanup side effects defined in [ADR-0019](adr/0019-bounded-domain-event-bus.md).
 - **GraphQL:** The application API is strictly RESTful.
 - **Tokens in Local Storage:** Sensitive authentication tokens must never be persisted in browser `localStorage` or `sessionStorage`.
 - **Desktop-Only or Distorted Layouts:** UI components must be designed and verified first at **390×844px** (native iPhone density) before adding parallel columns for desktop viewports.

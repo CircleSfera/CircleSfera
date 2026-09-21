@@ -22,5 +22,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0016](./0016-analytical-warehouse-clickhouse.md) | Analytical warehouse (ClickHouse) + nightly ETL from Postgres | Proposed |
 | [0017](./0017-content-presentation-shells.md) | Content presentation shells (create / broadcast / playback / vertical / stream) | Accepted |
 | [0018](./0018-content-composer-ia.md) | Content Composer IA (dual-path Create + Mobile First) | Accepted |
+| [0019](./0019-bounded-domain-event-bus.md) | Bounded in-process domain event bus (EventEmitter2) — closed list of 4 accepted use categories | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.
