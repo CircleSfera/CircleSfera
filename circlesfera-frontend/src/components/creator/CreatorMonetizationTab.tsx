@@ -147,7 +147,7 @@ export default function CreatorMonetizationTab({
 
   const getTierIcon = (name: string) => {
     const lower = name.toLowerCase();
-    if (lower.includes('premium'))
+    if (lower.includes('verified'))
       return <Star className="text-brand-blue" size={20} />;
     if (lower.includes('elite'))
       return <Award className="text-brand-primary" size={20} />;
@@ -162,7 +162,7 @@ export default function CreatorMonetizationTab({
       return billingPlan.includes(planName.toLowerCase());
     }
     const lower = planName.toLowerCase();
-    if (lower.includes('premium')) return currentLevel === 'VERIFIED';
+    if (lower.includes('verified')) return currentLevel === 'VERIFIED';
     if (lower.includes('elite')) return currentLevel === 'ELITE';
     if (lower.includes('business')) return currentLevel === 'BUSINESS';
     return false;
@@ -299,8 +299,7 @@ export default function CreatorMonetizationTab({
           {/* Pricing Tiers Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {plans?.map((plan) => {
-              const displayName =
-                plan.name === 'Premium' ? 'Verified' : plan.name;
+              const displayName = plan.name;
               const active = isTierActive(plan.name);
               return (
                 <motion.div
