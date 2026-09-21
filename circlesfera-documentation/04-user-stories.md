@@ -378,7 +378,7 @@ Live broadcasts with co-hosts, virtual live gifting with Stripe billing, and int
 
 Consistent with [00-status.md](./00-status.md), the following concepts remain strictly outside the production scope:
 - **Standalone `ModerationAction` Table**: Operational traceability persists directly via `Report`, `AdminAuditLog`, and `Appeal`.
-- **Microservices & Event Sourcing**: Premature service decomposition or generic event buses (`EventEmitter2`) without an approved ADR are prohibited.
+- **Microservices & Event Sourcing**: Premature service decomposition and CQRS event sourcing remain prohibited. `EventEmitter2` is used only for the closed list of realtime/notification/cleanup side effects in [ADR-0019](adr/0019-bounded-domain-event-bus.md); expanding it beyond that scope needs a new or amended ADR.
 - **Client-Side Sensitive State**: JWT storage in `localStorage` is barred; sessions are managed via `httpOnly` secure cookies.
 - **GraphQL APIs**: All public and internal APIs are strictly RESTful with lean controllers.
 - **Native Mobile Apps**: CircleSfera operates exclusively as a mobile-first responsive web application / PWA.
