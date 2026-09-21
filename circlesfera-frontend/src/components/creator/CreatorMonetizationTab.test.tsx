@@ -36,7 +36,7 @@ vi.mock('../../services/payments.service', () => ({
     getPlans: vi.fn().mockResolvedValue([
       {
         id: 'plan-1',
-        name: 'Premium',
+        name: 'Verified',
         priceCents: 999,
         currency: 'EUR',
         interval: 'month',

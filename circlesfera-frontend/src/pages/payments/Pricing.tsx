@@ -18,7 +18,7 @@ import type { PlatformPlanDto } from '../../types';
 import { logger } from '../../utils/logger';
 
 const planVerificationMap: Record<string, string> = {
-  Premium: 'VERIFIED',
+  Verified: 'VERIFIED',
   'Elite Creator': 'ELITE',
   Elite: 'ELITE',
   Business: 'BUSINESS',
@@ -36,14 +36,14 @@ export default function Pricing() {
   );
 
   const planDescriptions: Record<string, string> = {
-    Premium: t('pricingPage.desc_premium'),
+    Verified: t('pricingPage.desc_premium'),
     'Elite Creator': t('pricingPage.desc_elite'),
     Elite: t('pricingPage.desc_elite'),
     Business: t('pricingPage.desc_business'),
   };
 
   const planButtonText: Record<string, string> = {
-    Premium: t('pricingPage.button_premium'),
+    Verified: t('pricingPage.button_premium'),
     'Elite Creator': t('pricingPage.button_elite'),
     Elite: t('pricingPage.button_elite'),
     Business: t('pricingPage.button_business'),
