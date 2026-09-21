@@ -1204,7 +1204,7 @@ model StripePayoutLog {
   // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
   userId         String? // Connected account owner
   amountCents    Int
-  currency       String   @default("usd")
+  currency       String   @default("EUR") // Aligns with platform-wide EUR default (see INC-13); always overwritten by Stripe's payout.currency
   status         String // 'paid', 'pending', 'failed', 'canceled'
   arrivalDate    DateTime
   failureReason  String?
