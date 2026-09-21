@@ -46,11 +46,27 @@ export class TurnstileService {
     return false;
   }
 
+  // Exempts a small, explicit set of trusted infrastructure IPs (e.g. the
+  // deploy server's own outbound IP, for the QA-008 authenticated post-deploy
+  // smoke check) from the CAPTCHA requirement. Configured via TURNSTILE_BYPASS_IPS
+  // (comma-separated). Empty/unset means no exemptions — behavior is unchanged
+  // for every existing deployment until this is explicitly configured.
+  private isBypassIp(remoteIp: string): boolean {
+    const raw = this.config.get<string>('TURNSTILE_BYPASS_IPS');
+    if (!raw?.trim()) return false;
+    const allowlist = raw
+      .split(',')
+      .map((ip) => ip.trim())
+      .filter(Boolean);
+    return allowlist.includes(remoteIp);
+  }
+
   async assertValid(
     token: string | undefined,
     remoteIp?: string | null,
   ): Promise<void> {
     if (!(await this.isRequired())) return;
+    if (remoteIp && this.isBypassIp(remoteIp)) return;
 
     if (!token?.trim()) {
       await this.increment(TURNSTILE_FAIL_CACHE_KEY);

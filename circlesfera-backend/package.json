@@ -31,7 +31,8 @@
     "prisma:check-migrations": "DATABASE_URL=\"${DATABASE_URL:?Set DATABASE_URL to an empty Postgres}\" ../scripts/check-prisma-schema-migrations.sh",
     "check-user": "ts-node scripts/check-user.ts",
     "e2e:cleanup": "tsx scripts/cleanup-e2e-users.ts",
-    "embeddings:backfill": "tsx scripts/generate-embeddings.ts"
+    "embeddings:backfill": "tsx scripts/generate-embeddings.ts",
+    "create-smoke-test-user": "tsx scripts/create-smoke-test-user.ts"
   },
   "overrides": {
     "js-yaml": "4.3.2",
