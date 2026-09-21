@@ -151,6 +151,16 @@ describe('PostsService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('rejects premium posts from PERSONAL accounts', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        accountType: 'PERSONAL',
+      });
+
+      await expect(
+        service.create('user-1', { isPremium: true, priceCents: 500 }),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
     it('validates audio track exists and resolves offset when audioId provided', async () => {
       mockPrismaService.audio.findUnique.mockResolvedValueOnce(null);
       await expect(

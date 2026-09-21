@@ -24,6 +24,9 @@ describe('ProfilesService', () => {
     platformSubscription: {
       findFirst: vi.fn(),
     },
+    block: {
+      findFirst: vi.fn(),
+    },
   };
 
   const mockCacheManager = {
@@ -76,6 +79,64 @@ describe('ProfilesService', () => {
       await expect(service.getProfile('nonexistent')).rejects.toThrow(
         AppException,
       );
+    });
+
+    it('throws NotFoundException (not Forbidden) when the viewer blocked the author, cached path', async () => {
+      const cached = { id: 'p-target', username: 'cacheduser' };
+      mockCacheManager.get.mockResolvedValue(cached);
+      mockPrismaService.block.findFirst.mockResolvedValue({ id: 'block-1' });
+
+      await expect(
+        service.getProfile('cacheduser', 'p-viewer'),
+      ).rejects.toThrow(AppException);
+      expect(mockPrismaService.block.findFirst).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { blockerId: 'p-viewer', blockedId: 'p-target' },
+            { blockerId: 'p-target', blockedId: 'p-viewer' },
+          ],
+        },
+        select: { id: true },
+      });
+    });
+
+    it('throws NotFoundException when the author blocked the viewer, DB path', async () => {
+      mockCacheManager.get.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-target',
+        userId: 'u-target',
+        username: 'dbuser',
+        verificationLevel: 'BASIC',
+        accountType: 'PERSONAL',
+        suspendedUntil: null,
+        user: null,
+        _count: { posts: 0, followers: 0, following: 0 },
+      });
+      mockPrismaService.platformSubscription.findFirst.mockResolvedValue(null);
+      mockPrismaService.block.findFirst.mockResolvedValue({ id: 'block-2' });
+
+      await expect(service.getProfile('dbuser', 'p-viewer')).rejects.toThrow(
+        AppException,
+      );
+      expect(mockCacheManager.set).not.toHaveBeenCalled();
+    });
+
+    it('returns the profile normally when there is no block', async () => {
+      const cached = { id: 'p-target', username: 'cacheduser' };
+      mockCacheManager.get.mockResolvedValue(cached);
+      mockPrismaService.block.findFirst.mockResolvedValue(null);
+
+      const result = await service.getProfile('cacheduser', 'p-viewer');
+      expect(result).toEqual(cached);
+    });
+
+    it('skips the block check entirely when there is no authenticated viewer', async () => {
+      const cached = { id: 'p-target', username: 'cacheduser' };
+      mockCacheManager.get.mockResolvedValue(cached);
+
+      const result = await service.getProfile('cacheduser');
+      expect(result).toEqual(cached);
+      expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
     });
   });
 

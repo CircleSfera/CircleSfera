@@ -26,7 +26,9 @@ export class AIService {
     const isProd = this.configService.get('NODE_ENV') === 'production';
 
     if (apiKey) {
-      this.openai = new OpenAI({ apiKey });
+      // Bounded so a stuck OpenAI call cannot hold a queue worker beyond this
+      // (SDK default is 600s / 10min, unbounded for practical purposes).
+      this.openai = new OpenAI({ apiKey, timeout: 60_000, maxRetries: 2 });
     } else if (isProd) {
       throw new Error(
         'SECURITY ALERT: OPENAI_API_KEY is required in production (embeddings, moderation, alt-text, captions).',

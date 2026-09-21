@@ -59,6 +59,7 @@ describe('WebrtcService', () => {
       const servers = await service.getIceServers();
       expect(axios.get).toHaveBeenCalledWith(
         'https://test.metered.live/api/v1/turn/credentials?apiKey=secret-key-123',
+        { timeout: 5_000 },
       );
       expect(servers).toEqual(mockData);
     });
