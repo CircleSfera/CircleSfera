@@ -454,6 +454,17 @@ export class MonetizationService {
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId },
+      select: { accountType: true },
+    });
+    if (profile?.accountType === 'PERSONAL') {
+      throw AppException.Forbidden(
+        ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
+        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
+      );
+    }
+
     try {
       let accountId = user.stripeConnectAccountId;
       if (!accountId) {

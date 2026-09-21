@@ -1,9 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  MIN_PPV_PRICE_CENTS,
-  PLATFORM_FEE_DECIMAL,
-} from '../common/constants/monetization.constants.js';
+import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { MonetizationService } from './monetization.service.js';
@@ -20,6 +17,9 @@ describe('MonetizationService', () => {
     user: {
       findUnique: vi.fn(),
       update: vi.fn(),
+    },
+    profile: {
+      findFirst: vi.fn(),
     },
     transaction: {
       findMany: vi.fn(),
@@ -566,14 +566,16 @@ describe('MonetizationService', () => {
   });
 
   describe('createTipSession', () => {
-    const tipCents = MIN_PPV_PRICE_CENTS * 5;
+    // Tip minimum (100 cents / €1.00) is hardcoded in createTipSession and is
+    // independent of MIN_PPV_PRICE_CENTS (the PPV content price floor).
+    const tipCents = 500;
 
     it('should throw if amount is less than the €1.00 minimum', async () => {
       await expect(
         service.createTipSession(
           'user-1',
           'creator-1',
-          MIN_PPV_PRICE_CENTS - 1,
+          99,
           'http://localhost/return',
         ),
       ).rejects.toThrow();
@@ -704,11 +706,32 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('User not found');
     });
 
+    it('should throw if the account is PERSONAL, not Creator/Business', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        email: 'u1@test.com',
+        stripeConnectAccountId: null,
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        accountType: 'PERSONAL',
+      });
+
+      await expect(
+        service.onboardConnectAccount('u-1', 'http://ret', 'http://ref'),
+      ).rejects.toThrow(
+        'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',
+      );
+      expect(mockStripeService.createExpressAccount).not.toHaveBeenCalled();
+    });
+
     it('should create express account and account link when user has no connect account', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u-1',
         email: 'u1@test.com',
         stripeConnectAccountId: null,
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
       });
       mockStripeService.createExpressAccount.mockResolvedValue({
         id: 'acct_new',
@@ -743,6 +766,9 @@ describe('MonetizationService', () => {
         email: 'u1@test.com',
         stripeConnectAccountId: 'acct_existing',
       });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
+      });
       mockStripeService.createAccountLink.mockResolvedValue({
         url: 'https://connect.stripe.com/onboard',
       });
@@ -766,6 +792,9 @@ describe('MonetizationService', () => {
         id: 'u-1',
         email: 'u1@test.com',
         stripeConnectAccountId: 'acct_err',
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
       });
       mockStripeService.createAccountLink.mockRejectedValue(
         new Error('Stripe API unreachable'),

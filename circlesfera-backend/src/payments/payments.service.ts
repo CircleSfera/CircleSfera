@@ -1258,6 +1258,21 @@ export class PaymentsService {
       return;
     }
 
+    // Idempotent: a duplicate refund/dispute webhook for an already-revoked
+    // transaction is a no-op, not a re-run of the unlock deletion below.
+    if (tx.status === 'REFUNDED') {
+      return;
+    }
+
+    // A charge that never completed on our side has nothing to refund.
+    // Marking it REFUNDED would misrepresent money that was never captured.
+    if (tx.status === 'FAILED') {
+      this.logger.warn(
+        `Received refund/dispute webhook for Transaction ${tx.id} (paymentIntent ${paymentIntentId}) which is already FAILED. Skipping status transition.`,
+      );
+      return;
+    }
+
     await this.prisma.transaction.update({
       where: { id: tx.id },
       data: { status: 'REFUNDED' },

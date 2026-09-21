@@ -1320,6 +1320,48 @@ describe('PaymentsService', () => {
       ).resolves.toBeUndefined();
     });
 
+    it('8c-1. is idempotent on a duplicate refund/dispute webhook for an already-REFUNDED transaction', async () => {
+      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
+        id: 'tx_already_refunded',
+        type: 'DIRECT_POST_UNLOCK',
+        senderId: 'buyer1',
+        postId: 'post1',
+        status: 'REFUNDED',
+      });
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_refund_dup',
+          type: 'charge.refunded',
+          data: { object: { payment_intent: 'pi_already_refunded' } },
+        }),
+      );
+
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('8c-2. does not transition a FAILED transaction to REFUNDED', async () => {
+      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
+        id: 'tx_failed',
+        type: 'DIRECT_POST_UNLOCK',
+        senderId: 'buyer1',
+        postId: 'post1',
+        status: 'FAILED',
+      });
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_refund_failed',
+          type: 'charge.refunded',
+          data: { object: { payment_intent: 'pi_failed' } },
+        }),
+      );
+
+      expect(prisma.transaction.update).not.toHaveBeenCalled();
+      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
+    });
+
     it('8d. should sync Connect flags on account.updated', async () => {
       (prisma.user.findFirst as any).mockResolvedValue({ id: 'creator1' });
 

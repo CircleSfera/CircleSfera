@@ -56,7 +56,7 @@ export class SlackService {
     }
 
     try {
-      await axios.post(webhookUrl, payload);
+      await axios.post(webhookUrl, payload, { timeout: 5_000 });
     } catch (error) {
       this.logger.error('Failed to send Slack message', error);
     }
@@ -631,6 +631,7 @@ export class SlackService {
             },
             {
               headers: { Authorization: `Bearer ${this.slackBotToken}` },
+              timeout: 5_000,
             },
           );
         } catch (error) {
@@ -653,10 +654,14 @@ export class SlackService {
 
       // To update the message in Slack, we can use the response_url provided in the payload
       if (payload.response_url) {
-        await axios.post(payload.response_url, {
-          replace_original: true,
-          blocks: updatedBlocks,
-        });
+        await axios.post(
+          payload.response_url,
+          {
+            replace_original: true,
+            blocks: updatedBlocks,
+          },
+          { timeout: 5_000 },
+        );
       }
 
       return { text: resultText };

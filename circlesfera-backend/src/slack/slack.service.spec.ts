@@ -138,6 +138,7 @@ describe('SlackService', () => {
             }),
           ]),
         }),
+        { timeout: 5_000 },
       );
     });
 
@@ -182,6 +183,7 @@ describe('SlackService', () => {
             }),
           ]),
         }),
+        { timeout: 5_000 },
       );
     });
 
@@ -197,6 +199,7 @@ describe('SlackService', () => {
       expect(axios.post).toHaveBeenCalledWith(
         'https://hooks.slack.com/services/moderation',
         expect.any(Object),
+        { timeout: 5_000 },
       );
     });
   });
@@ -221,6 +224,7 @@ describe('SlackService', () => {
             }),
           ]),
         }),
+        { timeout: 5_000 },
       );
     });
 
@@ -232,6 +236,7 @@ describe('SlackService', () => {
       expect(axios.post).toHaveBeenCalledWith(
         'https://hooks.slack.com/services/payments',
         expect.any(Object),
+        { timeout: 5_000 },
       );
     });
   });
@@ -257,6 +262,7 @@ describe('SlackService', () => {
             }),
           ]),
         }),
+        { timeout: 5_000 },
       );
     });
   });
@@ -404,6 +410,7 @@ describe('SlackService', () => {
             }),
           ]),
         }),
+        { timeout: 5_000 },
       );
     });
 
@@ -463,6 +470,7 @@ describe('SlackService', () => {
         expect.objectContaining({
           replace_original: true,
         }),
+        { timeout: 5_000 },
       );
       expect(res.text).toContain('Report ignored by @mod_admin');
     });

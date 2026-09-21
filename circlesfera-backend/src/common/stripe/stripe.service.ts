@@ -15,6 +15,8 @@ export class StripeService implements OnModuleInit {
     const secretKey = this.configService.get<string>('STRIPE_SECRET_KEY') || '';
     this.stripe = new Stripe(secretKey, {
       apiVersion: STRIPE_API_VERSION,
+      timeout: 20_000,
+      maxNetworkRetries: 2,
     });
   }
 

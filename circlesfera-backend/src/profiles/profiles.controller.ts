@@ -17,6 +17,7 @@ import {
 } from '../auth/decorators/current-user.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 import { ProfilesService } from './profiles.service.js';
 
@@ -54,10 +55,14 @@ export class ProfilesController {
     return this.profilesService.checkUsernameAvailability(username);
   }
 
-  // Get a public profile by username.
+  // Get a public profile by username. Hidden from either side of a block.
   @Get(':username')
-  async getProfile(@Param('username') username: string) {
-    return this.profilesService.getProfile(username);
+  @UseGuards(JwtOptionalGuard)
+  async getProfile(
+    @Param('username') username: string,
+    @CurrentUser() user: CurrentUserData | null,
+  ) {
+    return this.profilesService.getProfile(username, user?.profileId);
   }
 
   // Update the authenticated user's profile.

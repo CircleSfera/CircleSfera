@@ -113,7 +113,22 @@ describe('StoriesService', () => {
       };
 
       await expect(service.create('user-1', dto)).rejects.toThrow(
-        'El precio de la historia premium debe estar entre €1.00 y €500.00.',
+        'El precio de la historia premium debe estar entre €5.00 y €500.00.',
+      );
+    });
+
+    it('rejects premium stories from PERSONAL accounts', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        accountType: 'PERSONAL',
+      });
+      const dto: CreateStoryDto = {
+        url: 'test.jpg',
+        isPremium: true,
+        priceCents: 500,
+      };
+
+      await expect(service.create('user-1', dto)).rejects.toThrow(
+        'Solo las cuentas Creator o Business pueden publicar historias premium.',
       );
     });
 
