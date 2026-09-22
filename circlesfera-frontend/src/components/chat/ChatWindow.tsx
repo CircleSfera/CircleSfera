@@ -120,6 +120,9 @@ export default function ChatWindow() {
         voiceDuration: voiceData.voiceDuration,
         voiceWaveform: voiceData.voiceWaveform,
         tempId,
+        ...(lockedPrice !== null
+          ? { isLocked: true, priceCents: lockedPrice }
+          : {}),
       });
       setMessages((prev) =>
         upsertSentMessage(prev, {
@@ -132,6 +135,8 @@ export default function ChatWindow() {
         }),
       );
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setLockedPrice(null);
+      setLockPriceDraft('5.00');
     } catch (err) {
       logger.error('Failed to send voice message:', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
@@ -604,6 +609,9 @@ export default function ChatWindow() {
         mediaUrl: uploadRes.data.url,
         mediaType: 'image',
         tempId,
+        ...(lockedPrice !== null
+          ? { isLocked: true, priceCents: lockedPrice }
+          : {}),
       });
       setMessages((prev) =>
         upsertSentMessage(prev, {
@@ -615,6 +623,8 @@ export default function ChatWindow() {
         }),
       );
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      setLockedPrice(null);
+      setLockPriceDraft('5.00');
     } catch (err) {
       logger.error('Upload failed', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));

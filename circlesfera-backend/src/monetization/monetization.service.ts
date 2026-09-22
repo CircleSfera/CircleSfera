@@ -286,7 +286,7 @@ export class MonetizationService {
   ) {
     const message = (await this.prisma.message.findUnique({
       where: { id: messageId },
-      include: { sender: true },
+      include: { sender: { include: { user: true } } },
     })) as any;
 
     if (!message?.isLocked || !message.priceCents) {
@@ -307,7 +307,10 @@ export class MonetizationService {
         `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
       );
     }
-    if (message.senderId === userId) {
+    // message.senderId is a Profile.id; userId here is a User.id (per the
+    // unlock-message controller) — compare against the sender's User.id,
+    // not the mismatched Profile.id, or this check never actually fires.
+    if (message.sender.user?.id === userId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot unlock your own message',
@@ -324,8 +327,10 @@ export class MonetizationService {
       );
     }
 
-    const creator = message.sender;
-    if (!creator.stripeConnectAccountId) {
+    // message.sender is a Profile; Stripe Connect fields (and the User.id
+    // that Transaction.receiverId/Monetization.userId expect) live on User.
+    const creator = message.sender.user;
+    if (!creator?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',
