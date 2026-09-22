@@ -139,11 +139,11 @@ export class AccountDeletionProcessor extends WorkerHost {
       // Phase 2: Stripe Cleanup (only after confirming user is still scheduled for deletion)
       if (user.stripeCustomerId) {
         try {
-          const subs = await this.stripeService.stripe.subscriptions.list({
-            customer: user.stripeCustomerId,
-          });
-          for (const sub of subs.data) {
-            await this.stripeService.stripe.subscriptions.cancel(sub.id);
+          const subs = await this.stripeService.listSubscriptionsForCustomer(
+            user.stripeCustomerId,
+          );
+          for (const sub of subs) {
+            await this.stripeService.cancelSubscription(sub.id);
             this.logger.log(
               `Canceled Stripe subscription ${sub.id} for user ${userId}`,
             );

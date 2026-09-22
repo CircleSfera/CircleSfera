@@ -30,12 +30,8 @@ describe('AccountDeletionProcessor', () => {
     };
 
     mockStripeService = {
-      stripe: {
-        subscriptions: {
-          list: vi.fn().mockResolvedValue({ data: [] }),
-          cancel: vi.fn().mockResolvedValue({}),
-        },
-      },
+      listSubscriptionsForCustomer: vi.fn().mockResolvedValue([]),
+      cancelSubscription: vi.fn().mockResolvedValue({}),
     };
 
     mockEventEmitter = {
@@ -71,11 +67,9 @@ describe('AccountDeletionProcessor', () => {
 
       // Must NOT touch Stripe
       expect(
-        mockStripeService.stripe.subscriptions.list,
+        mockStripeService.listSubscriptionsForCustomer,
       ).not.toHaveBeenCalled();
-      expect(
-        mockStripeService.stripe.subscriptions.cancel,
-      ).not.toHaveBeenCalled();
+      expect(mockStripeService.cancelSubscription).not.toHaveBeenCalled();
 
       // Must NOT emit hard_deleted event
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
@@ -99,19 +93,19 @@ describe('AccountDeletionProcessor', () => {
         ],
       });
 
-      mockStripeService.stripe.subscriptions.list.mockResolvedValue({
-        data: [{ id: 'sub_abc' }],
-      });
+      mockStripeService.listSubscriptionsForCustomer.mockResolvedValue([
+        { id: 'sub_abc' },
+      ]);
 
       await processor.hardDeleteUser('user-scheduled');
 
       // Cancels active subscriptions
-      expect(mockStripeService.stripe.subscriptions.list).toHaveBeenCalledWith({
-        customer: 'cus_scheduled_456',
-      });
       expect(
-        mockStripeService.stripe.subscriptions.cancel,
-      ).toHaveBeenCalledWith('sub_abc');
+        mockStripeService.listSubscriptionsForCustomer,
+      ).toHaveBeenCalledWith('cus_scheduled_456');
+      expect(mockStripeService.cancelSubscription).toHaveBeenCalledWith(
+        'sub_abc',
+      );
 
       // Emits canonical domain event with userId, profileIds, and profileId via emitAsync
       expect(mockEventEmitter.emitAsync).toHaveBeenCalledWith(
@@ -156,7 +150,7 @@ describe('AccountDeletionProcessor', () => {
       await processor.hardDeleteUser('user-not-found');
 
       expect(
-        mockStripeService.stripe.subscriptions.list,
+        mockStripeService.listSubscriptionsForCustomer,
       ).not.toHaveBeenCalled();
       expect(mockEventEmitter.emitAsync).not.toHaveBeenCalled();
       expect(mockUsersService.deleteScheduledUser).not.toHaveBeenCalled();
@@ -277,7 +271,7 @@ describe('AccountDeletionProcessor', () => {
         stripeCustomerId: 'cus_err',
         profiles: [],
       });
-      mockStripeService.stripe.subscriptions.list.mockRejectedValue(
+      mockStripeService.listSubscriptionsForCustomer.mockRejectedValue(
         new Error('Stripe API unreachable'),
       );
       mockUsersService.deleteScheduledUser.mockResolvedValue(true);
