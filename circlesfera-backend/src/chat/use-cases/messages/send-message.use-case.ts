@@ -2,6 +2,11 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Message } from '@prisma/client';
+import {
+  canMonetize,
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
+} from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
@@ -32,7 +37,32 @@ export class SendMessageUseCase {
     voiceUrl?: string,
     voiceDuration?: number,
     voiceWaveform?: number[],
+    isLocked?: boolean,
+    priceCents?: number,
   ): Promise<Message> {
+    if (isLocked) {
+      const senderProfile = await this.prisma.profile.findUnique({
+        where: { id: senderId },
+        select: { accountType: true },
+      });
+      if (!canMonetize(senderProfile?.accountType)) {
+        throw AppException.Forbidden(
+          ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
+          'Solo las cuentas Creator o Business pueden enviar mensajes de pago.',
+        );
+      }
+      if (
+        !priceCents ||
+        priceCents < MIN_PPV_PRICE_CENTS ||
+        priceCents > MAX_PPV_PRICE_CENTS
+      ) {
+        throw AppException.BadRequest(
+          ErrorCode.BAD_REQUEST,
+          `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+        );
+      }
+    }
+
     const encryptedContent = this.cryptoService.encrypt(content);
 
     const { message, conversation } = await this.prisma.$transaction(
@@ -136,6 +166,7 @@ export class SendMessageUseCase {
             voiceWaveform: voiceWaveform
               ? JSON.parse(JSON.stringify(voiceWaveform))
               : undefined,
+            ...(isLocked ? { isLocked: true, priceCents } : {}),
           },
           include: {
             sender: {

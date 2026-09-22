@@ -116,6 +116,11 @@ export class ChatController {
       dto.postId,
       dto.storyId,
       dto.replyToId,
+      undefined,
+      undefined,
+      undefined,
+      dto.isLocked,
+      dto.priceCents,
     );
   }
 

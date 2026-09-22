@@ -1274,6 +1274,51 @@ describe('AppGateway payload bounds and authorization', () => {
       });
     });
 
+    it('redacts a locked message content/media over the socket for non-sender participants', () => {
+      // Security regression test: a freshly-sent locked message must never
+      // leak its real content/media to a recipient over the realtime
+      // channel, mirroring GetMessagesQuery's read-path redaction.
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const gateway = gatewayWithServer({
+        to: mockTo,
+        sockets: new Map(),
+      });
+
+      gateway.handleChatMessageSent({
+        participants: [{ profileId: 'sender-1' }, { profileId: 'recipient-1' }],
+        payload: {
+          conversationId: 'c-1',
+          senderId: 'sender-1',
+          isLocked: true,
+          priceCents: 999,
+          content: 'The real secret content',
+          url: 'https://media/secret.jpg',
+          mediaType: 'image',
+        },
+      });
+
+      expect(mockEmit).toHaveBeenCalledWith(
+        'receiveMessage',
+        expect.objectContaining({
+          content: 'The real secret content',
+          priceCents: 999,
+        }),
+      );
+      expect(mockEmit).toHaveBeenCalledWith(
+        'receiveMessage',
+        expect.objectContaining({
+          content: 'This message is locked. Pay to unlock.',
+          url: null,
+          standardUrl: null,
+          thumbnailUrl: null,
+          mediaType: null,
+          voiceUrl: null,
+          priceCents: 999,
+        }),
+      );
+    });
+
     it('dispatches chat.message.deleted to participants', () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });

@@ -2,6 +2,8 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   canMonetize,
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -284,7 +286,7 @@ export class MonetizationService {
   ) {
     const message = (await this.prisma.message.findUnique({
       where: { id: messageId },
-      include: { sender: true },
+      include: { sender: { include: { user: true } } },
     })) as any;
 
     if (!message?.isLocked || !message.priceCents) {
@@ -293,7 +295,22 @@ export class MonetizationService {
         'This message is not locked or has no price',
       );
     }
-    if (message.senderId === userId) {
+    // Defense-in-depth: the price should already be bounded at message
+    // creation time (send-message.use-case.ts), but never trust a stored
+    // price to build a Checkout Session without re-checking the range.
+    if (
+      message.priceCents < MIN_PPV_PRICE_CENTS ||
+      message.priceCents > MAX_PPV_PRICE_CENTS
+    ) {
+      throw AppException.BadRequest(
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
+        `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
+      );
+    }
+    // message.senderId is a Profile.id; userId here is a User.id (per the
+    // unlock-message controller) — compare against the sender's User.id,
+    // not the mismatched Profile.id, or this check never actually fires.
+    if (message.sender.user?.id === userId) {
       throw AppException.BadRequest(
         ErrorCode.CANNOT_BUY_OWN_CONTENT,
         'You cannot unlock your own message',
@@ -310,8 +327,10 @@ export class MonetizationService {
       );
     }
 
-    const creator = message.sender;
-    if (!creator.stripeConnectAccountId) {
+    // message.sender is a Profile; Stripe Connect fields (and the User.id
+    // that Transaction.receiverId/Monetization.userId expect) live on User.
+    const creator = message.sender.user;
+    if (!creator?.stripeConnectAccountId) {
       throw AppException.BadRequest(
         ErrorCode.CREATOR_STRIPE_NOT_SETUP,
         'Creator has not setup their Stripe account',

@@ -457,15 +457,45 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('This message is not locked or has no price');
     });
 
-    it('should throw if sender is unlocking own message', async () => {
+    it('should throw if the stored price is outside the €5.00-€500.00 bounds (defense-in-depth)', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'm-1',
+        isLocked: true,
+        priceCents: 100,
+        senderId: 'creator-profile-1',
+      });
+      await expect(
+        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+      ).rejects.toThrow(/entre €5.00 y €500.00/);
+
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'm-1',
+        isLocked: true,
+        priceCents: 100_000,
+        senderId: 'creator-profile-1',
+      });
+      await expect(
+        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+      ).rejects.toThrow(/entre €5.00 y €500.00/);
+    });
+
+    it('should throw if sender (by User.id, not Profile.id) is unlocking own message', async () => {
+      // Regression test (CodeRabbit finding): message.senderId is a
+      // Profile.id, but the caller passes a User.id — comparing them
+      // directly never fires. Must compare against sender.user.id instead.
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
         priceCents: 500,
-        senderId: 'user-1',
+        senderId: 'creator-profile-1',
+        sender: { id: 'creator-profile-1', user: { id: 'creator-user-1' } },
       });
       await expect(
-        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+        service.createMessageUnlockSession(
+          'creator-user-1',
+          'm-1',
+          'http://return',
+        ),
       ).rejects.toThrow('You cannot unlock your own message');
     });
 
@@ -474,7 +504,8 @@ describe('MonetizationService', () => {
         id: 'm-1',
         isLocked: true,
         priceCents: 500,
-        senderId: 'creator-1',
+        senderId: 'creator-profile-1',
+        sender: { id: 'creator-profile-1', user: { id: 'creator-user-1' } },
       });
       mockPrismaService.messageUnlock.findUnique.mockResolvedValue({
         id: 'mu-1',
@@ -486,12 +517,17 @@ describe('MonetizationService', () => {
     });
 
     it('should throw if creator has no stripe account', async () => {
+      // Regression test (CodeRabbit finding): stripeConnectAccountId lives
+      // on User, not Profile — message.sender (Profile) never has it.
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
         priceCents: 500,
-        senderId: 'creator-1',
-        sender: { id: 'creator-1', stripeConnectAccountId: null },
+        senderId: 'creator-profile-1',
+        sender: {
+          id: 'creator-profile-1',
+          user: { id: 'creator-user-1', stripeConnectAccountId: null },
+        },
       });
       mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
 
@@ -505,8 +541,11 @@ describe('MonetizationService', () => {
         id: 'm-1',
         isLocked: true,
         priceCents: 500,
-        senderId: 'creator-1',
-        sender: { id: 'creator-1', stripeConnectAccountId: 'acct_1' },
+        senderId: 'creator-profile-1',
+        sender: {
+          id: 'creator-profile-1',
+          user: { id: 'creator-user-1', stripeConnectAccountId: 'acct_1' },
+        },
       });
       mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
       mockPrismaService.user.findUnique.mockResolvedValue(null);
@@ -520,16 +559,19 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('Buyer not found');
     });
 
-    it('creates Checkout for locked message with 20% platform fee', async () => {
+    it('creates Checkout for locked message with 20% platform fee, using the creator User.id', async () => {
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
-        priceCents: 400,
-        senderId: 'creator-1',
+        priceCents: 500,
+        senderId: 'creator-profile-1',
         sender: {
-          id: 'creator-1',
-          email: 'c@c.com',
-          stripeConnectAccountId: 'acct_1',
+          id: 'creator-profile-1',
+          user: {
+            id: 'creator-user-1',
+            email: 'c@c.com',
+            stripeConnectAccountId: 'acct_1',
+          },
         },
       });
       mockPrismaService.messageUnlock.findUnique.mockResolvedValue(null);
@@ -551,13 +593,13 @@ describe('MonetizationService', () => {
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           payment_intent_data: {
-            application_fee_amount: 80,
+            application_fee_amount: 100,
             transfer_data: { destination: 'acct_1' },
           },
           metadata: {
             type: 'DIRECT_MESSAGE_UNLOCK',
             messageId: 'm-1',
-            creatorId: 'creator-1',
+            creatorId: 'creator-user-1',
           },
         }),
         { idempotencyKey: undefined },

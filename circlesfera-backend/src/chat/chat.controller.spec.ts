@@ -179,6 +179,46 @@ describe('ChatController', () => {
       undefined,
       undefined,
       undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
+  });
+
+  it('sends a locked (PPV) message as the session profileId', async () => {
+    const message = { id: 'msg-locked', content: 'Unlock me', isLocked: true };
+    mockSendMessageUseCase.execute.mockResolvedValue(message);
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
+        recipientId: 'profile-2',
+        content: 'Unlock me',
+        isLocked: true,
+        priceCents: 999,
+      })
+      .expect(201);
+
+    expect(res.body).toEqual(message);
+    expect(mockSendMessageUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'profile-2',
+      'Unlock me',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      true,
+      999,
     );
   });
 
