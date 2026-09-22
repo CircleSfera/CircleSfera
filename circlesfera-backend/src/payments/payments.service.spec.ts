@@ -1,12 +1,11 @@
 import { ConfigService } from '@nestjs/config';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
+import { MonetizationWebhookService } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -21,7 +20,13 @@ describe('PaymentsService', () => {
   let emailService: any;
   let stripeService: any;
   let usersService: any;
-  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let monetizationWebhookService: {
+    handleCheckoutSessionCompleted: ReturnType<typeof vi.fn>;
+    handleCheckoutSessionExpired: ReturnType<typeof vi.fn>;
+    handleChargeRefundedOrDisputed: ReturnType<typeof vi.fn>;
+    syncConnectPayoutLog: ReturnType<typeof vi.fn>;
+    handleAccountUpdated: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -111,8 +116,18 @@ describe('PaymentsService', () => {
           },
         },
         {
-          provide: EventEmitter2,
-          useValue: { emit: vi.fn() },
+          provide: MonetizationWebhookService,
+          useValue: {
+            handleCheckoutSessionCompleted: vi
+              .fn()
+              .mockResolvedValue(undefined),
+            handleCheckoutSessionExpired: vi.fn().mockResolvedValue(undefined),
+            handleChargeRefundedOrDisputed: vi
+              .fn()
+              .mockResolvedValue(undefined),
+            syncConnectPayoutLog: vi.fn().mockResolvedValue(undefined),
+            handleAccountUpdated: vi.fn().mockResolvedValue(undefined),
+          },
         },
       ],
     }).compile();
@@ -123,7 +138,7 @@ describe('PaymentsService', () => {
     emailService = module.get<EmailService>(EmailService);
     stripeService = module.get<StripeService>(StripeService);
     usersService = module.get<UsersService>(UsersService);
-    eventEmitter = module.get(EventEmitter2);
+    monetizationWebhookService = module.get(MonetizationWebhookService);
   });
 
   it('should be defined', () => {
@@ -608,7 +623,9 @@ describe('PaymentsService', () => {
       prisma.webhookEvent.findUnique = vi.fn().mockResolvedValue(null);
       prisma.webhookEvent.create = vi.fn().mockResolvedValue({ id: 'wh_fail' });
       prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
-      prisma.promotion.update = vi.fn().mockRejectedValue(new Error('db down'));
+      monetizationWebhookService.handleCheckoutSessionCompleted = vi
+        .fn()
+        .mockRejectedValue(new Error('db down'));
 
       const event = {
         id: 'evt_fail',
@@ -639,8 +656,6 @@ describe('PaymentsService', () => {
         status: 'FAILED',
         externalId: 'evt_retry',
       });
-      prisma.promotion.update = vi.fn().mockResolvedValue({});
-      prisma.transaction.create = vi.fn().mockResolvedValue({});
       prisma.webhookEvent.update = vi.fn().mockResolvedValue({});
 
       const event = {
@@ -664,7 +679,9 @@ describe('PaymentsService', () => {
 
       await service.processWebhookEvent(asEvent(event));
       expect(prisma.webhookEvent.create).not.toHaveBeenCalled();
-      expect(prisma.promotion.update).toHaveBeenCalled();
+      expect(
+        monetizationWebhookService.handleCheckoutSessionCompleted,
+      ).toHaveBeenCalled();
       expect(prisma.webhookEvent.update).toHaveBeenCalledWith({
         where: { externalId: 'evt_retry' },
         data: { status: 'PROCESSED', processedAt: expect.any(Date) },
@@ -898,62 +915,6 @@ describe('PaymentsService', () => {
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user2');
     });
 
-    it('5. should handle checkout.session.completed for PROMOTION', async () => {
-      const event = {
-        id: 'evt_promo_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_promo_1',
-            mode: 'payment',
-            payment_status: 'paid',
-            amount_total: 5000,
-            currency: 'eur',
-            metadata: {
-              type: 'PROMOTION',
-              promotionId: 'promo_test_id',
-              userId: 'user_promo',
-            },
-          },
-        },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.promotion.update).toHaveBeenCalledWith({
-        where: { id: 'promo_test_id' },
-        data: { status: 'ACTIVE', chargedAt: expect.any(Date) },
-      });
-
-      expect(prisma.transaction.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          type: 'PROMOTION_PAYMENT',
-          promotionId: 'promo_test_id',
-        }),
-      });
-
-      expect(slackService.sendPaymentAlert).toHaveBeenCalled();
-    });
-
-    it('5b. throws BadRequest when PROMOTION metadata lacks promotionId', async () => {
-      const event = {
-        id: 'evt_promo_err',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_promo_err',
-            mode: 'payment',
-            payment_status: 'paid',
-            metadata: { type: 'PROMOTION' },
-          },
-        },
-      };
-
-      await expect(service.processWebhookEvent(asEvent(event))).rejects.toThrow(
-        'PROMOTION checkout missing promotionId',
-      );
-    });
-
     it('6. should handle identity.verification_session.verified', async () => {
       const event = {
         id: 'evt_kyc_1',
@@ -973,261 +934,6 @@ describe('PaymentsService', () => {
       expect(usersService.handleIdentityWebhook).toHaveBeenCalledWith(
         event.data.object,
       );
-    });
-
-    it('7. should handle checkout.session.completed for DIRECT_POST_UNLOCK', async () => {
-      const grossCents = 1000;
-      const creatorShareCents = Math.floor(grossCents * CREATOR_SHARE_DECIMAL);
-      const event = {
-        id: 'evt_unlock_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_unlock_1',
-            client_reference_id: 'buyer1',
-            amount_total: grossCents,
-            currency: 'eur',
-            payment_intent: 'pi_12345',
-            metadata: {
-              type: 'DIRECT_POST_UNLOCK',
-              postId: 'post1',
-              creatorId: 'creator1',
-            },
-          },
-        },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.$transaction).toHaveBeenCalled();
-      expect(prisma.postUnlock.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId_postId: { userId: 'buyer1', postId: 'post1' } },
-        }),
-      );
-      expect(prisma.transaction.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'DIRECT_POST_UNLOCK',
-            senderId: 'buyer1',
-            receiverId: 'creator1',
-            postId: 'post1',
-          }),
-        }),
-      );
-      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'creator1' },
-          update: {
-            lifetimeEarningsCents: { increment: creatorShareCents },
-          },
-          create: {
-            userId: 'creator1',
-            lifetimeEarningsCents: creatorShareCents,
-          },
-        }),
-      );
-      expect(slackService.sendPaymentAlert).toHaveBeenCalled();
-    });
-
-    it('8. should handle checkout.session.completed for DIRECT_TIP', async () => {
-      const event = {
-        id: 'evt_tip_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_tip_1',
-            client_reference_id: 'tipper1',
-            amount_total: 500,
-            currency: 'eur',
-            payment_intent: 'pi_tip_123',
-            metadata: {
-              type: 'DIRECT_TIP',
-              creatorId: 'creator2',
-              postId: 'post2',
-            },
-          },
-        },
-      };
-
-      prisma.profile.findFirst = vi
-        .fn()
-        .mockResolvedValueOnce({ id: 'creator-profile-2' })
-        .mockResolvedValueOnce({ id: 'tipper-profile-1' });
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.$transaction).toHaveBeenCalled();
-      expect(prisma.transaction.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'DIRECT_TIP',
-            senderId: 'tipper1',
-            receiverId: 'creator2',
-          }),
-        }),
-      );
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'notification.create',
-        expect.objectContaining({
-          recipientId: 'creator-profile-2',
-          senderId: 'tipper-profile-1',
-          type: 'PAYMENT',
-        }),
-      );
-    });
-
-    it('8b. should handle checkout.session.completed for DIRECT_STORY_UNLOCK', async () => {
-      const event = {
-        id: 'evt_story_unlock_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_story_1',
-            client_reference_id: 'buyer1',
-            amount_total: 250,
-            currency: 'eur',
-            payment_intent: 'pi_story_1',
-            metadata: {
-              type: 'DIRECT_STORY_UNLOCK',
-              storyId: 'story1',
-              creatorId: 'creator1',
-            },
-          },
-        },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.storyUnlock.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId_storyId: { userId: 'buyer1', storyId: 'story1' } },
-        }),
-      );
-      expect(prisma.transaction.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            type: 'DIRECT_STORY_UNLOCK',
-            storyId: 'story1',
-            stripePaymentIntentId: 'pi_story_1',
-          }),
-        }),
-      );
-    });
-
-    it('8bb. should handle checkout.session.completed for DIRECT_MESSAGE_UNLOCK', async () => {
-      const event = {
-        id: 'evt_msg_unlock_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_msg_1',
-            client_reference_id: 'buyer1',
-            amount_total: 400,
-            currency: 'eur',
-            payment_intent: 'pi_msg_1',
-            metadata: {
-              type: 'DIRECT_MESSAGE_UNLOCK',
-              messageId: 'msg1',
-              creatorId: 'creator1',
-            },
-          },
-        },
-      };
-
-      prisma.profile.findFirst = vi
-        .fn()
-        .mockResolvedValueOnce({ id: 'creator-prof-1' })
-        .mockResolvedValueOnce({ id: 'buyer-prof-1' });
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.messageUnlock.upsert).toHaveBeenCalledWith({
-        where: { userId_messageId: { userId: 'buyer1', messageId: 'msg1' } },
-        update: {},
-        create: { userId: 'buyer1', messageId: 'msg1', pricePaid: 400 },
-      });
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'notification.create',
-        expect.objectContaining({
-          recipientId: 'creator-prof-1',
-          senderId: 'buyer-prof-1',
-          content: expect.stringContaining('unlocked your private message'),
-        }),
-      );
-    });
-
-    it('8bc. should handle checkout.session.completed for DIRECT_LIVE_GIFT', async () => {
-      const event = {
-        id: 'evt_gift_1',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_gift_1',
-            client_reference_id: 'gifter1',
-            amount_total: 200,
-            currency: 'eur',
-            payment_intent: 'pi_gift_1',
-            metadata: {
-              type: 'DIRECT_LIVE_GIFT',
-              liveGiftId: 'lg_1',
-              streamId: 'str_1',
-              giftId: 'rose',
-              creatorId: 'creator1',
-            },
-          },
-        },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'payment.live_gift_completed',
-        expect.objectContaining({
-          liveGiftId: 'lg_1',
-          streamId: 'str_1',
-          giftId: 'rose',
-          creatorId: 'creator1',
-          amountCents: 200,
-        }),
-      );
-    });
-
-    it('8bd. ignores legacy VIP Subscription (STRIPE_SUBSCRIPTION)', async () => {
-      const event = {
-        id: 'evt_vip_legacy',
-        type: 'checkout.session.completed',
-        data: {
-          object: {
-            id: 'cs_vip',
-            metadata: { type: 'STRIPE_SUBSCRIPTION' },
-          },
-        },
-      };
-
-      await expect(
-        service.processWebhookEvent(asEvent(event)),
-      ).resolves.toBeUndefined();
-    });
-
-    it('8be. marks promotion FAILED on checkout.session.expired', async () => {
-      const event = {
-        id: 'evt_expired',
-        type: 'checkout.session.expired',
-        data: {
-          object: {
-            id: 'cs_exp',
-            metadata: { type: 'PROMOTION', promotionId: 'promo_exp' },
-          },
-        },
-      };
-
-      await service.processWebhookEvent(asEvent(event));
-
-      expect(prisma.promotion.updateMany).toHaveBeenCalledWith({
-        where: { id: 'promo_exp', status: 'PENDING' },
-        data: { status: 'FAILED' },
-      });
     });
 
     it('8bf. updates subscription to PAST_DUE on invoice.payment_failed', async () => {
@@ -1255,227 +961,6 @@ describe('PaymentsService', () => {
       expect(usersService.syncUserTier).toHaveBeenCalledWith('u_fail');
     });
 
-    it('8c. should revoke story unlock and post unlock on charge.refunded', async () => {
-      // Direct Post Unlock refund
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_post',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_refund_post',
-          type: 'charge.refunded',
-          data: { object: { payment_intent: 'pi_post_1' } },
-        }),
-      );
-
-      expect(prisma.postUnlock.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'buyer1', postId: 'post1' },
-      });
-
-      // Direct Story Unlock refund
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx1',
-        type: 'DIRECT_STORY_UNLOCK',
-        senderId: 'buyer1',
-        storyId: 'story1',
-        stripePaymentIntentId: 'pi_story_1',
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_refund_1',
-          type: 'charge.refunded',
-          data: {
-            object: {
-              payment_intent: 'pi_story_1',
-            },
-          },
-        }),
-      );
-
-      expect(prisma.transaction.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'tx1' },
-          data: { status: 'REFUNDED' },
-        }),
-      );
-      expect(prisma.storyUnlock.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'buyer1', storyId: 'story1' },
-      });
-
-      // Refund for non-existent transaction should return safely
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce(null);
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_refund_none',
-            type: 'charge.dispute.created',
-            data: { object: { payment_intent: 'pi_none' } },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-    });
-
-    it('8c-1. is idempotent on a duplicate refund/dispute webhook for an already-REFUNDED transaction', async () => {
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_already_refunded',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-        status: 'REFUNDED',
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_refund_dup',
-          type: 'charge.refunded',
-          data: { object: { payment_intent: 'pi_already_refunded' } },
-        }),
-      );
-
-      expect(prisma.transaction.update).not.toHaveBeenCalled();
-      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
-    });
-
-    it('8c-2. does not transition a FAILED transaction to REFUNDED', async () => {
-      prisma.transaction.findUnique = vi.fn().mockResolvedValueOnce({
-        id: 'tx_failed',
-        type: 'DIRECT_POST_UNLOCK',
-        senderId: 'buyer1',
-        postId: 'post1',
-        status: 'FAILED',
-      });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_refund_failed',
-          type: 'charge.refunded',
-          data: { object: { payment_intent: 'pi_failed' } },
-        }),
-      );
-
-      expect(prisma.transaction.update).not.toHaveBeenCalled();
-      expect(prisma.postUnlock.deleteMany).not.toHaveBeenCalled();
-    });
-
-    it('8d. should sync Connect flags on account.updated', async () => {
-      (prisma.user.findFirst as any).mockResolvedValue({ id: 'creator1' });
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_acct_1',
-          type: 'account.updated',
-          data: {
-            object: {
-              id: 'acct_1',
-              charges_enabled: true,
-              capabilities: { transfers: 'active' },
-            },
-          },
-        }),
-      );
-
-      expect(prisma.monetization.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { userId: 'creator1' },
-          update: expect.objectContaining({
-            transfersEnabled: true,
-            chargesEnabled: true,
-          }),
-        }),
-      );
-    });
-
-    it('8e. should upsert StripePayoutLog on payout.paid', async () => {
-      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
-        id: 'creator1',
-      });
-      (
-        prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>
-      ).mockResolvedValue({});
-
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_po_1',
-          type: 'payout.paid',
-          account: 'acct_1',
-          data: {
-            object: {
-              id: 'po_1',
-              amount: 2500,
-              currency: 'eur',
-              status: 'paid',
-              arrival_date: 1_714_521_600,
-            },
-          },
-        }),
-      );
-
-      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { stripePayoutId: 'po_1' },
-          create: expect.objectContaining({
-            userId: 'creator1',
-            amountCents: 2500,
-            currency: 'eur',
-            status: 'paid',
-          }),
-          update: expect.objectContaining({
-            status: 'paid',
-            amountCents: 2500,
-          }),
-        }),
-      );
-    });
-
-    it('8f. maps in_transit payouts to pending and skips unknown Connect accounts', async () => {
-      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        {
-          id: 'creator1',
-        },
-      );
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_po_2',
-          type: 'payout.created',
-          account: 'acct_1',
-          data: {
-            object: {
-              id: 'po_2',
-              amount: 100,
-              currency: 'eur',
-              status: 'in_transit',
-              arrival_date: 1_714_521_600,
-            },
-          },
-        }),
-      );
-      expect(prisma.stripePayoutLog.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          create: expect.objectContaining({ status: 'pending' }),
-          update: expect.objectContaining({ status: 'pending' }),
-        }),
-      );
-
-      (prisma.user.findFirst as ReturnType<typeof vi.fn>).mockResolvedValueOnce(
-        null,
-      );
-      (prisma.stripePayoutLog.upsert as ReturnType<typeof vi.fn>).mockClear();
-      await service.processWebhookEvent(
-        asEvent({
-          id: 'evt_po_3',
-          type: 'payout.failed',
-          account: 'acct_unknown',
-          data: { object: { id: 'po_3', amount: 1, status: 'failed' } },
-        }),
-      );
-      expect(prisma.stripePayoutLog.upsert).not.toHaveBeenCalled();
-    });
-
     it('9. should handle unknown event gracefully', async () => {
       const event = {
         id: 'evt_unknown',
@@ -1487,31 +972,6 @@ describe('PaymentsService', () => {
         service.processWebhookEvent(asEvent(event)),
       ).resolves.toBeUndefined();
       expect(prisma.webhookEvent.create).toHaveBeenCalled();
-    });
-
-    it('emitPaymentNotification exits early if eventEmitter is missing or recipient has no profile', async () => {
-      const serviceNoEmitter = new PaymentsService(
-        prisma,
-        stripeService,
-        slackService,
-        emailService,
-        usersService,
-        { get: vi.fn() } as any,
-        undefined,
-      );
-      await (serviceNoEmitter as any).emitPaymentNotification({
-        recipientUserId: 'u_recip',
-        senderUserId: 'u_send',
-        content: 'Tip received',
-      });
-
-      prisma.profile.findFirst = vi.fn().mockResolvedValue(null);
-      await (service as any).emitPaymentNotification({
-        recipientUserId: 'u_recip',
-        senderUserId: 'u_send',
-        content: 'Tip received',
-      });
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('handles P2002 collision when raced status is PENDING and lease active', async () => {
@@ -1675,140 +1135,6 @@ describe('PaymentsService', () => {
       expect(res).toBe(0);
     });
 
-    it('handles Slack alert error gracefully in PROMOTION checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack rate limit'));
-      prisma.promotion.update = vi.fn().mockResolvedValue({});
-
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_promo_slack_err',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_promo_slack',
-                mode: 'payment',
-                payment_status: 'paid',
-                amount_total: 5000,
-                metadata: { type: 'PROMOTION', promotionId: 'promo_slack' },
-              },
-            },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles Slack alert error gracefully in DIRECT_POST_UNLOCK checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-      prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'prof_1' });
-
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_post_slack_err',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_post_slack',
-                client_reference_id: 'user_buyer',
-                amount_total: 1000,
-                metadata: {
-                  type: 'DIRECT_POST_UNLOCK',
-                  postId: 'p_1',
-                  creatorId: 'user_creator',
-                },
-              },
-            },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles Slack alert error gracefully in DIRECT_TIP checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-      prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'prof_1' });
-
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_tip_slack_err',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_tip_slack',
-                client_reference_id: 'user_tipper',
-                amount_total: 500,
-                metadata: {
-                  type: 'DIRECT_TIP',
-                  creatorId: 'user_creator',
-                },
-              },
-            },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles DIRECT_LIVE_GIFT without eventEmitter or missing metadata and Slack alert error', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-
-      const serviceNoEmitter = new PaymentsService(
-        prisma,
-        stripeService,
-        slackService,
-        emailService,
-        usersService,
-        { get: vi.fn() } as any,
-        undefined,
-      );
-      await expect(
-        serviceNoEmitter.processWebhookEvent(
-          asEvent({
-            id: 'evt_live_no_emitter',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_live_err',
-                client_reference_id: '',
-                metadata: { type: 'DIRECT_LIVE_GIFT' },
-              },
-            },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_live_slack_err',
-            type: 'checkout.session.completed',
-            data: {
-              object: {
-                id: 'cs_live_slack',
-                client_reference_id: 'u_giftee',
-                amount_total: 250,
-                metadata: {
-                  type: 'DIRECT_LIVE_GIFT',
-                  liveGiftId: 'gift_1',
-                  streamId: 'stream_1',
-                  giftId: 'g_1',
-                  creatorId: 'creator_1',
-                },
-              },
-            },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-    });
-
     it('handles email receipt and Slack alert failures in platform subscription checkout', async () => {
       emailService.sendSubscriptionReceipt = vi
         .fn()
@@ -1851,18 +1177,116 @@ describe('PaymentsService', () => {
       ).resolves.toBeUndefined();
     });
 
-    it('handles Connect payout event missing accountId or payoutId', async () => {
-      await expect(
-        service.processWebhookEvent(
-          asEvent({
-            id: 'evt_po_missing',
-            type: 'payout.paid',
-            account: undefined,
-            data: { object: { id: undefined } },
-          }),
-        ),
-      ).resolves.toBeUndefined();
-      expect(prisma.stripePayoutLog.upsert).not.toHaveBeenCalled();
+    it('delegates payout.paid to monetizationWebhookService.syncConnectPayoutLog', async () => {
+      const event = {
+        id: 'evt_po_route',
+        type: 'payout.paid',
+        account: 'acct_1',
+        data: { object: { id: 'po_route' } },
+      };
+
+      await service.processWebhookEvent(asEvent(event));
+
+      expect(
+        monetizationWebhookService.syncConnectPayoutLog,
+      ).toHaveBeenCalledWith(event);
+    });
+
+    it('delegates account.updated to monetizationWebhookService.handleAccountUpdated', async () => {
+      const account = {
+        id: 'acct_route',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+      };
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_acct_route',
+          type: 'account.updated',
+          data: { object: account },
+        }),
+      );
+
+      expect(
+        monetizationWebhookService.handleAccountUpdated,
+      ).toHaveBeenCalledWith(account);
+    });
+
+    it('delegates charge.refunded and charge.dispute.created to monetizationWebhookService.handleChargeRefundedOrDisputed', async () => {
+      const charge = { payment_intent: 'pi_route' };
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_refund_route',
+          type: 'charge.refunded',
+          data: { object: charge },
+        }),
+      );
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_dispute_route',
+          type: 'charge.dispute.created',
+          data: { object: charge },
+        }),
+      );
+
+      expect(
+        monetizationWebhookService.handleChargeRefundedOrDisputed,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it('delegates checkout.session.expired for monetization types to monetizationWebhookService.handleCheckoutSessionExpired', async () => {
+      const session = {
+        id: 'cs_exp_route',
+        metadata: { type: 'PROMOTION', promotionId: 'promo_route' },
+      };
+
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_exp_route',
+          type: 'checkout.session.expired',
+          data: { object: session },
+        }),
+      );
+
+      expect(
+        monetizationWebhookService.handleCheckoutSessionExpired,
+      ).toHaveBeenCalledWith(session);
+    });
+
+    it('delegates checkout.session.completed for monetization types to monetizationWebhookService.handleCheckoutSessionCompleted, and keeps platform subscriptions inline', async () => {
+      const monetizationSession = {
+        id: 'cs_route',
+        metadata: { type: 'DIRECT_TIP', creatorId: 'creator_route' },
+      };
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_route_monetization',
+          type: 'checkout.session.completed',
+          data: { object: monetizationSession },
+        }),
+      );
+      expect(
+        monetizationWebhookService.handleCheckoutSessionCompleted,
+      ).toHaveBeenCalledWith(monetizationSession);
+
+      monetizationWebhookService.handleCheckoutSessionCompleted.mockClear();
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_route_subscription',
+          type: 'checkout.session.completed',
+          data: {
+            object: {
+              id: 'cs_sub_route',
+              metadata: {},
+              subscription: null,
+            },
+          },
+        }),
+      );
+      expect(
+        monetizationWebhookService.handleCheckoutSessionCompleted,
+      ).not.toHaveBeenCalled();
     });
   });
 });
