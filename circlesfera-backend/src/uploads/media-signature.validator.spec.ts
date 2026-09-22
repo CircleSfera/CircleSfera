@@ -155,6 +155,62 @@ describe('MediaSignatureValidator', () => {
     );
   });
 
+  // The declared `image/svg+xml` tests above are all rejected by the blanket
+  // SVG-mimetype ban before ever reaching assertNoActiveSvgContent's linear-time
+  // scanners (hasEventHandlerAttribute, hasSvgUseHref — CodeQL js/redos mitigation).
+  // These target the "disguised under another declared type" path so those
+  // scanners actually run.
+  it('rejects a disguised event-handler payload with no <script>/<!entity> markers', async () => {
+    const disguised = svgBuffer(
+      '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)"></svg>',
+    );
+    await expect(validator.validate(disguised, 'image/png')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
+
+  it('rejects a disguised event-handler payload where the first " on" match has no "="', async () => {
+    // "a on b" is preceded by a space and matches ' on', but is not itself
+    // followed by '=' — exercises the scanner's "keep searching" branch
+    // before it finds the real match on "onerror=" later in the string.
+    const disguised = svgBuffer(
+      '<svg xmlns="http://www.w3.org/2000/svg" title="a on b" onerror="alert(1)"></svg>',
+    );
+    await expect(validator.validate(disguised, 'image/png')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
+
+  it('rejects a disguised <use href> payload with no event handler', async () => {
+    const disguised = svgBuffer(
+      '<svg xmlns="http://www.w3.org/2000/svg"><use href="#x"/></svg>',
+    );
+    await expect(validator.validate(disguised, 'image/png')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
+
+  it('rejects (for unrelated reasons) a disguised SVG with a truncated/unclosed <use tag', async () => {
+    // No '>' anywhere after '<use': exercises the "unclosed tag, stop scanning"
+    // branch in hasSvgUseHref.
+    const disguised = svgBuffer('<svg xmlns="http://www.w3.org/2000/svg"><use');
+    await expect(validator.validate(disguised, 'image/png')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
+
+  it('rejects (for unrelated reasons) a disguised SVG with no event handler or <use href>', async () => {
+    // No " on"/href match at all: exercises the "no match found" path in both
+    // linear scanners. Still rejected — it falls through to the binary
+    // magic-byte check, which fails for a plain-text buffer.
+    const disguised = svgBuffer(
+      '<svg xmlns="http://www.w3.org/2000/svg"><use/></svg>',
+    );
+    await expect(validator.validate(disguised, 'image/png')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
+
   // ── Rejection: undetectable / text ────────────────────────────────────────
 
   it('rejects a plain-text buffer claiming to be image/jpeg', async () => {
