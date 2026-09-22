@@ -652,33 +652,23 @@ export class SlackService {
         },
       });
 
-      // To update the message in Slack, we can use the response_url provided in the payload.
-      // SSRF guard: validate that the URL belongs to hooks.slack.com, then reconstruct
-      // the outbound URL from a hardcoded base + extracted path — never use the raw
-      // user-supplied string as the axios target (CodeQL js/ssrf mitigation).
-      if (payload.response_url) {
-        let parsedUrl: URL;
-        try {
-          parsedUrl = new URL(payload.response_url as string);
-        } catch {
-          this.logger.warn('Ignoring malformed response_url in Slack payload');
-          return { text: resultText };
-        }
-        if (parsedUrl.hostname !== 'hooks.slack.com') {
-          this.logger.warn(
-            `Ignoring response_url with unexpected host: ${parsedUrl.hostname}`,
-          );
-          return { text: resultText };
-        }
-        // Reconstruct URL from a hardcoded trusted base — eliminates SSRF taint.
-        const safeUrl = `https://hooks.slack.com${parsedUrl.pathname}${parsedUrl.search}`;
+      // Update the original Slack message using the Web API (hardcoded URL) instead of
+      // response_url. This permanently eliminates the SSRF taint path: no user-supplied
+      // value ever reaches the URL argument of axios (CodeQL js/ssrf mitigation).
+      // channel and message.ts come from the payload but are sent as JSON body fields,
+      // not as part of the URL.
+      if (this.slackBotToken && payload.channel?.id && payload.message?.ts) {
         await axios.post(
-          safeUrl,
+          'https://slack.com/api/chat.update',
           {
-            replace_original: true,
+            channel: payload.channel.id as string,
+            ts: payload.message.ts as string,
             blocks: updatedBlocks,
           },
-          { timeout: 5_000 },
+          {
+            headers: { Authorization: `Bearer ${this.slackBotToken}` },
+            timeout: 5_000,
+          },
         );
       }
 
