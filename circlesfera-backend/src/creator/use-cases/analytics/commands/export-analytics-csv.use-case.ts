@@ -11,12 +11,18 @@ export class ExportAnalyticsCsvUseCase {
     private readonly getAudienceRetention: GetAudienceRetentionQuery,
   ) {}
 
-  async execute(userId: string, period = '30d'): Promise<string> {
+  async execute(
+    userId: string,
+    profileId: string,
+    period = '30d',
+  ): Promise<string> {
+    // Transaction (revenue) is keyed by User.id; Post/Story (retention) by
+    // Profile.id — these are distinct UUID spaces, so both ids are required.
     const revenue = await this.getRevenueAnalytics.execute(
       userId,
       period as '7d' | '30d' | '90d' | '1y',
     );
-    const retention = await this.getAudienceRetention.execute(userId);
+    const retention = await this.getAudienceRetention.execute(profileId);
 
     const rows = [
       ['Metric', 'Value', 'Unit/Currency'],

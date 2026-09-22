@@ -254,7 +254,9 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
   ) {
-    return this.getRevenueAnalyticsQ.execute(req.user.profileId, period);
+    // Transaction.receiverId stores User.id, not Profile.id — unlike the
+    // Post/Story/Follow-backed analytics queries below, which take profileId.
+    return this.getRevenueAnalyticsQ.execute(req.user.userId, period);
   }
 
   @Get('analytics/retention')
@@ -289,7 +291,11 @@ export class CreatorController {
     @Req() req: AuthRequest,
     @Query('period') period?: string,
   ) {
+    // Same receiverId/User.id vs Profile.id note as getRevenueAnalytics above —
+    // this export reuses both GetRevenueAnalyticsQuery (userId) and
+    // GetAudienceRetentionQuery (profileId).
     return this.exportAnalyticsCsvUC.execute(
+      req.user.userId,
       req.user.profileId,
       period || '30d',
     );
