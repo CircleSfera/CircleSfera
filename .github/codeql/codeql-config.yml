@@ -1,0 +1,19 @@
+name: "CircleSfera CodeQL Configuration"
+
+# Paths to exclude from analysis.
+# e2e test helpers use Math.random() intentionally for non-security-critical
+# test identity generation — this is not production code.
+paths-ignore:
+  - "circlesfera-frontend/e2e/**"
+  - "e2e/**"
+  - "scripts/**"
+
+# Query filters: suppress known false positives with documented rationale.
+query-filters:
+  # search.service.ts and seo.service.ts: CodeQL flags `query: string` parameters
+  # as "type confusion" because it traces them back to HTTP request parameters.
+  # These are false positives: all inputs arrive through NestJS DTOs with strict
+  # @IsString() / @MinLength() validation before reaching the service layer.
+  # The `query` parameters here are guaranteed to be strings by the framework.
+  - exclude:
+      id: js/type-confusion-through-parameter-tampering

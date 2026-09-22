@@ -1,0 +1,9 @@
+# GitGuardian configuration
+# https://docs.gitguardian.com/ggshield-docs/configuration
+
+# Paths to exclude from secret scanning.
+# These files contain intentionally credential-shaped strings for testing
+# the application's own log-redaction and telemetry-scrubbing logic.
+# They are NOT real secrets — see the test assertions in each file.
+ignored-paths:
+  - "circlesfera-backend/src/common/testing/logging-redaction.spec.ts"
