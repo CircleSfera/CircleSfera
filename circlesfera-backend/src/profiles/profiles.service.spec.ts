@@ -130,6 +130,15 @@ describe('ProfilesService', () => {
       expect(result).toEqual(cached);
     });
 
+    it('skips the block check when the viewer is looking at their own profile', async () => {
+      const cached = { id: 'p-self', username: 'cacheduser' };
+      mockCacheManager.get.mockResolvedValue(cached);
+
+      const result = await service.getProfile('cacheduser', 'p-self');
+      expect(result).toEqual(cached);
+      expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
+    });
+
     it('skips the block check entirely when there is no authenticated viewer', async () => {
       const cached = { id: 'p-target', username: 'cacheduser' };
       mockCacheManager.get.mockResolvedValue(cached);
@@ -200,6 +209,29 @@ describe('ProfilesService', () => {
         }),
       );
       expect(result.accountType).toBe('CREATOR');
+    });
+
+    it('does not enqueue a profile embedding when username/fullName/bio are all empty', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: '',
+        fullName: null,
+        bio: null,
+        accountType: 'PERSONAL',
+        verificationLevel: 'BASIC',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', { bio: '' });
+
+      expect(mockAiQueue.add).not.toHaveBeenCalled();
     });
 
     it('should update user settings when isPrivate is provided', async () => {
