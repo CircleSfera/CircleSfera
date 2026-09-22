@@ -221,23 +221,6 @@ export class StripeService implements OnModuleInit {
     });
   }
 
-  // Create a Transfer to a connected account.
-  // Prefer destination charges / application_fee on Checkout (tips, unlocks, VIP).
-  // Kept for rare manual ops; not used by primary monetization flows.
-  async createTransfer(
-    amountInCents: number,
-    currency: string,
-    destinationAccountId: string,
-    description?: string,
-  ): Promise<Stripe.Transfer> {
-    return this.stripe.transfers.create({
-      amount: amountInCents,
-      currency: currency,
-      destination: destinationAccountId,
-      description: description,
-    });
-  }
-
   // Create a login link for the connected Express account.
   async createLoginLink(accountId: string): Promise<Stripe.LoginLink> {
     return this.stripe.accounts.createLoginLink(accountId);
