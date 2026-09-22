@@ -1,8 +1,12 @@
 import { expect, test } from '@playwright/test';
-import { prepareAuthenticatedSession, TEST_USER } from './helpers/session';
+import { prepareAuthenticatedSession } from './helpers/session';
 
 test.describe('Direct', () => {
   test('abre una conversación y envía un mensaje', async ({ page }) => {
+    const { user } = await prepareAuthenticatedSession(page, {
+      scenario: 'direct',
+    });
+
     const now = new Date().toISOString();
     const messages: Record<string, unknown>[] = [
       {
@@ -26,11 +30,11 @@ test.describe('Direct', () => {
         {
           id: 'participant-me',
           conversationId: 'conv-1',
-          profileId: TEST_USER.id,
+          profileId: user.id,
           profile: {
-            id: TEST_USER.id,
-            username: TEST_USER.username,
-            fullName: TEST_USER.displayName,
+            id: user.id,
+            username: user.username,
+            fullName: user.displayName,
             avatar: null,
           },
         },
@@ -48,8 +52,6 @@ test.describe('Direct', () => {
       ],
       messages,
     };
-
-    await prepareAuthenticatedSession(page);
 
     await page.route('**/api/v1/chat/conversations**', async (route) => {
       const url = route.request().url();
@@ -85,7 +87,7 @@ test.describe('Direct', () => {
           content: reqData.content,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          senderId: TEST_USER.id,
+          senderId: user.id,
           conversationId: 'conv-1',
           isDeleted: false,
           tempId: reqData.tempId,

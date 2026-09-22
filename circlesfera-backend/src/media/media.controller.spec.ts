@@ -11,6 +11,7 @@ import {
   it,
   vi,
 } from 'vitest';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { createControllerApp } from '../common/testing/http-controller.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -69,14 +70,14 @@ const mockStorageProvider = {
   ),
 };
 
-describe('MediaController', () => {
-  let app: INestApplication;
+const mockPrismaService = {
+  postMedia: {
+    findUnique: vi.fn(),
+  },
+};
 
-  const mockPrismaService = {
-    postMedia: {
-      findUnique: vi.fn(),
-    },
-  };
+describe('MediaController (HTTP integration)', () => {
+  let app: INestApplication;
 
   const mockMediaAuthService = {
     isAccessAllowed: vi.fn().mockResolvedValue(true),
@@ -90,6 +91,7 @@ describe('MediaController', () => {
         { provide: MediaAuthService, useValue: mockMediaAuthService },
         { provide: STORAGE_PROVIDER, useValue: mockStorageProvider },
       ],
+      guards: [{ guard: JwtOptionalGuard, mode: 'optional' }],
     });
     fs.mkdirSync(mediaDir, { recursive: true });
   });
@@ -237,5 +239,31 @@ describe('MediaController', () => {
     // at least once if any earlier test ran. Here we just confirm the mock itself
     // is the injected provider (structural check).
     expect(mockStorageProvider.getMediaArtifact).toBeDefined();
+  });
+
+  describe('authCheck', () => {
+    it('returns 204 when access is allowed', async () => {
+      mockMediaAuthService.isAccessAllowed.mockResolvedValueOnce(true);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/media/auth-check')
+        .set('x-original-uri', '/uploads/posts/img.jpg')
+        .expect(204);
+
+      expect(mockMediaAuthService.isAccessAllowed).toHaveBeenCalledWith(
+        '/uploads/posts/img.jpg',
+        null,
+        null,
+      );
+    });
+
+    it('returns 403 when access is denied', async () => {
+      mockMediaAuthService.isAccessAllowed.mockResolvedValueOnce(false);
+
+      await request(app.getHttpServer())
+        .get('/api/v1/media/auth-check')
+        .set('x-original-uri', '/uploads/private/doc.pdf')
+        .expect(403);
+    });
   });
 });

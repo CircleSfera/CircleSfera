@@ -2,6 +2,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AIModule } from '../ai/ai.module.js';
 import { AudioModule } from '../audio/audio.module.js';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { CreatorModule } from '../creator/creator.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
@@ -46,8 +50,8 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     UsersModule,
     PaymentsModule,
     BullModule.registerQueue(
-      { name: 'ai-processing' },
-      { name: 'analytics-processing' },
+      getRegisterQueueOptions(QUEUE_NAMES.AI_PROCESSING),
+      getRegisterQueueOptions(QUEUE_NAMES.ANALYTICS_PROCESSING),
     ),
   ],
   controllers: [

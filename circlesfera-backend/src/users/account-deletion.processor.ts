@@ -1,17 +1,18 @@
-import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { InjectQueue, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
-import type { Job, Queue } from 'bullmq';
+import { type Job, type Queue, UnrecoverableError } from 'bullmq';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { getFinancialAuditRecords } from './data-retention.constants.js';
 import {
   USER_HARD_DELETED_EVENT,
   UserHardDeletedEvent,
 } from './events/user-hard-deleted.event.js';
 import { UsersService } from './users.service.js';
 
-@Processor('users-processing')
+@Injectable()
 export class AccountDeletionProcessor extends WorkerHost {
   private readonly logger = new Logger(AccountDeletionProcessor.name);
 
@@ -32,9 +33,11 @@ export class AccountDeletionProcessor extends WorkerHost {
       case 'clean-expired-accounts':
         return this.cleanExpiredAccounts();
       case 'hard-delete-user':
-        return this.hardDeleteUser(job.data.userId);
+        return this.hardDeleteUser(job.data?.userId);
       default:
-        return undefined;
+        throw new UnrecoverableError(
+          `Unknown job name in AccountDeletionProcessor: ${job.name}`,
+        );
     }
   }
 
@@ -49,8 +52,10 @@ export class AccountDeletionProcessor extends WorkerHost {
         },
       });
       this.logger.log(`Purged ${result.count} expired search history records.`);
+      return result;
     } catch (error) {
       this.logger.error('Failed to purge expired search history', error);
+      throw error;
     }
   }
 
@@ -85,12 +90,17 @@ export class AccountDeletionProcessor extends WorkerHost {
       this.logger.log(
         `Queued ${queuedCount} expired user accounts for hard deletion.`,
       );
+      return { queuedCount };
     } catch (error) {
       this.logger.error('Failed to purge expired accounts', error);
+      throw error;
     }
   }
 
   async hardDeleteUser(userId: string) {
+    if (!userId) {
+      throw new UnrecoverableError('Missing userId for hardDeleteUser');
+    }
     this.logger.log(`Executing hard delete for user ${userId}`);
     try {
       // Phase 1: Atomic lifecycle check
@@ -145,6 +155,30 @@ export class AccountDeletionProcessor extends WorkerHost {
           );
         }
       }
+
+      // Phase 2.5: Financial Record Retention Inventory
+      // Records classified as FINANCIAL_AUDIT survive user hard-deletion.
+      // Their userId FK is set to NULL (onDelete: SetNull) when the User row
+      // is deleted, preserving the row for fiscal compliance (7-year window).
+      //
+      //   Transaction        — senderId/receiverId SetNull (pre-existing)
+      //   StripePayoutLog    — userId SetNull (migration 20260916220736)
+      //   PlatformSubscription — userId SetNull (migration 20260916220736)
+      //
+      // Cascade-deleted (OPERATIONAL, no retention obligation):
+      //   Monetization, Promotion, DataExportRequest
+      //
+      // This log entry provides an auditable record of the retention decision.
+      const financialAuditRecords = getFinancialAuditRecords();
+      this.logger.log(
+        `Financial retention inventory for user ${userId}: ` +
+          financialAuditRecords
+            .map(
+              (r) =>
+                `${r.label} (${r.model}) — ${r.retentionDays / 365}yr retention, disposal: ${r.disposalMethod}`,
+            )
+            .join(' | '),
+      );
 
       // Phase 3: Event Emission with explicit ordering & durable payloads
       const profileIds = (user.profiles ?? []).map((p) => p.id);

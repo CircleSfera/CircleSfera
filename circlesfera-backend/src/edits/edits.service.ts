@@ -286,8 +286,10 @@ export class EditsService {
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} abandoned edit drafts.`);
       }
+      return { count: deleted.count };
     } catch (error) {
       this.logger.error('Failed to clean up abandoned drafts', error);
+      throw error;
     }
   }
 }

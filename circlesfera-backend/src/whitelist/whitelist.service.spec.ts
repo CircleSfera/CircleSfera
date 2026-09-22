@@ -76,6 +76,30 @@ describe('WhitelistService', () => {
       );
       expect(result).toHaveProperty('id', 'w-1');
     });
+
+    it('should create whitelist entry and not fail when welcome email throws', async () => {
+      mockPrismaService.whitelistEntry.findUnique.mockResolvedValue(null);
+      mockPrismaService.whitelistEntry.create.mockResolvedValue({
+        id: 'w-2',
+        email: 'fail-email@example.com',
+        name: null,
+        status: 'VALID',
+      });
+      mockEmailService.sendWelcomeEmail.mockRejectedValueOnce(
+        new Error('SMTP down'),
+      );
+
+      const result = await service.create({
+        email: 'fail-email@example.com',
+      });
+
+      expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
+        'fail-email@example.com',
+        'Amigo',
+      );
+      expect(mockPrismaService.whitelistEntry.create).toHaveBeenCalled();
+      expect(result).toHaveProperty('id', 'w-2');
+    });
   });
 
   describe('findAll', () => {

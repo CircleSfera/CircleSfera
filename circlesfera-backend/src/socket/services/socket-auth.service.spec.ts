@@ -3,6 +3,7 @@ import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
 import type { Socket } from 'socket.io';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AccountStateService } from '../../auth/services/account-state.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import { SocketAuthService } from './socket-auth.service.js';
 
@@ -14,6 +15,7 @@ describe('SocketAuthService', () => {
     user: { findUnique: ReturnType<typeof vi.fn> };
     participant: { findMany: ReturnType<typeof vi.fn> };
   };
+  let accountStateService: AccountStateService;
 
   beforeEach(() => {
     jwtService = { verifyAsync: vi.fn() };
@@ -22,11 +24,13 @@ describe('SocketAuthService', () => {
       user: { findUnique: vi.fn() },
       participant: { findMany: vi.fn() },
     };
+    accountStateService = new AccountStateService();
 
     service = new SocketAuthService(
       jwtService as unknown as JwtService,
       configService as unknown as ConfigService,
       prisma as unknown as PrismaService,
+      accountStateService,
     );
   });
 
@@ -63,6 +67,24 @@ describe('SocketAuthService', () => {
       } as unknown as Socket;
 
       expect(service.extractToken(mockClient)).toBeUndefined();
+    });
+
+    it('handles cookie parsing error gracefully and falls back to Bearer header', async () => {
+      const cookie = await import('cookie');
+      vi.spyOn(cookie, 'parse').mockImplementationOnce(() => {
+        throw new Error('Malformed cookie string');
+      });
+
+      const mockClient = {
+        handshake: {
+          headers: {
+            cookie: 'invalid',
+            authorization: 'Bearer fallback-token',
+          },
+        },
+      } as unknown as Socket;
+
+      expect(service.extractToken(mockClient)).toBe('fallback-token');
     });
   });
 
@@ -105,6 +127,47 @@ describe('SocketAuthService', () => {
       prisma.user.findUnique.mockResolvedValue({
         isActive: true,
         profiles: [{ id: 'p-1', suspendedUntil: new Date(Date.now() + 60000) }],
+      });
+
+      await expect(service.authenticate(mockClient)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throws UnauthorizedException when user is root banned', async () => {
+      const mockClient = {
+        handshake: { headers: { authorization: 'Bearer token-1' } },
+      } as unknown as Socket;
+
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 'user-1',
+        email: 'test@example.com',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        isActive: true,
+        isRootBanned: true,
+        rootBanReason: 'TOS violation',
+        profiles: [{ id: 'p-1' }],
+      });
+
+      await expect(service.authenticate(mockClient)).rejects.toThrow(
+        UnauthorizedException,
+      );
+    });
+
+    it('throws UnauthorizedException when user profile is account banned', async () => {
+      const mockClient = {
+        handshake: { headers: { authorization: 'Bearer token-1' } },
+      } as unknown as Socket;
+
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 'user-1',
+        email: 'test@example.com',
+      });
+      prisma.user.findUnique.mockResolvedValue({
+        isActive: true,
+        isRootBanned: false,
+        profiles: [{ id: 'p-1', isAccountBanned: true }],
       });
 
       await expect(service.authenticate(mockClient)).rejects.toThrow(

@@ -7,6 +7,53 @@ export const TEST_USER = {
   email: 'test@example.com',
 } as const;
 
+export interface ScenarioUser {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  role: string;
+  accountType: TestAccountType;
+}
+
+/**
+ * Generates an isolated mock user identity per test scenario.
+ * Prevents race conditions and state leakage across parallel browser contexts.
+ */
+export function createScenarioUser(
+  options: {
+    scenario?: string;
+    role?: string;
+    accountType?: TestAccountType;
+    id?: string;
+    username?: string;
+    displayName?: string;
+    email?: string;
+  } = {},
+): ScenarioUser {
+  const accountType = options.accountType ?? 'PERSONAL';
+  const rawScenario = (options.scenario || 'test')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+  const prefix = rawScenario.slice(0, 8);
+  const pid = typeof process !== 'undefined' ? process.pid.toString(36) : 'p';
+  const rand = Math.random().toString(36).slice(2, 6);
+  const suffix = `${pid}${rand}`;
+  const username = options.username ?? `${prefix}_${suffix}`.slice(0, 20);
+  const id = options.id ?? `usr_${prefix}_${suffix}`;
+
+  return {
+    id,
+    username,
+    displayName:
+      options.displayName ??
+      `${options.scenario ? options.scenario.charAt(0).toUpperCase() + options.scenario.slice(1) : 'Scenario'} User`,
+    email: options.email ?? `${username}@example.test`,
+    role: options.role ?? 'user',
+    accountType,
+  };
+}
+
 export const emptyPage = {
   data: [] as unknown[],
   meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
@@ -19,15 +66,24 @@ const now = () => new Date().toISOString();
 /** Profile payload matching `ProfileWithUser` as the SPA reads it. */
 export function testProfile(
   overrides: Record<string, unknown> = {},
+  user?: ScenarioUser,
 ): Record<string, unknown> {
+  const base = user ?? {
+    id: (overrides.userId as string) ?? TEST_USER.id,
+    username: (overrides.username as string) ?? TEST_USER.username,
+    displayName: (overrides.fullName as string) ?? TEST_USER.displayName,
+    email: (overrides.email as string) ?? TEST_USER.email,
+    role: (overrides.role as string) ?? 'user',
+    accountType: (overrides.accountType as TestAccountType) ?? 'PERSONAL',
+  };
   const accountType =
-    (overrides.accountType as TestAccountType | undefined) ?? 'PERSONAL';
+    (overrides.accountType as TestAccountType | undefined) ?? base.accountType;
   return {
-    id: TEST_USER.id,
-    userId: TEST_USER.id,
-    username: TEST_USER.username,
-    fullName: TEST_USER.displayName,
-    email: TEST_USER.email,
+    id: base.id,
+    userId: base.id,
+    username: base.username,
+    fullName: base.displayName,
+    email: base.email,
     bio: null,
     avatar: null,
     avatarUrl: null,
@@ -35,15 +91,15 @@ export function testProfile(
     thumbnailUrl: null,
     website: null,
     location: null,
-    role: 'user',
+    role: base.role,
     accountType,
     emailConfirmed: true,
     createdAt: now(),
     updatedAt: now(),
     user: {
-      id: TEST_USER.id,
-      email: TEST_USER.email,
-      role: 'user',
+      id: base.id,
+      email: base.email,
+      role: base.role,
       accountType,
       createdAt: now(),
       _count: { posts: 0, followers: 0, following: 0 },
@@ -54,11 +110,20 @@ export function testProfile(
 
 export function testPost(
   overrides: Record<string, unknown> = {},
+  user?: ScenarioUser,
 ): Record<string, unknown> {
+  const base = user ?? TEST_USER;
+  const profileId = (overrides.profileId as string) ?? base.id;
+  const username = (overrides.username as string) ?? base.username;
+  const displayName =
+    'displayName' in base
+      ? base.displayName
+      : ((overrides.fullName as string) ?? 'Tester');
+
   return {
     id: 'post-1',
     type: 'POST',
-    profileId: TEST_USER.id,
+    profileId,
     caption: null,
     createdAt: now(),
     updatedAt: now(),
@@ -71,10 +136,10 @@ export function testPost(
       },
     ],
     profile: {
-      id: TEST_USER.id,
-      userId: TEST_USER.id,
-      username: TEST_USER.username,
-      fullName: TEST_USER.displayName,
+      id: profileId,
+      userId: profileId,
+      username,
+      fullName: displayName,
       bio: null,
       avatar: null,
       standardUrl: null,
@@ -90,8 +155,11 @@ export function testPost(
   };
 }
 
-function authStoragePayload(accountType: TestAccountType): string {
-  const profile = testProfile({ accountType });
+function authStoragePayload(
+  accountType: TestAccountType,
+  user?: ScenarioUser,
+): string {
+  const profile = testProfile({ accountType }, user);
   return JSON.stringify({
     state: {
       isAuthenticated: true,
@@ -189,10 +257,26 @@ export async function prepareGuestSession(page: Page): Promise<void> {
  */
 export async function prepareAuthenticatedSession(
   page: Page,
-  options: { accountType?: TestAccountType } = {},
-): Promise<void> {
+  options: {
+    accountType?: TestAccountType;
+    scenario?: string;
+    user?: ScenarioUser;
+  } = {},
+): Promise<{ user: ScenarioUser; profile: Record<string, unknown> }> {
   const accountType = options.accountType ?? 'PERSONAL';
-  const meProfile = testProfile({ accountType });
+  const user: ScenarioUser =
+    options.user ??
+    (options.scenario
+      ? createScenarioUser({ scenario: options.scenario, accountType })
+      : {
+          id: TEST_USER.id,
+          username: TEST_USER.username,
+          displayName: TEST_USER.displayName,
+          email: TEST_USER.email,
+          role: 'user',
+          accountType,
+        });
+  const meProfile = testProfile({ accountType }, user);
 
   await stubSpaApi(page);
 
@@ -204,8 +288,8 @@ export async function prepareAuthenticatedSession(
     await route.fulfill({
       status: 200,
       json: {
-        id: TEST_USER.id,
-        email: TEST_USER.email,
+        id: user.id,
+        email: user.email,
         profile: meProfile,
       },
     });
@@ -230,5 +314,6 @@ export async function prepareAuthenticatedSession(
     await route.fulfill({ status: 200, json: [] });
   });
 
-  await injectLocaleAndConsent(page, authStoragePayload(accountType));
+  await injectLocaleAndConsent(page, authStoragePayload(accountType, user));
+  return { user, profile: meProfile };
 }

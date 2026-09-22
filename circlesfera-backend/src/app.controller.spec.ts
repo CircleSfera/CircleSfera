@@ -23,4 +23,12 @@ describe('AppController', () => {
     const res = await request(app.getHttpServer()).get('/api/v1').expect(200);
     expect(res.text).toBe('Hello World!');
   });
+
+  it('generates and returns a csrfToken on /api/v1/csrf-token', async () => {
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/csrf-token')
+      .expect(200);
+    expect(res.body).toHaveProperty('csrfToken');
+    expect(typeof res.body.csrfToken).toBe('string');
+  });
 });

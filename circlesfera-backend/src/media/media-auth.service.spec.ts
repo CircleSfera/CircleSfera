@@ -65,4 +65,148 @@ describe('MediaAuthService', () => {
       await service.isAccessAllowed('/uploads/avatars/user.png', null, null),
     ).toBe(true);
   });
+
+  it('allows public free post media access to anyone including anonymous', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-1',
+      post: { profileId: 'author-1', visibility: 'PUBLIC', isPremium: false },
+    });
+    expect(
+      await service.isAccessAllowed('/uploads/posts/p1.jpg', null, null),
+    ).toBe(true);
+  });
+
+  it('denies anonymous access to protected post media', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-1',
+      post: {
+        profileId: 'author-1',
+        visibility: 'FOLLOWERS',
+        isPremium: false,
+      },
+    });
+    expect(
+      await service.isAccessAllowed('/uploads/posts/p1.jpg', null, null),
+    ).toBe(false);
+  });
+
+  it('allows author to access their own protected content', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-1',
+      post: { profileId: 'author-1', visibility: 'PRIVATE', isPremium: true },
+    });
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/p1.jpg',
+        'user-author',
+        'author-1',
+      ),
+    ).toBe(true);
+  });
+
+  it('checks post unlock for premium / PPV content', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-ppv',
+      post: { profileId: 'author-1', visibility: 'PUBLIC', isPremium: true },
+    });
+
+    // Unlocked
+    mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce({
+      id: 'unlock-1',
+    });
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/ppv.jpg',
+        'buyer-1',
+        'profile-buyer',
+      ),
+    ).toBe(true);
+
+    // Not unlocked
+    mockPrismaService.postUnlock.findUnique.mockResolvedValueOnce(null);
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/ppv.jpg',
+        'nonbuyer-1',
+        'profile-nonbuyer',
+      ),
+    ).toBe(false);
+  });
+
+  it('checks follow relationship for followers-only posts', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-followers',
+      post: {
+        profileId: 'author-1',
+        visibility: 'FOLLOWERS',
+        isPremium: false,
+      },
+    });
+
+    // Follower
+    mockPrismaService.follow.findFirst.mockResolvedValueOnce({ id: 'f-1' });
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/followers.jpg',
+        'follower-user',
+        'follower-profile',
+      ),
+    ).toBe(true);
+
+    // Not a follower
+    mockPrismaService.follow.findFirst.mockResolvedValueOnce(null);
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/followers.jpg',
+        'stranger-user',
+        'stranger-profile',
+      ),
+    ).toBe(false);
+  });
+
+  it('checks close-friend relationship for private posts and handles fallback deny', async () => {
+    mockPrismaService.postMedia.findFirst.mockResolvedValue({
+      postId: 'post-cf',
+      post: { profileId: 'author-1', visibility: 'PRIVATE', isPremium: false },
+    });
+
+    // Close friend
+    mockPrismaService.closeFriend.findFirst.mockResolvedValueOnce({
+      id: 'cf-1',
+    });
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/cf.jpg',
+        'friend-user',
+        'friend-profile',
+      ),
+    ).toBe(true);
+
+    // Not a close friend
+    mockPrismaService.closeFriend.findFirst.mockResolvedValueOnce(null);
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/cf.jpg',
+        'friend-user',
+        'friend-profile',
+      ),
+    ).toBe(false);
+
+    // Unexpected visibility fallback
+    mockPrismaService.postMedia.findFirst.mockResolvedValueOnce({
+      postId: 'post-other',
+      post: {
+        profileId: 'author-1',
+        visibility: 'CUSTOM' as any,
+        isPremium: false,
+      },
+    });
+    expect(
+      await service.isAccessAllowed(
+        '/uploads/posts/other.jpg',
+        'viewer-u',
+        'viewer-p',
+      ),
+    ).toBe(false);
+  });
 });

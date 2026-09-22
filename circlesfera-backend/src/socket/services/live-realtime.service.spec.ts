@@ -49,6 +49,10 @@ describe('LiveRealtimeService', () => {
       const count = await service.incrementViewerCount('stream-1');
 
       expect(count).toBe(1);
+
+      prisma.liveStream.update.mockRejectedValue('raw string error');
+      const fallbackCount = await service.incrementViewerCount('stream-1');
+      expect(fallbackCount).toBe(1);
     });
   });
 
@@ -75,6 +79,10 @@ describe('LiveRealtimeService', () => {
       prisma.liveStream.update.mockRejectedValue(new Error('DB error'));
       const errorFallbackCount = await service.decrementViewerCount('stream-1');
       expect(errorFallbackCount).toBe(0);
+
+      prisma.liveStream.update.mockRejectedValue('raw string error');
+      const nonErrorFallback = await service.decrementViewerCount('stream-1');
+      expect(nonErrorFallback).toBe(0);
     });
   });
 
@@ -126,6 +134,11 @@ describe('LiveRealtimeService', () => {
         'viewer-profile',
       );
       expect(result).toBe(false);
+    });
+
+    it('returns false when streamId or profileId is empty', async () => {
+      expect(await service.isStreamHostOrCoHost('', 'prof-1')).toBe(false);
+      expect(await service.isStreamHostOrCoHost('stream-1', '')).toBe(false);
     });
   });
 

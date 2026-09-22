@@ -1,6 +1,7 @@
+import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
-import type { PrismaService } from '../../prisma/prisma.service.js';
+import { AddReactionUseCase } from '../../chat/use-cases/messages/add-reaction.use-case.js';
+import { PrismaService } from '../../prisma/prisma.service.js';
 import { ChatRealtimeService } from './chat-realtime.service.js';
 
 describe('ChatRealtimeService', () => {
@@ -11,17 +12,22 @@ describe('ChatRealtimeService', () => {
   };
   let addReactionUseCase: { execute: ReturnType<typeof vi.fn> };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     prisma = {
       participant: { findUnique: vi.fn() },
       conversation: { findUnique: vi.fn() },
     };
     addReactionUseCase = { execute: vi.fn() };
 
-    service = new ChatRealtimeService(
-      prisma as unknown as PrismaService,
-      addReactionUseCase as unknown as AddReactionUseCase,
-    );
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        ChatRealtimeService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: AddReactionUseCase, useValue: addReactionUseCase },
+      ],
+    }).compile();
+
+    service = module.get<ChatRealtimeService>(ChatRealtimeService);
   });
 
   it('rejects reaction if caller is not a participant in the conversation and not cached', async () => {
@@ -111,5 +117,54 @@ describe('ChatRealtimeService', () => {
     expect(result.success).toBe(true);
     expect(result.grantConversationAccess).toBe(true);
     expect(result.participantProfileIds).toEqual(['profile-1']);
+  });
+
+  it('handles null conversation when querying participants', async () => {
+    addReactionUseCase.execute.mockResolvedValue({
+      id: 'reaction-1',
+      reaction: '👍',
+    });
+    prisma.conversation.findUnique.mockResolvedValue(null);
+
+    const result = await service.addReaction(
+      'msg-1',
+      'conv-1',
+      'profile-1',
+      '👍',
+      true,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.participantProfileIds).toEqual([]);
+  });
+
+  it('handles error when addReactionUseCase throws an Error instance', async () => {
+    addReactionUseCase.execute.mockRejectedValueOnce(
+      new Error('Validation failed'),
+    );
+
+    const result = await service.addReaction(
+      'msg-1',
+      'conv-1',
+      'profile-1',
+      '👍',
+      true,
+    );
+
+    expect(result.success).toBe(false);
+  });
+
+  it('handles error when addReactionUseCase throws a non-Error', async () => {
+    addReactionUseCase.execute.mockRejectedValueOnce('raw string error');
+
+    const result = await service.addReaction(
+      'msg-1',
+      'conv-1',
+      'profile-1',
+      '👍',
+      true,
+    );
+
+    expect(result.success).toBe(false);
   });
 });

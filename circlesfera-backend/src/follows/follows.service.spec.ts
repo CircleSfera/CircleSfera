@@ -369,5 +369,129 @@ describe('FollowsService', () => {
       expect(result.expiresAt).toBe('2026-09-06T12:00:00.000Z');
       vi.useRealTimers();
     });
+
+    it('sets expiresAt for 7d, 30d, and throws for self-mute or missing user', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-09-05T12:00:00.000Z'));
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'muted-1',
+        username: 'bob',
+      });
+      mockPrismaService.mute.upsert.mockResolvedValue({});
+
+      const res7d = await service.muteUser('muter-1', 'bob', '7d');
+      expect(res7d.expiresAt).toBe('2026-09-12T12:00:00.000Z');
+
+      const res30d = await service.muteUser('muter-1', 'bob', '30d');
+      expect(res30d.expiresAt).toBe('2026-10-05T12:00:00.000Z');
+      vi.useRealTimers();
+
+      // Missing profile
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(service.muteUser('muter-1', 'unknown')).rejects.toThrow(
+        AppException,
+      );
+
+      // Self mute
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'muter-1' });
+      await expect(service.muteUser('muter-1', 'self')).rejects.toThrow(
+        AppException,
+      );
+    });
+  });
+
+  describe('unmuteUser & getMutedUsers', () => {
+    it('unmutes user successfully and handles delete errors gracefully', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'muted-2' });
+      mockPrismaService.mute.delete.mockResolvedValue({});
+
+      const res = await service.unmuteUser('muter-1', 'muted2');
+      expect(res.success).toBe(true);
+
+      // Delete throws (not muted)
+      mockPrismaService.mute.delete.mockRejectedValue(
+        new Error('Record not found'),
+      );
+      const resError = await service.unmuteUser('muter-1', 'muted2');
+      expect(resError.success).toBe(true);
+
+      // User not found
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(service.unmuteUser('muter-1', 'missing')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('gets active muted users after pruning expired entries', async () => {
+      mockPrismaService.mute.deleteMany.mockResolvedValue({ count: 2 });
+      mockPrismaService.mute.findMany.mockResolvedValue([
+        {
+          createdAt: new Date(),
+          expiresAt: null,
+          muted: { id: 'muted-3', user: {} },
+        },
+      ]);
+
+      const result = await service.getMutedUsers('muter-1');
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.mute.deleteMany).toHaveBeenCalled();
+    });
+  });
+
+  describe('edge cases for block, list, check, and requests', () => {
+    it('throws NotFound in toggle if profile not found', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(
+        service.toggle('unknown', 'user-1', 'user-1'),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('returns NONE in checkFollow if profile not found', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      const res = await service.checkFollow('unknown', 'user-1');
+      expect(res).toEqual({ following: false, status: 'NONE' });
+    });
+
+    it('throws NotFound in getFollowers and getFollowing if profile not found', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(service.getFollowers('unknown')).rejects.toThrow(
+        AppException,
+      );
+      await expect(service.getFollowing('unknown')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('throws NotFound in blockUser and unblockUser if profile not found', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(service.blockUser('u1', 'unknown')).rejects.toThrow(
+        AppException,
+      );
+      await expect(service.unblockUser('u1', 'unknown')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('throws NotFound in acceptFollowRequest and rejectFollowRequest if profile or request not found', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      await expect(
+        service.acceptFollowRequest('u1', 'unknown'),
+      ).rejects.toThrow(AppException);
+      await expect(
+        service.rejectFollowRequest('u1', 'unknown'),
+      ).rejects.toThrow(AppException);
+
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'u-req' });
+      mockPrismaService.follow.findUnique.mockResolvedValue({
+        id: 'f-acc',
+        status: 'ACCEPTED',
+      });
+      await expect(service.acceptFollowRequest('u1', 'u-req')).rejects.toThrow(
+        AppException,
+      );
+      await expect(service.rejectFollowRequest('u1', 'u-req')).rejects.toThrow(
+        AppException,
+      );
+    });
   });
 });

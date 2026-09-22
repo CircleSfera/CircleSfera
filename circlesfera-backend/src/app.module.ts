@@ -27,6 +27,7 @@ import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AppealsModule } from './appeals/appeals.module.js';
 import { AudioModule } from './audio/audio.module.js';
+import { AccountStateModule } from './auth/account-state.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { BookmarksModule } from './bookmarks/bookmarks.module.js';
 import { ChatModule } from './chat/chat.module.js';
@@ -37,11 +38,16 @@ import { AbuseModule } from './common/abuse/abuse.module.js';
 import { RedisCacheModule } from './common/cache/cache.module.js';
 import { AppConfigModule } from './common/config/app-config.module.js';
 import { validateEnv } from './common/config/env.validation.js';
+import { GLOBAL_DEFAULT_JOB_OPTIONS } from './common/constants/queue-policy.constants.js';
 import { CorrelationMiddleware } from './common/correlation/correlation.middleware.js';
 import { CsrfController } from './common/csrf/csrf.controller.js';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
 import { ObservabilityInterceptor } from './common/interceptors/observability.interceptor.js';
 import { ObservabilityModule } from './common/observability/observability.module.js';
+import {
+  createPinoRedactPaths,
+  REDACTED_CENSOR,
+} from './common/observability/redaction.util.js';
 import { CryptoModule } from './common/services/crypto.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
@@ -96,7 +102,10 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
               }
             : undefined,
         level: process.env.NODE_ENV !== 'production' ? 'debug' : 'info',
-        redact: ['req.headers.cookie', 'req.headers.authorization'],
+        redact: {
+          paths: createPinoRedactPaths(),
+          censor: REDACTED_CENSOR,
+        },
       },
     }),
 
@@ -115,6 +124,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
           port: configService.get<number>('REDIS_PORT') || 6379,
           password: configService.get<string>('REDIS_PASSWORD') || undefined,
         },
+        defaultJobOptions: GLOBAL_DEFAULT_JOB_OPTIONS,
       }),
     }),
     ConfigModule.forRoot({
@@ -147,6 +157,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
       }),
     }),
     PrismaModule,
+    AccountStateModule,
     AuthModule,
     AdminAuthModule,
     ProfilesModule,

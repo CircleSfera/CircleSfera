@@ -97,6 +97,62 @@ describe('CollectionsService', () => {
         data: { name: 'Later', description: 'Notes' },
       });
     });
+    it('should update name only when description is undefined', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'profile-1',
+      });
+      mockPrismaService.collection.update.mockResolvedValue({
+        id: 'col-1',
+        name: 'Only Name',
+      });
+
+      await service.update('profile-1', 'col-1', {
+        name: 'Only Name',
+      });
+      expect(mockPrismaService.collection.update).toHaveBeenCalledWith({
+        where: { id: 'col-1' },
+        data: { name: 'Only Name' },
+      });
+    });
+
+    it('should set description to null when blank string is passed in update', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'profile-1',
+      });
+      mockPrismaService.collection.update.mockResolvedValue({
+        id: 'col-1',
+        name: 'Name',
+        description: null,
+      });
+
+      await service.update('profile-1', 'col-1', {
+        name: 'Name',
+        description: '   ',
+      });
+      expect(mockPrismaService.collection.update).toHaveBeenCalledWith({
+        where: { id: 'col-1' },
+        data: { name: 'Name', description: null },
+      });
+    });
+
+    it('should throw NotFound when updating non-existent collection', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue(null);
+      await expect(
+        service.update('profile-1', 'invalid-id', { name: 'New' }),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('should throw Forbidden when updating collection owned by someone else', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'other-profile',
+      });
+      await expect(
+        service.update('profile-1', 'col-1', { name: 'New' }),
+      ).rejects.toThrow(AppException);
+    });
   });
 
   describe('findAll', () => {
@@ -115,10 +171,30 @@ describe('CollectionsService', () => {
           ],
           _count: { bookmarks: 1 },
         },
+        {
+          id: 'col-2',
+          name: 'Existing Cover',
+          coverUrl: 'https://cdn.example.com/cover.jpg',
+          bookmarks: [],
+          _count: { bookmarks: 0 },
+        },
+        {
+          id: 'col-3',
+          name: 'No Media in Post',
+          coverUrl: null,
+          bookmarks: [
+            {
+              post: { media: [] },
+            },
+          ],
+          _count: { bookmarks: 1 },
+        },
       ]);
 
       const collections = await service.findAll('profile-1');
       expect(collections[0].coverUrl).toBe('https://cdn.example.com/arch.jpg');
+      expect(collections[1].coverUrl).toBe('https://cdn.example.com/cover.jpg');
+      expect(collections[2].coverUrl).toBeNull();
     });
   });
 
@@ -141,9 +217,37 @@ describe('CollectionsService', () => {
         AppException,
       );
     });
+
+    it('should return collection if owned by user', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'profile-1',
+        bookmarks: [],
+      });
+
+      const result = await service.findOne('profile-1', 'col-1');
+      expect(result).toHaveProperty('id', 'col-1');
+    });
   });
 
   describe('delete', () => {
+    it('should throw NotFound when deleting non-existent collection', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue(null);
+      await expect(
+        service.delete('profile-1', 'col-non-existent'),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('should throw Forbidden when deleting collection of another user', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'other-profile',
+      });
+      await expect(service.delete('profile-1', 'col-1')).rejects.toThrow(
+        AppException,
+      );
+    });
+
     it('should delete collection if user owns it', async () => {
       mockPrismaService.collection.findUnique.mockResolvedValue({
         id: 'col-1',

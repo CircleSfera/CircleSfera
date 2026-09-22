@@ -1,6 +1,10 @@
 import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { StoriesProcessor } from './processors/stories.processor.js';
 import { StoriesController } from './stories.controller.js';
@@ -8,12 +12,10 @@ import { StoriesService } from './stories.service.js';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'ai-processing',
-    }),
-    BullModule.registerQueue({
-      name: 'stories-processing',
-    }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.AI_PROCESSING),
+      getRegisterQueueOptions(QUEUE_NAMES.STORIES_PROCESSING),
+    ),
     UploadsModule,
   ],
   controllers: [StoriesController],

@@ -178,5 +178,142 @@ describe('EmailService', () => {
         mBrevoInstance.transactionalEmails.sendTransacEmail,
       ).toHaveBeenCalledTimes(6);
     });
+
+    it('should send a broadcast email with and without button', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      await service.sendBroadcastEmail(
+        'user@example.com',
+        'Special Announcement',
+        'Hello World',
+        'We have updates.',
+        'View Updates',
+        'https://circlesfera.com/updates',
+      );
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Special Announcement',
+          to: [{ email: 'user@example.com' }],
+        }),
+      );
+
+      await service.sendBroadcastEmail(
+        'user@example.com',
+        'No Button Update',
+        'Quick note',
+        'Just text content.',
+      );
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it('should send a moderation email', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      await service.sendModerationEmail(
+        'badactor@example.com',
+        'John',
+        'REMOVED',
+        'POST',
+        'Spam violation',
+      );
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Aviso de Moderación - CircleSfera',
+          to: [{ email: 'badactor@example.com' }],
+        }),
+      );
+    });
+
+    it('should send a support reply email', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      await service.sendSupportReplyEmail(
+        'support-asker@example.com',
+        'Billing inquiry',
+        'Here is the response line 1\nHere is line 2',
+      );
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Re: Billing inquiry - Soporte CircleSfera',
+          to: [{ email: 'support-asker@example.com' }],
+        }),
+      );
+    });
+
+    it('should send a subscription receipt email', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      await service.sendSubscriptionReceipt(
+        'subscriber@example.com',
+        'Pro Creator',
+        '$19.99/month',
+      );
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subject: 'Recibo de Suscripción - Pro Creator',
+          to: [{ email: 'subscriber@example.com' }],
+        }),
+      );
+    });
+
+    it('should log verification link in development mode and handle fallback configs', async () => {
+      mockConfigService.get.mockImplementation((key: string) => {
+        if (key === 'BREVO_API_KEY') return 'test_key';
+        if (key === 'NODE_ENV') return 'development';
+        return null; // Test fallback values for FRONTEND_URL, EMAIL_FROM, EMAIL_FROM_NAME
+      });
+
+      const module = await Test.createTestingModule({
+        providers: [
+          EmailService,
+          { provide: ConfigService, useValue: mockConfigService },
+        ],
+      }).compile();
+
+      const devService = module.get<EmailService>(EmailService);
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+
+      await devService.sendVerificationEmail('dev@example.com', 'devtoken');
+      await devService.sendPasswordResetEmail('dev@example.com', 'resettoken');
+      await devService.sendSubscriptionReceipt(
+        'dev@example.com',
+        'Basic',
+        'Free',
+      );
+
+      expect(
+        mBrevoInstance.transactionalEmails.sendTransacEmail,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          sender: { email: 'noreply@circlesfera.com', name: 'CircleSfera' },
+        }),
+      );
+    });
+
+    it('should clean up recipientSendTimestamps when size exceeds 5000', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+      const map = (
+        service as unknown as { recipientSendTimestamps: Map<string, number[]> }
+      ).recipientSendTimestamps;
+
+      // Populate 5002 entries with old and recent timestamps
+      const now = Date.now();
+      for (let i = 0; i < 5002; i++) {
+        // Half expired, half active
+        const ts = i % 2 === 0 ? now - 1000000 : now - 1000;
+        map.set(`user${i}@example.com`, [ts]);
+      }
+
+      expect(map.size).toBe(5002);
+      await service.sendWelcomeEmail('trigger-prune@example.com', 'Pruner');
+      // Size should have decreased due to cleanup of expired timestamps
+      expect(map.size).toBeLessThan(5002);
+    });
   });
 });

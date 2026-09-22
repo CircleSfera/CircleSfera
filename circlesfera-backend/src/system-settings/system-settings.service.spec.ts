@@ -79,4 +79,38 @@ describe('SystemSettingsService', () => {
     );
     expect(prisma.systemSetting.findUnique).not.toHaveBeenCalled();
   });
+
+  it('lists all system settings after ensuring defaults', async () => {
+    const list = await service.list();
+    expect(prisma.systemSetting.findMany).toHaveBeenCalledWith({
+      orderBy: { key: 'asc' },
+    });
+    expect(Array.isArray(list)).toBe(true);
+  });
+
+  it('invalidates all system settings keys in cache', async () => {
+    await service.invalidateAll();
+    expect(cache.del).toHaveBeenCalled();
+  });
+
+  it('falls back to default when row has invalid or missing value', async () => {
+    cache.get.mockResolvedValueOnce(undefined);
+    prisma.systemSetting.findUnique.mockResolvedValueOnce({
+      key: SYSTEM_SETTING_KEYS.MAINTENANCE_MODE,
+      value: 'unexpected-non-boolean',
+      description: null,
+      updatedBy: 'system',
+    } as any);
+
+    const value = await service.getValue(SYSTEM_SETTING_KEYS.MAINTENANCE_MODE);
+    expect(value).toBe('false');
+  });
+
+  it('falls back to false string for unknown key not in defaults', async () => {
+    cache.get.mockResolvedValueOnce(undefined);
+    prisma.systemSetting.findUnique.mockResolvedValueOnce(null);
+
+    const value = await service.getValue('UNKNOWN_KEY' as any);
+    expect(value).toBe('false');
+  });
 });

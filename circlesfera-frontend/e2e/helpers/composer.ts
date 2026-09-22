@@ -14,8 +14,11 @@ export type ComposerMode = 'post' | 'frame';
  * Auth + cookie consent + es locale + API stubs so /create works without a backend.
  * Stubs network only — UI under test is the real React composer.
  */
-export async function prepareComposerSession(page: Page): Promise<void> {
-  await prepareAuthenticatedSession(page);
+export async function prepareComposerSession(
+  page: Page,
+  options: { scenario?: string } = {},
+): Promise<void> {
+  await prepareAuthenticatedSession(page, options);
 
   await page.route('**/api/v1/uploads', async (route) => {
     await route.fulfill({

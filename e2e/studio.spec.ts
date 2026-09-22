@@ -3,7 +3,7 @@ import { enterAsNewUser, POST_IMAGE } from './helpers/session.js';
 
 test.describe('Edits Studio', () => {
   test('loads studio chrome and can import a still', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'studio' });
     await page.goto('/edits');
     await expect(page).toHaveURL(/\/edits/);
     await expect(
@@ -25,7 +25,7 @@ test.describe('Edits Studio', () => {
   });
 
   test('undo/redo and export chrome on desktop', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'studio' });
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.goto('/edits');
     await expect(page.getByRole('button', { name: 'Deshacer' })).toBeVisible();
@@ -34,7 +34,7 @@ test.describe('Edits Studio', () => {
   });
 
   test('can cancel an in-flight export', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'studio' });
     await page.route('**/ffmpeg/ffmpeg-core.wasm', async () => {
       await new Promise(() => {
         /* hang until cancel aborts encode — isolate wasm, not Nest */

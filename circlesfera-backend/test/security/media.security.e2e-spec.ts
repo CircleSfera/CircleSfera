@@ -110,4 +110,70 @@ describe('Media Security (e2e)', () => {
       unlinkSync(filePath);
     }
   });
+
+  it('should reject unauthenticated upload requests with 401 Unauthorized', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/uploads')
+      .set('x-csrf-token', userCsrf)
+      .expect(401);
+  });
+
+  it('should reject upload requests without file attachment with 400 Bad Request', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/uploads')
+      .set('Cookie', [userCookie])
+      .set('x-csrf-token', userCsrf)
+      .expect(400);
+  });
+
+  it('should reject uploads from users with unverified emails with 403 Forbidden', async () => {
+    const unverifiedSuffix = uniqueSuffix();
+    const unverifiedUser = {
+      email: `unverified_${unverifiedSuffix}@example.com`,
+      password: 'Password123!',
+      username: `unverified_${unverifiedSuffix}`,
+      dateOfBirth: '1992-05-10',
+    };
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .set('Cookie', [userCookie])
+      .set('x-csrf-token', userCsrf)
+      .send(unverifiedUser)
+      .expect(201);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/api/v1/auth/login')
+      .set('Cookie', [userCookie])
+      .set('x-csrf-token', userCsrf)
+      .send({
+        identifier: unverifiedUser.email,
+        password: unverifiedUser.password,
+      })
+      .expect(200);
+
+    const unverifiedCookies = (loginRes.get('Set-Cookie') as string[]) || [];
+    const unverifiedAuthCookie = [
+      userCookie.split(';')[0],
+      ...unverifiedCookies,
+    ].join('; ');
+
+    const sampleContent = 'dummy content';
+    const filePath = join(__dirname, `sample-${unverifiedSuffix}.png`);
+    writeFileSync(filePath, sampleContent);
+
+    try {
+      await request(app.getHttpServer())
+        .post('/api/v1/uploads')
+        .set('Cookie', [unverifiedAuthCookie])
+        .set('x-csrf-token', userCsrf)
+        .attach('file', filePath, {
+          filename: 'sample.png',
+          contentType: 'image/png',
+        })
+        .expect(403);
+    } finally {
+      unlinkSync(filePath);
+    }
+  });
 });

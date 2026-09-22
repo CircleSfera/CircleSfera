@@ -1,5 +1,6 @@
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AccountType,
   ContentRating,
@@ -11,6 +12,7 @@ import {
 import type { Queue } from 'bullmq';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
@@ -23,6 +25,8 @@ export class UsersService {
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
+    @Inject(OutboxService) private readonly outboxService: OutboxService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -85,10 +89,18 @@ export class UsersService {
   // Ban (deactivate) a user account. Admin only.
   // Param id: The user ID to ban
   async banUser(id: string) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, isRootBanned: true },
     });
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId: id },
+    });
+    this.eventEmitter.emit('user.session.terminate', {
+      userId: id,
+      reason: 'Account banned by administration',
+    });
+    return updated;
   }
 
   // Unban (reactivate) a user account. Admin only.
@@ -96,11 +108,11 @@ export class UsersService {
   async unbanUser(id: string) {
     await this.prisma.profile.updateMany({
       where: { userId: id },
-      data: { suspendedUntil: null },
+      data: { suspendedUntil: null, isAccountBanned: false },
     });
     return this.prisma.user.update({
       where: { id },
-      data: { isActive: true },
+      data: { isActive: true, isRootBanned: false },
     });
   }
 
@@ -325,30 +337,58 @@ export class UsersService {
   }
 
   // Schedule user account for deletion after 30 days (GDPR grace window).
-  // Sets deletedAt = now (soft leave) and scheduledDeletionAt = now + 30d (hard delete due).
+  // Atomically persists the soft-delete state and enqueues the hard-delete job
+  // via OutboxService inside a single Prisma transaction, eliminating the
+  // dual-write gap that could cause a missed deletion if the process crashes
+  // between the DB write and the BullMQ enqueue.
+  //
+  // Recovery: the cleanExpiredAccounts cron re-queues any orphaned deletions
+  // (scheduledDeletionAt <= now) as a fallback, ensuring no deletion is lost.
+  //
   // Param userId: The user ID
   // Returns The scheduled hard-deletion date
   async scheduleDeletion(userId: string) {
     const now = new Date();
     const scheduledDeletionAt = new Date(now);
     scheduledDeletionAt.setDate(scheduledDeletionAt.getDate() + 30);
+    const delayMs = 30 * 24 * 60 * 60 * 1000;
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isActive: false,
-        deletedAt: now,
-        scheduledDeletionAt,
-      } satisfies Prisma.UserUpdateInput,
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: {
+          isActive: false,
+          deletedAt: now,
+          scheduledDeletionAt,
+        } satisfies Prisma.UserUpdateInput,
+      });
+
+      await tx.refreshToken.deleteMany({
+        where: { userId },
+      });
+
+      // Enqueue hard-delete job atomically with the DB state change.
+      // The OutboxService sweeper guarantees delivery even after a crash.
+      await this.outboxService.enqueue(tx, {
+        queueName: 'users-processing',
+        eventName: 'hard-delete-user',
+        payload: { userId },
+        options: {
+          delay: delayMs,
+          jobId: `delete-${userId}`,
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      });
     });
 
-    // Schedule BullMQ job for Hard Delete (Exactly 30 days from now)
-    const delayMs = 30 * 24 * 60 * 60 * 1000;
-    await this.usersQueue.add(
-      'hard-delete-user',
-      { userId },
-      { delay: delayMs, jobId: `delete-${userId}` },
-    );
+    this.eventEmitter.emit('user.session.terminate', {
+      userId,
+      reason: 'Account scheduled for deletion',
+    });
+
+    // Trigger immediate outbox publish for sub-second delivery after commit.
+    this.outboxService.triggerImmediatePublish();
 
     return scheduledDeletionAt;
   }

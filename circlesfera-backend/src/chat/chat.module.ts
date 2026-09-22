@@ -4,6 +4,10 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import type { Queue } from 'bullmq';
 
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PushModule } from '../push/push.module.js';
@@ -54,9 +58,9 @@ const useCases = [
     PrismaModule,
     PushModule,
     ConfigModule,
-    BullModule.registerQueue({
-      name: 'chat-processing',
-    }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.CHAT_PROCESSING),
+    ),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

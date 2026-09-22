@@ -1,5 +1,6 @@
 import * as crypto from 'node:crypto';
-import { Inject, Logger } from '@nestjs/common';
+import { Inject, Logger, Optional } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import {
   ConnectedSocket,
@@ -11,6 +12,10 @@ import {
   WebSocketServer,
 } from '@nestjs/websockets';
 import type { Server, Socket } from 'socket.io';
+import {
+  isOriginAllowed,
+  parseAllowedOrigins,
+} from '../common/config/origin.config.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
@@ -50,7 +55,6 @@ export interface SocketWithAuth extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: true,
     credentials: true,
   },
   namespace: 'events',
@@ -74,10 +78,29 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly webrtcSignalingService: WebrtcSignalingService,
     @Inject(LiveRealtimeService)
     private readonly liveRealtimeService: LiveRealtimeService,
+    @Optional()
+    @Inject(ConfigService)
+    private readonly configService?: ConfigService,
   ) {}
 
   async handleConnection(client: Socket) {
     try {
+      const origin = client.handshake?.headers?.origin;
+      if (origin && typeof origin === 'string') {
+        const corsOrigin = this.configService?.get<string>('CORS_ORIGIN');
+        const isProd =
+          this.configService?.get<string>('NODE_ENV') === 'production';
+        const allowedOrigins = parseAllowedOrigins(corsOrigin, isProd);
+
+        if (!isOriginAllowed(origin, allowedOrigins)) {
+          this.logger.warn(
+            `Cross-Site WebSocket Hijacking guard: dropped connection from unauthorized origin: ${origin}`,
+          );
+          client.disconnect(true);
+          return;
+        }
+      }
+
       const auth = await this.socketAuthService.authenticate(client);
 
       const rawCorrelation =
@@ -906,6 +929,41 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }) {
     if (event?.recipientId && event?.notification) {
       this.sendNotification(event.recipientId, event.notification);
+    }
+  }
+
+  @OnEvent('user.session.terminate')
+  handleUserSessionTerminate(event: {
+    userId: string;
+    profileId?: string;
+    reason?: string;
+  }) {
+    const { userId, profileId, reason = 'Account state changed' } = event;
+    this.logger.log(
+      `Terminating realtime sessions for user=${userId} profile=${profileId} (reason: ${reason})`,
+    );
+
+    if (profileId) {
+      this.server
+        ?.to(`user:${profileId}`)
+        ?.emit('session_terminated', { reason });
+      if (typeof this.server?.in === 'function') {
+        const room = this.server.in(`user:${profileId}`);
+        if (typeof room?.disconnectSockets === 'function') {
+          room.disconnectSockets(true);
+        }
+      }
+    }
+
+    for (const client of this.connectedSockets()) {
+      const authData = client.data;
+      if (
+        authData?.user?.sub === userId ||
+        (profileId && authData?.user?.profileId === profileId)
+      ) {
+        client.emit('session_terminated', { reason });
+        client.disconnect(true);
+      }
     }
   }
 }

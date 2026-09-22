@@ -1084,7 +1084,9 @@ model PlatformPlan {
 
 model PlatformSubscription {
   id                   String             @id @default(uuid())
-  userId               String
+  // Nullable for financial retention: userId is set to NULL on user hard-deletion
+  // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
+  userId               String?
   planId               String
   profileId            String?
   status               SubscriptionStatus @default(ACTIVE) // Mapping Stripe statuses
@@ -1095,7 +1097,7 @@ model PlatformSubscription {
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
-  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
   profile Profile?     @relation(fields: [profileId], references: [id])
   plan    PlatformPlan @relation(fields: [planId], references: [id])
 
@@ -1198,9 +1200,11 @@ model Monetization {
 model StripePayoutLog {
   id             String   @id @default(uuid())
   stripePayoutId String   @unique
-  userId         String // Connected account owner
+  // Nullable for financial retention: userId is set to NULL on user hard-deletion
+  // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
+  userId         String? // Connected account owner
   amountCents    Int
-  currency       String   @default("usd")
+  currency       String   @default("EUR") // Aligns with platform-wide EUR default (see INC-13); always overwritten by Stripe's payout.currency
   status         String // 'paid', 'pending', 'failed', 'canceled'
   arrivalDate    DateTime
   failureReason  String?
@@ -1208,7 +1212,7 @@ model StripePayoutLog {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([userId])

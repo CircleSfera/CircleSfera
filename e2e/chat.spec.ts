@@ -16,8 +16,8 @@ test.describe('Direct', () => {
     const pageA = await contextA.newPage();
     const pageB = await contextB.newPage();
 
-    const userA = await enterAsNewUser(pageA);
-    const userB = await enterAsNewUser(pageB);
+    const userA = await enterAsNewUser(pageA, { scenario: 'chatsend' });
+    const userB = await enterAsNewUser(pageB, { scenario: 'chatreceive' });
 
     await pageA.goto('/direct/inbox');
     await expect(pageA.getByText('Aún no hay mensajes')).toBeVisible();

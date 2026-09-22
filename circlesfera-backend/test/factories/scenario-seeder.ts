@@ -1,0 +1,228 @@
+import type {
+  Conversation,
+  Message,
+  PlatformPlan,
+  PlatformSubscription,
+  Post,
+  PostMedia,
+  PrismaClient,
+  Profile,
+  User,
+} from '@prisma/client';
+import { createDirectConversation, createMessage } from './chat.factory.js';
+import {
+  createPlatformPlan,
+  createPlatformSubscription,
+} from './monetization.factory.js';
+import { createPost } from './post.factory.js';
+import { createUserWithProfile } from './profile.factory.js';
+import { createFollow } from './social.factory.js';
+
+export interface SocialGraphScenarioResult {
+  entities: Array<{ user: User; profile: Profile }>;
+  cleanup: () => Promise<void>;
+}
+
+export interface CreatorSubscribersScenarioResult {
+  creator: { user: User; profile: Profile };
+  subscribers: Array<{
+    user: User;
+    profile: Profile;
+    subscription: PlatformSubscription;
+  }>;
+  plan: PlatformPlan;
+  cleanup: () => Promise<void>;
+}
+
+export interface FeedScenarioResult {
+  author: { user: User; profile: Profile };
+  posts: Array<Post & { media: PostMedia[] }>;
+  cleanup: () => Promise<void>;
+}
+
+export interface ConversationScenarioResult {
+  userA: { user: User; profile: Profile };
+  userB: { user: User; profile: Profile };
+  conversation: Conversation;
+  messages: Message[];
+  cleanup: () => Promise<void>;
+}
+
+export class ScenarioSeeder {
+  constructor(private readonly prisma: PrismaClient) {}
+
+  /**
+   * Seed a network of interconnected users and profiles with follow relationships.
+   */
+  async seedSocialGraph(
+    options: { usersCount?: number; mutualFollows?: boolean } = {},
+  ): Promise<SocialGraphScenarioResult> {
+    const count = options.usersCount ?? 3;
+    const mutual = options.mutualFollows ?? true;
+    const entities: Array<{ user: User; profile: Profile }> = [];
+
+    for (let i = 0; i < count; i++) {
+      const entity = await createUserWithProfile(this.prisma, {
+        profile: { fullName: `Network User ${i + 1}` },
+      });
+      entities.push(entity);
+    }
+
+    if (mutual && entities.length > 1) {
+      for (let i = 0; i < entities.length; i++) {
+        for (let j = 0; j < entities.length; j++) {
+          if (i !== j) {
+            await createFollow(
+              this.prisma,
+              entities[i].profile.id,
+              entities[j].profile.id,
+            );
+          }
+        }
+      }
+    }
+
+    const userIds = entities.map((e) => e.user.id);
+    const cleanup = async () => {
+      await this.prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+    };
+
+    return { entities, cleanup };
+  }
+
+  /**
+   * Seed a creator account with an active platform plan and subscribed followers.
+   */
+  async seedCreatorWithSubscribers(
+    options: { subscriberCount?: number; planPriceCents?: number } = {},
+  ): Promise<CreatorSubscribersScenarioResult> {
+    const subscriberCount = options.subscriberCount ?? 2;
+
+    const creator = await createUserWithProfile(this.prisma, {
+      profile: {
+        accountType: 'CREATOR',
+        verificationLevel: 'VERIFIED',
+        fullName: 'Test Creator',
+      },
+    });
+
+    const plan = await createPlatformPlan(this.prisma, {
+      name: 'Creator VIP Tier',
+      priceCents: options.planPriceCents ?? 1500,
+    });
+
+    const subscribers: Array<{
+      user: User;
+      profile: Profile;
+      subscription: PlatformSubscription;
+    }> = [];
+
+    for (let i = 0; i < subscriberCount; i++) {
+      const sub = await createUserWithProfile(this.prisma, {
+        profile: { fullName: `Subscriber ${i + 1}` },
+      });
+
+      const subscription = await createPlatformSubscription(
+        this.prisma,
+        sub.user.id,
+        plan.id,
+        { profileId: sub.profile.id },
+      );
+
+      await createFollow(this.prisma, sub.profile.id, creator.profile.id);
+
+      subscribers.push({
+        user: sub.user,
+        profile: sub.profile,
+        subscription,
+      });
+    }
+
+    const userIds = [creator.user.id, ...subscribers.map((s) => s.user.id)];
+    const cleanup = async () => {
+      await this.prisma.user.deleteMany({
+        where: { id: { in: userIds } },
+      });
+      await this.prisma.platformPlan.deleteMany({
+        where: { id: plan.id },
+      });
+    };
+
+    return { creator, subscribers, plan, cleanup };
+  }
+
+  /**
+   * Seed an author profile with multiple posts containing media and hashtags.
+   */
+  async seedFeedWithPosts(
+    options: { postCount?: number; hashtags?: string[] } = {},
+  ): Promise<FeedScenarioResult> {
+    const postCount = options.postCount ?? 3;
+    const author = await createUserWithProfile(this.prisma, {
+      profile: { fullName: 'Feed Author' },
+    });
+
+    const posts: Array<Post & { media: PostMedia[] }> = [];
+    for (let i = 0; i < postCount; i++) {
+      const post = await createPost(this.prisma, author.profile.id, {
+        caption: `Feed post #${i + 1} generated by ScenarioSeeder`,
+        hashtags: options.hashtags ?? ['circlesfera', 'testing'],
+      });
+      posts.push(post);
+    }
+
+    const cleanup = async () => {
+      await this.prisma.user.deleteMany({
+        where: { id: author.user.id },
+      });
+    };
+
+    return { author, posts, cleanup };
+  }
+
+  /**
+   * Seed a two-party direct message conversation with message history.
+   */
+  async seedConversation(
+    options: { messageCount?: number } = {},
+  ): Promise<ConversationScenarioResult> {
+    const messageCount = options.messageCount ?? 4;
+    const userA = await createUserWithProfile(this.prisma, {
+      profile: { fullName: 'Chat User A' },
+    });
+    const userB = await createUserWithProfile(this.prisma, {
+      profile: { fullName: 'Chat User B' },
+    });
+
+    const conversation = await createDirectConversation(
+      this.prisma,
+      userA.profile.id,
+      userB.profile.id,
+    );
+
+    const messages: Message[] = [];
+    for (let i = 0; i < messageCount; i++) {
+      const sender = i % 2 === 0 ? userA.profile.id : userB.profile.id;
+      const msg = await createMessage(
+        this.prisma,
+        conversation.id,
+        sender,
+        `Chat message sequence #${i + 1}`,
+      );
+      messages.push(msg);
+    }
+
+    const cleanup = async () => {
+      await this.prisma.conversation.deleteMany({
+        where: { id: conversation.id },
+      });
+      await this.prisma.user.deleteMany({
+        where: { id: { in: [userA.user.id, userB.user.id] } },
+      });
+    };
+
+    return { userA, userB, conversation, messages, cleanup };
+  }
+}

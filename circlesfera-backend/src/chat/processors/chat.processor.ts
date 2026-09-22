@@ -1,9 +1,16 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { CleanupExpiredMessagesUseCase } from '../use-cases/system/cleanup-expired-messages.use-case.js';
 
-@Processor('chat-processing')
+@Processor(
+  QUEUE_NAMES.CHAT_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.CHAT_PROCESSING),
+)
 export class ChatProcessor extends WorkerHost {
   private readonly logger = new Logger(ChatProcessor.name);
 
@@ -15,11 +22,14 @@ export class ChatProcessor extends WorkerHost {
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
+    this.logger.debug(`Processing ${job.name} (job ${job.id})`);
     switch (job.name) {
       case 'cleanup-expired-messages':
         return this.cleanupExpiredMessagesUseCase.execute();
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new UnrecoverableError(
+          `Unknown job name in chat queue: ${job.name}`,
+        );
     }
   }
 }

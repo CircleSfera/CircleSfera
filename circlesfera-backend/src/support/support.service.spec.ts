@@ -65,5 +65,31 @@ describe('SupportService', () => {
         ticketId: 'ticket-1',
       });
     });
+
+    it('should create ticket even if Slack alert fails', async () => {
+      const dto = {
+        email: 'user@example.com',
+        subject: 'Bug Report',
+        message: 'Something broke',
+        userId: 'user-2',
+      };
+
+      mockPrismaService.supportTicket.create.mockResolvedValue({
+        id: 'ticket-2',
+        ...dto,
+      });
+      mockSlackService.sendSupportAlert.mockRejectedValueOnce(
+        new Error('Slack webhook down'),
+      );
+
+      const result = await service.createTicket(dto);
+
+      expect(mockPrismaService.supportTicket.create).toHaveBeenCalled();
+      expect(result).toEqual({
+        success: true,
+        message: 'Support ticket created successfully',
+        ticketId: 'ticket-2',
+      });
+    });
   });
 });

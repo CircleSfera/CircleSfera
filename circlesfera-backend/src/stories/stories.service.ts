@@ -62,6 +62,15 @@ export class StoriesService {
     }
 
     if (dto.isPremium) {
+      const authorProfile = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { accountType: true },
+      });
+      if (authorProfile?.accountType === 'PERSONAL') {
+        throw new ForbiddenException(
+          'Solo las cuentas Creator o Business pueden publicar historias premium.',
+        );
+      }
       if (
         !dto.priceCents ||
         dto.priceCents < MIN_PPV_PRICE_CENTS ||
@@ -537,8 +546,10 @@ export class StoriesService {
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} expired stories.`);
       }
+      return { count: deleted.count };
     } catch (error) {
       this.logger.error('Failed to clean up expired stories', error);
+      throw error;
     }
   }
 

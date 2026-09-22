@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 30
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
@@ -45,7 +45,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: redis:7-alpine
+        image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         ports:
           - 6379:6379
         options: >-
@@ -86,18 +86,18 @@ jobs:
           cache: 'npm'
 
       - name: Install Monorepo Dependencies
-        run: npm install
+        run: npm ci
 
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
-          npm install
+          npm ci
           npm run build
 
       - name: "Backend: Install, Migrate and Build"
         run: |
           cd circlesfera-backend
-          npm install
+          npm ci
           npx prisma generate
           npx prisma migrate deploy
           npm run build
@@ -105,7 +105,7 @@ jobs:
       - name: "Frontend: Install Dependencies"
         run: |
           cd circlesfera-frontend
-          npm install --include=dev
+          npm ci --include=dev
 
       - name: Start backend in background
         run: |

@@ -142,7 +142,7 @@ export class AdminAuthService {
   > {
     const admin = await this.loadAdminByEmail(email);
 
-    const fail = async (adminId?: string) => {
+    const fail = async (adminId?: string): Promise<never> => {
       if (adminId) {
         const updated = await this.prisma.adminIdentity.update({
           where: { id: adminId },

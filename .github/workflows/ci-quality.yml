@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 45
     services:
       postgres:
-        image: pgvector/pgvector:pg16
+        image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
@@ -33,7 +33,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: redis:7-alpine
+        image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         ports:
           - 6379:6379
         options: >-
@@ -51,31 +51,46 @@ jobs:
           node-version: "24"
           cache: "npm"
 
+      - name: "Dependencies: Verify Lockfile Integrity & Provenance"
+        run: npm run verify:lockfiles:fast
+
       - name: Install Monorepo Dependencies
-        run: npm install
+        run: npm ci
 
       - name: "Root: Biome CI (Format & Lint)"
         run: npx biome ci .
 
+      - name: "Nginx: Config & Traffic Policy Lint"
+        run: npm run nginx:lint
+
+      - name: "Containers: Verify Base & Service Image Digests"
+        run: npm run docker:verify-digests
+
+      - name: "Security: Audit Production Dependencies"
+        run: npm run audit:deps
+
       - name: "Shared: Install and Build"
         run: |
           cd circlesfera-shared
-          npm install
+          npm ci
           npm run build
 
-      - name: "Backend: Install, Build, Lint and Test"
+      - name: "Backend: Install, Build, Lint and Test (Enforce Coverage Thresholds)"
         run: |
           cd circlesfera-backend
-          npm install
+          npm ci
           npx prisma generate
           npm run build
           npm run lint
-          npm run test
+          npm run test:cov
 
       - name: "Prisma: schema vs migrations"
         env:
           DATABASE_URL: postgresql://prisma:prisma@localhost:5432/schema_check
         run: ./scripts/check-prisma-schema-migrations.sh
+
+      - name: "Migration safety check (Expand/Contract)"
+        run: npm run db:lint-migrations
 
       - name: "Smoke: User/Profile identity drift (ADR-0015)"
         run: npm run smoke:profile-drift
@@ -109,7 +124,7 @@ jobs:
       - name: "Frontend: Install, Lint, Test and Build"
         run: |
           cd circlesfera-frontend
-          npm install
+          npm ci
           npm run lint
           npm run test
           npm run build

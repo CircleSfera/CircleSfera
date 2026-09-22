@@ -45,7 +45,7 @@ export class MediaSignatureValidator {
   private readonly logger = new Logger(MediaSignatureValidator.name);
 
   async validate(buffer: Buffer, declaredMimetype: string): Promise<void> {
-    // --- SVG Security Policy (UPLOAD-002: Gate A — Security) ---
+    // --- SVG Security Policy ---
     // User-uploaded SVGs are prohibited to prevent Stored XSS, XML external entity
     // attacks (XXE), and script execution in user browsers.
     if (declaredMimetype === 'image/svg+xml') {
@@ -104,7 +104,7 @@ export class MediaSignatureValidator {
 
   /**
    * Scans a text or polyglot buffer to ensure no active SVG, XML entities, or
-   * script payloads reach the storage or delivery layer (UPLOAD-002).
+   * script payloads reach the storage or delivery layer.
    */
   private assertNoActiveSvgContent(buffer: Buffer): void {
     // Only inspect the first 4KB for efficiency and to catch headers/scripts
@@ -118,7 +118,9 @@ export class MediaSignatureValidator {
       sample.includes("xmlns='http://www.w3.org/2000/svg'");
 
     if (hasSvgOrXml) {
-      // Check for active script/XSS/XXE vectors
+      // Check for active script/XSS/XXE vectors.
+      // NOTE: avoid regexes with nested quantifiers or backtracking on user-supplied
+      // content — use linear-time string checks wherever possible (CodeQL: js/redos).
       const containsActivePayload =
         sample.includes('<script') ||
         sample.includes('<!entity') ||
@@ -126,8 +128,8 @@ export class MediaSignatureValidator {
         sample.includes('<foreignobject') ||
         sample.includes('javascript:') ||
         sample.includes('data:text/html') ||
-        /on\w+\s*=/i.test(sample) || // event handlers: onload=, onerror=, etc.
-        /<use\s+[^>]*href/i.test(sample);
+        this.hasEventHandlerAttribute(sample) || // event handlers: onload=, onerror=, etc.
+        this.hasSvgUseHref(sample);
 
       if (containsActivePayload) {
         this.logger.warn(
@@ -158,5 +160,42 @@ export class MediaSignatureValidator {
     };
 
     return aliases[detected]?.includes(declared) ?? false;
+  }
+
+  /**
+   * Linear-time check for HTML/SVG event-handler attributes (onload=, onerror=, etc.).
+   * Avoids backtracking by scanning for "on" substrings and then verifying the
+   * surrounding characters manually, never using a regex with nested quantifiers.
+   * (CodeQL js/redos mitigation)
+   */
+  private hasEventHandlerAttribute(sample: string): boolean {
+    let idx = sample.indexOf(' on');
+    while (idx !== -1) {
+      // Walk forward to find the end of the attribute name (alphanumeric chars)
+      let end = idx + 3;
+      while (end < sample.length && /[a-z0-9]/i.test(sample[end])) end++;
+      // Check that the next non-whitespace char is '='
+      let eq = end;
+      while (eq < sample.length && sample[eq] === ' ') eq++;
+      if (eq < sample.length && sample[eq] === '=') return true;
+      idx = sample.indexOf(' on', idx + 1);
+    }
+    return false;
+  }
+
+  /**
+   * Linear-time check for SVG <use> elements with href attributes.
+   * (CodeQL js/redos mitigation)
+   */
+  private hasSvgUseHref(sample: string): boolean {
+    let idx = sample.indexOf('<use');
+    while (idx !== -1) {
+      const closeTag = sample.indexOf('>', idx);
+      if (closeTag === -1) break;
+      const tagContent = sample.slice(idx, closeTag + 1);
+      if (tagContent.includes('href')) return true;
+      idx = sample.indexOf('<use', idx + 1);
+    }
+    return false;
   }
 }

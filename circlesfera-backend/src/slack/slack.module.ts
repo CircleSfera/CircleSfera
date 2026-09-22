@@ -2,6 +2,10 @@ import { BullModule, InjectQueue } from '@nestjs/bullmq';
 import { Global, Logger, Module, OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { AIModule } from '../ai/ai.module.js';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SlackProcessor } from './processors/slack.processor.js';
@@ -14,9 +18,9 @@ import { SlackService } from './slack.service.js';
     PrismaModule,
     EmailModule,
     AIModule,
-    BullModule.registerQueue({
-      name: 'slack-processing',
-    }),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.SLACK_PROCESSING),
+    ),
   ],
   controllers: [SlackController],
   providers: [SlackService, SlackProcessor],

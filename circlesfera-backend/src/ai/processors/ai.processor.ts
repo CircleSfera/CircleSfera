@@ -2,12 +2,19 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ModerationStatus, NotificationType } from '@prisma/client';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
 import { resolveSystemModeratorActor } from '../../admin/utils/resolve-admin-notification-sender.js';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AIService } from '../ai.service.js';
 
-@Processor('ai-processing')
+@Processor(
+  QUEUE_NAMES.AI_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.AI_PROCESSING),
+)
 export class AIProcessor extends WorkerHost {
   private readonly logger = new Logger(AIProcessor.name);
 
@@ -59,7 +66,9 @@ export class AIProcessor extends WorkerHost {
           >,
         );
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new UnrecoverableError(
+          `Unknown job name in ai queue: ${job.name}`,
+        );
     }
   }
 
@@ -75,7 +84,10 @@ export class AIProcessor extends WorkerHost {
       string
     >,
   ) {
-    const { mediaUrl } = job.data;
+    const { mediaUrl } = job.data ?? {};
+    if (!mediaUrl) {
+      throw new UnrecoverableError('Missing mediaUrl for transcribe-edit-clip');
+    }
     this.logger.log(`Transcribing edit clip job ${job.id}`);
     try {
       const segments = await this.aiService.transcribeAudio(mediaUrl);
@@ -90,7 +102,10 @@ export class AIProcessor extends WorkerHost {
   private async handleGenerateAltText(
     job: Job<{ postId: string }, any, string>,
   ) {
-    const { postId } = job.data;
+    const { postId } = job.data ?? {};
+    if (!postId) {
+      throw new UnrecoverableError('Missing postId for generate-alt-text');
+    }
     this.logger.log(`Processing alt-text for post: ${postId}`);
 
     try {
@@ -99,7 +114,10 @@ export class AIProcessor extends WorkerHost {
         include: { media: true },
       });
 
-      if (!post || post.media.length === 0) return;
+      if (!post) {
+        throw new UnrecoverableError(`Post not found for alt-text: ${postId}`);
+      }
+      if (post.media.length === 0) return;
 
       for (const media of post.media) {
         if (media.type === 'image' && !media.altText) {
@@ -116,13 +134,19 @@ export class AIProcessor extends WorkerHost {
       this.logger.log(`Successfully generated alt-text for post: ${postId}`);
     } catch (error: unknown) {
       this.logger.error(`Failed to process alt-text for post ${postId}`, error);
+      throw error;
     }
   }
 
   private async handleGenerateEmbedding(
     job: Job<{ postId: string; text: string }, any, string>,
   ) {
-    const { postId, text } = job.data;
+    const { postId, text } = job.data ?? {};
+    if (!postId || !text) {
+      throw new UnrecoverableError(
+        'Missing postId or text for generate-embedding',
+      );
+    }
     this.logger.log(`Processing embedding for post: ${postId}`);
 
     try {
@@ -149,7 +173,12 @@ export class AIProcessor extends WorkerHost {
   private async handleGenerateProfileEmbedding(
     job: Job<{ profileId: string; text: string }, any, string>,
   ) {
-    const { profileId, text } = job.data;
+    const { profileId, text } = job.data ?? {};
+    if (!profileId || !text) {
+      throw new UnrecoverableError(
+        'Missing profileId or text for generate-profile-embedding',
+      );
+    }
     this.logger.log(`Processing embedding for profile: ${profileId}`);
 
     try {
@@ -298,7 +327,13 @@ export class AIProcessor extends WorkerHost {
       string
     >,
   ) {
-    let { targetId, text, targetType, mediaUrls } = job.data;
+    const { text } = job.data ?? {};
+    let { targetId, targetType, mediaUrls } = job.data ?? {};
+    if (!targetId || !targetType) {
+      throw new UnrecoverableError(
+        'Missing targetId or targetType for moderate-content',
+      );
+    }
 
     this.logger.log(`Processing moderation for ${targetType}: ${targetId}`);
 

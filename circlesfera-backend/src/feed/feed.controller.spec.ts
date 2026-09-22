@@ -100,4 +100,18 @@ describe('FeedController', () => {
       expect.objectContaining({ page: 1, limit: 10 }),
     );
   });
+
+  it('returns empty data when getFollowing is called without user', async () => {
+    const controller = new FeedController(
+      mockService as unknown as FeedService,
+    );
+    const res = await controller.getFollowing(null, {
+      page: 1,
+      limit: 10,
+    } as any);
+    expect(res).toEqual({
+      data: [],
+      meta: { total: 0, page: 1, limit: 10, totalPages: 0 },
+    });
+  });
 });
