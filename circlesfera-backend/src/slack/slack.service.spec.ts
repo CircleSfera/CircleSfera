@@ -445,7 +445,7 @@ describe('SlackService', () => {
       expect(res).toEqual({ text: 'Report not found' });
     });
 
-    it('handles moderate_ignore by resolving report and replying via response_url', async () => {
+    it('handles moderate_ignore by resolving report and updating message via chat.update', async () => {
       mockPrismaService.report.findUnique.mockResolvedValue({ id: 'rep-1' });
       mockPrismaService.report.update.mockResolvedValue({
         id: 'rep-1',
@@ -455,8 +455,8 @@ describe('SlackService', () => {
       const payload = {
         user: { username: 'mod_admin' },
         actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-1' }],
-        response_url: 'https://hooks.slack.com/response-url',
-        message: { blocks: [{ type: 'actions' }] },
+        channel: { id: 'C12345' },
+        message: { blocks: [{ type: 'actions' }], ts: '1234567890.123456' },
       };
 
       const res = await service.handleModerationInteraction(payload);
@@ -466,11 +466,12 @@ describe('SlackService', () => {
         data: { status: 'RESOLVED' },
       });
       expect(axios.post).toHaveBeenCalledWith(
-        'https://hooks.slack.com/response-url',
+        'https://slack.com/api/chat.update',
         expect.objectContaining({
-          replace_original: true,
+          channel: 'C12345',
+          ts: '1234567890.123456',
         }),
-        { timeout: 5_000 },
+        expect.objectContaining({ timeout: 5_000 }),
       );
       expect(res.text).toContain('Report ignored by @mod_admin');
     });
