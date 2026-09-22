@@ -202,6 +202,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
     let mockEmailService: any;
     let mockSlackService: any;
     let mockStripeService: any;
+    let mockMonetizationWebhookService: any;
 
     beforeEach(() => {
       mockStripeService = {
@@ -230,12 +231,21 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         sendPaymentAlert: vi.fn(),
       };
 
+      mockMonetizationWebhookService = {
+        handleCheckoutSessionCompleted: vi.fn(),
+        handleCheckoutSessionExpired: vi.fn(),
+        handleChargeRefundedOrDisputed: vi.fn(),
+        syncConnectPayoutLog: vi.fn(),
+        handleAccountUpdated: vi.fn(),
+      };
+
       paymentsService = new PaymentsService(
         mockPrisma,
         mockStripeService,
         mockSlackService,
         mockEmailService,
         {} as any,
+        mockMonetizationWebhookService,
         mockConfigService as any,
       );
     });
