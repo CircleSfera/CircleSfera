@@ -455,7 +455,7 @@ describe('SlackService', () => {
       const payload = {
         user: { username: 'mod_admin' },
         actions: [{ action_id: 'moderate_ignore', value: 'ignore_rep-1' }],
-        response_url: 'https://slack.com/response-url',
+        response_url: 'https://hooks.slack.com/response-url',
         message: { blocks: [{ type: 'actions' }] },
       };
 
@@ -466,7 +466,7 @@ describe('SlackService', () => {
         data: { status: 'RESOLVED' },
       });
       expect(axios.post).toHaveBeenCalledWith(
-        'https://slack.com/response-url',
+        'https://hooks.slack.com/response-url',
         expect.objectContaining({
           replace_original: true,
         }),

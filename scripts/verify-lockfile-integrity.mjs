@@ -87,7 +87,7 @@ function readJson(filePath) {
 }
 
 async function fetchRegistryIntegrity(packageName, version) {
-  const encodedName = packageName.replace('/', '%2F');
+  const encodedName = packageName.replaceAll('/', '%2F');
   const url = `https://registry.npmjs.org/${encodedName}/${version}`;
   try {
     const res = await fetch(url, {

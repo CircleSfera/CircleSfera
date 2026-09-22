@@ -652,10 +652,24 @@ export class SlackService {
         },
       });
 
-      // To update the message in Slack, we can use the response_url provided in the payload
+      // To update the message in Slack, we can use the response_url provided in the payload.
+      // SSRF guard: only post back to the Slack webhook domain (CodeQL: js/ssrf).
       if (payload.response_url) {
+        let responseUrl: URL;
+        try {
+          responseUrl = new URL(payload.response_url as string);
+        } catch {
+          this.logger.warn('Ignoring malformed response_url in Slack payload');
+          return { text: resultText };
+        }
+        if (responseUrl.hostname !== 'hooks.slack.com') {
+          this.logger.warn(
+            `Ignoring response_url with unexpected host: ${responseUrl.hostname}`,
+          );
+          return { text: resultText };
+        }
         await axios.post(
-          payload.response_url,
+          responseUrl.toString(),
           {
             replace_original: true,
             blocks: updatedBlocks,
