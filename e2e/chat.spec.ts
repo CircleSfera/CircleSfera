@@ -26,7 +26,7 @@ test.describe('Direct', () => {
     const dialog = pageA.getByRole('dialog');
     await dialog.getByPlaceholder('Buscar...').fill(userB.username);
     await dialog.getByRole('button', { name: userB.username }).click();
-    const startChat = dialog.getByRole('button', { name: 'Chat' });
+    const startChat = dialog.getByRole('button', { name: 'Chat', exact: true });
     await expect(startChat).toBeEnabled();
 
     const created = pageA.waitForResponse(
