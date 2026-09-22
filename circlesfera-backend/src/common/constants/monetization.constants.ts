@@ -1,3 +1,5 @@
+import type { AccountType } from '@prisma/client';
+
 export const PLATFORM_FEE_DECIMAL = 0.2;
 export const PLATFORM_FEE_PERCENT = 20.0;
 export const CREATOR_SHARE_DECIMAL = 1.0 - PLATFORM_FEE_DECIMAL; // 0.8
@@ -16,4 +18,14 @@ export function eurosToCents(euros: number): number {
 // Convert integer cents to major currency units for API display.
 export function centsToEuros(cents: number): number {
   return cents / 100;
+}
+
+// Only Creator/Business accounts may monetize (PPV pricing, tips, Stripe
+// Connect onboarding). Single source of truth for this eligibility rule —
+// previously reimplemented independently in monetization.service.ts,
+// posts.service.ts and stories.service.ts.
+export function canMonetize(
+  accountType: AccountType | null | undefined,
+): boolean {
+  return accountType !== 'PERSONAL';
 }
