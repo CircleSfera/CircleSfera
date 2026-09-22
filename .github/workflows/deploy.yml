@@ -183,11 +183,17 @@ jobs:
           SMOKE_TEST_API_URL: ${{ secrets.VITE_API_URL }}
           SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
           SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+          # Not a secret (the deploy server's own public IP, same value as the
+          # `host:` field below) — passed through so the script can merge it
+          # into .env.production as TURNSTILE_BYPASS_IPS, letting the
+          # authenticated smoke check's login skip Turnstile. Every other
+          # caller still needs a real token.
+          DEPLOY_SERVER_IP: ${{ secrets.VPS_HOST }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD,DEPLOY_SERVER_IP
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -236,6 +242,15 @@ jobs:
                 printf 'VITE_TURNSTILE_SITE_KEY=%s\n' "$VITE_TURNSTILE_SITE_KEY" >> .env.production
                 echo "✅ VITE_TURNSTILE_SITE_KEY merged from GitHub secret."
               fi
+            fi
+
+            # QA-008: keep TURNSTILE_BYPASS_IPS pointed at this deploy server
+            # even though .env.production above was just overwritten wholesale
+            # from ENV_PRODUCTION_B64 (which doesn't carry this value).
+            if [ -n "${DEPLOY_SERVER_IP:-}" ]; then
+              sed -i '/^TURNSTILE_BYPASS_IPS=/d' .env.production
+              printf 'TURNSTILE_BYPASS_IPS=%s\n' "$DEPLOY_SERVER_IP" >> .env.production
+              echo "✅ TURNSTILE_BYPASS_IPS merged (deploy server IP)."
             fi
 
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
