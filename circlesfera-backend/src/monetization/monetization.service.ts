@@ -5,7 +5,10 @@ import {
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
+import {
+  deriveConnectAccountFlags,
+  StripeService,
+} from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -520,8 +523,8 @@ export class MonetizationService {
       const account = await this.stripeService.getAccount(
         user.stripeConnectAccountId,
       );
-      const transfersEnabled = account.capabilities?.transfers === 'active';
-      const chargesEnabled = account.charges_enabled === true;
+      const { transfersEnabled, chargesEnabled } =
+        deriveConnectAccountFlags(account);
       await this.prisma.monetization.upsert({
         where: { userId },
         update: { transfersEnabled, chargesEnabled },
