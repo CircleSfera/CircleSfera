@@ -847,13 +847,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @OnEvent('chat.message.sent')
   handleChatMessageSent(event: {
     participants: { profileId: string }[];
-    payload: { conversationId: string; [key: string]: unknown };
+    payload: {
+      conversationId: string;
+      senderId?: string;
+      isLocked?: boolean;
+      [key: string]: unknown;
+    };
   }) {
     event.participants?.forEach((p) => {
       this.addConversationToSocket(p.profileId, event.payload.conversationId);
-      this.server
-        .to(`user:${p.profileId}`)
-        .emit('receiveMessage', event.payload);
+      // A message just sent can't have been unlocked yet by anyone but the
+      // sender — mirror GetMessagesQuery's redaction so the realtime channel
+      // can't leak locked-message content/media past the paywall.
+      const payload =
+        event.payload.isLocked && p.profileId !== event.payload.senderId
+          ? {
+              ...event.payload,
+              content: 'This message is locked. Pay to unlock.',
+              url: null,
+              standardUrl: null,
+              thumbnailUrl: null,
+              mediaType: null,
+              voiceUrl: null,
+            }
+          : event.payload;
+      this.server.to(`user:${p.profileId}`).emit('receiveMessage', payload);
     });
   }
 

@@ -1604,7 +1604,13 @@
     "delete_for_everyone": "Eliminar para todos",
     "editing_message": "Editando mensaje",
     "read": "Leído",
-    "delivered": "Entregado"
+    "delivered": "Entregado",
+    "lock_message": "Mensaje de pago",
+    "lock_message_price_label": "Precio (€5.00 – €500.00)",
+    "lock_message_hint": "Solo las cuentas Creator o Business pueden enviar mensajes de pago.",
+    "lock_message_confirm": "Bloquear mensaje",
+    "lock_message_cancel": "Quitar bloqueo",
+    "locked_chip_label": "Mensaje de pago · {{price}}"
   },
   "creator": {
     "title": "Creator Studio",

@@ -2,6 +2,8 @@ import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import {
   canMonetize,
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -291,6 +293,18 @@ export class MonetizationService {
       throw AppException.BadRequest(
         ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
         'This message is not locked or has no price',
+      );
+    }
+    // Defense-in-depth: the price should already be bounded at message
+    // creation time (send-message.use-case.ts), but never trust a stored
+    // price to build a Checkout Session without re-checking the range.
+    if (
+      message.priceCents < MIN_PPV_PRICE_CENTS ||
+      message.priceCents > MAX_PPV_PRICE_CENTS
+    ) {
+      throw AppException.BadRequest(
+        ErrorCode.NOT_PREMIUM_OR_NO_PRICE,
+        `El precio del mensaje debe estar entre €${(MIN_PPV_PRICE_CENTS / 100).toFixed(2)} y €${(MAX_PPV_PRICE_CENTS / 100).toFixed(2)}.`,
       );
     }
     if (message.senderId === userId) {

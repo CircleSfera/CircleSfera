@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -36,4 +43,13 @@ export class SendMessageDto {
   @IsString()
   @IsOptional()
   replyToId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isLocked?: boolean;
+
+  @IsInt()
+  @Min(0)
+  @IsOptional()
+  priceCents?: number;
 }

@@ -40,6 +40,9 @@ describe('SendMessageUseCase', () => {
 
     mockPrisma = {
       $transaction: vi.fn(async (cb: any) => cb(mockTx)),
+      profile: {
+        findUnique: vi.fn(),
+      },
     };
 
     mockCryptoService = {
@@ -318,5 +321,161 @@ describe('SendMessageUseCase', () => {
     );
 
     expect(result.content).toBe('Test');
+  });
+
+  describe('locked (PPV) messages', () => {
+    it('rejects a locked message from a PERSONAL account before touching the conversation', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue({
+        accountType: 'PERSONAL',
+      });
+
+      await expect(
+        useCase.execute(
+          'sender-1',
+          undefined,
+          'Hello',
+          undefined,
+          undefined,
+          'conv-1',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true,
+          500,
+        ),
+      ).rejects.toThrow(AppException);
+      expect(mockTx.conversation.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('rejects a locked message priced below the €5.00 floor', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+      });
+
+      await expect(
+        useCase.execute(
+          'sender-1',
+          undefined,
+          'Hello',
+          undefined,
+          undefined,
+          'conv-1',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true,
+          100,
+        ),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('rejects a locked message priced above the €500.00 ceiling', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue({
+        accountType: 'BUSINESS',
+      });
+
+      await expect(
+        useCase.execute(
+          'sender-1',
+          undefined,
+          'Hello',
+          undefined,
+          undefined,
+          'conv-1',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          true,
+          100_000,
+        ),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('creates a locked message with isLocked/priceCents for an eligible CREATOR account', async () => {
+      mockPrisma.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+      });
+      const participants = [
+        { profileId: 'sender-1', profile: { id: 'sender-1' } },
+        { profileId: 'recipient-1', profile: { id: 'recipient-1' } },
+      ];
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: 'conv-1',
+        participants,
+      });
+      mockTx.message.create.mockResolvedValue({
+        id: 'msg-locked',
+        content: 'encrypted_Unlock me',
+        senderId: 'sender-1',
+        conversationId: 'conv-1',
+        isLocked: true,
+        priceCents: 999,
+        sender: { id: 'sender-1', username: 'creator_user' },
+      });
+
+      const result = await useCase.execute(
+        'sender-1',
+        undefined,
+        'Unlock me',
+        undefined,
+        undefined,
+        'conv-1',
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        true,
+        999,
+      );
+
+      expect(mockTx.message.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ isLocked: true, priceCents: 999 }),
+        }),
+      );
+      expect(result).toMatchObject({ id: 'msg-locked', content: 'Unlock me' });
+    });
+
+    it('never sets isLocked/priceCents on a normal (non-locked) message', async () => {
+      mockTx.conversation.findUnique.mockResolvedValue({
+        id: 'conv-1',
+        participants: [{ profileId: 'sender-1', profile: { id: 'sender-1' } }],
+      });
+      mockTx.message.create.mockResolvedValue({
+        id: 'msg-plain',
+        content: 'encrypted_Hi',
+        senderId: 'sender-1',
+        sender: { id: 'sender-1' },
+      });
+
+      await useCase.execute(
+        'sender-1',
+        undefined,
+        'Hi',
+        undefined,
+        undefined,
+        'conv-1',
+      );
+
+      expect(mockPrisma.profile.findUnique).not.toHaveBeenCalled();
+      const createCall = mockTx.message.create.mock.calls[0][0];
+      expect(createCall.data).not.toHaveProperty('isLocked');
+      expect(createCall.data).not.toHaveProperty('priceCents');
+    });
   });
 });

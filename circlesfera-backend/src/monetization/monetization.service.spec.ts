@@ -457,6 +457,28 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('This message is not locked or has no price');
     });
 
+    it('should throw if the stored price is outside the €5.00-€500.00 bounds (defense-in-depth)', async () => {
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'm-1',
+        isLocked: true,
+        priceCents: 100,
+        senderId: 'creator-1',
+      });
+      await expect(
+        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+      ).rejects.toThrow(/entre €5.00 y €500.00/);
+
+      mockPrismaService.message.findUnique.mockResolvedValueOnce({
+        id: 'm-1',
+        isLocked: true,
+        priceCents: 100_000,
+        senderId: 'creator-1',
+      });
+      await expect(
+        service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
+      ).rejects.toThrow(/entre €5.00 y €500.00/);
+    });
+
     it('should throw if sender is unlocking own message', async () => {
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
@@ -524,7 +546,7 @@ describe('MonetizationService', () => {
       mockPrismaService.message.findUnique.mockResolvedValue({
         id: 'm-1',
         isLocked: true,
-        priceCents: 400,
+        priceCents: 500,
         senderId: 'creator-1',
         sender: {
           id: 'creator-1',
@@ -551,7 +573,7 @@ describe('MonetizationService', () => {
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
           payment_intent_data: {
-            application_fee_amount: 80,
+            application_fee_amount: 100,
             transfer_data: { destination: 'acct_1' },
           },
           metadata: {
