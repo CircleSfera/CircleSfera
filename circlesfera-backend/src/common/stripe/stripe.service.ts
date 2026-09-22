@@ -177,6 +177,22 @@ export class StripeService implements OnModuleInit {
     return this.stripe.subscriptions.retrieve(subscriptionId);
   }
 
+  // List all Subscriptions for a Customer (e.g. account-deletion cleanup).
+  async listSubscriptionsForCustomer(
+    customerId: string,
+  ): Promise<Stripe.Subscription[]> {
+    // Stripe returns at most 10 subscriptions per page by default — auto-
+    // paginate so a customer with 10+ subscriptions doesn't leave some
+    // active (and billing) after account-deletion cleanup.
+    const subscriptions: Stripe.Subscription[] = [];
+    for await (const subscription of this.stripe.subscriptions.list({
+      customer: customerId,
+    })) {
+      subscriptions.push(subscription);
+    }
+    return subscriptions;
+  }
+
   async cancelSubscription(
     subscriptionId: string,
     atPeriodEnd = false,
