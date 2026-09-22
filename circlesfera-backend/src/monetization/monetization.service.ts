@@ -103,6 +103,63 @@ export class MonetizationService {
 
   // NEW DIRECT MONETIZATION METHODS
 
+  // Single builder for the "pay creator directly via destination charge"
+  // Checkout Session shape shared by createPostUnlockSession,
+  // createStoryUnlockSession, createMessageUnlockSession and
+  // createTipSession — each method keeps its own entity-specific
+  // pre-checks (price bounds, self-purchase, already-unlocked, etc.) and
+  // only delegates the actual Stripe session construction here.
+  private async createDestinationChargeCheckout(params: {
+    buyerId: string;
+    buyerEmail: string;
+    priceCents: number;
+    productName: string;
+    description: string;
+    creatorStripeAccountId: string;
+    metadata: Record<string, string>;
+    returnUrl: string;
+    idempotencyKey?: string;
+  }): Promise<{ url: string | null }> {
+    const platformFee = Math.floor(params.priceCents * PLATFORM_FEE_DECIMAL);
+
+    const session = await this.stripeService.createCheckoutSession(
+      {
+        payment_method_types: ['card'],
+        mode: 'payment',
+        customer_email: params.buyerEmail,
+        client_reference_id: params.buyerId,
+        line_items: [
+          {
+            price_data: {
+              currency: 'eur',
+              product_data: {
+                name: params.productName,
+                description: params.description,
+              },
+              unit_amount: params.priceCents,
+            },
+            quantity: 1,
+          },
+        ],
+        payment_intent_data: {
+          application_fee_amount: platformFee,
+          transfer_data: {
+            destination: params.creatorStripeAccountId,
+          },
+        },
+        metadata: params.metadata,
+        success_url: appendCheckoutQuery(
+          params.returnUrl,
+          'success=true&session_id={CHECKOUT_SESSION_ID}',
+        ),
+        cancel_url: appendCheckoutQuery(params.returnUrl, 'canceled=true'),
+      },
+      { idempotencyKey: params.idempotencyKey },
+    );
+
+    return { url: session.url };
+  }
+
   async createPostUnlockSession(
     userId: string,
     profileId: string,
@@ -140,51 +197,21 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    // Platform takes 20% commission
-    const platformFee = Math.floor(post.priceCents * PLATFORM_FEE_DECIMAL);
-
-    const session = await this.stripeService.createCheckoutSession(
-      {
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: buyer.email,
-        client_reference_id: userId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Premium Post Unlock',
-                description: `Unlock exclusive content from ${creator.email}`,
-              },
-              unit_amount: post.priceCents,
-            },
-            quantity: 1,
-          },
-        ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: creator.stripeConnectAccountId,
-          },
-        },
-        metadata: {
-          type: 'DIRECT_POST_UNLOCK',
-          postId: postId,
-          creatorId: creator.id,
-        },
-        success_url: appendCheckoutQuery(
-          returnUrl,
-          'success=true&session_id={CHECKOUT_SESSION_ID}',
-        ),
-        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+    return this.createDestinationChargeCheckout({
+      buyerId: userId,
+      buyerEmail: buyer.email,
+      priceCents: post.priceCents,
+      productName: 'Premium Post Unlock',
+      description: `Unlock exclusive content from ${creator.email}`,
+      creatorStripeAccountId: creator.stripeConnectAccountId,
+      metadata: {
+        type: 'DIRECT_POST_UNLOCK',
+        postId: postId,
+        creatorId: creator.id,
       },
-      {
-        idempotencyKey: idempotencyKey,
-      },
-    );
-
-    return { url: session.url };
+      returnUrl,
+      idempotencyKey,
+    });
   }
 
   async createStoryUnlockSession(
@@ -234,48 +261,21 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    const platformFee = Math.floor(story.priceCents * PLATFORM_FEE_DECIMAL);
-
-    const session = await this.stripeService.createCheckoutSession(
-      {
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: buyer.email,
-        client_reference_id: userId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Premium Story Unlock',
-                description: `Unlock exclusive story from ${creator.email}`,
-              },
-              unit_amount: story.priceCents,
-            },
-            quantity: 1,
-          },
-        ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: creator.stripeConnectAccountId,
-          },
-        },
-        metadata: {
-          type: 'DIRECT_STORY_UNLOCK',
-          storyId,
-          creatorId: creator.id,
-        },
-        success_url: appendCheckoutQuery(
-          returnUrl,
-          'success=true&session_id={CHECKOUT_SESSION_ID}',
-        ),
-        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+    return this.createDestinationChargeCheckout({
+      buyerId: userId,
+      buyerEmail: buyer.email,
+      priceCents: story.priceCents,
+      productName: 'Premium Story Unlock',
+      description: `Unlock exclusive story from ${creator.email}`,
+      creatorStripeAccountId: creator.stripeConnectAccountId,
+      metadata: {
+        type: 'DIRECT_STORY_UNLOCK',
+        storyId,
+        creatorId: creator.id,
       },
-      { idempotencyKey },
-    );
-
-    return { url: session.url };
+      returnUrl,
+      idempotencyKey,
+    });
   }
 
   async createMessageUnlockSession(
@@ -341,48 +341,21 @@ export class MonetizationService {
     if (!buyer)
       throw AppException.NotFound(ErrorCode.BUYER_NOT_FOUND, 'Buyer not found');
 
-    const platformFee = Math.floor(message.priceCents * PLATFORM_FEE_DECIMAL);
-
-    const session = await this.stripeService.createCheckoutSession(
-      {
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: buyer.email,
-        client_reference_id: userId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Locked Message Unlock',
-                description: `Unlock exclusive message from ${creator.email}`,
-              },
-              unit_amount: message.priceCents,
-            },
-            quantity: 1,
-          },
-        ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: creator.stripeConnectAccountId,
-          },
-        },
-        metadata: {
-          type: 'DIRECT_MESSAGE_UNLOCK',
-          messageId,
-          creatorId: creator.id,
-        },
-        success_url: appendCheckoutQuery(
-          returnUrl,
-          'success=true&session_id={CHECKOUT_SESSION_ID}',
-        ),
-        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+    return this.createDestinationChargeCheckout({
+      buyerId: userId,
+      buyerEmail: buyer.email,
+      priceCents: message.priceCents,
+      productName: 'Locked Message Unlock',
+      description: `Unlock exclusive message from ${creator.email}`,
+      creatorStripeAccountId: creator.stripeConnectAccountId,
+      metadata: {
+        type: 'DIRECT_MESSAGE_UNLOCK',
+        messageId,
+        creatorId: creator.id,
       },
-      { idempotencyKey },
-    );
-
-    return { url: session.url };
+      returnUrl,
+      idempotencyKey,
+    });
   }
 
   async createTipSession(
@@ -424,50 +397,21 @@ export class MonetizationService {
         'Sender not found',
       );
 
-    const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
-
-    const session = await this.stripeService.createCheckoutSession(
-      {
-        payment_method_types: ['card'],
-        mode: 'payment',
-        customer_email: sender.email,
-        client_reference_id: senderId,
-        line_items: [
-          {
-            price_data: {
-              currency: 'eur',
-              product_data: {
-                name: 'Creator Tip',
-                description: `Tip for ${receiver.email}`,
-              },
-              unit_amount: amountCents,
-            },
-            quantity: 1,
-          },
-        ],
-        payment_intent_data: {
-          application_fee_amount: platformFee,
-          transfer_data: {
-            destination: receiver.stripeConnectAccountId,
-          },
-        },
-        metadata: {
-          type: 'DIRECT_TIP',
-          creatorId: receiverId,
-          postId: postId || '',
-        },
-        success_url: appendCheckoutQuery(
-          returnUrl,
-          'success=true&session_id={CHECKOUT_SESSION_ID}',
-        ),
-        cancel_url: appendCheckoutQuery(returnUrl, 'canceled=true'),
+    return this.createDestinationChargeCheckout({
+      buyerId: senderId,
+      buyerEmail: sender.email,
+      priceCents: amountCents,
+      productName: 'Creator Tip',
+      description: `Tip for ${receiver.email}`,
+      creatorStripeAccountId: receiver.stripeConnectAccountId,
+      metadata: {
+        type: 'DIRECT_TIP',
+        creatorId: receiverId,
+        postId: postId || '',
       },
-      {
-        idempotencyKey: idempotencyKey,
-      },
-    );
-
-    return { url: session.url };
+      returnUrl,
+      idempotencyKey,
+    });
   }
 
   async onboardConnectAccount(
