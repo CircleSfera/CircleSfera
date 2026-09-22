@@ -138,6 +138,10 @@ describe('PostsService', () => {
     });
 
     it('validates premium price bounds when isPremium is true', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        accountType: 'CREATOR',
+      });
+
       await expect(
         service.create('user-1', { isPremium: true, priceCents: 50 }),
       ).rejects.toThrow(BadRequestException);
@@ -351,6 +355,9 @@ describe('PostsService', () => {
           callback(mockTx as unknown as Partial<PrismaService>),
       );
 
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        accountType: 'CREATOR',
+      });
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'post-1',
         caption: 'Hello #world #alpha @user2',

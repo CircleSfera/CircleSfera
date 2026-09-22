@@ -106,6 +106,9 @@ describe('StoriesService', () => {
     });
 
     it('should throw BadRequestException if isPremium is true but price is invalid', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        accountType: 'CREATOR',
+      });
       const dto: CreateStoryDto = {
         url: 'test.jpg',
         isPremium: true,
