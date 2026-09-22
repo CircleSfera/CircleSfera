@@ -421,7 +421,7 @@ export class FeedService {
     // 1. Try to read from Redis Inbox (Fast Path)
     const inboxPostIds = await this.feedInbox.getInbox(profileId, skip, limit);
 
-    if (inboxPostIds.length > 0) {
+    if (inboxPostIds !== null && inboxPostIds.length > 0) {
       this.logger.debug(
         `Fetching ${inboxPostIds.length} posts from Redis inbox for user ${profileId}`,
       );
@@ -440,12 +440,44 @@ export class FeedService {
         .map((id) => rawPosts.find((p) => p.id === id))
         .filter(Boolean);
 
-      total = await this.feedInbox.getInboxCount(profileId);
+      // Prune stale or deleted post IDs from Redis inbox
+      if (rawPosts.length < inboxPostIds.length) {
+        const foundIds = new Set(rawPosts.map((p) => p.id));
+        const staleIds = inboxPostIds.filter((id) => !foundIds.has(id));
+        if (staleIds.length > 0) {
+          this.feedInbox
+            .removePostsFromInbox(profileId, staleIds)
+            .catch((err) => {
+              this.logger.warn(
+                `Failed to prune stale posts from inbox for ${profileId}: ${err}`,
+              );
+            });
+        }
+      }
+
+      total = (await this.feedInbox.getInboxCount(profileId)) ?? posts.length;
     } else {
-      // 2. Fallback to Slow SQL JOIN (Legacy Path) - Only if inbox is empty
-      this.logger.debug(
-        `Redis inbox empty for ${profileId}, falling back to SQL...`,
-      );
+      // 2. Fallback to Slow SQL JOIN (Legacy Path)
+      if (inboxPostIds === null) {
+        // Failure is observable; safe fallback without masquerading as empty feed
+        this.logger.warn(
+          `Redis feed inbox unavailable for ${profileId}; safely falling back to canonical SQL`,
+        );
+      } else {
+        // Genuine empty inbox
+        this.logger.debug(
+          `Redis inbox empty for ${profileId}, falling back to SQL...`,
+        );
+
+        // Trigger background rebuild of Redis inbox if empty on initial page
+        if (page === 1) {
+          this.feedInbox.rebuildInbox(profileId).catch((err) => {
+            this.logger.warn(
+              `Background inbox rebuild failed for ${profileId}: ${err}`,
+            );
+          });
+        }
+      }
 
       const [following, mutes, prefs] = await Promise.all([
         this.prisma.follow.findMany({

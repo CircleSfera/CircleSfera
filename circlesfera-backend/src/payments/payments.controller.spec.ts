@@ -1,4 +1,8 @@
-import type { INestApplication } from '@nestjs/common';
+import {
+  BadRequestException,
+  type INestApplication,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import request from 'supertest';
 import {
   afterAll,
@@ -200,5 +204,56 @@ describe('PaymentsController', () => {
       .set('Content-Type', 'application/json')
       .send(JSON.stringify({ id: 'evt_test' }))
       .expect(500);
+  });
+
+  it('throws BadRequestException when rawBody is missing on request', async () => {
+    const controller = app.get(PaymentsController);
+    await expect(
+      controller.handleWebhook({
+        headers: { 'stripe-signature': 'sig-1' },
+      } as any),
+    ).rejects.toThrow('rawBody not found');
+  });
+
+  it('re-throws BadRequestException and InternalServerErrorException directly', async () => {
+    const controller = app.get(PaymentsController);
+    mockService.constructEvent.mockImplementationOnce(() => {
+      throw new BadRequestException('Invalid signature format');
+    });
+
+    await expect(
+      controller.handleWebhook({
+        headers: { 'stripe-signature': 'sig-1' },
+        rawBody: Buffer.from('{}'),
+      } as any),
+    ).rejects.toThrow('Invalid signature format');
+
+    mockService.constructEvent.mockImplementationOnce(() => {
+      throw new InternalServerErrorException(
+        'Critical stripe configuration error',
+      );
+    });
+
+    await expect(
+      controller.handleWebhook({
+        headers: { 'stripe-signature': 'sig-1' },
+        rawBody: Buffer.from('{}'),
+      } as any),
+    ).rejects.toThrow('Critical stripe configuration error');
+  });
+
+  it('handles non-Error thrown objects during webhook handling', async () => {
+    const controller = app.get(PaymentsController);
+    vi.spyOn((controller as any).logger, 'error').mockImplementation(() => {});
+    mockService.constructEvent.mockImplementationOnce(() => {
+      throw 'raw string failure';
+    });
+
+    await expect(
+      controller.handleWebhook({
+        headers: { 'stripe-signature': 'sig-1' },
+        rawBody: Buffer.from('{}'),
+      } as any),
+    ).rejects.toThrow('Unknown error');
   });
 });

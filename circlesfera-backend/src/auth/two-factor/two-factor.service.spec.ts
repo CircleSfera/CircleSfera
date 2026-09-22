@@ -80,6 +80,15 @@ describe('TwoFactorService', () => {
       expect(result.secret).toBe('GENERATED_SECRET');
       expect(result.otpauthUrl).toContain('user@example.com');
     });
+
+    it('generates a QR code data URL from an OTP auth URI', async () => {
+      const dataUrl = await service.generateQrCodeDataURL(
+        'otpauth://totp/CircleSfera:user@test.com?secret=XYZ',
+      );
+      expect(dataUrl).toBe(
+        'data:image/png;base64,otpauth://totp/CircleSfera:user@test.com?secret=XYZ',
+      );
+    });
   });
 
   describe('isTwoFactorAuthenticationCodeValid', () => {
@@ -159,6 +168,23 @@ describe('TwoFactorService', () => {
           ),
         },
       });
+    });
+
+    it('handles opportunistic migration update errors gracefully without failing validation', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        twoFactorSecret: 'LEGACY_PLAINTEXT_SECRET',
+      });
+      mockPrismaService.user.update.mockRejectedValueOnce(
+        new Error('DB failure'),
+      );
+      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+
+      const isValid = await service.isTwoFactorAuthenticationCodeValid(
+        '123456',
+        { id: 'user-1' },
+      );
+
+      expect(isValid).toBe(true);
     });
 
     it('returns false for an invalid code', async () => {

@@ -1,11 +1,11 @@
-import { ApiErrorCode } from '@circlesfera/shared';
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { AccountStateService } from '../services/account-state.service.js';
 
 export interface JwtPayload {
   sub: string;
@@ -30,6 +30,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     @Inject(ConfigService) configService: ConfigService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AccountStateService)
+    private readonly accountStateService: AccountStateService,
   ) {
     super({
       jwtFromRequest: cookieOrHeaderExtractor,
@@ -48,34 +50,25 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    if (!user?.isActive) {
-      throw new UnauthorizedException('User not found or account deactivated');
-    }
+    const profile = user
+      ? await this.prisma.profile.findFirst({
+          where: { userId: user.id },
+          select: {
+            id: true,
+            isAccountBanned: true,
+            accountBanReason: true,
+            suspendedUntil: true,
+          },
+        })
+      : null;
 
-    if (user.isRootBanned) {
-      throw new UnauthorizedException({
-        message: ApiErrorCode.ACCOUNT_BANNED,
-        reason: user.rootBanReason,
-      });
-    }
-
-    const profile = await this.prisma.profile.findFirst({
-      where: { userId: user.id },
-      select: { id: true, suspendedUntil: true },
-    });
-
-    if (profile?.suspendedUntil && profile.suspendedUntil > new Date()) {
-      throw new UnauthorizedException({
-        message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: profile.suspendedUntil.toISOString(),
-      });
-    }
+    this.accountStateService.assertOperational(user, profile);
 
     const role = (user as { role?: string }).role || 'USER';
 
     return {
-      userId: user.id,
-      email: user.email,
+      userId: user!.id,
+      email: user!.email,
       role: role,
       profileId: profile?.id || '',
     };

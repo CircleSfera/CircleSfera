@@ -83,6 +83,88 @@ describe('HighlightsService', () => {
     });
   });
 
+  describe('update', () => {
+    it('should throw NotFoundException if highlight not found or permission denied', async () => {
+      mockPrismaService.highlight.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.update('hl-none', 'user-1', { title: 'New' }),
+      ).rejects.toThrow(AppException);
+    });
+
+    it('should update highlight with new stories when storyIds provided', async () => {
+      mockPrismaService.highlight.findFirst.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'user-1',
+      });
+      mockPrismaService.highlight.update.mockResolvedValue({
+        id: 'hl-1',
+        title: 'Updated Highlight',
+        coverUrl: 'https://cdn.example.com/new-cover.jpg',
+      });
+
+      const result = await service.update('hl-1', 'user-1', {
+        title: 'Updated Highlight',
+        coverUrl: 'https://cdn.example.com/new-cover.jpg',
+        storyIds: ['story-1', 'story-2'],
+      });
+
+      expect(mockPrismaService.highlight.update).toHaveBeenCalledWith({
+        where: { id: 'hl-1' },
+        data: {
+          title: 'Updated Highlight',
+          coverUrl: 'https://cdn.example.com/new-cover.jpg',
+          stories: {
+            deleteMany: {},
+            create: [
+              { story: { connect: { id: 'story-1' } } },
+              { story: { connect: { id: 'story-2' } } },
+            ],
+          },
+        },
+        include: {
+          stories: {
+            include: {
+              story: true,
+            },
+          },
+        },
+      });
+      expect(result).toHaveProperty('id', 'hl-1');
+    });
+
+    it('should update highlight without altering stories when storyIds not provided', async () => {
+      mockPrismaService.highlight.findFirst.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'user-1',
+      });
+      mockPrismaService.highlight.update.mockResolvedValue({
+        id: 'hl-1',
+        title: 'Only Title',
+      });
+
+      const result = await service.update('hl-1', 'user-1', {
+        title: 'Only Title',
+      });
+
+      expect(mockPrismaService.highlight.update).toHaveBeenCalledWith({
+        where: { id: 'hl-1' },
+        data: {
+          title: 'Only Title',
+          coverUrl: undefined,
+        },
+        include: {
+          stories: {
+            include: {
+              story: true,
+            },
+          },
+        },
+      });
+      expect(result).toHaveProperty('id', 'hl-1');
+    });
+  });
+
   describe('remove', () => {
     it('should throw NotFoundException if highlight does not exist or user does not own it', async () => {
       mockPrismaService.highlight.findFirst.mockResolvedValue(null);

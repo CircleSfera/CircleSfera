@@ -6,6 +6,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { computeTrustScore } from '../common/abuse/trust-score.js';
@@ -51,6 +52,7 @@ export class AdminUsersService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(TurnstileService) private readonly turnstile: TurnstileService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
   ) {}
 
   // Log every admin action for accountability.
@@ -242,9 +244,17 @@ export class AdminUsersService {
       data: { isActive: false, isRootBanned: true },
       include: {
         profiles: {
-          select: { username: true, fullName: true, avatar: true },
+          select: { id: true, username: true, fullName: true, avatar: true },
         },
       },
+    });
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
+    this.eventEmitter.emit('user.session.terminate', {
+      userId,
+      profileId: result.profiles[0]?.id,
+      reason: 'Account banned by administration',
     });
     await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
@@ -265,6 +275,10 @@ export class AdminUsersService {
   }
 
   async unbanUser(adminId: string, userId: string) {
+    await this.prisma.profile.updateMany({
+      where: { userId },
+      data: { suspendedUntil: null, isAccountBanned: false },
+    });
     const result = await this.prisma.user.update({
       where: { id: userId },
       data: { isActive: true, isRootBanned: false },
@@ -608,7 +622,15 @@ export class AdminUsersService {
       userId,
       `Suspended until ${until.toISOString()}: ${reason || ''}`,
     );
+    await this.prisma.refreshToken.deleteMany({
+      where: { userId },
+    });
     const recipientProfileId = await this.resolvePrimaryProfileId(userId);
+    this.eventEmitter.emit('user.session.terminate', {
+      userId,
+      profileId: recipientProfileId || undefined,
+      reason: `Account suspended until ${until.toISOString()}`,
+    });
     if (recipientProfileId) {
       await this.notificationsService
         .create({

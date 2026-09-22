@@ -1,13 +1,18 @@
-import { ErrorCode } from '@circlesfera/shared';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { UserEventType } from '@prisma/client';
-import type { Job } from 'bullmq';
-import { AppException } from '../../common/errors/app.exception.js';
+import { type Job, UnrecoverableError } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AnalyticsService } from '../analytics.service.js';
 
-@Processor('analytics-processing')
+@Processor(
+  QUEUE_NAMES.ANALYTICS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.ANALYTICS_PROCESSING),
+)
 export class AnalyticsProcessor extends WorkerHost {
   private readonly logger = new Logger(AnalyticsProcessor.name);
 
@@ -22,21 +27,27 @@ export class AnalyticsProcessor extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     switch (job.name) {
       case 'update-performance-score':
+        if (!job.data?.postId) {
+          throw new UnrecoverableError(
+            'Missing postId for update-performance-score',
+          );
+        }
         return this.handleUpdatePerformanceScore(job.data);
       case 'daily-aggregation':
         return this.analyticsService.handleDailyAggregation();
       case 'aggregate-creator': {
-        const profileId = job.data.profileId || job.data.userId;
+        const profileId = job.data?.profileId || job.data?.userId;
         if (!profileId) {
-          throw AppException.BadRequest(
-            ErrorCode.INVALID_INPUT,
+          throw new UnrecoverableError(
             'aggregate-creator job requires a profileId',
           );
         }
         return this.analyticsService.performDailyAggregation(profileId);
       }
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new UnrecoverableError(
+          `Unknown job name in analytics queue: ${job.name}`,
+        );
     }
   }
 

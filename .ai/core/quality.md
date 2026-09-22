@@ -30,7 +30,7 @@ $BIOME $(git diff --name-only $(git merge-base HEAD origin/main) HEAD)  # whole 
 
 # backend
 cd circlesfera-backend
-npm run lint && npm test
+npm run lint && npm run test:cov # runs unit tests & enforces critical domain coverage
 npm run build                    # the only real backend typecheck
 npm run test:e2e                 # needs Postgres + Redis
 npm run prisma:check-migrations  # schema/migration drift, needs an empty Postgres
@@ -45,9 +45,9 @@ npm run test:e2e -- e2e/smoke.spec.ts
 ```
 
 PR and deploy share `.github/workflows/ci-quality.yml`, which runs root Biome, backend
-`build` + `lint` + unit + e2e, Prisma drift check, and frontend `lint` + `test` + `build`. PRs also
-run Playwright smoke. Prefer those gates over a weaker local subset when you touch CI-relevant
-code.
+`build` + `lint` + unit/coverage (`test:cov`) + e2e, Prisma drift check, and frontend
+`lint` + `test` + `build`. PRs also run Playwright smoke. Prefer those gates over a weaker
+local subset when you touch CI-relevant code.
 
 ## Hard limits
 

@@ -8,7 +8,7 @@ import {
 test.describe('Happy path', () => {
   test('register → onboard → publish → bio on profile', async ({ page }) => {
     test.setTimeout(120_000);
-    const account = await enterAsNewUser(page);
+    const account = await enterAsNewUser(page, { scenario: 'happy' });
     const caption = `Publicación E2E ${account.username}`;
     await publishPostWithCaption(page, caption);
     await openOwnLatestPost(page, account.username);

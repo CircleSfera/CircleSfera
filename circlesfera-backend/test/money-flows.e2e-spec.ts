@@ -318,7 +318,9 @@ describe('Money flows (e2e)', () => {
         .set('x-csrf-token', csrfToken)
         .send({
           receiverId: userId,
-          amountCents: MIN_PPV_PRICE_CENTS - 1,
+          // Tip minimum (100 cents) is hardcoded and independent of
+          // MIN_PPV_PRICE_CENTS (the PPV content price floor).
+          amountCents: 99,
           returnUrl: 'http://localhost:5173/',
         })
         .expect(400);

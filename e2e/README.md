@@ -9,6 +9,8 @@ the API uses (`e2e/helpers/backend.ts`) because `EmailVerifiedGuard` is on by de
 no inbox.
 
 The SPA-only suite (API stubbed) lives in [`circlesfera-frontend/e2e/`](../circlesfera-frontend/e2e/README.md).
+Legacy mock test suites (previously under `e2e/tests/`) have been completely purged;
+all active tests in this suite run against live services without skipped or ignored suites.
 
 ## Isolated Postgres (recommended locally)
 

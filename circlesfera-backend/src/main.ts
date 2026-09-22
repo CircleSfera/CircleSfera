@@ -1,5 +1,9 @@
 import * as Sentry from '@sentry/nestjs';
 import { nodeProfilingIntegration } from '@sentry/profiling-node';
+import {
+  scrubSentryBreadcrumb,
+  scrubSentryEvent,
+} from './common/observability/redaction.util.js';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -9,6 +13,12 @@ Sentry.init({
   environment: process.env.NODE_ENV || 'development',
   tracesSampleRate: isProd ? 0.1 : 1.0,
   profilesSampleRate: isProd ? 0.1 : 1.0,
+  beforeSend(event) {
+    return scrubSentryEvent(event);
+  },
+  beforeBreadcrumb(breadcrumb) {
+    return scrubSentryBreadcrumb(breadcrumb);
+  },
 });
 
 import { ConfigService } from '@nestjs/config';
@@ -23,6 +33,11 @@ import qs from 'qs';
 import { AppModule } from './app.module.js';
 import { RedisIoAdapter } from './common/adapters/redis-io.adapter.js';
 import { doubleCsrfProtection } from './common/config/csrf.config.js';
+import {
+  createCspDirectives,
+  deriveWebSocketOrigins,
+  parseAllowedOrigins,
+} from './common/config/origin.config.js';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -37,7 +52,7 @@ async function bootstrap(): Promise<void> {
   app.getHttpAdapter().getInstance().set('trust proxy', 1);
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
-  // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution (INPUT-002)
+  // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution
   app
     .getHttpAdapter()
     .getInstance()
@@ -54,56 +69,63 @@ async function bootstrap(): Promise<void> {
 
   // Enable CORS with strict origin check
   const configService = app.get(ConfigService);
+  const isProduction = configService.get<string>('NODE_ENV') === 'production';
   const corsOrigin = configService.get<string>('CORS_ORIGIN');
-  if (!corsOrigin && configService.get('NODE_ENV') === 'production') {
-    throw new Error(
-      'CORS_ORIGIN environment variable is required in production',
-    );
-  }
-
-  const allowedOrigins = corsOrigin
-    ? corsOrigin.split(',').map((o) => o.trim())
-    : [
-        'http://localhost:5173',
-        'http://admin.localhost:5173',
-        'http://localhost:8080',
-        'http://localhost:8081',
-        'http://[::1]:5173',
-      ];
+  const allowedOrigins = parseAllowedOrigins(corsOrigin, isProduction);
+  const allowedWsOrigins = deriveWebSocketOrigins(allowedOrigins);
+  const livekitUrl = configService.get<string>('LIVEKIT_URL');
+  const cdnUrl = configService.get<string>('CDN_URL');
 
   app.enableCors({
     origin: allowedOrigins,
     credentials: true,
   });
 
-  // Security Headers (Strict CSP + defaults)
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: {
-          defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: [
-            "'self'",
-            "'unsafe-inline'",
-            'https://fonts.googleapis.com',
-          ],
-          fontSrc: ["'self'", 'https://fonts.gstatic.com'],
-          imgSrc: [
-            "'self'",
-            'data:',
-            'https://res.cloudinary.com',
-            ...allowedOrigins,
-          ],
-          mediaSrc: ["'self'", ...allowedOrigins, 'blob:'],
-          connectSrc: ["'self'", ...allowedOrigins, 'wss://*'],
-          upgradeInsecureRequests: [],
-        },
-      },
-      crossOriginEmbedderPolicy: false,
-      crossOriginResourcePolicy: { policy: 'same-site' }, // Restrict to same-site for API resources
-    }),
-  );
+  // Security Headers: Segmented least-privilege CSP
+  // Standard API endpoints (/api/v1/*) disallow unsafe-inline scripts.
+  // Documentation routes (/api/docs) permit Swagger UI bundles.
+  const strictCspDirectives = createCspDirectives({
+    allowedOrigins,
+    allowedWsOrigins,
+    livekitUrl,
+    cdnUrl,
+    isProd: isProduction,
+    isSwagger: false,
+  });
+
+  const swaggerCspDirectives = createCspDirectives({
+    allowedOrigins,
+    allowedWsOrigins,
+    livekitUrl,
+    cdnUrl,
+    isProd: isProduction,
+    isSwagger: true,
+  });
+
+  const strictHelmetMiddleware = helmet({
+    contentSecurityPolicy: {
+      directives: strictCspDirectives,
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  });
+
+  const swaggerHelmetMiddleware = helmet({
+    contentSecurityPolicy: {
+      directives: swaggerCspDirectives,
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: 'same-site' },
+  });
+
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const path = req.path || req.url || '';
+    if (path.startsWith('/api/docs')) {
+      swaggerHelmetMiddleware(req, res, next);
+    } else {
+      strictHelmetMiddleware(req, res, next);
+    }
+  });
 
   // Parse cookies (required for HTTP-only JWT cookie auth)
   app.use(cookieParser());
@@ -150,7 +172,7 @@ async function bootstrap(): Promise<void> {
     bodyParser.raw({ type: 'application/json', limit: '1mb' }),
   );
 
-  // Use sensible global body parser limits (DoS protection, INPUT-002)
+  // Use sensible global body parser limits (DoS protection)
   // Bounded to 2MB for JSON and URL-encoded payloads; file uploads go through multipart
   app.use(bodyParser.json({ limit: '2mb' }));
   app.use(

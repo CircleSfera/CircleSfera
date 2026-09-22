@@ -15,6 +15,11 @@ import type {
 } from '@simplewebauthn/server';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
+  getAssurancePolicy,
+  type PasskeySensitivity,
+  parseWebAuthnConfig,
+} from './passkey.config.js';
+import {
   generateAuthenticationOptions,
   generateRegistrationOptions,
   verifyAuthenticationResponse,
@@ -61,18 +66,18 @@ function extractChallengeFromClientResponse(
 @Injectable()
 export class PasskeyService {
   private readonly logger = new Logger(PasskeyService.name);
-  private readonly rpName = 'CircleSfera';
+  private readonly rpName: string;
   private readonly rpID: string;
-  private readonly origin: string;
+  private readonly origin: string | string[];
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(ConfigService) private readonly configService: ConfigService,
   ) {
-    this.rpID = this.configService.get<string>('WEBAUTHN_RP_ID') || 'localhost';
-    this.origin =
-      this.configService.get<string>('WEBAUTHN_ORIGIN') ||
-      'http://localhost:5173';
+    const config = parseWebAuthnConfig(this.configService);
+    this.rpID = config.rpID;
+    this.rpName = config.rpName;
+    this.origin = config.origin;
   }
 
   private async consumeChallenge(
@@ -80,7 +85,7 @@ export class PasskeyService {
     expectedUserId: string,
     expectedScope: 'REGISTRATION' | 'AUTHENTICATION',
     existingUserCurrentChallenge?: string | null,
-  ): Promise<string> {
+  ): Promise<{ challenge: string; isSensitive: boolean }> {
     const prisma = this.prisma as any;
 
     const executeConsumption = async (tx: any) => {
@@ -97,7 +102,7 @@ export class PasskeyService {
             where: { id: expectedUserId },
             data: { currentChallenge: null },
           });
-          return challenge;
+          return { challenge, isSensitive: false };
         }
         // Fallback for legacy single-slot User.currentChallenge during transition
         const user = await tx.user.findUnique({
@@ -108,7 +113,7 @@ export class PasskeyService {
             where: { id: expectedUserId },
             data: { currentChallenge: null },
           });
-          return challenge;
+          return { challenge, isSensitive: false };
         }
         throw new BadRequestException(
           'Challenge not found or already consumed',
@@ -119,7 +124,11 @@ export class PasskeyService {
         throw new BadRequestException('Challenge user mismatch');
       }
 
-      if (record.scope !== expectedScope) {
+      const scopePrefix = `${expectedScope}`;
+      if (
+        record.scope !== scopePrefix &&
+        !record.scope.startsWith(`${scopePrefix}:`)
+      ) {
         throw new BadRequestException(
           `Challenge scope mismatch: expected ${expectedScope}, got ${record.scope}`,
         );
@@ -140,7 +149,10 @@ export class PasskeyService {
         where: { id: record.id },
       });
 
-      return record.challenge;
+      const isSensitive =
+        typeof record.scope === 'string' && record.scope.includes(':SENSITIVE');
+
+      return { challenge: record.challenge, isSensitive };
     };
 
     if (typeof prisma.$transaction === 'function') {
@@ -153,7 +165,10 @@ export class PasskeyService {
   // Stores a short-lived scoped challenge record for later verification.
   // Param userId: The authenticated user's ID
   // Throws NotFoundException if user not found
-  async generateRegistrationOptions(userId: string) {
+  async generateRegistrationOptions(
+    userId: string,
+    sensitivity: PasskeySensitivity = 'sensitive',
+  ) {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -179,6 +194,7 @@ export class PasskeyService {
     }
 
     const primaryProfile = user.profiles?.[0];
+    const policy = getAssurancePolicy(sensitivity);
 
     const options: GenerateRegistrationOptionsOpts = {
       rpName: this.rpName,
@@ -193,18 +209,21 @@ export class PasskeyService {
       })),
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred',
+        userVerification: policy.userVerification,
       },
     };
 
     const registrationOptions = await generateRegistrationOptions(options);
+
+    const scope =
+      sensitivity === 'sensitive' ? 'REGISTRATION:SENSITIVE' : 'REGISTRATION';
 
     const prisma = this.prisma as any;
     if (prisma.passkeyChallenge) {
       await prisma.passkeyChallenge.create({
         data: {
           userId,
-          scope: 'REGISTRATION',
+          scope,
           challenge: registrationOptions.challenge,
           expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
         },
@@ -223,7 +242,7 @@ export class PasskeyService {
   // Verify a WebAuthn registration response, storing the new passkey credential.
   // Param userId: The authenticated user's ID
   // Param body: The registration response from the client
-  // Returns `{ verified: boolean }`
+  // Returns `{ verified: boolean, userVerified: boolean }`
   // Throws BadRequestException if challenge missing or verification fails
   async verifyRegistration(userId: string, body: unknown) {
     const user = (await this.prisma.user.findUnique({
@@ -239,7 +258,7 @@ export class PasskeyService {
       throw new BadRequestException('Registration challenge not found');
     }
 
-    const expectedChallenge = await this.consumeChallenge(
+    const consumed = await this.consumeChallenge(
       challenge,
       userId,
       'REGISTRATION',
@@ -248,9 +267,10 @@ export class PasskeyService {
 
     const opts: VerifyRegistrationResponseOpts = {
       response: body as VerifyRegistrationResponseOpts['response'],
-      expectedChallenge,
+      expectedChallenge: consumed.challenge,
       expectedOrigin: this.origin,
       expectedRPID: this.rpID,
+      requireUserVerification: consumed.isSensitive,
     };
 
     try {
@@ -259,6 +279,16 @@ export class PasskeyService {
       if (verification.verified && verification.registrationInfo) {
         const { credential } = verification.registrationInfo;
         const { id, publicKey, counter } = credential;
+        const userVerified =
+          verification.registrationInfo.userVerified !== undefined
+            ? verification.registrationInfo.userVerified
+            : true;
+
+        if (consumed.isSensitive && userVerified === false) {
+          throw new BadRequestException(
+            'User verification is required for sensitive operations',
+          );
+        }
 
         const prisma = this.prisma as unknown as {
           passkey: {
@@ -294,7 +324,7 @@ export class PasskeyService {
           data: { currentChallenge: null },
         });
 
-        return { verified: true };
+        return { verified: true, userVerified };
       }
 
       return { verified: false };
@@ -307,7 +337,10 @@ export class PasskeyService {
   // Generate WebAuthn authentication options (challenge) for login.
   // Param email: The user's email address
   // Throws NotFoundException if user not found
-  async generateAuthenticationOptions(identifier: string) {
+  async generateAuthenticationOptions(
+    identifier: string,
+    sensitivity: PasskeySensitivity = 'standard',
+  ) {
     const user = (await this.prisma.user.findFirst({
       where: {
         OR: [
@@ -331,6 +364,8 @@ export class PasskeyService {
       throw new NotFoundException('User not found');
     }
 
+    const policy = getAssurancePolicy(sensitivity);
+
     const opts: GenerateAuthenticationOptionsOpts = {
       rpID: this.rpID,
       allowCredentials: user.passkeys.map((pk) => ({
@@ -338,17 +373,22 @@ export class PasskeyService {
         type: 'public-key' as const,
         transports: pk.transports || [],
       })),
-      userVerification: 'preferred',
+      userVerification: policy.userVerification,
     };
 
     const authenticationOptions = await generateAuthenticationOptions(opts);
+
+    const scope =
+      sensitivity === 'sensitive'
+        ? 'AUTHENTICATION:SENSITIVE'
+        : 'AUTHENTICATION';
 
     const prisma = this.prisma as any;
     if (prisma.passkeyChallenge) {
       await prisma.passkeyChallenge.create({
         data: {
           userId: user.id,
-          scope: 'AUTHENTICATION',
+          scope,
           challenge: authenticationOptions.challenge,
           expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
         },
@@ -364,11 +404,11 @@ export class PasskeyService {
     return authenticationOptions;
   }
 
-  // Verify a WebAuthn authentication response for passwordless login.
+  // Verify a WebAuthn authentication response for passwordless login or sensitive operation.
   // Updates the passkey counter on success.
-  // Param email: The user's email address
+  // Param identifier: The user's email or username
   // Param body: The authentication response from the client
-  // Returns `{ verified: boolean, userId?: string }`
+  // Returns `{ verified: boolean, userId?: string, userVerified?: boolean }`
   // Throws BadRequestException if challenge missing, passkey not found, or verification fails
   async verifyAuthentication(identifier: string, body: unknown) {
     const user = (await this.prisma.user.findFirst({
@@ -405,7 +445,7 @@ export class PasskeyService {
       throw new BadRequestException('Authentication challenge not found');
     }
 
-    const expectedChallenge = await this.consumeChallenge(
+    const consumed = await this.consumeChallenge(
       challenge,
       user.id,
       'AUTHENTICATION',
@@ -421,9 +461,10 @@ export class PasskeyService {
 
     const opts: VerifyAuthenticationResponseOpts = {
       response: body as VerifyAuthenticationResponseOpts['response'],
-      expectedChallenge,
+      expectedChallenge: consumed.challenge,
       expectedOrigin: this.origin,
       expectedRPID: this.rpID,
+      requireUserVerification: consumed.isSensitive,
       credential: {
         id: passkey.credentialID,
         publicKey: new Uint8Array(passkey.publicKey),
@@ -436,6 +477,17 @@ export class PasskeyService {
       const verification = await verifyAuthenticationResponse(opts);
 
       if (verification.verified) {
+        const userVerified =
+          verification.authenticationInfo?.userVerified !== undefined
+            ? verification.authenticationInfo.userVerified
+            : true;
+
+        if (consumed.isSensitive && userVerified === false) {
+          throw new BadRequestException(
+            'User verification is required for sensitive operations',
+          );
+        }
+
         // Update counter
         const prisma = this.prisma as unknown as {
           passkey: {
@@ -461,7 +513,11 @@ export class PasskeyService {
           data: { currentChallenge: null },
         });
 
-        return { verified: true, userId: user.id };
+        return {
+          verified: true,
+          userId: user.id,
+          userVerified,
+        };
       }
 
       this.logger.warn('Passkey verification failed: verified is false');

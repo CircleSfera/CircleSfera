@@ -1,0 +1,6 @@
+{
+  "$schema": "./scripts/schemas/dependency-security-exceptions.schema.json",
+  "version": "1.0.0",
+  "description": "Approved temporary dependency vulnerability exceptions for CircleSfera. Each exception must include a package name, advisory/CVE identifier, severity, justification, runtime mitigation, expiration date, and approving owner.",
+  "exceptions": []
+}

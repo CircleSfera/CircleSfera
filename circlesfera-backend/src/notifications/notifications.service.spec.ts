@@ -102,6 +102,18 @@ describe('NotificationsService', () => {
     });
   });
 
+  describe('getUnreadCount', () => {
+    it('returns unread count for profile', async () => {
+      mockPrismaService.notification.count.mockResolvedValueOnce(3);
+
+      const result = await service.getUnreadCount('user-1');
+      expect(result).toEqual({ count: 3 });
+      expect(mockPrismaService.notification.count).toHaveBeenCalledWith({
+        where: { recipientId: 'user-1', read: false },
+      });
+    });
+  });
+
   describe('create and real-time event decoupling', () => {
     it('should emit notification.dispatched domain event instead of calling AppGateway directly', async () => {
       const createdNotification = {
@@ -132,6 +144,204 @@ describe('NotificationsService', () => {
           notification: createdNotification,
         },
       );
+    });
+
+    it('aggregates unread LIKE notifications from multiple senders on same post', async () => {
+      const existingUnread = {
+        id: 'notif-like-1',
+        recipientId: 'user-1',
+        senderId: 'user-old',
+        type: 'LIKE',
+        postId: 'post-1',
+        read: false,
+      };
+
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(
+        existingUnread,
+      );
+      mockPrismaService.notification.update.mockResolvedValueOnce({
+        ...existingUnread,
+        senderId: 'user-new',
+        content: 'A Alice y a otras personas les gustó tu publicación',
+      });
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-new',
+        type: 'LIKE' as any,
+        content: 'Alice liked your post',
+        postId: 'post-1',
+      });
+
+      expect(res).toBeDefined();
+      expect(mockPrismaService.notification.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'notif-like-1' },
+          data: expect.objectContaining({
+            content: 'A Alice y a otras personas les gustó tu publicación',
+          }),
+        }),
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.dispatched',
+        expect.anything(),
+      );
+    });
+
+    it('aggregates unread COMMENT_LIKE notifications from multiple senders', async () => {
+      const existingUnread = {
+        id: 'notif-comment-like-1',
+        recipientId: 'user-1',
+        senderId: 'user-old',
+        type: 'COMMENT_LIKE',
+        postId: 'post-1',
+        read: false,
+      };
+
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(
+        existingUnread,
+      );
+      mockPrismaService.notification.update.mockResolvedValueOnce({
+        ...existingUnread,
+        senderId: 'user-new',
+        content: 'A Bob y a otras personas les gustó tu comentario',
+      });
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-new',
+        type: 'COMMENT_LIKE' as any,
+        content: 'Bob liked your comment',
+        postId: 'post-1',
+      });
+
+      expect(res).toBeDefined();
+      expect(mockPrismaService.notification.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            content: 'A Bob y a otras personas les gustó tu comentario',
+          }),
+        }),
+      );
+    });
+
+    it('returns existing unread notification without updating if same sender likes again', async () => {
+      const existingUnread = {
+        id: 'notif-same',
+        recipientId: 'user-1',
+        senderId: 'same-user',
+        type: 'LIKE',
+        postId: 'post-1',
+        read: false,
+      };
+
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(
+        existingUnread,
+      );
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'same-user',
+        type: 'LIKE' as any,
+        content: 'Like',
+        postId: 'post-1',
+      });
+
+      expect(res).toEqual(existingUnread);
+      expect(mockPrismaService.notification.update).not.toHaveBeenCalled();
+    });
+
+    it('returns existing non-batchable notification if created within one minute', async () => {
+      const existing = {
+        id: 'notif-recent',
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW',
+      };
+
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(existing);
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW' as any,
+        content: 'started following you',
+      });
+
+      expect(res).toEqual(existing);
+      expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
+    });
+
+    it('skips push notification when recipient disabled pushNotifications', async () => {
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.notification.create.mockResolvedValueOnce({
+        id: 'n-no-push',
+        recipientId: 'user-1',
+        type: 'FOLLOW',
+      });
+      mockPrismaService.userSettings.findFirst.mockResolvedValueOnce({
+        pushNotifications: false,
+      });
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW' as any,
+        content: 'followed you',
+      });
+
+      expect(res).toBeDefined();
+      expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+    });
+
+    it('handles error in push notification gracefully without throwing', async () => {
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.notification.create.mockResolvedValueOnce({
+        id: 'n-push-err',
+        recipientId: 'user-1',
+        sender: { username: 'alice' },
+        type: 'FOLLOW',
+      });
+      mockPrismaService.userSettings.findFirst.mockResolvedValueOnce({
+        pushNotifications: true,
+      });
+      mockPushService.sendNotification.mockRejectedValueOnce(
+        new Error('FCM unreachable'),
+      );
+
+      const res = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'FOLLOW' as any,
+        content: 'followed you',
+      });
+
+      expect(res).toBeDefined();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Failed to send push notification',
+        expect.any(Error),
+      );
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('catches and logs top-level creation errors without throwing', async () => {
+      mockPrismaService.notification.findFirst.mockRejectedValueOnce(
+        new Error('DB failure'),
+      );
+
+      await expect(
+        service.create({
+          recipientId: 'user-1',
+          senderId: 'user-2',
+          type: 'FOLLOW' as any,
+          content: 'test',
+        }),
+      ).resolves.toBeUndefined();
     });
   });
 });

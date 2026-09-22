@@ -1,6 +1,10 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { STORAGE_PROVIDER } from './interfaces/storage-provider.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
@@ -17,12 +21,8 @@ import { UploadsService } from './uploads.service.js';
   imports: [
     ConfigModule,
     BullModule.registerQueue(
-      {
-        name: 'video-transcoding',
-      },
-      {
-        name: 'media-cleanup',
-      },
+      getRegisterQueueOptions(QUEUE_NAMES.VIDEO_TRANSCODING),
+      getRegisterQueueOptions(QUEUE_NAMES.MEDIA_CLEANUP),
     ),
   ],
   controllers: [UploadsController],

@@ -17,8 +17,10 @@ export class CleanupExpiredMessagesUseCase {
       if (deleted.count > 0) {
         this.logger.log(`Cleaned up ${deleted.count} expired messages.`);
       }
+      return { count: deleted.count };
     } catch (error) {
       this.logger.error('Failed to clean up expired messages', error);
+      throw error;
     }
   }
 }

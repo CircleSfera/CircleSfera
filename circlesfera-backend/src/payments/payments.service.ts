@@ -1071,7 +1071,7 @@ export class PaymentsService {
           where: { stripeSubscriptionId: subscription.id },
           select: { userId: true },
         });
-        if (platformSub) {
+        if (platformSub?.userId) {
           await this.usersService.syncUserTier(platformSub.userId);
         }
 
@@ -1118,7 +1118,7 @@ export class PaymentsService {
             where: { stripeSubscriptionId: subscriptionId },
             select: { userId: true },
           });
-          if (platformSub) {
+          if (platformSub?.userId) {
             await this.usersService.syncUserTier(platformSub.userId);
           }
         }
@@ -1255,6 +1255,21 @@ export class PaymentsService {
       where: { stripePaymentIntentId: paymentIntentId },
     });
     if (!tx) {
+      return;
+    }
+
+    // Idempotent: a duplicate refund/dispute webhook for an already-revoked
+    // transaction is a no-op, not a re-run of the unlock deletion below.
+    if (tx.status === 'REFUNDED') {
+      return;
+    }
+
+    // A charge that never completed on our side has nothing to refund.
+    // Marking it REFUNDED would misrepresent money that was never captured.
+    if (tx.status === 'FAILED') {
+      this.logger.warn(
+        `Received refund/dispute webhook for Transaction ${tx.id} (paymentIntent ${paymentIntentId}) which is already FAILED. Skipping status transition.`,
+      );
       return;
     }
 

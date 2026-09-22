@@ -28,6 +28,7 @@ export class WebrtcService {
       // Metered.ca API format: https://<domain>/api/v1/turn/credentials?apiKey=<key>
       const response = await axios.get(
         `https://${domain}/api/v1/turn/credentials?apiKey=${secretKey}`,
+        { timeout: 5_000 },
       );
 
       return response.data;

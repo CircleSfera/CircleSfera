@@ -1,10 +1,17 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
-import type { Job } from 'bullmq';
+import { type Job, UnrecoverableError } from 'bullmq';
+import {
+  getWorkerOptions,
+  QUEUE_NAMES,
+} from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
 
-@Processor('notifications-processing', { concurrency: 10 })
+@Processor(
+  QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
+  getWorkerOptions(QUEUE_NAMES.NOTIFICATIONS_PROCESSING),
+)
 export class NotificationsProcessor extends WorkerHost {
   private readonly logger = new Logger(NotificationsProcessor.name);
 
@@ -22,7 +29,9 @@ export class NotificationsProcessor extends WorkerHost {
       case 'cleanup-old-notifications':
         return this.cleanupOldNotifications();
       default:
-        this.logger.warn(`Unknown job name: ${job.name}`);
+        throw new UnrecoverableError(
+          `Unknown job name in notifications queue: ${job.name}`,
+        );
     }
   }
 
@@ -34,12 +43,23 @@ export class NotificationsProcessor extends WorkerHost {
     const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000);
 
     // Find unread notifications created or updated in the last 15 minutes
-    // Specific to batchable types (LIKE, COMMENT)
+    // Specific to batchable types (LIKE, COMMENT), excluding un-operational accounts
     const recentUnreadNotifications = await this.prisma.notification.findMany({
       where: {
         read: false,
         createdAt: { gte: fifteenMinutesAgo },
         type: { in: ['LIKE', 'COMMENT_LIKE'] },
+        recipient: {
+          user: {
+            isActive: true,
+            isRootBanned: false,
+          },
+          isAccountBanned: false,
+          OR: [
+            { suspendedUntil: null },
+            { suspendedUntil: { lte: new Date() } },
+          ],
+        },
       },
       select: {
         recipientId: true,
@@ -126,8 +146,10 @@ export class NotificationsProcessor extends WorkerHost {
           `Cleaned up ${readDeleted.count} read notifications (>30d) and ${allDeleted.count} old notifications (>90d).`,
         );
       }
+      return { readCount: readDeleted.count, oldCount: allDeleted.count };
     } catch (error) {
       this.logger.error('Failed to clean up old notifications', error);
+      throw error;
     }
   }
 }

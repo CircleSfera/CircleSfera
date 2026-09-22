@@ -166,7 +166,7 @@ async function main() {
       where: { stripeProductId: 'prod_UtQGHGBnYo5yGX' },
       update: {},
       create: {
-        name: 'Premium',
+        name: 'Verified',
         description:
           'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
         priceCents: 999,
@@ -229,8 +229,6 @@ async function main() {
         email: 'admin@circlesfera.com',
         password: hashedPassword,
         role: 'USER',
-        accountType: 'BUSINESS',
-        verificationLevel: 'BUSINESS',
         emailVerified: new Date(),
         profiles: {
           create: {
@@ -241,6 +239,8 @@ async function main() {
               'https://images.unsplash.com/photo-1611162617474-5b21e879e113?auto=format&fit=crop&q=80&w=400',
             cover:
               'https://images.unsplash.com/photo-1557683316-973673baf926?auto=format&fit=crop&q=80&w=1200',
+            accountType: 'BUSINESS',
+            verificationLevel: 'BUSINESS',
           },
         },
       },
@@ -254,8 +254,6 @@ async function main() {
         email: 'easyfeliu@gmail.com',
         password: hashedPassword,
         role: 'USER',
-        accountType: 'CREATOR',
-        verificationLevel: 'VERIFIED',
         emailVerified: new Date(),
         profiles: {
           create: {
@@ -266,6 +264,8 @@ async function main() {
               'https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&q=80&w=400',
             cover:
               'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200',
+            accountType: 'CREATOR',
+            verificationLevel: 'VERIFIED',
           },
         },
       },
@@ -348,8 +348,6 @@ async function main() {
           email: u.email,
           password: hashedPassword,
           role: 'USER',
-          accountType: u.accountType as any,
-          verificationLevel: u.verificationLevel as any,
           emailVerified: new Date(),
           profiles: {
             create: {
@@ -362,6 +360,8 @@ async function main() {
               cover: u.cover,
               coverStandardUrl: u.cover,
               coverThumbnailUrl: u.cover,
+              accountType: u.accountType as any,
+              verificationLevel: u.verificationLevel as any,
             },
           },
         },

@@ -26,7 +26,7 @@
 
 What each layer stubs vs runs for real: [`../core/quality.md`](../core/quality.md) (pyramid). Composer slice: `circlesfera-frontend/e2e/COMPOSER_QA.md`.
 
-Coverage thresholds are 30% statements/lines. That is a floor, not a goal.
+Coverage thresholds enforce a 45% statements/lines global floor plus strict risk-based minimums for critical domains (Security 65%, Admin Auth 90%, Ownership 75%, Payments 45%, Monetization 30%, GDPR Data Export 85%, Outbox 80%) enforced in CI. That is a floor, not a goal. Detail: `circlesfera-documentation/14-critical-domain-test-coverage-policy.md`.
 
 ## Choosing the level
 

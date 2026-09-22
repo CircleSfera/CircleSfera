@@ -91,6 +91,96 @@ describe('AudioService', () => {
     });
   });
 
+  describe('findAll', () => {
+    it('should return all audio tracks', async () => {
+      mockPrismaService.audio.findMany.mockResolvedValue([
+        { id: 'audio-1', title: 'Track 1' },
+      ]);
+      const result = await service.findAll();
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('getTrending', () => {
+    it('should return top 10 trending audio tracks', async () => {
+      mockPrismaService.audio.findMany.mockResolvedValue([
+        { id: 'audio-1', title: 'Trending 1' },
+      ]);
+      const result = await service.getTrending();
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.audio.findMany).toHaveBeenCalledWith({
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
+  describe('findAllPaginated', () => {
+    it('should return paginated items without search', async () => {
+      mockPrismaService.audio.findMany.mockResolvedValue([
+        { id: 'audio-1', title: 'Track 1' },
+      ]);
+      mockPrismaService.audio.count.mockResolvedValue(1);
+
+      const result = await service.findAllPaginated(1, 10);
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.totalPages).toBe(1);
+    });
+
+    it('should return paginated items with search filter', async () => {
+      mockPrismaService.audio.findMany.mockResolvedValue([
+        { id: 'audio-2', title: 'Rock Song' },
+      ]);
+      mockPrismaService.audio.count.mockResolvedValue(1);
+
+      const result = await service.findAllPaginated(1, 10, 'Rock');
+      expect(result.data).toHaveLength(1);
+    });
+  });
+
+  describe('update', () => {
+    it('should throw NotFoundException if audio track does not exist', async () => {
+      mockPrismaService.audio.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.update('invalid-id', { title: 'New' }),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should update audio track if exists', async () => {
+      mockPrismaService.audio.findUnique.mockResolvedValue({ id: 'audio-1' });
+      mockPrismaService.audio.update.mockResolvedValue({
+        id: 'audio-1',
+        title: 'Updated Title',
+      });
+
+      const result = await service.update('audio-1', {
+        title: 'Updated Title',
+      });
+      expect(result.title).toBe('Updated Title');
+    });
+  });
+
+  describe('getAudioPosts', () => {
+    it('should return public posts utilizing the audio track', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'post-1', audioId: 'audio-1' },
+      ]);
+
+      const result = await service.getAudioPosts('audio-1');
+      expect(result).toHaveLength(1);
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith({
+        where: {
+          audioId: 'audio-1',
+          visibility: 'PUBLIC',
+          moderationStatus: 'VISIBLE',
+        },
+        include: expect.any(Object),
+        orderBy: { createdAt: 'desc' },
+      });
+    });
+  });
+
   describe('delete', () => {
     it('should throw NotFoundException if audio track does not exist', async () => {
       mockPrismaService.audio.findUnique.mockResolvedValue(null);

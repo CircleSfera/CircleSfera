@@ -80,6 +80,29 @@ describe('OutboxService', () => {
       expect(result).toEqual({ id: 'outbox-1' });
     });
 
+    it('should default payload to empty object and options to null if omitted', async () => {
+      const mockTx = {
+        outboxEvent: {
+          create: vi.fn().mockResolvedValue({ id: 'outbox-2' }),
+        },
+      } as any;
+
+      await service.enqueue(mockTx, {
+        queueName: 'users-processing',
+        eventName: 'simple-event',
+      } as any);
+
+      expect(mockTx.outboxEvent.create).toHaveBeenCalledWith({
+        data: {
+          queueName: 'users-processing',
+          eventName: 'simple-event',
+          payload: {},
+          options: null,
+          status: 'PENDING',
+        },
+      });
+    });
+
     it('should throw if queueName or eventName is missing', async () => {
       const mockTx = { outboxEvent: { create: vi.fn() } } as any;
 
@@ -98,6 +121,16 @@ describe('OutboxService', () => {
           payload: {},
         }),
       ).rejects.toThrow('Outbox event requires queueName and eventName');
+    });
+
+    it('should return null and warn when tx delegate is missing or invalid', async () => {
+      const mockTx = {} as any;
+      const result = await service.enqueue(mockTx, {
+        queueName: 'users-processing',
+        eventName: 'export-data',
+        payload: {},
+      });
+      expect(result).toBeNull();
     });
   });
 
@@ -118,6 +151,22 @@ describe('OutboxService', () => {
 
     it('should return null for unregistered queue', () => {
       const queue = service.resolveQueue('non-existent-queue');
+      expect(queue).toBeNull();
+    });
+
+    it('should return null and warn when moduleRef.get throws', () => {
+      mockModuleRef.get.mockImplementationOnce(() => {
+        throw new Error('ModuleRef failure');
+      });
+      const queue = service.resolveQueue('failing-queue');
+      expect(queue).toBeNull();
+    });
+
+    it('should return null and warn when moduleRef.get throws non-Error', () => {
+      mockModuleRef.get.mockImplementationOnce(() => {
+        throw 'ModuleRef failure string';
+      });
+      const queue = service.resolveQueue('failing-queue-str');
       expect(queue).toBeNull();
     });
   });
@@ -379,6 +428,63 @@ describe('OutboxService', () => {
       });
       expect(stats).toEqual({ published: 0, failed: 1, skipped: 0 });
     });
+
+    it('should return 0s if sweep is already in progress', async () => {
+      (service as any).isSweeping = true;
+      const stats = await service.publishPendingEvents();
+      expect(stats).toEqual({ published: 0, failed: 0, skipped: 0 });
+      (service as any).isSweeping = false;
+    });
+
+    it('should return 0s when outbox delegate is not available', async () => {
+      const originalDelegate = (mockPrismaService as any).outboxEvent;
+      delete (mockPrismaService as any).outboxEvent;
+
+      const stats = await service.publishPendingEvents();
+      expect(stats).toEqual({ published: 0, failed: 0, skipped: 0 });
+
+      (mockPrismaService as any).outboxEvent = originalDelegate;
+    });
+
+    it('should catch and log error if delegate.findMany throws non-Error string', async () => {
+      mockPrismaService.outboxEvent.findMany.mockRejectedValueOnce(
+        'Database disconnect string',
+      );
+
+      const stats = await service.publishPendingEvents();
+      expect(stats).toEqual({ published: 0, failed: 0, skipped: 0 });
+    });
+
+    it('should catch and log error if delegate.findMany throws Error instance', async () => {
+      mockPrismaService.outboxEvent.findMany.mockRejectedValueOnce(
+        new Error('Database disconnect Error object'),
+      );
+
+      const stats = await service.publishPendingEvents();
+      expect(stats).toEqual({ published: 0, failed: 0, skipped: 0 });
+    });
+
+    it('should handle queue dispatch failure when error is a non-Error string', async () => {
+      const now = new Date();
+      const mockEvent = {
+        id: 'outbox-fail-str',
+        queueName: 'users-processing',
+        eventName: 'export-data',
+        payload: {},
+        options: null,
+        status: 'PENDING',
+        retryCount: 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      mockPrismaService.outboxEvent.findMany.mockResolvedValue([mockEvent]);
+      mockPrismaService.outboxEvent.updateMany.mockResolvedValue({ count: 1 });
+      mockQueue.add.mockRejectedValueOnce('Raw string error');
+
+      const stats = await service.publishPendingEvents();
+      expect(stats).toEqual({ published: 0, failed: 1, skipped: 0 });
+    });
   });
 
   describe('triggerImmediatePublish and handleCronSweep', () => {
@@ -393,6 +499,26 @@ describe('OutboxService', () => {
 
       await new Promise((resolve) => setImmediate(resolve));
       expect(spy).toHaveBeenCalled();
+    });
+
+    it('triggerImmediatePublish should catch errors and log warning', async () => {
+      vi.spyOn(service, 'publishPendingEvents').mockRejectedValueOnce(
+        new Error('Async sweep failed'),
+      );
+
+      service.triggerImmediatePublish();
+
+      await new Promise((resolve) => setImmediate(resolve));
+    });
+
+    it('triggerImmediatePublish should catch non-Error strings and log warning', async () => {
+      vi.spyOn(service, 'publishPendingEvents').mockRejectedValueOnce(
+        'Async sweep string error',
+      );
+
+      service.triggerImmediatePublish();
+
+      await new Promise((resolve) => setImmediate(resolve));
     });
 
     it('handleCronSweep should call publishPendingEvents', async () => {

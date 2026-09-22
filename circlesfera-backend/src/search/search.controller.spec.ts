@@ -93,4 +93,64 @@ describe('SearchController', () => {
     expect(mockService.getHistory).toHaveBeenCalledWith(TEST_USER.profileId);
     expect(mockService.clearHistory).toHaveBeenCalledWith(TEST_USER.profileId);
   });
+
+  it('searches posts, semantic AI, semantic profiles, and users', async () => {
+    mockService.searchPosts.mockResolvedValue([{ id: 'p-1' }]);
+    mockService.semanticSearchPosts.mockResolvedValue([{ id: 'p-ai' }]);
+    mockService.semanticSearchProfiles.mockResolvedValue([{ id: 'prof-ai' }]);
+    mockService.searchUsers.mockResolvedValue([{ id: 'u-1' }]);
+    mockService.getTrending.mockResolvedValue([]);
+
+    // Default trending limit test
+    await request(app.getHttpServer())
+      .get('/api/v1/search/trending')
+      .set(BEARER)
+      .expect(200);
+    expect(mockService.getTrending).toHaveBeenCalledWith(10);
+
+    // searchPosts
+    const postsRes = await request(app.getHttpServer())
+      .get('/api/v1/search/posts')
+      .query({ q: 'photography' })
+      .set(BEARER)
+      .expect(200);
+    expect(postsRes.body).toEqual([{ id: 'p-1' }]);
+    expect(mockService.searchPosts).toHaveBeenCalledWith('photography');
+
+    // semanticSearchPosts
+    const aiRes = await request(app.getHttpServer())
+      .get('/api/v1/search/ai')
+      .query({ q: 'sunset beach' })
+      .set(BEARER)
+      .expect(200);
+    expect(aiRes.body).toEqual([{ id: 'p-ai' }]);
+    expect(mockService.semanticSearchPosts).toHaveBeenCalledWith(
+      'sunset beach',
+    );
+
+    // semanticSearchProfiles
+    const aiProfRes = await request(app.getHttpServer())
+      .get('/api/v1/search/ai/profiles')
+      .query({ q: 'developer' })
+      .set(BEARER)
+      .expect(200);
+    expect(aiProfRes.body).toEqual([{ id: 'prof-ai' }]);
+    expect(mockService.semanticSearchProfiles).toHaveBeenCalledWith(
+      'developer',
+      10,
+      TEST_USER.profileId,
+    );
+
+    // searchUsers
+    const usersRes = await request(app.getHttpServer())
+      .get('/api/v1/search/users')
+      .query({ q: 'bob' })
+      .set(BEARER)
+      .expect(200);
+    expect(usersRes.body).toEqual([{ id: 'u-1' }]);
+    expect(mockService.searchUsers).toHaveBeenCalledWith(
+      'bob',
+      TEST_USER.profileId,
+    );
+  });
 });

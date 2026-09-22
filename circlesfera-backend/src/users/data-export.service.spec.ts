@@ -16,7 +16,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { EXPORTS_DIR } from './data-export.constants.js';
+import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
 import { DataExportService } from './data-export.service.js';
 
 describe('DataExportService', () => {
@@ -307,6 +307,38 @@ describe('DataExportService', () => {
       ).rejects.toThrow(ForbiddenException);
     });
 
+    it('throws BadRequestException when request status is FAILED', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-failed',
+        userId: 'user-1',
+        status: 'FAILED',
+      });
+      const res = createMockRes();
+
+      await expect(
+        service.streamDataExport('export-failed', 'user-1', undefined, res),
+      ).rejects.toThrow('Data export is not available or has failed.');
+    });
+
+    it('throws ForbiddenException when download token verification fails', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-1',
+        userId: 'user-1',
+        status: 'COMPLETED',
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+      });
+      const res = createMockRes();
+
+      await expect(
+        service.streamDataExport(
+          'export-1',
+          undefined,
+          'invalid.token.str',
+          res,
+        ),
+      ).rejects.toThrow('Invalid or expired download token.');
+    });
+
     it('throws ForbiddenException when token belongs to different export or user', async () => {
       mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
         id: 'export-1',
@@ -315,7 +347,6 @@ describe('DataExportService', () => {
         expiresAt: new Date(Date.now() + 3600 * 1000),
       });
       const res = createMockRes();
-      // Token generated for user-2 / export-2
       const invalidToken = service.generateDownloadToken(
         'user-2',
         'export-2',
@@ -325,6 +356,26 @@ describe('DataExportService', () => {
       await expect(
         service.streamDataExport('export-1', undefined, invalidToken, res),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('finds file at opaquePath if custom URL filename does not exist', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-1',
+        userId: 'user-1',
+        status: 'COMPLETED',
+        url: 'http://localhost:3000/api/v1/users/gdpr/exports/custom_name.zip',
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+      });
+      fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+      fs.writeFileSync(testFilePath, 'mock zip data content');
+
+      const res = createMockRes();
+      await service.streamDataExport('export-1', 'user-1', undefined, res);
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/zip',
+      );
     });
 
     it('throws NotFoundException when file does not exist on disk', async () => {
@@ -427,6 +478,61 @@ describe('DataExportService', () => {
         'Content-Disposition',
         'attachment; filename="export_export-1.zip"',
       );
+    });
+
+    it('falls back to LEGACY_EXPORTS_DIR when legacy file exists there', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-legacy-dir',
+        userId: 'user-1',
+        status: 'COMPLETED',
+        url: 'http://localhost:3000/api/v1/users/gdpr/exports/export-legacy-dir.zip',
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+      });
+      const legacyDirPath = path.join(
+        LEGACY_EXPORTS_DIR,
+        'export-legacy-dir.zip',
+      );
+      fs.mkdirSync(LEGACY_EXPORTS_DIR, { recursive: true });
+      fs.writeFileSync(legacyDirPath, 'legacy dir zip content');
+
+      const res = createMockRes();
+      await service.streamDataExport(
+        'export-legacy-dir',
+        'user-1',
+        undefined,
+        res,
+      );
+
+      expect(res.setHeader).toHaveBeenCalledWith(
+        'Content-Type',
+        'application/zip',
+      );
+      if (fs.existsSync(legacyDirPath)) fs.unlinkSync(legacyDirPath);
+    });
+
+    it('handles stream error and returns 500 when headers not sent', async () => {
+      mockPrismaService.dataExportRequest.findUnique.mockResolvedValue({
+        id: 'export-1',
+        userId: 'user-1',
+        status: 'COMPLETED',
+        url: 'http://localhost:3000/api/v1/users/gdpr/exports/export-1/download',
+        expiresAt: new Date(Date.now() + 3600 * 1000),
+      });
+      fs.mkdirSync(EXPORTS_DIR, { recursive: true });
+      fs.writeFileSync(testFilePath, 'mock zip data');
+      fs.chmodSync(testFilePath, 0o000);
+
+      const res = createMockRes();
+
+      try {
+        await expect(
+          service.streamDataExport('export-1', 'user-1', undefined, res),
+        ).rejects.toThrow();
+
+        expect(res.status).toHaveBeenCalledWith(500);
+      } finally {
+        fs.chmodSync(testFilePath, 0o644);
+      }
     });
   });
 });

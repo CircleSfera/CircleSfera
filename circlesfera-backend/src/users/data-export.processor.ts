@@ -1,20 +1,17 @@
 import * as fs from 'node:fs';
-import { createRequire } from 'node:module';
 import * as path from 'node:path';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Logger } from '@nestjs/common';
+import { WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import type { Job } from 'bullmq';
+import { ZipArchive } from 'archiver';
+import { type Job, UnrecoverableError } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
 import { DataExportService } from './data-export.service.js';
 import { UsersService } from './users.service.js';
 
-const require = createRequire(import.meta.url);
-const archiver = require('archiver');
-
-@Processor('users-processing')
+@Injectable()
 export class DataExportProcessor extends WorkerHost {
   private readonly logger = new Logger(DataExportProcessor.name);
 
@@ -31,11 +28,17 @@ export class DataExportProcessor extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     switch (job.name) {
       case 'export-data':
-        return this.processDataExport(job.data.requestId, job.data.userId);
+        return this.processDataExport(
+          job.data?.requestId,
+          job.data?.userId,
+          job,
+        );
       case 'clean-expired-data-exports':
         return this.cleanExpiredDataExports();
       default:
-        return undefined;
+        throw new UnrecoverableError(
+          `Unknown job name in DataExportProcessor: ${job.name}`,
+        );
     }
   }
 
@@ -124,12 +127,24 @@ export class DataExportProcessor extends WorkerHost {
       this.logger.log(
         `Purged ${result.count} expired data export records and deleted ${deletedFiles} files.`,
       );
+      return { count: result.count, deletedFiles };
     } catch (error) {
       this.logger.error('Failed to purge expired data exports', error);
+      throw error;
     }
   }
 
-  private async processDataExport(requestId: string, userId: string) {
+  async processDataExport(
+    requestId: string,
+    userId: string,
+    job?: Job<any, any, string>,
+  ) {
+    if (!requestId || !userId) {
+      throw new UnrecoverableError(
+        'Missing requestId or userId for data export',
+      );
+    }
+
     await this.prisma.dataExportRequest.update({
       where: { id: requestId },
       data: { status: 'PROCESSING' },
@@ -146,7 +161,13 @@ export class DataExportProcessor extends WorkerHost {
         },
       });
 
-      if (!user) throw new Error('User not found');
+      if (!user) {
+        await this.prisma.dataExportRequest.update({
+          where: { id: requestId },
+          data: { status: 'FAILED' },
+        });
+        throw new UnrecoverableError(`User not found: ${userId}`);
+      }
 
       if (!fs.existsSync(EXPORTS_DIR)) {
         fs.mkdirSync(EXPORTS_DIR, { recursive: true });
@@ -157,7 +178,7 @@ export class DataExportProcessor extends WorkerHost {
       const filePath = path.join(EXPORTS_DIR, fileName);
 
       const output = fs.createWriteStream(filePath);
-      const archive = archiver('zip', { zlib: { level: 9 } });
+      const archive = new ZipArchive({ zlib: { level: 9 } });
 
       return new Promise<void>((resolve, reject) => {
         output.on('close', async () => {
@@ -223,10 +244,17 @@ export class DataExportProcessor extends WorkerHost {
         archive.finalize();
       });
     } catch (error) {
-      await this.prisma.dataExportRequest.update({
-        where: { id: requestId },
-        data: { status: 'FAILED' },
-      });
+      const isTerminal =
+        error instanceof UnrecoverableError ||
+        (job && job.attemptsMade + 1 >= (job.opts?.attempts ?? 1));
+      if (isTerminal) {
+        await this.prisma.dataExportRequest
+          .update({
+            where: { id: requestId },
+            data: { status: 'FAILED' },
+          })
+          .catch(() => {});
+      }
       this.logger.error(`Export failed for user ${userId}`, error);
       throw error;
     }

@@ -4,6 +4,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
 import { AIService } from '../ai/ai.service.js';
+import { redactSensitiveText } from '../common/observability/redaction.util.js';
+import { sanitizeUrl } from '../common/utils/url-sanitizer.util.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -54,7 +56,7 @@ export class SlackService {
     }
 
     try {
-      await axios.post(webhookUrl, payload);
+      await axios.post(webhookUrl, payload, { timeout: 5_000 });
     } catch (error) {
       this.logger.error('Failed to send Slack message', error);
     }
@@ -76,6 +78,14 @@ export class SlackService {
     path?: string;
     correlationId?: string;
   }): Promise<void> {
+    const sanitizedPath = errorInfo.path
+      ? sanitizeUrl(errorInfo.path)
+      : 'Unknown';
+    const sanitizedMessage = redactSensitiveText(errorInfo.message);
+    const sanitizedStack = errorInfo.stack
+      ? redactSensitiveText(errorInfo.stack).substring(0, 2000)
+      : undefined;
+
     const payload = {
       blocks: [
         {
@@ -85,8 +95,8 @@ export class SlackService {
         {
           type: 'section',
           fields: [
-            { type: 'mrkdwn', text: `*Path:*\n${errorInfo.path || 'Unknown'}` },
-            { type: 'mrkdwn', text: `*Message:*\n${errorInfo.message}` },
+            { type: 'mrkdwn', text: `*Path:*\n${sanitizedPath}` },
+            { type: 'mrkdwn', text: `*Message:*\n${sanitizedMessage}` },
             ...(errorInfo.correlationId
               ? [
                   {
@@ -97,13 +107,13 @@ export class SlackService {
               : []),
           ],
         },
-        ...(errorInfo.stack
+        ...(sanitizedStack
           ? [
               {
                 type: 'section',
                 text: {
                   type: 'mrkdwn',
-                  text: `*Stacktrace:*\n\`\`\`${errorInfo.stack.substring(0, 2000)}\`\`\``,
+                  text: `*Stacktrace:*\n\`\`\`${sanitizedStack}\`\`\``,
                 },
               },
             ]
@@ -621,6 +631,7 @@ export class SlackService {
             },
             {
               headers: { Authorization: `Bearer ${this.slackBotToken}` },
+              timeout: 5_000,
             },
           );
         } catch (error) {
@@ -641,12 +652,24 @@ export class SlackService {
         },
       });
 
-      // To update the message in Slack, we can use the response_url provided in the payload
-      if (payload.response_url) {
-        await axios.post(payload.response_url, {
-          replace_original: true,
-          blocks: updatedBlocks,
-        });
+      // Update the original Slack message using the Web API (hardcoded URL) instead of
+      // response_url. This permanently eliminates the SSRF taint path: no user-supplied
+      // value ever reaches the URL argument of axios (CodeQL js/ssrf mitigation).
+      // channel and message.ts come from the payload but are sent as JSON body fields,
+      // not as part of the URL.
+      if (this.slackBotToken && payload.channel?.id && payload.message?.ts) {
+        await axios.post(
+          'https://slack.com/api/chat.update',
+          {
+            channel: payload.channel.id as string,
+            ts: payload.message.ts as string,
+            blocks: updatedBlocks,
+          },
+          {
+            headers: { Authorization: `Bearer ${this.slackBotToken}` },
+            timeout: 5_000,
+          },
+        );
       }
 
       return { text: resultText };

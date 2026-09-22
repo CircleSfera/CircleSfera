@@ -12,6 +12,8 @@ import { HttpAdapterHost } from '@nestjs/core';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import * as Sentry from '@sentry/nestjs';
 import { CorrelationContext } from '../correlation/correlation.context.js';
+import { redactSensitiveText } from '../observability/redaction.util.js';
+import { sanitizeUrl } from '../utils/url-sanitizer.util.js';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -37,7 +39,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const { httpAdapter } = this.httpAdapterHost;
     const ctx = host.switchToHttp();
     const request = ctx.getRequest<Record<string, unknown>>();
-    const path = httpAdapter.getRequestUrl(request) as string;
+    const rawPath = httpAdapter.getRequestUrl(request) as string;
+    const path = sanitizeUrl(rawPath);
     const method = httpAdapter.getRequestMethod(request) as string;
 
     // Csrf-csrf throws ForbiddenError (not HttpException). Treat as client 403
@@ -105,11 +108,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
             ? exception
             : JSON.stringify(exception);
 
+      const sanitizedErrorStack = redactSensitiveText(errorStack);
+
       responseBody.details =
-        process.env.NODE_ENV === 'production' ? null : errorStack;
+        process.env.NODE_ENV === 'production' ? null : sanitizedErrorStack;
 
       this.logger.error(
-        `Unhandled exception [${method}] ${path}: ${errorStack}`,
+        `Unhandled exception [${method}] ${path}: ${sanitizedErrorStack}`,
       );
 
       // Report true unexpected errors only (not mapped client 4xx)
@@ -117,9 +122,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
         Sentry.captureException(exception);
 
         this.eventEmitter?.emit('system.incident', {
-          message:
+          message: redactSensitiveText(
             exception instanceof Error ? exception.message : 'Unknown Error',
-          stack: errorStack,
+          ),
+          stack: sanitizedErrorStack,
           path,
           method,
           statusCode: httpStatus,

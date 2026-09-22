@@ -1,28 +1,25 @@
 import { expect, test } from '@playwright/test';
-import {
-  prepareAuthenticatedSession,
-  TEST_USER,
-  testProfile,
-} from './helpers/session';
+import { prepareAuthenticatedSession, testProfile } from './helpers/session';
 
 test.describe('Perfil', () => {
   test('ve el perfil y guarda una bio nueva', async ({ page }) => {
-    const profile = testProfile({
-      bio: 'Biografía original',
+    const { user } = await prepareAuthenticatedSession(page, {
+      scenario: 'profile',
     });
-
-    await prepareAuthenticatedSession(page);
-
-    await page.route(
-      `**/api/v1/profiles/${TEST_USER.username}`,
-      async (route) => {
-        if (route.request().method() === 'GET') {
-          await route.fulfill({ status: 200, json: profile });
-          return;
-        }
-        await route.continue();
+    const profile = testProfile(
+      {
+        bio: 'Biografía original',
       },
+      user,
     );
+
+    await page.route(`**/api/v1/profiles/${user.username}`, async (route) => {
+      if (route.request().method() === 'GET') {
+        await route.fulfill({ status: 200, json: profile });
+        return;
+      }
+      await route.continue();
+    });
 
     await page.route('**/api/v1/posts/user/**', async (route) => {
       await route.fulfill({
@@ -34,8 +31,8 @@ test.describe('Perfil', () => {
       });
     });
 
-    await page.goto(`/${TEST_USER.username}`);
-    await expect(page.getByText(TEST_USER.displayName).first()).toBeVisible();
+    await page.goto(`/${user.username}`);
+    await expect(page.getByText(user.displayName).first()).toBeVisible();
     await expect(page.getByText('Biografía original').first()).toBeVisible();
 
     await page.getByRole('link', { name: 'Ajustes' }).first().click();
@@ -55,19 +52,16 @@ test.describe('Perfil', () => {
       await route.fulfill({ status: 200, json: profile });
     });
 
-    await page.route(
-      `**/api/v1/profiles/${TEST_USER.username}`,
-      async (route) => {
-        await route.fulfill({ status: 200, json: profile });
-      },
-    );
+    await page.route(`**/api/v1/profiles/${user.username}`, async (route) => {
+      await route.fulfill({ status: 200, json: profile });
+    });
 
     await page
       .getByRole('button', { name: 'Guardar Cambios del Perfil' })
       .click();
     await expect(page.getByText('Perfil actualizado con éxito')).toBeVisible();
 
-    await page.goto(`/${TEST_USER.username}`);
+    await page.goto(`/${user.username}`);
     await expect(page.getByText('Biografía actualizada').first()).toBeVisible();
   });
 });

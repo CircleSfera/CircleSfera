@@ -281,7 +281,7 @@ describe('safeFetchMedia', () => {
       ).rejects.toThrow();
     });
 
-    it('rejects files that fail magic-byte validation (UPLOAD-001)', async () => {
+    it('rejects files that fail magic-byte validation', async () => {
       // Create a local text file claimed to be audio
       const uploadsDir = path.resolve(process.cwd(), 'uploads');
       const fakeAudioPath = path.join(uploadsDir, 'fake-audio.mp3');
@@ -301,6 +301,14 @@ describe('safeFetchMedia', () => {
           fs.unlinkSync(fakeAudioPath);
         }
       }
+    });
+  });
+
+  describe('fetchLocalUpload missing file', () => {
+    it('rejects when local file does not exist', async () => {
+      await expect(
+        safeFetchMedia('/uploads/nonexistent-unit-audio.wav'),
+      ).rejects.toThrow('Local media file not found');
     });
   });
 });

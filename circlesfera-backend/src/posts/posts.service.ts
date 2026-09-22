@@ -86,6 +86,15 @@ export class PostsService {
     );
 
     if (dto.isPremium) {
+      const authorProfile = await this.prisma.profile.findUnique({
+        where: { id: profileId },
+        select: { accountType: true },
+      });
+      if (authorProfile?.accountType === 'PERSONAL') {
+        throw new ForbiddenException(
+          'Solo las cuentas Creator o Business pueden publicar contenido premium.',
+        );
+      }
       if (
         !dto.priceCents ||
         dto.priceCents < MIN_PPV_PRICE_CENTS ||

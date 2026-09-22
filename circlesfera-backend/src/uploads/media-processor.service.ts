@@ -63,7 +63,7 @@ export class MediaProcessorService {
     const isImage = file.mimetype.startsWith('image/');
     const isVideo = file.mimetype.startsWith('video/');
 
-    // UPLOAD-002: Reject SVG uploads immediately (mitigates Stored XSS / XXE)
+    // Reject SVG uploads immediately (mitigates Stored XSS / XXE)
     if (file.mimetype === 'image/svg+xml') {
       throw new UnsupportedMediaTypeException(
         'SVG uploads are not permitted for security reasons. Please upload raster images (JPEG, PNG, WebP, GIF).',

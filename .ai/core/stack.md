@@ -46,7 +46,7 @@ npm run dev                      # nest start --watch --exec "node dist/main.js"
 npm run build                    # nest build
 npm test                         # vitest run (unit, src/**/*.spec.ts)
 npm run test:e2e                 # vitest run --config ./vitest.e2e.config.ts (test/*.e2e-spec.ts)
-npm run test:cov                 # coverage; thresholds: statements/lines 30%
+npm run test:cov                 # coverage; global 45% + critical domains (security, auth, payments, lifecycle)
 npm run lint                     # biome lint .
 npm run check                    # biome check --write .
 npm run prisma:migrate           # prisma migrate dev

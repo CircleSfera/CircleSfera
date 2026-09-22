@@ -166,4 +166,11 @@ describe('MediaReconciliationService', () => {
     mockStorageProvider.listFiles!.mockResolvedValue([]);
     await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
   });
+
+  it('should catch and log error when reconciliation fails during cron', async () => {
+    vi.spyOn(service, 'detectAndReconcileOrphans').mockRejectedValueOnce(
+      new Error('Reconciliation error'),
+    );
+    await expect(service.handleDailyReconciliation()).resolves.not.toThrow();
+  });
 });

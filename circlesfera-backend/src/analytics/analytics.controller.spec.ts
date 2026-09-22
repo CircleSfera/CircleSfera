@@ -184,4 +184,70 @@ describe('AnalyticsController', () => {
       'profile-1',
     );
   });
+
+  it('fetches creator dashboard with and without days parameter', async () => {
+    mockAnalyticsService.getCreatorDashboard.mockResolvedValue({ stats: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/analytics/dashboard')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockAnalyticsService.getCreatorDashboard).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      30,
+    );
+
+    await request(app.getHttpServer())
+      .get('/api/v1/analytics/dashboard')
+      .query({ days: '7' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockAnalyticsService.getCreatorDashboard).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      7,
+    );
+  });
+
+  it('tracks post view, loop, watch time, and fetches insights', async () => {
+    mockAnalyticsService.trackPostView.mockResolvedValue({ success: true });
+    mockAnalyticsService.trackFrameLoop.mockResolvedValue({ success: true });
+    mockAnalyticsService.trackFrameWatchTime.mockResolvedValue({
+      success: true,
+    });
+    mockAnalyticsService.getPostInsights.mockResolvedValue({ views: 10 });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/post/post-1/view')
+      .set(BEARER)
+      .expect(201);
+    expect(mockAnalyticsService.trackPostView).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+    );
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/post/post-1/loop')
+      .set(BEARER)
+      .expect(201);
+    expect(mockAnalyticsService.trackFrameLoop).toHaveBeenCalledWith('post-1');
+
+    await request(app.getHttpServer())
+      .post('/api/v1/analytics/post/post-1/watch')
+      .query({ seconds: '15.5' })
+      .set(BEARER)
+      .expect(201);
+    expect(mockAnalyticsService.trackFrameWatchTime).toHaveBeenCalledWith(
+      'post-1',
+      15.5,
+    );
+
+    const insightsRes = await request(app.getHttpServer())
+      .get('/api/v1/analytics/post/post-1/insights')
+      .set(BEARER)
+      .expect(200);
+    expect(insightsRes.body).toEqual({ views: 10 });
+    expect(mockAnalyticsService.getPostInsights).toHaveBeenCalledWith('post-1');
+  });
 });

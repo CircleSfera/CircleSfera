@@ -11,6 +11,7 @@ import {
 } from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -40,6 +41,7 @@ describe('ProfilesController', () => {
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
       ],
     });
   });
@@ -101,7 +103,21 @@ describe('ProfilesController', () => {
       .expect(200);
 
     expect(mockService.checkUsernameAvailability).toHaveBeenCalledWith('alice');
-    expect(mockService.getProfile).toHaveBeenCalledWith('alice');
+    expect(mockService.getProfile).toHaveBeenCalledWith('alice', undefined);
+  });
+
+  it('passes the caller profile id when an authenticated viewer loads a public profile', async () => {
+    mockService.getProfile.mockResolvedValue({ username: 'alice' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/alice')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.getProfile).toHaveBeenCalledWith(
+      'alice',
+      TEST_USER.profileId,
+    );
   });
 
   it('rejects profile update with a non-whitelisted body field', async () => {

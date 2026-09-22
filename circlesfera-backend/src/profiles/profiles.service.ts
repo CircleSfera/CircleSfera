@@ -51,13 +51,41 @@ export class ProfilesService {
     });
   }
 
+  // Blocked in either direction: treated as not-found, same as a private/nonexistent profile
+  // would be, so the response never reveals that a block exists.
+  private async assertNotBlocked(
+    viewerProfileId: string,
+    targetProfileId: string,
+  ): Promise<void> {
+    if (viewerProfileId === targetProfileId) return;
+    const block = await this.prisma.block.findFirst({
+      where: {
+        OR: [
+          { blockerId: viewerProfileId, blockedId: targetProfileId },
+          { blockerId: targetProfileId, blockedId: viewerProfileId },
+        ],
+      },
+      select: { id: true },
+    });
+    if (block) {
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
+    }
+  }
+
   // Get a public profile by username. Cached for 10 minutes.
   // Param username: The profile username
-  // Throws NotFoundException if profile does not exist
-  async getProfile(username: string) {
+  // Param viewerProfileId: The authenticated viewer's profile, if any (route allows anonymous access)
+  // Throws NotFoundException if profile does not exist or either side has blocked the other
+  async getProfile(username: string, viewerProfileId?: string) {
     const cacheKey = `profile:${username}`;
-    const cachedProfile = await this.cacheManager.get(cacheKey);
+    const cachedProfile = await this.cacheManager.get<{ id: string }>(cacheKey);
     if (cachedProfile) {
+      if (viewerProfileId) {
+        await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
+      }
       return cachedProfile;
     }
 
@@ -98,6 +126,10 @@ export class ProfilesService {
         ErrorCode.PROFILE_NOT_FOUND,
         'Profile not found',
       );
+    }
+
+    if (viewerProfileId) {
+      await this.assertNotBlocked(viewerProfileId, profile.id);
     }
 
     // Check if user is verified via subscription (PlatformSubscription is on User)

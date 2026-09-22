@@ -18,6 +18,10 @@ export class GetPasskeyOptionsDto {
   @IsNotEmpty()
   @IsString()
   email!: string;
+
+  @IsOptional()
+  @IsString()
+  sensitivity?: 'standard' | 'sensitive';
 }
 
 export class AuthenticatePasskeyDto {

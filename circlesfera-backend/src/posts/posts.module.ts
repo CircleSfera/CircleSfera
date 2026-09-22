@@ -2,6 +2,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { AIModule } from '../ai/ai.module.js';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
+import {
+  getRegisterQueueOptions,
+  QUEUE_NAMES,
+} from '../common/constants/queue-policy.constants.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { PostsController } from './posts.controller.js';
@@ -13,12 +17,10 @@ import { PostPaywallService } from './services/post-paywall.service.js';
 
 @Module({
   imports: [
-    BullModule.registerQueue({
-      name: 'feed-fanout',
-    }),
-    BullModule.registerQueue({
-      name: 'posts-processing',
-    }),
+    BullModule.registerQueue(getRegisterQueueOptions(QUEUE_NAMES.FEED_FANOUT)),
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.POSTS_PROCESSING),
+    ),
     PrismaModule,
     AIModule,
     AnalyticsModule,

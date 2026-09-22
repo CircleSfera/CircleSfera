@@ -173,11 +173,21 @@ jobs:
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
+          # QA-008: authenticated post-deploy smoke. Reuses VITE_API_URL (the
+          # same public HTTPS origin the frontend calls, e.g.
+          # https://circlesfera.com/api/v1) rather than a new secret — the
+          # internal 127.0.0.1 loopback used by the unauthenticated checks
+          # below cannot carry Secure cookies, so this must be the real origin.
+          # SMOKE_TEST_EMAIL/PASSWORD must both be set for the check to run
+          # (see scripts/create-smoke-test-user.ts for account setup).
+          SMOKE_TEST_API_URL: ${{ secrets.VITE_API_URL }}
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+          SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -391,6 +401,102 @@ jobs:
               exit 1
             fi
             echo "✅ Post-deploy API smoke passed."
+
+            # QA-008: authenticated smoke — login + CSRF + create/delete one PRIVATE
+            # post as a dedicated low-privilege test account (scripts/create-smoke-test-user.ts).
+            # Runs against the public HTTPS origin: access_token/CSRF cookies are
+            # Secure-flagged in production and curl will not resend a Secure cookie
+            # over the plain-http loopback used by the checks above.
+            if [ -n "${SMOKE_TEST_API_URL:-}" ] && [ -n "${SMOKE_TEST_EMAIL:-}" ] && [ -n "${SMOKE_TEST_PASSWORD:-}" ]; then
+              echo "Running post-deploy authenticated smoke..."
+              auth_smoke_ok=1
+              SMOKE_JAR=$(mktemp)
+              SMOKE_POST_ID=""
+
+              cleanup_smoke_post() {
+                if [ -n "$SMOKE_POST_ID" ]; then
+                  curl -sS -o /dev/null -b "$SMOKE_JAR" \
+                    -H "x-csrf-token: ${SMOKE_CSRF_TOKEN:-}" \
+                    -X DELETE "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}" || true
+                fi
+                rm -f "$SMOKE_JAR"
+              }
+              trap cleanup_smoke_post EXIT
+
+              csrf_body=$(curl -sS -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
+              SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
+
+              if [ -z "$SMOKE_CSRF_TOKEN" ]; then
+                echo "  FAIL  could not obtain CSRF token"
+                auth_smoke_ok=0
+              else
+                login_code=$(curl -sS -o /tmp/cs-auth-login -w "%{http_code}" \
+                  -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                  -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                  -d "{\"identifier\":\"${SMOKE_TEST_EMAIL}\",\"password\":\"${SMOKE_TEST_PASSWORD}\"}" \
+                  "${SMOKE_TEST_API_URL}/auth/login")
+                if [ "$login_code" != "200" ]; then
+                  echo "  FAIL  login ($login_code)"
+                  head -c 400 /tmp/cs-auth-login; echo
+                  auth_smoke_ok=0
+                else
+                  echo "  OK    login"
+                  # Re-fetch: the CSRF token above is bound to the pre-login (anonymous)
+                  # session identifier and will not validate authenticated requests.
+                  csrf_body=$(curl -sS -b "$SMOKE_JAR" -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
+                  SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
+
+                  create_code=$(curl -sS -o /tmp/cs-auth-create -w "%{http_code}" \
+                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                    -d '{"caption":"CircleSfera post-deploy smoke check — safe to ignore, auto-deleted.","visibility":"PRIVATE"}' \
+                    "${SMOKE_TEST_API_URL}/posts")
+                  if [ "$create_code" = "403" ] && grep -q "CONTENT_POSTING_DISABLED" /tmp/cs-auth-create; then
+                    echo "  SKIP  create post: content posting is intentionally disabled (system setting)"
+                  elif [ "$create_code" != "201" ]; then
+                    echo "  FAIL  create post ($create_code)"
+                    head -c 400 /tmp/cs-auth-create; echo
+                    auth_smoke_ok=0
+                  else
+                    echo "  OK    create post"
+                    SMOKE_POST_ID=$(grep -o '"id":"[^"]*"' /tmp/cs-auth-create | head -1 | cut -d'"' -f4)
+                    if [ -z "$SMOKE_POST_ID" ]; then
+                      echo "  FAIL  could not parse created post id"
+                      auth_smoke_ok=0
+                    else
+                      delete_code=$(curl -sS -o /tmp/cs-auth-delete -w "%{http_code}" \
+                        -b "$SMOKE_JAR" \
+                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" \
+                        -X DELETE "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}")
+                      if [ "$delete_code" != "204" ]; then
+                        echo "  FAIL  delete post ($delete_code)"
+                        head -c 400 /tmp/cs-auth-delete; echo
+                        auth_smoke_ok=0
+                      else
+                        echo "  OK    delete post"
+                        SMOKE_POST_ID=""
+                      fi
+                    fi
+                  fi
+                fi
+              fi
+
+              trap - EXIT
+              cleanup_smoke_post
+
+              if [ "$auth_smoke_ok" != "1" ]; then
+                echo "❌ Post-deploy authenticated smoke FAILED."
+                rollback
+                if [ -n "$DEPLOY_WEBHOOK" ]; then
+                  curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* authenticated smoke: login/write path broken; rollback attempted."}' "$DEPLOY_WEBHOOK" || true
+                fi
+                exit 1
+              fi
+              echo "✅ Post-deploy authenticated smoke passed."
+            else
+              echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (QA-008 not enforced)."
+            fi
+
             echo "${IMAGE_SHA}" > .deploy-sha
 
             # Clean up dangling images

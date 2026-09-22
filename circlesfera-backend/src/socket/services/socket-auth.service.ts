@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as cookie from 'cookie';
 import type { Socket } from 'socket.io';
+import { AccountStateService } from '../../auth/services/account-state.service.js';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -33,6 +34,8 @@ export class SocketAuthService {
     @Inject(JwtService) private readonly jwtService: JwtService,
     @Inject(ConfigService) private readonly configService: ConfigService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(AccountStateService)
+    private readonly accountStateService: AccountStateService,
   ) {}
 
   /**
@@ -82,18 +85,10 @@ export class SocketAuthService {
       include: { profiles: true },
     });
 
-    if (!user?.isActive) {
-      throw new UnauthorizedException('User not found or account deactivated');
-    }
+    const profile = user?.profiles?.[0];
+    this.accountStateService.assertOperational(user, profile);
 
-    if (
-      user.profiles[0]?.suspendedUntil &&
-      user.profiles[0]?.suspendedUntil > new Date()
-    ) {
-      throw new UnauthorizedException('Account suspended');
-    }
-
-    const profileId = user.profiles[0]?.id;
+    const profileId = profile?.id;
     if (!profileId) {
       throw new UnauthorizedException('Profile not found');
     }

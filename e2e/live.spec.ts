@@ -3,7 +3,7 @@ import { enterAsNewUser } from './helpers/session.js';
 
 test.describe('Live', () => {
   test('broadcast setup copy without starting LiveKit', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'live' });
     await page.goto('/live/broadcast');
     await expect(
       page.getByRole('heading', { name: 'Empezar directo' }),
@@ -14,7 +14,7 @@ test.describe('Live', () => {
   });
 
   test('unknown stream shows the product error', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'live' });
     await page.goto('/live/stream-does-not-exist');
     await expect(page).not.toHaveURL(/stream-does-not-exist/, {
       timeout: 15_000,

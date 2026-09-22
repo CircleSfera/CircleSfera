@@ -3,7 +3,10 @@ import { prepareAuthenticatedSession } from './helpers/session';
 
 test.describe('Creator Stripe Connect', () => {
   test('pulsa Conectar Stripe y pide la URL al backend', async ({ page }) => {
-    await prepareAuthenticatedSession(page, { accountType: 'CREATOR' });
+    await prepareAuthenticatedSession(page, {
+      accountType: 'CREATOR',
+      scenario: 'stripe',
+    });
 
     await page.route('**/api/v1/monetization', async (route) => {
       await route.fulfill({

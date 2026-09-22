@@ -11,7 +11,7 @@ test.describe('Support', () => {
   });
 
   test('authenticated user can submit a ticket', async ({ page }) => {
-    await enterAsNewUser(page);
+    await enterAsNewUser(page, { scenario: 'support' });
     await page.goto('/support');
     await page.locator('#subject').fill('Ticket E2E');
     await page

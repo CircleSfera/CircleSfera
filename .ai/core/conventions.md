@@ -114,8 +114,11 @@ Rules:
   stubbed): `circlesfera-frontend/e2e/*.spec.ts` (composer + feed/login/profile/search/messages/stripe).
   Pyramid: [`quality.md`](./quality.md).
 
-Coverage thresholds are deliberately low (statements/lines 30%). That is a floor, not a target, and
-not an excuse to skip tests on logic you changed.
+Coverage thresholds enforce a global baseline floor (statements/lines 45%) alongside strict
+risk-based minimums for critical domains: Security (`src/auth/**` 65%), Admin Authorization
+(`admin.guard.ts` 90%), Ownership Authorization (`ownership.guard.ts` 75%), Payments (`src/payments/**` 45%),
+Monetization (`src/monetization/**` 30%), and Data Lifecycle (`data-export.service.ts` 85%, `outbox/**` 80%).
+These are enforced in CI via `npm run test:cov`. Details: [`14-critical-domain-test-coverage-policy.md`](../../circlesfera-documentation/14-critical-domain-test-coverage-policy.md).
 
 ## Git and PRs
 

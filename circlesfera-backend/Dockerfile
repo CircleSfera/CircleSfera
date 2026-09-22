@@ -1,12 +1,12 @@
 # Build Stage
-FROM node:24-alpine AS build
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS build
 
 WORKDIR /app
 
 # Copy and build shared package (dependency)
 COPY circlesfera-shared ./circlesfera-shared
 WORKDIR /app/circlesfera-shared
-RUN npm install && npm run build
+RUN npm ci && npm run build
 
 WORKDIR /app
 
@@ -20,7 +20,7 @@ WORKDIR /app/circlesfera-backend
 RUN apk add --no-cache ffmpeg
 
 # Install dependencies
-RUN npm install
+RUN npm ci
 
 # Copy backend source code
 COPY circlesfera-backend .
@@ -32,7 +32,7 @@ RUN npx prisma generate
 RUN npm run build
 
 # Production Stage
-FROM node:24-alpine AS production
+FROM node:24-alpine@sha256:50c8e8ca1d27439048670df5883f32d57cf81cff6233222c893fd0d9884cbd81 AS production
 
 WORKDIR /app
 
@@ -52,7 +52,7 @@ RUN mkdir -p uploads && chown -R node:node uploads
 
 # Install only production dependencies
 RUN apk add --no-cache ffmpeg
-RUN npm install --omit=dev
+RUN npm ci --omit=dev
 
 # Copy the built application from the build stage
 COPY --chown=node:node --from=build /app/circlesfera-backend/dist ./dist

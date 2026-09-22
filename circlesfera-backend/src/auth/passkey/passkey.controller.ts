@@ -74,6 +74,12 @@ export class PasskeyController {
   // Generate WebAuthn authentication options for passwordless login.
   @Post('login-options')
   async generateAuthenticationOptions(@Body() dto: GetPasskeyOptionsDto) {
+    if (dto.sensitivity) {
+      return this.passkeyService.generateAuthenticationOptions(
+        dto.email,
+        dto.sensitivity,
+      );
+    }
     return this.passkeyService.generateAuthenticationOptions(dto.email);
   }
 

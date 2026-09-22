@@ -30,6 +30,7 @@ jobs:
         uses: github/codeql-action/init@v4
         with:
           languages: javascript-typescript
+          config-file: .github/codeql/codeql-config.yml
 
       - name: Autobuild
         uses: github/codeql-action/autobuild@v4
@@ -56,33 +57,14 @@ jobs:
       - name: Install root dependencies
         run: npm install --ignore-scripts
 
-      - name: Audit root
-        id: root
-        run: |
-          set +e
-          npm audit --omit=dev --json > /tmp/audit-root.json 2>/tmp/audit-root.err
-          code=$?
-          set -e
-          echo "exit=$code" >> "$GITHUB_OUTPUT"
-          if [ -s /tmp/audit-root.err ]; then cat /tmp/audit-root.err; fi
-          npm audit --omit=dev || true
-
-      - name: Audit backend
-        working-directory: circlesfera-backend
-        run: |
-          npm install --ignore-scripts
-          npm audit --omit=dev || true
-
-      - name: Audit frontend
-        working-directory: circlesfera-frontend
-        run: |
-          npm install --ignore-scripts
-          npm audit --omit=dev || true
+      - name: Audit all workspace dependencies
+        run: node scripts/audit-dependencies.mjs --all
 
       - name: Summary
+        if: always()
         run: |
           {
-            echo "## npm audit (informative)"
-            echo "Production dependency audit ran for root, backend, and frontend."
-            echo "This job uses continue-on-error; findings do not block merge."
+            echo "## Dependency Vulnerability Audit"
+            echo "Multi-workspace audit executed for root, backend, frontend, and shared."
+            echo "Security exceptions validated against .dependency-security-exceptions.json."
           } >> "$GITHUB_STEP_SUMMARY"

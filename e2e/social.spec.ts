@@ -7,7 +7,7 @@ import {
 
 test.describe('Social', () => {
   test('published post can be liked on its detail page', async ({ page }) => {
-    const account = await enterAsNewUser(page);
+    const account = await enterAsNewUser(page, { scenario: 'social' });
     const caption = `Like E2E ${account.username}`;
     await publishPostWithCaption(page, caption);
     await openOwnLatestPost(page, account.username);

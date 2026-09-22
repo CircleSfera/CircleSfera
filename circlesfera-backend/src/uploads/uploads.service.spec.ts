@@ -336,5 +336,52 @@ describe('UploadsService', () => {
         expect.anything(),
       );
     });
+
+    it('should delete file directly using storage provider', async () => {
+      const deleteSpy = vi
+        .spyOn(provider, 'delete')
+        .mockResolvedValueOnce(undefined);
+
+      await service.deleteFile('/uploads/direct.jpg');
+      expect(deleteSpy).toHaveBeenCalledWith('/uploads/direct.jpg');
+    });
+
+    it('should return early if mediaUrls is null or empty in scheduleMediaDeletion', async () => {
+      await service.scheduleMediaDeletion([]);
+      await service.scheduleMediaDeletion(null as any);
+      expect(mockMediaCleanupQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('should fall back to direct deletion when queues are unavailable', async () => {
+      const deleteSpy = vi
+        .spyOn(service, 'deleteFile')
+        .mockResolvedValueOnce(undefined)
+        .mockRejectedValueOnce(new Error('Delete error'));
+
+      (service as any).mediaCleanupQueue = undefined;
+      (service as any).outboxService = undefined;
+
+      await service.scheduleMediaDeletion([
+        '/uploads/fallback-1.jpg',
+        '/uploads/fallback-2.jpg',
+      ]);
+
+      expect(deleteSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('logs error and rethrows when upload flow fails', async () => {
+      const errorFile: UploadedFile = {
+        originalname: 'fail.png',
+        mimetype: 'image/png',
+        buffer: Buffer.from('bad'),
+      };
+      vi.spyOn(provider, 'upload').mockRejectedValueOnce(
+        new Error('Storage unavailable'),
+      );
+
+      await expect(service.uploadFile(errorFile)).rejects.toThrow(
+        'Storage unavailable',
+      );
+    });
   });
 });
