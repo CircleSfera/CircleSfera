@@ -6,4 +6,12 @@
 # the application's own log-redaction and telemetry-scrubbing logic.
 # They are NOT real secrets — see the test assertions in each file.
 ignored-paths:
+  # Redaction test fixtures: intentionally Stripe/JWT/DB/Redis-credential-shaped
+  # strings used to verify the app's own log-scrubbing regex catches them.
+  # NOT real secrets — see the test assertions in each file.
   - "circlesfera-backend/src/common/testing/logging-redaction.spec.ts"
+  # Security regression suite: contains bcrypt hashes and mock passwords
+  # used to verify password validation and hashing behaviour. NOT real credentials.
+  - "circlesfera-backend/src/common/testing/security-regression.spec.ts"
+  # Auth service unit tests: uses mock/dummy passwords in test fixtures.
+  - "circlesfera-backend/src/auth/auth.service.spec.ts"
