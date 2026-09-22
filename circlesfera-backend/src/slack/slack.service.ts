@@ -653,23 +653,27 @@ export class SlackService {
       });
 
       // To update the message in Slack, we can use the response_url provided in the payload.
-      // SSRF guard: only post back to the Slack webhook domain (CodeQL: js/ssrf).
+      // SSRF guard: validate that the URL belongs to hooks.slack.com, then reconstruct
+      // the outbound URL from a hardcoded base + extracted path — never use the raw
+      // user-supplied string as the axios target (CodeQL js/ssrf mitigation).
       if (payload.response_url) {
-        let responseUrl: URL;
+        let parsedUrl: URL;
         try {
-          responseUrl = new URL(payload.response_url as string);
+          parsedUrl = new URL(payload.response_url as string);
         } catch {
           this.logger.warn('Ignoring malformed response_url in Slack payload');
           return { text: resultText };
         }
-        if (responseUrl.hostname !== 'hooks.slack.com') {
+        if (parsedUrl.hostname !== 'hooks.slack.com') {
           this.logger.warn(
-            `Ignoring response_url with unexpected host: ${responseUrl.hostname}`,
+            `Ignoring response_url with unexpected host: ${parsedUrl.hostname}`,
           );
           return { text: resultText };
         }
+        // Reconstruct URL from a hardcoded trusted base — eliminates SSRF taint.
+        const safeUrl = `https://hooks.slack.com${parsedUrl.pathname}${parsedUrl.search}`;
         await axios.post(
-          responseUrl.toString(),
+          safeUrl,
           {
             replace_original: true,
             blocks: updatedBlocks,
