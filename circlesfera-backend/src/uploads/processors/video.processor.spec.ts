@@ -183,6 +183,28 @@ describe('VideoProcessor', () => {
     expect(fs.mkdirSync).not.toHaveBeenCalled();
   });
 
+  it('should abort transcoding when the user is active but their profile is banned', async () => {
+    mockPrisma.user.findUnique.mockResolvedValueOnce({
+      id: 'user-with-banned-profile',
+      isActive: true,
+      isRootBanned: false,
+      profiles: [{ isAccountBanned: true, suspendedUntil: null }],
+    });
+
+    const job = {
+      id: 'job-profile-banned',
+      name: 'transcode',
+      data: {
+        url: '/uploads/a1b2c3d4-e5f6-4a1b-8c2d-3e4f5a6b7c8d.mp4',
+        userId: 'user-with-banned-profile',
+      },
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    await processor.process(job);
+
+    expect(fs.mkdirSync).not.toHaveBeenCalled();
+  });
+
   it('should reject URLs whose baseName is not a valid UUID v4', async () => {
     const job = {
       id: 'job-1',
