@@ -24,8 +24,10 @@ export function centsToEuros(cents: number): number {
 // Connect onboarding). Single source of truth for this eligibility rule —
 // previously reimplemented independently in monetization.service.ts,
 // posts.service.ts and stories.service.ts.
+// Explicit allowlist (fail-closed): an unresolved profile or unrecognized
+// accountType must not be treated as monetization-eligible.
 export function canMonetize(
   accountType: AccountType | null | undefined,
 ): boolean {
-  return accountType !== 'PERSONAL';
+  return accountType === 'CREATOR' || accountType === 'BUSINESS';
 }

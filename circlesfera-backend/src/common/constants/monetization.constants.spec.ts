@@ -37,13 +37,15 @@ describe('monetization money helpers', () => {
     expect(eurosToCents(0.01)).toBe(PROMOTION_COST_PER_VIEW_CENTS);
   });
 
-  it('blocks only PERSONAL accounts from monetizing', () => {
+  it('allows only CREATOR and BUSINESS accounts to monetize (fail-closed)', () => {
     // Single source of truth shared by monetization.service.ts,
-    // posts.service.ts and stories.service.ts.
-    expect(canMonetize('PERSONAL')).toBe(false);
+    // posts.service.ts and stories.service.ts. Explicit allowlist: an
+    // unresolved profile or unrecognized accountType must not silently
+    // pass as monetization-eligible.
     expect(canMonetize('CREATOR')).toBe(true);
     expect(canMonetize('BUSINESS')).toBe(true);
-    expect(canMonetize(null)).toBe(true);
-    expect(canMonetize(undefined)).toBe(true);
+    expect(canMonetize('PERSONAL')).toBe(false);
+    expect(canMonetize(null)).toBe(false);
+    expect(canMonetize(undefined)).toBe(false);
   });
 });
