@@ -1,6 +1,9 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
-import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
+import {
+  canMonetize,
+  PLATFORM_FEE_DECIMAL,
+} from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
@@ -458,7 +461,7 @@ export class MonetizationService {
       where: { userId },
       select: { accountType: true },
     });
-    if (profile?.accountType === 'PERSONAL') {
+    if (!canMonetize(profile?.accountType)) {
       throw AppException.Forbidden(
         ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
         'Solo las cuentas Creator o Business pueden habilitar el cobro con Stripe.',

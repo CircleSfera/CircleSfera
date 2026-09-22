@@ -17,6 +17,7 @@ import {
 } from '@prisma/client';
 import { Queue } from 'bullmq';
 import {
+  canMonetize,
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
@@ -66,7 +67,7 @@ export class StoriesService {
         where: { id: profileId },
         select: { accountType: true },
       });
-      if (authorProfile?.accountType === 'PERSONAL') {
+      if (!canMonetize(authorProfile?.accountType)) {
         throw new ForbiddenException(
           'Solo las cuentas Creator o Business pueden publicar historias premium.',
         );

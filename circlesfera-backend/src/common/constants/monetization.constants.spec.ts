@@ -1,5 +1,6 @@
 import {
   CREATOR_SHARE_DECIMAL,
+  canMonetize,
   centsToEuros,
   eurosToCents,
   PLATFORM_FEE_DECIMAL,
@@ -34,5 +35,17 @@ describe('monetization money helpers', () => {
   it('uses 1 cent per sponsored view', () => {
     expect(PROMOTION_COST_PER_VIEW_CENTS).toBe(1);
     expect(eurosToCents(0.01)).toBe(PROMOTION_COST_PER_VIEW_CENTS);
+  });
+
+  it('allows only CREATOR and BUSINESS accounts to monetize (fail-closed)', () => {
+    // Single source of truth shared by monetization.service.ts,
+    // posts.service.ts and stories.service.ts. Explicit allowlist: an
+    // unresolved profile or unrecognized accountType must not silently
+    // pass as monetization-eligible.
+    expect(canMonetize('CREATOR')).toBe(true);
+    expect(canMonetize('BUSINESS')).toBe(true);
+    expect(canMonetize('PERSONAL')).toBe(false);
+    expect(canMonetize(null)).toBe(false);
+    expect(canMonetize(undefined)).toBe(false);
   });
 });
