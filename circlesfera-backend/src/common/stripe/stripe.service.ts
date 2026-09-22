@@ -287,3 +287,23 @@ export class StripeService implements OnModuleInit {
     });
   }
 }
+
+export interface ConnectAccountCapabilityFlags {
+  transfersEnabled: boolean;
+  chargesEnabled: boolean;
+}
+
+// Single source of truth for reading Connect account eligibility off a
+// Stripe Account (or the narrower `account.updated` webhook payload) —
+// previously reimplemented identically in monetization.service.ts's
+// on-demand getAccountStatus poll and payments.service.ts's passive
+// account.updated webhook handler.
+export function deriveConnectAccountFlags(account: {
+  charges_enabled?: boolean | null;
+  capabilities?: { transfers?: string | null } | null;
+}): ConnectAccountCapabilityFlags {
+  return {
+    transfersEnabled: account.capabilities?.transfers === 'active',
+    chargesEnabled: account.charges_enabled === true,
+  };
+}

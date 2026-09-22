@@ -11,7 +11,10 @@ import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
+import {
+  deriveConnectAccountFlags,
+  StripeService,
+} from '../common/stripe/stripe.service.js';
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -1160,17 +1163,12 @@ export class PaymentsService {
           select: { id: true },
         });
         if (user) {
+          const { transfersEnabled, chargesEnabled } =
+            deriveConnectAccountFlags(account);
           await this.prisma.monetization.upsert({
             where: { userId: user.id },
-            update: {
-              transfersEnabled: account.capabilities?.transfers === 'active',
-              chargesEnabled: account.charges_enabled === true,
-            },
-            create: {
-              userId: user.id,
-              transfersEnabled: account.capabilities?.transfers === 'active',
-              chargesEnabled: account.charges_enabled === true,
-            },
+            update: { transfersEnabled, chargesEnabled },
+            create: { userId: user.id, transfersEnabled, chargesEnabled },
           });
         }
         break;
