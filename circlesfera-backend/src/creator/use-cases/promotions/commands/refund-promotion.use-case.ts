@@ -3,6 +3,18 @@ import { PromotionRefundPolicy } from '@prisma/client';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
+export type RefundPromotionResult =
+  | { refunded: true; amount: number; currency: string }
+  | {
+      refunded: false;
+      reason:
+        | 'already_refunded'
+        | 'policy_none'
+        | 'not_charged'
+        | 'no_remaining_budget'
+        | 'skipped_unpaid';
+    };
+
 @Injectable()
 export class RefundPromotionUseCase {
   constructor(
@@ -10,7 +22,10 @@ export class RefundPromotionUseCase {
     @Inject(StripeService) private readonly stripeService: StripeService,
   ) {}
 
-  async execute(promotionId: string, reason: string) {
+  async execute(
+    promotionId: string,
+    reason: string,
+  ): Promise<RefundPromotionResult> {
     const promo = await this.prisma.promotion.findUnique({
       where: { id: promotionId },
     });
@@ -62,6 +77,7 @@ export class RefundPromotionUseCase {
       return {
         refunded: true,
         amount: (refund.amount || amountInCents) / 100,
+        currency: (refund.currency || promo.currency).toUpperCase(),
       };
     }
 

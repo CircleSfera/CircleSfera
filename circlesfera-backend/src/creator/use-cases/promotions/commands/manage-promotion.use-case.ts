@@ -8,6 +8,7 @@ import { PromotionRefundPolicy, PromotionStatus } from '@prisma/client';
 import { eurosToCents } from '../../../../common/constants/monetization.constants.js';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { RefundPromotionUseCase } from './refund-promotion.use-case.js';
 
 // Prisma row + money fields (guards IDE lag after cents migration).
 type PromotionRow = Awaited<
@@ -22,6 +23,8 @@ export class ManagePromotionUseCase {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
+    @Inject(RefundPromotionUseCase)
+    private readonly refundPromotionUseCase: RefundPromotionUseCase,
   ) {}
 
   private asRow(
@@ -137,56 +140,48 @@ export class ManagePromotionUseCase {
       promo.status === PromotionStatus.PAUSED ||
       Boolean(promo.chargedAt);
 
-    if (
-      wasCharged &&
-      promo.refundPolicy === PromotionRefundPolicy.PROPORTIONAL &&
-      !promo.refundedAt &&
-      promo.stripePaymentIntentId
-    ) {
-      const amountInCents = Math.max(0, promo.budgetCents);
-      if (amountInCents > 0) {
-        try {
-          const refund =
-            await this.stripeService.createRefundFromCheckoutSession({
-              checkoutSessionId: promo.stripePaymentIntentId,
-              amountInCents,
-              idempotencyKey: `promotion-cancel-refund-${promotionId}`,
-              metadata: {
-                promotionId,
-                userId,
-                type: 'PROMOTION_CANCEL',
-              },
-            });
-
-          if (refund) {
-            const cents = refund.amount || amountInCents;
-            refundResult = {
-              amountCents: cents,
-              amount: cents / 100,
-              currency: (refund.currency || promo.currency).toUpperCase(),
-              status: 'succeeded',
-            };
-          } else {
-            refundResult = {
-              amountCents: 0,
-              amount: 0,
-              currency: promo.currency,
-              status: 'skipped_unpaid',
-            };
-          }
-        } catch (_err) {
-          throw new BadRequestException(
-            'Could not process refund. Promotion was not cancelled; please retry.',
-          );
-        }
-      }
-    } else if (promo.refundPolicy === PromotionRefundPolicy.NONE) {
+    // Delegates the actual Stripe refund + Transaction ledger write to
+    // RefundPromotionUseCase (also used by admin promotion rejection) so
+    // there is exactly one place that decides how a promotion refund moves
+    // money and records it — previously this block duplicated that logic
+    // inline and, unlike RefundPromotionUseCase, never wrote a Transaction
+    // row for the refund.
+    if (promo.refundPolicy === PromotionRefundPolicy.NONE) {
       refundResult = {
         amountCents: 0,
         amount: 0,
         currency: promo.currency,
         status: 'skipped_policy',
       };
+    } else if (wasCharged && !promo.refundedAt && promo.stripePaymentIntentId) {
+      try {
+        const result = await this.refundPromotionUseCase.execute(
+          promotionId,
+          'user-cancel',
+        );
+        if (result.refunded) {
+          const cents = Math.round(result.amount * 100);
+          refundResult = {
+            amountCents: cents,
+            amount: result.amount,
+            currency: result.currency,
+            status: 'succeeded',
+          };
+        } else if (result.reason === 'skipped_unpaid') {
+          refundResult = {
+            amountCents: 0,
+            amount: 0,
+            currency: promo.currency,
+            status: 'skipped_unpaid',
+          };
+        }
+        // 'not_charged' / 'no_remaining_budget' / 'already_refunded' /
+        // 'policy_none': nothing to refund — refundResult stays 'none'.
+      } catch (_err) {
+        throw new BadRequestException(
+          'Could not process refund. Promotion was not cancelled; please retry.',
+        );
+      }
     }
 
     const updated = this.asRow(

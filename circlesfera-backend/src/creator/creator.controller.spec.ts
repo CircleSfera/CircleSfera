@@ -231,4 +231,53 @@ describe('CreatorController', () => {
       TEST_USER.userId,
     );
   });
+
+  it('reads revenue analytics by session userId, not profileId', async () => {
+    // Regression test: Transaction.receiverId stores User.id, not Profile.id.
+    // Passing profileId here previously made this endpoint always return 0.
+    const revenue = { period: '30d', grossRevenue: 42.5 };
+    mockGetRevenueAnalyticsQ.execute.mockResolvedValue(revenue);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/creator/analytics/revenue')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(revenue);
+    expect(mockGetRevenueAnalyticsQ.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      undefined,
+    );
+  });
+
+  it('exports the analytics CSV with both userId (revenue) and profileId (retention)', async () => {
+    mockExportAnalyticsCsvUC.execute.mockResolvedValue('Metric,Value\n');
+
+    await request(app.getHttpServer())
+      .get('/api/v1/creator/analytics/export')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockExportAnalyticsCsvUC.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+      '30d',
+    );
+  });
+
+  it('cancels a promotion as the session userId', async () => {
+    const cancelled = { id: 'promo-1', status: 'CANCELLED' };
+    mockManagePromotionUC.cancelPromotion.mockResolvedValue(cancelled);
+
+    const res = await request(app.getHttpServer())
+      .delete('/api/v1/creator/promotions/promo-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(cancelled);
+    expect(mockManagePromotionUC.cancelPromotion).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'promo-1',
+    );
+  });
 });
