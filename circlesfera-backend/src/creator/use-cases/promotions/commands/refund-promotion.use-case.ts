@@ -62,25 +62,40 @@ export class RefundPromotionUseCase {
         where: { id: promotionId },
         data: { refundedAt: new Date() },
       });
-      await this.prisma.transaction.create({
-        data: {
-          type: 'PROMOTION_PAYMENT',
-          amount: -(refund.amount || amountInCents),
-          currency: (refund.currency || promo.currency).toUpperCase(),
-          status: 'REFUNDED',
-          senderId: null,
-          receiverId: promo.userId,
-          promotionId,
-          description: `Promotion refund (${reason})`,
-          // The Stripe refund id gives this row the same DB-layer duplicate
-          // protection (via Transaction.stripePaymentIntentId's unique
-          // constraint) as every other monetization Transaction — a second
-          // concurrent call reusing the same idempotencyKey gets the same
-          // refund.id back from Stripe, and the second create() here throws
-          // on the unique constraint instead of double-counting the refund.
-          stripePaymentIntentId: refund.id,
-        },
-      });
+      try {
+        await this.prisma.transaction.create({
+          data: {
+            type: 'PROMOTION_PAYMENT',
+            amount: -(refund.amount || amountInCents),
+            currency: (refund.currency || promo.currency).toUpperCase(),
+            status: 'REFUNDED',
+            senderId: null,
+            receiverId: promo.userId,
+            promotionId,
+            description: `Promotion refund (${reason})`,
+            // The Stripe refund id gives this row the same DB-layer
+            // duplicate protection (via Transaction.stripePaymentIntentId's
+            // unique constraint) as every other monetization Transaction —
+            // a second concurrent call reusing the same idempotencyKey gets
+            // the same refund.id back from Stripe, so the second create()
+            // here hits the unique constraint (caught below) instead of
+            // double-counting the refund.
+            stripePaymentIntentId: refund.id,
+          },
+        });
+      } catch (err: unknown) {
+        const isDuplicateRefundRow =
+          typeof err === 'object' &&
+          err !== null &&
+          'code' in err &&
+          (err as { code: string }).code === 'P2002';
+        if (!isDuplicateRefundRow) {
+          throw err;
+        }
+        // The first concurrent call already wrote this exact refund's
+        // Transaction row — treat this as the same successful outcome
+        // rather than surfacing a raw constraint error to the caller.
+      }
       return {
         refunded: true,
         amount: (refund.amount || amountInCents) / 100,

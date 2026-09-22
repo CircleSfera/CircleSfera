@@ -143,4 +143,44 @@ describe('RefundPromotionUseCase', () => {
       }),
     });
   });
+
+  it('returns success idempotently when a concurrent call already wrote the same refund Transaction', async () => {
+    // Regression test: two concurrent executions can both pass the
+    // promo.refundedAt check and get the same refund.id back from Stripe
+    // (its idempotency key guarantees that). The loser of the race must
+    // see this as success, not a raw Prisma P2002 constraint error.
+    mockPrismaService.promotion.findUnique.mockResolvedValue(basePromo());
+    mockStripeService.createRefundFromCheckoutSession.mockResolvedValue({
+      id: 're_test_123',
+      amount: 1000,
+      currency: 'eur',
+    });
+    mockPrismaService.promotion.update.mockResolvedValue({});
+    mockPrismaService.transaction.create.mockRejectedValue({
+      code: 'P2002',
+      message:
+        'Unique constraint failed on the fields: (`stripePaymentIntentId`)',
+    });
+
+    const result = await useCase.execute('promo-1', 'user-cancel');
+
+    expect(result).toEqual({ refunded: true, amount: 10, currency: 'EUR' });
+  });
+
+  it('rethrows non-duplicate errors from the Transaction write', async () => {
+    mockPrismaService.promotion.findUnique.mockResolvedValue(basePromo());
+    mockStripeService.createRefundFromCheckoutSession.mockResolvedValue({
+      id: 're_test_123',
+      amount: 1000,
+      currency: 'eur',
+    });
+    mockPrismaService.promotion.update.mockResolvedValue({});
+    mockPrismaService.transaction.create.mockRejectedValue(
+      new Error('DB connection lost'),
+    );
+
+    await expect(useCase.execute('promo-1', 'user-cancel')).rejects.toThrow(
+      'DB connection lost',
+    );
+  });
 });
