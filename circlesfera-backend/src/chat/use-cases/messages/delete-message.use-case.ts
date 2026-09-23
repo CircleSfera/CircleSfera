@@ -11,7 +11,8 @@ export class DeleteMessageUseCase {
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
   ) {}
 
-  async execute(profileId: string, messageId: string) {
+  // Ownership is enforced by OwnershipGuard at the controller level.
+  async execute(messageId: string) {
     const message = await this.prisma.message.findUnique({
       where: { id: messageId },
       include: { conversation: { include: { participants: true } } },
@@ -19,12 +20,6 @@ export class DeleteMessageUseCase {
 
     if (!message)
       throw AppException.NotFound(ErrorCode.NOT_FOUND, 'Message not found');
-    if (message.senderId !== profileId) {
-      throw AppException.Forbidden(
-        ErrorCode.FORBIDDEN_ACCESS,
-        'You can only delete your own messages',
-      );
-    }
 
     const updated = await this.prisma.message.update({
       where: { id: messageId },

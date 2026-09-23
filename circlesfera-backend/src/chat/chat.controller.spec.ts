@@ -11,6 +11,7 @@ import {
 } from 'vitest';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -72,6 +73,7 @@ describe('ChatController', () => {
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
+        { guard: OwnershipGuard, mode: 'allow' },
       ],
     });
   });
@@ -249,7 +251,6 @@ describe('ChatController', () => {
 
     expect(res.body).toEqual(updated);
     expect(mockEditMessageUseCase.execute).toHaveBeenCalledWith(
-      TEST_USER.profileId,
       'msg-1',
       'Updated',
     );
@@ -264,10 +265,7 @@ describe('ChatController', () => {
       .expect(200);
 
     expect(res.body).toEqual({ success: true });
-    expect(mockDeleteMessageUseCase.execute).toHaveBeenCalledWith(
-      TEST_USER.profileId,
-      'msg-1',
-    );
+    expect(mockDeleteMessageUseCase.execute).toHaveBeenCalledWith('msg-1');
   });
 
   it('creates a group as the session profile', async () => {

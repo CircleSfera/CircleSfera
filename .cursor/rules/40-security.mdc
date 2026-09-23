@@ -26,8 +26,9 @@ Non-negotiable:
 
 - Every endpoint has an explicit authorization decision. Public is a decision, and it must be
   deliberate.
-- Ownership is checked in the service for every mutation of user-owned data. There is no generic
-  ownership guard.
+- Ownership for every mutation of user-owned data is checked — via `OwnershipGuard` +
+  `@RequireOwnership` for routes it covers (model + route `:id`), or a shared service method for the
+  cases it doesn't (body/query-supplied id, non-HTTP callers). Never skip both.
 - Every client-supplied id is authorized against the caller. Enumerable ids are not access control.
 - No privileged field is settable from a DTO: `role`, `verificationLevel`, `isPremium`, `priceCents`,
   `moderationStatus`, `status`, another user's id.

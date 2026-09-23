@@ -36,7 +36,8 @@ For the scope, list:
 **Authorization**
 
 - Every endpoint has a deliberate decision; public is a decision.
-- Ownership checked in the service for every mutation — there is no generic ownership guard.
+- Ownership checked for every mutation — via `OwnershipGuard` + `@RequireOwnership` where it applies
+  (model + route `:id`), or a shared service method otherwise. Flag a route with neither.
 - IDOR: every client-supplied id authorized against the caller.
 - Privilege escalation: `USER` → admin data, `MODERATOR` beyond declared
   `@RequireStaffPermissions`, privileged fields settable via DTO.

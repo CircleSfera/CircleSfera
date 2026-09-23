@@ -1,5 +1,8 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { REQUIRE_OWNERSHIP_KEY } from '../../auth/decorators/require-ownership.decorator.js';
+import { OwnershipGuard } from '../../auth/guards/ownership.guard.js';
 import { CommentsService } from '../../comments/comments.service.js';
 import { AccountDeletionProcessor } from '../../users/account-deletion.processor.js';
 import { UsersService } from '../../users/users.service.js';
@@ -306,19 +309,36 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
       );
     });
 
-    it('blocks User B from deleting User A comment and throws ForbiddenException', async () => {
-      mockPrisma.comment.findUnique.mockResolvedValue({
-        id: 'comm-a-1',
-        profileId: 'profile-a', // Authored by User A
-        postId: 'post-1',
-        content: 'Original comment',
-      });
+    // Ownership is enforced by OwnershipGuard at the controller level (AUTHZ-002)
+    // rather than inside CommentsService — see OwnershipGuard's own IDOR
+    // regression coverage in ownership.guard.spec.ts.
+    it('blocks User B from deleting User A comment via OwnershipGuard', async () => {
+      const guardPrisma = {
+        comment: {
+          findUnique: vi.fn().mockResolvedValue({ profileId: 'profile-a' }),
+        },
+      };
+      const reflector = new Reflector();
+      const guard = new OwnershipGuard(reflector, guardPrisma as any);
+      const handler = () => undefined;
+      Reflect.defineMetadata(
+        REQUIRE_OWNERSHIP_KEY,
+        { model: 'Comment' },
+        handler,
+      );
 
-      await expect(
-        commentsService.remove('comm-a-1', 'profile-b'), // User B attempting deletion
-      ).rejects.toThrow(ForbiddenException);
+      const ctx = {
+        switchToHttp: () => ({
+          getRequest: () => ({
+            user: { userId: 'user-b', profileId: 'profile-b' },
+            params: { id: 'comm-a-1' },
+          }),
+        }),
+        getHandler: () => handler,
+        getClass: () => class {},
+      } as never;
 
-      expect(mockPrisma.comment.delete).not.toHaveBeenCalled();
+      await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
     });
 
     it('allows author to delete their own comment successfully', async () => {
@@ -329,7 +349,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         content: 'Original comment',
       });
 
-      await commentsService.remove('comm-a-1', 'profile-a');
+      await commentsService.remove('comm-a-1');
 
       expect(mockPrisma.comment.delete).toHaveBeenCalledWith({
         where: { id: 'comm-a-1' },
@@ -340,7 +360,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
       mockPrisma.comment.findUnique.mockResolvedValue(null);
 
       await expect(
-        commentsService.remove('non-existent-comment', 'profile-a'),
+        commentsService.remove('non-existent-comment'),
       ).rejects.toThrow(NotFoundException);
     });
   });

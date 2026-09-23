@@ -45,6 +45,8 @@ function getPrismaDelegate(
       return prisma.user;
     case 'Collection':
       return prisma.collection;
+    case 'Message':
+      return prisma.message;
     default:
       return null;
   }

@@ -12,9 +12,11 @@ import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
+import { RequireOwnership } from '../auth/decorators/require-ownership.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
 import {
@@ -63,12 +65,10 @@ export class StoriesController {
 
   // Delete a story (author only).
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
-  async remove(
-    @CurrentUser() user: CurrentUserData,
-    @Param('id') id: string,
-  ): Promise<void> {
-    return this.storiesService.delete(id, user.profileId);
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Story' })
+  async remove(@Param('id') id: string): Promise<void> {
+    return this.storiesService.delete(id);
   }
 
   // Record a view on a story (idempotent).

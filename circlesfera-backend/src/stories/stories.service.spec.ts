@@ -1,3 +1,4 @@
+import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Story } from '@prisma/client';
@@ -25,6 +26,7 @@ describe('StoriesService', () => {
       create: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       deleteMany: vi.fn(),
       delete: vi.fn(),
     },
@@ -358,7 +360,7 @@ describe('StoriesService', () => {
 
   describe('delete', () => {
     it('deletes story and its files, handling deleteFile failures gracefully', async () => {
-      mockPrismaService.story.findFirst.mockResolvedValueOnce({
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
         id: 'story-1',
         profileId: 'user-1',
         url: 'https://cdn.example.com/s.jpg',
@@ -368,7 +370,7 @@ describe('StoriesService', () => {
       mockUploadsService.deleteFile.mockRejectedValue(new Error('S3 error'));
       mockPrismaService.story.delete.mockResolvedValue({});
 
-      await service.delete('story-1', 'user-1');
+      await service.delete('story-1');
 
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/s.jpg',
@@ -384,11 +386,12 @@ describe('StoriesService', () => {
       });
     });
 
-    it('does nothing when story is not found', async () => {
-      mockPrismaService.story.findFirst.mockResolvedValueOnce(null);
+    it('throws NotFoundException when story is not found', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
 
-      await service.delete('missing-story', 'user-1');
-
+      await expect(service.delete('missing-story')).rejects.toThrow(
+        NotFoundException,
+      );
       expect(mockPrismaService.story.delete).not.toHaveBeenCalled();
     });
   });

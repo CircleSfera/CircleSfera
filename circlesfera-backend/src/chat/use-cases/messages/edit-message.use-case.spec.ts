@@ -43,21 +43,9 @@ describe('EditMessageUseCase', () => {
   it('throws NotFound if message does not exist', async () => {
     mockPrisma.message.findUnique.mockResolvedValue(null);
 
-    await expect(
-      useCase.execute('prof-1', 'msg-1', 'new text'),
-    ).rejects.toThrow(AppException);
-  });
-
-  it('throws Forbidden if caller is not the message sender', async () => {
-    mockPrisma.message.findUnique.mockResolvedValue({
-      id: 'msg-1',
-      senderId: 'other-user',
-      conversation: { participants: [] },
-    });
-
-    await expect(
-      useCase.execute('prof-1', 'msg-1', 'new text'),
-    ).rejects.toThrow(AppException);
+    await expect(useCase.execute('msg-1', 'new text')).rejects.toThrow(
+      AppException,
+    );
   });
 
   it('throws BadRequest if message is deleted', async () => {
@@ -68,9 +56,9 @@ describe('EditMessageUseCase', () => {
       conversation: { participants: [] },
     });
 
-    await expect(
-      useCase.execute('prof-1', 'msg-1', 'new text'),
-    ).rejects.toThrow(AppException);
+    await expect(useCase.execute('msg-1', 'new text')).rejects.toThrow(
+      AppException,
+    );
   });
 
   it('encrypts content, updates message, emits event, and returns decrypted text', async () => {
@@ -90,7 +78,7 @@ describe('EditMessageUseCase', () => {
     };
     mockPrisma.message.update.mockResolvedValue({ ...updatedRecord });
 
-    const result = await useCase.execute('prof-1', 'msg-1', 'new text');
+    const result = await useCase.execute('msg-1', 'new text');
 
     expect(mockCryptoService.encrypt).toHaveBeenCalledWith('new text');
     expect(mockPrisma.message.update).toHaveBeenCalledWith({

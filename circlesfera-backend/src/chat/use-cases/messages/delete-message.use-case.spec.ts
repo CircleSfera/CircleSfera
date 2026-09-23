@@ -33,21 +33,7 @@ describe('DeleteMessageUseCase', () => {
   it('throws NotFound if message does not exist', async () => {
     mockPrisma.message.findUnique.mockResolvedValue(null);
 
-    await expect(useCase.execute('profile-1', 'msg-1')).rejects.toThrow(
-      AppException,
-    );
-  });
-
-  it('throws Forbidden if caller is not the sender', async () => {
-    mockPrisma.message.findUnique.mockResolvedValue({
-      id: 'msg-1',
-      senderId: 'other-profile',
-      conversation: { participants: [{ profileId: 'other-profile' }] },
-    });
-
-    await expect(useCase.execute('profile-1', 'msg-1')).rejects.toThrow(
-      AppException,
-    );
+    await expect(useCase.execute('msg-1')).rejects.toThrow(AppException);
   });
 
   it('soft deletes message, clears media, emits event, and returns result', async () => {
@@ -71,7 +57,7 @@ describe('DeleteMessageUseCase', () => {
     };
     mockPrisma.message.update.mockResolvedValue(updatedMessage);
 
-    const result = await useCase.execute('profile-1', 'msg-1');
+    const result = await useCase.execute('msg-1');
 
     expect(result).toEqual({ success: true, message: updatedMessage });
     expect(mockPrisma.message.update).toHaveBeenCalledWith({

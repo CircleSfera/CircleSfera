@@ -622,6 +622,31 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Shared policy for stream host/co-host-only live actions — the one
+  // authoritative gate-and-log implementation for pin/unpin comment,
+  // highlight/clear question and set goal (AUTHZ-002). Returns the caller's
+  // profileId when authorized, or null (after logging) when not.
+  private async requireStreamHostOrCoHost(
+    client: SocketWithAuth,
+    streamId: string,
+    eventName: string,
+  ): Promise<string | null> {
+    const callerProfileId = client.data?.user?.profileId;
+    if (!callerProfileId) return null;
+
+    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+      streamId,
+      callerProfileId,
+    );
+    if (!isAuthorized) {
+      this.logger.warn(
+        `Unauthorized ${eventName} attempt by profile ${callerProfileId} on stream ${streamId}`,
+      );
+      return null;
+    }
+    return callerProfileId;
+  }
+
   @SubscribeMessage('live:pin_comment')
   async handleLivePinComment(
     @MessageBody()
@@ -637,19 +662,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const callerProfileId = client.data?.user?.profileId;
-    if (!callerProfileId) return;
-
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrCoHost(
+      client,
       payload.streamId,
-      callerProfileId,
+      'live:pin_comment',
     );
-    if (!isAuthorized) {
-      this.logger.warn(
-        `Unauthorized live:pin_comment attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
-      );
-      return;
-    }
+    if (!callerProfileId) return;
 
     const cleanMessage = payload.message.trim().slice(0, 500);
     const cleanUsername =
@@ -673,19 +691,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
 
-    const callerProfileId = client.data?.user?.profileId;
-    if (!callerProfileId) return;
-
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrCoHost(
+      client,
       payload.streamId,
-      callerProfileId,
+      'live:unpin_comment',
     );
-    if (!isAuthorized) {
-      this.logger.warn(
-        `Unauthorized live:unpin_comment attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
-      );
-      return;
-    }
+    if (!callerProfileId) return;
 
     this.server.to(`live:${payload.streamId}`).emit('live:comment_unpinned', {
       streamId: payload.streamId,
@@ -780,19 +791,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     ) {
       return;
     }
-    const callerProfileId = client.data?.user?.profileId;
-    if (!callerProfileId) return;
-
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrCoHost(
+      client,
       payload.streamId,
-      callerProfileId,
+      'live:highlight_question',
     );
-    if (!isAuthorized) {
-      this.logger.warn(
-        `Unauthorized live:highlight_question attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
-      );
-      return;
-    }
+    if (!callerProfileId) return;
 
     const cleanQuestion = payload.question.trim().slice(0, 500);
     const cleanUsername =
@@ -816,19 +820,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: SocketWithAuth,
   ) {
     if (!payload?.streamId || typeof payload.streamId !== 'string') return;
-    const callerProfileId = client.data?.user?.profileId;
-    if (!callerProfileId) return;
-
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrCoHost(
+      client,
       payload.streamId,
-      callerProfileId,
+      'live:clear_question',
     );
-    if (!isAuthorized) {
-      this.logger.warn(
-        `Unauthorized live:clear_question attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
-      );
-      return;
-    }
+    if (!callerProfileId) return;
 
     this.server.to(`live:${payload.streamId}`).emit('live:question_cleared');
   }
@@ -850,19 +847,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const callerProfileId = client.data?.user?.profileId;
-    if (!callerProfileId) return;
-
-    const isAuthorized = await this.liveRealtimeService.isStreamHostOrCoHost(
+    const callerProfileId = await this.requireStreamHostOrCoHost(
+      client,
       payload.streamId,
-      callerProfileId,
+      'live:set_goal',
     );
-    if (!isAuthorized) {
-      this.logger.warn(
-        `Unauthorized live:set_goal attempt by profile ${callerProfileId} on stream ${payload.streamId}`,
-      );
-      return;
-    }
+    if (!callerProfileId) return;
 
     const cleanTitle = payload.title.trim().slice(0, 100);
 

@@ -13,7 +13,8 @@ export type OwnershipModelName =
   | 'Notification'
   | 'Profile'
   | 'User'
-  | 'Collection';
+  | 'Collection'
+  | 'Message';
 
 export interface RequireOwnershipOptions {
   model: OwnershipModelName | Prisma.ModelName;

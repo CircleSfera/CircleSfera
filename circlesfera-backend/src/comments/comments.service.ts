@@ -1,10 +1,5 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import {
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
@@ -213,22 +208,14 @@ export class CommentsService {
     return createPaginatedResult(comments, total, page, limit);
   }
 
-  // Delete a comment. Only the comment author can delete.
-  // Param id: The comment ID
-  // Param profileId: The requesting user's ID
-  // Throws NotFoundException if comment not found
-  // Throws ForbiddenException if user is not the author
-  async remove(id: string, profileId: string) {
+  // Delete a comment. Ownership is enforced by OwnershipGuard at the controller level.
+  async remove(id: string) {
     const comment = await this.prisma.comment.findUnique({
       where: { id },
     });
 
     if (!comment) {
       throw new NotFoundException('Comment not found');
-    }
-
-    if (comment.profileId !== profileId) {
-      throw new ForbiddenException('You can only delete your own comments');
     }
 
     await this.prisma.comment.delete({ where: { id } });
