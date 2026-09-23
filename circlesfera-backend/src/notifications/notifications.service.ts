@@ -204,7 +204,7 @@ export class NotificationsService {
             },
           })
           .catch((err) =>
-            console.error('Failed to send push notification', err),
+            this.logger.error(`Failed to send push notification: ${err}`),
           );
       }
 

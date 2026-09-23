@@ -295,9 +295,9 @@ describe('NotificationsService', () => {
     });
 
     it('handles error in push notification gracefully without throwing', async () => {
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
+      const loggerErrorSpy = vi
+        .spyOn((service as any).logger, 'error')
+        .mockImplementation(() => undefined);
 
       mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
       mockPrismaService.notification.create.mockResolvedValueOnce({
@@ -322,11 +322,10 @@ describe('NotificationsService', () => {
 
       expect(res).toBeDefined();
       await new Promise((resolve) => setImmediate(resolve));
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Failed to send push notification',
-        expect.any(Error),
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('Failed to send push notification'),
       );
-      consoleErrorSpy.mockRestore();
+      loggerErrorSpy.mockRestore();
     });
 
     it('catches and logs top-level creation errors without throwing', async () => {
