@@ -1145,6 +1145,7 @@ describe('AppGateway payload bounds and authorization', () => {
         streamId: 's-1',
         viewerCount: 5,
       });
+      expect(socket.data.liveStreamIds?.has('s-1')).toBe(true);
 
       mockEmit.mockClear();
       await gateway.handleLiveLeave({ streamId: 's-1' }, socket);
@@ -1157,6 +1158,7 @@ describe('AppGateway payload bounds and authorization', () => {
         streamId: 's-1',
         viewerCount: 4,
       });
+      expect(socket.data.liveStreamIds?.has('s-1')).toBe(false);
 
       // Empty streamId or profileId
       const emptySocket = mockSocket('');
@@ -1165,6 +1167,81 @@ describe('AppGateway payload bounds and authorization', () => {
       await gateway.handleLiveJoin({ streamId: 's-1' }, emptySocket);
       await gateway.handleLiveLeave({ streamId: '' }, socket);
       await gateway.handleLiveLeave({ streamId: 's-1' }, emptySocket);
+    });
+
+    it('reconciles viewer counts for live streams still joined on disconnect (RT-004)', async () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const mockPresenceService = {
+        getFollowPresenceRooms: vi.fn().mockResolvedValue([]),
+        setUserOnline: vi.fn().mockResolvedValue(undefined),
+        setUserOffline: vi
+          .fn()
+          .mockResolvedValue({ lastSeenAt: new Date('2026-09-23T00:00:00Z') }),
+      };
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn(),
+        decrementViewerCount: vi
+          .fn()
+          .mockResolvedValueOnce(2)
+          .mockResolvedValueOnce(0),
+        isStreamHostOrCoHost: vi.fn(),
+        getUserProfile: vi.fn(),
+      };
+
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        {
+          socketPresenceService: mockPresenceService,
+          liveRealtimeService: mockLiveRealtime,
+        },
+      );
+      const socket = mockSocket('prof-abrupt');
+      socket.data.liveStreamIds = new Set(['s-1', 's-2']);
+
+      await gateway.handleDisconnect(socket);
+
+      expect(mockLiveRealtime.decrementViewerCount).toHaveBeenCalledWith('s-1');
+      expect(mockLiveRealtime.decrementViewerCount).toHaveBeenCalledWith('s-2');
+      expect(mockTo).toHaveBeenCalledWith('live:s-1');
+      expect(mockTo).toHaveBeenCalledWith('live:s-2');
+      expect(mockEmit).toHaveBeenCalledWith('live:viewer_left', {
+        profileId: 'prof-abrupt',
+        viewerCount: 2,
+      });
+      expect(mockEmit).toHaveBeenCalledWith('live:viewer_count_update', {
+        streamId: 's-1',
+        viewerCount: 2,
+      });
+      expect(mockEmit).toHaveBeenCalledWith('live:viewer_left', {
+        profileId: 'prof-abrupt',
+        viewerCount: 0,
+      });
+      expect(mockEmit).toHaveBeenCalledWith('live:viewer_count_update', {
+        streamId: 's-2',
+        viewerCount: 0,
+      });
+    });
+
+    it('skips viewer count reconciliation on disconnect when no live streams were joined', async () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const mockLiveRealtime = {
+        incrementViewerCount: vi.fn(),
+        decrementViewerCount: vi.fn(),
+        isStreamHostOrCoHost: vi.fn(),
+        getUserProfile: vi.fn(),
+      };
+
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: mockLiveRealtime },
+      );
+      const socket = mockSocket('prof-clean');
+
+      await gateway.handleDisconnect(socket);
+
+      expect(mockLiveRealtime.decrementViewerCount).not.toHaveBeenCalled();
     });
 
     it('handles live:unpin_comment when authorized and unauthorized', async () => {

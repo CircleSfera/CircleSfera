@@ -162,38 +162,6 @@ export class LiveService {
     }));
   }
 
-  async incrementViewerCount(streamId: string): Promise<number> {
-    try {
-      const updated = await this.prisma.liveStream.update({
-        where: { id: streamId },
-        data: { viewerCount: { increment: 1 } },
-        select: { viewerCount: true },
-      });
-      return updated.viewerCount;
-    } catch (_err) {
-      return 1;
-    }
-  }
-
-  async decrementViewerCount(streamId: string): Promise<number> {
-    try {
-      const stream = await this.prisma.liveStream.findUnique({
-        where: { id: streamId },
-        select: { viewerCount: true },
-      });
-      if ((stream?.viewerCount ?? 0) <= 0) return 0;
-
-      const updated = await this.prisma.liveStream.update({
-        where: { id: streamId },
-        data: { viewerCount: { decrement: 1 } },
-        select: { viewerCount: true },
-      });
-      return Math.max(0, updated.viewerCount);
-    } catch (_err) {
-      return 0;
-    }
-  }
-
   async getStream(streamId: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },

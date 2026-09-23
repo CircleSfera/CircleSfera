@@ -36,15 +36,21 @@ export class LiveRealtimeService {
 
   /**
    * Decrements viewer count in the database for an active stream.
+   * The floor at 0 is enforced by the conditional updateMany itself (not by
+   * clamping the return value), so the column can never go negative under
+   * concurrent decrements.
    */
   async decrementViewerCount(streamId: string): Promise<number> {
     try {
-      const updatedStream = await this.prisma.liveStream.update({
-        where: { id: streamId },
+      await this.prisma.liveStream.updateMany({
+        where: { id: streamId, viewerCount: { gt: 0 } },
         data: { viewerCount: { decrement: 1 } },
+      });
+      const stream = await this.prisma.liveStream.findUnique({
+        where: { id: streamId },
         select: { viewerCount: true },
       });
-      return Math.max(0, updatedStream.viewerCount);
+      return stream?.viewerCount ?? 0;
     } catch (error) {
       this.logger.warn(
         `Failed to decrement viewer count for ${streamId}: ${

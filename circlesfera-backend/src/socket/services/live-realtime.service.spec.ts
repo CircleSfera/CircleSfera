@@ -7,6 +7,7 @@ describe('LiveRealtimeService', () => {
   let prisma: {
     liveStream: {
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
     };
     user: {
@@ -18,6 +19,7 @@ describe('LiveRealtimeService', () => {
     prisma = {
       liveStream: {
         update: vi.fn(),
+        updateMany: vi.fn(),
         findUnique: vi.fn(),
       },
       user: {
@@ -57,30 +59,42 @@ describe('LiveRealtimeService', () => {
   });
 
   describe('decrementViewerCount', () => {
-    it('decrements viewer count and returns updated count bounded to 0', async () => {
-      prisma.liveStream.update.mockResolvedValue({ viewerCount: 3 });
+    it('decrements viewer count conditionally and returns the resulting count', async () => {
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 1 });
+      prisma.liveStream.findUnique.mockResolvedValue({ viewerCount: 3 });
 
       const count = await service.decrementViewerCount('stream-1');
 
-      expect(prisma.liveStream.update).toHaveBeenCalledWith({
-        where: { id: 'stream-1' },
+      expect(prisma.liveStream.updateMany).toHaveBeenCalledWith({
+        where: { id: 'stream-1', viewerCount: { gt: 0 } },
         data: { viewerCount: { decrement: 1 } },
-        select: { viewerCount: true },
       });
       expect(count).toBe(3);
     });
 
-    it('returns 0 when database decrement results in negative number or fails', async () => {
-      prisma.liveStream.update.mockResolvedValue({ viewerCount: -1 });
+    it('never decrements below 0 — the conditional where clause is a no-op when already at 0', async () => {
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      prisma.liveStream.findUnique.mockResolvedValue({ viewerCount: 0 });
 
       const count = await service.decrementViewerCount('stream-1');
-      expect(count).toBe(0);
 
-      prisma.liveStream.update.mockRejectedValue(new Error('DB error'));
+      expect(count).toBe(0);
+    });
+
+    it('returns 0 when the stream no longer exists', async () => {
+      prisma.liveStream.updateMany.mockResolvedValue({ count: 0 });
+      prisma.liveStream.findUnique.mockResolvedValue(null);
+
+      const count = await service.decrementViewerCount('stream-missing');
+      expect(count).toBe(0);
+    });
+
+    it('returns 0 as fallback when the database call fails', async () => {
+      prisma.liveStream.updateMany.mockRejectedValue(new Error('DB error'));
       const errorFallbackCount = await service.decrementViewerCount('stream-1');
       expect(errorFallbackCount).toBe(0);
 
-      prisma.liveStream.update.mockRejectedValue('raw string error');
+      prisma.liveStream.updateMany.mockRejectedValue('raw string error');
       const nonErrorFallback = await service.decrementViewerCount('stream-1');
       expect(nonErrorFallback).toBe(0);
     });
