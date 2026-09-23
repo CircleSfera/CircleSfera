@@ -14,9 +14,9 @@
     "check:deps": "depcruise src"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.14",
     "@prisma/client": "7.10.0",
-    "dependency-cruiser": "18.2.0",
+    "dependency-cruiser": "18.4.0",
     "typescript": "6.0.3"
   }
 }
