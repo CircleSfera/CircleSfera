@@ -69,11 +69,12 @@ jobs:
       - name: "Security: Audit Production Dependencies"
         run: npm run audit:deps
 
-      - name: "Shared: Install and Build"
+      - name: "Shared: Install, Build and Check Dependency Graph"
         run: |
           cd circlesfera-shared
           npm ci
           npm run build
+          npm run check:deps
 
       - name: "Backend: Install, Build, Lint and Test (Enforce Coverage Thresholds)"
         run: |
@@ -82,6 +83,7 @@ jobs:
           npx prisma generate
           npm run build
           npm run lint
+          npm run check:deps
           npm run test:cov
 
       - name: "Prisma: schema vs migrations"
@@ -126,5 +128,6 @@ jobs:
           cd circlesfera-frontend
           npm ci
           npm run lint
+          npm run check:deps
           npm run test
           npm run build

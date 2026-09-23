@@ -25,6 +25,17 @@ module.exports = {
         path: '^src/(auth|users|posts|comments|chat|notifications|payments)/',
       },
     },
+    {
+      name: 'no-frontend-import',
+      severity: 'error',
+      comment:
+        'Backend must never import frontend source directly — only the compiled ' +
+        '@circlesfera/shared package crosses this boundary (FE-004).',
+      from: {},
+      to: {
+        path: '(^|/)circlesfera-frontend/',
+      },
+    },
   ],
   options: {
     doNotFollow: {
