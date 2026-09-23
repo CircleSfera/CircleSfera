@@ -26,6 +26,17 @@ module.exports = {
         path: ['^src/pages/', '^src/stores/', '^src/services/'],
       },
     },
+    {
+      name: 'no-backend-import',
+      severity: 'error',
+      comment:
+        'Frontend must never import backend source directly — only the compiled ' +
+        '@circlesfera/shared package crosses this boundary (FE-004).',
+      from: {},
+      to: {
+        path: '(^|/)circlesfera-backend/',
+      },
+    },
   ],
   options: {
     doNotFollow: {

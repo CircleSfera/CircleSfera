@@ -10,11 +10,13 @@
     "watch": "tsc -w",
     "lint": "biome lint .",
     "format": "biome format --write .",
-    "check": "biome check --write ."
+    "check": "biome check --write .",
+    "check:deps": "depcruise src"
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
     "@prisma/client": "7.10.0",
+    "dependency-cruiser": "18.2.0",
     "typescript": "6.0.3"
   }
 }
