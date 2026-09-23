@@ -255,6 +255,7 @@ describe('BookmarksService', () => {
       mockPrismaService.bookmark.count.mockResolvedValue(0);
       mockPrismaService.collection.findUnique.mockResolvedValue({
         name: 'Design Ideas',
+        profileId: 'user-1',
       });
 
       const res = await service.getBookmarks('user-1', 2, 5, 'col-1');
@@ -271,6 +272,18 @@ describe('BookmarksService', () => {
         'col-none',
       );
       expect(resMissingCol.meta.collectionName).toBeUndefined();
+    });
+
+    it('should omit collectionName instead of leaking it when the collection belongs to another profile', async () => {
+      mockPrismaService.bookmark.findMany.mockResolvedValue([]);
+      mockPrismaService.bookmark.count.mockResolvedValue(0);
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        name: 'Someone Else Private Board',
+        profileId: 'other-user',
+      });
+
+      const res = await service.getBookmarks('user-1', 1, 10, 'col-foreign');
+      expect(res.meta.collectionName).toBeUndefined();
     });
   });
 

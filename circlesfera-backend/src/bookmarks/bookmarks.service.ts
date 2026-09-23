@@ -201,15 +201,23 @@ export class BookmarksService {
       this.prisma.bookmark.count({ where }),
     ]);
 
-    // If we have a collectionId, we might want to return collection info too?
-    // For now, simpler return.
+    // Enrich with the collection's display name. Reuses the one authoritative
+    // ownership check (verifyCollectionOwnership) rather than reading the
+    // name by id alone, which would leak another profile's collection name.
+    // A foreign or missing collectionId just omits the name — this is a list
+    // filter, not a mutation, so it shouldn't fail the whole request.
     let collectionName: string | undefined;
     if (collectionId) {
-      const collection = await this.prisma.collection.findUnique({
-        where: { id: collectionId },
-        select: { name: true },
-      });
-      if (collection) collectionName = collection.name;
+      try {
+        const collection = await this.verifyCollectionOwnership(
+          profileId,
+          collectionId,
+        );
+        collectionName = collection.name;
+      } catch {
+        // Not found or not owned — bookmarks list below is unaffected since
+        // it's already scoped to profileId.
+      }
     }
 
     return {

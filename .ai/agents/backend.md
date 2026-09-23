@@ -26,9 +26,10 @@ queue producers.
 3. **Authorization is explicit.** Pick the right guard: `JwtAuthGuard`, `JwtOptionalGuard`,
    `AdminGuard` (deny-by-default for moderators, with `@RequireStaffPermissions`), `SubscriptionGuard`
    + `@RequiresPlan`, `IdentityVerifiedGuard` for money paths.
-4. **Ownership is checked in the service.** There is no generic ownership guard. Compare the entity's
-   `userId` to the authenticated user and throw `ForbiddenException`. Never trust a client-supplied
-   id. Copy the pattern in `posts.service.ts`.
+4. **Ownership is checked.** For routes mapping to a single Prisma model and route `:id`, use
+   `OwnershipGuard` + `@RequireOwnership` (copy the pattern in `posts.controller.ts`) — don't also
+   duplicate the check in the service. Otherwise (body/query-supplied id, non-HTTP callers), extract
+   one shared service method instead of inlining the check. Never trust a client-supplied id.
 5. **Query shape.** `select`/`include` only what is needed, no Prisma call inside a loop, filters
    backed by an index in `schema.prisma`. Multi-write operations use `$transaction`.
 6. **Pagination.** Reuse `common/dto/pagination.dto.ts` and `createPaginatedResult`. No unbounded

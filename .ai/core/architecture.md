@@ -42,7 +42,17 @@ What this codebase does, verified:
   layer**. Do not introduce one as a side effect of another change — that is an architectural
   decision requiring confirmation and an ADR.
 - **DTOs per module** under `src/<module>/dto/`, using `class-validator`.
-- **Ownership is checked inside services.** After the User/Profile split ([ADR-0015](../../circlesfera-documentation/adr/0015-user-profile-identity-split.md)), social content ownership is typically the entity's `profileId` against the caller's `profileId` (JWT); account/billing surfaces still use `userId`. There is no generic ownership guard — add the check yourself on every mutating endpoint.
+- **Ownership for standard REST mutations goes through `OwnershipGuard` + `@RequireOwnership({model, userIdField?})`**
+  (`src/auth/guards/ownership.guard.ts`) — the one authoritative ownership check for any route that maps to a single
+  Prisma model and a route `:id` param (AUTHZ-002, closing the earlier "no generic ownership guard, add the check
+  yourself" gap). After the User/Profile split ([ADR-0015](../../circlesfera-documentation/adr/0015-user-profile-identity-split.md)),
+  social content ownership is typically the entity's `profileId` against the caller's `profileId` (JWT); account/billing
+  surfaces still use `userId` — both are expressed via `userIdField`. Do not duplicate an inline ownership check in the
+  service once the route is guarded; that reintroduces the divergent-implementations problem AUTHZ-002 removed.
+  For ownership checks that don't fit the guard's shape — the id comes from the request body/query instead of a route
+  param, or the caller isn't an HTTP request at all — extract one shared, named method on the owning service instead of
+  inlining the check per call site (see `BookmarksService.verifyCollectionOwnership` for a body-supplied id, and
+  `AppGateway.requireStreamHostOrCoHost` for a Socket.IO event handler).
 - **Async work goes to BullMQ processors** in `src/<module>/processors/`.
 - **Unit tests sit next to the code** as `src/**/*.spec.ts`.
 
@@ -137,7 +147,8 @@ index.html -> src/main.tsx (BrowserRouter, QueryClient, SW registration)
 
 **Allowed / expected**
 
-- Controller → service → Prisma, with ownership and gating enforced in the service.
+- Controller → service → Prisma, with ownership enforced by `OwnershipGuard` at the controller boundary
+  (or a shared service-level check for the cases it doesn't cover) and business gating in the service.
 - BullMQ for anything slow, external, or fan-out shaped.
 - Redis cache for hot reads, with an explicit TTL and an invalidation path.
 - Reusing `createPaginatedResult` for list endpoints.
