@@ -304,19 +304,66 @@ describe('SearchService', () => {
         },
       ]);
 
-      mockPrismaService.follow.findMany.mockImplementation(({ where }: any) => {
-        if (where.followingId === 'u-pro') {
-          return Promise.resolve([{ follower: { username: 'mutual_friend' } }]);
-        }
-        return Promise.resolve([]);
-      });
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'u-pro', follower: { username: 'mutual_friend' } },
+      ]);
 
       const results = await service.searchUsers('user', 'viewer-self');
 
+      expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            followingId: { in: ['u-basic', 'u-pro'] },
+          }),
+        }),
+      );
       expect(results).toHaveLength(3);
       // u-pro has PRO verification (+20) and mutual connection (+5), ranking higher
       expect(results[0].id).toBe('u-pro');
       expect(results[0].followedByFriends).toEqual(['mutual_friend']);
+    });
+
+    it('caps followedByFriends at 3 names per candidate and skips the self-match', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        {
+          id: 'u-popular',
+          username: 'popular_user',
+          verificationLevel: 'BASIC',
+          _count: { followers: 50 },
+        },
+      ]);
+
+      mockPrismaService.follow.findMany.mockResolvedValueOnce([
+        { followingId: 'u-popular', follower: { username: 'friend-1' } },
+        { followingId: 'u-popular', follower: { username: 'friend-2' } },
+        { followingId: 'u-popular', follower: { username: 'friend-3' } },
+        { followingId: 'u-popular', follower: { username: 'friend-4' } },
+      ]);
+
+      const results = await service.searchUsers('popular', 'viewer-self');
+
+      expect(results[0].followedByFriends).toEqual([
+        'friend-1',
+        'friend-2',
+        'friend-3',
+      ]);
+      expect(results[0].mutualCount).toBe(3);
+    });
+
+    it('skips the mutual-follows lookup entirely when no viewerId is provided', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        {
+          id: 'u-anon',
+          username: 'anon_target',
+          verificationLevel: 'BASIC',
+          _count: { followers: 1 },
+        },
+      ]);
+
+      const results = await service.searchUsers('anon');
+
+      expect(mockPrismaService.follow.findMany).not.toHaveBeenCalled();
+      expect(results[0].followedByFriends).toEqual([]);
     });
   });
 

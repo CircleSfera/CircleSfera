@@ -937,6 +937,7 @@ model Participant {
   profile      Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, profileId])
+  @@index([profileId, deletedAt])
   @@map("participants")
 }
 
