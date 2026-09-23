@@ -56,6 +56,7 @@ describe('GetConversationsQuery', () => {
           },
         },
       },
+      take: 100,
       include: expect.any(Object),
       orderBy: { updatedAt: 'desc' },
     });

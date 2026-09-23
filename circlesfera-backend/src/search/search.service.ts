@@ -302,50 +302,63 @@ export class SearchService {
 
     if (profiles.length === 0) return [];
 
-    // 2. Personalize ranking if viewerId is provided
-    const rankedUsers = await Promise.all(
-      profiles.map(async (profile) => {
-        let mutualCount = 0;
-        let followedByFriendNames: string[] = [];
+    // 2. Personalize ranking if viewerId is provided.
+    // Social Discovery: for each candidate, find up to 3 people the viewer
+    // follows who also follow that candidate. Batched into a single query
+    // across all candidates (DATA-002) instead of one findMany per profile —
+    // grouped by followingId below, same "up to 3, arbitrary order" shape as
+    // the original per-profile take: 3.
+    const mutualsByCandidate = new Map<string, string[]>();
+    if (viewerId) {
+      const candidateIds = profiles
+        .filter((profile) => profile.id !== viewerId)
+        .map((profile) => profile.id);
 
-        if (viewerId && viewerId !== profile.id) {
-          // Social Discovery: Find people followed by viewer who follow this target
-          const mutualFollows = await this.prisma.follow.findMany({
-            where: {
-              followingId: profile.id,
-              follower: {
-                followers: {
-                  some: { followerId: viewerId },
-                },
+      if (candidateIds.length > 0) {
+        const mutualFollows = await this.prisma.follow.findMany({
+          where: {
+            followingId: { in: candidateIds },
+            follower: {
+              followers: {
+                some: { followerId: viewerId },
               },
             },
-            take: 3,
-            select: {
-              follower: { select: { username: true } },
-            },
-          });
+          },
+          take: 500, // Safety bound; realistic totals are far smaller.
+          select: {
+            followingId: true,
+            follower: { select: { username: true } },
+          },
+        });
 
-          mutualCount = mutualFollows.length;
-          followedByFriendNames = mutualFollows
-            .map((f) => f.follower.username)
-            .filter(Boolean) as string[];
+        for (const follow of mutualFollows) {
+          const names = mutualsByCandidate.get(follow.followingId) ?? [];
+          if (names.length < 3 && follow.follower.username) {
+            names.push(follow.follower.username);
+          }
+          mutualsByCandidate.set(follow.followingId, names);
         }
+      }
+    }
 
-        const authoritySignal = profile.verificationLevel !== 'BASIC' ? 20 : 0;
-        const score =
-          Math.log10(profile._count.followers + 1) +
-          mutualCount * 5 +
-          authoritySignal;
+    const rankedUsers = profiles.map((profile) => {
+      const followedByFriendNames = mutualsByCandidate.get(profile.id) ?? [];
+      const mutualCount = followedByFriendNames.length;
 
-        return {
-          ...profile,
-          verificationLevel: profile.verificationLevel,
-          mutualCount,
-          followedByFriends: followedByFriendNames,
-          score,
-        };
-      }),
-    );
+      const authoritySignal = profile.verificationLevel !== 'BASIC' ? 20 : 0;
+      const score =
+        Math.log10(profile._count.followers + 1) +
+        mutualCount * 5 +
+        authoritySignal;
+
+      return {
+        ...profile,
+        verificationLevel: profile.verificationLevel,
+        mutualCount,
+        followedByFriends: followedByFriendNames,
+        score,
+      };
+    });
 
     return rankedUsers.sort((a, b) => b.score - a.score).slice(0, 10);
   }

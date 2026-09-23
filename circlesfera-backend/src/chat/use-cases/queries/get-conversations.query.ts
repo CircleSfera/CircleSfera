@@ -2,6 +2,13 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 
+// Hard cap on the conversation list — this endpoint returns a plain array
+// (not createPaginatedResult) to keep the existing API contract, so bounding
+// is a fixed take rather than page/limit params (DATA-002). Ordered by
+// updatedAt desc, so the most recently active conversations are the ones
+// that would ever fall outside this cap.
+const MAX_CONVERSATIONS = 100;
+
 @Injectable()
 export class GetConversationsQuery {
   constructor(
@@ -19,6 +26,7 @@ export class GetConversationsQuery {
           },
         },
       },
+      take: MAX_CONVERSATIONS,
       include: {
         participants: {
           include: {
