@@ -14,8 +14,10 @@ import {
 import type { Conversation, Message } from '@prisma/client';
 import type { Request } from 'express';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
+import { RequireOwnership } from '../auth/decorators/require-ownership.decorator.js';
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { CreateGroupDto } from './dto/create-group.dto.js';
 import { EditMessageDto } from './dto/edit-message.dto.js';
 import { SendMessageDto } from './dto/send-message.dto.js';
@@ -173,20 +175,16 @@ export class ChatController {
   }
 
   @Put('messages/:id')
-  async editMessage(
-    @Req() req: AuthRequest,
-    @Param('id') id: string,
-    @Body() body: EditMessageDto,
-  ) {
-    return this.editMessageUseCase.execute(
-      req.user.profileId,
-      id,
-      body.content,
-    );
+  @UseGuards(OwnershipGuard)
+  @RequireOwnership({ model: 'Message', userIdField: 'senderId' })
+  async editMessage(@Param('id') id: string, @Body() body: EditMessageDto) {
+    return this.editMessageUseCase.execute(id, body.content);
   }
 
   @Delete('messages/:id')
-  async deleteMessage(@Req() req: AuthRequest, @Param('id') id: string) {
-    return this.deleteMessageUseCase.execute(req.user.profileId, id);
+  @UseGuards(OwnershipGuard)
+  @RequireOwnership({ model: 'Message', userIdField: 'senderId' })
+  async deleteMessage(@Param('id') id: string) {
+    return this.deleteMessageUseCase.execute(id);
   }
 }

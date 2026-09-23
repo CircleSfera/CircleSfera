@@ -12,6 +12,7 @@ import {
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -43,6 +44,7 @@ describe('StoriesController', () => {
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
         { guard: JwtOptionalGuard, mode: 'optional' },
+        { guard: OwnershipGuard, mode: 'allow' },
       ],
     });
   });
@@ -147,10 +149,7 @@ describe('StoriesController', () => {
       .expect(201);
 
     expect(mockService.getArchive).toHaveBeenCalledWith(TEST_USER.profileId);
-    expect(mockService.delete).toHaveBeenCalledWith(
-      'story-1',
-      TEST_USER.profileId,
-    );
+    expect(mockService.delete).toHaveBeenCalledWith('story-1');
     expect(mockService.view).toHaveBeenCalledWith(
       'story-1',
       TEST_USER.profileId,

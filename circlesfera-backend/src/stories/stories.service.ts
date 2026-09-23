@@ -5,6 +5,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
@@ -394,32 +395,34 @@ export class StoriesService {
     });
   }
 
-  // Delete a story (author only, enforced by compound where clause).
+  // Delete a story. Ownership is enforced by OwnershipGuard at the controller level.
   // Param id: The story ID
-  // Param profileId: The requesting user's ID
-  async delete(id: string, profileId: string): Promise<void> {
-    const story = await this.prisma.story.findFirst({
-      where: { id, profileId },
+  // Throws NotFoundException if story not found
+  async delete(id: string): Promise<void> {
+    const story = await this.prisma.story.findUnique({
+      where: { id },
     });
 
-    if (story) {
-      if (story.url)
-        await this.uploadsService
-          .deleteFile(story.url)
-          .catch((e) => console.error(e));
-      if (story.standardUrl)
-        await this.uploadsService
-          .deleteFile(story.standardUrl)
-          .catch((e) => console.error(e));
-      if (story.thumbnailUrl)
-        await this.uploadsService
-          .deleteFile(story.thumbnailUrl)
-          .catch((e) => console.error(e));
-
-      await this.prisma.story.delete({
-        where: { id: story.id },
-      });
+    if (!story) {
+      throw new NotFoundException('Story not found');
     }
+
+    if (story.url)
+      await this.uploadsService
+        .deleteFile(story.url)
+        .catch((e) => console.error(e));
+    if (story.standardUrl)
+      await this.uploadsService
+        .deleteFile(story.standardUrl)
+        .catch((e) => console.error(e));
+    if (story.thumbnailUrl)
+      await this.uploadsService
+        .deleteFile(story.thumbnailUrl)
+        .catch((e) => console.error(e));
+
+    await this.prisma.story.delete({
+      where: { id: story.id },
+    });
   }
 
   // Record a story view. Idempotent — returns existing view if already viewed.

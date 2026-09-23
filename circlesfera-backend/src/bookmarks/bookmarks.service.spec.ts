@@ -65,8 +65,12 @@ describe('BookmarksService', () => {
       expect(result).toEqual({ bookmarked: true });
     });
 
-    it('should create bookmark with collectionId if provided', async () => {
+    it('should create bookmark with collectionId if provided and owned', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'user-1',
+      });
       mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
       mockPrismaService.bookmark.create.mockResolvedValue({
         id: 'b-1',
@@ -82,8 +86,34 @@ describe('BookmarksService', () => {
       expect(result).toEqual({ bookmarked: true });
     });
 
+    it('should throw ForbiddenException when collectionId belongs to another profile', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'other-user',
+      });
+
+      await expect(service.toggle('user-1', 'post-1', 'col-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(mockPrismaService.bookmark.create).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when collectionId does not exist', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.collection.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.toggle('user-1', 'post-1', 'col-missing'),
+      ).rejects.toThrow(NotFoundException);
+    });
+
     it('should update collection if already bookmarked but different collectionId requested', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-new',
+        profileId: 'user-1',
+      });
       mockPrismaService.bookmark.findUnique.mockResolvedValue({
         id: 'b-1',
         profileId: 'user-1',
@@ -121,6 +151,10 @@ describe('BookmarksService', () => {
 
   describe('updateCollection', () => {
     it('should create a new bookmark in collection if bookmark does not exist', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-1',
+        profileId: 'user-1',
+      });
       mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
       mockPrismaService.bookmark.create.mockResolvedValue({
         id: 'b-new',
@@ -137,6 +171,10 @@ describe('BookmarksService', () => {
     });
 
     it('should update existing bookmark collectionId if bookmark exists', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-2',
+        profileId: 'user-1',
+      });
       mockPrismaService.bookmark.findUnique.mockResolvedValue({
         id: 'b-existing',
       });
@@ -151,6 +189,33 @@ describe('BookmarksService', () => {
         where: { id: 'b-existing' },
         data: { collectionId: 'col-2' },
       });
+    });
+
+    it('should throw ForbiddenException when target collection belongs to another profile', async () => {
+      mockPrismaService.collection.findUnique.mockResolvedValue({
+        id: 'col-2',
+        profileId: 'other-user',
+      });
+
+      await expect(
+        service.updateCollection('user-1', 'post-1', 'col-2'),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.bookmark.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should not require collection ownership when clearing the collection (null)', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue({
+        id: 'b-existing',
+        collectionId: 'col-old',
+      });
+      mockPrismaService.bookmark.update.mockResolvedValue({
+        id: 'b-existing',
+        collectionId: null,
+      });
+
+      const res = await service.updateCollection('user-1', 'post-1', null);
+      expect(res.collectionId).toBeNull();
+      expect(mockPrismaService.collection.findUnique).not.toHaveBeenCalled();
     });
   });
 

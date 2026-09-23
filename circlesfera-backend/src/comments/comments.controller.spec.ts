@@ -12,6 +12,7 @@ import {
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
+import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -39,6 +40,7 @@ describe('CommentsController', () => {
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
         { guard: JwtOptionalGuard, mode: 'optional' },
+        { guard: OwnershipGuard, mode: 'allow' },
       ],
     });
   });
@@ -129,7 +131,7 @@ describe('CommentsController', () => {
       .set(BEARER)
       .expect(204);
 
-    expect(mockService.remove).toHaveBeenCalledWith('c-1', TEST_USER.profileId);
+    expect(mockService.remove).toHaveBeenCalledWith('c-1');
   });
 
   it('likes and unlikes a comment as the session profile', async () => {

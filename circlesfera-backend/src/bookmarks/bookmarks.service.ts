@@ -12,6 +12,25 @@ import { PrismaService } from '../prisma/prisma.service.js';
 export class BookmarksService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
+  // Shared ownership check for assigning a bookmark to a collection — the one
+  // authoritative implementation for every write/read path that accepts a
+  // collectionId (AUTHZ-002). Prevents a caller from attaching bookmarks to,
+  // or reading, a collection owned by another profile.
+  // Throws NotFoundException if collection not found, ForbiddenException if not owner.
+  private async verifyCollectionOwnership(
+    profileId: string,
+    collectionId: string,
+  ) {
+    const collection = await this.prisma.collection.findUnique({
+      where: { id: collectionId },
+    });
+    if (!collection) throw new NotFoundException('Collection not found');
+    if (collection.profileId !== profileId) {
+      throw new ForbiddenException('Access denied');
+    }
+    return collection;
+  }
+
   // Toggle a bookmark on/off for a post. Optionally assign to a collection.
   // Param profileId: The user's ID
   // Param postId: The post to bookmark
@@ -26,6 +45,10 @@ export class BookmarksService {
 
     if (!post) {
       throw new NotFoundException('Post not found');
+    }
+
+    if (collectionId) {
+      await this.verifyCollectionOwnership(profileId, collectionId);
     }
 
     // Check if bookmark exists
@@ -87,6 +110,10 @@ export class BookmarksService {
     postId: string,
     collectionId: string | null,
   ) {
+    if (collectionId) {
+      await this.verifyCollectionOwnership(profileId, collectionId);
+    }
+
     // Find the bookmark first
     const bookmark = await this.prisma.bookmark.findUnique({
       where: { profileId_postId: { profileId, postId } },
@@ -212,14 +239,10 @@ export class BookmarksService {
   ) {
     const skip = (page - 1) * limit;
 
-    // Verify collection ownership
-    const collection = await this.prisma.collection.findUnique({
-      where: { id: collectionId },
-    });
-    if (!collection) throw new NotFoundException('Collection not found');
-    if (collection.profileId !== profileId) {
-      throw new ForbiddenException('Access denied');
-    }
+    const collection = await this.verifyCollectionOwnership(
+      profileId,
+      collectionId,
+    );
 
     const [bookmarks, total] = await Promise.all([
       this.prisma.bookmark.findMany({

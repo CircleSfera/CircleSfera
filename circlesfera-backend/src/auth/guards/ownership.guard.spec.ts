@@ -43,6 +43,7 @@ describe('OwnershipGuard', () => {
   const profileFindUnique = vi.fn();
   const userFindUnique = vi.fn();
   const collectionFindUnique = vi.fn();
+  const messageFindUnique = vi.fn();
 
   beforeEach(() => {
     reflector = new Reflector();
@@ -56,6 +57,7 @@ describe('OwnershipGuard', () => {
     profileFindUnique.mockReset();
     userFindUnique.mockReset();
     collectionFindUnique.mockReset();
+    messageFindUnique.mockReset();
 
     guard = new OwnershipGuard(reflector, {
       post: { findUnique: postFindUnique },
@@ -68,6 +70,7 @@ describe('OwnershipGuard', () => {
       profile: { findUnique: profileFindUnique },
       user: { findUnique: userFindUnique },
       collection: { findUnique: collectionFindUnique },
+      message: { findUnique: messageFindUnique },
     } as unknown as PrismaService);
   });
 
@@ -278,6 +281,32 @@ describe('OwnershipGuard', () => {
         ),
       ),
     ).resolves.toBe(true);
+  });
+
+  it('validates ownership for Message via userIdField override (senderId)', async () => {
+    messageFindUnique.mockResolvedValue({ senderId: 'p1' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'm-1' } },
+          { model: 'Message', userIdField: 'senderId' },
+        ),
+      ),
+    ).resolves.toBe(true);
+    expect(messageFindUnique).toHaveBeenCalledWith({
+      where: { id: 'm-1' },
+      select: { senderId: true },
+    });
+
+    messageFindUnique.mockResolvedValue({ senderId: 'other-profile' });
+    await expect(
+      guard.canActivate(
+        ctx(
+          { user: { userId: 'u1', profileId: 'p1' }, params: { id: 'm-1' } },
+          { model: 'Message', userIdField: 'senderId' },
+        ),
+      ),
+    ).rejects.toThrow(ForbiddenException);
   });
 
   it('validates ownership for SupportTicket (userId) and User (id === userId)', async () => {

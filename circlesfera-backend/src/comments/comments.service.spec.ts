@@ -1,4 +1,4 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -227,13 +227,13 @@ describe('CommentsService', () => {
   });
 
   describe('remove', () => {
-    it('should delete comment if owner', async () => {
+    it('should delete the comment', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: '1',
         profileId: 'user-1',
       });
 
-      await service.remove('1', 'user-1');
+      await service.remove('1');
 
       expect(mockPrismaService.comment.delete).toHaveBeenCalledWith({
         where: { id: '1' },
@@ -243,20 +243,7 @@ describe('CommentsService', () => {
     it('should throw NotFoundException if comment does not exist', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue(null);
 
-      await expect(service.remove('1', 'user-1')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw ForbiddenException if not owner', async () => {
-      mockPrismaService.comment.findUnique.mockResolvedValue({
-        id: '1',
-        profileId: 'user-2',
-      });
-
-      await expect(service.remove('1', 'user-1')).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(service.remove('1')).rejects.toThrow(NotFoundException);
     });
   });
 
