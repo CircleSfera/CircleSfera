@@ -50,6 +50,11 @@ export interface SocketWithAuth extends Socket {
     user: SocketAuthUser;
     conversationIds?: Set<string>;
     correlationId?: string;
+    // Live streams this socket has joined via live:join, tracked separately
+    // from Socket.IO's own room membership because rooms are already left
+    // by the time the 'disconnect' event fires, so handleDisconnect can't
+    // read client.rooms to reconcile abandoned viewer counts (RT-004).
+    liveStreamIds?: Set<string>;
   };
 }
 
@@ -177,6 +182,27 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
             } else {
               this.server.to(`user:${call.peerId}`).emit('call:ended');
             }
+          }
+        }
+
+        // Reconcile viewer counts for live streams this socket never sent
+        // live:leave for (tab closed, network drop) — otherwise the count
+        // stays permanently inflated (RT-004).
+        const liveStreamIds = (client as SocketWithAuth).data?.liveStreamIds;
+        if (liveStreamIds?.size) {
+          for (const streamId of liveStreamIds) {
+            const count =
+              await this.liveRealtimeService.decrementViewerCount(streamId);
+            this.server.to(`live:${streamId}`).emit('live:viewer_left', {
+              profileId: user.profileId,
+              viewerCount: count,
+            });
+            this.server
+              .to(`live:${streamId}`)
+              .emit('live:viewer_count_update', {
+                streamId,
+                viewerCount: count,
+              });
           }
         }
 
@@ -510,6 +536,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!profileId) return;
 
     await client.join(`live:${payload.streamId}`);
+    if (!client.data.liveStreamIds) {
+      client.data.liveStreamIds = new Set();
+    }
+    client.data.liveStreamIds.add(payload.streamId);
 
     const count = await this.liveRealtimeService.incrementViewerCount(
       payload.streamId,
@@ -543,6 +573,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!profileId) return;
 
     await client.leave(`live:${payload.streamId}`);
+    client.data.liveStreamIds?.delete(payload.streamId);
 
     const count = await this.liveRealtimeService.decrementViewerCount(
       payload.streamId,
