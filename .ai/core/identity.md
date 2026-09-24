@@ -19,17 +19,20 @@ real identity, real content and real money.
 
 These are structural, not aspirational. They constrain implementation, not just marketing.
 
-1. **User control comes first.** The user decides what they consume, who may interact with them,
-   what recommendations they get, and what they share. Automated systems complement the experience;
-   they do not override the user's explicit choices.
-2. **Algorithmic transparency.** Ranking and discovery may use many signals, but they must stay
+Canonical names below match [`terminology.md`](./terminology.md) exactly — see that file before
+introducing a variant phrasing anywhere else.
+
+1. **User Control.** The user decides what they consume, who may interact with them, what
+   recommendations they get, and what they share. Automated systems complement the experience; they
+   do not override the user's explicit choices.
+2. **Algorithmic Transparency.** Ranking and discovery may use many signals, but they must stay
    explainable: why this content, why this profile, which of my actions changes it.
-3. **No hidden suppression.** Shadow banning is not an ecosystem management tool. Visibility
+3. **No Hidden Suppression.** Shadow banning is not an ecosystem management tool. Visibility
    follows explicit, verifiable criteria: viewer preferences, post privacy, social relationships,
    declared discovery behaviour, or a justified legal/safety obligation.
-4. **Strict and explicit moderation.** When something is limited, the user is told what happened,
-   why, under which rule, and how to contest it. Actions are internally auditable.
-5. **Responsible data handling.** Purpose limitation, proportionality, minimization, storage
+4. **Explainable Moderation.** When something is limited, the user is told what happened, why,
+   under which rule, and how to contest it. Actions are internally auditable.
+5. **Responsible Data Handling.** Purpose limitation, proportionality, minimization, storage
    limitation. The platform must be able to justify what it collects, why, for how long, and on
    what basis.
 

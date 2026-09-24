@@ -1,7 +1,13 @@
 # Playbook — Documentation sync
 
-Documentation contradicts reality. The governing rule from `AGENTS.md`: **fix the documentation, not
-the system.**
+**Source:** this repository's engineering process. **Verified:** 2026-09-24 (conflict-classification
+step aligned with `.ai/core/authority.md`).
+
+Documentation and reality disagree. Classify the conflict before fixing either side — see
+[`.ai/core/authority.md`](../core/authority.md): stale documentation → correct it; code that no
+longer follows a valid normative decision → treat as a candidate defect, don't rewrite the
+documentation to legitimize it; two authoritative sources disagreeing → stop and escalate;
+insufficient evidence → verify before deciding.
 
 Specialists: `documentation` → the specialist who owns the domain in question.
 

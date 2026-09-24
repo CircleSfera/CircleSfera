@@ -4,8 +4,11 @@ globs: circlesfera-documentation/**, CHANGELOG.md, README.md, CONTRIBUTING.md, .
 alwaysApply: false
 ---
 
-Governing rule from `AGENTS.md`: if the system contradicts the documentation, **fix the documentation,
-not the system.**
+If the system and the documentation disagree, classify the conflict before fixing either side — see
+`.ai/core/authority.md`: stale documentation → correct it; code that no longer follows a valid
+normative decision → treat as a candidate defect, don't rewrite the documentation to legitimize it;
+two authoritative sources disagreeing → stop and escalate; insufficient evidence → verify before
+deciding.
 
 - Verify every factual statement against the canonical artifact before writing it: `schema.prisma` for
   data, controllers for endpoints, the owning service for business rules,

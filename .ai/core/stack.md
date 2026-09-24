@@ -1,7 +1,8 @@
 # Stack and commands
 
-Verified against the repository on **2026-09-05**. Versions come from the `package.json` files; when
-this file and a `package.json` disagree, the `package.json` wins and this file is stale.
+**Freshness:** SNAPSHOT, verified against the repository on **2026-09-05** — see
+[`context-loading.md`](./context-loading.md). Versions come from the `package.json` files; when this
+file and a `package.json` disagree, the `package.json` wins and this file is stale.
 
 ## Monorepo layout
 

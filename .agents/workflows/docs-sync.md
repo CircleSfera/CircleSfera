@@ -25,4 +25,8 @@ Correct documentation that no longer matches the code. Invoke with `/docs-sync`.
 7. Report in this shape: objective, findings, changes made, verification performed, open risks, next
    steps. Separate verified fact from inference from proposal.
 
-If the system contradicts the documentation, fix the documentation, not the system.
+If the system and the documentation disagree, classify the conflict before touching either side (see
+`@/.ai/core/authority.md`): stale documentation → correct it; code that no longer follows a valid
+normative decision → treat as a candidate defect, don't rewrite the documentation to legitimize it;
+two authoritative sources disagreeing → stop and escalate; insufficient evidence → verify before
+deciding.

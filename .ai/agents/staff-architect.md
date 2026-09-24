@@ -16,7 +16,9 @@ becomes an ADR.
 ## Checks
 
 1. **Ownership.** Which existing module owns this concern? Adding a module is a last resort; there
-   are already ~51 Nest feature modules (re-count in `app.module.ts` / SoT if needed).
+   are already 57 Nest feature modules (SNAPSHOT, verified 2026-09-24 via
+   `find circlesfera-backend/src -name "*.module.ts" -not -name "*.spec.ts" -not -name "app.module.ts"`;
+   re-count if this feels stale).
 2. **Direction of dependencies.** Does the new wiring create a cycle? Cross-module calls are direct
    service injection or a queue — there is no event bus.
 3. **Boundary respect.** Business rules in services, transport in controllers, persistence through

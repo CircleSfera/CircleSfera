@@ -1,9 +1,11 @@
 # Glossary — product term to data model
 
-Maps the words used in conversation to what actually exists in
-`circlesfera-backend/prisma/schema.prisma`. **Always re-read the schema before relying on an enum
-value or field name**; this file is a navigation aid, not the source of truth. Verified
-**2026-09-05**: 76 models, 29 enums (re-count in the schema if this feels stale).
+**Freshness:** SNAPSHOT, verified **2026-09-05**: 76 models, 29 enums (re-count in the schema if this
+feels stale) — see [`context-loading.md`](./context-loading.md). Maps the words used in conversation
+to what actually exists in `circlesfera-backend/prisma/schema.prisma`. **Always re-read the schema
+before relying on an enum value or field name**; this file is a navigation aid, not the source of
+truth. Canonical product terminology (principles, domains, Identity/Profile/Account Type) lives in
+[`terminology.md`](./terminology.md); this file covers implementation vocabulary only.
 
 ## Terms that are commonly gotten wrong
 
