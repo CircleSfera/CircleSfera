@@ -69,22 +69,19 @@ Agent Framework · Traceability · Other.
 
 ### GAP-003 — Canonical product terminology drift
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Category:** Terminology Drift
-- **Evidence:** `.ai/core/identity.md:30` names the fourth product principle "Strict and explicit
-  moderation" — close to "Explicit Moderation," a variant [`terminology.md`](./terminology.md)
+- **Evidence (original):** `.ai/core/identity.md:30` named the fourth product principle "Strict and
+  explicit moderation" — close to "Explicit Moderation," a variant [`terminology.md`](./terminology.md)
   explicitly forbids as a replacement for the canonical **Explainable Moderation**. Minor case-only
-  drift also present at `identity.md:22,25,32-33` ("User control comes first" / "Algorithmic
-  transparency" / "Responsible data handling" vs. the canonical capitalized names) — not flagged as
-  forbidden variants, noted for completeness.
+  drift was also present at `identity.md:22,25,32-33`.
 - **Expected State:** the five canonical principle names, exactly as `terminology.md` states them.
-- **Observed State:** `identity.md` uses informal phrasing for all five, one of which collides with a
-  forbidden variant.
-- **Impact:** low on its own; compounds if copied into further derived documentation before
-  `terminology.md` existed as a correction source.
-- **Authority / Resolution Path:** Batch 3 (Normalize Existing Core Context) — correct `identity.md`
-  against `terminology.md` now that the registry exists.
-- **Owner:** unassigned.
+- **Resolution:** `identity.md`'s five principles now read **User Control**, **Algorithmic
+  Transparency**, **No Hidden Suppression**, **Explainable Moderation**, **Responsible Data
+  Handling** — exact match to `terminology.md`, with an explicit pointer added so future edits don't
+  drift again.
+- **Authority / Resolution Path:** Batch 3 (Normalize Existing Core Context).
+- **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 
 ### GAP-004 — Specialist module-count inconsistency
