@@ -442,11 +442,50 @@ describe('StoriesService', () => {
   describe('getViews', () => {
     it('should return users who viewed the story', async () => {
       mockPrismaService.storyView.findMany.mockResolvedValue([
-        { viewer: { id: 'profile-1', user: { id: 'u1' } } },
+        {
+          id: 'sv1',
+          createdAt: new Date('2026-01-01'),
+          viewer: { id: 'profile-1', user: { id: 'u1' } },
+        },
       ]);
       const result = await service.getViews('s1');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('u1');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('u1');
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('should page views with a cursor and cap the limit at 100', async () => {
+      mockPrismaService.storyView.findUnique.mockResolvedValue({
+        id: 'sv5',
+        createdAt: new Date('2026-01-05'),
+      });
+      mockPrismaService.storyView.findMany.mockResolvedValue([]);
+
+      await service.getViews('s1', 'sv5', 500);
+
+      expect(mockPrismaService.storyView.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 101,
+          where: expect.objectContaining({
+            storyId: 's1',
+            OR: [
+              { createdAt: { lt: new Date('2026-01-05') } },
+              { createdAt: new Date('2026-01-05'), id: { lt: 'sv5' } },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should degrade to the first page when the view cursor no longer exists', async () => {
+      mockPrismaService.storyView.findUnique.mockResolvedValue(null);
+      mockPrismaService.storyView.findMany.mockResolvedValue([]);
+
+      await service.getViews('s1', 'stale-cursor');
+
+      expect(mockPrismaService.storyView.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { storyId: 's1' } }),
+      );
     });
   });
 
@@ -472,12 +511,46 @@ describe('StoriesService', () => {
   });
 
   describe('getReactions', () => {
-    it('should return all reactions for the story', async () => {
+    it('should return reactions for the story', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([
         { id: 'r1' },
       ]);
       const result = await service.getReactions('s1');
-      expect(result).toHaveLength(1);
+      expect(result.data).toHaveLength(1);
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('should resolve a cursor to a keyset WHERE clause via the cursor row', async () => {
+      mockPrismaService.storyReaction.findUnique.mockResolvedValue({
+        id: 'r5',
+        createdAt: new Date('2026-01-05'),
+      });
+      mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
+
+      await service.getReactions('s1', 'r5');
+
+      expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            storyId: 's1',
+            OR: [
+              { createdAt: { lt: new Date('2026-01-05') } },
+              { createdAt: new Date('2026-01-05'), id: { lt: 'r5' } },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should degrade to the first page when the reaction cursor no longer exists', async () => {
+      mockPrismaService.storyReaction.findUnique.mockResolvedValue(null);
+      mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
+
+      await service.getReactions('s1', 'stale-cursor');
+
+      expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { storyId: 's1' } }),
+      );
     });
   });
 

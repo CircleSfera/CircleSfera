@@ -224,6 +224,68 @@ describe('CommentsService', () => {
         }),
       );
     });
+
+    it('should use keyset pagination when a cursor is provided', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        id: 'c5',
+        createdAt: new Date('2026-01-05'),
+      });
+      mockPrismaService.comment.findMany.mockResolvedValue([{ id: 'c4' }]);
+      mockPrismaService.comment.count.mockResolvedValue(50);
+
+      const result = await service.findByPost('post-1', {
+        limit: 10,
+        cursor: 'c5',
+      } as any);
+
+      expect(mockPrismaService.comment.findUnique).toHaveBeenCalledWith({
+        where: { id: 'c5' },
+        select: { createdAt: true, id: true },
+      });
+      expect(mockPrismaService.comment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 11,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          where: expect.objectContaining({
+            postId: 'post-1',
+            OR: [
+              { createdAt: { lt: new Date('2026-01-05') } },
+              { createdAt: new Date('2026-01-05'), id: { lt: 'c5' } },
+            ],
+          }),
+        }),
+      );
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.nextCursor).toBeUndefined();
+    });
+
+    it('should compute nextCursor on the cursor path when a full extra row is fetched', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue(null);
+      const rows = Array.from({ length: 11 }, (_, i) => ({ id: `c${i}` }));
+      mockPrismaService.comment.findMany.mockResolvedValue(rows);
+      mockPrismaService.comment.count.mockResolvedValue(100);
+
+      const result = await service.findByPost('post-1', {
+        limit: 10,
+        cursor: 'stale',
+      } as any);
+
+      expect(result.data).toHaveLength(10);
+      expect(result.meta.nextCursor).toBe('c9');
+    });
+
+    it('should compute nextCursor on the page path when the page is full', async () => {
+      const rows = Array.from({ length: 10 }, (_, i) => ({ id: `c${i}` }));
+      mockPrismaService.comment.findMany.mockResolvedValue(rows);
+      mockPrismaService.comment.count.mockResolvedValue(30);
+
+      const result = await service.findByPost('post-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.meta.nextCursor).toBe('c9');
+    });
   });
 
   describe('remove', () => {

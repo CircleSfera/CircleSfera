@@ -173,19 +173,33 @@ describe('StoriesController', () => {
   });
 
   it('gets views and reactions for a story', async () => {
-    mockService.getViews.mockResolvedValue([{ id: 'v-1' }]);
-    mockService.getReactions.mockResolvedValue([{ id: 'r-1' }]);
+    mockService.getViews.mockResolvedValue({ data: [{ id: 'v-1' }] });
+    mockService.getReactions.mockResolvedValue({ data: [{ id: 'r-1' }] });
 
     const viewsRes = await request(app.getHttpServer())
       .get('/api/v1/stories/story-1/views')
       .expect(200);
-    expect(viewsRes.body).toEqual([{ id: 'v-1' }]);
-    expect(mockService.getViews).toHaveBeenCalledWith('story-1');
+    expect(viewsRes.body).toEqual({ data: [{ id: 'v-1' }] });
+    expect(mockService.getViews).toHaveBeenCalledWith('story-1', undefined, 10);
 
     const reactionsRes = await request(app.getHttpServer())
       .get('/api/v1/stories/story-1/reactions')
       .expect(200);
-    expect(reactionsRes.body).toEqual([{ id: 'r-1' }]);
-    expect(mockService.getReactions).toHaveBeenCalledWith('story-1');
+    expect(reactionsRes.body).toEqual({ data: [{ id: 'r-1' }] });
+    expect(mockService.getReactions).toHaveBeenCalledWith(
+      'story-1',
+      undefined,
+      10,
+    );
+  });
+
+  it('forwards cursor and limit query params for story views pagination', async () => {
+    mockService.getViews.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/story-1/views?cursor=v-9&limit=25')
+      .expect(200);
+
+    expect(mockService.getViews).toHaveBeenCalledWith('story-1', 'v-9', 25);
   });
 });

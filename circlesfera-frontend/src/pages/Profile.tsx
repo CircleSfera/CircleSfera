@@ -18,6 +18,7 @@ import PostGrid from '../components/profile/PostGrid';
 import ProfileHeader from '../components/profile/ProfileHeader';
 import ProfileTabs, { type TabType } from '../components/profile/ProfileTabs';
 import { profileTabFromParam } from '../components/profile/profileTabUtils';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import {
   bookmarksApi,
   chatApi,
@@ -276,14 +277,31 @@ export default function Profile() {
     enabled: !!profile?.data,
   });
 
-  const { data: followList } = useQuery({
+  const {
+    data: followPages,
+    fetchNextPage: fetchNextFollowPage,
+    hasNextPage: hasNextFollowPage,
+    isFetchingNextPage: isFetchingNextFollowPage,
+  } = useInfiniteQuery({
     queryKey: ['follows', username, showFollowsModal],
-    queryFn: () =>
-      showFollowsModal === 'followers'
-        ? followsApi.getFollowers(username!)
-        : followsApi.getFollowing(username!),
+    queryFn: async ({ pageParam }: { pageParam?: string }) => {
+      const res =
+        showFollowsModal === 'followers'
+          ? await followsApi.getFollowers(username!, pageParam)
+          : await followsApi.getFollowing(username!, pageParam);
+      return res.data;
+    },
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!showFollowsModal && !!username,
   });
+  const followList = (followPages?.pages.flatMap((page) => page.data) ??
+    []) as ProfileWithUser[];
+  const followLoadMoreRef = useInfiniteScroll(
+    fetchNextFollowPage,
+    hasNextFollowPage,
+    isFetchingNextFollowPage,
+  );
 
   const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] =
     useState(false);
@@ -564,8 +582,10 @@ export default function Profile() {
             {showFollowsModal && (
               <FollowersModal
                 title={showFollowsModal}
-                users={(followList?.data as ProfileWithUser[]) || []}
+                users={followList}
                 onClose={() => setShowFollowsModal(null)}
+                loadMoreRef={followLoadMoreRef}
+                isFetchingNextPage={isFetchingNextFollowPage}
               />
             )}
           </Suspense>

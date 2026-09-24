@@ -91,8 +91,8 @@ describe('FollowsController', () => {
   });
 
   it('lists followers and following by username', async () => {
-    mockService.getFollowers.mockResolvedValue([]);
-    mockService.getFollowing.mockResolvedValue([]);
+    mockService.getFollowers.mockResolvedValue({ data: [] });
+    mockService.getFollowing.mockResolvedValue({ data: [] });
 
     await request(app.getHttpServer())
       .get('/api/v1/users/alice/follow/followers')
@@ -103,8 +103,31 @@ describe('FollowsController', () => {
       .set(BEARER)
       .expect(200);
 
-    expect(mockService.getFollowers).toHaveBeenCalledWith('alice');
-    expect(mockService.getFollowing).toHaveBeenCalledWith('alice');
+    expect(mockService.getFollowers).toHaveBeenCalledWith(
+      'alice',
+      undefined,
+      10,
+    );
+    expect(mockService.getFollowing).toHaveBeenCalledWith(
+      'alice',
+      undefined,
+      10,
+    );
+  });
+
+  it('forwards cursor and limit query params for followers pagination', async () => {
+    mockService.getFollowers.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/users/alice/follow/followers?cursor=abc-123&limit=5')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.getFollowers).toHaveBeenCalledWith(
+      'alice',
+      'abc-123',
+      5,
+    );
   });
 
   it('blocks and unblocks using the session profileId', async () => {

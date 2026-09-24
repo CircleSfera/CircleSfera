@@ -148,6 +148,56 @@ describe('FeedService', () => {
       expect(result.data[0].id).toBe('2');
       expect((result.data[0] as any).algScore).toBe(5.5);
     });
+
+    it('generates and returns an asOf snapshot when the client sends none (DATA-003)', async () => {
+      mockPrismaService.like.findMany.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: '3', final_score: 1 },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: '3', likes: [] },
+      ]);
+
+      const before = Date.now();
+      const result = (await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+      })) as any;
+      const after = Date.now();
+
+      expect(result.asOf).toBeDefined();
+      const asOfMs = new Date(result.asOf).getTime();
+      expect(asOfMs).toBeGreaterThanOrEqual(before);
+      expect(asOfMs).toBeLessThanOrEqual(after);
+    });
+
+    it('freezes the ranking snapshot to the client-supplied asOf instead of NOW() (DATA-003)', async () => {
+      mockPrismaService.like.findMany.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([
+        { id: '4', final_score: 1 },
+      ]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: '4', likes: [] },
+      ]);
+
+      const fixedAsOf = '2026-01-01T00:00:00.000Z';
+      const result = (await service.getHybridFeed('user-1', {
+        page: 2,
+        limit: 10,
+        asOf: fixedAsOf,
+      })) as any;
+
+      expect(result.asOf).toBe(fixedAsOf);
+      // The tagged-template SQL call's interpolated values include the
+      // resolved asOf Date, not a fresh NOW()-equivalent.
+      const call = mockPrismaService.$queryRaw.mock.calls[0];
+      const interpolatedValues = call.slice(1);
+      expect(
+        interpolatedValues.some(
+          (v: unknown) => v instanceof Date && v.toISOString() === fixedAsOf,
+        ),
+      ).toBe(true);
+    });
   });
 
   describe('getFollowingFeed', () => {

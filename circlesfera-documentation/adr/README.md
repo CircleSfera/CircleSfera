@@ -25,5 +25,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0019](./0019-bounded-domain-event-bus.md) | Bounded in-process domain event bus (EventEmitter2) — closed list of 4 accepted use categories | Accepted |
 | [0020](./0020-media-lifecycle-state-machine.md) | Media entity with an explicit lifecycle state machine — 3-phase Expand/Switch/Contract rollout | Accepted |
 | [0021](./0021-global-prisma-access-transactional-discipline.md) | Global Prisma access without a repository layer — transactional and domain-access discipline | Accepted |
+| [0022](./0022-pagination-and-high-volume-query-policy.md) | Pagination and high-volume query policy — cursor/keyset, frozen ranking snapshot, and bounded-not-paginated | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.

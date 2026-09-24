@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Profile, User } from '@prisma/client';
 import {
@@ -6,6 +14,7 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { MuteUserDto } from './dto/mute-user.dto.js';
 import { FollowsService, type MutedUserEntry } from './follows.service.js';
 
@@ -34,16 +43,33 @@ export class FollowsController {
     return this.followsService.checkFollow(username, user.profileId);
   }
 
-  // Get followers for a user.
+  // Get followers for a user. Cursor pagination (DATA-003): pass `cursor`
+  // (the last item's id from the previous page) to fetch the next page.
   @Get(':username/follow/followers')
-  async getFollowers(@Param('username') username: string) {
-    return this.followsService.getFollowers(username);
+  async getFollowers(
+    @Param('username') username: string,
+    @Query() query: PaginationDto,
+  ) {
+    return this.followsService.getFollowers(
+      username,
+      query.cursor,
+      query.limit,
+    );
   }
 
-  // Get users that a user follows.
+  // Get users that a user follows. Cursor pagination (DATA-003): pass
+  // `cursor` (the last item's id from the previous page) to fetch the next
+  // page.
   @Get(':username/follow/following')
-  async getFollowing(@Param('username') username: string) {
-    return this.followsService.getFollowing(username);
+  async getFollowing(
+    @Param('username') username: string,
+    @Query() query: PaginationDto,
+  ) {
+    return this.followsService.getFollowing(
+      username,
+      query.cursor,
+      query.limit,
+    );
   }
 
   // Block a user by username.

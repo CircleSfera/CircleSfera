@@ -133,6 +133,12 @@ export class FeedService {
   ) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
+    // Ranking snapshot (DATA-003): frozen at the first page of a scroll
+    // session and echoed back by the client on subsequent pages, so
+    // time-decay doesn't drift and a post created mid-session can't be
+    // inserted into an already-fetched page. See the SQL below for where
+    // this replaces NOW().
+    const asOf = pagination.asOf ? new Date(pagination.asOf) : new Date();
 
     // 1. If not logged in, return a trending chronological feed
     if (!profileId) {
@@ -150,7 +156,13 @@ export class FeedService {
     }
 
     const viewerSettings = await this.getViewerContentSettings(profileId);
-    const cacheKey = `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
+    // Only fold asOf into the cache key once the client is continuing a
+    // specific session (page > 1) -- page 1 keeps the original, TTL-shared
+    // key so unrelated users hitting page 1 around the same time still
+    // share a cache entry, exactly as before this change.
+    const cacheKey = pagination.asOf
+      ? `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}:asOf_${asOf.toISOString()}`
+      : `feed:hybrid:user_${profileId}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -212,18 +224,22 @@ export class FeedService {
             -- AI Similarity (0 to 1)
             (1 - (pe.vector <=> ${targetVectorStr}::vector)) AS ai_score,
             
-            -- Time Decay: Exponential decay based on days since creation
-            EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS time_decay,
-            
+            -- Time Decay: Exponential decay based on days since creation.
+            -- Uses the frozen asOf snapshot (DATA-003), not NOW(), so the
+            -- ranking basis doesn't drift between pages of one scroll
+            -- session -- a post created after asOf can't be inserted into
+            -- an already-fetched page.
+            EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
+
             -- Social Graph Weight
             COALESCE(sg.weight, 1.0) AS social_weight,
-            
+
             -- Final Hybrid Score Calculation
             (
               ((1 - (pe.vector <=> ${targetVectorStr}::vector)) * 0.4) +
               (COALESCE(sg.weight, 1.0) * 0.3) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.3)
-            ) * EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS final_score
+            ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
           JOIN "post_embeddings" pe ON p.id = pe."postId"
@@ -267,17 +283,17 @@ export class FeedService {
           )
           SELECT 
             p.id,
-            -- Time Decay
-            EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS time_decay,
-            
+            -- Time Decay: frozen asOf snapshot, see comment above (DATA-003)
+            EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
+
             -- Social Graph Weight
             COALESCE(sg.weight, 1.0) AS social_weight,
-            
+
             -- Final Hybrid Score Calculation (Without AI)
             (
               (COALESCE(sg.weight, 1.0) * 0.5) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.5)
-            ) * EXP(-EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 86400.0) AS final_score
+            ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
           LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
@@ -389,12 +405,10 @@ export class FeedService {
         feedWithPromotions.length < limit
           ? (page - 1) * limit + feedWithPromotions.length
           : page * limit + 1;
-      const result = createPaginatedResult(
-        feedWithPromotions,
-        total,
-        page,
-        limit,
-      );
+      const result = {
+        ...createPaginatedResult(feedWithPromotions, total, page, limit),
+        asOf: asOf.toISOString(),
+      };
 
       // Save to cache for 3 minutes (180000 ms)
       const ttl = process.env.NODE_ENV === 'production' ? 180000 : 1000;

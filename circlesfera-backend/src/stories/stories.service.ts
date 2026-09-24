@@ -22,6 +22,11 @@ import {
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
+import {
+  type KeysetPage,
+  keysetBeforeDesc,
+  toKeysetPage,
+} from '../common/pagination/keyset.util.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
@@ -451,21 +456,34 @@ export class StoriesService {
     return newView;
   }
 
-  // Get all viewers of a story with their profiles.
+  // Get viewers of a story with their profiles, newest first. Cursor/keyset
+  // pagination (DATA-003) — was fully unbounded, stable under concurrent
+  // views unlike skip/take.
   // Param id: The story ID
-  // Returns Array of users who viewed the story
-  async getViews(id: string): Promise<(User & { profile: Profile | null })[]> {
+  // Param cursor: StoryView.id of the last row from the previous page
+  // Param limit: page size, default 50, capped at 100
+  async getViews(
+    id: string,
+    cursor?: string,
+    limit = 50,
+  ): Promise<KeysetPage<User & { profile: Profile | null }>> {
+    const cappedLimit = Math.min(limit, 100);
+    const cursorWhere = await this.resolveStoryViewCursorWhere(cursor);
+
     const views = await this.prisma.storyView.findMany({
-      where: { storyId: id },
+      where: { storyId: id, ...cursorWhere },
       include: {
         viewer: { include: { user: true } },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: cappedLimit + 1,
     });
 
-    return views.map((v) => ({ ...v.viewer.user, profile: v.viewer })) as any;
+    const page = toKeysetPage(views, cappedLimit);
+    return {
+      ...page,
+      data: page.data.map((v) => ({ ...v.viewer.user, profile: v.viewer })),
+    };
   }
 
   // Add or update a reaction on a story. Upserts by storyId+profileId.
@@ -502,17 +520,53 @@ export class StoriesService {
     });
   }
 
-  // Get all reactions for a story with reactor profiles.
+  // Get reactions for a story with reactor profiles, newest first.
+  // Cursor/keyset pagination (DATA-003) — was fully unbounded, stable under
+  // concurrent reactions unlike skip/take.
   // Param storyId: The story ID
-  async getReactions(storyId: string): Promise<StoryReactionWithUser[]> {
+  // Param cursor: StoryReaction.id of the last row from the previous page
+  // Param limit: page size, default 50, capped at 100
+  async getReactions(
+    storyId: string,
+    cursor?: string,
+    limit = 50,
+  ): Promise<KeysetPage<StoryReactionWithUser>> {
+    const cappedLimit = Math.min(limit, 100);
+    const cursorWhere = await this.resolveStoryReactionCursorWhere(cursor);
+
     const reactions = await this.prisma.storyReaction.findMany({
-      where: { storyId },
+      where: { storyId, ...cursorWhere },
       include: {
         profile: { include: { user: true } },
       },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: cappedLimit + 1,
     });
 
-    return reactions as unknown as StoryReactionWithUser[];
+    return toKeysetPage(
+      reactions as unknown as StoryReactionWithUser[],
+      cappedLimit,
+    );
+  }
+
+  private async resolveStoryViewCursorWhere(cursor?: string) {
+    if (!cursor) return {};
+    const cursorRow = await this.prisma.storyView.findUnique({
+      where: { id: cursor },
+      select: { createdAt: true, id: true },
+    });
+    if (!cursorRow) return {};
+    return keysetBeforeDesc(cursorRow);
+  }
+
+  private async resolveStoryReactionCursorWhere(cursor?: string) {
+    if (!cursor) return {};
+    const cursorRow = await this.prisma.storyReaction.findUnique({
+      where: { id: cursor },
+      select: { createdAt: true, id: true },
+    });
+    if (!cursorRow) return {};
+    return keysetBeforeDesc(cursorRow);
   }
 
   // Job to physically delete expired stories every hour to free up database space.

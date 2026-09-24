@@ -46,19 +46,24 @@ export default function Home() {
   } = useInfiniteQuery<PaginatedResponse<Post>>({
     queryKey: ['feed', activeTab],
     queryFn: async ({ pageParam }) => {
+      const { page, asOf } = pageParam as { page: number; asOf?: string };
       const res =
         activeTab === 'foryou'
-          ? await feedApi.getForYou(pageParam as number)
-          : await feedApi.getFollowing(pageParam as number);
+          ? await feedApi.getForYou(page, undefined, asOf)
+          : await feedApi.getFollowing(page);
       return res.data;
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.meta.page < lastPage.meta.totalPages) {
-        return lastPage.meta.page + 1;
+        // Echo the ranking snapshot back (DATA-003) so the "for you" feed's
+        // time-decay stays frozen across pages of one scroll session
+        // instead of recomputing against a moving NOW(). No-op for the
+        // "following" tab, which doesn't return asOf.
+        return { page: lastPage.meta.page + 1, asOf: lastPage.asOf };
       }
       return undefined;
     },
-    initialPageParam: 1,
+    initialPageParam: { page: 1, asOf: undefined },
     enabled: activeTab === 'foryou' || isAuthenticated,
   });
 

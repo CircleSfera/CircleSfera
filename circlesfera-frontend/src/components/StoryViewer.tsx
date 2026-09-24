@@ -190,7 +190,7 @@ export default function StoryViewer({
         .getReactions(currentStory.id)
         .then((res) =>
           setReactions(
-            res.data.map(
+            res.data.data.map(
               (r: {
                 reaction: string;
                 profileId: string;
@@ -229,7 +229,7 @@ export default function StoryViewer({
       await storiesApi.addReaction(currentStory.id, '❤️');
       const res = await storiesApi.getReactions(currentStory.id);
       setReactions(
-        res.data.map(
+        res.data.data.map(
           (r: {
             reaction: string;
             profileId: string;
@@ -301,7 +301,7 @@ export default function StoryViewer({
         : null;
 
       const [viewsRes, qnaRes] = await Promise.all([viewsPromise, qnaPromise]);
-      setViewers(viewsRes.data);
+      setViewers(viewsRes.data.data);
       if (qnaRes?.data) {
         setQnaAnswers(qnaRes.data.answers || []);
         setQnaPrompt(qnaRes.data.prompt || null);

@@ -1,7 +1,9 @@
+import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Profile } from '../types';
 import { EmptyState } from './ErrorEmptyStates';
+import { LoadingSpinner } from './LoadingStates';
 import UserAvatar from './UserAvatar';
 import { Dialog } from './ui/Dialog';
 
@@ -9,12 +11,16 @@ interface FollowersModalProps {
   title: string;
   users: Profile[];
   onClose: () => void;
+  loadMoreRef?: RefObject<HTMLDivElement | null>;
+  isFetchingNextPage?: boolean;
 }
 
 export default function FollowersModal({
   title,
   users,
   onClose,
+  loadMoreRef,
+  isFetchingNextPage,
 }: FollowersModalProps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -61,6 +67,14 @@ export default function FollowersModal({
               </div>
             </button>
           ))}
+          {loadMoreRef && (
+            <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+          )}
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-3">
+              <LoadingSpinner size="sm" />
+            </div>
+          )}
         </div>
       )}
     </Dialog>
