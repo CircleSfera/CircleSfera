@@ -27,8 +27,7 @@ Verified current state (this ADR's originating audit, `circlesfera-backend/src/`
 - `CommentsService.findByPost` used classic offset pagination (`skip`/`take`) on `Comment`, a table a
   single post's thread can grow arbitrarily large and unpredictably fast on (a viral post).
 - `FeedService.getHybridFeed`'s ranked "for you" feed used raw SQL ending in `ORDER BY final_score DESC
-  LIMIT $limit OFFSET $skip` — offset pagination over a live, constantly-growing table, the shape
-  `LiveService.getActiveStreams` also read (see below).
+  LIMIT $limit OFFSET $skip` — offset pagination over a live, constantly-growing table.
 - `LiveService.getActiveStreams` had no cap at all, but is bounded in practice by concurrent live
   streams platform-wide, not by a growing history — a materially smaller risk than the other findings.
 

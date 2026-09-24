@@ -261,7 +261,8 @@ export class FeedService {
                 AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
             )
             AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
-            
+            AND p."createdAt" <= ${asOf}::timestamptz
+
           ORDER BY final_score DESC
           LIMIT ${limit}
           OFFSET ${skip}
@@ -313,7 +314,8 @@ export class FeedService {
                 AND POSITION(fmk.keyword IN LOWER(p.caption)) > 0
             )
             AND (${viewerSettings.allowMature} OR p."contentRating" = 'GENERAL')
-            
+            AND p."createdAt" <= ${asOf}::timestamptz
+
           ORDER BY final_score DESC
           LIMIT ${limit}
           OFFSET ${skip}
@@ -321,7 +323,13 @@ export class FeedService {
       }
 
       if (postsRaw.length === 0) {
-        return this.getTrendingFeed(page, limit, skip, profileId);
+        const fallback = await this.getTrendingFeed(
+          page,
+          limit,
+          skip,
+          profileId,
+        );
+        return { ...fallback, asOf: asOf.toISOString() };
       }
 
       // Step C: Hydrate Post objects with full relations
@@ -417,7 +425,8 @@ export class FeedService {
       return result;
     } catch (error) {
       console.error('Error generating Hybrid Feed:', error);
-      return this.getTrendingFeed(page, limit, skip, profileId);
+      const fallback = await this.getTrendingFeed(page, limit, skip, profileId);
+      return { ...fallback, asOf: asOf.toISOString() };
     }
   }
 

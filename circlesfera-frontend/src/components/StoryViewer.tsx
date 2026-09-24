@@ -595,7 +595,8 @@ export default function StoryViewer({
                     >
                       <Eye size={20} />
                       <span className="font-bold text-sm">
-                        {viewers.length} {t('story.views')}
+                        {currentStory._count?.views ?? viewers.length}{' '}
+                        {t('story.views')}
                       </span>
                       {currentStory.qnaBox?.id ? (
                         <span className="text-xs font-semibold text-purple-200/90 border-l border-white/20 pl-2">

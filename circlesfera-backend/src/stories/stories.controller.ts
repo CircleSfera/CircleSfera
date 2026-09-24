@@ -80,9 +80,13 @@ export class StoriesController {
     return this.storiesService.view(id, user.profileId);
   }
 
-  // Get viewers of a story. Cursor pagination (DATA-003): pass `cursor`
-  // (the last item's id from the previous page) to fetch the next page.
+  // Get viewers of a story. Owner-only — view lists can reveal who watched,
+  // which is sensitive the same way message read-receipts are. Cursor
+  // pagination (DATA-003): pass `cursor` (opaque, from the previous page's
+  // nextCursor) to fetch the next page.
   @Get(':id/views')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Story' })
   async getViews(@Param('id') id: string, @Query() query: PaginationDto) {
     return this.storiesService.getViews(id, query.cursor, query.limit);
   }

@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -252,26 +253,25 @@ describe('FollowsService', () => {
 
       const result = await service.getFollowers('user2');
       expect(result.data).toHaveLength(20);
-      expect(result.nextCursor).toBe('f19');
+      expect(result.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 2), id: 'f19' }),
+      );
       expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ take: 21 }),
       );
     });
 
-    it('should resolve a cursor to a keyset WHERE clause via the cursor row', async () => {
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
-      mockPrismaService.follow.findUnique.mockResolvedValue({
-        id: 'f5',
-        createdAt: new Date('2026-01-05'),
-      });
       mockPrismaService.follow.findMany.mockResolvedValue([]);
-
-      await service.getFollowers('user2', 'f5');
-
-      expect(mockPrismaService.follow.findUnique).toHaveBeenCalledWith({
-        where: { id: 'f5' },
-        select: { createdAt: true, id: true },
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'f5',
       });
+
+      await service.getFollowers('user2', cursor);
+
+      expect(mockPrismaService.follow.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -284,13 +284,13 @@ describe('FollowsService', () => {
       );
     });
 
-    it('should degrade to the first page when the cursor row no longer exists', async () => {
+    it('should degrade to the first page for a malformed or stale cursor', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
-      mockPrismaService.follow.findUnique.mockResolvedValue(null);
       mockPrismaService.follow.findMany.mockResolvedValue([]);
 
-      await service.getFollowers('user2', 'stale-cursor');
+      await service.getFollowers('user2', 'not-a-valid-cursor');
 
+      expect(mockPrismaService.follow.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: {

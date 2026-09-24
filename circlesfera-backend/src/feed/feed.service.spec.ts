@@ -102,6 +102,9 @@ describe('FeedService', () => {
       })) as any;
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('1');
+      // Anonymous browsing was never part of the asOf-session semantics
+      // (DATA-003) — no scroll session to freeze.
+      expect(result.asOf).toBeUndefined();
     });
 
     it('uses following feed when feed_home_following_first is on', async () => {
@@ -150,25 +153,69 @@ describe('FeedService', () => {
     });
 
     it('generates and returns an asOf snapshot when the client sends none (DATA-003)', async () => {
-      mockPrismaService.like.findMany.mockResolvedValue([]);
+      vi.useFakeTimers();
+      const fixedNow = new Date('2026-03-01T12:00:00.000Z');
+      vi.setSystemTime(fixedNow);
+      try {
+        mockPrismaService.like.findMany.mockResolvedValue([]);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([
+          { id: '3', final_score: 1 },
+        ]);
+        mockPrismaService.post.findMany.mockResolvedValueOnce([
+          { id: '3', likes: [] },
+        ]);
+
+        const result = (await service.getHybridFeed('user-1', {
+          page: 1,
+          limit: 10,
+        })) as any;
+
+        expect(result.asOf).toBe(fixedNow.toISOString());
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('filters out posts created after asOf in both the vector and non-vector SQL branches (DATA-003)', async () => {
+      const fixedAsOf = '2026-01-01T00:00:00.000Z';
+
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([
-        { id: '3', final_score: 1 },
+        { id: 'non-vector', final_score: 1 },
       ]);
       mockPrismaService.post.findMany.mockResolvedValueOnce([
-        { id: '3', likes: [] },
+        { id: 'non-vector', likes: [] },
       ]);
 
-      const before = Date.now();
-      const result = (await service.getHybridFeed('user-1', {
+      await service.getHybridFeed('user-1', {
         page: 1,
         limit: 10,
-      })) as any;
-      const after = Date.now();
+        asOf: fixedAsOf,
+      });
 
-      expect(result.asOf).toBeDefined();
-      const asOfMs = new Date(result.asOf).getTime();
-      expect(asOfMs).toBeGreaterThanOrEqual(before);
-      expect(asOfMs).toBeLessThanOrEqual(after);
+      const nonVectorStrings: TemplateStringsArray =
+        mockPrismaService.$queryRaw.mock.calls[0][0];
+      expect(nonVectorStrings.join('')).toContain('AND p."createdAt" <= ');
+
+      mockPrismaService.like.findMany.mockResolvedValueOnce([
+        { postId: 'liked-1' },
+      ]);
+      mockPrismaService.$queryRaw
+        .mockResolvedValueOnce([{ vector: '[0.1, 0.2]' }])
+        .mockResolvedValueOnce([{ id: 'vector', final_score: 1 }]);
+      mockPrismaService.post.findMany.mockResolvedValueOnce([
+        { id: 'vector', likes: [] },
+      ]);
+
+      await service.getHybridFeed('user-1', {
+        page: 1,
+        limit: 10,
+        asOf: fixedAsOf,
+      });
+
+      const vectorStrings: TemplateStringsArray =
+        mockPrismaService.$queryRaw.mock.calls[2][0];
+      expect(vectorStrings.join('')).toContain('AND p."createdAt" <= ');
     });
 
     it('freezes the ranking snapshot to the client-supplied asOf instead of NOW() (DATA-003)', async () => {
@@ -478,7 +525,7 @@ describe('FeedService', () => {
       expect(res.data[0].recommendationSignals).toContain('high_engagement');
     });
 
-    it('falls back to trending when hybrid query returns 0 posts', async () => {
+    it('falls back to trending when hybrid query returns 0 posts, carrying asOf forward (DATA-003)', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]); // 0 posts
@@ -487,14 +534,17 @@ describe('FeedService', () => {
       ]);
       mockPrismaService.post.count.mockResolvedValueOnce(1);
 
+      const fixedAsOf = '2026-01-01T00:00:00.000Z';
       const res = (await service.getHybridFeed('user-1', {
         page: 1,
         limit: 10,
+        asOf: fixedAsOf,
       })) as any;
       expect(res.data[0].id).toBe('trending-fallback');
+      expect(res.asOf).toBe(fixedAsOf);
     });
 
-    it('catches hybrid query errors and falls back to trending', async () => {
+    it('catches hybrid query errors and falls back to trending, carrying asOf forward (DATA-003)', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockRejectedValueOnce(
         new Error('SQL crash'),
@@ -504,11 +554,14 @@ describe('FeedService', () => {
       ]);
       mockPrismaService.post.count.mockResolvedValueOnce(1);
 
+      const fixedAsOf = '2026-01-01T00:00:00.000Z';
       const res = (await service.getHybridFeed('user-1', {
         page: 1,
         limit: 10,
+        asOf: fixedAsOf,
       })) as any;
       expect(res.data[0].id).toBe('trending-after-error');
+      expect(res.asOf).toBe(fixedAsOf);
     });
 
     it('locks premium posts in hybrid feed and handles recommendation signals', async () => {

@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommentsService } from './comments.service.js';
 
@@ -225,23 +226,20 @@ describe('CommentsService', () => {
       );
     });
 
-    it('should use keyset pagination when a cursor is provided', async () => {
-      mockPrismaService.comment.findUnique.mockResolvedValue({
-        id: 'c5',
-        createdAt: new Date('2026-01-05'),
-      });
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([{ id: 'c4' }]);
       mockPrismaService.comment.count.mockResolvedValue(50);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'c5',
+      });
 
       const result = await service.findByPost('post-1', {
         limit: 10,
-        cursor: 'c5',
+        cursor,
       } as any);
 
-      expect(mockPrismaService.comment.findUnique).toHaveBeenCalledWith({
-        where: { id: 'c5' },
-        select: { createdAt: true, id: true },
-      });
+      expect(mockPrismaService.comment.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.comment.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 11,
@@ -259,23 +257,31 @@ describe('CommentsService', () => {
       expect(result.meta.nextCursor).toBeUndefined();
     });
 
-    it('should compute nextCursor on the cursor path when a full extra row is fetched', async () => {
-      mockPrismaService.comment.findUnique.mockResolvedValue(null);
-      const rows = Array.from({ length: 11 }, (_, i) => ({ id: `c${i}` }));
+    it('should degrade to the first page for a malformed cursor and compute nextCursor when a full extra row is fetched', async () => {
+      const rows = Array.from({ length: 11 }, (_, i) => ({
+        id: `c${i}`,
+        createdAt: new Date(2026, 0, 11 - i),
+      }));
       mockPrismaService.comment.findMany.mockResolvedValue(rows);
       mockPrismaService.comment.count.mockResolvedValue(100);
 
       const result = await service.findByPost('post-1', {
         limit: 10,
-        cursor: 'stale',
+        cursor: 'not-a-valid-cursor',
       } as any);
 
+      expect(mockPrismaService.comment.findUnique).not.toHaveBeenCalled();
       expect(result.data).toHaveLength(10);
-      expect(result.meta.nextCursor).toBe('c9');
+      expect(result.meta.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 2), id: 'c9' }),
+      );
     });
 
     it('should compute nextCursor on the page path when the page is full', async () => {
-      const rows = Array.from({ length: 10 }, (_, i) => ({ id: `c${i}` }));
+      const rows = Array.from({ length: 10 }, (_, i) => ({
+        id: `c${i}`,
+        createdAt: new Date(2026, 0, 10 - i),
+      }));
       mockPrismaService.comment.findMany.mockResolvedValue(rows);
       mockPrismaService.comment.count.mockResolvedValue(30);
 
@@ -284,7 +290,9 @@ describe('CommentsService', () => {
         limit: 10,
       });
 
-      expect(result.meta.nextCursor).toBe('c9');
+      expect(result.meta.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 1), id: 'c9' }),
+      );
     });
   });
 

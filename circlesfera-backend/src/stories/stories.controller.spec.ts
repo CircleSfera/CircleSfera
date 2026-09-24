@@ -172,12 +172,21 @@ describe('StoriesController', () => {
     );
   });
 
-  it('gets views and reactions for a story', async () => {
+  it('rejects reading story views without a session', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/story-1/views')
+      .expect(401);
+
+    expect(mockService.getViews).not.toHaveBeenCalled();
+  });
+
+  it('gets views (as the session profile) and reactions for a story', async () => {
     mockService.getViews.mockResolvedValue({ data: [{ id: 'v-1' }] });
     mockService.getReactions.mockResolvedValue({ data: [{ id: 'r-1' }] });
 
     const viewsRes = await request(app.getHttpServer())
       .get('/api/v1/stories/story-1/views')
+      .set(BEARER)
       .expect(200);
     expect(viewsRes.body).toEqual({ data: [{ id: 'v-1' }] });
     expect(mockService.getViews).toHaveBeenCalledWith('story-1', undefined, 10);
@@ -198,6 +207,7 @@ describe('StoriesController', () => {
 
     await request(app.getHttpServer())
       .get('/api/v1/stories/story-1/views?cursor=v-9&limit=25')
+      .set(BEARER)
       .expect(200);
 
     expect(mockService.getViews).toHaveBeenCalledWith('story-1', 'v-9', 25);

@@ -11,7 +11,11 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
-import { keysetBeforeDesc } from '../common/pagination/keyset.util.js';
+import {
+  decodeKeysetCursor,
+  encodeKeysetCursor,
+  keysetBeforeDesc,
+} from '../common/pagination/keyset.util.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
 // Service for creating, listing, and deleting comments on posts.
@@ -206,11 +210,8 @@ export class CommentsService {
     };
 
     if (cursor) {
-      const cursorRow = await this.prisma.comment.findUnique({
-        where: { id: cursor },
-        select: { createdAt: true, id: true },
-      });
-      const cursorWhere = cursorRow ? keysetBeforeDesc(cursorRow) : {};
+      const decoded = decodeKeysetCursor(cursor);
+      const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
       const [comments, total] = await Promise.all([
         this.prisma.comment.findMany({
@@ -224,9 +225,8 @@ export class CommentsService {
 
       const hasMore = comments.length > limit;
       const pageRows = hasMore ? comments.slice(0, limit) : comments;
-      const nextCursor = hasMore
-        ? pageRows[pageRows.length - 1]?.id
-        : undefined;
+      const last = pageRows[pageRows.length - 1];
+      const nextCursor = hasMore && last ? encodeKeysetCursor(last) : undefined;
 
       return createPaginatedResult(pageRows, total, 0, limit, nextCursor);
     }
@@ -237,7 +237,7 @@ export class CommentsService {
         where: baseWhere,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
         include,
       }),
       this.prisma.comment.count({
@@ -247,8 +247,9 @@ export class CommentsService {
       }),
     ]);
 
+    const last = comments[comments.length - 1];
     const nextCursor =
-      comments.length === limit ? comments[comments.length - 1]?.id : undefined;
+      comments.length === limit && last ? encodeKeysetCursor(last) : undefined;
 
     return createPaginatedResult(comments, total, page, limit, nextCursor);
   }

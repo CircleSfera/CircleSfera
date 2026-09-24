@@ -11,6 +11,7 @@ import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verifi
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
+  decodeKeysetCursor,
   type KeysetPage,
   keysetBeforeDesc,
   toKeysetPage,
@@ -195,7 +196,7 @@ export class FollowsService {
   // skip/take: a new follower inserted ahead of the cursor never shifts an
   // already-fetched page.
   // Param username: The profile username
-  // Param cursor: Follow.id of the last row from the previous page
+  // Param cursor: opaque cursor from the previous page's nextCursor
   // Param limit: page size, default 20, capped at 100
   async getFollowers(
     username: string,
@@ -210,7 +211,8 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const cursorWhere = await this.resolveFollowCursorWhere(cursor);
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
     const followers = await this.prisma.follow.findMany({
       where: {
@@ -234,7 +236,7 @@ export class FollowsService {
   // Get users that a user is following, newest first. Same cursor/keyset
   // pagination as getFollowers.
   // Param username: The profile username
-  // Param cursor: Follow.id of the last row from the previous page
+  // Param cursor: opaque cursor from the previous page's nextCursor
   // Param limit: page size, default 20, capped at 100
   async getFollowing(
     username: string,
@@ -249,7 +251,8 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    const cursorWhere = await this.resolveFollowCursorWhere(cursor);
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
     const following = await this.prisma.follow.findMany({
       where: {
@@ -268,20 +271,6 @@ export class FollowsService {
 
     const page = toKeysetPage(following, cappedLimit);
     return { ...page, data: page.data.map((f) => f.following) };
-  }
-
-  // Resolves a Follow.id cursor to a keyset WHERE fragment. Returns {} for
-  // an absent, invalid, or already-consumed cursor (first page / not found)
-  // rather than throwing — a stale cursor should degrade to "start over",
-  // not error the request.
-  private async resolveFollowCursorWhere(cursor?: string) {
-    if (!cursor) return {};
-    const cursorRow = await this.prisma.follow.findUnique({
-      where: { id: cursor },
-      select: { createdAt: true, id: true },
-    });
-    if (!cursorRow) return {};
-    return keysetBeforeDesc(cursorRow);
   }
 
   // Block a user. Also removes any existing follow relationships.

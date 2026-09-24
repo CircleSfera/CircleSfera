@@ -1,4 +1,4 @@
-import type { RefObject } from 'react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Profile } from '../types';
@@ -11,7 +11,7 @@ interface FollowersModalProps {
   title: string;
   users: Profile[];
   onClose: () => void;
-  loadMoreRef?: RefObject<HTMLDivElement | null>;
+  loadMoreRef?: Ref<HTMLDivElement>;
   isFetchingNextPage?: boolean;
 }
 

@@ -3,6 +3,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Story } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
@@ -440,29 +441,57 @@ describe('StoriesService', () => {
   });
 
   describe('getViews', () => {
-    it('should return users who viewed the story', async () => {
+    it('should return public-safe viewer profiles, never the raw User record', async () => {
       mockPrismaService.storyView.findMany.mockResolvedValue([
         {
           id: 'sv1',
           createdAt: new Date('2026-01-01'),
-          viewer: { id: 'profile-1', user: { id: 'u1' } },
+          viewer: {
+            id: 'profile-1',
+            username: 'alice',
+            fullName: 'Alice A',
+            avatar: 'a.jpg',
+            standardUrl: null,
+            thumbnailUrl: null,
+            verificationLevel: 'BASIC',
+            accountType: 'PERSONAL',
+          },
         },
       ]);
       const result = await service.getViews('s1');
       expect(result.data).toHaveLength(1);
-      expect(result.data[0].id).toBe('u1');
+      expect(result.data[0].id).toBe('profile-1');
+      expect(result.data[0].profile.username).toBe('alice');
+      expect(result.data[0].verificationLevel).toBe('BASIC');
+      expect(result.data[0]).not.toHaveProperty('password');
+      expect(result.data[0].profile).not.toHaveProperty('user');
       expect(result.nextCursor).toBeUndefined();
+      expect(mockPrismaService.storyView.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: {
+            viewer: {
+              select: expect.objectContaining({
+                id: true,
+                username: true,
+                verificationLevel: true,
+                accountType: true,
+              }),
+            },
+          },
+        }),
+      );
     });
 
-    it('should page views with a cursor and cap the limit at 100', async () => {
-      mockPrismaService.storyView.findUnique.mockResolvedValue({
-        id: 'sv5',
-        createdAt: new Date('2026-01-05'),
-      });
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup, and cap the limit at 100', async () => {
       mockPrismaService.storyView.findMany.mockResolvedValue([]);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'sv5',
+      });
 
-      await service.getViews('s1', 'sv5', 500);
+      await service.getViews('s1', cursor, 500);
 
+      expect(mockPrismaService.storyView.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyView.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           take: 101,
@@ -477,12 +506,12 @@ describe('StoriesService', () => {
       );
     });
 
-    it('should degrade to the first page when the view cursor no longer exists', async () => {
-      mockPrismaService.storyView.findUnique.mockResolvedValue(null);
+    it('should degrade to the first page for a malformed or stale cursor', async () => {
       mockPrismaService.storyView.findMany.mockResolvedValue([]);
 
       await service.getViews('s1', 'stale-cursor');
 
+      expect(mockPrismaService.storyView.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyView.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { storyId: 's1' } }),
       );
@@ -520,15 +549,16 @@ describe('StoriesService', () => {
       expect(result.nextCursor).toBeUndefined();
     });
 
-    it('should resolve a cursor to a keyset WHERE clause via the cursor row', async () => {
-      mockPrismaService.storyReaction.findUnique.mockResolvedValue({
-        id: 'r5',
-        createdAt: new Date('2026-01-05'),
-      });
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'r5',
+      });
 
-      await service.getReactions('s1', 'r5');
+      await service.getReactions('s1', cursor);
 
+      expect(mockPrismaService.storyReaction.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
@@ -542,12 +572,12 @@ describe('StoriesService', () => {
       );
     });
 
-    it('should degrade to the first page when the reaction cursor no longer exists', async () => {
-      mockPrismaService.storyReaction.findUnique.mockResolvedValue(null);
+    it('should degrade to the first page for a malformed or stale cursor', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
 
       await service.getReactions('s1', 'stale-cursor');
 
+      expect(mockPrismaService.storyReaction.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { storyId: 's1' } }),
       );

@@ -23,6 +23,7 @@ import {
   MIN_PPV_PRICE_CENTS,
 } from '../common/constants/monetization.constants.js';
 import {
+  decodeKeysetCursor,
   type KeysetPage,
   keysetBeforeDesc,
   toKeysetPage,
@@ -41,6 +42,49 @@ export type StoryReactionWithUser = StoryReaction & {
     profile: Profile | null;
   };
 };
+
+// Public-safe fields for a story viewer/reactor. Deliberately excludes the
+// rest of the User record (password hash, tokens, email, IP hashes, ...) —
+// these lists are shown to other users (the story owner), not the viewer
+// themselves.
+const storyViewerSelect = {
+  id: true,
+  username: true,
+  fullName: true,
+  avatar: true,
+  standardUrl: true,
+  thumbnailUrl: true,
+  verificationLevel: true,
+  accountType: true,
+} satisfies Prisma.ProfileSelect;
+
+type StoryViewerRow = Prisma.ProfileGetPayload<{
+  select: typeof storyViewerSelect;
+}>;
+
+export interface SafeStoryViewer {
+  id: string;
+  verificationLevel: StoryViewerRow['verificationLevel'];
+  accountType: StoryViewerRow['accountType'];
+  profile: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    avatar: string | null;
+    standardUrl: string | null;
+    thumbnailUrl: string | null;
+  };
+}
+
+function toSafeStoryViewer(row: StoryViewerRow): SafeStoryViewer {
+  const { verificationLevel, accountType, ...profile } = row;
+  return {
+    id: row.id,
+    verificationLevel,
+    accountType,
+    profile,
+  };
+}
 
 // Service for ephemeral stories (24h expiry), story views, and reactions.
 // Supports close-friends-only visibility and tracks unique view counts.
@@ -456,24 +500,30 @@ export class StoriesService {
     return newView;
   }
 
-  // Get viewers of a story with their profiles, newest first. Cursor/keyset
-  // pagination (DATA-003) — was fully unbounded, stable under concurrent
-  // views unlike skip/take.
+  // Get viewers of a story with their profiles, newest first. Owner-only
+  // (enforced by OwnershipGuard at the controller level) — a view list
+  // reveals who watched, which is sensitive the same way read receipts are.
+  // Cursor/keyset pagination (DATA-003) — was fully unbounded, stable under
+  // concurrent views unlike skip/take.
+  // Only public-safe profile fields are selected here, never the raw User
+  // record — that would leak auth secrets (password hash, tokens) to the
+  // story owner.
   // Param id: The story ID
-  // Param cursor: StoryView.id of the last row from the previous page
+  // Param cursor: opaque cursor from the previous page's nextCursor
   // Param limit: page size, default 50, capped at 100
   async getViews(
     id: string,
     cursor?: string,
     limit = 50,
-  ): Promise<KeysetPage<User & { profile: Profile | null }>> {
+  ): Promise<KeysetPage<SafeStoryViewer>> {
     const cappedLimit = Math.min(limit, 100);
-    const cursorWhere = await this.resolveStoryViewCursorWhere(cursor);
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
     const views = await this.prisma.storyView.findMany({
       where: { storyId: id, ...cursorWhere },
       include: {
-        viewer: { include: { user: true } },
+        viewer: { select: storyViewerSelect },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: cappedLimit + 1,
@@ -482,7 +532,7 @@ export class StoriesService {
     const page = toKeysetPage(views, cappedLimit);
     return {
       ...page,
-      data: page.data.map((v) => ({ ...v.viewer.user, profile: v.viewer })),
+      data: page.data.map((v) => toSafeStoryViewer(v.viewer)),
     };
   }
 
@@ -524,7 +574,7 @@ export class StoriesService {
   // Cursor/keyset pagination (DATA-003) — was fully unbounded, stable under
   // concurrent reactions unlike skip/take.
   // Param storyId: The story ID
-  // Param cursor: StoryReaction.id of the last row from the previous page
+  // Param cursor: opaque cursor from the previous page's nextCursor
   // Param limit: page size, default 50, capped at 100
   async getReactions(
     storyId: string,
@@ -532,7 +582,8 @@ export class StoriesService {
     limit = 50,
   ): Promise<KeysetPage<StoryReactionWithUser>> {
     const cappedLimit = Math.min(limit, 100);
-    const cursorWhere = await this.resolveStoryReactionCursorWhere(cursor);
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
     const reactions = await this.prisma.storyReaction.findMany({
       where: { storyId, ...cursorWhere },
@@ -547,26 +598,6 @@ export class StoriesService {
       reactions as unknown as StoryReactionWithUser[],
       cappedLimit,
     );
-  }
-
-  private async resolveStoryViewCursorWhere(cursor?: string) {
-    if (!cursor) return {};
-    const cursorRow = await this.prisma.storyView.findUnique({
-      where: { id: cursor },
-      select: { createdAt: true, id: true },
-    });
-    if (!cursorRow) return {};
-    return keysetBeforeDesc(cursorRow);
-  }
-
-  private async resolveStoryReactionCursorWhere(cursor?: string) {
-    if (!cursor) return {};
-    const cursorRow = await this.prisma.storyReaction.findUnique({
-      where: { id: cursor },
-      select: { createdAt: true, id: true },
-    });
-    if (!cursorRow) return {};
-    return keysetBeforeDesc(cursorRow);
   }
 
   // Job to physically delete expired stories every hour to free up database space.
