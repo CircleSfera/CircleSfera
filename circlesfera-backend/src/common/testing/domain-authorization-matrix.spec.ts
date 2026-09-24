@@ -256,15 +256,15 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
 
     beforeEach(() => {
       mockPrisma = {
-        postMedia: { findFirst: vi.fn().mockResolvedValue(null) },
+        postMedia: { findMany: vi.fn().mockResolvedValue([]) },
         postUnlock: { findUnique: vi.fn() },
-        story: { findFirst: vi.fn().mockResolvedValue(null) },
+        story: { findMany: vi.fn().mockResolvedValue([]) },
         storyUnlock: { findUnique: vi.fn() },
-        message: { findFirst: vi.fn().mockResolvedValue(null) },
+        message: { findMany: vi.fn().mockResolvedValue([]) },
         messageUnlock: { findUnique: vi.fn() },
         participant: { findFirst: vi.fn() },
-        comment: { findFirst: vi.fn().mockResolvedValue(null) },
-        collection: { findFirst: vi.fn().mockResolvedValue(null) },
+        comment: { findMany: vi.fn().mockResolvedValue([]) },
+        collection: { findMany: vi.fn().mockResolvedValue([]) },
         follow: { findUnique: vi.fn(), findFirst: vi.fn() },
         closeFriend: { findUnique: vi.fn(), findFirst: vi.fn() },
       };
@@ -274,14 +274,16 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
     });
 
     it('allows public access to public un-gated media', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-public',
-        post: {
-          profileId: 'creator-1',
-          visibility: Visibility.PUBLIC,
-          isPremium: false,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-public',
+          post: {
+            profileId: 'creator-1',
+            visibility: Visibility.PUBLIC,
+            isPremium: false,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/posts/public-image.jpg',
@@ -292,14 +294,16 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
     });
 
     it('denies anonymous access to premium PPV media', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv',
-        post: {
-          profileId: 'creator-1',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv',
+          post: {
+            profileId: 'creator-1',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/posts/ppv-image.jpg',
@@ -310,14 +314,16 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
     });
 
     it('allows author access to their own premium media without unlock', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv',
-        post: {
-          profileId: 'creator-1',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv',
+          post: {
+            profileId: 'creator-1',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/posts/ppv-image.jpg',
@@ -328,14 +334,16 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
     });
 
     it('allows viewer access to premium media if unlocked, denies if not unlocked', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv',
-        post: {
-          profileId: 'creator-1',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv',
+          post: {
+            profileId: 'creator-1',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       // Not unlocked
       mockPrisma.postUnlock.findUnique.mockResolvedValue(null);

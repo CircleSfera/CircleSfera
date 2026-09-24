@@ -77,11 +77,33 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
   ): Promise<boolean> {
+    // Nginx passes the raw, undecoded $request_uri (including any query
+    // string/fragment) via X-Original-URI, but its own `location /uploads/`
+    // alias resolves the actual file from the decoded, query-stripped path.
+    // Matching DB rows against the raw string would let a crafted suffix
+    // (`?x=1`, stray percent-encoding, ...) miss every ownership lookup and
+    // fall through to the public-asset default while Nginx still serves the
+    // real (protected) file underneath. Normalise the same way Nginx's own
+    // path resolution would before ever touching the database.
+    let pathOnly = uploadPath.split(/[?#]/, 1)[0] ?? '';
+    try {
+      pathOnly = decodeURIComponent(pathOnly);
+    } catch {
+      this.logger.warn(
+        `Malformed percent-encoding in upload path: ${uploadPath}`,
+      );
+      return false;
+    }
+
     // Normalise to handle both "/uploads/foo/bar.jpg" and "foo/bar.jpg".
-    const normalised = uploadPath.replace(/^\/uploads\//, '');
+    const normalised = pathOnly.replace(/^\/uploads\//, '');
+    if (!normalised || normalised.includes('..')) {
+      this.logger.warn(`Rejected traversal/empty upload path: ${uploadPath}`);
+      return false;
+    }
 
     // Direct access to GDPR export artifacts or private archives via static media path is forbidden
-    if (normalised.startsWith('exports/') || uploadPath.includes('exports')) {
+    if (normalised.startsWith('exports/')) {
       this.logger.warn(
         `Direct static access to export artifact denied: ${uploadPath}`,
       );
@@ -97,7 +119,7 @@ export class MediaAuthService {
     };
 
     const [postMedia, story, message, comment, collection] = await Promise.all([
-      this.prisma.postMedia.findFirst({
+      this.prisma.postMedia.findMany({
         where: urlMatch,
         select: {
           postId: true,
@@ -106,7 +128,7 @@ export class MediaAuthService {
           },
         },
       }),
-      this.prisma.story.findFirst({
+      this.prisma.story.findMany({
         where: urlMatch,
         select: {
           id: true,
@@ -122,7 +144,7 @@ export class MediaAuthService {
           },
         },
       }),
-      this.prisma.message.findFirst({
+      this.prisma.message.findMany({
         where: urlMatch,
         select: {
           id: true,
@@ -131,7 +153,7 @@ export class MediaAuthService {
           isLocked: true,
         },
       }),
-      this.prisma.comment.findFirst({
+      this.prisma.comment.findMany({
         where: urlMatch,
         select: {
           postId: true,
@@ -140,7 +162,7 @@ export class MediaAuthService {
           },
         },
       }),
-      this.prisma.collection.findFirst({
+      this.prisma.collection.findMany({
         where: {
           OR: [
             { coverUrl: { contains: normalised } },
@@ -152,37 +174,49 @@ export class MediaAuthService {
       }),
     ]);
 
-    if (postMedia) {
-      return this.checkPostAccess(
-        postMedia.postId,
-        postMedia.post,
-        viewerUserId,
-        viewerProfileId,
-      );
-    }
+    // A file's own randomUUID()-based name should only ever genuinely match
+    // one row, one table. But a `contains` match is substring-based, not an
+    // exact key lookup — a malicious user could otherwise craft their own
+    // PUBLIC post's url field (client-controlled, see MediaItemDto) to
+    // literally embed a known/leaked protected filename, so a naive
+    // "first matching table wins" would let that public post authorize
+    // access to someone else's private/PPV file. Requiring every matched
+    // owner (across every table) to independently grant access closes that
+    // without costing anything in the normal, non-adversarial case.
+    const accessChecks: Promise<boolean>[] = [
+      ...postMedia.map((media) =>
+        this.checkPostAccess(
+          media.postId,
+          media.post,
+          viewerUserId,
+          viewerProfileId,
+        ),
+      ),
+      ...story.map((item) =>
+        this.checkStoryAccess(item, viewerUserId, viewerProfileId),
+      ),
+      ...message.map((item) =>
+        this.checkMessageAccess(item, viewerUserId, viewerProfileId),
+      ),
+      ...comment.map((item) =>
+        this.checkPostAccess(
+          item.postId,
+          item.post,
+          viewerUserId,
+          viewerProfileId,
+        ),
+      ),
+      ...collection.map((item) =>
+        Promise.resolve(item.profileId === viewerProfileId),
+      ),
+    ];
 
-    if (story) {
-      return this.checkStoryAccess(story, viewerUserId, viewerProfileId);
-    }
-
-    if (message) {
-      return this.checkMessageAccess(message, viewerUserId, viewerProfileId);
-    }
-
-    if (comment) {
-      return this.checkPostAccess(
-        comment.postId,
-        comment.post,
-        viewerUserId,
-        viewerProfileId,
-      );
-    }
-
-    if (collection) {
-      const allowed = collection.profileId === viewerProfileId;
+    if (accessChecks.length > 0) {
+      const results = await Promise.all(accessChecks);
+      const allowed = results.every(Boolean);
       if (!allowed) {
         this.logger.debug(
-          `Collection cover access denied for ${viewerProfileId ?? 'anonymous'}: ${uploadPath}`,
+          `Access denied — at least one matched owner rejected: ${uploadPath}`,
         );
       }
       return allowed;
