@@ -81,21 +81,19 @@ Agent Framework · Traceability · Other.
 
 ### GAP-004 — Specialist module-count inconsistency
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Category:** Freshness / Documentation Drift
-- **Evidence:** `.ai/agents/api.md:32` states "46 modules"; `.ai/agents/staff-architect.md:19` states
-  "~51 Nest feature modules." Two different counts for the same current-implementation fact, neither
-  carrying a freshness state or verification date.
+- **Evidence (original):** `.ai/agents/api.md:32` stated "46 modules"; `.ai/agents/staff-architect.md:19`
+  stated "~51 Nest feature modules" — neither carrying a freshness state or verification date. This gap
+  was already open at 2026-09-11 (per the originating spec, then citing "41 and 46") and had since
+  drifted further apart rather than closing.
 - **Expected State:** implementation-sensitive counts either come from a current verified source or
   are explicitly labeled SNAPSHOT with a date, per `context-loading.md`'s freshness rules.
-- **Observed State:** the two summaries disagree and neither declares freshness. This gap was already
-  open at 2026-09-11 (per the originating spec, then citing "41 and 46") and has since drifted
-  further apart rather than closing — the underlying process gap (no freshness discipline on
-  specialist-stated counts) was never fixed, only the specific numbers moved.
-- **Impact:** agents may load an incorrect module count into an architectural assessment.
-- **Authority / Resolution Path:** Batch 5 (Specialist Refactoring) — verify the current module
-  inventory from the repository and add freshness metadata to both files.
-- **Owner:** unassigned.
+- **Resolution:** re-counted directly (`find circlesfera-backend/src -name "*.module.ts" -not -name
+  "*.spec.ts"`, excluding `app.module.ts`) → **57** feature modules as of 2026-09-24. Both files now
+  state this count with an explicit SNAPSHOT declaration and the exact command used, so the next drift
+  is self-evident instead of silent.
+- **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 
 ## Backend
