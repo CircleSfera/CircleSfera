@@ -10,7 +10,7 @@ it deliberately with tests and remove the entry in the same PR. Do not batch unr
 
 | # | Finding | Evidence | Risk |
 | --- | --- | --- | --- |
-| B6 | No repository layer, no mappers, no domain event bus. | `rg Repository` in `src/` finds none | Accepted architecture. Listed so agents stop proposing layers. |
+| B6 | No repository layer, no mappers, no domain event bus. | `rg Repository` in `src/` finds none | Accepted architecture, formalized in [ADR-0021](../../circlesfera-documentation/adr/0021-global-prisma-access-transactional-discipline.md). Listed so agents stop proposing layers. |
 
 ## Frontend
 
