@@ -1,16 +1,127 @@
-# Known gaps and drift
+# Known gaps and drift register
 
-Contradictions and accepted debt recorded so agents do not mistake them for unintentional bugs,
-and do not "helpfully" change them without an owner. Re-verified **2026-09-05**.
+The live operational register for documentation, implementation, terminology, authority, freshness,
+and cross-tool conflicts — the runtime artifact for the Documentation Drift & Conflict Register
+described in [`authority.md`](./authority.md). Not a Deferred Decision registry (that's
+[`deferred-decisions.md`](./deferred-decisions.md) — use it when the *correct outcome itself* is
+intentionally unresolved, not when something is merely inconsistent or stale) and not a generic task
+tracker (ordinary bugs, feature tasks, and engineering tickets stay in their normal tracking systems).
+
+**Freshness:** SNAPSHOT, re-verified **2026-09-24** against the current repository state (previous
+verification: 2026-09-05). Entries below carry their own `Last Verified` date where it differs.
 
 **How to use this file:** if your task touches an entry, mention it. If your task *is* an entry, fix
-it deliberately with tests and remove the entry in the same PR. Do not batch unrelated fixes.
+it deliberately with tests/evidence, update its status, and remove it only once genuinely resolved —
+in the same PR that fixes it. Do not batch unrelated fixes into one entry's resolution.
+
+## Statuses
+
+**OPEN** (identified, needs attention) · **ACKNOWLEDGED** (known, intentionally retained) ·
+**IN PROGRESS** (remediation/investigation underway) · **DEFERRED** (intentionally postponed — not
+the same as a Deferred Decision unless the matter itself requires an unresolved decision) ·
+**RESOLVED** (corrected or formally accepted) · **WONT FIX** (reviewed, intentionally retained) ·
+**INVALID** (not substantiated).
+
+## Categories
+
+Documentation Drift · Implementation Drift · Terminology Drift · Freshness · Authority ·
+Agent Framework · Traceability · Other.
+
+## Agent Framework / Authority
+
+### GAP-001 — Global source-of-truth rule is overly broad
+
+- **Status:** OPEN
+- **Category:** Authority / Agent Framework
+- **Evidence:** `AGENTS.md:11-20` ("Fuente de verdad") states a single linear precedence — schema.prisma
+  → código implementado → contratos API vigentes → ADRs → circlesfera-documentation/ → suposiciones.
+  `AGENTS.md:88-89` and `:116` state "si el sistema contradice la documentación, corregir la
+  documentación, no el sistema" without domain qualification.
+- **Expected State:** authority determined by knowledge type and question, per `authority.md`'s
+  domain-scoped model — no universal "code wins" / "documentation wins" rule.
+- **Observed State:** `AGENTS.md` still expresses a single global precedence chain and an
+  unqualified "fix documentation" rule; this is the live, currently-governing document.
+- **Impact:** agents may rewrite normative documentation to match implementation drift, or modify
+  implementation to satisfy stale documentation, in cases where neither is actually the correct
+  resolution.
+- **Authority / Resolution Path:** Batch 4 of the Agent Framework migration (adapter refactoring) —
+  update `AGENTS.md` to consume `authority.md` instead of restating its own precedence rule. Requires
+  explicit human confirmation before executing per `agent-contract.md`'s MUST CONFIRM trigger for a
+  new architectural pattern.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-24.
+
+### GAP-002 — Blanket rule duplicated into an adapter
+
+- **Status:** OPEN
+- **Category:** Agent Framework
+- **Evidence:** `.agents/workflows/docs-sync.md:28` restates GAP-001's blanket rule verbatim in
+  English: "If the system contradicts the documentation, fix the documentation, not the system."
+- **Expected State:** adapters consume the Authority Registry rather than independently redefining
+  conflict-resolution policy.
+- **Observed State:** the rule is duplicated into a workflow file, confirming the propagation risk
+  `agent-contract.md` section 16 (Adapter Contract) exists to prevent.
+- **Impact:** same as GAP-001, with an additional entry point.
+- **Authority / Resolution Path:** Batch 4, alongside GAP-001 — remove the duplicated rule once
+  `docs-sync.md` can safely reference `authority.md` instead.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-24.
+
+### GAP-003 — Canonical product terminology drift
+
+- **Status:** OPEN
+- **Category:** Terminology Drift
+- **Evidence:** `.ai/core/identity.md:30` names the fourth product principle "Strict and explicit
+  moderation" — close to "Explicit Moderation," a variant [`terminology.md`](./terminology.md)
+  explicitly forbids as a replacement for the canonical **Explainable Moderation**. Minor case-only
+  drift also present at `identity.md:22,25,32-33` ("User control comes first" / "Algorithmic
+  transparency" / "Responsible data handling" vs. the canonical capitalized names) — not flagged as
+  forbidden variants, noted for completeness.
+- **Expected State:** the five canonical principle names, exactly as `terminology.md` states them.
+- **Observed State:** `identity.md` uses informal phrasing for all five, one of which collides with a
+  forbidden variant.
+- **Impact:** low on its own; compounds if copied into further derived documentation before
+  `terminology.md` existed as a correction source.
+- **Authority / Resolution Path:** Batch 3 (Normalize Existing Core Context) — correct `identity.md`
+  against `terminology.md` now that the registry exists.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-24.
+
+### GAP-004 — Specialist module-count inconsistency
+
+- **Status:** OPEN
+- **Category:** Freshness / Documentation Drift
+- **Evidence:** `.ai/agents/api.md:32` states "46 modules"; `.ai/agents/staff-architect.md:19` states
+  "~51 Nest feature modules." Two different counts for the same current-implementation fact, neither
+  carrying a freshness state or verification date.
+- **Expected State:** implementation-sensitive counts either come from a current verified source or
+  are explicitly labeled SNAPSHOT with a date, per `context-loading.md`'s freshness rules.
+- **Observed State:** the two summaries disagree and neither declares freshness. This gap was already
+  open at 2026-09-11 (per the originating spec, then citing "41 and 46") and has since drifted
+  further apart rather than closing — the underlying process gap (no freshness discipline on
+  specialist-stated counts) was never fixed, only the specific numbers moved.
+- **Impact:** agents may load an incorrect module count into an architectural assessment.
+- **Authority / Resolution Path:** Batch 5 (Specialist Refactoring) — verify the current module
+  inventory from the repository and add freshness metadata to both files.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-24.
 
 ## Backend
 
-| # | Finding | Evidence | Risk |
-| --- | --- | --- | --- |
-| B6 | No repository layer, no mappers, no domain event bus. | `rg Repository` in `src/` finds none | Accepted architecture, formalized in [ADR-0021](../../circlesfera-documentation/adr/0021-global-prisma-access-transactional-discipline.md). Listed so agents stop proposing layers. |
+### B6 — No repository layer, no mappers, no domain event bus
+
+- **Status:** RESOLVED (accepted architecture, not a defect)
+- **Category:** Implementation Drift (false positive — documented by design)
+- **Evidence:** `rg Repository` in `src/` finds none.
+- **Expected State:** N/A — this is the accepted architecture, not a deviation from one.
+- **Observed State:** Prisma is injected directly by domain services; no repository/DAO/mapper layer
+  exists anywhere in the backend.
+- **Impact:** none — listed so agents stop proposing a repository layer as a fix for something that
+  isn't broken.
+- **Authority / Resolution Path:** formalized in [ADR-0021](../../circlesfera-documentation/adr/0021-global-prisma-access-transactional-discipline.md)
+  (global Prisma access, transactional discipline).
+- **Owner:** n/a.
+- **Last Verified:** 2026-09-24.
 
 ## Frontend
 
@@ -28,12 +139,40 @@ platform fee lives in `src/common/constants/monetization.constants.ts`.)*
 
 ## Documentation
 
-| # | Finding | Evidence | Risk |
-| --- | --- | --- | --- |
-| D3 | Soft gaps remain after Sep 2026 bottom-nav sync: brand hexes absent from 09 section 5.2; surface levels 4–5 conceptual only; `UserAvatar` `xl` (80px) outside section 9.5. **Closed:** `--nav-bottom-height` 48px now matches 09 section 9.4 + agent/cursor citations + CSS fallbacks. | Token audit 2026-09-05; 09 section 9.4 patch | Prefer `index.css`. Do not rewrite 09/13 wholesale. |
-| D4 | Residual product-doc mentions of creator VIP may still lag; the Prisma table is gone. Prefer schema + `03` catalog. Partially corrected Sep 2026 (glossary, payments agent, 00-status, 10-roadmap, 03). | `rg CreatorSubscription schema.prisma` → none | Do not invent the model. |
+### D3 — Bottom-nav / design-token soft gaps
+
+- **Status:** RESOLVED
+- **Category:** Documentation Drift
+- **Evidence:** Token audit 2026-09-05; `09` section 9.4 patch.
+- **Expected State:** design tokens in product docs match `index.css`.
+- **Observed State (historical):** brand hexes absent from `09` section 5.2; surface levels 4–5
+  conceptual only; `UserAvatar` `xl` (80px) outside section 9.5. Closed: `--nav-bottom-height` 48px
+  now matches `09` section 9.4, with agent/cursor citations and CSS fallbacks.
+- **Impact:** none remaining.
+- **Authority / Resolution Path:** prefer `index.css` as the implementation source; do not rewrite
+  `09`/`13` wholesale for future drift of this kind.
+- **Owner:** n/a.
+- **Last Verified:** 2026-09-05.
+
+### D4 — Residual creator-VIP mentions
+
+- **Status:** IN PROGRESS
+- **Category:** Documentation Drift
+- **Evidence:** `rg CreatorSubscription schema.prisma` → none.
+- **Expected State:** no product-doc references to a `CreatorSubscription`-shaped model that doesn't
+  exist in the schema.
+- **Observed State:** partially corrected September 2026 (glossary, payments agent, `00-status`,
+  `10-roadmap`, `03`); residual mentions may still lag elsewhere.
+- **Impact:** low — could mislead an agent into inventing the model.
+- **Authority / Resolution Path:** prefer schema + `03` catalog; do not invent the model.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-05.
 
 ## Maintenance
 
-Add an entry when you find drift you are not fixing, with evidence and a risk note. Remove it in the
-PR that fixes it. An entry with no evidence path is not an entry.
+Add an entry when you find drift you are not fixing, with evidence and the full field set above —
+an entry with no evidence path is not an entry. Update status as remediation progresses; move to
+`RESOLVED` (with the fix's evidence) or `WONT FIX` (with the reviewed rationale) rather than deleting
+outright, unless the entry was `INVALID` from the start. Periodic re-verification should identify
+recurring categories of drift and address their systemic cause rather than repeatedly correcting the
+same symptom.
