@@ -338,11 +338,59 @@ export class VideoProcessor extends WorkerHost {
         },
       });
 
+      // Mirror success onto the matching Media row, if one exists (Media
+      // rows only exist for backfilled historical content until every
+      // upload/read site is migrated onto the relation). A no-op update
+      // when there's no match is expected and harmless.
+      await this.prisma.media
+        .updateMany({
+          where: { url },
+          data: {
+            status: 'READY',
+            standardUrl: m3u8Url,
+            thumbnailUrl: thumbUrl,
+            failedAt: null,
+            failureReason: null,
+          },
+        })
+        .catch((err) =>
+          this.logger.warn(
+            `Failed to sync Media status to READY for ${url}: ${err}`,
+          ),
+        );
+
       this.logger.log(
         `Transcoding Complete. Updated models -> Posts: ${updatedPosts.count}, Stories: ${updatedStories.count}, Messages: ${updatedMessages.count}, Comments: ${updatedComments.count}, Avatars: ${updatedAvatars.count}, Covers: ${updatedCovers.count}, Collections: ${updatedCollections.count}`,
       );
     } catch (error) {
       this.logger.error(`Transcoding failed for ${url}: ${error}`);
+
+      // Only mark Media FAILED once BullMQ has exhausted retries — a
+      // mid-retry failure isn't a permanent state, so it shouldn't be
+      // reported as one. UnrecoverableError always counts as final: BullMQ
+      // never retries it regardless of how many attempts remain.
+      const totalAttempts = job.opts?.attempts ?? 1;
+      const attemptsMade = job.attemptsMade ?? 0;
+      const isFinalAttempt =
+        error instanceof UnrecoverableError ||
+        attemptsMade + 1 >= totalAttempts;
+      if (isFinalAttempt) {
+        await this.prisma.media
+          .updateMany({
+            where: { url },
+            data: {
+              status: 'FAILED',
+              failedAt: new Date(),
+              failureReason: String(error).slice(0, 500),
+            },
+          })
+          .catch((err) =>
+            this.logger.warn(
+              `Failed to sync Media status to FAILED for ${url}: ${err}`,
+            ),
+          );
+      }
+
       if (createdOutputDir && fs.existsSync(createdOutputDir)) {
         try {
           fs.rmSync(createdOutputDir, { recursive: true, force: true });

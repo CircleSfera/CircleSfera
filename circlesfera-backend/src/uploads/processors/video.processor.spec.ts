@@ -99,6 +99,7 @@ describe('VideoProcessor', () => {
     comment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     profile: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     collection: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+    media: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
   };
 
   beforeEach(async () => {
@@ -446,6 +447,171 @@ describe('VideoProcessor', () => {
     await expect(processor.process(job)).rejects.toThrow(
       'FFmpeg failed to transcode HLS',
     );
+  });
+
+  it('marks the matching Media row READY on successful transcode', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-media-ready',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        userId: 'user-1',
+      },
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    await processor.process(job);
+
+    expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
+      where: { url: `/uploads/${validUuid}.mp4` },
+      data: {
+        status: 'READY',
+        standardUrl: `/uploads/${validUuid}/master.m3u8`,
+        thumbnailUrl: `/uploads/${validUuid}/thumb.jpg`,
+        failedAt: null,
+        failureReason: null,
+      },
+    });
+  });
+
+  it('logs and continues when syncing Media status to READY fails', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-media-ready-sync-error',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        userId: 'user-1',
+      },
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    mockPrisma.media.updateMany.mockRejectedValueOnce(new Error('DB down'));
+    const warnSpy = vi
+      .spyOn((processor as any).logger, 'warn')
+      .mockImplementation(() => {});
+
+    await expect(processor.process(job)).resolves.not.toThrow();
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to sync Media status to READY'),
+    );
+  });
+
+  it('marks the matching Media row FAILED when the final retry attempt fails', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-media-failed-final',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+      attemptsMade: 2, // this is the 3rd and last allowed attempt
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    shouldFailTranscode = true;
+    vi.mocked(fs.existsSync).mockImplementation((targetPath: fs.PathLike) => {
+      const p = String(targetPath);
+      if (p.endsWith('master.m3u8')) return false;
+      return true;
+    });
+
+    await expect(processor.process(job)).rejects.toThrow();
+
+    expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
+      where: { url: `/uploads/${validUuid}.mp4` },
+      data: {
+        status: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: expect.stringContaining(
+          'FFmpeg failed to transcode HLS',
+        ),
+      },
+    });
+  });
+
+  it('logs and continues when syncing Media status to FAILED fails', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-media-failed-sync-error',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+      attemptsMade: 2,
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    shouldFailTranscode = true;
+    vi.mocked(fs.existsSync).mockImplementation((targetPath: fs.PathLike) => {
+      const p = String(targetPath);
+      if (p.endsWith('master.m3u8')) return false;
+      return true;
+    });
+    mockPrisma.media.updateMany.mockRejectedValueOnce(new Error('DB down'));
+    const warnSpy = vi
+      .spyOn((processor as any).logger, 'warn')
+      .mockImplementation(() => {});
+
+    // The original transcode error still propagates — a secondary failure
+    // recording the Media status must not mask it.
+    await expect(processor.process(job)).rejects.toThrow(
+      'FFmpeg failed to transcode HLS',
+    );
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to sync Media status to FAILED'),
+    );
+  });
+
+  it('does not mark the Media row FAILED while retry attempts remain', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abc';
+    const job = {
+      id: 'job-media-failed-retry',
+      data: {
+        url: `/uploads/${validUuid}.mp4`,
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+      attemptsMade: 0, // first attempt — two retries remain
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    shouldFailTranscode = true;
+    vi.mocked(fs.existsSync).mockImplementation((targetPath: fs.PathLike) => {
+      const p = String(targetPath);
+      if (p.endsWith('master.m3u8')) return false;
+      return true;
+    });
+
+    await expect(processor.process(job)).rejects.toThrow();
+
+    expect(mockPrisma.media.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('marks the matching Media row FAILED on UnrecoverableError even with retry attempts remaining', async () => {
+    // BullMQ never retries an UnrecoverableError regardless of attemptsMade,
+    // so this is a final state as soon as it's thrown — unlike a transient
+    // transcode failure, it must not wait for attemptsMade to catch up.
+    const job = {
+      id: 'job-unrecoverable-invalid-uuid',
+      data: {
+        url: '/uploads/not-a-valid-uuid.mp4',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+      attemptsMade: 0,
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    await expect(processor.process(job)).rejects.toThrow(
+      /is not a valid UUID v4/,
+    );
+
+    expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
+      where: { url: '/uploads/not-a-valid-uuid.mp4' },
+      data: {
+        status: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: expect.stringContaining('is not a valid UUID v4'),
+      },
+    });
   });
 
   it('handles statSync exception when checking if already transcoded', async () => {
