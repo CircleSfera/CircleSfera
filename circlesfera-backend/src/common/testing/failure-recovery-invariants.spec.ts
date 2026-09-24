@@ -177,6 +177,7 @@ describe('Failure Injection & Recovery Invariants', () => {
         comment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         profile: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         collection: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
+        media: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       } as unknown as PrismaService;
 
       videoProcessor = new VideoProcessor(mockPrisma);

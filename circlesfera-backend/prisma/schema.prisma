@@ -142,7 +142,7 @@ model Passkey {
 model PasskeyChallenge {
   id        String   @id @default(uuid())
   userId    String
-  scope     String   // "REGISTRATION" | "AUTHENTICATION"
+  scope     String // "REGISTRATION" | "AUTHENTICATION"
   challenge String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
@@ -217,6 +217,41 @@ model PushSubscription {
 }
 
 // =============================================================================
+// === Media
+// =============================================================================
+
+// Shared source of truth for upload lifecycle state, referenced by a nullable
+// mediaId FK from each content model below. Not read by application code yet —
+// existing inline url/standardUrl/thumbnailUrl columns on those models remain
+// authoritative until every read site is migrated onto this relation.
+model Media {
+  id            String      @id @default(uuid())
+  kind          MediaKind
+  status        MediaStatus @default(READY)
+  url           String
+  standardUrl   String?
+  thumbnailUrl  String?
+  failedAt      DateTime?
+  failureReason String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  // Back-relations, one per owning slot (Phase 1 wiring; not read by app code yet).
+  postMedia      PostMedia[]
+  stories        Story[]
+  messages       Message[]    @relation("MessageMedia")
+  messageVoices  Message[]    @relation("MessageVoiceMedia")
+  comments       Comment[]    @relation("CommentMedia")
+  commentVoices  Comment[]    @relation("CommentVoiceMedia")
+  profileAvatars Profile[]    @relation("ProfileAvatarMedia")
+  profileCovers  Profile[]    @relation("ProfileCoverMedia")
+  collections    Collection[]
+
+  @@index([status])
+  @@map("media")
+}
+
+// =============================================================================
 // === Profile / Social
 // =============================================================================
 
@@ -234,6 +269,12 @@ model Profile {
   coverThumbnailUrl String?
   website           String?
   location          String?
+
+  // Not read by application code yet, see Media model.
+  avatarMediaId String?
+  avatarMedia   Media?  @relation("ProfileAvatarMedia", fields: [avatarMediaId], references: [id])
+  coverMediaId  String?
+  coverMedia    Media?  @relation("ProfileCoverMedia", fields: [coverMediaId], references: [id])
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -380,6 +421,10 @@ model PostMedia {
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
 
+  // Not read by application code yet, see Media model.
+  mediaId String?
+  media   Media?  @relation(fields: [mediaId], references: [id])
+
   @@index([postId])
   @@map("post_media")
 }
@@ -476,6 +521,10 @@ model Story {
   isCloseFriendsOnly Boolean @default(false)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // Not read by application code yet, see Media model.
+  mediaId String?
+  media   Media?  @relation(fields: [mediaId], references: [id])
 
   audioId      String?
   audio        Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
@@ -605,6 +654,12 @@ model Comment {
   voiceUrl      String?
   voiceDuration Int?
   voiceWaveform Json?
+
+  // Not read by application code yet, see Media model.
+  mediaId      String?
+  media        Media?  @relation("CommentMedia", fields: [mediaId], references: [id])
+  voiceMediaId String?
+  voiceMedia   Media?  @relation("CommentVoiceMedia", fields: [voiceMediaId], references: [id])
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -750,6 +805,10 @@ model Collection {
 
   profile   Profile    @relation(fields: [profileId], references: [id], onDelete: Cascade)
   bookmarks Bookmark[]
+
+  // Not read by application code yet, see Media model.
+  mediaId String?
+  media   Media?  @relation(fields: [mediaId], references: [id])
 
   @@index([profileId])
   @@map("collections")
@@ -956,6 +1015,12 @@ model Message {
   voiceUrl      String?
   voiceDuration Int?
   voiceWaveform Json?
+
+  // Not read by application code yet, see Media model.
+  mediaId      String?
+  media        Media?  @relation("MessageMedia", fields: [mediaId], references: [id])
+  voiceMediaId String?
+  voiceMedia   Media?  @relation("MessageVoiceMedia", fields: [voiceMediaId], references: [id])
 
   // GDPR: Retention
 
@@ -1804,6 +1869,23 @@ enum FollowStatus {
 enum LiveStatus {
   LIVE
   ENDED
+}
+
+// Shared media lifecycle. PENDING/PROCESSING/FAILED are only ever reached by video
+// slots going through transcoding; image/audio slots go straight to READY.
+enum MediaKind {
+  IMAGE
+  VIDEO
+  AUDIO
+}
+
+enum MediaStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+  DELETING
+  DELETED
 }
 
 enum ModerationStatus {

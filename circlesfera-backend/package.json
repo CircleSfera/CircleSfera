@@ -32,7 +32,8 @@
     "check-user": "ts-node scripts/check-user.ts",
     "e2e:cleanup": "tsx scripts/cleanup-e2e-users.ts",
     "embeddings:backfill": "tsx scripts/generate-embeddings.ts",
-    "create-smoke-test-user": "tsx scripts/create-smoke-test-user.ts"
+    "create-smoke-test-user": "tsx scripts/create-smoke-test-user.ts",
+    "media:backfill": "tsx scripts/backfill-media-entity.ts"
   },
   "overrides": {
     "js-yaml": "4.3.2",
