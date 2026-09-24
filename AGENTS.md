@@ -10,14 +10,25 @@ arquitectónica y alineación con el estado real del proyecto — no con aspirac
 
 ## Fuente de verdad
 
-Cuando haya conflicto, este orden manda:
+La autoridad es específica por dominio, no una precedencia lineal universal. Antes de resolver un
+conflicto, clasifica primero qué tipo de pregunta estás respondiendo y consulta la fuente apropiada
+para ese tipo — modelo completo, dominios de autoridad y las 4 clases de conflicto (Documentation
+Drift, Implementation Drift, Decision Conflict, Ambiguous/Unknown) en
+[`.ai/core/authority.md`](.ai/core/authority.md). Comportamiento del agente y niveles de decisión (MAY
+DECIDE / MAY RECOMMEND / MUST CONFIRM / MUST STOP) en
+[`.ai/core/agent-contract.md`](.ai/core/agent-contract.md).
 
-1. `circlesfera-backend/prisma/schema.prisma`
-2. Código fuente implementado
-3. Contratos API vigentes (controllers + DTOs)
-4. ADRs — ver índice en [`circlesfera-documentation/adr/README.md`](circlesfera-documentation/adr/README.md)
-5. Documentación técnica (`circlesfera-documentation/`, empezando por [`00-status.md`](circlesfera-documentation/00-status.md))
-6. Suposiciones
+Guía rápida por tipo de pregunta:
+
+| Pregunta | Autoridad |
+| --- | --- |
+| ¿Qué datos/relaciones existen? | `circlesfera-backend/prisma/schema.prisma` |
+| ¿Qué hace el código ahora mismo? | Código fuente implementado |
+| ¿Qué contrato API expone el sistema? | Controllers + DTOs vigentes |
+| ¿Qué decisión de arquitectura se aprobó? | ADRs — índice en [`circlesfera-documentation/adr/README.md`](circlesfera-documentation/adr/README.md) |
+| ¿Qué debería ser cierto del producto? | `circlesfera-documentation/`, empezando por [`00-status.md`](circlesfera-documentation/00-status.md) |
+| ¿Qué terminología es canónica? | [`.ai/core/terminology.md`](.ai/core/terminology.md) |
+| ¿Qué decisión sigue intencionalmente sin resolver? | [`.ai/core/deferred-decisions.md`](.ai/core/deferred-decisions.md) |
 
 Nunca inventar modelos, endpoints, enums, relaciones, permisos o flujos no respaldados por schema o
 código. Si hay ambigüedad, detenerse, explicitar la inconsistencia y proponer alternativas.
@@ -85,8 +96,12 @@ Tokens canónicos: `circlesfera-frontend/src/index.css`. Narrative de diseño: d
 
 ## Documentación
 
-Si el sistema contradice la documentación, **corregir la documentación**, no el sistema (salvo bug
-confirmado). Presente = shipped. Proceso: [`.ai/playbooks/docs-sync.md`](.ai/playbooks/docs-sync.md).
+Si el sistema y la documentación no coinciden, clasifica el conflicto antes de tocar cualquiera de los
+dos (ver [`.ai/core/authority.md`](.ai/core/authority.md)): documentación desactualizada →
+corrígela; código que no sigue una decisión normativa vigente → trátalo como candidato a defecto, no
+reescribas la documentación para legitimarlo; dos fuentes autoritativas en conflicto → detente y
+escala; evidencia insuficiente → verifica antes de decidir. Presente = shipped. Proceso:
+[`.ai/playbooks/docs-sync.md`](.ai/playbooks/docs-sync.md).
 
 ## Estilo de respuesta
 
@@ -111,6 +126,6 @@ Referencias de sección en docs: `section 9.4` (nunca el símbolo de sección).
 
 ## Instrucción final
 
-Si falta contexto, no asumir. Si hay conflicto entre documentos y código, señalarlo. Si el cambio es
-sensible, pedir confirmación y, al recibirla, implementar. Si el sistema real contradice la
-documentación, corregir la documentación, no la realidad.
+Si falta contexto, no asumir. Si hay conflicto entre documentos y código, clasifícalo (ver
+[`.ai/core/authority.md`](.ai/core/authority.md)) y señálalo — no asumas de antemano qué lado corregir.
+Si el cambio es sensible, pedir confirmación y, al recibirla, implementar.

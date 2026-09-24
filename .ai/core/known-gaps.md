@@ -31,40 +31,35 @@ Agent Framework · Traceability · Other.
 
 ### GAP-001 — Global source-of-truth rule is overly broad
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Category:** Authority / Agent Framework
-- **Evidence:** `AGENTS.md:11-20` ("Fuente de verdad") states a single linear precedence — schema.prisma
-  → código implementado → contratos API vigentes → ADRs → circlesfera-documentation/ → suposiciones.
-  `AGENTS.md:88-89` and `:116` state "si el sistema contradice la documentación, corregir la
-  documentación, no el sistema" without domain qualification.
+- **Evidence (original):** `AGENTS.md:11-20` ("Fuente de verdad") stated a single linear precedence —
+  schema.prisma → código implementado → contratos API vigentes → ADRs → circlesfera-documentation/ →
+  suposiciones. `AGENTS.md:88-89` and `:116` stated "si el sistema contradice la documentación,
+  corregir la documentación, no el sistema" without domain qualification.
 - **Expected State:** authority determined by knowledge type and question, per `authority.md`'s
   domain-scoped model — no universal "code wins" / "documentation wins" rule.
-- **Observed State:** `AGENTS.md` still expresses a single global precedence chain and an
-  unqualified "fix documentation" rule; this is the live, currently-governing document.
-- **Impact:** agents may rewrite normative documentation to match implementation drift, or modify
-  implementation to satisfy stale documentation, in cases where neither is actually the correct
-  resolution.
-- **Authority / Resolution Path:** Batch 4 of the Agent Framework migration (adapter refactoring) —
-  update `AGENTS.md` to consume `authority.md` instead of restating its own precedence rule. Requires
-  explicit human confirmation before executing per `agent-contract.md`'s MUST CONFIRM trigger for a
-  new architectural pattern.
-- **Owner:** unassigned.
+- **Resolution:** `AGENTS.md`'s "Fuente de verdad", "Documentación", and "Instrucción final" sections
+  now point to `authority.md`'s domain-scoped model and 4-class conflict classification instead of
+  stating a linear precedence or an unqualified "fix documentation" rule. Explicit human confirmation
+  was obtained before this change, per `agent-contract.md`'s MUST CONFIRM trigger for a new
+  architectural pattern.
+- **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 
-### GAP-002 — Blanket rule duplicated into an adapter
+### GAP-002 — Blanket rule duplicated into adapters
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Category:** Agent Framework
-- **Evidence:** `.agents/workflows/docs-sync.md:28` restates GAP-001's blanket rule verbatim in
-  English: "If the system contradicts the documentation, fix the documentation, not the system."
-- **Expected State:** adapters consume the Authority Registry rather than independently redefining
-  conflict-resolution policy.
-- **Observed State:** the rule is duplicated into a workflow file, confirming the propagation risk
-  `agent-contract.md` section 16 (Adapter Contract) exists to prevent.
-- **Impact:** same as GAP-001, with an additional entry point.
-- **Authority / Resolution Path:** Batch 4, alongside GAP-001 — remove the duplicated rule once
-  `docs-sync.md` can safely reference `authority.md` instead.
-- **Owner:** unassigned.
+- **Evidence (original):** `.agents/workflows/docs-sync.md:28` and `.ai/playbooks/docs-sync.md:3`
+  both restated GAP-001's blanket rule verbatim (the playbook explicitly citing it as "the governing
+  rule from AGENTS.md").
+- **Expected State:** adapters and playbooks consume the Authority Registry rather than independently
+  redefining conflict-resolution policy.
+- **Resolution:** both files now reference `.ai/core/authority.md`'s four conflict classes instead of
+  the blanket rule. Fixed together with GAP-001 to avoid leaving either file citing a rule that no
+  longer exists in `AGENTS.md`.
+- **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 
 ### GAP-003 — Canonical product terminology drift
