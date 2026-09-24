@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { isStreamHostOrCoHost } from '../../live/live-authorization.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface ChatUserProfile {
@@ -74,7 +75,7 @@ export class LiveRealtimeService {
       select: { hostId: true, coHostId: true },
     });
     if (!stream) return false;
-    return stream.hostId === profileId || stream.coHostId === profileId;
+    return isStreamHostOrCoHost(stream, profileId);
   }
 
   /**
