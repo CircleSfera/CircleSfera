@@ -256,10 +256,17 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
 
     beforeEach(() => {
       mockPrisma = {
-        postMedia: { findFirst: vi.fn() },
+        postMedia: { findFirst: vi.fn().mockResolvedValue(null) },
         postUnlock: { findUnique: vi.fn() },
-        follow: { findUnique: vi.fn() },
-        closeFriend: { findUnique: vi.fn() },
+        story: { findFirst: vi.fn().mockResolvedValue(null) },
+        storyUnlock: { findUnique: vi.fn() },
+        message: { findFirst: vi.fn().mockResolvedValue(null) },
+        messageUnlock: { findUnique: vi.fn() },
+        participant: { findFirst: vi.fn() },
+        comment: { findFirst: vi.fn().mockResolvedValue(null) },
+        collection: { findFirst: vi.fn().mockResolvedValue(null) },
+        follow: { findUnique: vi.fn(), findFirst: vi.fn() },
+        closeFriend: { findUnique: vi.fn(), findFirst: vi.fn() },
       };
       mediaAuthService = new MediaAuthService(
         mockPrisma as unknown as PrismaService,

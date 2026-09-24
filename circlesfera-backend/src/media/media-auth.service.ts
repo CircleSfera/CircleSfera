@@ -2,21 +2,63 @@ import { Injectable, Logger } from '@nestjs/common';
 import { FollowStatus, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+interface PostLikeAccess {
+  profileId: string;
+  visibility: Visibility;
+  isPremium: boolean;
+}
+
+interface StoryAccess {
+  id: string;
+  profileId: string;
+  isPremium: boolean;
+  isCloseFriendsOnly: boolean;
+  profile: {
+    user: { settings: { privacyLevel: Visibility } | null } | null;
+  } | null;
+}
+
+interface MessageAccess {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  isLocked: boolean;
+}
+
 /**
  * Determines whether a given user (or anonymous visitor) is allowed
  * to access a media file served from `/uploads/`.
  *
- * Decision matrix:
+ * Every content-owning table that stores user-uploaded media (PostMedia,
+ * Story, Message, Comment, Collection) is checked in parallel for a URL
+ * match (MEDIA-007). A file that matches none of them is a public asset
+ * (avatar, cover, ...) and is allowed — this is the deliberate default,
+ * not an oversight, so keep it that way when adding new content types:
+ * add an explicit branch above the fallback, never rely on the fallback
+ * to "cover" a new protected content type.
+ *
+ * Decision matrix (Post/Comment, Comment inherits its parent Post's policy):
  * ┌─────────────────────────┬───────────────────────────────────────────────┐
  * │ Condition               │ Allowed?                                     │
  * ├─────────────────────────┼───────────────────────────────────────────────┤
- * │ No matching PostMedia   │ Yes (avatars, public assets, etc.)           │
+ * │ No matching content     │ Yes (avatars, public assets, etc.)           │
  * │ Post is PUBLIC + free   │ Yes                                          │
  * │ Post author == viewer   │ Yes                                          │
  * │ Post is PPV (isPremium) │ Only if viewer has a PostUnlock              │
  * │ Post is FOLLOWERS-only  │ Only if viewer follows the author            │
  * │ Post is PRIVATE (CF)    │ Only if viewer is in author's Close Friends  │
  * └─────────────────────────┴───────────────────────────────────────────────┘
+ *
+ * Story: author always allowed; isPremium requires StoryUnlock;
+ * isCloseFriendsOnly requires CloseFriend (independent of profile privacy);
+ * a private profile otherwise requires an ACCEPTED Follow.
+ *
+ * Message (DM/group chat attachments): requires the viewer to be an active
+ * (non-"deleted for me") Participant of the conversation. isLocked (PPV
+ * message) additionally requires a MessageUnlock, except for the sender.
+ *
+ * Collection: owner-only -- there is no shared/public collection viewing
+ * feature in the API today.
  */
 @Injectable()
 export class MediaAuthService {
@@ -35,8 +77,7 @@ export class MediaAuthService {
     viewerUserId: string | null,
     viewerProfileId: string | null,
   ): Promise<boolean> {
-    // 1. Find the PostMedia row whose url or standardUrl matches the upload path.
-    //    We normalise to handle both "/uploads/foo/bar.jpg" and "foo/bar.jpg".
+    // Normalise to handle both "/uploads/foo/bar.jpg" and "foo/bar.jpg".
     const normalised = uploadPath.replace(/^\/uploads\//, '');
 
     // Direct access to GDPR export artifacts or private archives via static media path is forbidden
@@ -47,72 +88,136 @@ export class MediaAuthService {
       return false;
     }
 
-    const media = await this.prisma.postMedia.findFirst({
-      where: {
-        OR: [
-          { url: { contains: normalised } },
-          { standardUrl: { contains: normalised } },
-          { thumbnailUrl: { contains: normalised } },
-        ],
-      },
-      select: {
-        postId: true,
-        post: {
-          select: {
-            profileId: true,
-            visibility: true,
-            isPremium: true,
+    const urlMatch = {
+      OR: [
+        { url: { contains: normalised } },
+        { standardUrl: { contains: normalised } },
+        { thumbnailUrl: { contains: normalised } },
+      ],
+    };
+
+    const [postMedia, story, message, comment, collection] = await Promise.all([
+      this.prisma.postMedia.findFirst({
+        where: urlMatch,
+        select: {
+          postId: true,
+          post: {
+            select: { profileId: true, visibility: true, isPremium: true },
           },
         },
-      },
-    });
+      }),
+      this.prisma.story.findFirst({
+        where: urlMatch,
+        select: {
+          id: true,
+          profileId: true,
+          isPremium: true,
+          isCloseFriendsOnly: true,
+          profile: {
+            select: {
+              user: {
+                select: { settings: { select: { privacyLevel: true } } },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.message.findFirst({
+        where: urlMatch,
+        select: {
+          id: true,
+          conversationId: true,
+          senderId: true,
+          isLocked: true,
+        },
+      }),
+      this.prisma.comment.findFirst({
+        where: urlMatch,
+        select: {
+          postId: true,
+          post: {
+            select: { profileId: true, visibility: true, isPremium: true },
+          },
+        },
+      }),
+      this.prisma.collection.findFirst({
+        where: {
+          OR: [
+            { coverUrl: { contains: normalised } },
+            { standardUrl: { contains: normalised } },
+            { thumbnailUrl: { contains: normalised } },
+          ],
+        },
+        select: { profileId: true },
+      }),
+    ]);
 
-    // If no PostMedia references this file, it's a public asset (avatar, etc.) → allow.
-    if (!media) {
-      return true;
+    if (postMedia) {
+      return this.checkPostAccess(
+        postMedia.postId,
+        postMedia.post,
+        viewerUserId,
+        viewerProfileId,
+      );
     }
 
-    const post = media.post;
+    if (story) {
+      return this.checkStoryAccess(story, viewerUserId, viewerProfileId);
+    }
 
-    // 2. Public + free content → allow everyone.
+    if (message) {
+      return this.checkMessageAccess(message, viewerUserId, viewerProfileId);
+    }
+
+    if (comment) {
+      return this.checkPostAccess(
+        comment.postId,
+        comment.post,
+        viewerUserId,
+        viewerProfileId,
+      );
+    }
+
+    if (collection) {
+      const allowed = collection.profileId === viewerProfileId;
+      if (!allowed) {
+        this.logger.debug(
+          `Collection cover access denied for ${viewerProfileId ?? 'anonymous'}: ${uploadPath}`,
+        );
+      }
+      return allowed;
+    }
+
+    // No content-owning table references this file → public asset (avatar, etc.)
+    return true;
+  }
+
+  private async checkPostAccess(
+    postId: string,
+    post: PostLikeAccess,
+    viewerUserId: string | null,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
     if (post.visibility === Visibility.PUBLIC && !post.isPremium) {
       return true;
     }
 
-    // 3. From here on, a logged-in user is required.
     if (!viewerUserId || !viewerProfileId) {
-      this.logger.debug(
-        `Anonymous access denied for protected media: ${uploadPath}`,
-      );
       return false;
     }
 
-    // 4. The author can always view their own content.
     if (post.profileId === viewerProfileId) {
       return true;
     }
 
-    // 5. PPV / Premium content → check PostUnlock.
     if (post.isPremium) {
       const unlock = await this.prisma.postUnlock.findUnique({
-        where: {
-          userId_postId: {
-            userId: viewerUserId,
-            postId: media.postId,
-          },
-        },
+        where: { userId_postId: { userId: viewerUserId, postId } },
         select: { id: true },
       });
-      if (unlock) {
-        return true;
-      }
-      this.logger.debug(
-        `PPV access denied for user ${viewerUserId} on post ${media.postId}`,
-      );
-      return false;
+      return !!unlock;
     }
 
-    // 6. Followers-only → check Follow relationship.
     if (post.visibility === Visibility.FOLLOWERS) {
       const follow = await this.prisma.follow.findFirst({
         where: {
@@ -122,34 +227,108 @@ export class MediaAuthService {
         },
         select: { id: true },
       });
-      if (follow) {
-        return true;
-      }
-      this.logger.debug(
-        `Followers-only access denied for ${viewerProfileId} on post ${media.postId}`,
-      );
+      return !!follow;
+    }
+
+    if (post.visibility === Visibility.PRIVATE) {
+      const closeFriend = await this.prisma.closeFriend.findFirst({
+        where: { profileId: post.profileId, friendId: viewerProfileId },
+        select: { id: true },
+      });
+      return !!closeFriend;
+    }
+
+    return false;
+  }
+
+  private async checkStoryAccess(
+    story: StoryAccess,
+    viewerUserId: string | null,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    if (story.profileId === viewerProfileId) {
+      return true;
+    }
+
+    if (!viewerUserId || !viewerProfileId) {
       return false;
     }
 
-    // 7. Private (Close Friends) → check CloseFriend relationship.
-    if (post.visibility === Visibility.PRIVATE) {
-      const closeFriend = await this.prisma.closeFriend.findFirst({
+    if (story.isPremium) {
+      const unlock = await this.prisma.storyUnlock.findUnique({
+        where: { userId_storyId: { userId: viewerUserId, storyId: story.id } },
+        select: { id: true },
+      });
+      if (!unlock) {
+        return false;
+      }
+    }
+
+    if (story.isCloseFriendsOnly) {
+      const closeFriend = await this.prisma.closeFriend.findUnique({
         where: {
-          profileId: post.profileId,
-          friendId: viewerProfileId,
+          profileId_friendId: {
+            profileId: story.profileId,
+            friendId: viewerProfileId,
+          },
         },
         select: { id: true },
       });
-      if (closeFriend) {
-        return true;
-      }
-      this.logger.debug(
-        `Close-friends access denied for ${viewerProfileId} on post ${media.postId}`,
-      );
+      return !!closeFriend;
+    }
+
+    const isProfilePrivate =
+      story.profile?.user?.settings?.privacyLevel === Visibility.PRIVATE;
+    if (isProfilePrivate) {
+      const follow = await this.prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: viewerProfileId,
+            followingId: story.profileId,
+          },
+        },
+        select: { status: true },
+      });
+      return follow?.status === FollowStatus.ACCEPTED;
+    }
+
+    return true;
+  }
+
+  private async checkMessageAccess(
+    message: MessageAccess,
+    viewerUserId: string | null,
+    viewerProfileId: string | null,
+  ): Promise<boolean> {
+    if (!viewerProfileId) {
       return false;
     }
 
-    // Default deny for any unexpected state.
-    return false;
+    const participant = await this.prisma.participant.findFirst({
+      where: {
+        conversationId: message.conversationId,
+        profileId: viewerProfileId,
+        deletedAt: null,
+      },
+      select: { id: true },
+    });
+    if (!participant) {
+      return false;
+    }
+
+    if (message.isLocked && message.senderId !== viewerProfileId) {
+      if (!viewerUserId) {
+        return false;
+      }
+      const unlock = await this.prisma.messageUnlock.findUnique({
+        where: {
+          userId_messageId: { userId: viewerUserId, messageId: message.id },
+        },
+        select: { id: true },
+      });
+      return !!unlock;
+    }
+
+    return true;
   }
 }

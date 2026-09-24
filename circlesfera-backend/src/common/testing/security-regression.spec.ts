@@ -742,11 +742,34 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         postUnlock: {
           findUnique: vi.fn(),
         },
+        story: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+        storyUnlock: {
+          findUnique: vi.fn(),
+        },
+        message: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+        messageUnlock: {
+          findUnique: vi.fn(),
+        },
+        participant: {
+          findFirst: vi.fn(),
+        },
+        comment: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
+        collection: {
+          findFirst: vi.fn().mockResolvedValue(null),
+        },
         follow: {
           findFirst: vi.fn(),
+          findUnique: vi.fn(),
         },
         closeFriend: {
           findFirst: vi.fn(),
+          findUnique: vi.fn(),
         },
       };
 
