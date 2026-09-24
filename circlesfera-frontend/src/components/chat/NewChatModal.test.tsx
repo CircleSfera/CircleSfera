@@ -101,7 +101,7 @@ describe('NewChatModal', () => {
     vi.clearAllMocks();
     mockAuth();
     vi.mocked(followsApi.getFollowing).mockResolvedValue({
-      data: [bob, cara],
+      data: { data: [bob, cara] },
     } as never);
     vi.mocked(searchApi.searchUsers).mockResolvedValue({
       data: [bob],
@@ -121,7 +121,7 @@ describe('NewChatModal', () => {
 
   it('shows the empty following state and closes without creating', async () => {
     vi.mocked(followsApi.getFollowing).mockResolvedValue({
-      data: [],
+      data: { data: [] },
     } as never);
 
     const { i18n } = renderWithProviders(
@@ -137,7 +137,7 @@ describe('NewChatModal', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('chat.chat') }),
     ).toBeDisabled();
-    expect(followsApi.getFollowing).toHaveBeenCalledWith('me');
+    expect(followsApi.getFollowing).toHaveBeenCalledWith('me', undefined, 100);
 
     fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
     expect(onClose).toHaveBeenCalledTimes(1);

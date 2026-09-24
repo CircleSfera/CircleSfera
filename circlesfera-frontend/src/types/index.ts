@@ -245,6 +245,11 @@ export interface PaginatedResponse<T> {
     limit: number;
     totalPages: number;
   };
+  // Ranking snapshot timestamp (DATA-003) — only present on score-based
+  // feeds (e.g. the hybrid "for you" feed). Echo it back on subsequent
+  // page requests for the same scroll session so the ranking basis
+  // doesn't drift out from under already-fetched pages.
+  asOf?: string;
 }
 
 export interface AuthResponse {

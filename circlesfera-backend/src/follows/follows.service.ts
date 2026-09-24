@@ -10,6 +10,12 @@ import {
 import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
+import {
+  decodeKeysetCursor,
+  type KeysetPage,
+  keysetBeforeDesc,
+  toKeysetPage,
+} from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import {
@@ -185,10 +191,19 @@ export class FollowsService {
     };
   }
 
-  // Get all followers of a user by username.
+  // Get followers of a user by username, newest first. Cursor/keyset
+  // pagination (DATA-003) — stable under concurrent follows, unlike
+  // skip/take: a new follower inserted ahead of the cursor never shifts an
+  // already-fetched page.
   // Param username: The profile username
-  // Returns Array of follower users with profiles
-  async getFollowers(username: string): Promise<ProfileWithUser[]> {
+  // Param cursor: opaque cursor from the previous page's nextCursor
+  // Param limit: page size, default 20, capped at 100
+  async getFollowers(
+    username: string,
+    cursor?: string,
+    limit = 20,
+  ): Promise<KeysetPage<ProfileWithUser>> {
+    const cappedLimit = Math.min(limit, 100);
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
@@ -196,25 +211,39 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
+
     const followers = await this.prisma.follow.findMany({
       where: {
         followingId: profile.id,
         status: 'ACCEPTED',
+        ...cursorWhere,
       },
       include: {
         follower: {
           include: { user: true },
         },
       },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: cappedLimit + 1,
     });
 
-    return followers.map((f) => f.follower);
+    const page = toKeysetPage(followers, cappedLimit);
+    return { ...page, data: page.data.map((f) => f.follower) };
   }
 
-  // Get all users that a user is following.
+  // Get users that a user is following, newest first. Same cursor/keyset
+  // pagination as getFollowers.
   // Param username: The profile username
-  // Returns Array of followed users with profiles
-  async getFollowing(username: string): Promise<ProfileWithUser[]> {
+  // Param cursor: opaque cursor from the previous page's nextCursor
+  // Param limit: page size, default 20, capped at 100
+  async getFollowing(
+    username: string,
+    cursor?: string,
+    limit = 20,
+  ): Promise<KeysetPage<ProfileWithUser>> {
+    const cappedLimit = Math.min(limit, 100);
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
@@ -222,19 +251,26 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
+    const decoded = cursor ? decodeKeysetCursor(cursor) : null;
+    const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
+
     const following = await this.prisma.follow.findMany({
       where: {
         followerId: profile.id,
         status: 'ACCEPTED',
+        ...cursorWhere,
       },
       include: {
         following: {
           include: { user: true },
         },
       },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+      take: cappedLimit + 1,
     });
 
-    return following.map((f) => f.following);
+    const page = toKeysetPage(following, cappedLimit);
+    return { ...page, data: page.data.map((f) => f.following) };
   }
 
   // Block a user. Also removes any existing follow relationships.

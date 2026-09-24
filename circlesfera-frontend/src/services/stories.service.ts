@@ -5,6 +5,7 @@ import type {
   UserWithProfile,
 } from '../types';
 import { apiClient } from './api';
+import type { KeysetPage } from './follows.service';
 
 export const storiesApi = {
   create: (data: CreateStoryDto) => apiClient.post<Story>('stories', data),
@@ -18,20 +19,22 @@ export const storiesApi = {
 
   markViewed: (id: string) => apiClient.post(`stories/${id}/view`),
 
-  getViews: (id: string) =>
-    apiClient.get<UserWithProfile[]>(`stories/${id}/views`),
+  getViews: (id: string, cursor?: string, limit = 50) =>
+    apiClient.get<KeysetPage<UserWithProfile>>(`stories/${id}/views`, {
+      params: { cursor, limit },
+    }),
 
   addReaction: (id: string, reaction: string) =>
     apiClient.post(`stories/${id}/react`, { reaction }),
 
-  getReactions: (id: string) =>
+  getReactions: (id: string, cursor?: string, limit = 50) =>
     apiClient.get<
-      {
+      KeysetPage<{
         reaction: string;
         profileId: string;
         profile?: ProfileWithUser;
-      }[]
-    >(`stories/${id}/reactions`),
+      }>
+    >(`stories/${id}/reactions`, { params: { cursor, limit } }),
 
   delete: (id: string) => apiClient.delete(`stories/${id}`),
 };

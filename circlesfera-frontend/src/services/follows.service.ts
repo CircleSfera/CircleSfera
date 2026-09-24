@@ -9,6 +9,13 @@ export type MutedUserEntry = {
   profile: ProfileWithUser;
 };
 
+// Cursor pagination response shape (DATA-003) — pass `nextCursor` back as
+// `cursor` to fetch the next page; absent/undefined means no further pages.
+export interface KeysetPage<T> {
+  data: T[];
+  nextCursor?: string;
+}
+
 export const followsApi = {
   toggle: (username: string) =>
     apiClient.post<{ following: boolean; status: string }>(
@@ -20,11 +27,17 @@ export const followsApi = {
       `users/${username}/follow/check`,
     ),
 
-  getFollowers: (username: string) =>
-    apiClient.get(`users/${username}/follow/followers`),
+  getFollowers: (username: string, cursor?: string, limit = 20) =>
+    apiClient.get<KeysetPage<ProfileWithUser>>(
+      `users/${username}/follow/followers`,
+      { params: { cursor, limit } },
+    ),
 
-  getFollowing: (username: string) =>
-    apiClient.get(`users/${username}/follow/following`),
+  getFollowing: (username: string, cursor?: string, limit = 20) =>
+    apiClient.get<KeysetPage<ProfileWithUser>>(
+      `users/${username}/follow/following`,
+      { params: { cursor, limit } },
+    ),
 
   block: (username: string) => apiClient.post(`users/${username}/follow/block`),
 

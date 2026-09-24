@@ -52,8 +52,14 @@ export default function NewChatModal({ isOpen, onClose }: NewChatModalProps) {
     queryKey: ['following', currentUser?.username],
     queryFn: async () => {
       if (!currentUser?.username) return [];
-      const res = await followsApi.getFollowing(currentUser.username);
-      return res.data || [];
+      // First page only (100) — large accounts can use the search box above
+      // instead of scrolling a full following list to start a chat.
+      const res = await followsApi.getFollowing(
+        currentUser.username,
+        undefined,
+        100,
+      );
+      return res.data.data || [];
     },
     enabled: isOpen && !debouncedSearch && !!currentUser?.username,
   });

@@ -11,6 +11,11 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import {
+  decodeKeysetCursor,
+  encodeKeysetCursor,
+  keysetBeforeDesc,
+} from '../common/pagination/keyset.util.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 
 // Service for creating, listing, and deleting comments on posts.
@@ -149,13 +154,22 @@ export class CommentsService {
   // Param postId: The post ID
   // Param pagination: Page and limit parameters
   // Param currentProfileId: Optional viewer profile for isLiked hydration
+  // Lists top-level comments on a post, newest first. Supports two modes
+  // (DATA-003):
+  //  - `pagination.cursor` set: keyset pagination, stable under concurrent
+  //    inserts (a comment posted ahead of the cursor never shifts an
+  //    already-fetched page) — the resolution path for high-traffic/viral
+  //    threads.
+  //  - no cursor: the original page/skip path, kept for backward
+  //    compatibility with existing callers that jump to an arbitrary page
+  //    number. `nextCursor` is populated either way so a caller can switch
+  //    to cursor-based continuation from any page onward.
   async findByPost(
     postId: string,
     pagination: PaginationDto,
     currentProfileId?: string,
   ) {
-    const { page = 1, limit = 10 } = pagination;
-    const skip = (page - 1) * limit;
+    const { page = 1, limit = 10, cursor } = pagination;
 
     const likeInclude = currentProfileId
       ? {
@@ -174,29 +188,57 @@ export class CommentsService {
       accountType: true,
     } as const;
 
-    const [comments, total] = await Promise.all([
-      this.prisma.comment.findMany({
-        where: {
-          postId,
-          parentId: null,
-          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
-        },
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
+    const baseWhere = {
+      postId,
+      parentId: null,
+      moderationStatus: {
+        in: ['VISIBLE', 'FLAGGED'] as ('VISIBLE' | 'FLAGGED')[],
+      },
+    };
+    const include = {
+      profile: { select: profileSelect },
+      likes: likeInclude,
+      _count: { select: { likes: true } },
+      replies: {
+        orderBy: { createdAt: 'asc' as const },
         include: {
           profile: { select: profileSelect },
           likes: likeInclude,
           _count: { select: { likes: true } },
-          replies: {
-            orderBy: { createdAt: 'asc' },
-            include: {
-              profile: { select: profileSelect },
-              likes: likeInclude,
-              _count: { select: { likes: true } },
-            },
-          },
         },
+      },
+    };
+
+    if (cursor) {
+      const decoded = decodeKeysetCursor(cursor);
+      const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
+
+      const [comments, total] = await Promise.all([
+        this.prisma.comment.findMany({
+          where: { ...baseWhere, ...cursorWhere },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          take: limit + 1,
+          include,
+        }),
+        this.prisma.comment.count({ where: { postId } }),
+      ]);
+
+      const hasMore = comments.length > limit;
+      const pageRows = hasMore ? comments.slice(0, limit) : comments;
+      const last = pageRows[pageRows.length - 1];
+      const nextCursor = hasMore && last ? encodeKeysetCursor(last) : undefined;
+
+      return createPaginatedResult(pageRows, total, 0, limit, nextCursor);
+    }
+
+    const skip = (page - 1) * limit;
+    const [comments, total] = await Promise.all([
+      this.prisma.comment.findMany({
+        where: baseWhere,
+        skip,
+        take: limit,
+        orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+        include,
       }),
       this.prisma.comment.count({
         where: {
@@ -205,7 +247,11 @@ export class CommentsService {
       }),
     ]);
 
-    return createPaginatedResult(comments, total, page, limit);
+    const last = comments[comments.length - 1];
+    const nextCursor =
+      comments.length === limit && last ? encodeKeysetCursor(last) : undefined;
+
+    return createPaginatedResult(comments, total, page, limit, nextCursor);
   }
 
   // Delete a comment. Ownership is enforced by OwnershipGuard at the controller level.

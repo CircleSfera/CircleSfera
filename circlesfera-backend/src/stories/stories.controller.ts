@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import type { StoryReaction, StoryView } from '@prisma/client';
@@ -17,12 +18,10 @@ import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
-import {
-  StoriesService,
-  type StoryReactionWithUser,
-} from './stories.service.js';
+import { StoriesService } from './stories.service.js';
 
 // REST controller for ephemeral stories, views, and reactions.
 @Controller('stories')
@@ -81,10 +80,15 @@ export class StoriesController {
     return this.storiesService.view(id, user.profileId);
   }
 
-  // Get all viewers of a story.
+  // Get viewers of a story. Owner-only — view lists can reveal who watched,
+  // which is sensitive the same way message read-receipts are. Cursor
+  // pagination (DATA-003): pass `cursor` (opaque, from the previous page's
+  // nextCursor) to fetch the next page.
   @Get(':id/views')
-  async getViews(@Param('id') id: string) {
-    return this.storiesService.getViews(id);
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Story' })
+  async getViews(@Param('id') id: string, @Query() query: PaginationDto) {
+    return this.storiesService.getViews(id, query.cursor, query.limit);
   }
 
   // Add or update a reaction on a story.
@@ -98,11 +102,10 @@ export class StoriesController {
     return this.storiesService.addReaction(id, user.profileId, dto.reaction);
   }
 
-  // Get all reactions for a story.
+  // Get reactions for a story. Cursor pagination (DATA-003): pass `cursor`
+  // (the last item's id from the previous page) to fetch the next page.
   @Get(':id/reactions')
-  async getReactions(
-    @Param('id') id: string,
-  ): Promise<StoryReactionWithUser[]> {
-    return this.storiesService.getReactions(id);
+  async getReactions(@Param('id') id: string, @Query() query: PaginationDto) {
+    return this.storiesService.getReactions(id, query.cursor, query.limit);
   }
 }

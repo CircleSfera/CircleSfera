@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CommentsService } from './comments.service.js';
 
@@ -222,6 +223,75 @@ describe('CommentsService', () => {
             },
           }),
         }),
+      );
+    });
+
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValue([{ id: 'c4' }]);
+      mockPrismaService.comment.count.mockResolvedValue(50);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'c5',
+      });
+
+      const result = await service.findByPost('post-1', {
+        limit: 10,
+        cursor,
+      } as any);
+
+      expect(mockPrismaService.comment.findUnique).not.toHaveBeenCalled();
+      expect(mockPrismaService.comment.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 11,
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          where: expect.objectContaining({
+            postId: 'post-1',
+            OR: [
+              { createdAt: { lt: new Date('2026-01-05') } },
+              { createdAt: new Date('2026-01-05'), id: { lt: 'c5' } },
+            ],
+          }),
+        }),
+      );
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.nextCursor).toBeUndefined();
+    });
+
+    it('should degrade to the first page for a malformed cursor and compute nextCursor when a full extra row is fetched', async () => {
+      const rows = Array.from({ length: 11 }, (_, i) => ({
+        id: `c${i}`,
+        createdAt: new Date(2026, 0, 11 - i),
+      }));
+      mockPrismaService.comment.findMany.mockResolvedValue(rows);
+      mockPrismaService.comment.count.mockResolvedValue(100);
+
+      const result = await service.findByPost('post-1', {
+        limit: 10,
+        cursor: 'not-a-valid-cursor',
+      } as any);
+
+      expect(mockPrismaService.comment.findUnique).not.toHaveBeenCalled();
+      expect(result.data).toHaveLength(10);
+      expect(result.meta.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 2), id: 'c9' }),
+      );
+    });
+
+    it('should compute nextCursor on the page path when the page is full', async () => {
+      const rows = Array.from({ length: 10 }, (_, i) => ({
+        id: `c${i}`,
+        createdAt: new Date(2026, 0, 10 - i),
+      }));
+      mockPrismaService.comment.findMany.mockResolvedValue(rows);
+      mockPrismaService.comment.count.mockResolvedValue(30);
+
+      const result = await service.findByPost('post-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.meta.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 1), id: 'c9' }),
       );
     });
   });

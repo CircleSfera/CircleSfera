@@ -3,6 +3,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -209,26 +210,95 @@ describe('FollowsService', () => {
   });
 
   describe('getLists', () => {
-    it('should return followers array', async () => {
+    it('should return followers page with no nextCursor when under the limit', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
       mockPrismaService.follow.findMany.mockResolvedValue([
-        { follower: { id: '1', user: {} } },
+        {
+          id: 'f1',
+          createdAt: new Date('2026-01-01'),
+          follower: { id: '1', user: {} },
+        },
       ]);
 
       const result = await service.getFollowers('user2');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('1');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('1');
+      expect(result.nextCursor).toBeUndefined();
     });
 
-    it('should return following array', async () => {
+    it('should return following page with no nextCursor when under the limit', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '1' });
       mockPrismaService.follow.findMany.mockResolvedValue([
-        { following: { id: '2', user: {} } },
+        {
+          id: 'f2',
+          createdAt: new Date('2026-01-01'),
+          following: { id: '2', user: {} },
+        },
       ]);
 
       const result = await service.getFollowing('user1');
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe('2');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0].id).toBe('2');
+      expect(result.nextCursor).toBeUndefined();
+    });
+
+    it('should return nextCursor when a full extra page-plus-one row is fetched', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
+      const rows = Array.from({ length: 21 }, (_, i) => ({
+        id: `f${i}`,
+        createdAt: new Date(2026, 0, 21 - i),
+        follower: { id: `p${i}`, user: {} },
+      }));
+      mockPrismaService.follow.findMany.mockResolvedValue(rows);
+
+      const result = await service.getFollowers('user2');
+      expect(result.data).toHaveLength(20);
+      expect(result.nextCursor).toBe(
+        encodeKeysetCursor({ createdAt: new Date(2026, 0, 2), id: 'f19' }),
+      );
+      expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ take: 21 }),
+      );
+    });
+
+    it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
+      mockPrismaService.follow.findMany.mockResolvedValue([]);
+      const cursor = encodeKeysetCursor({
+        createdAt: new Date('2026-01-05'),
+        id: 'f5',
+      });
+
+      await service.getFollowers('user2', cursor);
+
+      expect(mockPrismaService.follow.findUnique).not.toHaveBeenCalled();
+      expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { createdAt: { lt: new Date('2026-01-05') } },
+              { createdAt: new Date('2026-01-05'), id: { lt: 'f5' } },
+            ],
+          }),
+        }),
+      );
+    });
+
+    it('should degrade to the first page for a malformed or stale cursor', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
+      mockPrismaService.follow.findMany.mockResolvedValue([]);
+
+      await service.getFollowers('user2', 'not-a-valid-cursor');
+
+      expect(mockPrismaService.follow.findUnique).not.toHaveBeenCalled();
+      expect(mockPrismaService.follow.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            followingId: '2',
+            status: 'ACCEPTED',
+          },
+        }),
+      );
     });
   });
 
