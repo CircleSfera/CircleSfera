@@ -1,3 +1,8 @@
+// Despite the name, this service does not relay signaling messages — it
+// holds call state and authorization only. The actual signal transport
+// (SDP/ICE relay, room-targeted emits) is owned by AppGateway
+// (src/socket/app.gateway.ts). See ADR-0012 "Module boundary" for the full
+// split between this service, WebrtcService (ICE config), and AppGateway.
 import * as crypto from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';

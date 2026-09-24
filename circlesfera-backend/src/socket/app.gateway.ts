@@ -354,7 +354,11 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
-  // WebRTC VOIP Signaling
+  // WebRTC VOIP Signaling — this gateway is the sole owner of the signaling
+  // transport (SDP/ICE relay, room-targeted emits). WebrtcSignalingService
+  // (injected above) only decides whether each action is authorized; ICE
+  // server config is a separate REST endpoint in WebrtcModule. See ADR-0012
+  // "Module boundary".
 
   @SubscribeMessage('call:invite')
   @SubscribeMessage('call:initiate')
