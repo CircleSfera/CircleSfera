@@ -1,0 +1,53 @@
+name: Ops — Media entity backfill (MEDIA-005 Phase 1)
+
+# One-shot / occasional VPS ops. Does not deploy images. Runs the compiled
+# backfill script (circlesfera-backend/src/scripts/backfill-media-entity.ts →
+# dist/scripts/backfill-media-entity.js) inside the already-running backend
+# container against the production database.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run_only:
+        description: "If true (default), only report counts — no writes"
+        type: boolean
+        default: true
+
+jobs:
+  ops:
+    name: VPS media backfill
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run media backfill (dry-run or real, per input)
+        uses: appleboy/ssh-action@v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+
+            echo "=== Pre-backfill Postgres dump ==="
+            mkdir -p /srv/circlesfera/backups/postgres
+            set -a
+            # shellcheck disable=SC1091
+            source .env.production
+            set +a
+            DUMP="/srv/circlesfera/backups/postgres/pre_media_backfill_$(date -u +%Y%m%d_%H%M%S).dump"
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+              pg_dump -U "${POSTGRES_USER}" -Fc "${POSTGRES_DB}" > "${DUMP}"
+            echo "✅ Dump: ${DUMP}"
+
+            if [ "${{ inputs.dry_run_only }}" = "true" ]; then
+              echo "=== Media backfill DRY-RUN ==="
+              docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
+                node dist/scripts/backfill-media-entity.js
+            else
+              echo "=== Media backfill REAL (CONFIRM=YES) ==="
+              docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+                -e CONFIRM=YES backend \
+                node dist/scripts/backfill-media-entity.js
+              echo "✅ Backfill finished"
+            fi
+
+            echo "=== Done ==="
