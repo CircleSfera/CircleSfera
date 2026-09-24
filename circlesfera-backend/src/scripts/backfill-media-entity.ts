@@ -24,13 +24,23 @@
  * Reads each slot in pages of BATCH_SIZE (cursor by id), so the script never
  * holds an unbounded result set in memory regardless of table size.
  *
- * Usage (from circlesfera-backend, with DATABASE_URL pointing at the target DB):
+ * Usage (local, from circlesfera-backend/, with DATABASE_URL pointing at the target DB):
  *
  *   # Dry-run (default)
- *   npx tsx scripts/backfill-media-entity.ts
+ *   npx tsx src/scripts/backfill-media-entity.ts
  *
  *   # Apply
- *   CONFIRM=YES npx tsx scripts/backfill-media-entity.ts
+ *   CONFIRM=YES npx tsx src/scripts/backfill-media-entity.ts
+ *
+ * Usage (production container, after nest build — see ops-media-backfill.yml):
+ *
+ *   docker compose -f docker-compose.prod.yml exec backend \
+ *     node dist/scripts/backfill-media-entity.js
+ *
+ *   docker compose -f docker-compose.prod.yml exec -e CONFIRM=YES backend \
+ *     node dist/scripts/backfill-media-entity.js
+ *
+ * ALWAYS take a DB backup before running without dry-run against production.
  */
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
