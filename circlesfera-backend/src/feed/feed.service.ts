@@ -328,6 +328,7 @@ export class FeedService {
           limit,
           skip,
           profileId,
+          asOf,
         );
         return { ...fallback, asOf: asOf.toISOString() };
       }
@@ -425,7 +426,13 @@ export class FeedService {
       return result;
     } catch (error) {
       console.error('Error generating Hybrid Feed:', error);
-      const fallback = await this.getTrendingFeed(page, limit, skip, profileId);
+      const fallback = await this.getTrendingFeed(
+        page,
+        limit,
+        skip,
+        profileId,
+        asOf,
+      );
       return { ...fallback, asOf: asOf.toISOString() };
     }
   }
@@ -641,16 +648,22 @@ export class FeedService {
   }
 
   // Fallback / Trending feed logic
+  // Param asOf: ranking snapshot (DATA-003) carried over from the hybrid
+  // feed when this is used as its fallback — filters out posts created
+  // after the snapshot so the asOf guarantee holds across the fallback too,
+  // not just the score formula on the primary hybrid path.
   private async getTrendingFeed(
     page: number,
     limit: number,
     skip: number,
     currentProfileId?: string | null,
+    asOf?: Date,
   ) {
     const viewerSettings = await this.getViewerContentSettings(
       currentProfileId ?? null,
     );
-    const cacheKey = `feed:trending:user_${currentProfileId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}`;
+    const snapshotKey = asOf ? `:asOf_${asOf.toISOString()}` : '';
+    const cacheKey = `feed:trending:user_${currentProfileId || 'guest'}:page_${page}:limit_${limit}:mature_${viewerSettings.allowMature}${snapshotKey}`;
     const cachedFeed = await this.cacheManager.get(cacheKey);
     if (cachedFeed) {
       return cachedFeed;
@@ -676,6 +689,7 @@ export class FeedService {
       ...(viewerSettings.allowMature
         ? {}
         : { contentRating: 'GENERAL' as const }),
+      ...(asOf ? { createdAt: { lte: asOf } } : {}),
     };
 
     const [posts, total] = await Promise.all([

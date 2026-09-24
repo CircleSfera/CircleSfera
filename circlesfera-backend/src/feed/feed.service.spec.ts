@@ -542,6 +542,13 @@ describe('FeedService', () => {
       })) as any;
       expect(res.data[0].id).toBe('trending-fallback');
       expect(res.asOf).toBe(fixedAsOf);
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: { lte: new Date(fixedAsOf) },
+          }),
+        }),
+      );
     });
 
     it('catches hybrid query errors and falls back to trending, carrying asOf forward (DATA-003)', async () => {
@@ -562,6 +569,13 @@ describe('FeedService', () => {
       })) as any;
       expect(res.data[0].id).toBe('trending-after-error');
       expect(res.asOf).toBe(fixedAsOf);
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: { lte: new Date(fixedAsOf) },
+          }),
+        }),
+      );
     });
 
     it('locks premium posts in hybrid feed and handles recommendation signals', async () => {
