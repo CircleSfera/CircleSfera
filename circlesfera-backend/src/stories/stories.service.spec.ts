@@ -540,13 +540,44 @@ describe('StoriesService', () => {
   });
 
   describe('getReactions', () => {
-    it('should return reactions for the story', async () => {
+    it('should return reactions with public-safe reactor profiles, never the raw User record', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([
-        { id: 'r1' },
+        {
+          id: 'r1',
+          profileId: 'profile-1',
+          reaction: '❤️',
+          profile: {
+            id: 'profile-1',
+            username: 'alice',
+            fullName: 'Alice A',
+            avatar: 'a.jpg',
+            standardUrl: null,
+            thumbnailUrl: null,
+            verificationLevel: 'BASIC',
+            accountType: 'PERSONAL',
+          },
+        },
       ]);
       const result = await service.getReactions('s1');
       expect(result.data).toHaveLength(1);
+      expect(result.data[0].profile.username).toBe('alice');
+      expect(result.data[0].profile).not.toHaveProperty('user');
+      expect(result.data[0].profile).not.toHaveProperty('password');
       expect(result.nextCursor).toBeUndefined();
+      expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: {
+            profile: {
+              select: expect.objectContaining({
+                id: true,
+                username: true,
+                verificationLevel: true,
+                accountType: true,
+              }),
+            },
+          },
+        }),
+      );
     });
 
     it('should decode an opaque cursor into a keyset WHERE clause without any DB lookup', async () => {
