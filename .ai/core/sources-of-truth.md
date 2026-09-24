@@ -2,11 +2,9 @@
 
 **Freshness:** SNAPSHOT, verified 2026-09-05 — see [`context-loading.md`](./context-loading.md).
 
-Precedence is currently defined in [`AGENTS.md`](../../AGENTS.md) ("Fuente de Verdad") as a single
-linear chain. The target model is domain-scoped authority — see [`authority.md`](./authority.md) and
-[`known-gaps.md`](./known-gaps.md) `GAP-001` for the tracked conflict between the two. Until that
-migration lands, this file maps *which question is answered by which artifact* under the current
-`AGENTS.md` precedence, so an agent can stop guessing and go read the right file.
+Authority is domain-scoped. See [`AGENTS.md`](../../AGENTS.md) ("Fuente de Verdad") and
+[`authority.md`](./authority.md) for the current model. This file maps *which question is answered by
+which artifact*, so an agent can stop guessing and go read the right file.
 
 ## Where the answer lives
 

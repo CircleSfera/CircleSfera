@@ -1,15 +1,16 @@
 # Authority registry
 
+**Source:** Notion "Agent Engineering & Governance" — Authority & Source-of-Truth Registry
+Specification. **Verified:** 2026-09-24.
+
 Defines where authority comes from, how it is scoped by question/domain, and how conflicts are
 classified and resolved. Answers **which source governs this fact or decision** — it does not grant
 permission to act; decision authority is [`agent-contract.md`](./agent-contract.md) section 4.
 
-**Status:** target model. `AGENTS.md`'s current "Fuente de verdad" section states a single linear
-precedence (`schema.prisma → código implementado → contratos API vigentes → ADRs →
-circlesfera-documentation/ → suposiciones`) and an explicit "fix documentation, not the system" rule.
-That is a live, currently-governing document contradicting the domain-scoped model below — a Decision
-Conflict, not silently resolved in either direction (tracked in [`known-gaps.md`](./known-gaps.md)).
-Until a human explicitly approves migrating `AGENTS.md` to this model, `AGENTS.md`'s rules govern.
+**Status:** current model. `AGENTS.md`'s "Fuente de verdad" section adopts this domain-scoped
+authority and points here instead of stating a linear precedence or a blanket "fix documentation, not
+the system" rule — see [`known-gaps.md`](./known-gaps.md) `GAP-001` (RESOLVED) for the migration
+evidence.
 
 ## Core model
 

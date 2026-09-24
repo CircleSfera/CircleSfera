@@ -1,5 +1,8 @@
 # Agent contract
 
+**Source:** Notion "Agent Engineering & Governance" — Agent Contract Specification. **Verified:**
+2026-09-24.
+
 The primary operational contract for AI agents working on CircleSfera. It is the framework's entry
 point for behavior and governance — not a replacement for product documentation, ADRs, implementation
 sources, specialists, playbooks, or checklists, and it stays intentionally compact:
@@ -12,11 +15,12 @@ sources, specialists, playbooks, or checklists, and it stays intentionally compa
 - Detailed execution procedures → playbooks (`.ai/playbooks/`).
 - Detailed verification → checklists (`.ai/checklists/`).
 
-**Status:** target architecture per the Notion "Agent Engineering & Governance" specifications
-(source of this file). `AGENTS.md`'s existing rules remain live and governing until a human explicitly
-confirms the adapters (`AGENTS.md`, `.cursor/rules/`, `.agents/`) have been migrated to consume this
-contract instead of restating their own precedence rules — see [`known-gaps.md`](./known-gaps.md) for
-the tracked conflict.
+**Status:** `AGENTS.md`, `.agents/workflows/docs-sync.md`, `.ai/playbooks/docs-sync.md`, and
+`.cursor/rules/80-docs.mdc` now all consume this contract's conflict-classification model instead of
+restating their own precedence rules or a blanket "fix documentation" rule — see
+[`known-gaps.md`](./known-gaps.md) `GAP-001`/`GAP-002` (RESOLVED) for the migration evidence.
+`.cursor/rules/00-global.mdc` already deferred to `AGENTS.md` without an independent claim and needed
+no change.
 
 ## 1. Knowledge classes
 
@@ -42,7 +46,7 @@ Before making a material change, an agent must:
 4. resolve canonical terminology;
 5. inspect current implementation state where relevant;
 6. identify conflicts or unresolved decisions;
-7. determine its decision level (section 5);
+7. determine its decision level (section 4);
 8. assess impact;
 9. act only within established authority;
 10. validate the result;

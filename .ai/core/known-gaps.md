@@ -51,14 +51,17 @@ Agent Framework · Traceability · Other.
 
 - **Status:** RESOLVED
 - **Category:** Agent Framework
-- **Evidence (original):** `.agents/workflows/docs-sync.md:28` and `.ai/playbooks/docs-sync.md:3`
-  both restated GAP-001's blanket rule verbatim (the playbook explicitly citing it as "the governing
-  rule from AGENTS.md").
+- **Evidence (original):** `.agents/workflows/docs-sync.md:28`, `.ai/playbooks/docs-sync.md:3`, and
+  `.cursor/rules/80-docs.mdc:7-8` all restated GAP-001's blanket rule verbatim (the playbook
+  explicitly citing it as "the governing rule from AGENTS.md"). The Cursor adapter was missed in the
+  initial Batch 0 scan and found only via CodeRabbit review on PR #107 — Batch 0's grep pass covered
+  `00-global.mdc`/`05-orchestrator.mdc` in full and the numbered domain rules by grep only, and this
+  particular hit fell through.
 - **Expected State:** adapters and playbooks consume the Authority Registry rather than independently
   redefining conflict-resolution policy.
-- **Resolution:** both files now reference `.ai/core/authority.md`'s four conflict classes instead of
-  the blanket rule. Fixed together with GAP-001 to avoid leaving either file citing a rule that no
-  longer exists in `AGENTS.md`.
+- **Resolution:** all three files now reference `.ai/core/authority.md`'s four conflict classes
+  instead of the blanket rule. Fixed together with GAP-001 to avoid leaving any file citing a rule
+  that no longer exists in `AGENTS.md`.
 - **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 
@@ -90,9 +93,9 @@ Agent Framework · Traceability · Other.
 - **Expected State:** implementation-sensitive counts either come from a current verified source or
   are explicitly labeled SNAPSHOT with a date, per `context-loading.md`'s freshness rules.
 - **Resolution:** re-counted directly (`find circlesfera-backend/src -name "*.module.ts" -not -name
-  "*.spec.ts"`, excluding `app.module.ts`) → **57** feature modules as of 2026-09-24. Both files now
-  state this count with an explicit SNAPSHOT declaration and the exact command used, so the next drift
-  is self-evident instead of silent.
+  "*.spec.ts" -not -name "app.module.ts"`) → **57** feature modules as of 2026-09-24. Both files now
+  state this count with an explicit SNAPSHOT declaration and the exact, reproducible command used, so
+  the next drift is self-evident instead of silent.
 - **Owner:** n/a.
 - **Last Verified:** 2026-09-24.
 

@@ -1,5 +1,8 @@
 # Canonical terminology registry
 
+**Source:** Notion "Agent Engineering & Governance" — Canonical Terminology Registry Specification.
+**Verified:** 2026-09-24 (Account Type mapping cross-checked against current `schema.prisma`).
+
 Canonical terminology every CircleSfera agent, document, and workflow must use. Governs terms whose
 consistency materially affects product meaning, architecture, agent decisions, or cross-document
 interpretation — it is not a general glossary (that's [`glossary.md`](./glossary.md)).

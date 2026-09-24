@@ -1,5 +1,8 @@
 # Deferred decisions registry
 
+**Source:** Notion "Agent Engineering & Governance" — Deferred Decisions Registry Specification.
+**Verified:** 2026-09-24.
+
 Canonical registry for unresolved decisions that are **intentionally not decided yet**. Not a design
 preference, a backlog item, a bug, or an undocumented decision — an explicitly acknowledged unresolved
 matter agents must not silently choose an outcome for.
@@ -31,8 +34,8 @@ autonomously.
 
 ID · Title · Status · Domain (Product / Design / Architecture / Implementation / Security / Data /
 Cross-Domain) · Decision Required · Current State · Known Constraints · Evidence/Sources · Impact ·
-Agent Behavior (may/may not/must) · Resolution Authority · Trigger/Review Condition · Related ADR
-(required once resolved) · Last Verified.
+Agent Behavior (may/may not/must) · Resolution Authority · Trigger/Review Condition · Related ADR or
+authoritative record (required once resolved) · Last Verified.
 
 ## Agent behavior while unresolved
 

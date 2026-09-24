@@ -1,5 +1,8 @@
 # Context loading
 
+**Source:** Notion "Agent Engineering & Governance" — Agent Framework Context & Freshness
+Specification. **Verified:** 2026-09-24.
+
 How agents acquire, prioritize, validate, and refresh project context. Consumed by
 [`agent-contract.md`](./agent-contract.md), `.ai/orchestrator.md`, specialists, playbooks, checklists,
 Antigravity, and Cursor. Goal: prevent stale, excessive, duplicated, or incorrectly authoritative

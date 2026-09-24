@@ -1,5 +1,8 @@
 # Playbook — Documentation sync
 
+**Source:** this repository's engineering process. **Verified:** 2026-09-24 (conflict-classification
+step aligned with `.ai/core/authority.md`).
+
 Documentation and reality disagree. Classify the conflict before fixing either side — see
 [`.ai/core/authority.md`](../core/authority.md): stale documentation → correct it; code that no
 longer follows a valid normative decision → treat as a candidate defect, don't rewrite the
