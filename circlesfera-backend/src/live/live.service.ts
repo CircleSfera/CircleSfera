@@ -26,6 +26,7 @@ import {
   resolveGiftAmountCents,
   resolveGiftName,
 } from './gift-catalog.js';
+import { isStreamCoHost, isStreamHost } from './live-authorization.js';
 
 function appendCheckoutQuery(returnUrl: string, query: string): string {
   const sep = returnUrl.includes('?') ? '&' : '?';
@@ -202,7 +203,7 @@ export class LiveService {
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
       );
-    if (stream.hostId !== hostProfileId)
+    if (!isStreamHost(stream, hostProfileId))
       throw AppException.Forbidden(
         ErrorCode.ONLY_HOST_CAN_INVITE,
         'Only the host can invite a co-host',
@@ -279,7 +280,7 @@ export class LiveService {
         ErrorCode.STREAM_NOT_ACTIVE,
         'Stream is not active',
       );
-    if (stream.coHostId !== profileId)
+    if (!isStreamCoHost(stream, profileId))
       throw AppException.Forbidden(
         ErrorCode.FORBIDDEN_ACCESS,
         'You are not the invited co-host for this stream',
@@ -304,7 +305,7 @@ export class LiveService {
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
       );
-    if (stream.hostId !== hostProfileId)
+    if (!isStreamHost(stream, hostProfileId))
       throw AppException.Forbidden(
         ErrorCode.ONLY_HOST_CAN_REMOVE,
         'Only the host can remove a co-host',
