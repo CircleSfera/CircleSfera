@@ -10,10 +10,8 @@ import {
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
   type Prisma,
-  type Profile,
   type StoryReaction,
   type StoryView,
-  type User,
   Visibility,
 } from '@prisma/client';
 import { Queue } from 'bullmq';
@@ -36,12 +34,6 @@ import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constant
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
-
-export type StoryReactionWithUser = StoryReaction & {
-  user: User & {
-    profile: Profile | null;
-  };
-};
 
 // Public-safe fields for a story viewer/reactor. Deliberately excludes the
 // rest of the User record (password hash, tokens, email, IP hashes, ...) —
@@ -85,6 +77,16 @@ function toSafeStoryViewer(row: StoryViewerRow): SafeStoryViewer {
     profile,
   };
 }
+
+// A story reaction with the reactor's public-safe profile — never the raw
+// User record (password hash, tokens, email, IP hashes, ...). Unlike
+// getViews, this list is not owner-only: every viewer needs it to know
+// their own reaction state (see StoryViewer.tsx's "did I already like
+// this" heart-fill check), so the fix here is data minimization only, not
+// an auth restriction.
+export type SafeStoryReaction = StoryReaction & {
+  profile: StoryViewerRow;
+};
 
 // Service for ephemeral stories (24h expiry), story views, and reactions.
 // Supports close-friends-only visibility and tracks unique view counts.
@@ -580,7 +582,7 @@ export class StoriesService {
     storyId: string,
     cursor?: string,
     limit = 50,
-  ): Promise<KeysetPage<StoryReactionWithUser>> {
+  ): Promise<KeysetPage<SafeStoryReaction>> {
     const cappedLimit = Math.min(limit, 100);
     const decoded = cursor ? decodeKeysetCursor(cursor) : null;
     const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
@@ -588,16 +590,13 @@ export class StoriesService {
     const reactions = await this.prisma.storyReaction.findMany({
       where: { storyId, ...cursorWhere },
       include: {
-        profile: { include: { user: true } },
+        profile: { select: storyViewerSelect },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: cappedLimit + 1,
     });
 
-    return toKeysetPage(
-      reactions as unknown as StoryReactionWithUser[],
-      cappedLimit,
-    );
+    return toKeysetPage(reactions, cappedLimit);
   }
 
   // Job to physically delete expired stories every hour to free up database space.

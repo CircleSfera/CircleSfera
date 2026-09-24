@@ -118,26 +118,28 @@ Agent Framework · Traceability · Other.
 
 ### B7 — `StoriesService.getReactions` exposes the full `User` record, unauthenticated
 
-- **Status:** OPEN
+- **Status:** RESOLVED
 - **Category:** Implementation Drift
-- **Evidence:** `circlesfera-backend/src/stories/stories.service.ts` — `getReactions` does
-  `include: { profile: { include: { user: true } } }` and returns the raw joined object
+- **Evidence (original):** `circlesfera-backend/src/stories/stories.service.ts` — `getReactions` did
+  `include: { profile: { include: { user: true } } }` and returned the raw joined object
   (`StoryReactionWithUser`), same shape `getViews` used before DATA-003 (PR #108). `GET
   /stories/:id/reactions` in `stories.controller.ts` carries no auth guard.
 - **Expected State:** only public-safe fields returned (no password hash, tokens, email, IP hashes),
   per the same standard `getViews` was brought to in PR #108 — see
   [ADR-0022](../../circlesfera-documentation/adr/0022-pagination-and-high-volume-query-policy.md).
-- **Observed State:** unauthenticated `GET /stories/:id/reactions` still returns the full `User`
-  record for every reactor.
-- **Impact:** same class of finding as the `getViews` password-hash leak CodeRabbit caught on PR
-  #108 (fixed there). Not fixed here because it fell outside that PR's confirmed scope (CodeRabbit's
-  review flagged `getViews` specifically, not `getReactions`) and reactions are plausibly meant to be
-  public (unlike view lists) — that judgment call (public-by-design vs. same bug) needs a decision,
-  not just a mechanical field-select fix like `getViews` got.
-- **Authority / Resolution Path:** `schema-change`/`feature` playbook if an auth restriction is
-  decided; a data-minimization-only fix (explicit `select`, no guard change) needs no extra
-  confirmation per `AGENTS.md`'s change policy.
-- **Owner:** unassigned.
+- **Resolution:** checked `StoryViewer.tsx` before deciding the fix shape — `getReactions` is fetched
+  unconditionally for *every* viewer (not owner-gated), because each viewer needs it to compute their
+  own "did I already like this" heart-fill state (`reactions.some(r => r.profileId === profile?.id...
+  )`); only the *rendered list* of reactors is owner-gated in the UI. Restricting the endpoint to the
+  owner, like `getViews`, would have broken that feature for every non-owner viewer — so this was
+  **not** the same bug as `getViews`, just superficially similar. Fixed with data minimization only,
+  no auth-guard change: `getReactions` now selects the same public-safe Profile fields `getViews`
+  uses (`storyViewerSelect`/`SafeStoryReaction` in `stories.service.ts`), never the raw `User`.
+- **Impact:** none remaining — password hash and other secrets are no longer selectable through this
+  endpoint; the endpoint's accessibility (unauthenticated, any viewer) is unchanged by design.
+- **Authority / Resolution Path:** data-minimization-only fix, no auth/permission change — did not
+  require the `MUST CONFIRM` gate in `AGENTS.md`'s change policy.
+- **Owner:** n/a.
 - **Last Verified:** 2026-09-25.
 
 ## Frontend
