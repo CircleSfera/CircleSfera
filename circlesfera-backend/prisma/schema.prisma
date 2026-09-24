@@ -248,6 +248,7 @@ model Media {
   collections    Collection[]
 
   @@index([status])
+  @@index([url])
   @@map("media")
 }
 
@@ -272,9 +273,9 @@ model Profile {
 
   // Not read by application code yet, see Media model.
   avatarMediaId String?
-  avatarMedia   Media?  @relation("ProfileAvatarMedia", fields: [avatarMediaId], references: [id])
+  avatarMedia   Media?  @relation("ProfileAvatarMedia", fields: [avatarMediaId], references: [id], onDelete: SetNull)
   coverMediaId  String?
-  coverMedia    Media?  @relation("ProfileCoverMedia", fields: [coverMediaId], references: [id])
+  coverMedia    Media?  @relation("ProfileCoverMedia", fields: [coverMediaId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -423,7 +424,7 @@ model PostMedia {
 
   // Not read by application code yet, see Media model.
   mediaId String?
-  media   Media?  @relation(fields: [mediaId], references: [id])
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   @@index([postId])
   @@map("post_media")
@@ -524,7 +525,7 @@ model Story {
 
   // Not read by application code yet, see Media model.
   mediaId String?
-  media   Media?  @relation(fields: [mediaId], references: [id])
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   audioId      String?
   audio        Audio?  @relation(fields: [audioId], references: [id], onDelete: SetNull)
@@ -657,9 +658,9 @@ model Comment {
 
   // Not read by application code yet, see Media model.
   mediaId      String?
-  media        Media?  @relation("CommentMedia", fields: [mediaId], references: [id])
+  media        Media?  @relation("CommentMedia", fields: [mediaId], references: [id], onDelete: SetNull)
   voiceMediaId String?
-  voiceMedia   Media?  @relation("CommentVoiceMedia", fields: [voiceMediaId], references: [id])
+  voiceMedia   Media?  @relation("CommentVoiceMedia", fields: [voiceMediaId], references: [id], onDelete: SetNull)
 
   post    Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
@@ -808,7 +809,7 @@ model Collection {
 
   // Not read by application code yet, see Media model.
   mediaId String?
-  media   Media?  @relation(fields: [mediaId], references: [id])
+  media   Media?  @relation(fields: [mediaId], references: [id], onDelete: SetNull)
 
   @@index([profileId])
   @@map("collections")
@@ -1018,9 +1019,9 @@ model Message {
 
   // Not read by application code yet, see Media model.
   mediaId      String?
-  media        Media?  @relation("MessageMedia", fields: [mediaId], references: [id])
+  media        Media?  @relation("MessageMedia", fields: [mediaId], references: [id], onDelete: SetNull)
   voiceMediaId String?
-  voiceMedia   Media?  @relation("MessageVoiceMedia", fields: [voiceMediaId], references: [id])
+  voiceMedia   Media?  @relation("MessageVoiceMedia", fields: [voiceMediaId], references: [id], onDelete: SetNull)
 
   // GDPR: Retention
 

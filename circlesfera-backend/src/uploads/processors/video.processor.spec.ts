@@ -586,6 +586,34 @@ describe('VideoProcessor', () => {
     expect(mockPrisma.media.updateMany).not.toHaveBeenCalled();
   });
 
+  it('marks the matching Media row FAILED on UnrecoverableError even with retry attempts remaining', async () => {
+    // BullMQ never retries an UnrecoverableError regardless of attemptsMade,
+    // so this is a final state as soon as it's thrown — unlike a transient
+    // transcode failure, it must not wait for attemptsMade to catch up.
+    const job = {
+      id: 'job-unrecoverable-invalid-uuid',
+      data: {
+        url: '/uploads/not-a-valid-uuid.mp4',
+        userId: 'user-1',
+      },
+      opts: { attempts: 3 },
+      attemptsMade: 0,
+    } as unknown as Job<{ url: string; userId?: string }>;
+
+    await expect(processor.process(job)).rejects.toThrow(
+      /is not a valid UUID v4/,
+    );
+
+    expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
+      where: { url: '/uploads/not-a-valid-uuid.mp4' },
+      data: {
+        status: 'FAILED',
+        failedAt: expect.any(Date),
+        failureReason: expect.stringContaining('is not a valid UUID v4'),
+      },
+    });
+  });
+
   it('handles statSync exception when checking if already transcoded', async () => {
     const validUuid = '12345678-1234-4234-8234-123456789abc';
     const job = {

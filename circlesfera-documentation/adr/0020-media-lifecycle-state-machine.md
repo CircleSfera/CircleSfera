@@ -55,7 +55,7 @@ with one authoritative implementation, not a ninth or tenth copy of ad hoc nulla
 
 Introduce a `Media` entity as the single source of truth for upload lifecycle state, referenced by a
 nullable foreign key from each of the 7 owning models. Roll it out in three releases, matching this
-repo's Expand/Contract backward-compatibility rule (`.ai/playbooks/schema-change.md` §4) — a
+repo's Expand/Contract backward-compatibility rule (`.ai/playbooks/schema-change.md` section 4) — a
 single-PR "big bang" migration touching 9 slots' worth of read and write sites is not verifiable with
 enough confidence to ship safely in one step, and would leave rollback unavailable if anything broke.
 
@@ -102,11 +102,14 @@ Purely additive, zero functional/behavioral change:
 
 1. Add the `Media` model and the 9 nullable `mediaId` columns via migration.
 2. Backfill script: for every existing non-null `url` across the 9 slots, create one `Media` row
-   (`kind` inferred from the slot; `status: READY` if a `standardUrl`/`thumbnailUrl` variant exists
-   where one is expected, `status: PENDING` for image-only slots that never produce those variants by
-   design, `status: FAILED` for a video slot whose variant columns are still null — this is exactly
-   the one confirmed gap becoming visible for the first time instead of staying silent) and set the
-   corresponding `mediaId`.
+   (`kind` inferred from the slot) and set the corresponding `mediaId` in the same atomic write.
+   Image and audio slots are always synchronous uploads, so they backfill as `status: READY`
+   unconditionally. A video slot backfills as `READY` if a `standardUrl`/`thumbnailUrl` variant
+   already exists; otherwise it backfills as `PENDING` if the row is younger than 24h (transcode may
+   still be queued or retrying) or `FAILED` if the row is 24h or older with no variant — this is
+   exactly the one confirmed gap becoming visible for the first time instead of staying silent. The
+   script paginates each slot by id cursor rather than loading it in one unbounded query, so it is
+   safe to run against a table of any size.
 3. Existing inline URL columns are **not touched** and remain the sole read path for all application
    code. `Media` rows exist but nothing reads them yet.
 4. Update `video.processor.ts` to also write `status`/`failedAt`/`failureReason` onto the matching
@@ -144,7 +147,12 @@ inline URL/variant columns from the 7 models. Destructive; requires its own conf
 **Accepted costs.** Phase 1 adds one new table and 9 nullable columns that nothing reads yet — dead
 weight until Phase 2 ships. The backfill script must run once against production data before Phase 1
 is considered complete; it is read-heavy (one pass over 9 tables) but write-light (only inserts new
-`Media` rows and sets new FK columns, never touches existing columns).
+`Media` rows and sets new FK columns, never touches existing columns). Every `mediaId` FK uses
+`onDelete: SetNull`, so deleting an owning row (a post's `PostMedia`, a `Story`, etc.) nulls out that
+FK but does not delete the `Media` row itself — it becomes an orphan with no owner. Phase 1 accepts
+this: cleaning up orphaned `Media` rows (a scheduled job, or a `DELETE ... WHERE NOT EXISTS` reverse
+lookup across all 9 owning tables) is deferred to Phase 2/3, since nothing reads `Media` rows yet and
+an unreferenced row is inert, not actively wrong.
 
 **Constraints this imposes.** Any new content type that stores an uploaded asset going forward should
 get a `mediaId` relation to `Media` from day one rather than inline URL columns, to avoid growing a

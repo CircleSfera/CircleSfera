@@ -367,10 +367,13 @@ export class VideoProcessor extends WorkerHost {
 
       // Only mark Media FAILED once BullMQ has exhausted retries — a
       // mid-retry failure isn't a permanent state, so it shouldn't be
-      // reported as one.
+      // reported as one. UnrecoverableError always counts as final: BullMQ
+      // never retries it regardless of how many attempts remain.
       const totalAttempts = job.opts?.attempts ?? 1;
       const attemptsMade = job.attemptsMade ?? 0;
-      const isFinalAttempt = attemptsMade + 1 >= totalAttempts;
+      const isFinalAttempt =
+        error instanceof UnrecoverableError ||
+        attemptsMade + 1 >= totalAttempts;
       if (isFinalAttempt) {
         await this.prisma.media
           .updateMany({
