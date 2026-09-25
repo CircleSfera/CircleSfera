@@ -28,8 +28,6 @@ export class AccountDeletionProcessor extends WorkerHost {
 
   async process(job: Job<any, any, string>): Promise<any> {
     switch (job.name) {
-      case 'clean-expired-search-history':
-        return this.cleanExpiredSearchHistory();
       case 'clean-expired-accounts':
         return this.cleanExpiredAccounts();
       case 'hard-delete-user':
@@ -38,24 +36,6 @@ export class AccountDeletionProcessor extends WorkerHost {
         throw new UnrecoverableError(
           `Unknown job name in AccountDeletionProcessor: ${job.name}`,
         );
-    }
-  }
-
-  async cleanExpiredSearchHistory() {
-    this.logger.log('Starting daily purge of expired SearchHistory...');
-    try {
-      const result = await this.prisma.searchHistory.deleteMany({
-        where: {
-          expiresAt: {
-            lt: new Date(),
-          },
-        },
-      });
-      this.logger.log(`Purged ${result.count} expired search history records.`);
-      return result;
-    } catch (error) {
-      this.logger.error('Failed to purge expired search history', error);
-      throw error;
     }
   }
 

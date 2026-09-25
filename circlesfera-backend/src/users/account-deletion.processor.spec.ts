@@ -296,17 +296,6 @@ describe('AccountDeletionProcessor', () => {
   });
 
   describe('process() router', () => {
-    it('dispatches clean-expired-search-history', async () => {
-      const spy = vi
-        .spyOn(processor, 'cleanExpiredSearchHistory')
-        .mockResolvedValue({ count: 5 });
-      const res = await processor.process({
-        name: 'clean-expired-search-history',
-      } as any);
-      expect(spy).toHaveBeenCalled();
-      expect(res).toEqual({ count: 5 });
-    });
-
     it('dispatches clean-expired-accounts', async () => {
       const spy = vi
         .spyOn(processor, 'cleanExpiredAccounts')
@@ -334,26 +323,6 @@ describe('AccountDeletionProcessor', () => {
         processor.process({ name: 'unknown-job' } as any),
       ).rejects.toThrow(
         'Unknown job name in AccountDeletionProcessor: unknown-job',
-      );
-    });
-  });
-
-  describe('cleanExpiredSearchHistory', () => {
-    it('purges expired search histories', async () => {
-      mockPrisma.searchHistory.deleteMany.mockResolvedValue({ count: 12 });
-      const res = await processor.cleanExpiredSearchHistory();
-      expect(mockPrisma.searchHistory.deleteMany).toHaveBeenCalledWith({
-        where: { expiresAt: { lt: expect.any(Date) } },
-      });
-      expect(res).toEqual({ count: 12 });
-    });
-
-    it('rethrows if deleteMany throws error', async () => {
-      mockPrisma.searchHistory.deleteMany.mockRejectedValue(
-        new Error('DB search error'),
-      );
-      await expect(processor.cleanExpiredSearchHistory()).rejects.toThrow(
-        'DB search error',
       );
     });
   });

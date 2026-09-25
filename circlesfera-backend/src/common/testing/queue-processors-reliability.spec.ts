@@ -24,7 +24,6 @@ describe('Queue Processors Reliability & Error Handling', () => {
     beforeEach(() => {
       mockAccountDeletion = {
         process: vi.fn(),
-        cleanExpiredSearchHistory: vi.fn(),
         cleanExpiredAccounts: vi.fn(),
         hardDeleteUser: vi.fn(),
       };
@@ -59,27 +58,6 @@ describe('Queue Processors Reliability & Error Handling', () => {
       const job = { name: 'unknown-user-job', data: {} } as any;
       await expect(usersProcessor.process(job)).rejects.toThrow(
         UnrecoverableError,
-      );
-    });
-
-    it('AccountDeletionProcessor re-throws DB errors in cleanExpiredSearchHistory', async () => {
-      const mockPrisma = {
-        searchHistory: {
-          deleteMany: vi
-            .fn()
-            .mockRejectedValue(new Error('Postgres connection lost')),
-        },
-      } as any;
-      const proc = new AccountDeletionProcessor(
-        mockPrisma,
-        {} as any,
-        {} as any,
-        {} as any,
-        {} as any,
-      );
-
-      await expect(proc.cleanExpiredSearchHistory()).rejects.toThrow(
-        'Postgres connection lost',
       );
     });
 

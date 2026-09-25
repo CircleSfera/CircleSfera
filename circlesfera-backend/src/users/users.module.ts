@@ -46,10 +46,15 @@ export class UsersModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.usersQueue.add(
+    // DATA-005: SearchHistory TTL purge consolidated into
+    // MaintenanceService.cleanupOldSearchHistory (the only implementation that
+    // ever actually matched rows, since expiresAt was never populated here).
+    // Remove any pre-existing repeatable registration from before this change
+    // so it doesn't keep firing against a handler that no longer exists.
+    await this.usersQueue.removeRepeatable(
       'clean-expired-search-history',
-      {},
-      { repeat: { pattern: '0 2 * * *' }, jobId: 'gdpr_search_cron' },
+      { pattern: '0 2 * * *' },
+      'gdpr_search_cron',
     );
     await this.usersQueue.add(
       'clean-expired-data-exports',

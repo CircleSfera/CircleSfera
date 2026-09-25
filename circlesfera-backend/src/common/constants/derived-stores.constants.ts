@@ -112,16 +112,16 @@ export const DERIVED_STORES = {
    */
   SEARCH_HISTORY: {
     name: 'User Search History',
-    owner: 'SearchService / AccountDeletionProcessor',
+    owner: 'SearchService / MaintenanceService',
     storageMedium: 'search_history (PostgreSQL)',
     canonicalSource: 'User-submitted search queries',
     deletionTrigger:
-      '90-day GDPR retention TTL or Profile deletion or manual clear',
+      '90-day GDPR retention TTL or Profile deletion or manual clear or account hard-deletion',
     deletionMethod:
-      'AccountDeletionProcessor.cleanExpiredSearchHistory / onDelete: Cascade / SearchService.clearHistory',
+      'MaintenanceService.cleanupOldSearchHistory (daily cron; expiresAt set at write time, with a createdAt fallback for legacy rows) / onDelete: Cascade / SearchService.clearHistory / SearchService.handleUserHardDeleted (USER_HARD_DELETED_EVENT)',
     rebuildSource: 'Non-reconstructible (ephemeral user interaction log)',
     rebuildMethod: 'N/A (audit log, not derived projection)',
-    maxRetentionWindow: '90 days (expiresAt)',
+    maxRetentionWindow: '90 days (expiresAt, set at write time)',
     isRebuildable: false,
   },
 
