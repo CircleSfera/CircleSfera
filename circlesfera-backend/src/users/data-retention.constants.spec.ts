@@ -9,6 +9,7 @@ describe('DATA_RETENTION_POLICY', () => {
     const expectedModels = [
       'Transaction',
       'StripePayoutLog',
+      'LiveGift',
       'PlatformSubscription',
       'Monetization',
       'Promotion',
@@ -19,11 +20,14 @@ describe('DATA_RETENTION_POLICY', () => {
     }
   });
 
-  it('assigns FINANCIAL_AUDIT class to Transaction, StripePayoutLog and PlatformSubscription', () => {
+  it('assigns FINANCIAL_AUDIT class to Transaction, StripePayoutLog, LiveGift and PlatformSubscription', () => {
     expect(DATA_RETENTION_POLICY.Transaction.retentionClass).toBe(
       'FINANCIAL_AUDIT',
     );
     expect(DATA_RETENTION_POLICY.StripePayoutLog.retentionClass).toBe(
+      'FINANCIAL_AUDIT',
+    );
+    expect(DATA_RETENTION_POLICY.LiveGift.retentionClass).toBe(
       'FINANCIAL_AUDIT',
     );
     expect(DATA_RETENTION_POLICY.PlatformSubscription.retentionClass).toBe(
@@ -88,10 +92,11 @@ describe('getFinancialAuditRecords', () => {
     }
   });
 
-  it('includes Transaction, StripePayoutLog and PlatformSubscription', () => {
+  it('includes Transaction, StripePayoutLog, LiveGift and PlatformSubscription', () => {
     const models = getFinancialAuditRecords().map((r) => r.model);
     expect(models).toContain('Transaction');
     expect(models).toContain('StripePayoutLog');
+    expect(models).toContain('LiveGift');
     expect(models).toContain('PlatformSubscription');
   });
 
