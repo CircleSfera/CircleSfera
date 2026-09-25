@@ -1340,12 +1340,13 @@ describe('AppGateway payload bounds and authorization', () => {
 
       gateway.handleChatMessageSent({
         participants: [{ profileId: 'p-1' }, { profileId: 'p-2' }],
-        payload: { conversationId: 'c-1', text: 'hello' },
+        payload: { id: 'msg-1', conversationId: 'c-1', text: 'hello' },
       });
 
       expect(mockTo).toHaveBeenCalledWith('user:p-1');
       expect(mockTo).toHaveBeenCalledWith('user:p-2');
       expect(mockEmit).toHaveBeenCalledWith('receiveMessage', {
+        id: 'msg-1',
         conversationId: 'c-1',
         text: 'hello',
       });
@@ -1365,6 +1366,7 @@ describe('AppGateway payload bounds and authorization', () => {
       gateway.handleChatMessageSent({
         participants: [{ profileId: 'sender-1' }, { profileId: 'recipient-1' }],
         payload: {
+          id: 'msg-2',
           conversationId: 'c-1',
           senderId: 'sender-1',
           isLocked: true,
@@ -1419,13 +1421,13 @@ describe('AppGateway payload bounds and authorization', () => {
 
       gateway.handleChatMessageEdited({
         participants: [{ profileId: 'p-1' }],
-        payload: { messageId: 'm-1', text: 'edited' },
+        payload: { id: 'm-1', content: 'edited' },
       });
 
       expect(mockTo).toHaveBeenCalledWith('user:p-1');
       expect(mockEmit).toHaveBeenCalledWith('message_edited', {
-        messageId: 'm-1',
-        text: 'edited',
+        id: 'm-1',
+        content: 'edited',
       });
     });
 
@@ -1436,12 +1438,12 @@ describe('AppGateway payload bounds and authorization', () => {
 
       gateway.handleChatConversationUpdated({
         participants: [{ profileId: 'p-1' }],
-        payload: { conversationId: 'c-1', title: 'New Title' },
+        payload: { id: 'c-1', title: 'New Title' },
       });
 
       expect(mockTo).toHaveBeenCalledWith('user:p-1');
       expect(mockEmit).toHaveBeenCalledWith('conversation_updated', {
-        conversationId: 'c-1',
+        id: 'c-1',
         title: 'New Title',
       });
     });

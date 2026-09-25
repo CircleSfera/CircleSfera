@@ -1,3 +1,4 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -86,7 +87,7 @@ export class CommentsService {
         type: 'COMMENT',
         content: 'commented on your post',
         postId: post.id,
-      });
+      } satisfies NotificationCreateEvent['payload']);
     }
 
     // Handle Mentions
@@ -118,7 +119,7 @@ export class CommentsService {
               type: NotificationType.MENTION,
               content: 'mentioned you in a comment',
               postId: post.id,
-            }),
+            } satisfies NotificationCreateEvent['payload']),
           ),
         );
       }
@@ -140,7 +141,7 @@ export class CommentsService {
           type: 'COMMENT',
           content: 'replied to your comment',
           postId: post.id,
-        });
+        } satisfies NotificationCreateEvent['payload']);
       }
     }
 
@@ -296,7 +297,7 @@ export class CommentsService {
           type: NotificationType.COMMENT_LIKE,
           content: 'liked your comment.',
           postId: comment.postId,
-        });
+        } satisfies NotificationCreateEvent['payload']);
       }
     }
   }

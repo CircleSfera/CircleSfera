@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { type ChatMessageDeletedEvent, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -41,10 +41,11 @@ export class DeleteMessageUseCase {
       },
     });
 
-    this.eventEmitter.emit('chat.message.deleted', {
+    const event: ChatMessageDeletedEvent['payload'] = {
       participants: message.conversation.participants,
       payload: { messageId },
-    });
+    };
+    this.eventEmitter.emit('chat.message.deleted', event);
 
     return { success: true, message: updated };
   }

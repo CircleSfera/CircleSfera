@@ -1,3 +1,4 @@
+import type { ModerationReportFiledEvent } from '@circlesfera/shared';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
@@ -30,13 +31,14 @@ export class AppealsService {
       },
     });
 
-    this.eventEmitter.emit('moderation.report_filed', {
+    const reportFiledEvent: ModerationReportFiledEvent['payload'] = {
       reportId: appeal.id,
       reporterId: userId,
       targetType: dto.targetType,
       targetId: dto.targetId || 'N/A',
       reason: `New Appeal Created: ${dto.reason}`,
-    });
+    };
+    this.eventEmitter.emit('moderation.report_filed', reportFiledEvent);
 
     return appeal;
   }
@@ -226,13 +228,14 @@ export class AppealsService {
       })
       .catch((e) => console.error(e));
 
-    this.eventEmitter.emit('moderation.report_filed', {
+    const statusEvent: ModerationReportFiledEvent['payload'] = {
       reportId: appeal.id,
       reporterId: appeal.userId,
       targetType: appeal.targetType,
       targetId: appeal.targetId || 'N/A',
       reason: `Appeal Status Updated: ${dto.status}. Notes: ${dto.adminNotes || 'None'}`,
-    });
+    };
+    this.eventEmitter.emit('moderation.report_filed', statusEvent);
 
     const outcomeLabel =
       dto.status === 'APPROVED'

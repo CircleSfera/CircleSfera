@@ -1,4 +1,8 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  type ChatConversationDeletedEvent,
+  type ChatConversationUpdatedEvent,
+  ErrorCode,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -46,16 +50,18 @@ export class LeaveGroupUseCase {
     });
 
     if (updated) {
-      this.eventEmitter.emit('chat.conversation.updated', {
+      const updatedEvent: ChatConversationUpdatedEvent['payload'] = {
         participants: updated.participants || [],
         payload: updated,
-      });
+      };
+      this.eventEmitter.emit('chat.conversation.updated', updatedEvent);
     }
 
-    this.eventEmitter.emit('chat.conversation.deleted', {
+    const deletedEvent: ChatConversationDeletedEvent['payload'] = {
       participants: [{ profileId }],
       payload: { conversationId },
-    });
+    };
+    this.eventEmitter.emit('chat.conversation.deleted', deletedEvent);
 
     return { success: true };
   }

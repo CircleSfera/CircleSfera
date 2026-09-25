@@ -1,4 +1,14 @@
 import * as crypto from 'node:crypto';
+import type {
+  ChatConversationCreatedEvent,
+  ChatConversationDeletedEvent,
+  ChatConversationUpdatedEvent,
+  ChatMessageDeletedEvent,
+  ChatMessageEditedEvent,
+  ChatMessageSentEvent,
+  NotificationDispatchedEvent,
+  UserSessionTerminateEvent,
+} from '@circlesfera/shared';
 import { Inject, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
@@ -870,15 +880,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // --- EDA Domain Event Listeners ---
 
   @OnEvent('chat.message.sent')
-  handleChatMessageSent(event: {
-    participants: { profileId: string }[];
-    payload: {
-      conversationId: string;
-      senderId?: string;
-      isLocked?: boolean;
-      [key: string]: unknown;
-    };
-  }) {
+  handleChatMessageSent(event: ChatMessageSentEvent['payload']) {
     event.participants?.forEach((p) => {
       this.addConversationToSocket(p.profileId, event.payload.conversationId);
       // A message just sent can't have been unlocked yet by anyone but the
@@ -901,10 +903,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @OnEvent('chat.message.deleted')
-  handleChatMessageDeleted(event: {
-    participants: { profileId: string }[];
-    payload: { messageId: string; [key: string]: unknown };
-  }) {
+  handleChatMessageDeleted(event: ChatMessageDeletedEvent['payload']) {
     event.participants?.forEach((p) => {
       this.server
         .to(`user:${p.profileId}`)
@@ -913,10 +912,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @OnEvent('chat.message.edited')
-  handleChatMessageEdited(event: {
-    participants: { profileId: string }[];
-    payload: { messageId: string; [key: string]: unknown };
-  }) {
+  handleChatMessageEdited(event: ChatMessageEditedEvent['payload']) {
     event.participants?.forEach((p) => {
       this.server
         .to(`user:${p.profileId}`)
@@ -925,10 +921,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @OnEvent('chat.conversation.updated')
-  handleChatConversationUpdated(event: {
-    participants: { profileId: string }[];
-    payload: { conversationId: string; [key: string]: unknown };
-  }) {
+  handleChatConversationUpdated(
+    event: ChatConversationUpdatedEvent['payload'],
+  ) {
     event.participants?.forEach((p) => {
       this.server
         .to(`user:${p.profileId}`)
@@ -937,10 +932,9 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @OnEvent('chat.conversation.deleted')
-  handleChatConversationDeleted(event: {
-    participants: { profileId: string }[];
-    payload: { conversationId: string; [key: string]: unknown };
-  }) {
+  handleChatConversationDeleted(
+    event: ChatConversationDeletedEvent['payload'],
+  ) {
     event.participants?.forEach((p) => {
       this.server
         .to(`user:${p.profileId}`)
@@ -949,38 +943,23 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @OnEvent('chat.conversation.created')
-  handleChatConversationCreated(event: {
-    conversation: {
-      id: string;
-      participants: { profileId: string }[];
-    };
-  }) {
+  handleChatConversationCreated(
+    event: ChatConversationCreatedEvent['payload'],
+  ) {
     event.conversation?.participants?.forEach((p) => {
       this.addConversationToSocket(p.profileId, event.conversation.id);
     });
   }
 
   @OnEvent('notification.dispatched')
-  handleNotificationDispatched(event: {
-    recipientId: string;
-    notification: {
-      id: string;
-      type: string;
-      content: string;
-      [key: string]: unknown;
-    };
-  }) {
+  handleNotificationDispatched(event: NotificationDispatchedEvent['payload']) {
     if (event?.recipientId && event?.notification) {
       this.sendNotification(event.recipientId, event.notification);
     }
   }
 
   @OnEvent('user.session.terminate')
-  handleUserSessionTerminate(event: {
-    userId: string;
-    profileId?: string;
-    reason?: string;
-  }) {
+  handleUserSessionTerminate(event: UserSessionTerminateEvent['payload']) {
     const { userId, profileId, reason = 'Account state changed' } = event;
     this.logger.log(
       `Terminating realtime sessions for user=${userId} profile=${profileId} (reason: ${reason})`,

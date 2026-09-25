@@ -1,3 +1,4 @@
+import type { ChatConversationUpdatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../prisma/prisma.service.js';
@@ -47,10 +48,11 @@ export class UpdateGroupUseCase {
       },
     });
 
-    this.eventEmitter.emit('chat.conversation.updated', {
+    const event: ChatConversationUpdatedEvent['payload'] = {
       participants: updated.participants || [],
       payload: updated,
-    });
+    };
+    this.eventEmitter.emit('chat.conversation.updated', event);
 
     return updated;
   }

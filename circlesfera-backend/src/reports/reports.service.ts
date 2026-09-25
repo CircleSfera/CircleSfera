@@ -1,4 +1,8 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  ErrorCode,
+  type ModerationReportFiledEvent,
+  type NotificationCreateEvent,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -98,14 +102,15 @@ export class ReportsService {
       },
     })) as Report;
 
-    this.eventEmitter.emit('moderation.report_filed', {
+    const event: ModerationReportFiledEvent['payload'] = {
       reportId: report.id,
       reporterId,
       targetType: dto.targetType,
       targetId: dto.targetId,
       reason: dto.reason,
       details: finalDetails || undefined,
-    });
+    };
+    this.eventEmitter.emit('moderation.report_filed', event);
 
     return report;
   }
@@ -191,7 +196,7 @@ export class ReportsService {
           content: `Your report (${existing.targetType}) was updated to ${status}.`,
           postId:
             existing.targetType === 'POST' ? existing.targetId : undefined,
-        });
+        } satisfies NotificationCreateEvent['payload']);
       }
     }
 

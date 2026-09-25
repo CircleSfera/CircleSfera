@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { type ChatMessageEditedEvent, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -48,10 +48,11 @@ export class EditMessageUseCase {
     });
 
     updated.content = newContent;
-    this.eventEmitter.emit('chat.message.edited', {
+    const event: ChatMessageEditedEvent['payload'] = {
       participants: message.conversation.participants,
       payload: updated,
-    });
+    };
+    this.eventEmitter.emit('chat.message.edited', event);
 
     return updated;
   }

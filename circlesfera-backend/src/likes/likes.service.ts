@@ -1,3 +1,4 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -74,7 +75,7 @@ export class LikesService {
           type: NotificationType.LIKE,
           content: 'liked your post',
           postId: post.id,
-        });
+        } satisfies NotificationCreateEvent['payload']);
       }
 
       this.analyticsQueue

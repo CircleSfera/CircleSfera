@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, type PaymentAlertEvent } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -681,13 +681,14 @@ export class PaymentsService {
             }
           }
 
-          this.eventEmitter.emit('payment.alert', {
+          const alertEvent: PaymentAlertEvent['payload'] = {
             eventType: 'Platform Subscription Checkout',
             amount: session.amount_total || 0,
             currency: session.currency || 'eur',
             description: `User ${userId} subscribed to plan ${planId}`,
             userId: userId,
-          });
+          };
+          this.eventEmitter.emit('payment.alert', alertEvent);
         }
 
         break;
