@@ -256,7 +256,7 @@ export function isCriticalEvent<T extends CriticalEventType>(
 export const EVENT_OWNERS: Record<CriticalEventType, string> = {
   'payment.live_gift_completed': 'LiveGiftService',
   'user.hard_deleted': 'AccountDeletionProcessor',
-  'notification.dispatched': 'NotificationsService',
+  'notification.dispatched': 'AppGateway',
   'media.delete_batch': 'AccountDeletionProcessor / UploadsService',
   'system.incident': 'SlackService',
   'system.metrics.operational': 'OperationalMetricsService',
