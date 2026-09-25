@@ -13,9 +13,9 @@ import {
 } from './queue-policy.constants.js';
 
 describe('Queue Policy Constants & Helpers', () => {
-  it('defines all 13 canonical queues in the system', () => {
+  it('defines all 14 canonical queues in the system', () => {
     const queueValues = Object.values(QUEUE_NAMES);
-    expect(queueValues).toHaveLength(13);
+    expect(queueValues).toHaveLength(14);
     expect(queueValues).toContain('users-processing');
     expect(queueValues).toContain('feed-fanout');
     expect(queueValues).toContain('notifications-processing');
@@ -29,6 +29,7 @@ describe('Queue Policy Constants & Helpers', () => {
     expect(queueValues).toContain('chat-processing');
     expect(queueValues).toContain('slack-processing');
     expect(queueValues).toContain('warehouse-export');
+    expect(queueValues).toContain('email-processing');
   });
 
   it('defines explicit policies for every canonical queue', () => {

@@ -287,6 +287,35 @@ export class StripeService implements OnModuleInit {
   }
 }
 
+export type StripeFailureClass = 'transient' | 'permanent';
+
+// Classifies a Stripe SDK error by retryability (INT-001). Nothing in this
+// codebase previously distinguished a permanent failure (bad card, invalid
+// request, bad API key -- will fail identically on retry) from a transient
+// one (network blip, Stripe-side outage, rate limit -- worth retrying).
+// Exported so callers can log/branch on it without duplicating the
+// Stripe.errors class list. Note this classifies the SDK call itself;
+// Stripe's own webhook redelivery + the reconciliation cron
+// (reconcileStuckWebhookEvents) already provide retry for the webhook path
+// independent of this.
+export function classifyStripeError(error: unknown): StripeFailureClass {
+  if (!(error instanceof Stripe.errors.StripeError)) {
+    return 'transient'; // Network/timeout/unknown -- assume worth retrying.
+  }
+  if (
+    error instanceof Stripe.errors.StripeConnectionError ||
+    error instanceof Stripe.errors.StripeAPIError ||
+    error instanceof Stripe.errors.StripeRateLimitError
+  ) {
+    return 'transient';
+  }
+  // StripeCardError, StripeInvalidRequestError, StripeAuthenticationError,
+  // StripePermissionError, StripeIdempotencyError,
+  // StripeSignatureVerificationError -- all indicate a request that will
+  // fail the same way if simply retried unchanged.
+  return 'permanent';
+}
+
 export interface ConnectAccountCapabilityFlags {
   transfersEnabled: boolean;
   chargesEnabled: boolean;

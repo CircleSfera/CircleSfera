@@ -9,7 +9,7 @@ import {
   QUEUE_NAMES,
 } from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { AIService } from '../ai.service.js';
+import { AIService, classifyOpenAIError } from '../ai.service.js';
 
 @Processor(
   QUEUE_NAMES.AI_PROCESSING,
@@ -24,6 +24,21 @@ export class AIProcessor extends WorkerHost {
     private readonly eventEmitter: EventEmitter2,
   ) {
     super();
+  }
+
+  // Classifies an OpenAI failure and either rethrows it unchanged (transient
+  // -- BullMQ retries with backoff) or wraps it in UnrecoverableError
+  // (permanent 4xx -- retrying would burn the queue's remaining attempts on
+  // a request that will fail identically every time).
+  private rethrowClassified(error: unknown, context: string): never {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    if (classifyOpenAIError(error) === 'permanent') {
+      this.logger.warn(
+        `${context}: permanent OpenAI failure, not retrying: ${message}`,
+      );
+      throw new UnrecoverableError(`${context}: ${message}`);
+    }
+    throw error;
   }
 
   async process(job: Job<any, any, string>): Promise<any> {
@@ -95,7 +110,7 @@ export class AIProcessor extends WorkerHost {
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(`Transcription failed for job ${job.id}: ${message}`);
-      throw error;
+      this.rethrowClassified(error, `Transcription failed for job ${job.id}`);
     }
   }
 
@@ -133,8 +148,9 @@ export class AIProcessor extends WorkerHost {
 
       this.logger.log(`Successfully generated alt-text for post: ${postId}`);
     } catch (error: unknown) {
+      if (error instanceof UnrecoverableError) throw error;
       this.logger.error(`Failed to process alt-text for post ${postId}`, error);
-      throw error;
+      this.rethrowClassified(error, `Alt-text failed for post ${postId}`);
     }
   }
 
@@ -166,7 +182,7 @@ export class AIProcessor extends WorkerHost {
       this.logger.error(
         `Failed to process embedding for post ${postId}: ${errorMessage}`,
       );
-      throw error;
+      this.rethrowClassified(error, `Embedding failed for post ${postId}`);
     }
   }
 
@@ -200,7 +216,10 @@ export class AIProcessor extends WorkerHost {
       this.logger.error(
         `Failed to process embedding for profile ${profileId}: ${errorMessage}`,
       );
-      throw error;
+      this.rethrowClassified(
+        error,
+        `Embedding failed for profile ${profileId}`,
+      );
     }
   }
 
@@ -476,7 +495,10 @@ export class AIProcessor extends WorkerHost {
       this.logger.error(
         `Failed to process moderation for ${targetType} ${targetId}: ${errorMessage}`,
       );
-      throw error;
+      this.rethrowClassified(
+        error,
+        `Moderation failed for ${targetType} ${targetId}`,
+      );
     }
   }
 

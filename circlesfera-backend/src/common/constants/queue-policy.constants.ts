@@ -20,6 +20,7 @@ export const QUEUE_NAMES = {
   EDITS_PROCESSING: 'edits-processing',
   SLACK_PROCESSING: 'slack-processing',
   WAREHOUSE_EXPORT: 'warehouse-export',
+  EMAIL_PROCESSING: 'email-processing',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -411,6 +412,34 @@ export const QUEUE_POLICIES: Record<QueueName, QueuePolicyConfig> = {
     },
     workerOptions: {
       concurrency: 2,
+      lockDuration: 30000,
+      maxStalledCount: 2,
+      stalledInterval: 30000,
+    },
+  },
+
+  [QUEUE_NAMES.EMAIL_PROCESSING]: {
+    queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+    workloadClass: QUEUE_WORKLOAD_CLASSES.EVENT_DISTRIBUTION,
+    description:
+      'Transactional email delivery via Brevo (verification, password reset, welcome, receipts). Some are time-sensitive account-security flows.',
+    defaultJobOptions: {
+      attempts: 4, // Resilient to transient Brevo outages/rate-limits within a ~1h reset-token window
+      backoff: {
+        type: 'exponential',
+        delay: 3000,
+      },
+      removeOnComplete: {
+        age: 86400,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 7 * 86400,
+        count: 5000,
+      },
+    },
+    workerOptions: {
+      concurrency: 5,
       lockDuration: 30000,
       maxStalledCount: 2,
       stalledInterval: 30000,

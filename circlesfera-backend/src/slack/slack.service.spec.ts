@@ -111,11 +111,24 @@ describe('SlackService', () => {
       expect(axios.post).not.toHaveBeenCalled();
     });
 
-    it('catches and logs error when axios.post throws', async () => {
-      (axios.post as any).mockRejectedValueOnce(new Error('Network error'));
+    it('recovers on retry after a transient axios failure', async () => {
+      (axios.post as any)
+        .mockRejectedValueOnce(new Error('Network error'))
+        .mockResolvedValueOnce({ data: 'ok' });
+
       await expect(
-        service.sendProductionAlert({ message: 'Axios fails' }),
+        service.sendProductionAlert({ message: 'Axios fails once' }),
       ).resolves.not.toThrow();
+      expect(axios.post).toHaveBeenCalledTimes(2);
+    });
+
+    it('retries up to 3 attempts total and logs SLACK_DELIVERY_FAILED when every attempt fails (INT-001)', async () => {
+      (axios.post as any).mockRejectedValue(new Error('Slack is down'));
+
+      await expect(
+        service.sendProductionAlert({ message: 'Axios always fails' }),
+      ).resolves.not.toThrow();
+      expect(axios.post).toHaveBeenCalledTimes(3);
     });
   });
 
