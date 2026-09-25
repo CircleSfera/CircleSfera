@@ -215,6 +215,27 @@ describe('LiveGiftService', () => {
         }),
       );
     });
+
+    it('broadcasts with an undefined sender username/avatar when the sender account was hard-deleted (senderId SetNull)', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        sender: null,
+      });
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+      mockPrismaService.monetization.upsert.mockResolvedValue({});
+
+      await service.completeGiftPayment(params);
+
+      expect(mockServer.emit).toHaveBeenCalledWith(
+        'live:gift',
+        expect.objectContaining({
+          senderUsername: undefined,
+          senderAvatar: undefined,
+        }),
+      );
+    });
   });
 
   describe('handleLiveGiftPayment', () => {
