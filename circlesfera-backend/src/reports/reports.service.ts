@@ -11,7 +11,6 @@ import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import {
   type CreateReportDto,
   ReportTargetType,
@@ -22,7 +21,6 @@ import {
 export class ReportsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(SlackService) private readonly slackService: SlackService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -100,16 +98,14 @@ export class ReportsService {
       },
     })) as Report;
 
-    this.slackService
-      .sendModerationAlert({
-        reportId: report.id,
-        reporterId,
-        targetType: dto.targetType,
-        targetId: dto.targetId,
-        reason: dto.reason,
-        details: finalDetails || undefined,
-      })
-      .catch((e) => console.error('Failed to send slack moderation alert', e));
+    this.eventEmitter.emit('moderation.report_filed', {
+      reportId: report.id,
+      reporterId,
+      targetType: dto.targetType,
+      targetId: dto.targetId,
+      reason: dto.reason,
+      details: finalDetails || undefined,
+    });
 
     return report;
   }

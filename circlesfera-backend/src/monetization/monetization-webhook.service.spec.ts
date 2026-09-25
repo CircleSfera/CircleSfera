@@ -3,13 +3,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { MonetizationWebhookService } from './monetization-webhook.service.js';
 
 describe('MonetizationWebhookService', () => {
   let service: MonetizationWebhookService;
   let prisma: any;
-  let slackService: any;
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
@@ -36,10 +34,6 @@ describe('MonetizationWebhookService', () => {
           },
         },
         {
-          provide: SlackService,
-          useValue: { sendPaymentAlert: vi.fn().mockResolvedValue(true) },
-        },
-        {
           provide: EventEmitter2,
           useValue: { emit: vi.fn() },
         },
@@ -50,7 +44,6 @@ describe('MonetizationWebhookService', () => {
       MonetizationWebhookService,
     );
     prisma = module.get<PrismaService>(PrismaService);
-    slackService = module.get<SlackService>(SlackService);
     eventEmitter = module.get(EventEmitter2);
   });
 
@@ -83,7 +76,10 @@ describe('MonetizationWebhookService', () => {
           promotionId: 'promo_test_id',
         }),
       });
-      expect(slackService.sendPaymentAlert).toHaveBeenCalled();
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.alert',
+        expect.objectContaining({ eventType: 'Promotion Payment' }),
+      );
     });
 
     it('throws BadRequest when PROMOTION metadata lacks promotionId', async () => {
@@ -143,7 +139,10 @@ describe('MonetizationWebhookService', () => {
           },
         }),
       );
-      expect(slackService.sendPaymentAlert).toHaveBeenCalled();
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.alert',
+        expect.objectContaining({ eventType: 'Post Unlock' }),
+      );
     });
 
     it('processes a DIRECT_TIP checkout and notifies the creator', async () => {
@@ -297,65 +296,9 @@ describe('MonetizationWebhookService', () => {
       expect(prisma.transaction.create).not.toHaveBeenCalled();
     });
 
-    it('handles Slack alert error gracefully in PROMOTION checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack rate limit'));
-      prisma.promotion.update = vi.fn().mockResolvedValue({});
-
-      await expect(
-        service.handleCheckoutSessionCompleted({
-          id: 'cs_promo_slack',
-          amount_total: 5000,
-          metadata: { type: 'PROMOTION', promotionId: 'promo_slack' },
-        } as any),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles Slack alert error gracefully in DIRECT_POST_UNLOCK checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-      prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'prof_1' });
-
-      await expect(
-        service.handleCheckoutSessionCompleted({
-          id: 'cs_post_slack',
-          client_reference_id: 'user_buyer',
-          amount_total: 1000,
-          metadata: {
-            type: 'DIRECT_POST_UNLOCK',
-            postId: 'p_1',
-            creatorId: 'user_creator',
-          },
-        } as any),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles Slack alert error gracefully in DIRECT_TIP checkout', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-      prisma.profile.findFirst = vi.fn().mockResolvedValue({ id: 'prof_1' });
-
-      await expect(
-        service.handleCheckoutSessionCompleted({
-          id: 'cs_tip_slack',
-          client_reference_id: 'user_tipper',
-          amount_total: 500,
-          metadata: { type: 'DIRECT_TIP', creatorId: 'user_creator' },
-        } as any),
-      ).resolves.toBeUndefined();
-    });
-
-    it('handles DIRECT_LIVE_GIFT without an eventEmitter or missing metadata, and Slack alert error', async () => {
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack down'));
-
+    it('handles DIRECT_LIVE_GIFT without an eventEmitter or missing metadata', async () => {
       const serviceNoEmitter = new MonetizationWebhookService(
         prisma,
-        slackService,
         undefined,
       );
       await expect(
@@ -380,6 +323,10 @@ describe('MonetizationWebhookService', () => {
           },
         } as any),
       ).resolves.toBeUndefined();
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.alert',
+        expect.objectContaining({ eventType: 'Live Gift' }),
+      );
     });
   });
 
@@ -387,7 +334,6 @@ describe('MonetizationWebhookService', () => {
     it('exits early when eventEmitter is missing or recipient has no profile', async () => {
       const serviceNoEmitter = new MonetizationWebhookService(
         prisma,
-        slackService,
         undefined,
       );
       await (serviceNoEmitter as any).emitPaymentNotification({

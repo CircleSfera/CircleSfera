@@ -1,15 +1,13 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
 
 @Injectable()
 export class SupportService {
-  private readonly logger = new Logger(SupportService.name);
-
   constructor(
     private prisma: PrismaService,
-    private slackService: SlackService,
+    private eventEmitter: EventEmitter2,
   ) {}
 
   async createTicket(dto: CreateTicketDto & { email: string; userId: string }) {
@@ -22,10 +20,7 @@ export class SupportService {
       },
     });
 
-    // Send alert to Slack asynchronously
-    this.slackService.sendSupportAlert(ticket).catch((e) => {
-      this.logger.error('Failed to send support ticket alert to Slack', e);
-    });
+    this.eventEmitter.emit('support.ticket_created', ticket);
 
     return {
       success: true,

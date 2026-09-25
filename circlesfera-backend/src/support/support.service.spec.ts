@@ -1,7 +1,7 @@
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { SupportService } from './support.service.js';
 
 describe('SupportService', () => {
@@ -13,8 +13,8 @@ describe('SupportService', () => {
     },
   };
 
-  const mockSlackService = {
-    sendSupportAlert: vi.fn().mockResolvedValue(true),
+  const mockEventEmitter = {
+    emit: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -22,7 +22,7 @@ describe('SupportService', () => {
       providers: [
         SupportService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: SlackService, useValue: mockSlackService },
+        { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
 
@@ -35,7 +35,7 @@ describe('SupportService', () => {
   });
 
   describe('createTicket', () => {
-    it('should create a support ticket and notify Slack', async () => {
+    it('should create a support ticket and emit a support.ticket_created event', async () => {
       const dto = {
         email: 'user@example.com',
         subject: 'Payment Issue',
@@ -43,10 +43,8 @@ describe('SupportService', () => {
         userId: 'user-1',
       };
 
-      mockPrismaService.supportTicket.create.mockResolvedValue({
-        id: 'ticket-1',
-        ...dto,
-      });
+      const ticket = { id: 'ticket-1', ...dto };
+      mockPrismaService.supportTicket.create.mockResolvedValue(ticket);
 
       const result = await service.createTicket(dto);
 
@@ -58,37 +56,14 @@ describe('SupportService', () => {
           userId: dto.userId,
         },
       });
-      expect(mockSlackService.sendSupportAlert).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'support.ticket_created',
+        ticket,
+      );
       expect(result).toEqual({
         success: true,
         message: 'Support ticket created successfully',
         ticketId: 'ticket-1',
-      });
-    });
-
-    it('should create ticket even if Slack alert fails', async () => {
-      const dto = {
-        email: 'user@example.com',
-        subject: 'Bug Report',
-        message: 'Something broke',
-        userId: 'user-2',
-      };
-
-      mockPrismaService.supportTicket.create.mockResolvedValue({
-        id: 'ticket-2',
-        ...dto,
-      });
-      mockSlackService.sendSupportAlert.mockRejectedValueOnce(
-        new Error('Slack webhook down'),
-      );
-
-      const result = await service.createTicket(dto);
-
-      expect(mockPrismaService.supportTicket.create).toHaveBeenCalled();
-      expect(result).toEqual({
-        success: true,
-        message: 'Support ticket created successfully',
-        ticketId: 'ticket-2',
       });
     });
   });

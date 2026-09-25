@@ -164,6 +164,7 @@ export class SlackService {
     await this.sendMessage(this.alertsWebhookUrl, payload);
   }
 
+  @OnEvent('moderation.report_filed', { async: true })
   async sendModerationAlert(reportInfo: {
     reportId: string;
     reporterId: string;
@@ -254,6 +255,7 @@ export class SlackService {
     await this.sendMessage(this.moderationWebhookUrl, payload);
   }
 
+  @OnEvent('payment.alert', { async: true })
   async sendPaymentAlert(paymentInfo: {
     eventType: string;
     amount?: number;
@@ -297,6 +299,7 @@ export class SlackService {
     await this.sendMessage(this.paymentsWebhookUrl, payload);
   }
 
+  @OnEvent('support.ticket_created', { async: true })
   async sendSupportAlert(ticket: SupportTicket): Promise<void> {
     const payload = {
       blocks: [
