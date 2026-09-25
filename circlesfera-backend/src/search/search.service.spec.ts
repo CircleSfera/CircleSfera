@@ -242,36 +242,33 @@ describe('SearchService', () => {
     });
 
     it('sets a 90-day expiresAt when saving search history (DATA-005)', async () => {
-      mockCacheManager.get.mockResolvedValueOnce(null);
-      mockPrismaService.searchHistory.create.mockResolvedValueOnce({});
-      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
-      mockPrismaService.hashtag.findMany.mockResolvedValueOnce([]);
-      mockPrismaService.follow.findMany.mockResolvedValue([]);
-      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
+      try {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.searchHistory.create.mockResolvedValueOnce({});
+        mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.hashtag.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.follow.findMany.mockResolvedValue([]);
+        mockPrismaService.$queryRaw.mockResolvedValue([]);
 
-      const before = Date.now();
-      await service.search('travel', 'viewer-1');
-      const after = Date.now();
+        await service.search('travel', 'viewer-1');
 
-      expect(mockPrismaService.searchHistory.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          profileId: 'viewer-1',
-          query: 'travel',
-          expiresAt: expect.any(Date),
-        }),
-      });
-      const { expiresAt } =
-        mockPrismaService.searchHistory.create.mock.calls[0][0].data;
-      const ninetyDaysMs = 90 * 24 * 60 * 60 * 1000;
-      // setDate/getDate operate in local time, so a 90-day span can cross a
-      // DST boundary and shift by up to an hour either way.
-      const dstSlackMs = 2 * 60 * 60 * 1000;
-      expect(expiresAt.getTime()).toBeGreaterThanOrEqual(
-        before + ninetyDaysMs - dstSlackMs,
-      );
-      expect(expiresAt.getTime()).toBeLessThanOrEqual(
-        after + ninetyDaysMs + dstSlackMs,
-      );
+        // Mirrors the source's setDate(getDate() + 90) so the expectation is
+        // correct regardless of the test runner's local timezone.
+        const expectedExpiresAt = new Date('2026-01-15T12:00:00.000Z');
+        expectedExpiresAt.setDate(expectedExpiresAt.getDate() + 90);
+
+        expect(mockPrismaService.searchHistory.create).toHaveBeenCalledWith({
+          data: {
+            profileId: 'viewer-1',
+            query: 'travel',
+            expiresAt: expectedExpiresAt,
+          },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
     });
   });
 
