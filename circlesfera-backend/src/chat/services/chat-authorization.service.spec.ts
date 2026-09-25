@@ -21,6 +21,9 @@ describe('ChatAuthorizationService', () => {
       await expect(
         service.assertParticipant('conv-1', 'prof-1'),
       ).rejects.toThrow(AppException);
+      expect(mockPrisma.participant.findFirst).toHaveBeenCalledWith({
+        where: { conversationId: 'conv-1', profileId: 'prof-1' },
+      });
     });
 
     it('returns the participant when found', async () => {
@@ -29,6 +32,9 @@ describe('ChatAuthorizationService', () => {
 
       const result = await service.assertParticipant('conv-1', 'prof-1');
       expect(result).toBe(participant);
+      expect(mockPrisma.participant.findFirst).toHaveBeenCalledWith({
+        where: { conversationId: 'conv-1', profileId: 'prof-1' },
+      });
     });
   });
 
@@ -39,6 +45,9 @@ describe('ChatAuthorizationService', () => {
       await expect(
         service.assertGroupAdmin('conv-1', 'prof-1'),
       ).rejects.toThrow(AppException);
+      expect(mockPrisma.participant.findFirst).toHaveBeenCalledWith({
+        where: { conversationId: 'conv-1', profileId: 'prof-1' },
+      });
     });
 
     it('throws Forbidden when a participant but not admin', async () => {
