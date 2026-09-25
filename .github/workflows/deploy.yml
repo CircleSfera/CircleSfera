@@ -328,6 +328,20 @@ jobs:
 
             docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --remove-orphans backend frontend nginx-proxy
 
+            # Every deploy leaves its SHA-tagged backend/frontend images on disk
+            # forever — `docker system prune -f` alone never touches them (they're
+            # tagged, not dangling). rollback() always re-pulls PREV_SHA fresh from
+            # GHCR rather than relying on a locally cached copy, so no old SHA tag
+            # is ever actually needed locally: keeping only `:latest` is safe.
+            cleanup_old_images() {
+              for repo in backend frontend; do
+                docker images "${REGISTRY}/${repo}" --format '{{.Tag}}' \
+                  | grep -v '^latest$' \
+                  | xargs -r -I{} docker rmi "${REGISTRY}/${repo}:{}" >/dev/null 2>&1 || true
+              done
+              docker system prune -f || true
+            }
+
             rollback() {
               echo "🔁 Rolling back to previous images..."
               if [ -n "$PREV_SHA" ]; then
@@ -338,11 +352,10 @@ jobs:
                 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps backend frontend nginx-proxy || true
               fi
               # Previously this only ran after a full success (bottom of script),
-              # so a failed deploy never reclaimed the dangling images/build cache
-              # its own image pull just added — disk stayed full, making the next
-              # deploy more likely to fail the same way. Run it on every rollback
-              # too, not only on success.
-              docker system prune -f || true
+              # so a failed deploy never reclaimed the images/build cache its own
+              # image pull just added — disk stayed full, making the next deploy
+              # more likely to fail the same way. Run it on every rollback too.
+              cleanup_old_images
             }
 
             # Poll backend health (migrate + Nest boot can take >20s)
@@ -528,8 +541,8 @@ jobs:
 
             echo "${IMAGE_SHA}" > .deploy-sha
 
-            # Clean up dangling images
-            docker system prune -f
+            # Clean up old SHA-tagged images and dangling layers
+            cleanup_old_images
 
             echo "✅ Deployment completed successfully!"
             if [ -n "$DEPLOY_WEBHOOK" ]; then
