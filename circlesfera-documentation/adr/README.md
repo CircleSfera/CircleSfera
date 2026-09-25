@@ -27,5 +27,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0021](./0021-global-prisma-access-transactional-discipline.md) | Global Prisma access without a repository layer — transactional and domain-access discipline | Accepted |
 | [0022](./0022-pagination-and-high-volume-query-policy.md) | Pagination and high-volume query policy — cursor/keyset, frozen ranking snapshot, and bounded-not-paginated | Accepted |
 | [0023](./0023-external-provider-failure-classification.md) | External-provider failure classification and retry/idempotency/escalation policy (Stripe, OpenAI, Brevo, Slack, Push, LiveKit) | Accepted |
+| [0024](./0024-vps-resource-budgets-and-scaling-triggers.md) | VPS resource budgets and scaling triggers — per-resource WARN/ALERT thresholds and escalation path (queue/media automatic, disk/RAM/DB/Redis pull-only, CPU absent) | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from [00-status.md](../00-status.md) when relevant.
