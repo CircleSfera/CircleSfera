@@ -142,6 +142,36 @@ Agent Framework · Traceability · Other.
 - **Owner:** n/a.
 - **Last Verified:** 2026-09-25.
 
+### B8 — `MediaAuthService` does unindexed `contains` scans on the hottest read path
+
+- **Status:** ACKNOWLEDGED
+- **Category:** Implementation Drift
+- **Evidence:** `circlesfera-backend/src/media/media-auth.service.ts` — `isAccessAllowed` (invoked on
+  every single `/uploads/*` request via Nginx `auth_request`, including every avatar, thumbnail, and
+  HLS segment) runs five parallel `findMany` queries (`PostMedia`, `Story`, `Message`, `Comment`,
+  `Collection`), each matching up to three columns with Prisma `contains`. PostgreSQL cannot use a
+  standard B-tree index for a leading-wildcard `LIKE '%...%'` predicate, so each of the five queries
+  can require a full table scan. This existed as a single-table scan before MEDIA-007 (2026-09-25,
+  PR #110); that change made it five scans instead of one to close real authorization gaps (Story
+  PPV, DM attachments, Comment, Collection — see PR #110's description).
+- **Expected State:** an exact, indexed lookup — a normalized relative-path column with a unique
+  index, queried by equality, or (more likely) resolution once the file is looked up against the
+  single consolidated `Media` table instead of five legacy per-model URL columns.
+- **Observed State:** unchanged from Evidence — five `contains`-based table scans per request.
+- **Impact:** latency/DB-load risk on the platform's highest-QPS endpoint, not a security defect.
+  Deliberately not fixed in PR #110: the "correct" fix (indexed exact-path lookup) requires either a
+  schema migration adding a normalized/indexed path column to 5 tables, or waiting for the `Media`
+  entity to actually be the source of truth for lookups here — which depends on
+  [MEDIA-005](../../circlesfera-documentation/adr/0020-media-lifecycle-state-machine.md) Phase 2
+  (`Story`/`Comment`/`Message`/`Collection` read+write migration to `Media`, currently not started)
+  landing first. Doing a throwaway indexed-column migration now would likely be redone or discarded
+  once MEDIA-005 Phase 2 lands.
+- **Authority / Resolution Path:** `schema-change` playbook, blocked on/coordinated with MEDIA-005
+  Phase 2 (Architecture Refactoring Backlog). Do not add an indexed path column here without
+  checking MEDIA-005's current phase first — the two should not be designed independently.
+- **Owner:** unassigned.
+- **Last Verified:** 2026-09-25.
+
 ## Frontend
 
 *(No open known gaps — F1 nav height drift and F2 avatar `lg` drift closed in Wave 1 UI foundation,

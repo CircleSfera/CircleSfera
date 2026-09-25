@@ -737,16 +737,39 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     beforeEach(() => {
       mockPrisma = {
         postMedia: {
-          findFirst: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
         },
         postUnlock: {
           findUnique: vi.fn(),
         },
+        story: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        storyUnlock: {
+          findUnique: vi.fn(),
+        },
+        message: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        messageUnlock: {
+          findUnique: vi.fn(),
+        },
+        participant: {
+          findFirst: vi.fn(),
+        },
+        comment: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        collection: {
+          findMany: vi.fn().mockResolvedValue([]),
+        },
         follow: {
           findFirst: vi.fn(),
+          findUnique: vi.fn(),
         },
         closeFriend: {
           findFirst: vi.fn(),
+          findUnique: vi.fn(),
         },
       };
 
@@ -761,18 +784,20 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       );
 
       expect(allowed).toBe(false);
-      expect(mockPrisma.postMedia.findFirst).not.toHaveBeenCalled();
+      expect(mockPrisma.postMedia.findMany).not.toHaveBeenCalled();
     });
 
     it('denies anonymous access to protected PPV media', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv-1',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv-1',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/media/ppv-photo.jpg',
@@ -785,14 +810,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('denies access to PPV media when logged-in viewer has not unlocked content', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv-1',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv-1',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       mockPrisma.postUnlock.findUnique.mockResolvedValue(null);
 
@@ -816,14 +843,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('grants access to PPV media when viewer has verified PostUnlock record', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv-1',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv-1',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       mockPrisma.postUnlock.findUnique.mockResolvedValue({
         id: 'unlock-123',
@@ -841,14 +870,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('always grants content author full access to their own PPV media', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-ppv-1',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.PUBLIC,
-          isPremium: true,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-ppv-1',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.PUBLIC,
+            isPremium: true,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/media/ppv-photo.jpg',
@@ -861,14 +892,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('denies access to FOLLOWERS-only media when viewer does not follow creator', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-followers-only',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.FOLLOWERS,
-          isPremium: false,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-followers-only',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.FOLLOWERS,
+            isPremium: false,
+          },
         },
-      });
+      ]);
 
       mockPrisma.follow.findFirst.mockResolvedValue(null);
 
@@ -891,14 +924,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('grants access to FOLLOWERS-only media when viewer is accepted active follower', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-followers-only',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.FOLLOWERS,
-          isPremium: false,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-followers-only',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.FOLLOWERS,
+            isPremium: false,
+          },
         },
-      });
+      ]);
 
       mockPrisma.follow.findFirst.mockResolvedValue({
         id: 'follow-1',
@@ -915,14 +950,16 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
     });
 
     it('grants public free media to everyone without database relationship checks', async () => {
-      mockPrisma.postMedia.findFirst.mockResolvedValue({
-        postId: 'post-public-free',
-        post: {
-          profileId: 'creator-profile',
-          visibility: Visibility.PUBLIC,
-          isPremium: false,
+      mockPrisma.postMedia.findMany.mockResolvedValue([
+        {
+          postId: 'post-public-free',
+          post: {
+            profileId: 'creator-profile',
+            visibility: Visibility.PUBLIC,
+            isPremium: false,
+          },
         },
-      });
+      ]);
 
       const allowed = await mediaAuthService.isAccessAllowed(
         '/uploads/media/public-cat.jpg',

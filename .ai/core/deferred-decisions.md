@@ -93,6 +93,48 @@ explicitly record the deferred dependency in the report.
 - **Last Verified:** 2026-09-24 (re-verified against current `schema.prisma`; matches the 2026-09-13
   original resolution).
 
+### DD-002 — S3-backed media delivery bypasses application-level authorization
+
+- **Status:** OPEN
+- **Domain:** Cross-Domain — Security / Implementation (Storage Provider Abstraction)
+- **Decision Required:** how protected/PPV/DM media should be delivered when the S3 (or Cloudinary)
+  storage provider is active, given the current design makes application-level authorization a no-op
+  for that provider. Candidate directions: (a) presigned/expiring URLs generated per-request through
+  a signed-URL endpoint, replacing raw public object URLs everywhere they're returned in API
+  responses; (b) a CDN with Origin Access Control in front of a private bucket, with the app's
+  existing `MediaAuthService` logic re-hosted at the edge (e.g. Lambda@Edge / CloudFront Functions)
+  instead of Nginx `auth_request`; (c) something else. Each direction has a different blast radius
+  and a different set of API/frontend contract changes.
+- **Current State:** `MediaAuthService.isAccessAllowed` (extended under MEDIA-007, 2026-09-25) is the
+  sole authorization gate for `/uploads/*`, invoked via Nginx `auth_request` → `GET
+  /media/auth-check`. This mechanism only intercepts requests Nginx itself serves from local disk —
+  it has no effect on objects fetched directly from a storage provider's own public URL.
+  `S3Provider.upload()` (`circlesfera-backend/src/uploads/providers/s3.provider.ts:68,201`) sets
+  `ACL: 'public-read'` on every uploaded object, including PPV posts/stories, private (close-friends)
+  content, and DM attachments. If `AWS_S3_BUCKET` were ever configured, every protected media file
+  would be publicly readable directly from its S3 URL, with no unlock/follow/participant check of any
+  kind — `MediaAuthService`'s entire policy becomes a no-op for that deployment.
+- **Known Constraints:** production currently runs `LocalStorageProvider` (OVH VPS, Nginx-served
+  `/uploads/`, no `AWS_S3_BUCKET` secret configured in `deploy.yml` — verified 2026-09-25), so this is
+  a **dormant** gap, not an active incident. ADR-0008 declares S3/Cloudinary as supported pluggable
+  providers, so this must be resolved (not just documented) before either is ever enabled in
+  production. Whatever direction is chosen will very likely change what raw value `post.media[].url`
+  (and the equivalent Story/Message/Comment/Collection fields) contains in every API response the
+  frontend currently renders as a direct `<img src>`/`<video src>` — a real contract change, not an
+  internal implementation detail.
+- **Agent Behavior:** do not implement a fix that silently changes the shape of media URLs in API
+  responses without this decision being made first (MUST CONFIRM — API contract). Safe work in the
+  meantime: keep `LocalStorageProvider` as the only provider actually wired to `AWS_S3_BUCKET`/
+  `CLOUDINARY_NAME` unset in any environment; treat any future request to "just enable S3" as blocked
+  on this decision, not a routine config change.
+- **Resolution Authority:** Architecture (storage/delivery design) + Security (authorization model) —
+  cross-domain, needs both.
+- **Trigger / Review Condition:** reopen for active resolution the moment S3 or Cloudinary is
+  seriously proposed for production, or before MEDIA-005 Phase 2/3 (Media entity migration) if that
+  work ends up touching how media URLs are resolved/served.
+- **Related ADR:** none yet — an ADR should record whichever direction is chosen.
+- **Last Verified:** 2026-09-25.
+
 ## What does not belong here
 
 Not a generic issue tracker. Do not add: ordinary bugs; implementation tasks; stale documentation that
