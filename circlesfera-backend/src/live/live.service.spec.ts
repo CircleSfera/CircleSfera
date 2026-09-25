@@ -1,15 +1,12 @@
-import { BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PLATFORM_FEE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
-import { LIVE_GIFT_CATALOG } from './gift-catalog.js';
 import { LiveService } from './live.service.js';
+import { LiveKitTokenService } from './live-kit-token.service.js';
 
 describe('LiveService', () => {
   let service: LiveService;
@@ -31,29 +28,11 @@ describe('LiveService', () => {
       findUnique: vi.fn(),
       findMany: vi.fn(),
     },
-    user: {
-      findUnique: vi.fn(),
-    },
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
-    liveGift: {
-      create: vi.fn(),
-      update: vi.fn(),
-      findUnique: vi.fn(),
-    },
-    transaction: {
-      create: vi.fn(),
-    },
-    monetization: {
-      upsert: vi.fn(),
-    },
     $transaction: vi.fn((fn) => fn(mockPrismaService)),
-  };
-
-  const mockStripeService = {
-    createCheckoutSession: vi.fn(),
   };
 
   const mockConfigService = {
@@ -71,12 +50,16 @@ describe('LiveService', () => {
       providers: [
         LiveService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: ConfigService, useValue: mockConfigService },
         { provide: AppGateway, useValue: mockGateway },
-        { provide: StripeService, useValue: mockStripeService },
         {
           provide: SystemSettingsService,
           useValue: { isEnabled: vi.fn(async () => true) },
+        },
+        {
+          provide: LiveKitTokenService,
+          useValue: new LiveKitTokenService(
+            mockConfigService as unknown as ConfigService,
+          ),
         },
       ],
     }).compile();
@@ -320,94 +303,6 @@ describe('LiveService', () => {
         streamId: 'stream-1',
       });
       expect(result).toEqual({ success: true });
-    });
-  });
-
-  describe('sendGift', () => {
-    const liveHost = {
-      id: 'stream-1',
-      status: 'LIVE',
-      hostId: 'host-profile-1',
-      host: {
-        id: 'host-profile-1',
-        userId: 'creator-1',
-        username: 'host_user',
-        user: {
-          email: 'host@example.com',
-          stripeConnectAccountId: 'acct_1',
-        },
-      },
-    };
-
-    it('rejects unknown giftId without calling Stripe', async () => {
-      await expect(
-        service.sendGift('stream-1', 'fan-1', 'not-a-gift', 'http://localhost'),
-      ).rejects.toBeInstanceOf(BadRequestException);
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('rejects gifting yourself', async () => {
-      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
-      await expect(
-        service.sendGift('stream-1', 'creator-1', 'crown', 'http://localhost'),
-      ).rejects.toThrow(AppException);
-      expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
-    });
-
-    it('charges the catalog price and the ADR-0010 application fee', async () => {
-      mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        id: 'fan-1',
-        email: 'fan@example.com',
-        profiles: [{ username: 'fan' }],
-      });
-      mockPrismaService.liveGift.create.mockResolvedValue({ id: 'gift-1' });
-      mockPrismaService.liveGift.update.mockResolvedValue({});
-      mockStripeService.createCheckoutSession.mockResolvedValue({
-        id: 'cs_gift',
-        url: 'https://checkout.stripe.test/gift',
-      });
-
-      const giftId = 'crown';
-      const amountCents = LIVE_GIFT_CATALOG[giftId].amountCents;
-      const platformFee = Math.floor(amountCents * PLATFORM_FEE_DECIMAL);
-
-      const result = await service.sendGift(
-        'stream-1',
-        'fan-1',
-        giftId,
-        'http://localhost/live',
-      );
-
-      expect(result.amountCents).toBe(amountCents);
-      expect(result.url).toBe('https://checkout.stripe.test/gift');
-      expect(mockPrismaService.liveGift.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            giftId,
-            amountCents,
-            status: 'PENDING',
-          }),
-        }),
-      );
-      expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
-        expect.objectContaining({
-          line_items: [
-            expect.objectContaining({
-              price_data: expect.objectContaining({
-                unit_amount: amountCents,
-                product_data: expect.objectContaining({
-                  name: `Live Gift: ${LIVE_GIFT_CATALOG[giftId].names.en}`,
-                }),
-              }),
-            }),
-          ],
-          payment_intent_data: expect.objectContaining({
-            application_fee_amount: platformFee,
-          }),
-        }),
-        expect.anything(),
-      );
     });
   });
 });
