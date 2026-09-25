@@ -21,11 +21,15 @@ import { InviteCoHostDto } from './dto/invite-cohost.dto.js';
 import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
+import { LiveGiftService } from './live-gift.service.js';
 
 @Controller('live')
 @UseGuards(JwtAuthGuard)
 export class LiveController {
-  constructor(private readonly liveService: LiveService) {}
+  constructor(
+    private readonly liveService: LiveService,
+    private readonly liveGiftService: LiveGiftService,
+  ) {}
 
   @Post('start')
   @UseGuards(EmailVerifiedGuard)
@@ -99,7 +103,7 @@ export class LiveController {
   ) {
     const returnUrl =
       dto.returnUrl || `${req.protocol}://${req.get('host')}/live/${streamId}`;
-    return this.liveService.sendGift(
+    return this.liveGiftService.sendGift(
       streamId,
       user.userId,
       dto.giftId,

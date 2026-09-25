@@ -19,6 +19,7 @@ import {
 } from '../common/testing/http-controller.js';
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
+import { LiveGiftService } from './live-gift.service.js';
 
 describe('LiveController', () => {
   let app: INestApplication;
@@ -32,13 +33,19 @@ describe('LiveController', () => {
     inviteCoHost: vi.fn(),
     acceptCoHostInvite: vi.fn(),
     removeCoHost: vi.fn(),
+  };
+
+  const mockLiveGiftService = {
     sendGift: vi.fn(),
   };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [LiveController],
-      providers: [{ provide: LiveService, useValue: mockLiveService }],
+      providers: [
+        { provide: LiveService, useValue: mockLiveService },
+        { provide: LiveGiftService, useValue: mockLiveGiftService },
+      ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
@@ -125,11 +132,13 @@ describe('LiveController', () => {
       .send({ giftId: 'rose', amountCents: 1 })
       .expect(400);
 
-    expect(mockLiveService.sendGift).not.toHaveBeenCalled();
+    expect(mockLiveGiftService.sendGift).not.toHaveBeenCalled();
   });
 
   it('sends a gift as the session userId without a client price', async () => {
-    mockLiveService.sendGift.mockResolvedValue({ url: 'https://example.com' });
+    mockLiveGiftService.sendGift.mockResolvedValue({
+      url: 'https://example.com',
+    });
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/live/stream-1/gift')
@@ -142,7 +151,7 @@ describe('LiveController', () => {
       .expect(201);
 
     expect(res.body).toEqual({ url: 'https://example.com' });
-    expect(mockLiveService.sendGift).toHaveBeenCalledWith(
+    expect(mockLiveGiftService.sendGift).toHaveBeenCalledWith(
       'stream-1',
       TEST_USER.userId,
       'rose',
