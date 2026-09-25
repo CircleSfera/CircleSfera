@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 import { GetMessagesQuery } from './get-messages.query.js';
 
 describe('GetMessagesQuery', () => {
@@ -25,6 +26,7 @@ describe('GetMessagesQuery', () => {
     query = new GetMessagesQuery(
       mockPrisma as unknown as PrismaService,
       mockCryptoService as unknown as CryptoService,
+      new ChatAuthorizationService(mockPrisma as unknown as PrismaService),
     );
   });
 
