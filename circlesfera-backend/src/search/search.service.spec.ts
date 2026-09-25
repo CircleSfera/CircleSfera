@@ -240,6 +240,36 @@ describe('SearchService', () => {
       expect(result.semanticProfiles).toEqual([{ profileId: 'prof-unique' }]);
       expect(mockCacheManager.set).toHaveBeenCalled();
     });
+
+    it('sets a 90-day expiresAt when saving search history (DATA-005)', async () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
+      try {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.searchHistory.create.mockResolvedValueOnce({});
+        mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.hashtag.findMany.mockResolvedValueOnce([]);
+        mockPrismaService.follow.findMany.mockResolvedValue([]);
+        mockPrismaService.$queryRaw.mockResolvedValue([]);
+
+        await service.search('travel', 'viewer-1');
+
+        // Mirrors the source's setDate(getDate() + 90) so the expectation is
+        // correct regardless of the test runner's local timezone.
+        const expectedExpiresAt = new Date('2026-01-15T12:00:00.000Z');
+        expectedExpiresAt.setDate(expectedExpiresAt.getDate() + 90);
+
+        expect(mockPrismaService.searchHistory.create).toHaveBeenCalledWith({
+          data: {
+            profileId: 'viewer-1',
+            query: 'travel',
+            expiresAt: expectedExpiresAt,
+          },
+        });
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe('getHistory & clearHistory', () => {

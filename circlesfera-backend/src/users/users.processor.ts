@@ -28,7 +28,6 @@ export class UsersProcessor extends WorkerHost {
   async process(job: Job<any, any, string>): Promise<any> {
     this.logger.debug(`Processing ${job.name} (job ${job.id})`);
     switch (job.name) {
-      case 'clean-expired-search-history':
       case 'clean-expired-accounts':
       case 'hard-delete-user':
         return this.accountDeletionProcessor.process(job);

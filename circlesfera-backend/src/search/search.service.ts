@@ -189,13 +189,18 @@ export class SearchService {
     const cached = await this.cacheManager.get<SearchResponse>(cacheKey);
     if (cached) return cached;
 
-    // Save search history if profileId is provided
+    // Save search history if profileId is provided.
+    // expiresAt is set explicitly (DATA-005): MaintenanceService.cleanupOldSearchHistory
+    // is the canonical purge job and relies on this 90-day GDPR retention window.
     if (profileId) {
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 90);
       this.prisma.searchHistory
         .create({
           data: {
             profileId,
             query: sanitizedQuery,
+            expiresAt,
           },
         })
         .catch((err: unknown) => {
