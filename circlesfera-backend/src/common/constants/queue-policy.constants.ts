@@ -424,10 +424,14 @@ export const QUEUE_POLICIES: Record<QueueName, QueuePolicyConfig> = {
     description:
       'Transactional email delivery via Brevo (verification, password reset, welcome, receipts). Some are time-sensitive account-security flows.',
     defaultJobOptions: {
-      attempts: 4, // Resilient to transient Brevo outages/rate-limits within a ~1h reset-token window
+      // 8 attempts, 25s exponential base: 25+50+100+200+400+800+1600 = ~53min
+      // of backoff, plus per-attempt delivery time (15s Brevo timeout + 1 SDK
+      // retry) -- keeps the final attempt within the 1h reset-token window
+      // instead of giving up after ~21s like a shorter schedule would.
+      attempts: 8,
       backoff: {
         type: 'exponential',
-        delay: 3000,
+        delay: 25000,
       },
       removeOnComplete: {
         age: 86400,

@@ -59,8 +59,9 @@ one policy to fit all six:
 ### 1. Brevo — move to BullMQ-backed delivery with real retry (the only provider needing new queue infra)
 
 New `EMAIL_PROCESSING` queue (`queue-policy.constants.ts`, `EVENT_DISTRIBUTION` workload class,
-`attempts: 4`, exponential backoff from 3s — resilient to a transient outage within the 1-hour
-password-reset token window). `EmailService`'s public `sendXEmail` methods now enqueue
+`attempts: 8`, exponential backoff from a 25s base — ~53 minutes of backoff plus per-attempt delivery
+time, keeping the final attempt within the 1-hour reset-token window instead of giving up after ~21s
+like a shorter schedule would). `EmailService`'s public `sendXEmail` methods now enqueue
 (`queueMail`) instead of calling Brevo inline; a new `EmailProcessor` performs the actual send
 (`deliverMail`), which now **throws** on failure instead of swallowing it, so BullMQ retries it.
 `isTransientBrevoFailure` classifies by `BrevoError.statusCode`: 429/5xx/unknown are transient (worth
@@ -96,9 +97,12 @@ retries — they cannot succeed); anything else is rethrown unchanged for BullMQ
 
 All Slack sends (incidents, moderation, payments, support) already funneled through one private
 `sendMessage` method — the fix lives entirely there, covering every call site uniformly rather than
-per-caller. Up to 3 attempts with linear backoff (300ms, 600ms); on final failure, logs a distinctive
-`SLACK_DELIVERY_FAILED` marker (grep-able even if Slack and whatever downstream log aggregation exists
-both need investigating). Deliberately **not** routed through BullMQ/the existing `SLACK_PROCESSING`
+per-caller. Up to 3 attempts with linear backoff (300ms, 600ms), but only for a classified-transient
+failure (network error, 429, or 5xx) — a malformed payload (400) or a deleted/invalid webhook URL (404)
+gives up immediately instead of retrying a request that will fail identically every time. On final
+failure (or a non-retryable one), logs a distinctive `SLACK_DELIVERY_FAILED` marker (grep-able even if
+Slack and whatever downstream log aggregation exists both need investigating). Deliberately **not**
+routed through BullMQ/the existing `SLACK_PROCESSING`
 queue: that queue depends on Redis, and an infra incident severe enough to take Slack down is a
 plausible correlated failure with Redis trouble too — adding a new dependency to the one alert meant to
 fire *during* an infra incident would be the wrong trade. All Slack sends were already fire-and-forget

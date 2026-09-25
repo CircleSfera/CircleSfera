@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import axios from 'axios';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AIService } from '../ai/ai.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -10,8 +10,16 @@ import { SlackService } from './slack.service.js';
 vi.mock('axios', () => ({
   default: {
     post: vi.fn(),
+    isAxiosError: vi.fn().mockReturnValue(false),
   },
 }));
+
+function axiosErrorWithStatus(status: number) {
+  return Object.assign(new Error(`Request failed with status ${status}`), {
+    isAxiosError: true,
+    response: { status },
+  });
+}
 
 describe('SlackService', () => {
   let service: SlackService;
@@ -78,6 +86,7 @@ describe('SlackService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     (axios.post as any).mockResolvedValue({ data: 'ok' });
+    (axios.isAxiosError as any).mockReturnValue(false);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -111,24 +120,75 @@ describe('SlackService', () => {
       expect(axios.post).not.toHaveBeenCalled();
     });
 
-    it('recovers on retry after a transient axios failure', async () => {
-      (axios.post as any)
-        .mockRejectedValueOnce(new Error('Network error'))
-        .mockResolvedValueOnce({ data: 'ok' });
+    describe('retry classification (INT-001)', () => {
+      beforeEach(() => {
+        vi.useFakeTimers();
+      });
 
-      await expect(
-        service.sendProductionAlert({ message: 'Axios fails once' }),
-      ).resolves.not.toThrow();
-      expect(axios.post).toHaveBeenCalledTimes(2);
-    });
+      afterEach(() => {
+        vi.useRealTimers();
+      });
 
-    it('retries up to 3 attempts total and logs SLACK_DELIVERY_FAILED when every attempt fails (INT-001)', async () => {
-      (axios.post as any).mockRejectedValue(new Error('Slack is down'));
+      it('recovers on retry after a transient (network) axios failure', async () => {
+        (axios.post as any)
+          .mockRejectedValueOnce(new Error('Network error'))
+          .mockResolvedValueOnce({ data: 'ok' });
 
-      await expect(
-        service.sendProductionAlert({ message: 'Axios always fails' }),
-      ).resolves.not.toThrow();
-      expect(axios.post).toHaveBeenCalledTimes(3);
+        const promise = service.sendProductionAlert({
+          message: 'Axios fails once',
+        });
+        await vi.advanceTimersByTimeAsync(300);
+        await expect(promise).resolves.toBeUndefined();
+        expect(axios.post).toHaveBeenCalledTimes(2);
+      });
+
+      it('retries a 429 and a 5xx as transient', async () => {
+        (axios.post as any)
+          .mockRejectedValueOnce(axiosErrorWithStatus(429))
+          .mockRejectedValueOnce(axiosErrorWithStatus(503))
+          .mockResolvedValueOnce({ data: 'ok' });
+        (axios.isAxiosError as any).mockReturnValue(true);
+
+        const promise = service.sendProductionAlert({
+          message: 'Rate limited then server error',
+        });
+        await vi.advanceTimersByTimeAsync(300);
+        await vi.advanceTimersByTimeAsync(600);
+        await expect(promise).resolves.toBeUndefined();
+        expect(axios.post).toHaveBeenCalledTimes(3);
+      });
+
+      it('retries up to 3 attempts total and logs SLACK_DELIVERY_FAILED when every attempt fails', async () => {
+        (axios.post as any).mockRejectedValue(new Error('Slack is down'));
+        const errorSpy = vi.spyOn((service as any).logger, 'error');
+
+        const promise = service.sendProductionAlert({
+          message: 'Axios always fails',
+        });
+        await vi.advanceTimersByTimeAsync(300);
+        await vi.advanceTimersByTimeAsync(600);
+        await expect(promise).resolves.toBeUndefined();
+        expect(axios.post).toHaveBeenCalledTimes(3);
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('SLACK_DELIVERY_FAILED after 3 attempt(s)'),
+          expect.any(Error),
+        );
+      });
+
+      it('does not retry a permanent 4xx (e.g. 400) and gives up immediately', async () => {
+        (axios.post as any).mockRejectedValue(axiosErrorWithStatus(400));
+        (axios.isAxiosError as any).mockReturnValue(true);
+        const errorSpy = vi.spyOn((service as any).logger, 'error');
+
+        await expect(
+          service.sendProductionAlert({ message: 'Bad payload' }),
+        ).resolves.toBeUndefined();
+        expect(axios.post).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledWith(
+          expect.stringContaining('SLACK_DELIVERY_FAILED after 1 attempt(s)'),
+          expect.any(Error),
+        );
+      });
     });
   });
 

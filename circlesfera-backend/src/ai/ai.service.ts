@@ -24,10 +24,21 @@ export function classifyOpenAIError(error: unknown): OpenAIFailureClass {
   if (!(error instanceof APIError)) {
     return 'transient'; // Network/timeout/unknown -- assume worth retrying.
   }
-  if (error.status === 429 || (error.status ?? 0) >= 500) {
+  // APIConnectionError / APIConnectionTimeoutError extend APIError with no
+  // status (no HTTP response was ever received) -- a network-level failure,
+  // not a rejection, so it's transient too.
+  if (error.status === undefined) {
     return 'transient';
   }
-  // 400/401/403/404/409/422 -- will fail identically on an unmodified retry.
+  if (
+    error.status === 408 ||
+    error.status === 409 ||
+    error.status === 429 ||
+    error.status >= 500
+  ) {
+    return 'transient';
+  }
+  // 400/401/403/404/422 -- will fail identically on an unmodified retry.
   return 'permanent';
 }
 

@@ -83,6 +83,21 @@ describe('classifyOpenAIError', () => {
     );
   });
 
+  it('treats an APIError with undefined status as transient (APIConnectionError/APIConnectionTimeoutError)', () => {
+    expect(
+      classifyOpenAIError(new MockAPIError(undefined, 'connection error')),
+    ).toBe('transient');
+  });
+
+  it('treats 408 and 409 as transient', () => {
+    expect(classifyOpenAIError(new MockAPIError(408, 'timeout'))).toBe(
+      'transient',
+    );
+    expect(classifyOpenAIError(new MockAPIError(409, 'conflict'))).toBe(
+      'transient',
+    );
+  });
+
   it('treats other 4xx as permanent', () => {
     expect(classifyOpenAIError(new MockAPIError(400, 'bad request'))).toBe(
       'permanent',

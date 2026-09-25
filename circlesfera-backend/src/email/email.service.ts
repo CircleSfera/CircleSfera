@@ -204,7 +204,17 @@ export class EmailService {
       );
       return;
     }
-    await this.emailQueue.add('send-transactional-email', options);
+    try {
+      await this.emailQueue.add('send-transactional-email', options);
+    } catch (error) {
+      // Callers (e.g. AuthService) call this after their own DB mutation
+      // (user created, reset token stored) -- a Redis/BullMQ enqueue failure
+      // must not fail their HTTP response on top of that, same principle as
+      // the old inline design. Logged, not retried: retrying the enqueue
+      // itself (as opposed to the send, which BullMQ already retries once
+      // queued) is not implemented here.
+      this.logger.error(`Failed to queue email to ${options.to}`, error);
+    }
   }
 
   // Performs the actual Brevo send. Called by EmailProcessor, not directly

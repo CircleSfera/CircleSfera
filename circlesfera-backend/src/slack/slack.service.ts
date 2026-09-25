@@ -75,9 +75,19 @@ export class SlackService {
         await axios.post(webhookUrl, payload, { timeout: 5_000 });
         return;
       } catch (error) {
-        if (attempt === SlackService.SEND_MAX_ATTEMPTS) {
+        // A malformed payload (400) or a deleted/invalid webhook URL (404)
+        // will fail identically on retry -- only network errors, 429, and
+        // 5xx are worth retrying (same transient/permanent split as the
+        // rest of INT-001).
+        const status = axios.isAxiosError(error)
+          ? error.response?.status
+          : undefined;
+        const retryable =
+          status === undefined || status === 429 || status >= 500;
+
+        if (!retryable || attempt === SlackService.SEND_MAX_ATTEMPTS) {
           this.logger.error(
-            `SLACK_DELIVERY_FAILED after ${attempt} attempts -- notification lost`,
+            `SLACK_DELIVERY_FAILED after ${attempt} attempt(s) -- notification lost`,
             error,
           );
           return;

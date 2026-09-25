@@ -111,6 +111,16 @@ describe('EmailService', () => {
       await devService.sendWelcomeEmail('test@example.com', 'Test User');
       expect(mockEmailQueue.add).not.toHaveBeenCalled();
     });
+
+    it('swallows a Redis/BullMQ enqueue failure instead of throwing (INT-001)', async () => {
+      mockEmailQueue.add.mockRejectedValueOnce(new Error('Redis unreachable'));
+
+      // Caller (e.g. AuthService) already committed its own DB mutation --
+      // an enqueue failure must not fail the HTTP response on top of that.
+      await expect(
+        service.sendVerificationEmail('test@example.com', 'token'),
+      ).resolves.toBeUndefined();
+    });
   });
 
   describe('isTransientBrevoFailure', () => {
