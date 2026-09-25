@@ -4,7 +4,6 @@ import { JwtModule } from '@nestjs/jwt';
 import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
-import { SlackModule } from '../slack/slack.module.js';
 import { AppealsController } from './appeals.controller.js';
 import { AppealsService } from './appeals.service.js';
 
@@ -12,7 +11,6 @@ import { AppealsService } from './appeals.service.js';
   imports: [
     PrismaModule,
     ConfigModule,
-    SlackModule,
     EmailModule,
     NotificationsModule,
     JwtModule.register({}),

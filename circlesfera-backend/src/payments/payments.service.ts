@@ -1,6 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
@@ -16,7 +17,6 @@ import {
   MonetizationWebhookService,
 } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
 
 export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
@@ -32,11 +32,11 @@ export class PaymentsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(StripeService) private readonly stripeService: StripeService,
-    @Inject(SlackService) private readonly slackService: SlackService,
     @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(UsersService) private readonly usersService: UsersService,
     @Inject(MonetizationWebhookService)
     private readonly monetizationWebhookService: MonetizationWebhookService,
+    private readonly eventEmitter: EventEmitter2,
     @Optional()
     @Inject(ConfigService)
     private readonly configService?: ConfigService,
@@ -681,15 +681,13 @@ export class PaymentsService {
             }
           }
 
-          this.slackService
-            .sendPaymentAlert({
-              eventType: 'Platform Subscription Checkout',
-              amount: session.amount_total || 0,
-              currency: session.currency || 'eur',
-              description: `User ${userId} subscribed to plan ${planId}`,
-              userId: userId,
-            })
-            .catch((e) => this.logger.error(e));
+          this.eventEmitter.emit('payment.alert', {
+            eventType: 'Platform Subscription Checkout',
+            amount: session.amount_total || 0,
+            currency: session.currency || 'eur',
+            description: `User ${userId} subscribed to plan ${planId}`,
+            userId: userId,
+          });
         }
 
         break;

@@ -5,7 +5,6 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { ReportTargetType } from './dto/create-report.dto.js';
 import { ReportsService } from './reports.service.js';
 
@@ -28,10 +27,6 @@ describe('ReportsService', () => {
     message: { findUnique: vi.fn() },
   };
 
-  const mockSlackService = {
-    sendModerationAlert: vi.fn().mockResolvedValue(undefined),
-  };
-
   const mockEventEmitter = {
     emit: vi.fn(),
   };
@@ -41,7 +36,6 @@ describe('ReportsService', () => {
       providers: [
         ReportsService,
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: SlackService, useValue: mockSlackService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
       ],
     }).compile();
@@ -167,12 +161,9 @@ describe('ReportsService', () => {
       expect(res.id).toBe('rep-m');
     });
 
-    it('should handle slack moderation alert failure gracefully', async () => {
+    it('should emit a moderation.report_filed event on report creation', async () => {
       mockPrismaService.post.findUnique.mockResolvedValue({ id: 'p-1' });
       mockPrismaService.report.create.mockResolvedValue({ id: 'rep-slack' });
-      mockSlackService.sendModerationAlert.mockRejectedValueOnce(
-        new Error('Slack unreachable'),
-      );
 
       const res = await service.create('reporter-1', {
         targetType: ReportTargetType.POST,
@@ -180,6 +171,16 @@ describe('ReportsService', () => {
         reason: 'SPAM',
       } as any);
       expect(res.id).toBe('rep-slack');
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'moderation.report_filed',
+        expect.objectContaining({
+          reportId: 'rep-slack',
+          reporterId: 'reporter-1',
+          targetType: ReportTargetType.POST,
+          targetId: 'p-1',
+          reason: 'SPAM',
+        }),
+      );
     });
   });
 

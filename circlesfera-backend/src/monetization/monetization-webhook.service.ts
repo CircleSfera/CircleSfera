@@ -10,7 +10,6 @@ import { AppException } from '../common/errors/app.exception.js';
 import { deriveConnectAccountFlags } from '../common/stripe/stripe.service.js';
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
 // by PaymentsService's platform-subscription branch. STRIPE_SUBSCRIPTION is
@@ -46,7 +45,6 @@ export class MonetizationWebhookService {
 
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(SlackService) private readonly slackService: SlackService,
     @Optional() private readonly eventEmitter?: EventEmitter2,
   ) {}
 
@@ -118,14 +116,12 @@ export class MonetizationWebhookService {
       this.logger.log(
         `Successfully processed promotion payment for ${promotionId}`,
       );
-      this.slackService
-        .sendPaymentAlert({
-          eventType: 'Promotion Payment',
-          amount,
-          currency: session.currency || 'eur',
-          description: `Promotion ID: ${promotionId}`,
-        })
-        .catch((e) => this.logger.error(e));
+      this.eventEmitter?.emit('payment.alert', {
+        eventType: 'Promotion Payment',
+        amount,
+        currency: session.currency || 'eur',
+        description: `Promotion ID: ${promotionId}`,
+      });
     } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { postId, creatorId } = metadata;
@@ -180,15 +176,13 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Post Unlock for user ${clientReferenceId}`,
         );
-        this.slackService
-          .sendPaymentAlert({
-            eventType: 'Post Unlock',
-            amount: amount,
-            currency: session.currency || 'eur',
-            description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
-            userId: clientReferenceId,
-          })
-          .catch((e) => this.logger.error(e));
+        this.eventEmitter?.emit('payment.alert', {
+          eventType: 'Post Unlock',
+          amount: amount,
+          currency: session.currency || 'eur',
+          description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
+          userId: clientReferenceId,
+        });
       }
     } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
@@ -352,15 +346,13 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`,
         );
-        this.slackService
-          .sendPaymentAlert({
-            eventType: 'Creator Tip',
-            amount: amount,
-            currency: session.currency || 'eur',
-            description: `User ${clientReferenceId} tipped creator ${creatorId}`,
-            userId: clientReferenceId,
-          })
-          .catch((e) => this.logger.error(e));
+        this.eventEmitter?.emit('payment.alert', {
+          eventType: 'Creator Tip',
+          amount: amount,
+          currency: session.currency || 'eur',
+          description: `User ${clientReferenceId} tipped creator ${creatorId}`,
+          userId: clientReferenceId,
+        });
 
         const amountFormatted = (amount / 100).toLocaleString('en-US', {
           style: 'currency',
@@ -399,15 +391,13 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Live Gift ${liveGiftId} from ${clientReferenceId}`,
         );
-        this.slackService
-          .sendPaymentAlert({
-            eventType: 'Live Gift',
-            amount,
-            currency: session.currency || 'eur',
-            description: `User ${clientReferenceId} gifted ${giftId} on stream ${streamId}`,
-            userId: clientReferenceId,
-          })
-          .catch((e) => this.logger.error(e));
+        this.eventEmitter?.emit('payment.alert', {
+          eventType: 'Live Gift',
+          amount,
+          currency: session.currency || 'eur',
+          description: `User ${clientReferenceId} gifted ${giftId} on stream ${streamId}`,
+          userId: clientReferenceId,
+        });
       } else if (!this.eventEmitter) {
         this.logger.error(
           'EventEmitter not available to complete DIRECT_LIVE_GIFT',

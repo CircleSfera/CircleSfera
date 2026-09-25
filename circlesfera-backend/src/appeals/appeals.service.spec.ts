@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { AppealsService } from './appeals.service.js';
 
 describe('AppealsService', () => {
@@ -21,12 +20,8 @@ describe('AppealsService', () => {
     $transaction: vi.fn(),
   };
 
-  const mockSlackService = {
-    sendModerationAlert: vi.fn().mockResolvedValue(true),
-  };
-
   const mockEventEmitter = {
-    create: vi.fn().mockResolvedValue(undefined),
+    emit: vi.fn(),
   };
 
   const mockEmailService = {
@@ -42,7 +37,6 @@ describe('AppealsService', () => {
           useValue: { sendInApp: vi.fn(), push: vi.fn() },
         },
         { provide: PrismaService, useValue: mockPrismaService },
-        { provide: SlackService, useValue: mockSlackService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: EmailService, useValue: mockEmailService },
       ],
@@ -57,7 +51,7 @@ describe('AppealsService', () => {
   });
 
   describe('create', () => {
-    it('should create an appeal and send Slack alert', async () => {
+    it('should create an appeal and emit a moderation.report_filed event', async () => {
       const dto = {
         targetType: 'ACCOUNT_BAN' as any,
         targetId: 'ban-1',
@@ -79,7 +73,15 @@ describe('AppealsService', () => {
           reason: dto.reason,
         },
       });
-      expect(mockSlackService.sendModerationAlert).toHaveBeenCalled();
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'moderation.report_filed',
+        expect.objectContaining({
+          reportId: 'appeal-1',
+          reporterId: 'user-1',
+          targetType: dto.targetType,
+          targetId: dto.targetId,
+        }),
+      );
       expect(result).toHaveProperty('id', 'appeal-1');
     });
   });

@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import { resolvedAtOnStatusChange } from '../admin/utils/resolved-at.util.js';
@@ -6,7 +7,6 @@ import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
@@ -14,10 +14,10 @@ import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 export class AppealsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
-    @Inject(SlackService) private readonly slackService: SlackService,
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
     @Inject(EmailService) private readonly emailService: EmailService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(userId: string, dto: CreateAppealDto) {
@@ -30,15 +30,13 @@ export class AppealsService {
       },
     });
 
-    this.slackService
-      .sendModerationAlert({
-        reportId: appeal.id,
-        reporterId: userId,
-        targetType: dto.targetType,
-        targetId: dto.targetId || 'N/A',
-        reason: `New Appeal Created: ${dto.reason}`,
-      })
-      .catch((e) => console.error(e));
+    this.eventEmitter.emit('moderation.report_filed', {
+      reportId: appeal.id,
+      reporterId: userId,
+      targetType: dto.targetType,
+      targetId: dto.targetId || 'N/A',
+      reason: `New Appeal Created: ${dto.reason}`,
+    });
 
     return appeal;
   }
@@ -228,15 +226,13 @@ export class AppealsService {
       })
       .catch((e) => console.error(e));
 
-    this.slackService
-      .sendModerationAlert({
-        reportId: appeal.id,
-        reporterId: appeal.userId,
-        targetType: appeal.targetType,
-        targetId: appeal.targetId || 'N/A',
-        reason: `Appeal Status Updated: ${dto.status}. Notes: ${dto.adminNotes || 'None'}`,
-      })
-      .catch((e) => console.error(e));
+    this.eventEmitter.emit('moderation.report_filed', {
+      reportId: appeal.id,
+      reporterId: appeal.userId,
+      targetType: appeal.targetType,
+      targetId: appeal.targetId || 'N/A',
+      reason: `Appeal Status Updated: ${dto.status}. Notes: ${dto.adminNotes || 'None'}`,
+    });
 
     const outcomeLabel =
       dto.status === 'APPROVED'

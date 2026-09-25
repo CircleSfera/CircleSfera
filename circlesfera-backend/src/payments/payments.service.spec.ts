@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { SubscriptionStatus } from '@prisma/client';
 import type Stripe from 'stripe';
@@ -7,7 +8,6 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { MonetizationWebhookService } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SlackService } from '../slack/slack.service.js';
 import { UsersService } from '../users/users.service.js';
 import { PaymentsService } from './payments.service.js';
 
@@ -16,7 +16,7 @@ const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 describe('PaymentsService', () => {
   let service: PaymentsService;
   let prisma: PrismaService;
-  let slackService: SlackService;
+  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
   let emailService: any;
   let stripeService: any;
   let usersService: any;
@@ -91,8 +91,8 @@ describe('PaymentsService', () => {
           },
         },
         {
-          provide: SlackService,
-          useValue: { sendPaymentAlert: vi.fn().mockResolvedValue(true) },
+          provide: EventEmitter2,
+          useValue: { emit: vi.fn() },
         },
         {
           provide: EmailService,
@@ -134,7 +134,7 @@ describe('PaymentsService', () => {
 
     service = module.get<PaymentsService>(PaymentsService);
     prisma = module.get<PrismaService>(PrismaService);
-    slackService = module.get<SlackService>(SlackService);
+    eventEmitter = module.get(EventEmitter2);
     emailService = module.get<EmailService>(EmailService);
     stripeService = module.get<StripeService>(StripeService);
     usersService = module.get<UsersService>(UsersService);
@@ -802,7 +802,12 @@ describe('PaymentsService', () => {
         },
       });
       expect(emailService.sendSubscriptionReceipt).toHaveBeenCalled();
-      expect(slackService.sendPaymentAlert).toHaveBeenCalled();
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'payment.alert',
+        expect.objectContaining({
+          eventType: 'Platform Subscription Checkout',
+        }),
+      );
       expect(prisma.webhookEvent.update).toHaveBeenCalled();
     });
 
@@ -1135,13 +1140,10 @@ describe('PaymentsService', () => {
       expect(res).toBe(0);
     });
 
-    it('handles email receipt and Slack alert failures in platform subscription checkout', async () => {
+    it('handles email receipt failure in platform subscription checkout without failing the webhook', async () => {
       emailService.sendSubscriptionReceipt = vi
         .fn()
         .mockRejectedValue(new Error('Email service error'));
-      slackService.sendPaymentAlert = vi
-        .fn()
-        .mockRejectedValue(new Error('Slack error'));
       prisma.user.findUnique = vi
         .fn()
         .mockResolvedValue({ id: 'u_sub', email: 'sub@test.com' });
