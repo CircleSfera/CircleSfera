@@ -12,7 +12,7 @@ import {
 } from 'vitest';
 import { safeFetchMedia } from '../common/utils/safe-media-fetcher.js';
 import { SsrfBlockedError } from '../common/utils/ssrf.util.js';
-import { AIService } from './ai.service.js';
+import { AIService, classifyOpenAIError } from './ai.service.js';
 
 const mOpenAI = {
   embeddings: {
@@ -37,6 +37,17 @@ vi.mock('../common/utils/safe-media-fetcher.js', () => ({
   safeFetchMedia: vi.fn(),
 }));
 
+const { MockAPIError } = vi.hoisted(() => {
+  class MockAPIError extends Error {
+    status?: number;
+    constructor(status: number | undefined, message: string) {
+      super(message);
+      this.status = status;
+    }
+  }
+  return { MockAPIError };
+});
+
 vi.mock('openai', () => {
   return {
     default: class OpenAI {
@@ -45,12 +56,59 @@ vi.mock('openai', () => {
       audio = mOpenAI.audio;
       chat = mOpenAI.chat;
     },
+    APIError: MockAPIError,
     toFile: vi.fn().mockImplementation(async (buffer, filename, opts) => ({
       buffer,
       filename,
       ...opts,
     })),
   };
+});
+
+describe('classifyOpenAIError', () => {
+  it('treats a non-APIError as transient', () => {
+    expect(classifyOpenAIError(new Error('boom'))).toBe('transient');
+    expect(classifyOpenAIError('some string')).toBe('transient');
+  });
+
+  it('treats 429 as transient', () => {
+    expect(classifyOpenAIError(new MockAPIError(429, 'rate limited'))).toBe(
+      'transient',
+    );
+  });
+
+  it('treats 5xx as transient', () => {
+    expect(classifyOpenAIError(new MockAPIError(503, 'server error'))).toBe(
+      'transient',
+    );
+  });
+
+  it('treats an APIError with undefined status as transient (APIConnectionError/APIConnectionTimeoutError)', () => {
+    expect(
+      classifyOpenAIError(new MockAPIError(undefined, 'connection error')),
+    ).toBe('transient');
+  });
+
+  it('treats 408 and 409 as transient', () => {
+    expect(classifyOpenAIError(new MockAPIError(408, 'timeout'))).toBe(
+      'transient',
+    );
+    expect(classifyOpenAIError(new MockAPIError(409, 'conflict'))).toBe(
+      'transient',
+    );
+  });
+
+  it('treats other 4xx as permanent', () => {
+    expect(classifyOpenAIError(new MockAPIError(400, 'bad request'))).toBe(
+      'permanent',
+    );
+    expect(classifyOpenAIError(new MockAPIError(401, 'unauthorized'))).toBe(
+      'permanent',
+    );
+    expect(classifyOpenAIError(new MockAPIError(422, 'unprocessable'))).toBe(
+      'permanent',
+    );
+  });
 });
 
 describe('AIService', () => {

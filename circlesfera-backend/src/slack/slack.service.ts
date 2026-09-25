@@ -44,6 +44,17 @@ export class SlackService {
       this.defaultWebhookUrl;
   }
 
+  // Every Slack notification (incidents, moderation, payments, support)
+  // funnels through here. Previously a single failed POST was logged and
+  // dropped with no retry -- for handleSystemIncident specifically, that
+  // meant an infra problem severe enough to take Slack down with it (a
+  // plausible correlated failure) silently lost the one alert meant to tell
+  // a human about it. Retries with backoff (INT-001); if every attempt
+  // fails, logs a distinctive high-severity marker so ops has a trace to
+  // grep for even without Slack.
+  private static readonly SEND_MAX_ATTEMPTS = 3;
+  private static readonly SEND_BACKOFF_MS = 300;
+
   private async sendMessage(
     webhookUrl: string | undefined,
     payload: any,
@@ -55,10 +66,40 @@ export class SlackService {
       return;
     }
 
-    try {
-      await axios.post(webhookUrl, payload, { timeout: 5_000 });
-    } catch (error) {
-      this.logger.error('Failed to send Slack message', error);
+    for (
+      let attempt = 1;
+      attempt <= SlackService.SEND_MAX_ATTEMPTS;
+      attempt++
+    ) {
+      try {
+        await axios.post(webhookUrl, payload, { timeout: 5_000 });
+        return;
+      } catch (error) {
+        // A malformed payload (400) or a deleted/invalid webhook URL (404)
+        // will fail identically on retry -- only network errors, 429, and
+        // 5xx are worth retrying (same transient/permanent split as the
+        // rest of INT-001).
+        const status = axios.isAxiosError(error)
+          ? error.response?.status
+          : undefined;
+        const retryable =
+          status === undefined || status === 429 || status >= 500;
+
+        if (!retryable || attempt === SlackService.SEND_MAX_ATTEMPTS) {
+          this.logger.error(
+            `SLACK_DELIVERY_FAILED after ${attempt} attempt(s) -- notification lost`,
+            error,
+          );
+          return;
+        }
+        this.logger.warn(
+          `Slack message delivery failed (attempt ${attempt}/${SlackService.SEND_MAX_ATTEMPTS}), retrying`,
+          error,
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, SlackService.SEND_BACKOFF_MS * attempt),
+        );
+      }
     }
   }
 

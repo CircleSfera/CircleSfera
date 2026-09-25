@@ -20,6 +20,7 @@ export const QUEUE_NAMES = {
   EDITS_PROCESSING: 'edits-processing',
   SLACK_PROCESSING: 'slack-processing',
   WAREHOUSE_EXPORT: 'warehouse-export',
+  EMAIL_PROCESSING: 'email-processing',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];
@@ -411,6 +412,38 @@ export const QUEUE_POLICIES: Record<QueueName, QueuePolicyConfig> = {
     },
     workerOptions: {
       concurrency: 2,
+      lockDuration: 30000,
+      maxStalledCount: 2,
+      stalledInterval: 30000,
+    },
+  },
+
+  [QUEUE_NAMES.EMAIL_PROCESSING]: {
+    queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+    workloadClass: QUEUE_WORKLOAD_CLASSES.EVENT_DISTRIBUTION,
+    description:
+      'Transactional email delivery via Brevo (verification, password reset, welcome, receipts). Some are time-sensitive account-security flows.',
+    defaultJobOptions: {
+      // 8 attempts, 25s exponential base: 25+50+100+200+400+800+1600 = ~53min
+      // of backoff, plus per-attempt delivery time (15s Brevo timeout + 1 SDK
+      // retry) -- keeps the final attempt within the 1h reset-token window
+      // instead of giving up after ~21s like a shorter schedule would.
+      attempts: 8,
+      backoff: {
+        type: 'exponential',
+        delay: 25000,
+      },
+      removeOnComplete: {
+        age: 86400,
+        count: 2000,
+      },
+      removeOnFail: {
+        age: 7 * 86400,
+        count: 5000,
+      },
+    },
+    workerOptions: {
+      concurrency: 5,
       lockDuration: 30000,
       maxStalledCount: 2,
       stalledInterval: 30000,

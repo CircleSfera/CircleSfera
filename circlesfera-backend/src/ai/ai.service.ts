@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import OpenAI from 'openai';
+import OpenAI, { APIError } from 'openai';
 import { safeFetchMedia } from '../common/utils/safe-media-fetcher.js';
 import { Semaphore } from '../common/utils/semaphore.js';
 import { isPrivateOrLocalHost } from '../common/utils/ssrf.util.js';
@@ -9,6 +9,37 @@ export interface ContentModerationResult {
   flagged: boolean;
   categories: Record<string, boolean>;
   category_scores: Record<string, number>;
+}
+
+export type OpenAIFailureClass = 'transient' | 'permanent';
+
+// Classifies an OpenAI SDK error by retryability (INT-001). AIProcessor's
+// BullMQ retry (attempts: 4, exponential backoff -- see
+// queue-policy.constants.ts) previously applied identically regardless of
+// whether the failure was a genuine transient blip or a permanent 4xx
+// (content-policy rejection, malformed input, bad API key) that will fail
+// the same way every time. Exported so the processor can decide
+// UnrecoverableError vs a normal throw without duplicating the status check.
+export function classifyOpenAIError(error: unknown): OpenAIFailureClass {
+  if (!(error instanceof APIError)) {
+    return 'transient'; // Network/timeout/unknown -- assume worth retrying.
+  }
+  // APIConnectionError / APIConnectionTimeoutError extend APIError with no
+  // status (no HTTP response was ever received) -- a network-level failure,
+  // not a rejection, so it's transient too.
+  if (error.status === undefined) {
+    return 'transient';
+  }
+  if (
+    error.status === 408 ||
+    error.status === 409 ||
+    error.status === 429 ||
+    error.status >= 500
+  ) {
+    return 'transient';
+  }
+  // 400/401/403/404/422 -- will fail identically on an unmodified retry.
+  return 'permanent';
 }
 
 // Service for AI-powered features using the shared OPENAI_API_KEY:

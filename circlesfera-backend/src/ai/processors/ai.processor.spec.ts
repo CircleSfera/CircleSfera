@@ -287,6 +287,38 @@ describe('AIProcessor', () => {
 
       await expect(processor.process(job)).rejects.toBe('String error');
     });
+
+    it('wraps a permanent OpenAI error (400) in UnrecoverableError instead of retrying (INT-001)', async () => {
+      const { APIError } = await import('openai');
+      const job = {
+        name: 'generate-embedding',
+        data: { postId: 'p-1', text: 'Some text' },
+      } as Job;
+
+      aiService.generateEmbedding.mockRejectedValue(
+        new APIError(400, {}, 'bad request', new Headers()),
+      );
+
+      await expect(processor.process(job)).rejects.toThrow(UnrecoverableError);
+    });
+
+    it('rethrows a transient OpenAI error (429) unchanged so BullMQ retries it (INT-001)', async () => {
+      const { APIError } = await import('openai');
+      const job = {
+        name: 'generate-embedding',
+        data: { postId: 'p-1', text: 'Some text' },
+      } as Job;
+
+      const rateLimitError = new APIError(
+        429,
+        {},
+        'rate limited',
+        new Headers(),
+      );
+      aiService.generateEmbedding.mockRejectedValue(rateLimitError);
+
+      await expect(processor.process(job)).rejects.toBe(rateLimitError);
+    });
   });
 
   describe('generate-profile-embedding', () => {

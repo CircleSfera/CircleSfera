@@ -1,13 +1,45 @@
-import { BrevoClient } from '@getbrevo/brevo';
+import { BrevoClient, BrevoError } from '@getbrevo/brevo';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Queue } from 'bullmq';
+import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { EmailTemplates } from './email-templates.js';
+
+export interface SendMailOptions {
+  to: string;
+  subject: string;
+  html: string;
+}
 
 // Service for sending transactional emails (verification, password reset, welcome).
 // Uses Brevo (formerly Sendinblue) API v3 via the official Node.js SDK (v5+).
-// Silently skips failures in non-production environments.
+// Public methods enqueue via BullMQ (INT-001) rather than calling Brevo inline:
+// a synchronous call that only logged-and-swallowed on failure meant a Brevo
+// outage silently and permanently lost a password-reset email (1h token) with
+// no automatic recovery. deliverMail (called by EmailProcessor) does the
+// actual send and throws on a transient failure so BullMQ retries it; a
+// permanent (4xx, non-429) BrevoError should NOT be retried -- see
+// EmailProcessor, which classifies via isTransientBrevoFailure below.
 export const MAX_EMAILS_PER_RECIPIENT_WINDOW = 5;
 export const RECIPIENT_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+
+// A 4xx Brevo error (invalid recipient, malformed payload, bad API key) will
+// never succeed on retry. 429 (rate limit) and 5xx/network errors are worth
+// retrying. Exported so EmailProcessor can decide UnrecoverableError vs a
+// normal throw without duplicating the classification.
+export function isTransientBrevoFailure(error: unknown): boolean {
+  if (!(error instanceof BrevoError)) {
+    return true; // Network/timeout/unknown -- assume transient, worth retrying.
+  }
+  if (error.statusCode === undefined) {
+    return true;
+  }
+  if (error.statusCode === 429) {
+    return true;
+  }
+  return error.statusCode >= 500;
+}
 
 @Injectable()
 export class EmailService {
@@ -15,10 +47,21 @@ export class EmailService {
   private brevo: BrevoClient | null = null;
   private readonly recipientSendTimestamps = new Map<string, number[]>();
 
-  constructor(@Inject(ConfigService) private configService: ConfigService) {
+  constructor(
+    @Inject(ConfigService) private configService: ConfigService,
+    @InjectQueue(QUEUE_NAMES.EMAIL_PROCESSING)
+    private readonly emailQueue: Queue<SendMailOptions>,
+  ) {
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
     if (apiKey) {
-      this.brevo = new BrevoClient({ apiKey });
+      this.brevo = new BrevoClient({
+        apiKey,
+        timeoutInSeconds: 15,
+        // A single SDK-level retry for a quick network blip; BullMQ's
+        // 4-attempt exponential backoff (see queue-policy.constants.ts)
+        // handles the broader retry window -- no need to compound both.
+        maxRetries: 1,
+      });
     } else {
       this.logger.warn(
         'BREVO_API_KEY is not configured. Email sending will be skipped.',
@@ -33,7 +76,7 @@ export class EmailService {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: '¡Bienvenido a CircleSfera!',
       html: EmailTemplates.welcome(name, frontendUrl),
@@ -53,7 +96,7 @@ export class EmailService {
       this.logger.debug(`[DEV ONLY] Verification link for ${email}: ${url}`);
     }
 
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: 'Verifica tu cuenta en CircleSfera',
       html: EmailTemplates.verification(url),
@@ -69,7 +112,7 @@ export class EmailService {
 
     const url = `${frontendUrl}/reset-password?token=${token}`;
 
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: 'Recupera tu contraseña en CircleSfera',
       html: EmailTemplates.passwordReset(url),
@@ -91,7 +134,7 @@ export class EmailService {
     buttonText?: string,
     buttonUrl?: string,
   ) {
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject,
       html: EmailTemplates.broadcast(title, content, buttonText, buttonUrl),
@@ -106,7 +149,7 @@ export class EmailService {
     targetType: string,
     reason: string,
   ) {
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: 'Aviso de Moderación - CircleSfera',
       html: EmailTemplates.moderationAction(
@@ -124,7 +167,7 @@ export class EmailService {
     originalSubject: string,
     replyText: string,
   ) {
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: `Re: ${originalSubject} - Soporte CircleSfera`,
       html: EmailTemplates.broadcast(
@@ -143,20 +186,43 @@ export class EmailService {
     const frontendUrl =
       this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
 
-    await this.sendMail({
+    await this.queueMail({
       to: email,
       subject: `Recibo de Suscripción - ${planName}`,
       html: EmailTemplates.subscriptionReceipt(planName, amount, frontendUrl),
     });
   }
 
-  // Low-level method to send an email via Brevo API.
-  // Param options: Email options
-  private async sendMail(options: {
-    to: string;
-    subject: string;
-    html: string;
-  }) {
+  // Enqueue an email for delivery (INT-001). Returns as soon as the job is
+  // queued -- callers never block on Brevo's actual response time, and a
+  // transient Brevo failure gets BullMQ's retry/backoff instead of being
+  // silently dropped. See deliverMail for the actual send.
+  private async queueMail(options: SendMailOptions): Promise<void> {
+    if (!this.brevo) {
+      this.logger.warn(
+        `Skipping email send to ${options.to}: BREVO_API_KEY not set.`,
+      );
+      return;
+    }
+    try {
+      await this.emailQueue.add('send-transactional-email', options);
+    } catch (error) {
+      // Callers (e.g. AuthService) call this after their own DB mutation
+      // (user created, reset token stored) -- a Redis/BullMQ enqueue failure
+      // must not fail their HTTP response on top of that, same principle as
+      // the old inline design. Logged, not retried: retrying the enqueue
+      // itself (as opposed to the send, which BullMQ already retries once
+      // queued) is not implemented here.
+      this.logger.error(`Failed to queue email to ${options.to}`, error);
+    }
+  }
+
+  // Performs the actual Brevo send. Called by EmailProcessor, not directly
+  // by feature code -- use the sendXEmail methods above, which queue.
+  // Throws on failure so the caller (EmailProcessor) can retry via BullMQ;
+  // does NOT throw for a suppressed (quota-exceeded) send, since that isn't
+  // a failure worth retrying.
+  async deliverMail(options: SendMailOptions): Promise<void> {
     if (!this.brevo) {
       this.logger.warn(
         `Skipping email send to ${options.to}: BREVO_API_KEY not set.`,
@@ -206,14 +272,11 @@ export class EmailService {
       });
       this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error: unknown) {
-      // Always log email failures with full detail for observability,
-      // But never propagate — a failed email must not block user-facing flows
-      // (registration, password reset, etc.). Users can request a resend.
       this.logger.error(
-        `Failed to send email to ${options.to} (subject: "${options.subject}"). ` +
-          'User flow continues unaffected.',
+        `Failed to send email to ${options.to} (subject: "${options.subject}").`,
         error,
       );
+      throw error;
     }
   }
 }

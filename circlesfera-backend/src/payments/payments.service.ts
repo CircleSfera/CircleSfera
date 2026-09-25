@@ -6,7 +6,10 @@ import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
-import { StripeService } from '../common/stripe/stripe.service.js';
+import {
+  classifyStripeError,
+  StripeService,
+} from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import {
   isMonetizationCheckoutType,
@@ -187,6 +190,13 @@ export class PaymentsService {
             idempotencyKey: `checkout_sub_${intentKey}`,
           },
         );
+      } catch (err) {
+        this.logger.error(
+          `Stripe checkout session creation failed for ${intentKey} (${classifyStripeError(err)}): ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+        throw err;
       } finally {
         this.checkoutInFlight.delete(intentKey);
       }
@@ -471,6 +481,11 @@ export class PaymentsService {
         data: { status: 'PROCESSED', processedAt: new Date() },
       });
     } catch (err: any) {
+      this.logger.error(
+        `Webhook event ${event.id} (${event.type}) dispatch failed (${classifyStripeError(err)}): ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
       await this.prisma.webhookEvent
         .update({
           where: { externalId: event.id },

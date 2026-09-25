@@ -1,6 +1,11 @@
 import type { ConfigService } from '@nestjs/config';
+import Stripe from 'stripe';
 import { describe, expect, it, vi } from 'vitest';
-import { deriveConnectAccountFlags, StripeService } from './stripe.service.js';
+import {
+  classifyStripeError,
+  deriveConnectAccountFlags,
+  StripeService,
+} from './stripe.service.js';
 
 /** A minimal async-iterable stand-in for Stripe's paginated ApiListPromise. */
 function fakePaginatedList<T>(items: T[]): AsyncIterable<T> {
@@ -16,6 +21,50 @@ function fakePaginatedList<T>(items: T[]): AsyncIterable<T> {
     },
   } as AsyncIterable<T>;
 }
+
+describe('classifyStripeError', () => {
+  it('treats a non-StripeError as transient', () => {
+    expect(classifyStripeError(new Error('boom'))).toBe('transient');
+    expect(classifyStripeError('some string')).toBe('transient');
+    expect(classifyStripeError(null)).toBe('transient');
+  });
+
+  it('treats StripeConnectionError as transient', () => {
+    expect(classifyStripeError(new Stripe.errors.StripeConnectionError())).toBe(
+      'transient',
+    );
+  });
+
+  it('treats StripeAPIError as transient', () => {
+    expect(classifyStripeError(new Stripe.errors.StripeAPIError())).toBe(
+      'transient',
+    );
+  });
+
+  it('treats StripeRateLimitError as transient', () => {
+    expect(classifyStripeError(new Stripe.errors.StripeRateLimitError())).toBe(
+      'transient',
+    );
+  });
+
+  it('treats StripeCardError as permanent', () => {
+    expect(classifyStripeError(new Stripe.errors.StripeCardError())).toBe(
+      'permanent',
+    );
+  });
+
+  it('treats StripeInvalidRequestError as permanent', () => {
+    expect(
+      classifyStripeError(new Stripe.errors.StripeInvalidRequestError()),
+    ).toBe('permanent');
+  });
+
+  it('treats StripeAuthenticationError as permanent', () => {
+    expect(
+      classifyStripeError(new Stripe.errors.StripeAuthenticationError()),
+    ).toBe('permanent');
+  });
+});
 
 describe('deriveConnectAccountFlags', () => {
   // Single source of truth shared by monetization.service.ts's on-demand
