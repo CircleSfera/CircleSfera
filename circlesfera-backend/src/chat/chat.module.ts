@@ -14,6 +14,7 @@ import { PushModule } from '../push/push.module.js';
 
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
+import { ChatAuthorizationService } from './services/chat-authorization.service.js';
 // Group Commands
 import { CreateGroupUseCase } from './use-cases/groups/create-group.use-case.js';
 import { DeleteConversationUseCase } from './use-cases/groups/delete-conversation.use-case.js';
@@ -70,7 +71,12 @@ const useCases = [
       inject: [ConfigService],
     }),
   ],
-  providers: [...useCases, CryptoService, ChatProcessor],
+  providers: [
+    ...useCases,
+    CryptoService,
+    ChatProcessor,
+    ChatAuthorizationService,
+  ],
   controllers: [ChatController],
   exports: [AddReactionUseCase], // Exported for AppGateway
 })

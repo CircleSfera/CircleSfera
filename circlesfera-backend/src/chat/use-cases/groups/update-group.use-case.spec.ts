@@ -2,6 +2,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
+import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 import { UpdateGroupUseCase } from './update-group.use-case.js';
 
 describe('UpdateGroupUseCase', () => {
@@ -21,6 +22,7 @@ describe('UpdateGroupUseCase', () => {
     useCase = new UpdateGroupUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
+      new ChatAuthorizationService(mockPrisma as unknown as PrismaService),
     );
   });
 

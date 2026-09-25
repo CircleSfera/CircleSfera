@@ -1,15 +1,16 @@
-import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
-import type { Message } from '@prisma/client';
-import { AppException } from '../../../common/errors/app.exception.js';
+import type { Message, Participant } from '@prisma/client';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
 @Injectable()
 export class GetMessagesQuery {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(CryptoService) private cryptoService: CryptoService,
+    @Inject(ChatAuthorizationService)
+    private chatAuth: ChatAuthorizationService,
   ) {}
 
   async execute(
@@ -17,21 +18,13 @@ export class GetMessagesQuery {
     limit = 50,
     profileId?: string,
   ): Promise<Message[]> {
-    let isParticipant = null;
+    let isParticipant: Participant | null = null;
     if (profileId) {
-      isParticipant = await this.prisma.participant.findFirst({
-        where: {
-          conversationId,
-          profileId,
-        },
-      });
-
-      if (!isParticipant) {
-        throw AppException.Forbidden(
-          ErrorCode.FORBIDDEN_ACCESS,
-          'You are not a participant in this conversation',
-        );
-      }
+      isParticipant = await this.chatAuth.assertParticipant(
+        conversationId,
+        profileId,
+        'You are not a participant in this conversation',
+      );
     }
 
     const whereClause: any = { conversationId };

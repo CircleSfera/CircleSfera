@@ -1,14 +1,15 @@
-import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
 
 @Injectable()
 export class UpdateGroupUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
+    @Inject(ChatAuthorizationService)
+    private chatAuth: ChatAuthorizationService,
   ) {}
 
   async execute(
@@ -17,16 +18,11 @@ export class UpdateGroupUseCase {
     name?: string,
     avatarUrl?: string,
   ) {
-    const participant = await this.prisma.participant.findFirst({
-      where: { conversationId, profileId },
-    });
-
-    if (!participant?.isAdmin) {
-      throw AppException.Forbidden(
-        ErrorCode.FORBIDDEN_ACCESS,
-        'Only group admins can update the group details',
-      );
-    }
+    await this.chatAuth.assertGroupAdmin(
+      conversationId,
+      profileId,
+      'Only group admins can update the group details',
+    );
 
     const data: any = {};
     if (name !== undefined) data.name = name;
