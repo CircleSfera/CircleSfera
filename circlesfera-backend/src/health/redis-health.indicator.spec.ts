@@ -22,17 +22,23 @@ vi.mock('ioredis', () => {
 describe('RedisHealthIndicator', () => {
   let indicator: RedisHealthIndicator;
 
+  const defaultConfigImpl = (key: string) => {
+    if (key === 'REDIS_HOST') return 'redis.internal';
+    if (key === 'REDIS_PORT') return 6380;
+    if (key === 'REDIS_PASSWORD') return 'secret';
+    return undefined;
+  };
+
   const mockConfigService = {
-    get: vi.fn((key: string) => {
-      if (key === 'REDIS_HOST') return 'redis.internal';
-      if (key === 'REDIS_PORT') return 6380;
-      if (key === 'REDIS_PASSWORD') return 'secret';
-      return undefined;
-    }),
+    get: vi.fn(defaultConfigImpl),
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // clearAllMocks() only resets call history, not overrides installed via
+    // mockReturnValue/mockImplementation in a previous test — restore the
+    // default explicitly so tests don't depend on execution order.
+    mockConfigService.get.mockImplementation(defaultConfigImpl);
     indicator = new RedisHealthIndicator(
       mockConfigService as unknown as ConfigService,
     );

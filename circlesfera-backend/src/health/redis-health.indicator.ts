@@ -26,6 +26,11 @@ export class RedisHealthIndicator {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
       connectTimeout: 3000,
+      // connectTimeout only bounds the initial TCP handshake; without this,
+      // an accepted connection where Redis never replies to PING (e.g. an
+      // overloaded instance) would hang the command indefinitely, and with
+      // it the whole /health or /health/readiness response.
+      commandTimeout: 3000,
     });
 
     try {
