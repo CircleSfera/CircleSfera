@@ -1,3 +1,4 @@
+import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
@@ -251,11 +252,12 @@ export class AdminUsersService {
     await this.prisma.refreshToken.deleteMany({
       where: { userId },
     });
-    this.eventEmitter.emit('user.session.terminate', {
+    const banEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       profileId: result.profiles[0]?.id,
       reason: 'Account banned by administration',
-    });
+    };
+    this.eventEmitter.emit('user.session.terminate', banEvent);
     await this.logAction(adminId, AdminAction.BAN_USER, 'user', userId);
     await this.invalidateProfileCache(userId);
 
@@ -626,11 +628,12 @@ export class AdminUsersService {
       where: { userId },
     });
     const recipientProfileId = await this.resolvePrimaryProfileId(userId);
-    this.eventEmitter.emit('user.session.terminate', {
+    const suspendEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       profileId: recipientProfileId || undefined,
       reason: `Account suspended until ${until.toISOString()}`,
-    });
+    };
+    this.eventEmitter.emit('user.session.terminate', suspendEvent);
     if (recipientProfileId) {
       await this.notificationsService
         .create({

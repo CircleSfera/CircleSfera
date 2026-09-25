@@ -1,3 +1,4 @@
+import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -20,7 +21,8 @@ export class SupportService {
       },
     });
 
-    this.eventEmitter.emit('support.ticket_created', ticket);
+    const event: SupportTicketCreatedEvent['payload'] = ticket;
+    this.eventEmitter.emit('support.ticket_created', event);
 
     return {
       success: true,

@@ -1,3 +1,4 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -256,7 +257,7 @@ export class AIProcessor extends WorkerHost {
       type: NotificationType.MODERATION,
       content: content.slice(0, 500),
       postId: targetType === 'POST' ? targetId : undefined,
-    });
+    } satisfies NotificationCreateEvent['payload']);
   }
 
   private async hideTargetAndGetAuthorProfileId(

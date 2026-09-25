@@ -1,4 +1,7 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  type ChatConversationDeletedEvent,
+  ErrorCode,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -35,10 +38,11 @@ export class DeleteConversationUseCase {
         where: { id: conversationId },
       });
 
-      this.eventEmitter.emit('chat.conversation.deleted', {
+      const event: ChatConversationDeletedEvent['payload'] = {
         participants: participant.conversation.participants,
         payload: { conversationId },
-      });
+      };
+      this.eventEmitter.emit('chat.conversation.deleted', event);
 
       return { success: true };
     }
@@ -51,10 +55,11 @@ export class DeleteConversationUseCase {
       },
     });
 
-    this.eventEmitter.emit('chat.conversation.deleted', {
+    const leaveEvent: ChatConversationDeletedEvent['payload'] = {
       participants: [{ profileId }],
       payload: { conversationId },
-    });
+    };
+    this.eventEmitter.emit('chat.conversation.deleted', leaveEvent);
 
     const allDeleted = await this.prisma.participant.findMany({
       where: { conversationId, deletedAt: null },

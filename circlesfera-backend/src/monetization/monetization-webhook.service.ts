@@ -1,5 +1,7 @@
 import {
   ErrorCode,
+  type NotificationCreateEvent,
+  type PaymentAlertEvent,
   type PaymentLiveGiftCompletedEvent,
 } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
@@ -62,11 +64,11 @@ export class MonetizationWebhookService {
     if (!recipientId) return;
     this.eventEmitter.emit('notification.create', {
       recipientId,
-      senderId,
-      type: 'PAYMENT' as const,
+      senderId: senderId ?? undefined,
+      type: 'PAYMENT',
       content: params.content,
       postId: params.postId,
-    });
+    } satisfies NotificationCreateEvent['payload']);
   }
 
   async handleCheckoutSessionCompleted(
@@ -116,12 +118,13 @@ export class MonetizationWebhookService {
       this.logger.log(
         `Successfully processed promotion payment for ${promotionId}`,
       );
-      this.eventEmitter?.emit('payment.alert', {
+      const promotionAlert: PaymentAlertEvent['payload'] = {
         eventType: 'Promotion Payment',
         amount,
         currency: session.currency || 'eur',
         description: `Promotion ID: ${promotionId}`,
-      });
+      };
+      this.eventEmitter?.emit('payment.alert', promotionAlert);
     } else if (metadata?.type === 'DIRECT_POST_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
       const { postId, creatorId } = metadata;
@@ -176,13 +179,14 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Post Unlock for user ${clientReferenceId}`,
         );
-        this.eventEmitter?.emit('payment.alert', {
+        const postUnlockAlert: PaymentAlertEvent['payload'] = {
           eventType: 'Post Unlock',
           amount: amount,
           currency: session.currency || 'eur',
           description: `User ${clientReferenceId} unlocked post ${postId} by creator ${creatorId}`,
           userId: clientReferenceId,
-        });
+        };
+        this.eventEmitter?.emit('payment.alert', postUnlockAlert);
       }
     } else if (metadata?.type === 'DIRECT_STORY_UNLOCK') {
       const clientReferenceId = session.client_reference_id;
@@ -346,13 +350,14 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Tip from user ${clientReferenceId} to ${creatorId}`,
         );
-        this.eventEmitter?.emit('payment.alert', {
+        const tipAlert: PaymentAlertEvent['payload'] = {
           eventType: 'Creator Tip',
           amount: amount,
           currency: session.currency || 'eur',
           description: `User ${clientReferenceId} tipped creator ${creatorId}`,
           userId: clientReferenceId,
-        });
+        };
+        this.eventEmitter?.emit('payment.alert', tipAlert);
 
         const amountFormatted = (amount / 100).toLocaleString('en-US', {
           style: 'currency',
@@ -391,13 +396,14 @@ export class MonetizationWebhookService {
         this.logger.log(
           `Successfully processed Live Gift ${liveGiftId} from ${clientReferenceId}`,
         );
-        this.eventEmitter?.emit('payment.alert', {
+        const giftAlert: PaymentAlertEvent['payload'] = {
           eventType: 'Live Gift',
           amount,
           currency: session.currency || 'eur',
           description: `User ${clientReferenceId} gifted ${giftId} on stream ${streamId}`,
           userId: clientReferenceId,
-        });
+        };
+        this.eventEmitter?.emit('payment.alert', giftAlert);
       } else if (!this.eventEmitter) {
         this.logger.error(
           'EventEmitter not available to complete DIRECT_LIVE_GIFT',

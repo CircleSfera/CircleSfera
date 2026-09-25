@@ -1,4 +1,7 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  type ChatConversationCreatedEvent,
+  ErrorCode,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -123,9 +126,8 @@ export class CreateGroupUseCase {
       },
     });
 
-    this.eventEmitter.emit('chat.conversation.created', {
-      conversation,
-    });
+    const event: ChatConversationCreatedEvent['payload'] = { conversation };
+    this.eventEmitter.emit('chat.conversation.created', event);
 
     return conversation;
   }

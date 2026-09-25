@@ -19,6 +19,41 @@ Accept the following four categories as the full, closed list of what `EventEmit
 3. **Centralized notification creation** — `notification.create`. A single entry point (`NotificationsService.create`) so every module that can trigger a notification (comments, likes, follows, posts, reports, payments, the AI processor) does not duplicate persistence/dispatch/aggregation logic.
 4. **Narrow cross-module operational signals** — `user.session.terminate` (already-approved session eviction), `payment.live_gift_completed` (payments → live gift overlay trigger), `system.incident` (uploads cleanup → Slack alerting), `moderation.report_filed` (reports/appeals → Slack moderation alerting, INT-002), `payment.alert` (payments/monetization webhooks → Slack payment alerting, INT-002), `support.ticket_created` (support → Slack support alerting, INT-002).
 
+### Typed contracts and ownership
+
+Every event name in the four categories above has a corresponding payload
+interface in `CriticalDomainEvent` (`circlesfera-shared/src/events/critical-events.ts`),
+plus an entry in the co-located `EVENT_OWNERS` map naming the service
+responsible for its contract — the single canonical listener for events with
+one consumer, or the emitter for fan-out events with several independent
+listeners (`user.hard_deleted`, `media.delete_batch`), since the emitter is
+the unambiguous source of truth for the payload shape and firing conditions.
+Emit call sites declare their payload against `EventName['payload']` (or
+`CriticalEventPayload<'event.name'>`) before calling `.emit()`; `@OnEvent`
+listener parameters are typed the same way. `EventEmitter2` itself has no
+generic-checked emit/listen pairing, so this only catches drift at each
+individual call site, not between an emitter and a listener that both
+compile cleanly against different assumptions — but it is a real
+improvement over the untyped literals this replaced.
+
+This closed the gap where several events (`chat.message.sent|deleted|edited`,
+`chat.conversation.updated|deleted|created`, `moderation.report_filed`,
+`payment.alert`, `support.ticket_created`, `user.session.terminate`,
+`notification.create`) had no compile-time contract at all — payload shape
+was whatever each emitter happened to send, checked only by convention
+against each listener's own separately-declared inline type. Auditing those
+inline types against the actual emitted payloads surfaced two real
+mismatches that had gone undetected because the unread field was simply
+never referenced: `chat.message.edited`'s listener declared a `messageId`
+field that was never actually sent (the real payload is the full updated
+Message row, keyed by `id`), and `chat.conversation.updated`'s listener
+made the same claim for `conversationId` (the real payload is the full
+updated Conversation row, keyed by `id`). Both are corrected in the shared
+type and at every call site.
+
+The dead `payment.promotion_completed` type (defined, never emitted or
+listened to anywhere) was removed from the union.
+
 **Hard boundaries — why this stays a closed list and not a general pattern:**
 
 - `EventEmitter2` must never be the system of record or the durability mechanism for a state transition. Financial/monetization writes, entitlement grants, and any Prisma state change stay direct service calls inside their transaction (or the outbox pattern in `src/outbox/` where cross-boundary durability is actually required). Events may only trigger *side effects* of a write that has already committed.

@@ -1,7 +1,11 @@
+import type {
+  ModerationReportFiledEvent,
+  PaymentAlertEvent,
+  SupportTicketCreatedEvent,
+} from '@circlesfera/shared';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
-import { SupportTicket } from '@prisma/client';
 import axios from 'axios';
 import { AIService } from '../ai/ai.service.js';
 import { redactSensitiveText } from '../common/observability/redaction.util.js';
@@ -165,14 +169,9 @@ export class SlackService {
   }
 
   @OnEvent('moderation.report_filed', { async: true })
-  async sendModerationAlert(reportInfo: {
-    reportId: string;
-    reporterId: string;
-    targetType: string;
-    targetId: string;
-    reason: string;
-    details?: string;
-  }): Promise<void> {
+  async sendModerationAlert(
+    reportInfo: ModerationReportFiledEvent['payload'],
+  ): Promise<void> {
     const payload = {
       blocks: [
         {
@@ -256,13 +255,9 @@ export class SlackService {
   }
 
   @OnEvent('payment.alert', { async: true })
-  async sendPaymentAlert(paymentInfo: {
-    eventType: string;
-    amount?: number;
-    currency?: string;
-    description?: string;
-    userId?: string;
-  }): Promise<void> {
+  async sendPaymentAlert(
+    paymentInfo: PaymentAlertEvent['payload'],
+  ): Promise<void> {
     const payload = {
       blocks: [
         {
@@ -300,7 +295,9 @@ export class SlackService {
   }
 
   @OnEvent('support.ticket_created', { async: true })
-  async sendSupportAlert(ticket: SupportTicket): Promise<void> {
+  async sendSupportAlert(
+    ticket: SupportTicketCreatedEvent['payload'],
+  ): Promise<void> {
     const payload = {
       blocks: [
         {

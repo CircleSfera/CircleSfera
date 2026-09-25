@@ -1,3 +1,4 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -97,7 +98,7 @@ export class PostDistributionService {
             senderId: post.profileId,
             type: NotificationType.MENTION,
             content: 'mentioned you in a post',
-          }),
+          } satisfies NotificationCreateEvent['payload']),
         ),
       );
     }

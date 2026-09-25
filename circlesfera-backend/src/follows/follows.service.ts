@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -142,7 +142,7 @@ export class FollowsService {
         senderId: followerId,
         type: notificationType,
         content: notificationContent,
-      });
+      } satisfies NotificationCreateEvent['payload']);
 
       return { following: status === 'ACCEPTED', status };
     }
@@ -502,7 +502,7 @@ export class FollowsService {
       senderId: profileId,
       type: NotificationType.FOLLOW_ACCEPTED,
       content: 'accepted your follow request',
-    });
+    } satisfies NotificationCreateEvent['payload']);
 
     return { success: true };
   }

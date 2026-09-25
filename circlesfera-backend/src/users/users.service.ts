@@ -1,3 +1,4 @@
+import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -96,10 +97,11 @@ export class UsersService {
     await this.prisma.refreshToken.deleteMany({
       where: { userId: id },
     });
-    this.eventEmitter.emit('user.session.terminate', {
+    const banEvent: UserSessionTerminateEvent['payload'] = {
       userId: id,
       reason: 'Account banned by administration',
-    });
+    };
+    this.eventEmitter.emit('user.session.terminate', banEvent);
     return updated;
   }
 
@@ -382,10 +384,11 @@ export class UsersService {
       });
     });
 
-    this.eventEmitter.emit('user.session.terminate', {
+    const deleteEvent: UserSessionTerminateEvent['payload'] = {
       userId,
       reason: 'Account scheduled for deletion',
-    });
+    };
+    this.eventEmitter.emit('user.session.terminate', deleteEvent);
 
     // Trigger immediate outbox publish for sub-second delivery after commit.
     this.outboxService.triggerImmediatePublish();

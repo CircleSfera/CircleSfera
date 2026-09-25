@@ -1,4 +1,7 @@
-import { ErrorCode } from '@circlesfera/shared';
+import {
+  type ChatConversationUpdatedEvent,
+  ErrorCode,
+} from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
@@ -56,10 +59,11 @@ export class RemoveParticipantUseCase {
     });
 
     if (updated) {
-      this.eventEmitter.emit('chat.conversation.updated', {
+      const event: ChatConversationUpdatedEvent['payload'] = {
         participants: [...(updated.participants || []), targetParticipant],
         payload: updated,
-      });
+      };
+      this.eventEmitter.emit('chat.conversation.updated', event);
     }
 
     return updated;

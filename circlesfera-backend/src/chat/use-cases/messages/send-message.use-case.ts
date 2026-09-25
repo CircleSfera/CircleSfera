@@ -1,4 +1,4 @@
-import { ErrorCode } from '@circlesfera/shared';
+import { type ChatMessageSentEvent, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import type { Message } from '@prisma/client';
@@ -229,10 +229,11 @@ export class SendMessageUseCase {
     const payload = { ...message, content, tempId };
 
     try {
-      this.eventEmitter.emit('chat.message.sent', {
+      const event: ChatMessageSentEvent['payload'] = {
         participants: conversation.participants,
         payload,
-      });
+      };
+      this.eventEmitter.emit('chat.message.sent', event);
 
       conversation.participants.forEach((p: any) => {
         if (p.profileId !== senderId) {
