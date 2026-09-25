@@ -303,6 +303,14 @@ jobs:
                 echo "⚠️  Pre-deploy backup skipped/failed (continuing deploy). Ensure cron backups are configured."
                 rm -f "${BACKUP_FILE}" || true
               fi
+
+              # pre_deploy_*.dump is a short-lived per-deploy safety net (one per
+              # deploy attempt, not once daily like the nightly pg_backup_*.dump
+              # cron), and unlike that cron job's retention it was never pruned —
+              # left unbounded, these accumulate every push to main and can fill
+              # the disk. 7 days covers "did this specific deploy just break
+              # something" without relying on the 30-day nightly backup's cadence.
+              find "${BACKUP_ROOT}" -type f -name 'pre_deploy_*.dump' -mtime +7 -delete || true
             else
               echo "⚠️  Could not create ${BACKUP_ROOT} (permission denied). Skipping pre-deploy backup."
             fi
@@ -329,6 +337,12 @@ jobs:
                 docker tag "${REGISTRY}/frontend:${PREV_SHA}" "${REGISTRY}/frontend:latest" || true
                 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps backend frontend nginx-proxy || true
               fi
+              # Previously this only ran after a full success (bottom of script),
+              # so a failed deploy never reclaimed the dangling images/build cache
+              # its own image pull just added — disk stayed full, making the next
+              # deploy more likely to fail the same way. Run it on every rollback
+              # too, not only on success.
+              docker system prune -f || true
             }
 
             # Poll backend health (migrate + Nest boot can take >20s)
