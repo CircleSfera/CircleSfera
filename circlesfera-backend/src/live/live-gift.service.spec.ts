@@ -187,6 +187,9 @@ describe('LiveGiftService', () => {
         status: 'PENDING',
         sender: { profiles: [{ username: 'fan', avatar: null }] },
       });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'fan-1' })
+        .mockResolvedValueOnce({ id: 'creator-1' });
       mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
       mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
       mockPrismaService.monetization.upsert.mockResolvedValue({});
@@ -203,7 +206,9 @@ describe('LiveGiftService', () => {
           }),
         }),
       );
-      expect(mockPrismaService.monetization.upsert).toHaveBeenCalled();
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'creator-1' } }),
+      );
       expect(mockServer.to).toHaveBeenCalledWith('live:stream-1');
       expect(mockServer.emit).toHaveBeenCalledWith(
         'live:gift',
@@ -222,6 +227,9 @@ describe('LiveGiftService', () => {
         status: 'PENDING',
         sender: null,
       });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'creator-1' });
       mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
       mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
       mockPrismaService.monetization.upsert.mockResolvedValue({});
@@ -235,6 +243,57 @@ describe('LiveGiftService', () => {
           senderAvatar: undefined,
         }),
       );
+    });
+
+    it('writes a null senderId on the Transaction when the sender no longer exists, without blocking creator credit', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        sender: null,
+      });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce(null) // sender: hard-deleted
+        .mockResolvedValueOnce({ id: 'creator-1' });
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+      mockPrismaService.monetization.upsert.mockResolvedValue({});
+
+      await service.completeGiftPayment(params);
+
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            senderId: null,
+            receiverId: 'creator-1',
+          }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).toHaveBeenCalled();
+    });
+
+    it('writes a null receiverId and skips crediting earnings when the creator no longer exists', async () => {
+      mockPrismaService.liveGift.findUnique.mockResolvedValue({
+        id: 'gift-1',
+        status: 'PENDING',
+        sender: { profiles: [{ username: 'fan', avatar: null }] },
+      });
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({ id: 'fan-1' })
+        .mockResolvedValueOnce(null); // creator: hard-deleted
+      mockPrismaService.transaction.create.mockResolvedValue({ id: 'tx-1' });
+      mockPrismaService.liveGift.update.mockResolvedValue({ id: 'gift-1' });
+
+      await service.completeGiftPayment(params);
+
+      expect(mockPrismaService.transaction.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            senderId: 'fan-1',
+            receiverId: null,
+          }),
+        }),
+      );
+      expect(mockPrismaService.monetization.upsert).not.toHaveBeenCalled();
     });
   });
 

@@ -271,13 +271,30 @@ export class LiveGiftService {
     }
 
     const result = await this.prisma.$transaction(async (tx) => {
+      // The sender or creator may have been hard-deleted between checkout
+      // and this webhook firing (LiveGift.senderId/receiverId are already
+      // NULL in that case, but params.* still carries the original Stripe
+      // metadata IDs). Transaction.senderId/receiverId and Monetization.userId
+      // are real foreign keys, so writing a deleted user's ID would violate
+      // the constraint on INSERT rather than silently succeeding.
+      const [sender, creator] = await Promise.all([
+        tx.user.findUnique({
+          where: { id: params.senderId },
+          select: { id: true },
+        }),
+        tx.user.findUnique({
+          where: { id: params.creatorId },
+          select: { id: true },
+        }),
+      ]);
+
       const transaction = await tx.transaction.create({
         data: {
           type: 'DIRECT_LIVE_GIFT',
           amount: params.amountCents,
           currency: params.currency.toUpperCase(),
-          senderId: params.senderId,
-          receiverId: params.creatorId,
+          senderId: sender?.id ?? null,
+          receiverId: creator?.id ?? null,
           liveStreamId: params.streamId,
           stripePaymentIntentId: params.paymentIntentId,
           status: 'COMPLETED',
@@ -295,20 +312,24 @@ export class LiveGiftService {
         },
       });
 
-      await tx.monetization.upsert({
-        where: { userId: params.creatorId },
-        update: {
-          lifetimeEarningsCents: {
-            increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
+      // Only credit earnings when the creator still exists; there is nowhere
+      // to attribute them otherwise (Monetization.userId is a required FK).
+      if (creator) {
+        await tx.monetization.upsert({
+          where: { userId: creator.id },
+          update: {
+            lifetimeEarningsCents: {
+              increment: Math.floor(params.amountCents * CREATOR_SHARE_DECIMAL),
+            },
           },
-        },
-        create: {
-          userId: params.creatorId,
-          lifetimeEarningsCents: Math.floor(
-            params.amountCents * CREATOR_SHARE_DECIMAL,
-          ),
-        },
-      });
+          create: {
+            userId: creator.id,
+            lifetimeEarningsCents: Math.floor(
+              params.amountCents * CREATOR_SHARE_DECIMAL,
+            ),
+          },
+        });
+      }
 
       return gift;
     });
