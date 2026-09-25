@@ -1,10 +1,8 @@
 import type { INestApplication } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import {
   DiskHealthIndicator,
   HealthCheckService,
   MemoryHealthIndicator,
-  MicroserviceHealthIndicator,
   PrismaHealthIndicator,
 } from '@nestjs/terminus';
 import request from 'supertest';
@@ -21,21 +19,14 @@ import {
 import { createControllerApp } from '../common/testing/http-controller.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { HealthController } from './health.controller.js';
+import { RedisHealthIndicator } from './redis-health.indicator.js';
 
 describe('HealthController', () => {
   let app: INestApplication;
   let mockCheck: Mock;
 
-  let mockConfigGet: Mock;
-
   beforeAll(async () => {
     mockCheck = vi.fn();
-    mockConfigGet = vi.fn().mockImplementation((key: string) => {
-      if (key === 'REDIS_HOST') return 'localhost';
-      if (key === 'REDIS_PORT') return 6379;
-      if (key === 'REDIS_PASSWORD') return undefined;
-      return undefined;
-    });
 
     app = await createControllerApp({
       controllers: [HealthController],
@@ -49,10 +40,9 @@ describe('HealthController', () => {
           useValue: { checkHeap: vi.fn(), checkRSS: vi.fn() },
         },
         {
-          provide: MicroserviceHealthIndicator,
+          provide: RedisHealthIndicator,
           useValue: { pingCheck: vi.fn() },
         },
-        { provide: ConfigService, useValue: { get: mockConfigGet } },
       ],
     });
   });
@@ -85,19 +75,6 @@ describe('HealthController', () => {
     expect(callArgs.length).toBe(5);
   });
 
-  it('includes Redis password in health check if configured', async () => {
-    mockConfigGet.mockImplementation((key: string) => {
-      if (key === 'REDIS_PASSWORD') return 'secret-redis-pass';
-      return undefined;
-    });
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/health')
-      .expect(200);
-
-    expect(res.body).toEqual({ status: 'ok' });
-  });
-
   it('runs liveness probe focusing strictly on process memory indicators', async () => {
     const res = await request(app.getHttpServer())
       .get('/api/v1/health/liveness')
@@ -120,32 +97,5 @@ describe('HealthController', () => {
     const callArgs = mockCheck.mock.calls[0][0] as unknown[];
     expect(Array.isArray(callArgs)).toBe(true);
     expect(callArgs.length).toBe(3); // database, redis, storage
-  });
-
-  it('runs readiness probe with redis password configured', async () => {
-    mockConfigGet.mockImplementation((key: string) => {
-      if (key === 'REDIS_PASSWORD') return 'secret-redis-pass';
-      return undefined;
-    });
-
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/health/readiness')
-      .expect(200);
-
-    expect(res.body).toEqual({ status: 'ok' });
-  });
-
-  it('falls back to default host and port when redis config is absent', async () => {
-    mockConfigGet.mockReturnValue(undefined);
-
-    const res1 = await request(app.getHttpServer())
-      .get('/api/v1/health')
-      .expect(200);
-    expect(res1.body).toEqual({ status: 'ok' });
-
-    const res2 = await request(app.getHttpServer())
-      .get('/api/v1/health/readiness')
-      .expect(200);
-    expect(res2.body).toEqual({ status: 'ok' });
   });
 });
