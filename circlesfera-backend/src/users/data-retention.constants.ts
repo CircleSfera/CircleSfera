@@ -78,6 +78,20 @@ export const DATA_RETENTION_POLICY = {
   },
 
   /**
+   * Live-stream gift payment records (Stripe Checkout + Connect destination charge).
+   * Changed to onDelete: SetNull (migration 20260925184359).
+   */
+  LiveGift: {
+    label: 'Live Gift Payment',
+    model: 'LiveGift',
+    retentionClass: 'FINANCIAL_AUDIT',
+    retentionDays: 7 * 365, // 7 years
+    disposalMethod: 'SET_NULL_ON_USER_DELETE',
+    rationale:
+      'Live-gift payment records required for creator earnings audit trail and Stripe Connect reconciliation, independent of either party (sender or receiver) later deleting their account.',
+  },
+
+  /**
    * Platform subscription records tied to Stripe subscriptions.
    * Changed to onDelete: SetNull (migration 20260916220736).
    */

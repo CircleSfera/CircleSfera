@@ -876,8 +876,12 @@ model LiveStream {
 model LiveGift {
   id                      String            @id @default(uuid())
   streamId                String
-  senderId                String
-  receiverId              String
+  // Nullable for financial retention: senderId/receiverId are set to NULL on
+  // user hard-deletion (onDelete: SetNull). The row survives for fiscal audit
+  // compliance (7-year retention), matching Transaction/StripePayoutLog/
+  // PlatformSubscription.
+  senderId                String?
+  receiverId              String?
   giftId                  String // catalog key: star | flame | crown | gem | rocket
   amountCents             Int
   currency                String            @default("EUR")
@@ -888,8 +892,8 @@ model LiveGift {
   completedAt             DateTime?
 
   stream      LiveStream   @relation(fields: [streamId], references: [id], onDelete: Cascade)
-  sender      User         @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver    User         @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender      User?        @relation("LiveGiftSender", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver    User?        @relation("LiveGiftReceiver", fields: [receiverId], references: [id], onDelete: SetNull)
   transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
 
   @@index([streamId])
