@@ -28,6 +28,10 @@ import {
 } from '../common/pagination/keyset.util.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
+import {
+  buildMediaCreateInput,
+  resolveMediaFields,
+} from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
@@ -167,30 +171,51 @@ export class StoriesService {
         ? new Date(dto.scheduledAt)
         : undefined;
 
-    const story = await this.prisma.story.create({
-      data: {
-        profileId,
-        url: dto.url,
-        standardUrl: dto.standardUrl,
-        thumbnailUrl: dto.thumbnailUrl,
-        mediaType: dto.mediaType || 'image',
-        isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
-        isPremium: dto.isPremium || false,
-        priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        audioId: dto.audioId,
-        audioStartMs,
-        location: placeAttachment.location,
-        placeId: placeAttachment.placeId,
-        scheduledAt: scheduledAt ?? null,
-        scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
-      },
-      include: {
-        profile: { include: { user: true } },
-        audio: true,
-        place: true,
-      },
+    // Media and Story are created in the same transaction — otherwise a
+    // failure in story.create after media.create succeeds would leave an
+    // orphaned Media row with no owner. Created via separate calls (not a
+    // nested `media: { create }`) because mixing raw FK scalars (profileId,
+    // audioId, placeId) with a nested relation create isn't a valid Prisma
+    // input shape — Prisma requires either all-relations or all-raw-FKs in
+    // a single create call.
+    const createdStory = await this.prisma.$transaction(async (tx) => {
+      const media = await tx.media.create({
+        data: buildMediaCreateInput({
+          type: dto.mediaType || 'image',
+          url: dto.url,
+          standardUrl: dto.standardUrl,
+          thumbnailUrl: dto.thumbnailUrl,
+        }),
+      });
+
+      return tx.story.create({
+        data: {
+          profileId,
+          url: dto.url,
+          standardUrl: dto.standardUrl,
+          thumbnailUrl: dto.thumbnailUrl,
+          mediaType: dto.mediaType || 'image',
+          isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
+          isPremium: dto.isPremium || false,
+          priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          audioId: dto.audioId,
+          audioStartMs,
+          location: placeAttachment.location,
+          placeId: placeAttachment.placeId,
+          scheduledAt: scheduledAt ?? null,
+          scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
+          mediaId: media.id,
+        },
+        include: {
+          profile: { include: { user: true } },
+          audio: true,
+          place: true,
+          media: true,
+        },
+      });
     });
+    const story = resolveMediaFields(createdStory);
 
     // Skip fan-out moderation side effects for still-scheduled stories
     if (scheduledAt) {
@@ -250,6 +275,7 @@ export class StoriesService {
         place: true,
         poll: { select: { id: true } },
         qnaBox: { select: { id: true } },
+        media: true,
         _count: {
           select: { views: true },
         },
@@ -268,9 +294,13 @@ export class StoriesService {
 
     // Remap to include isViewed boolean and clean up nested views
     const mappedStories = stories.map((s: any) => {
-      const { views, ...storyData } = s;
+      const { views, media, ...storyData } = s;
       return {
         ...storyData,
+        url: media?.url ?? storyData.url,
+        standardUrl: media?.standardUrl ?? storyData.standardUrl ?? null,
+        thumbnailUrl: media?.thumbnailUrl ?? storyData.thumbnailUrl ?? null,
+        status: media?.status ?? 'READY',
         isViewed: profileId ? (views as unknown[])?.length > 0 : false,
       };
     });
@@ -400,6 +430,7 @@ export class StoriesService {
         profile: { include: { user: true } },
         audio: true,
         place: true,
+        media: true,
         _count: {
           select: { views: true },
         },
@@ -417,9 +448,13 @@ export class StoriesService {
     });
 
     const mapped = stories.map((s: any) => {
-      const { views, ...storyData } = s;
+      const { views, media, ...storyData } = s;
       return {
         ...storyData,
+        url: media?.url ?? storyData.url,
+        standardUrl: media?.standardUrl ?? storyData.standardUrl ?? null,
+        thumbnailUrl: media?.thumbnailUrl ?? storyData.thumbnailUrl ?? null,
+        status: media?.status ?? 'READY',
         isViewed: currentProfileId ? (views as unknown[]).length > 0 : false,
       };
     });
@@ -430,12 +465,13 @@ export class StoriesService {
   // Only accessible by the owner.
   // Param profileId: The current user's ID
   async getArchive(profileId: string) {
-    return this.prisma.story.findMany({
+    const stories = await this.prisma.story.findMany({
       where: {
         profileId,
       },
       include: {
         profile: { include: { user: true } },
+        media: true,
         _count: {
           select: { views: true },
         },
@@ -444,6 +480,7 @@ export class StoriesService {
         createdAt: 'desc',
       },
     });
+    return stories.map(resolveMediaFields);
   }
 
   // Delete a story. Ownership is enforced by OwnershipGuard at the controller level.

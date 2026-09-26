@@ -643,12 +643,13 @@ describe('FeedService', () => {
         id: `post-${i + 1}`,
         type: 'POST',
         likes: [],
+        media: [],
         contentRating: 'GENERAL',
       }));
       mockPrismaService.post.findMany
         .mockResolvedValueOnce(posts) // Hybrid hydrated posts
         .mockResolvedValueOnce([
-          { id: 'promoted-p1', caption: 'Buy now', likes: [] },
+          { id: 'promoted-p1', caption: 'Buy now', likes: [], media: [] },
         ]); // Promoted post hydration
       mockPrismaService.post.count.mockResolvedValueOnce(5);
 

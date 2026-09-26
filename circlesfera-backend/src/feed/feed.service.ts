@@ -7,6 +7,7 @@ import {
   createPaginatedResult,
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FEED_HOME_FOLLOWING_FIRST } from './feed-experiments.js';
@@ -32,7 +33,7 @@ export class FeedService {
   private postHydrationInclude(profileId?: string | null) {
     return {
       profile: { include: { user: true } },
-      media: true,
+      media: { include: { media: true } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
       _count: { select: { likes: true, comments: true } },
@@ -366,6 +367,7 @@ export class FeedService {
 
       const formattedPosts = sortedPosts.map((post: any) => {
         const { likes, ...rest } = post;
+        rest.media = rest.media?.map(resolveMediaFields);
         const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
 
         // Attach algorithm reasoning score for debugging
@@ -603,6 +605,7 @@ export class FeedService {
 
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
+      rest.media = rest.media?.map(resolveMediaFields);
       const isLiked = Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
         null,
@@ -723,6 +726,7 @@ export class FeedService {
 
     const formattedPosts = posts.map((post: any) => {
       const { likes, ...rest } = post;
+      rest.media = rest.media?.map(resolveMediaFields);
       const isLiked =
         currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       const recommendationMeta = this.buildRecommendationMeta(
@@ -837,10 +841,15 @@ export class FeedService {
 
     const promotedPostsDict = new Map();
     for (const p of promotedPostsRaw) {
-      const { likes, ...rest } = p;
+      const { likes, media, ...rest } = p;
       const isLiked =
         profileId && Array.isArray(likes) ? likes.length > 0 : false;
-      promotedPostsDict.set(p.id, { ...rest, isLiked, isPromoted: true });
+      promotedPostsDict.set(p.id, {
+        ...rest,
+        media: media.map(resolveMediaFields),
+        isLiked,
+        isPromoted: true,
+      });
     }
 
     const finalPosts = [];

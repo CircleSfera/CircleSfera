@@ -24,6 +24,10 @@ import {
 } from '../common/dto/pagination.dto.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
+import {
+  buildMediaCreateInput,
+  resolveMediaFields,
+} from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
@@ -195,20 +199,31 @@ export class PostsService {
           },
         });
 
-        // Create PostMedia entries
+        // Create PostMedia entries, each linked to its own Media lifecycle
+        // row. Individual creates rather than createMany since createMany
+        // can't express the relation write. The Media row is created first
+        // (separately, not nested) because mixing a raw postId FK with a
+        // nested `media: { create }` relation isn't a valid Prisma input
+        // shape — Prisma requires either all-relations or all-raw-FKs.
         if (dto.media && dto.media.length > 0) {
-          await tx.postMedia.createMany({
-            data: dto.media.map((item, index) => ({
-              postId: post.id,
-              url: item.url,
-              standardUrl: item.standardUrl,
-              thumbnailUrl: item.thumbnailUrl,
-              type: item.type || 'image',
-              filter: item.filter,
-              altText: item.altText,
-              order: index,
-            })),
-          });
+          for (const [index, item] of dto.media.entries()) {
+            const media = await tx.media.create({
+              data: buildMediaCreateInput(item),
+            });
+            await tx.postMedia.create({
+              data: {
+                postId: post.id,
+                mediaId: media.id,
+                url: item.url,
+                standardUrl: item.standardUrl,
+                thumbnailUrl: item.thumbnailUrl,
+                type: item.type || 'image',
+                filter: item.filter,
+                altText: item.altText,
+                order: index,
+              },
+            });
+          }
         }
 
         // Process hashtags inside the transaction (sorted to avoid deadlocks)
@@ -234,10 +249,10 @@ export class PostsService {
     );
 
     // Fetch complete post with relations before returning
-    const post = await this.prisma.post.findUniqueOrThrow({
+    const createdPostWithRelations = await this.prisma.post.findUniqueOrThrow({
       where: { id: createdPost.id },
       include: {
-        media: true,
+        media: { include: { media: true } },
         hashtags: { include: { hashtag: true } },
         tags: true,
         audio: true,
@@ -251,6 +266,10 @@ export class PostsService {
         },
       },
     });
+    const post = {
+      ...createdPostWithRelations,
+      media: createdPostWithRelations.media.map(resolveMediaFields),
+    };
 
     // Defer fan-out/notifications until the maintenance worker publishes
     if (scheduledAt) {
@@ -294,7 +313,7 @@ export class PostsService {
               user: true,
             },
           },
-          media: true,
+          media: { include: { media: true } },
           _count: {
             select: {
               likes: true,
@@ -359,7 +378,7 @@ export class PostsService {
               user: true,
             },
           },
-          media: true,
+          media: { include: { media: true } },
           audio: true,
           place: true,
           _count: {
@@ -387,6 +406,7 @@ export class PostsService {
         currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       return {
         ...rest,
+        media: rest.media.map(resolveMediaFields),
         isLiked,
       };
     });
@@ -430,7 +450,7 @@ export class PostsService {
               user: true,
             },
           },
-          media: true,
+          media: { include: { media: true } },
           audio: true,
           place: true,
           _count: {
@@ -458,6 +478,7 @@ export class PostsService {
         currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
       return {
         ...rest,
+        media: rest.media.map(resolveMediaFields),
         isLiked,
       };
     });
@@ -492,7 +513,7 @@ export class PostsService {
         likes: currentProfileId
           ? { where: { profileId: currentProfileId }, take: 1 }
           : false,
-        media: true,
+        media: { include: { media: true } },
         audio: true,
         place: true,
         poll: { select: { id: true } },
@@ -625,7 +646,7 @@ export class PostsService {
               user: true,
             },
           },
-          media: true,
+          media: { include: { media: true } },
           _count: {
             select: {
               likes: true,
@@ -693,7 +714,7 @@ export class PostsService {
               user: true,
             },
           },
-          media: true,
+          media: { include: { media: true } },
           _count: {
             select: {
               likes: true,
@@ -735,7 +756,7 @@ export class PostsService {
   async update(id: string, dto: UpdatePostDto) {
     // The OwnershipGuard ensures the post exists and belongs to the user
 
-    return this.prisma.post.update({
+    const post = await this.prisma.post.update({
       where: { id },
       data: {
         caption: dto.caption,
@@ -753,9 +774,10 @@ export class PostsService {
             comments: true,
           },
         },
-        media: true,
+        media: { include: { media: true } },
       },
     });
+    return { ...post, media: post.media.map(resolveMediaFields) };
   }
 
   // Delete a post. Only the author can delete their own posts.
@@ -852,12 +874,18 @@ export class PostsService {
     post: T,
     currentProfileId?: string,
   ): T & { isLiked: boolean } {
-    const { likes, ...rest } = post as T & { likes?: unknown[] };
+    const { likes, ...rest } = post as T & {
+      likes?: unknown[];
+      media?: any[];
+    };
     const isLiked =
       currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
 
     return {
       ...(rest as T),
+      ...(Array.isArray(rest.media)
+        ? { media: rest.media.map(resolveMediaFields) }
+        : {}),
       isLiked,
     };
   }
