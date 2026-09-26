@@ -11,6 +11,7 @@ describe('ProfilesService', () => {
   let service: ProfilesService;
 
   const mockPrismaService: any = {
+    $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -26,6 +27,9 @@ describe('ProfilesService', () => {
     },
     block: {
       findFirst: vi.fn(),
+    },
+    media: {
+      create: vi.fn().mockResolvedValue({ id: 'media-1' }),
     },
   };
 
@@ -313,6 +317,62 @@ describe('ProfilesService', () => {
       await expect(
         service.updateProfile('p-1', { bio: 'Another bio' }),
       ).resolves.toBeDefined();
+    });
+
+    it('creates a linked Media row for a new avatar and links avatarMediaId', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'avataruser',
+      });
+      mockPrismaService.media.create.mockResolvedValueOnce({
+        id: 'avatar-media-1',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'avataruser',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', {
+        avatar: 'https://cdn.example.com/new-avatar.jpg',
+      });
+
+      expect(mockPrismaService.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'IMAGE',
+          status: 'READY',
+          url: 'https://cdn.example.com/new-avatar.jpg',
+        }),
+      });
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            avatarMediaId: 'avatar-media-1',
+          }),
+        }),
+      );
+    });
+
+    it('does not create a Media row when avatar is not part of the update', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'nochange',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'nochange',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', { bio: 'just a bio change' });
+
+      expect(mockPrismaService.media.create).not.toHaveBeenCalled();
     });
   });
 

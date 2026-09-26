@@ -14,6 +14,7 @@ import {
   lastActiveBucket,
 } from '../common/abuse/trust-score.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -298,29 +299,49 @@ export class ProfilesService {
         : {}),
     };
 
-    const updated = await this.prisma.profile.update({
-      where: { id: profileId },
-      data: updateData,
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
+    // Media row created separately (not via a nested `media: { create }`)
+    // because mixing a raw FK update (profile.update by id) with a nested
+    // relation create isn't a valid Prisma input shape. Wrapped in a
+    // transaction with the profile update so a failure partway through
+    // can't leave an orphaned Media row.
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const avatarMedia =
+        profileData.avatar !== undefined && profileData.avatar !== null
+          ? await tx.media.create({
+              data: buildMediaCreateInput({
+                type: 'image',
+                url: profileData.avatar,
+              }),
+            })
+          : null;
 
-            settings: {
-              select: { privacyLevel: true },
+      return tx.profile.update({
+        where: { id: profileId },
+        data: {
+          ...updateData,
+          ...(avatarMedia ? { avatarMediaId: avatarMedia.id } : {}),
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+              createdAt: true,
+
+              settings: {
+                select: { privacyLevel: true },
+              },
+            },
+          },
+          _count: {
+            select: {
+              followers: { where: { status: 'ACCEPTED' } },
+              following: { where: { status: 'ACCEPTED' } },
             },
           },
         },
-        _count: {
-          select: {
-            followers: { where: { status: 'ACCEPTED' } },
-            following: { where: { status: 'ACCEPTED' } },
-          },
-        },
-      },
+      });
     });
 
     // Flatten for UI convenience
