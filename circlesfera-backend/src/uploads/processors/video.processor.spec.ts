@@ -267,6 +267,30 @@ describe('VideoProcessor', () => {
     });
   });
 
+  // `master.m3u8` is named like an HLS master (variant) playlist, which
+  // conventionally implies multiple bitrate/resolution renditions a player
+  // can switch between. This asserts the actual, narrower contract — exactly
+  // one 720p rendition, no adaptive bitrate ladder — so a future change
+  // adding real multi-rendition output is a deliberate, visible edit to this
+  // test rather than a silent contract change.
+  it('produces exactly one 720p rendition, not an adaptive bitrate ladder', async () => {
+    const validUuid = '12345678-1234-4234-8234-123456789abd';
+    const job = {
+      id: 'job-single-rendition',
+      data: { url: `/uploads/${validUuid}.mp4` },
+    } as unknown as Job<{ url: string }>;
+
+    await processor.process(job);
+
+    expect(mockFfmpegInstance.output).toHaveBeenCalledTimes(1);
+    expect(mockFfmpegInstance.outputOptions).toHaveBeenCalledTimes(1);
+    const [outputOptions] = mockFfmpegInstance.outputOptions.mock.calls[0];
+    const scaleOptions = outputOptions.filter((opt: string) =>
+      opt.startsWith('-vf scale='),
+    );
+    expect(scaleOptions).toEqual(['-vf scale=w=-2:h=720']);
+  });
+
   it('should be idempotent and skip FFmpeg when complete artifacts already exist', async () => {
     const validUuid = '12345678-1234-4234-8234-123456789abc';
     const job = {
