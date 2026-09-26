@@ -374,6 +374,34 @@ describe('ProfilesService', () => {
 
       expect(mockPrismaService.media.create).not.toHaveBeenCalled();
     });
+
+    it('clears avatarMediaId (not just avatar) when the avatar is explicitly cleared', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'clearer',
+      });
+      mockPrismaService.profile.update.mockResolvedValue({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'clearer',
+        avatar: null,
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      });
+
+      await service.updateProfile('p-1', { avatar: null as unknown as string });
+
+      expect(mockPrismaService.media.create).not.toHaveBeenCalled();
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            avatar: null,
+            avatarMediaId: null,
+          }),
+        }),
+      );
+    });
   });
 
   describe('getProfile DB fallback and verification', () => {

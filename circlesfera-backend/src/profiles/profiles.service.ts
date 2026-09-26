@@ -319,7 +319,16 @@ export class ProfilesService {
         where: { id: profileId },
         data: {
           ...updateData,
-          ...(avatarMedia ? { avatarMediaId: avatarMedia.id } : {}),
+          // An explicit null avatar clears the picture, so the Media link
+          // must be cleared with it — otherwise avatarMediaId keeps
+          // pointing at an image the profile no longer shows. Absent
+          // avatar (not part of this update) leaves the existing link
+          // untouched.
+          ...(avatarMedia
+            ? { avatarMediaId: avatarMedia.id }
+            : profileData.avatar === null
+              ? { avatarMediaId: null }
+              : {}),
         },
         include: {
           user: {
