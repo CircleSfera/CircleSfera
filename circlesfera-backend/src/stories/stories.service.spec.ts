@@ -23,6 +23,7 @@ describe('StoriesService', () => {
   let mockUploadsService: { deleteFile: ReturnType<typeof vi.fn> };
 
   const mockPrismaService = {
+    $transaction: vi.fn((cb) => cb(mockPrismaService)),
     story: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -208,6 +209,42 @@ describe('StoriesService', () => {
       });
       expect(res.id).toBe('story-sched');
       expect(mockAiQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('creates a linked Media row as PENDING for a video with no standardUrl yet, and returns its status', async () => {
+      mockPrismaService.media.create.mockResolvedValueOnce({
+        id: 'media-pending-1',
+      });
+      mockPrismaService.story.create.mockResolvedValueOnce({
+        id: 'story-vid',
+        url: 'https://cdn.example.com/story.mp4',
+        mediaType: 'video',
+        media: {
+          url: 'https://cdn.example.com/story.mp4',
+          standardUrl: null,
+          thumbnailUrl: null,
+          status: 'PENDING',
+        },
+      } as unknown as Story);
+
+      const result = await service.create('user-1', {
+        url: 'https://cdn.example.com/story.mp4',
+        mediaType: 'video',
+      });
+
+      expect(mockPrismaService.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'VIDEO',
+          status: 'PENDING',
+          url: 'https://cdn.example.com/story.mp4',
+        }),
+      });
+      expect(mockPrismaService.story.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ mediaId: 'media-pending-1' }),
+        }),
+      );
+      expect((result as unknown as { status: string }).status).toBe('PENDING');
     });
   });
 

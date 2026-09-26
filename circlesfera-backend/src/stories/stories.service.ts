@@ -171,44 +171,51 @@ export class StoriesService {
         ? new Date(dto.scheduledAt)
         : undefined;
 
-    // Created separately (not nested) because mixing raw FK scalars
-    // (profileId, audioId, placeId) with a nested `media: { create }`
-    // relation isn't a valid Prisma input shape — Prisma requires either
-    // all-relations or all-raw-FKs in a single create call.
-    const media = await this.prisma.media.create({
-      data: buildMediaCreateInput({
-        type: dto.mediaType || 'image',
-        url: dto.url,
-        standardUrl: dto.standardUrl,
-        thumbnailUrl: dto.thumbnailUrl,
-      }),
-    });
+    // Media and Story are created in the same transaction — otherwise a
+    // failure in story.create after media.create succeeds would leave an
+    // orphaned Media row with no owner. Created via separate calls (not a
+    // nested `media: { create }`) because mixing raw FK scalars (profileId,
+    // audioId, placeId) with a nested relation create isn't a valid Prisma
+    // input shape — Prisma requires either all-relations or all-raw-FKs in
+    // a single create call.
+    const createdStory = await this.prisma.$transaction(async (tx) => {
+      const media = await tx.media.create({
+        data: buildMediaCreateInput({
+          type: dto.mediaType || 'image',
+          url: dto.url,
+          standardUrl: dto.standardUrl,
+          thumbnailUrl: dto.thumbnailUrl,
+        }),
+      });
 
-    const story = await this.prisma.story.create({
-      data: {
-        profileId,
-        url: dto.url,
-        standardUrl: dto.standardUrl,
-        thumbnailUrl: dto.thumbnailUrl,
-        mediaType: dto.mediaType || 'image',
-        isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
-        isPremium: dto.isPremium || false,
-        priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
-        audioId: dto.audioId,
-        audioStartMs,
-        location: placeAttachment.location,
-        placeId: placeAttachment.placeId,
-        scheduledAt: scheduledAt ?? null,
-        scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
-        mediaId: media.id,
-      },
-      include: {
-        profile: { include: { user: true } },
-        audio: true,
-        place: true,
-      },
+      return tx.story.create({
+        data: {
+          profileId,
+          url: dto.url,
+          standardUrl: dto.standardUrl,
+          thumbnailUrl: dto.thumbnailUrl,
+          mediaType: dto.mediaType || 'image',
+          isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
+          isPremium: dto.isPremium || false,
+          priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          audioId: dto.audioId,
+          audioStartMs,
+          location: placeAttachment.location,
+          placeId: placeAttachment.placeId,
+          scheduledAt: scheduledAt ?? null,
+          scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
+          mediaId: media.id,
+        },
+        include: {
+          profile: { include: { user: true } },
+          audio: true,
+          place: true,
+          media: true,
+        },
+      });
     });
+    const story = resolveMediaFields(createdStory);
 
     // Skip fan-out moderation side effects for still-scheduled stories
     if (scheduledAt) {
