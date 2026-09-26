@@ -181,6 +181,7 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'post-aud' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
       };
@@ -231,6 +232,7 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'frame-1' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
       };
@@ -259,6 +261,7 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'post-vid' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
       };
@@ -301,6 +304,7 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'scheduled-post' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
       };
@@ -309,6 +313,7 @@ describe('PostsService', () => {
       );
       mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
         id: 'scheduled-post',
+        media: [],
         scheduledAt: new Date(futureDate),
         scheduledStatus: 'SCHEDULED',
       });
@@ -344,6 +349,7 @@ describe('PostsService', () => {
             .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn().mockResolvedValue({ id: 'tag-1' }) },
         postHashtag: { create: vi.fn() },
       };
@@ -415,6 +421,7 @@ describe('PostsService', () => {
             .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
         hashtag: { upsert: vi.fn() },
         postHashtag: { create: vi.fn() },
       };
@@ -436,11 +443,35 @@ describe('PostsService', () => {
 
       await service.create(profileId, dto);
 
-      expect(mockTx.postMedia.createMany).toHaveBeenCalledWith({
-        data: expect.arrayContaining([
-          expect.objectContaining({ url: 'url1', type: 'image', order: 0 }),
-          expect.objectContaining({ url: 'url2', type: 'image', order: 1 }),
-        ]),
+      expect(mockTx.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'IMAGE',
+          status: 'READY',
+          url: 'url1',
+        }),
+      });
+      expect(mockTx.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'IMAGE',
+          status: 'READY',
+          url: 'url2',
+        }),
+      });
+      expect(mockTx.postMedia.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          mediaId: 'media-1',
+          url: 'url1',
+          type: 'image',
+          order: 0,
+        }),
+      });
+      expect(mockTx.postMedia.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          mediaId: 'media-1',
+          url: 'url2',
+          type: 'image',
+          order: 1,
+        }),
       });
     });
   });
@@ -499,6 +530,7 @@ describe('PostsService', () => {
           id: '1',
           type: 'POST',
           profile: { profile: {} },
+          media: [],
           likes: [{ profileId: 'current-user' }],
         },
       ]);
@@ -543,6 +575,7 @@ describe('PostsService', () => {
         {
           id: 'frame-1',
           type: 'FRAME',
+          media: [],
           likes: [{ profileId: 'viewer-1' }],
         },
       ]);
@@ -916,6 +949,7 @@ describe('PostsService', () => {
         id: 'post-1',
         caption: 'new caption',
         visibility: Visibility.PUBLIC,
+        media: [],
       });
 
       const result = await service.update('post-1', {

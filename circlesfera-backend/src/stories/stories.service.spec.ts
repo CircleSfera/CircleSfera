@@ -67,6 +67,9 @@ describe('StoriesService', () => {
     storyUnlock: {
       findMany: vi.fn(),
     },
+    media: {
+      create: vi.fn().mockResolvedValue({ id: 'media-1' }),
+    },
   };
 
   beforeEach(async () => {
