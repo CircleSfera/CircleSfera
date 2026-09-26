@@ -185,3 +185,26 @@ ADR should be revisited to consider a narrower version of `Media` (e.g. video-ca
 leaving image-only slots — Profile avatar/cover, Collection cover — on inline columns permanently,
 since they never have a pending/processing window to represent). That would reduce Phase 2/3 scope at
 the cost of the model staying non-uniform across content types.
+
+### Amendment (2026-09-26): actual HLS rendition contract
+
+`video.processor.ts` names its transcode output `master.m3u8` — the conventional filename for an HLS
+**master (variant) playlist**, which by convention references multiple sub-playlists at different
+bitrates/resolutions so a player can switch between them (adaptive bitrate streaming). The actual
+implementation produces exactly **one** rendition: a single `-vf scale=w=-2:h=720` / `-b:v 2500k`
+encode, written directly as the `master.m3u8` media playlist (a segment list), not a true variant
+playlist referencing other playlists. The code's own comment already flags this ("Simplified: single
+quality 720p for now").
+
+This is not a functional bug — every current client plays the single rendition correctly — but the
+filename invites an assumption (adaptive multi-bitrate streaming) that the codebase has never
+implemented. This amendment states the actual contract explicitly: **CircleSfera today supports one
+fixed 720p HLS rendition per video, no adaptive bitrate ladder**, and a dedicated test
+(`video.processor.spec.ts`, "produces exactly one 720p rendition, not an adaptive bitrate ladder")
+now asserts this directly against the ffmpeg invocation, so a future change that actually adds
+multiple renditions is a deliberate, visible edit to that test rather than a silent contract change
+nobody noticed.
+
+Adding real adaptive bitrate support (multiple `-vf scale=`/`-b:v` pairs, a true master playlist
+referencing per-rendition sub-playlists) is future work, not undertaken here — this amendment's scope
+is documenting and testing the current, real contract, not changing it.
