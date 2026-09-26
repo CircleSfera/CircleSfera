@@ -34,6 +34,19 @@ export function buildMediaCreateInput(params: {
   };
 }
 
+// Voice notes are always a single synchronous upload — never transcoded,
+// never a candidate for PENDING/PROCESSING/FAILED, and never have a
+// standardUrl/thumbnailUrl variant.
+export function buildVoiceMediaCreateInput(url: string): MediaCreateInput {
+  return {
+    kind: 'AUDIO',
+    status: 'READY',
+    url,
+    standardUrl: null,
+    thumbnailUrl: null,
+  };
+}
+
 interface MediaSourceFields {
   url: string | null;
   standardUrl: string | null;
@@ -42,7 +55,7 @@ interface MediaSourceFields {
 }
 
 export interface ResolvableMediaItem {
-  url: string;
+  url: string | null;
   standardUrl?: string | null;
   thumbnailUrl?: string | null;
   media?: MediaSourceFields | null;

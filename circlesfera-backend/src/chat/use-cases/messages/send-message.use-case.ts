@@ -9,6 +9,11 @@ import {
 } from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
+import {
+  buildMediaCreateInput,
+  buildVoiceMediaCreateInput,
+  resolveMediaFields,
+} from '../../../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
 
@@ -151,6 +156,21 @@ export class SendMessageUseCase {
           );
         }
 
+        // Media rows are created separately (not via a nested `media: {
+        // create }`) because mixing raw FK scalars (senderId, conversationId,
+        // postId, ...) with a nested relation create isn't a valid Prisma
+        // input shape.
+        const media = url
+          ? await tx.media.create({
+              data: buildMediaCreateInput({ type: mediaType || 'image', url }),
+            })
+          : null;
+        const voiceMedia = voiceUrl
+          ? await tx.media.create({
+              data: buildVoiceMediaCreateInput(voiceUrl),
+            })
+          : null;
+
         const msg = await tx.message.create({
           data: {
             content: encryptedContent,
@@ -158,11 +178,13 @@ export class SendMessageUseCase {
             conversationId: conv.id,
             url,
             mediaType,
+            mediaId: media?.id,
             postId,
             storyId,
             replyToId,
             voiceUrl,
             voiceDuration,
+            voiceMediaId: voiceMedia?.id,
             voiceWaveform: voiceWaveform
               ? JSON.parse(JSON.stringify(voiceWaveform))
               : undefined,
@@ -177,6 +199,8 @@ export class SendMessageUseCase {
                 user: { select: { id: true } },
               },
             },
+            media: true,
+            voiceMedia: true,
             post: {
               include: {
                 media: true,
@@ -226,7 +250,12 @@ export class SendMessageUseCase {
       },
     );
 
-    const payload = { ...message, content, tempId };
+    const { voiceMedia, ...messageWithoutVoiceMedia } = message;
+    const resolvedMessage = {
+      ...resolveMediaFields(messageWithoutVoiceMedia),
+      voiceUrl: voiceMedia?.url ?? message.voiceUrl,
+    };
+    const payload = { ...resolvedMessage, content, tempId };
 
     try {
       const event: ChatMessageSentEvent['payload'] = {

@@ -10,6 +10,7 @@ describe('CommentsService', () => {
   let service: CommentsService;
 
   const mockPrismaService = {
+    $transaction: vi.fn((cb) => cb(mockPrismaService)),
     post: {
       findUnique: vi.fn(),
     },
@@ -27,6 +28,9 @@ describe('CommentsService', () => {
       findUnique: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
+    },
+    media: {
+      create: vi.fn().mockResolvedValue({ id: 'media-1' }),
     },
   };
 
@@ -180,9 +184,107 @@ describe('CommentsService', () => {
         }),
       );
     });
+
+    it('creates linked Media rows for an image and a voice note, and links their ids', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        profileId: 'owner-post',
+      });
+      mockPrismaService.media.create
+        .mockResolvedValueOnce({ id: 'media-image-1' })
+        .mockResolvedValueOnce({ id: 'media-voice-1' });
+      mockPrismaService.comment.create.mockResolvedValue({
+        id: 'comment-media',
+        postId,
+        profileId,
+        media: {
+          url: 'https://cdn/photo.jpg',
+          standardUrl: null,
+          thumbnailUrl: null,
+          status: 'READY',
+        },
+        voiceMedia: { url: 'https://cdn/voice.m4a' },
+      });
+
+      const result = await service.create(postId, profileId, {
+        content: 'photo + voice',
+        url: 'https://cdn/photo.jpg',
+        mediaType: 'image',
+        voiceUrl: 'https://cdn/voice.m4a',
+      });
+
+      expect(mockPrismaService.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'IMAGE',
+          status: 'READY',
+          url: 'https://cdn/photo.jpg',
+        }),
+      });
+      expect(mockPrismaService.media.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          kind: 'AUDIO',
+          status: 'READY',
+          url: 'https://cdn/voice.m4a',
+        }),
+      });
+      expect(mockPrismaService.comment.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            mediaId: 'media-image-1',
+            voiceMediaId: 'media-voice-1',
+          }),
+        }),
+      );
+      expect(result.status).toBe('READY');
+      expect(result.voiceUrl).toBe('https://cdn/voice.m4a');
+      expect(result).not.toHaveProperty('media');
+      expect(result).not.toHaveProperty('voiceMedia');
+    });
   });
 
   describe('findByPost', () => {
+    it('prefers the linked Media rows over inline columns, including for nested replies', async () => {
+      mockPrismaService.comment.findMany.mockResolvedValue([
+        {
+          id: 'c1',
+          url: 'https://cdn/stale.mp4',
+          voiceUrl: null,
+          media: {
+            url: 'https://cdn/resolved.mp4',
+            standardUrl: null,
+            thumbnailUrl: null,
+            status: 'PROCESSING',
+          },
+          voiceMedia: null,
+          replies: [
+            {
+              id: 'r1',
+              url: null,
+              voiceUrl: 'https://cdn/stale-voice.m4a',
+              media: null,
+              voiceMedia: { url: 'https://cdn/resolved-voice.m4a' },
+            },
+          ],
+        },
+      ]);
+      mockPrismaService.comment.count.mockResolvedValue(1);
+
+      const result = await service.findByPost('post-1', {
+        page: 1,
+        limit: 10,
+      });
+
+      const [comment] = result.data as any[];
+      expect(comment.url).toBe('https://cdn/resolved.mp4');
+      expect(comment.status).toBe('PROCESSING');
+      expect(comment).not.toHaveProperty('media');
+      expect(comment).not.toHaveProperty('voiceMedia');
+      expect(comment.replies[0].voiceUrl).toBe(
+        'https://cdn/resolved-voice.m4a',
+      );
+      expect(comment.replies[0]).not.toHaveProperty('voiceMedia');
+    });
+
     it('should return paginated comments', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([{ id: '1' }]);
       mockPrismaService.comment.count.mockResolvedValue(1);

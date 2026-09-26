@@ -36,6 +36,9 @@ describe('SendMessageUseCase', () => {
       participant: {
         updateMany: vi.fn().mockResolvedValue({ count: 0 }),
       },
+      media: {
+        create: vi.fn().mockResolvedValue({ id: 'media-1' }),
+      },
     };
 
     mockPrisma = {
@@ -192,6 +195,68 @@ describe('SendMessageUseCase', () => {
       expect.objectContaining({
         title: 'Nuevo mensaje cifrado',
         data: { url: '/chat/conv-1', type: 'chat' },
+      }),
+    );
+  });
+
+  it('creates linked Media rows for image and voice attachments, and links their ids', async () => {
+    mockTx.conversation.findUnique.mockResolvedValue({
+      id: 'conv-1',
+      participants: [{ profileId: 'sender-1', profile: { id: 'sender-1' } }],
+    });
+    mockTx.media.create
+      .mockResolvedValueOnce({ id: 'media-image-1' })
+      .mockResolvedValueOnce({ id: 'media-voice-1' });
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-with-media',
+      senderId: 'sender-1',
+      conversationId: 'conv-1',
+      sender: { id: 'sender-1', username: 'sender_user' },
+      media: {
+        url: 'https://media.jpg',
+        standardUrl: null,
+        thumbnailUrl: null,
+        status: 'READY',
+      },
+      voiceMedia: { url: 'https://media-voice.m4a' },
+    });
+
+    await useCase.execute(
+      'sender-1',
+      undefined,
+      'Hello',
+      'https://media.jpg',
+      'image',
+      'conv-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'https://media-voice.m4a',
+      3000,
+      [1, 2, 3],
+    );
+
+    expect(mockTx.media.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: 'IMAGE',
+        status: 'READY',
+        url: 'https://media.jpg',
+      }),
+    });
+    expect(mockTx.media.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        kind: 'AUDIO',
+        status: 'READY',
+        url: 'https://media-voice.m4a',
+      }),
+    });
+    expect(mockTx.message.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          mediaId: 'media-image-1',
+          voiceMediaId: 'media-voice-1',
+        }),
       }),
     );
   });
