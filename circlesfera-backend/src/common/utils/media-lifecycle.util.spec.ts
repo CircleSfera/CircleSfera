@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildMediaCreateInput,
+  buildVoiceMediaCreateInput,
   resolveMediaFields,
 } from './media-lifecycle.util.js';
 
@@ -111,5 +112,17 @@ describe('resolveMediaFields', () => {
     expect(result).not.toHaveProperty('media');
     expect(result.id).toBe('post-media-1');
     expect(result.order).toBe(2);
+  });
+});
+
+describe('buildVoiceMediaCreateInput', () => {
+  it('is always AUDIO/READY with no variants', () => {
+    expect(buildVoiceMediaCreateInput('https://cdn/voice.m4a')).toEqual({
+      kind: 'AUDIO',
+      status: 'READY',
+      url: 'https://cdn/voice.m4a',
+      standardUrl: null,
+      thumbnailUrl: null,
+    });
   });
 });

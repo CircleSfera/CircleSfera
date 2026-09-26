@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import type { Message, Participant } from '@prisma/client';
+import type { MediaStatus, Message, Participant } from '@prisma/client';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -17,7 +17,7 @@ export class GetMessagesQuery {
     conversationId: string,
     limit = 50,
     profileId?: string,
-  ): Promise<Message[]> {
+  ): Promise<(Message & { status: MediaStatus })[]> {
     let isParticipant: Participant | null = null;
     if (profileId) {
       isParticipant = await this.chatAuth.assertParticipant(
@@ -54,6 +54,8 @@ export class GetMessagesQuery {
             user: { select: { id: true } },
           },
         },
+        media: true,
+        voiceMedia: true,
         post: {
           include: {
             media: true,
@@ -91,6 +93,18 @@ export class GetMessagesQuery {
       if (m.content) {
         m.content = this.cryptoService.decrypt(m.content);
       }
+
+      // Prefer the linked Media rows' fields over the legacy inline
+      // columns before any redaction below runs, so a locked/unlocked
+      // message is redacted/served consistently regardless of which
+      // source the value came from.
+      m.url = m.media?.url ?? m.url;
+      m.standardUrl = m.media?.standardUrl ?? m.standardUrl ?? null;
+      m.thumbnailUrl = m.media?.thumbnailUrl ?? m.thumbnailUrl ?? null;
+      m.status = m.media?.status ?? 'READY';
+      m.voiceUrl = m.voiceMedia?.url ?? m.voiceUrl;
+      delete m.media;
+      delete m.voiceMedia;
 
       if (m.isLocked && profileId && m.senderId !== profileId) {
         const isUnlocked = m.messageUnlocks && m.messageUnlocks.length > 0;

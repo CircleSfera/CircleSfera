@@ -128,6 +128,35 @@ describe('GetMessagesQuery', () => {
     expect(result[1].url).toBe('https://cdn/media2.jpg');
   });
 
+  it('prefers the linked Media rows over the inline columns, and exposes status', async () => {
+    mockPrisma.message.findMany.mockResolvedValue([
+      {
+        id: 'msg-media',
+        content: null,
+        senderId: 'prof-1',
+        isLocked: false,
+        url: 'https://cdn/stale.mp4',
+        standardUrl: null,
+        thumbnailUrl: null,
+        voiceUrl: 'https://cdn/stale-voice.m4a',
+        media: {
+          url: 'https://cdn/stale.mp4',
+          standardUrl: null,
+          thumbnailUrl: null,
+          status: 'PENDING',
+        },
+        voiceMedia: { url: 'https://cdn/resolved-voice.m4a' },
+      },
+    ]);
+
+    const result = await query.execute('conv-1', 50);
+
+    expect(result[0].status).toBe('PENDING');
+    expect(result[0].voiceUrl).toBe('https://cdn/resolved-voice.m4a');
+    expect(result[0]).not.toHaveProperty('media');
+    expect(result[0]).not.toHaveProperty('voiceMedia');
+  });
+
   it('allows fetching without profileId (system usage) and handles null content', async () => {
     mockPrisma.message.findMany.mockResolvedValue([
       { id: 'msg-sys', content: 'enc_system' },

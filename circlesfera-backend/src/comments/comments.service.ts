@@ -4,6 +4,11 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
+import {
+  buildMediaCreateInput,
+  buildVoiceMediaCreateInput,
+  resolveMediaFields,
+} from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 const NotificationType = $Enums.NotificationType;
@@ -43,32 +48,62 @@ export class CommentsService {
       throw new NotFoundException('Post not found');
     }
 
-    const comment = await this.prisma.comment.create({
-      data: {
-        postId,
-        profileId,
-        content: dto.content,
-        url: dto.url,
-        mediaType: dto.mediaType,
-        voiceUrl: dto.voiceUrl,
-        voiceDuration: dto.voiceDuration,
-        voiceWaveform: dto.voiceWaveform
-          ? JSON.parse(JSON.stringify(dto.voiceWaveform))
-          : undefined,
-      },
-      include: {
-        profile: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-            fullName: true,
-            verificationLevel: true,
-            accountType: true,
-          },
+    // Media rows are created separately (not via a nested `media: { create
+    // }`) because mixing raw FK scalars (postId, profileId, ...) with a
+    // nested relation create isn't a valid Prisma input shape. Wrapped in a
+    // transaction so a failure partway through can't leave an orphaned
+    // Media row with no owning comment.
+    const createdComment = await this.prisma.$transaction(async (tx) => {
+      const media = dto.url
+        ? await tx.media.create({
+            data: buildMediaCreateInput({
+              type: dto.mediaType || 'image',
+              url: dto.url,
+            }),
+          })
+        : null;
+      const voiceMedia = dto.voiceUrl
+        ? await tx.media.create({
+            data: buildVoiceMediaCreateInput(dto.voiceUrl),
+          })
+        : null;
+
+      return tx.comment.create({
+        data: {
+          postId,
+          profileId,
+          content: dto.content,
+          url: dto.url,
+          mediaType: dto.mediaType,
+          mediaId: media?.id,
+          voiceUrl: dto.voiceUrl,
+          voiceDuration: dto.voiceDuration,
+          voiceMediaId: voiceMedia?.id,
+          voiceWaveform: dto.voiceWaveform
+            ? JSON.parse(JSON.stringify(dto.voiceWaveform))
+            : undefined,
         },
-      },
+        include: {
+          profile: {
+            select: {
+              id: true,
+              username: true,
+              avatar: true,
+              fullName: true,
+              verificationLevel: true,
+              accountType: true,
+            },
+          },
+          media: true,
+          voiceMedia: true,
+        },
+      });
     });
+    const { voiceMedia, ...commentWithoutVoiceMedia } = createdComment;
+    const comment = {
+      ...resolveMediaFields(commentWithoutVoiceMedia),
+      voiceUrl: voiceMedia?.url ?? createdComment.voiceUrl,
+    };
 
     // Moderate content in the background
     if (dto.content) {
@@ -199,15 +234,40 @@ export class CommentsService {
     const include = {
       profile: { select: profileSelect },
       likes: likeInclude,
+      media: true,
+      voiceMedia: true,
       _count: { select: { likes: true } },
       replies: {
         orderBy: { createdAt: 'asc' as const },
         include: {
           profile: { select: profileSelect },
           likes: likeInclude,
+          media: true,
+          voiceMedia: true,
           _count: { select: { likes: true } },
         },
       },
+    };
+
+    // Written against `any` rather than the generic resolveMediaFields
+    // utility: recursing over `replies` needs a concrete, non-generic
+    // signature, and a resolveMediaFields<T> call with an `any`-shaped
+    // argument here infers T as the bare constraint instead of preserving
+    // the real shape, silently dropping every other field.
+    const resolveComment = (c: any): any => {
+      const { media, voiceMedia, ...rest } = c;
+      const resolved = {
+        ...rest,
+        url: media?.url ?? c.url,
+        standardUrl: media?.standardUrl ?? c.standardUrl ?? null,
+        thumbnailUrl: media?.thumbnailUrl ?? c.thumbnailUrl ?? null,
+        status: media?.status ?? 'READY',
+        voiceUrl: voiceMedia?.url ?? c.voiceUrl,
+      };
+      if (Array.isArray(c.replies)) {
+        resolved.replies = c.replies.map(resolveComment);
+      }
+      return resolved;
     };
 
     if (cursor) {
@@ -229,7 +289,13 @@ export class CommentsService {
       const last = pageRows[pageRows.length - 1];
       const nextCursor = hasMore && last ? encodeKeysetCursor(last) : undefined;
 
-      return createPaginatedResult(pageRows, total, 0, limit, nextCursor);
+      return createPaginatedResult(
+        pageRows.map(resolveComment),
+        total,
+        0,
+        limit,
+        nextCursor,
+      );
     }
 
     const skip = (page - 1) * limit;
@@ -252,7 +318,13 @@ export class CommentsService {
     const nextCursor =
       comments.length === limit && last ? encodeKeysetCursor(last) : undefined;
 
-    return createPaginatedResult(comments, total, page, limit, nextCursor);
+    return createPaginatedResult(
+      comments.map(resolveComment),
+      total,
+      page,
+      limit,
+      nextCursor,
+    );
   }
 
   // Delete a comment. Ownership is enforced by OwnershipGuard at the controller level.
