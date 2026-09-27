@@ -308,21 +308,6 @@ export class UsersService {
     return safeData as Record<string, unknown>;
   }
 
-  // GDPR: Fully deletes a user and all related data via cascading.
-  // Param userId: The user ID to delete
-  async deleteUser(userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Double check user exists
-      const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user) throw new Error('User not found');
-
-      // 2. Perform deletion (Cascading will handle posts, comments, profile, settings, etc.)
-      return tx.user.delete({
-        where: { id: userId },
-      });
-    });
-  }
-
   // Atomically deletes a user scheduled for deletion, guarding against concurrent restoration.
   // Returns true if the account was deleted, false if the account was restored or cancelled concurrently.
   async deleteScheduledUser(userId: string): Promise<boolean> {

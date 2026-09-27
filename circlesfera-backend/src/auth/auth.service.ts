@@ -400,6 +400,14 @@ export class AuthService {
           message: ApiErrorCode.ACCOUNT_BANNED,
           reason: user.rootBanReason,
         });
+      } else if (user.deactivatedAt) {
+        // Self-deactivated accounts come back on login. Moderation never
+        // sets deactivatedAt, so staff deactivations still fall through to
+        // the banned response below.
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deactivatedAt: null },
+        });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
@@ -532,6 +540,14 @@ export class AuthService {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           reason: user.rootBanReason,
+        });
+      } else if (user.deactivatedAt) {
+        // Self-deactivated accounts come back on login. Moderation never
+        // sets deactivatedAt, so staff deactivations still fall through to
+        // the banned response below.
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deactivatedAt: null },
         });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');

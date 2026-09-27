@@ -100,12 +100,12 @@ export class UsersController {
     await this.dataExportService.streamDataExport(id, user?.userId, token, res);
   }
 
-  // GDPR: Full account deletion (irreversible).
+  // Kept for existing clients: self-service deletion is always the scheduled
+  // 30-day flow with full cleanup, never an immediate hard delete.
   @Delete('gdpr/account')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
-    await this.usersService.deleteUser(user.userId);
-    return { message: 'Account deleted successfully' };
+    return this.deleteMe(user);
   }
 
   // DELETE /users/me: Scheduled account deletion (GDPR, 30-day grace).

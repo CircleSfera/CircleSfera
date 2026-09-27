@@ -568,12 +568,17 @@ describe('ProfilesService', () => {
         username: 'deactivateuser',
       });
       mockPrismaService.user.update.mockResolvedValue({
-        id: 'p-1',
+        id: 'u-1',
         isActive: false,
       });
 
-      const res = await service.deactivateAccount('p-1');
+      const res = await service.deactivateAccount('u-1', 'p-1');
       expect(res.isActive).toBe(false);
+      // Regression: the profile id used to be passed where a user id belongs.
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u-1' },
+        data: { isActive: false, deactivatedAt: expect.any(Date) },
+      });
       expect(mockCacheManager.del).toHaveBeenCalledWith(
         'profile:deactivateuser',
       );
@@ -587,8 +592,9 @@ describe('ProfilesService', () => {
       });
       mockUsersService.scheduleDeletion.mockResolvedValue(scheduledDate);
 
-      const res = await service.deleteAccount('p-del');
+      const res = await service.deleteAccount('u-del', 'p-del');
       expect(res.success).toBe(true);
+      expect(mockUsersService.scheduleDeletion).toHaveBeenCalledWith('u-del');
       expect(res.scheduled_deletion_at).toBe(scheduledDate.toISOString());
       expect(mockCacheManager.del).toHaveBeenCalledWith('profile:deleteuser');
     });

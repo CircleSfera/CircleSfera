@@ -146,7 +146,7 @@ describe('ProfilesController', () => {
     );
   });
 
-  it('deactivates and deletes as the caller profile', async () => {
+  it('deactivates and deletes as the caller user and profile', async () => {
     mockService.deactivateAccount.mockResolvedValue({ ok: true });
     mockService.deleteAccount.mockResolvedValue({ ok: true });
 
@@ -159,9 +159,14 @@ describe('ProfilesController', () => {
       .set(BEARER)
       .expect(200);
 
+    // Both act on the owning User; the profile id is only for cache keys.
     expect(mockService.deactivateAccount).toHaveBeenCalledWith(
+      TEST_USER.userId,
       TEST_USER.profileId,
     );
-    expect(mockService.deleteAccount).toHaveBeenCalledWith(TEST_USER.profileId);
+    expect(mockService.deleteAccount).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
   });
 });

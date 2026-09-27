@@ -281,27 +281,7 @@ describe('UsersService', () => {
     });
   });
 
-  describe('deleteUser and deleteScheduledUser', () => {
-    it('deleteUser deletes existing user inside transaction', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({ id: 'u_del' });
-      mockPrismaService.user.delete.mockResolvedValue({ id: 'u_del' });
-
-      const res = await service.deleteUser('u_del');
-      expect(res).toEqual({ id: 'u_del' });
-      expect(mockPrismaService.user.delete).toHaveBeenCalledWith({
-        where: { id: 'u_del' },
-      });
-    });
-
-    it('deleteUser throws error when user does not exist in transaction', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue(null);
-
-      await expect(service.deleteUser('u_missing')).rejects.toThrow(
-        'User not found',
-      );
-      expect(mockPrismaService.user.delete).not.toHaveBeenCalled();
-    });
-
+  describe('deleteScheduledUser', () => {
     it('deleteScheduledUser returns true when user is deleted', async () => {
       mockPrismaService.user.deleteMany.mockResolvedValue({ count: 1 });
       const res = await service.deleteScheduledUser('u_sched');

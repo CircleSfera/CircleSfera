@@ -501,15 +501,15 @@ export class ProfilesService {
     };
   }
 
-  // Deactivate the authenticated user's account (soft, reversible).
-  // Param profileId: The user's ID
-  async deactivateAccount(profileId: string) {
+  // Deactivate the authenticated user's account (soft, reversible: logging in
+  // reactivates it). Acts on the owning User, not the Profile id.
+  async deactivateAccount(userId: string, profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
     });
     const result = await this.prisma.user.update({
-      where: { id: profileId },
-      data: { isActive: false },
+      where: { id: userId },
+      data: { isActive: false, deactivatedAt: new Date() },
     });
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
@@ -520,12 +520,12 @@ export class ProfilesService {
   // Schedule account deletion with 30-day grace window (canonical GDPR flow).
   // Delegates to UsersService so BullMQ hard-delete job is always enqueued.
   // Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
-  async deleteAccount(profileId: string) {
+  async deleteAccount(userId: string, profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
     });
     const scheduledDeletionAt =
-      await this.usersService.scheduleDeletion(profileId);
+      await this.usersService.scheduleDeletion(userId);
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
     }

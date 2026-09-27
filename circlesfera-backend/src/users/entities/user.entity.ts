@@ -17,6 +17,7 @@ export class UserEntity implements User {
   strikeCount!: number;
   deletedAt!: Date | null;
   scheduledDeletionAt!: Date | null;
+  deactivatedAt!: Date | null;
 
   inviteCode!: string | null;
   referredById!: string | null;

@@ -30,6 +30,7 @@ model User {
   strikeCount         Int       @default(0)
   deletedAt           DateTime? // Soft-delete / deactivation timestamp
   scheduledDeletionAt DateTime? // Hard-delete due date (grace window); null = not scheduled
+  deactivatedAt       DateTime? // Self-service deactivation; logging in reactivates. Never set by moderation.
 
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
