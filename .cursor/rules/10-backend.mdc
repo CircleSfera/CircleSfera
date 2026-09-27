@@ -6,8 +6,9 @@ alwaysApply: false
 
 Pattern: **Controller (thin, guards + DTO) → Service (business rules + `PrismaService`) → Postgres.**
 
-There is no repository layer, no mapper layer and no event bus (`EventEmitter2` is not installed).
-Do not introduce one as a side effect — that is an ADR-level decision.
+There is no repository layer and no mapper layer (ADR-0021). `EventEmitter2` (`@nestjs/event-emitter`) is
+installed but limited to the closed list of use categories in ADR-0019. Do not add a new event type,
+layer or bus as a side effect — that is an ADR-level decision.
 
 Load-bearing facts:
 
@@ -36,4 +37,4 @@ Load-bearing facts:
 Verify with `npm run lint`, `npm test` and `npm run build`. The build is the real backend typecheck
 — `.github/workflows/ci-quality.yml` runs it on PRs and deploy.
 
-Full checks: @.ai/agents/backend.md
+Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).
