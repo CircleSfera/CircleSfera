@@ -46,13 +46,16 @@ export class LiveController {
   }
 
   @Get('active')
-  getActiveStreams() {
-    return this.liveService.getActiveStreams();
+  getActiveStreams(@CurrentUser() user: CurrentUserData) {
+    return this.liveService.getActiveStreams(user.profileId);
   }
 
   @Get(':streamId')
-  getStream(@Param('streamId') streamId: string) {
-    return this.liveService.getStream(streamId);
+  getStream(
+    @CurrentUser() user: CurrentUserData,
+    @Param('streamId') streamId: string,
+  ) {
+    return this.liveService.getStream(streamId, user.profileId);
   }
 
   @Get('join/:streamId')
@@ -60,7 +63,11 @@ export class LiveController {
     @CurrentUser() user: CurrentUserData,
     @Param('streamId') streamId: string,
   ) {
-    return this.liveService.getViewerToken(streamId, user.userId);
+    return this.liveService.getViewerToken(
+      streamId,
+      user.userId,
+      user.profileId,
+    );
   }
 
   @Post(':streamId/cohost/invite')
@@ -109,6 +116,7 @@ export class LiveController {
       dto.giftId,
       returnUrl,
       idempotencyKey,
+      user.profileId,
     );
   }
 }

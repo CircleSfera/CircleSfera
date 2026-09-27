@@ -15,6 +15,8 @@ describe('LikesService', () => {
     post: {
       findUnique: vi.fn(),
     },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
+    follow: { findUnique: vi.fn().mockResolvedValue(null) },
     like: {
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -121,6 +123,40 @@ describe('LikesService', () => {
         where: { id: 'like-1' },
       });
       expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('rejects likes across a block without revealing it', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: postId,
+        profileId: 'owner-1',
+        visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
+      });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.toggle(postId, profileId, userId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.like.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('rejects likes on posts the viewer cannot see', async () => {
+      for (const post of [
+        { visibility: 'PRIVATE', moderationStatus: 'VISIBLE' },
+        { visibility: 'FOLLOWERS', moderationStatus: 'VISIBLE' },
+        { visibility: 'PUBLIC', moderationStatus: 'REMOVED' },
+      ]) {
+        mockPrismaService.post.findUnique.mockResolvedValueOnce({
+          id: postId,
+          profileId: 'owner-1',
+          ...post,
+        });
+        await expect(
+          service.toggle(postId, profileId, userId),
+        ).rejects.toThrow();
+      }
+      expect(mockPrismaService.like.create).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if post not found', async () => {

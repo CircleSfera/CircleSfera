@@ -9,10 +9,25 @@ import { CommentsService } from './comments.service.js';
 describe('CommentsService', () => {
   let service: CommentsService;
 
+  // Default: an accessible public post.
+  const accessiblePost = {
+    id: 'post-1',
+    profileId: 'author-1',
+    visibility: 'PUBLIC',
+    moderationStatus: 'VISIBLE',
+    turnOffComments: false,
+  };
+
   const mockPrismaService = {
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     post: {
       findUnique: vi.fn(),
+    },
+    block: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    follow: {
+      findUnique: vi.fn().mockResolvedValue(null),
     },
     comment: {
       create: vi.fn(),
@@ -54,6 +69,9 @@ describe('CommentsService', () => {
 
     service = module.get<CommentsService>(CommentsService);
     vi.clearAllMocks();
+    mockPrismaService.post.findUnique
+      .mockReset()
+      .mockResolvedValue(accessiblePost);
   });
 
   it('should be defined', () => {
@@ -61,6 +79,29 @@ describe('CommentsService', () => {
   });
 
   describe('create', () => {
+    it('rejects comments across a block without creating anything', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hi' } as never),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects comments on a followers-only post from a non-follower', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'post-1',
+        profileId: 'author-1',
+        visibility: 'FOLLOWERS',
+        moderationStatus: 'VISIBLE',
+      });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hi' } as never),
+      ).rejects.toThrow();
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
     const postId = 'post-1';
     const profileId = 'user-1';
     const dto = { content: 'Nice post! @user2' };
@@ -469,6 +510,7 @@ describe('CommentsService', () => {
     it('should do nothing if comment already liked', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'c-1',
+        postId: 'post-1',
         profileId: 'owner-p',
       });
       mockPrismaService.commentLike.findUnique.mockResolvedValue({

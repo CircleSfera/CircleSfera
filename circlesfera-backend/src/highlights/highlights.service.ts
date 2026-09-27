@@ -1,6 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import type { UpdateHighlightDto } from './dto/update-highlight.dto.js';
@@ -41,8 +42,11 @@ export class HighlightsService {
 
   // List all highlights for a profile, ordered by creation date descending.
   // Param profileId: The owner's profile ID
-  async findAll(profileId: string) {
-    return this.prisma.highlight.findMany({
+  async findAll(profileId: string, viewerProfileId?: string) {
+    const access = await this.resolveViewerAccess(profileId, viewerProfileId);
+    if (!access.canView) return [];
+
+    const highlights = await this.prisma.highlight.findMany({
       where: { profileId },
       include: {
         stories: {
@@ -55,12 +59,18 @@ export class HighlightsService {
         createdAt: 'desc',
       },
     });
+    return highlights.map((h) => ({
+      ...h,
+      stories: h.stories.filter(
+        (hs) => access.seesCloseFriends || !hs.story.isCloseFriendsOnly,
+      ),
+    }));
   }
 
   // Get a single highlight by ID, with its stories.
   // Param id: The highlight ID
   // Throws NotFoundException if highlight not found
-  async findOne(id: string) {
+  async findOne(id: string, viewerProfileId?: string) {
     const highlight = await this.prisma.highlight.findUnique({
       where: { id },
       include: {
@@ -76,14 +86,75 @@ export class HighlightsService {
       },
     });
 
-    if (!highlight) {
+    const access = highlight
+      ? await this.resolveViewerAccess(highlight.profileId, viewerProfileId)
+      : null;
+    if (!highlight || !access?.canView) {
       throw AppException.NotFound(
         ErrorCode.HIGHLIGHT_NOT_FOUND,
         'Highlight not found',
       );
     }
 
-    return highlight;
+    return {
+      ...highlight,
+      stories: highlight.stories.filter(
+        (hs) => access.seesCloseFriends || !hs.story.isCloseFriendsOnly,
+      ),
+    };
+  }
+
+  // Highlights follow the owner's story audience: hidden across a
+  // block, followers-only for private accounts, and close-friends-only
+  // stories only for the owner's close friends.
+  private async resolveViewerAccess(
+    ownerProfileId: string,
+    viewerProfileId?: string,
+  ): Promise<{ canView: boolean; seesCloseFriends: boolean }> {
+    if (viewerProfileId === ownerProfileId) {
+      return { canView: true, seesCloseFriends: true };
+    }
+    if (
+      await isBlockedEitherWay(this.prisma, viewerProfileId, ownerProfileId)
+    ) {
+      return { canView: false, seesCloseFriends: false };
+    }
+
+    const owner = await this.prisma.profile.findUnique({
+      where: { id: ownerProfileId },
+      select: {
+        user: { select: { settings: { select: { privacyLevel: true } } } },
+      },
+    });
+    const isPrivate = owner?.user?.settings?.privacyLevel === 'PRIVATE';
+
+    const [follow, closeFriend] = viewerProfileId
+      ? await Promise.all([
+          this.prisma.follow.findUnique({
+            where: {
+              followerId_followingId: {
+                followerId: viewerProfileId,
+                followingId: ownerProfileId,
+              },
+            },
+            select: { status: true },
+          }),
+          this.prisma.closeFriend.findUnique({
+            where: {
+              profileId_friendId: {
+                profileId: ownerProfileId,
+                friendId: viewerProfileId,
+              },
+            },
+            select: { id: true },
+          }),
+        ])
+      : [null, null];
+
+    if (isPrivate && follow?.status !== 'ACCEPTED') {
+      return { canView: false, seesCloseFriends: false };
+    }
+    return { canView: true, seesCloseFriends: closeFriend !== null };
   }
 
   // Update a highlight (title, cover, or stories).

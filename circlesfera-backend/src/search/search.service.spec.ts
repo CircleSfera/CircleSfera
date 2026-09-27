@@ -10,6 +10,7 @@ describe('SearchService', () => {
   let service: SearchService;
 
   const mockPrismaService = {
+    block: { findMany: vi.fn().mockResolvedValue([]) },
     profile: {
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -430,6 +431,34 @@ describe('SearchService', () => {
       expect(res[0].id).toBe('post-hot');
       expect(res[1].id).toBe('post-warm');
       expect(mockCacheManager.set).toHaveBeenCalled();
+    });
+
+    it('queries the real comments table and only public, visible posts from public accounts', async () => {
+      mockCacheManager.get.mockResolvedValueOnce(null);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
+
+      await service.getTrending(10);
+
+      const [strings] = mockPrismaService.$queryRaw.mock.calls.at(-1) ?? [[]];
+      const sql = (strings as string[]).join('?');
+      // Regression: the query used to read the non-existent "Comment" table.
+      expect(sql).toContain('FROM comments c');
+      expect(sql).not.toContain('"Comment"');
+      expect(sql).toContain(`p."moderationStatus" = 'VISIBLE'`);
+      expect(sql).toContain(`us."privacyLevel" = 'PUBLIC'`);
+    });
+
+    it('drops posts from Profiles in a block relation with the viewer, even from cache', async () => {
+      mockCacheManager.get.mockResolvedValueOnce([
+        { id: 'p-ok', profileId: 'author-ok' },
+        { id: 'p-blocked', profileId: 'author-blocked' },
+      ]);
+      mockPrismaService.block.findMany.mockResolvedValueOnce([
+        { blockerId: 'viewer-1', blockedId: 'author-blocked' },
+      ]);
+
+      const res = await service.getTrending(10, 'viewer-1');
+      expect(res.map((p) => p.id)).toEqual(['p-ok']);
     });
   });
 

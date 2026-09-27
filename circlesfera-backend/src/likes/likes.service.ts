@@ -1,11 +1,12 @@
 import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
@@ -30,11 +31,8 @@ export class LikesService {
   // Returns `{ liked: boolean }`
   // Throws NotFoundException if post not found
   async toggle(postId: string, profileId: string, userId: string) {
-    const post = await this.prisma.post.findUnique({ where: { id: postId } });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
+    // Engaging requires the same access as viewing.
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
 
     const existingLike = await this.prisma.like.findUnique({
       where: {

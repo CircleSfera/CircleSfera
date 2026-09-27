@@ -51,6 +51,9 @@ export class UsersService {
         followers: {
           none: { followerId: { in: profileIds } },
         },
+        // Never suggest a Profile in a block relation, either way.
+        blocking: { none: { blockedId: { in: profileIds } } },
+        blockedBy: { none: { blockerId: { in: profileIds } } },
       },
       take: limit,
       orderBy: {

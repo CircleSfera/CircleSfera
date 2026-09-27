@@ -26,6 +26,7 @@ import {
   keysetBeforeDesc,
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -394,7 +395,10 @@ export class StoriesService {
       include: { user: { include: { settings: true } } },
     });
 
-    if (!profile) {
+    if (
+      !profile ||
+      (await isBlockedEitherWay(this.prisma, currentProfileId, profile.id))
+    ) {
       return [];
     }
 
@@ -518,6 +522,7 @@ export class StoriesService {
   // Param profileId: The viewer's user ID
   // Returns The story view record
   async view(id: string, profileId: string): Promise<StoryView> {
+    await this.assertCanAccessStory(id, profileId);
     const existingView = await this.prisma.storyView.findUnique({
       where: {
         storyId_viewerId: {
@@ -584,6 +589,7 @@ export class StoriesService {
     profileId: string,
     reaction: string,
   ): Promise<StoryReaction> {
+    await this.assertCanAccessStory(storyId, profileId);
     const existing = await this.prisma.storyReaction.findUnique({
       where: {
         storyId_profileId: {
@@ -638,6 +644,64 @@ export class StoriesService {
 
   // Job to physically delete expired stories every hour to free up database space.
   // Executed via BullMQ.
+  // Viewing or reacting to a story requires the same access as seeing it:
+  // no block either way, a follow for private accounts, and close-friend
+  // membership for close-friends-only stories. Every denial answers
+  // NotFound so restrictions are never revealed.
+  private async assertCanAccessStory(
+    storyId: string,
+    viewerProfileId: string,
+  ): Promise<void> {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: {
+        profileId: true,
+        isCloseFriendsOnly: true,
+        profile: {
+          select: {
+            user: { select: { settings: { select: { privacyLevel: true } } } },
+          },
+        },
+      },
+    });
+    if (!story) throw new NotFoundException('Story not found');
+    if (story.profileId === viewerProfileId) return;
+
+    if (
+      await isBlockedEitherWay(this.prisma, viewerProfileId, story.profileId)
+    ) {
+      throw new NotFoundException('Story not found');
+    }
+
+    if (story.profile.user?.settings?.privacyLevel === Visibility.PRIVATE) {
+      const follow = await this.prisma.follow.findUnique({
+        where: {
+          followerId_followingId: {
+            followerId: viewerProfileId,
+            followingId: story.profileId,
+          },
+        },
+        select: { status: true },
+      });
+      if (follow?.status !== 'ACCEPTED') {
+        throw new NotFoundException('Story not found');
+      }
+    }
+
+    if (story.isCloseFriendsOnly) {
+      const closeFriend = await this.prisma.closeFriend.findUnique({
+        where: {
+          profileId_friendId: {
+            profileId: story.profileId,
+            friendId: viewerProfileId,
+          },
+        },
+        select: { id: true },
+      });
+      if (!closeFriend) throw new NotFoundException('Story not found');
+    }
+  }
+
   async cleanupExpiredStories() {
     try {
       const expiredStories = await this.prisma.story.findMany({

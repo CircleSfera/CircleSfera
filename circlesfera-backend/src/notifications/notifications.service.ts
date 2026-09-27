@@ -3,6 +3,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { $Enums, Prisma } from '@prisma/client';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
 
@@ -95,6 +96,13 @@ export class NotificationsService {
     postId?: string;
   }) {
     try {
+      // Never notify across a block, in either direction.
+      if (
+        await isBlockedEitherWay(this.prisma, data.senderId, data.recipientId)
+      ) {
+        return null;
+      }
+
       // Option A: In-Line Aggregation for engagement metrics
       const isBatchableType = ['LIKE', 'COMMENT_LIKE'].includes(data.type);
 

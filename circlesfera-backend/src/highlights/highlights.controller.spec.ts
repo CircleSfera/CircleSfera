@@ -10,6 +10,7 @@ import {
   vi,
 } from 'vitest';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -33,7 +34,10 @@ describe('HighlightsController', () => {
     app = await createControllerApp({
       controllers: [HighlightsController],
       providers: [{ provide: HighlightsService, useValue: mockService }],
-      guards: [{ guard: JwtAuthGuard, mode: 'session' }],
+      guards: [
+        { guard: JwtAuthGuard, mode: 'session' },
+        { guard: JwtOptionalGuard, mode: 'optional' },
+      ],
     });
   });
 
@@ -118,7 +122,22 @@ describe('HighlightsController', () => {
       .get('/api/v1/highlights/profile/profile-9')
       .expect(200);
 
-    expect(mockService.findAll).toHaveBeenCalledWith('profile-9');
+    // Anonymous viewers are forwarded as undefined.
+    expect(mockService.findAll).toHaveBeenCalledWith('profile-9', undefined);
+  });
+
+  it('forwards the session profile as viewer when signed in', async () => {
+    mockService.findAll.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/highlights/profile/profile-9')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.findAll).toHaveBeenCalledWith(
+      'profile-9',
+      TEST_USER.profileId,
+    );
   });
 
   it('keeps the deprecated user/:profileId path on the same query', async () => {
@@ -128,7 +147,7 @@ describe('HighlightsController', () => {
       .get('/api/v1/highlights/user/profile-9')
       .expect(200);
 
-    expect(mockService.findAll).toHaveBeenCalledWith('profile-9');
+    expect(mockService.findAll).toHaveBeenCalledWith('profile-9', undefined);
   });
 
   it('loads a highlight by id without requiring a session', async () => {
@@ -138,7 +157,7 @@ describe('HighlightsController', () => {
       .get('/api/v1/highlights/hl-1')
       .expect(200);
 
-    expect(mockService.findOne).toHaveBeenCalledWith('hl-1');
+    expect(mockService.findOne).toHaveBeenCalledWith('hl-1', undefined);
   });
 
   it('deletes a highlight owned by the session profile', async () => {

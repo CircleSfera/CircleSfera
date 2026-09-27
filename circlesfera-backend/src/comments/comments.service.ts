@@ -4,6 +4,8 @@ import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   buildMediaCreateInput,
   buildVoiceMediaCreateInput,
@@ -42,11 +44,8 @@ export class CommentsService {
   // Param dto: Comment data (content, optional parentId, url, mediaType)
   // Throws NotFoundException if the post does not exist
   async create(postId: string, profileId: string, dto: CreateCommentDto) {
-    const post = await this.prisma.post.findUnique({ where: { id: postId } });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
+    // Commenting requires the same access as viewing.
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
@@ -205,6 +204,8 @@ export class CommentsService {
     pagination: PaginationDto,
     currentProfileId?: string,
   ) {
+    await assertCanAccessPost(this.prisma, postId, currentProfileId);
+
     const { page = 1, limit = 10, cursor } = pagination;
 
     const likeInclude = currentProfileId
@@ -352,6 +353,10 @@ export class CommentsService {
       include: { profile: true },
     });
     if (!comment) throw new NotFoundException('Comment not found');
+    await assertCanAccessPost(this.prisma, comment.postId, profileId);
+    if (await isBlockedEitherWay(this.prisma, profileId, comment.profileId)) {
+      throw new NotFoundException('Comment not found');
+    }
 
     const existingLike = await this.prisma.commentLike.findUnique({
       where: { commentId_profileId: { commentId, profileId } },
