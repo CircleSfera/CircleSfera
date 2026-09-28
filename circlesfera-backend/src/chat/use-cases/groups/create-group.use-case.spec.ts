@@ -12,6 +12,10 @@ describe('CreateGroupUseCase', () => {
       findFirst: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
     };
+    follow: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
 
@@ -21,6 +25,10 @@ describe('CreateGroupUseCase', () => {
       conversation: {
         findFirst: vi.fn(),
         create: vi.fn(),
+      },
+      follow: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        findMany: vi.fn().mockResolvedValue([]),
       },
     };
     mockEventEmitter = { emit: vi.fn() };
@@ -54,8 +62,9 @@ describe('CreateGroupUseCase', () => {
     expect(mockPrisma.conversation.create).not.toHaveBeenCalled();
   });
 
-  it('creates new 1-on-1 conversation when none exists and name is not specified', async () => {
+  it('creates new 1-on-1 request when recipient does not follow creator', async () => {
     mockPrisma.conversation.findFirst.mockResolvedValue(null);
+    mockPrisma.follow.findFirst.mockResolvedValue(null);
     const created = { id: 'conv-new-1on1', isGroup: false };
     mockPrisma.conversation.create.mockResolvedValue(created);
 
@@ -66,7 +75,33 @@ describe('CreateGroupUseCase', () => {
       data: {
         isGroup: false,
         participants: {
-          create: [{ profileId: 'prof-1' }, { profileId: 'prof-2' }],
+          create: [
+            { profileId: 'prof-1', hasAccepted: true },
+            { profileId: 'prof-2', hasAccepted: false },
+          ],
+        },
+      },
+      include: expect.any(Object),
+    });
+  });
+
+  it('creates new 1-on-1 accepted conversation when recipient follows creator', async () => {
+    mockPrisma.conversation.findFirst.mockResolvedValue(null);
+    mockPrisma.follow.findFirst.mockResolvedValue({ id: 'follow-1' });
+    const created = { id: 'conv-new-1on1', isGroup: false };
+    mockPrisma.conversation.create.mockResolvedValue(created);
+
+    const result = await useCase.execute('prof-1', ['prof-2']);
+
+    expect(result).toBe(created);
+    expect(mockPrisma.conversation.create).toHaveBeenCalledWith({
+      data: {
+        isGroup: false,
+        participants: {
+          create: [
+            { profileId: 'prof-1', hasAccepted: true },
+            { profileId: 'prof-2', hasAccepted: true },
+          ],
         },
       },
       include: expect.any(Object),
@@ -74,14 +109,15 @@ describe('CreateGroupUseCase', () => {
   });
 
   it('creates a group conversation with admin role for caller and emits event', async () => {
+    mockPrisma.follow.findMany.mockResolvedValue([{ followerId: 'prof-2' }]);
     const createdGroup = {
       id: 'conv-group-1',
       isGroup: true,
       name: 'Engineering',
       participants: [
-        { profileId: 'prof-1', isAdmin: true },
-        { profileId: 'prof-2', isAdmin: false },
-        { profileId: 'prof-3', isAdmin: false },
+        { profileId: 'prof-1', isAdmin: true, hasAccepted: true },
+        { profileId: 'prof-2', isAdmin: false, hasAccepted: true },
+        { profileId: 'prof-3', isAdmin: false, hasAccepted: false },
       ],
     };
     mockPrisma.conversation.create.mockResolvedValue(createdGroup);
@@ -99,9 +135,9 @@ describe('CreateGroupUseCase', () => {
         name: 'Engineering',
         participants: {
           create: [
-            { profileId: 'prof-1', isAdmin: true },
-            { profileId: 'prof-2', isAdmin: false },
-            { profileId: 'prof-3', isAdmin: false },
+            { profileId: 'prof-1', isAdmin: true, hasAccepted: true },
+            { profileId: 'prof-2', isAdmin: false, hasAccepted: true },
+            { profileId: 'prof-3', isAdmin: false, hasAccepted: false },
           ],
         },
       },

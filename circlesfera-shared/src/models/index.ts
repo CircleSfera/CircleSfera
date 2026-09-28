@@ -234,6 +234,8 @@ export interface Message {
 export interface Participant {
   id: string;
   profileId: string;
+  isAdmin?: boolean;
+  hasAccepted?: boolean;
   lastReadAt?: Date | string;
   profile: ProfileWithUser;
 }

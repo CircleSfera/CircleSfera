@@ -994,6 +994,7 @@ model Participant {
   conversationId String
   profileId      String
   isAdmin        Boolean   @default(false)
+  hasAccepted    Boolean   @default(true)
   lastReadAt     DateTime  @default(now()) // For "Seen" status
   createdAt      DateTime  @default(now())
   deletedAt      DateTime? // Allows "Delete for me" functionality
@@ -1004,6 +1005,7 @@ model Participant {
 
   @@unique([conversationId, profileId])
   @@index([profileId, deletedAt])
+  @@index([profileId, deletedAt, hasAccepted])
   @@map("participants")
 }
 

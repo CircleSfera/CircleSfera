@@ -39,6 +39,9 @@ describe('SendMessageUseCase', () => {
       media: {
         create: vi.fn().mockResolvedValue({ id: 'media-1' }),
       },
+      follow: {
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
     };
 
     mockPrisma = {
@@ -263,9 +266,13 @@ describe('SendMessageUseCase', () => {
 
   it('sends message creating direct conversation when not found', async () => {
     mockTx.conversation.findFirst.mockResolvedValue(null);
+    mockTx.follow.findFirst.mockResolvedValue(null);
     const newConv = {
       id: 'conv-created',
-      participants: [{ profileId: 'sender-1' }, { profileId: 'recipient-2' }],
+      participants: [
+        { profileId: 'sender-1', hasAccepted: true },
+        { profileId: 'recipient-2', hasAccepted: false },
+      ],
     };
     mockTx.conversation.create.mockResolvedValue(newConv);
     mockTx.message.create.mockResolvedValue({
@@ -282,12 +289,70 @@ describe('SendMessageUseCase', () => {
       data: {
         isGroup: false,
         participants: {
-          create: [{ profileId: 'sender-1' }, { profileId: 'recipient-2' }],
+          create: [
+            { profileId: 'sender-1', hasAccepted: true },
+            { profileId: 'recipient-2', hasAccepted: false },
+          ],
         },
       },
-      include: { participants: true },
+      include: {
+        participants: {
+          include: {
+            profile: { select: { id: true } },
+          },
+        },
+      },
     });
     expect(result.content).toBe('Direct');
+    // Push notification must NOT be sent to recipient if hasAccepted is false
+    expect(mockPushService.sendNotification).not.toHaveBeenCalled();
+  });
+
+  it('sends push notification when recipient follows sender and has accepted', async () => {
+    mockTx.conversation.findFirst.mockResolvedValue(null);
+    mockTx.follow.findFirst.mockResolvedValue({ id: 'follow-1' });
+    const newConv = {
+      id: 'conv-created',
+      participants: [
+        { profileId: 'sender-1', hasAccepted: true },
+        { profileId: 'recipient-2', hasAccepted: true },
+      ],
+    };
+    mockTx.conversation.create.mockResolvedValue(newConv);
+    mockTx.message.create.mockResolvedValue({
+      id: 'msg-2',
+      content: 'encrypted_Direct',
+      senderId: 'sender-1',
+      conversationId: 'conv-created',
+      sender: { id: 'sender-1', username: 'direct_sender' },
+    });
+
+    await useCase.execute('sender-1', 'recipient-2', 'Direct');
+
+    expect(mockTx.conversation.create).toHaveBeenCalledWith({
+      data: {
+        isGroup: false,
+        participants: {
+          create: [
+            { profileId: 'sender-1', hasAccepted: true },
+            { profileId: 'recipient-2', hasAccepted: true },
+          ],
+        },
+      },
+      include: {
+        participants: {
+          include: {
+            profile: { select: { id: true } },
+          },
+        },
+      },
+    });
+    expect(mockPushService.sendNotification).toHaveBeenCalledWith(
+      'recipient-2',
+      expect.objectContaining({
+        title: 'Nuevo mensaje cifrado',
+      }),
+    );
   });
 
   it('sends message finding direct conversation when it exists', async () => {

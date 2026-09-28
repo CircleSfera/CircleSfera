@@ -53,6 +53,7 @@ describe('GetConversationsQuery', () => {
           some: {
             profileId: 'prof-1',
             deletedAt: null,
+            hasAccepted: true,
           },
         },
       },
@@ -64,5 +65,25 @@ describe('GetConversationsQuery', () => {
     expect(result[0].messages[0].content).toBe('decrypted_enc_hello');
     expect(result[1].messages).toEqual([]);
     expect(result[2].messages[0].content).toBe('');
+  });
+
+  it('fetches request conversations when folder is requests', async () => {
+    mockPrisma.conversation.findMany.mockResolvedValue([]);
+
+    await query.execute('prof-1', 'requests');
+
+    expect(mockPrisma.conversation.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          participants: {
+            some: {
+              profileId: 'prof-1',
+              deletedAt: null,
+              hasAccepted: false,
+            },
+          },
+        },
+      }),
+    );
   });
 });

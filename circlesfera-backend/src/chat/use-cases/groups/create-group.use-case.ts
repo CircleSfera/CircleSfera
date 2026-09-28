@@ -71,11 +71,25 @@ export class CreateGroupUseCase {
 
       if (existing) return existing;
 
+      const recipientFollows = await this.prisma.follow.findFirst({
+        where: {
+          followerId: recipientId,
+          followingId: profileId,
+          status: 'ACCEPTED',
+        },
+      });
+
       return this.prisma.conversation.create({
         data: {
           isGroup: false,
           participants: {
-            create: [{ profileId }, { profileId: recipientId }],
+            create: [
+              { profileId, hasAccepted: true },
+              {
+                profileId: recipientId,
+                hasAccepted: Boolean(recipientFollows),
+              },
+            ],
           },
         },
         include: {
@@ -95,6 +109,17 @@ export class CreateGroupUseCase {
       });
     }
 
+    const nonCreatorIds = uniqueParticipantIds.filter((id) => id !== profileId);
+    const follows = await this.prisma.follow.findMany({
+      where: {
+        followerId: { in: nonCreatorIds },
+        followingId: profileId,
+        status: 'ACCEPTED',
+      },
+      select: { followerId: true },
+    });
+    const followerIdSet = new Set(follows.map((f) => f.followerId));
+
     const allParticipantIds = Array.from(
       new Set([profileId, ...uniqueParticipantIds]),
     );
@@ -107,6 +132,7 @@ export class CreateGroupUseCase {
           create: allParticipantIds.map((id) => ({
             profileId: id,
             isAdmin: id === profileId,
+            hasAccepted: id === profileId || followerIdSet.has(id),
           })),
         },
       },
