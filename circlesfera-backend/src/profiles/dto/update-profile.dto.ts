@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsOptional,
   IsString,
   IsUrl,
@@ -41,7 +42,8 @@ export class UpdateProfileDto {
   @IsBoolean()
   isPrivate?: boolean;
 
+  // Chosen by the user; no platform plan is required for Creator or Business.
   @IsOptional()
-  @IsString()
+  @IsIn(['PERSONAL', 'CREATOR', 'BUSINESS'])
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
 }

@@ -18,9 +18,8 @@ import {
 import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
-import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
@@ -42,8 +41,6 @@ import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotion
 interface AuthRequest extends Request {
   user: CurrentUserData;
 }
-
-const ElitePlan = () => RequiresPlan('Elite Creator');
 
 @Controller('creator')
 @UseGuards(JwtAuthGuard)
@@ -79,16 +76,14 @@ export class CreatorController {
   ) {}
 
   @Get('stats')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
     return this.getCreatorStatsQ.execute(req.user.profileId);
   }
 
   @Get('activity-chart')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
     const dashboard = await this.analyticsService.getCreatorDashboard(
@@ -99,8 +94,7 @@ export class CreatorController {
   }
 
   @Get('posts')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getPosts(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -116,8 +110,7 @@ export class CreatorController {
   }
 
   @Get('stories')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getStories(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -131,8 +124,7 @@ export class CreatorController {
   }
 
   @Get('promotions')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getPromotions(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -146,8 +138,7 @@ export class CreatorController {
   }
 
   @Post('promotions')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async createPromotion(
     @Req() req: AuthRequest,
     @Body()
@@ -191,8 +182,7 @@ export class CreatorController {
   }
 
   @Delete('promotions/:id')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async cancelPromotion(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.managePromotionUC.cancelPromotion(
       req.user.userId,
@@ -201,8 +191,7 @@ export class CreatorController {
   }
 
   @Post('promotions/:id/pause')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async pausePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.managePromotionUC.pausePromotion(
       req.user.userId,
@@ -211,8 +200,7 @@ export class CreatorController {
   }
 
   @Post('promotions/:id/resume')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async resumePromotion(@Req() req: AuthRequest, @Param('id') id: string) {
     return this.managePromotionUC.resumePromotion(
       req.user.userId,
@@ -226,8 +214,7 @@ export class CreatorController {
   }
 
   @Patch('promotions/:id')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async updatePromotion(
     @Req() req: AuthRequest,
     @Param('id') id: string,
@@ -248,8 +235,7 @@ export class CreatorController {
   }
 
   @Get('analytics/revenue')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getRevenueAnalytics(
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
@@ -260,15 +246,13 @@ export class CreatorController {
   }
 
   @Get('analytics/retention')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
 
   @Get('analytics/top-posts')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getTopPerformingContent(
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
@@ -280,8 +264,7 @@ export class CreatorController {
   }
 
   @Get('analytics/export')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @Header('Content-Type', 'text/csv')
   @Header(
     'Content-Disposition',
