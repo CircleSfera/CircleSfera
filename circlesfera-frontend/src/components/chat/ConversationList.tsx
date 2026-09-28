@@ -38,6 +38,15 @@ export default function ConversationList() {
   });
   const requestsCount = requests.length;
 
+  const { data: unreadData } = useQuery({
+    queryKey: ['unreadMessages'],
+    queryFn: async () => {
+      const res = await chatApi.getUnreadCount();
+      return res.data;
+    },
+  });
+  const unreadCount = unreadData?.count ?? 0;
+
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const me = useAuthStore((state) => state.profile);
   const [searchQuery, setSearchQuery] = useState('');
@@ -171,13 +180,18 @@ export default function ConversationList() {
           <button
             type="button"
             onClick={() => setFolder('inbox')}
-            className={`pb-2 transition-all relative ${
+            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
               folder === 'inbox'
                 ? 'text-white font-semibold'
                 : 'text-white/50 hover:text-white/80'
             }`}
           >
-            {t('chat.inbox', 'Bandeja')}
+            <span>{t('chat.inbox', 'Bandeja')}</span>
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
+                {unreadCount}
+              </span>
+            )}
             {folder === 'inbox' && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-brand-secondary to-brand-primary rounded-full shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.5)]" />
             )}
@@ -281,7 +295,7 @@ export default function ConversationList() {
                 >
                   <Link to={`/direct/inbox/t/${conv.id}`}>
                     <div
-                      className={`group relative flex items-center min-h-[72px] py-3 px-3 rounded-lg transition-all duration-300 ${
+                      className={`group relative flex items-center min-h-18 py-3 px-3 rounded-lg transition-all duration-300 ${
                         isActive
                           ? 'bg-white/10 shadow-lg shadow-black/20'
                           : 'hover:bg-white/5'
