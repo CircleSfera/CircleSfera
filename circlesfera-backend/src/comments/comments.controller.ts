@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   Query,
   UseGuards,
@@ -22,6 +23,7 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CommentsService } from './comments.service.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
 // REST controller for comments on posts. Supports creating, listing, and deleting comments.
 @Controller('posts/:postId/comments')
@@ -48,6 +50,19 @@ export class CommentsController {
     @CurrentUser() user: CurrentUserData | null,
   ) {
     return this.commentsService.findByPost(postId, pagination, user?.profileId);
+  }
+
+  // Edit a comment (author only).
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, OwnershipGuard)
+  @RequireOwnership({ model: 'Comment' })
+  async update(
+    @Param('postId') postId: string,
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: UpdateCommentDto,
+  ) {
+    return this.commentsService.update(postId, id, user.profileId, dto);
   }
 
   // Delete a comment (author only).

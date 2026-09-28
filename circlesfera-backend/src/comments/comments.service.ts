@@ -1,9 +1,10 @@
-import type { NotificationCreateEvent } from '@circlesfera/shared';
+import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
@@ -25,6 +26,7 @@ import {
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
 // Service for creating, listing, and deleting comments on posts.
 // Supports threaded replies (parentId), media attachments, and @mention notifications.
@@ -344,6 +346,125 @@ export class CommentsService {
     await this.analyticsQueue.add('update-performance-score', {
       postId: comment.postId,
     });
+  }
+
+  // Update a comment on a post (author only, any time).
+  // Param postId: The post to which the comment belongs
+  // Param id: The comment ID
+  // Param profileId: The authenticated author profile ID
+  // Param dto: UpdateCommentDto containing updated content
+  async update(
+    postId: string,
+    id: string,
+    profileId: string,
+    dto: UpdateCommentDto,
+  ) {
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
+
+    const comment = await this.prisma.comment.findUnique({
+      where: { id },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            verificationLevel: true,
+            accountType: true,
+          },
+        },
+        media: true,
+        voiceMedia: true,
+      },
+    });
+
+    if (!comment || comment.postId !== postId) {
+      throw AppException.NotFound(
+        ErrorCode.COMMENT_NOT_FOUND,
+        'Comment not found',
+      );
+    }
+
+    if (comment.profileId !== profileId) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'You cannot edit this comment',
+      );
+    }
+
+    const updatedComment = await this.prisma.comment.update({
+      where: { id },
+      data: {
+        content: dto.content,
+        isEdited: true,
+      },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            verificationLevel: true,
+            accountType: true,
+          },
+        },
+        media: true,
+        voiceMedia: true,
+      },
+    });
+
+    const { voiceMedia, ...commentWithoutVoiceMedia } = updatedComment;
+    const result = {
+      ...resolveMediaFields(commentWithoutVoiceMedia),
+      voiceUrl: voiceMedia?.url ?? updatedComment.voiceUrl,
+    };
+
+    // Re-run moderation on edited text in background
+    if (dto.content) {
+      await this.aiQueue.add('moderate-content', {
+        targetId: id,
+        targetType: 'COMMENT',
+        text: dto.content,
+      });
+    }
+
+    // Handle mentions in edited comment
+    if (dto.content) {
+      const mentions = dto.content.match(/@[\w.]+/g);
+      if (mentions) {
+        const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];
+        const profiles = await this.prisma.profile.findMany({
+          where: {
+            username: { in: uniqueMentions },
+            id: { notIn: [profileId, post.profileId] },
+          },
+          select: { id: true },
+        });
+
+        await Promise.all(
+          profiles.map(async (p) => {
+            const blocked = await isBlockedEitherWay(
+              this.prisma,
+              profileId,
+              p.id,
+            );
+            if (!blocked) {
+              this.eventEmitter.emit('notification.create', {
+                recipientId: p.id,
+                senderId: profileId,
+                type: NotificationType.MENTION,
+                content: 'mentioned you in a comment',
+                postId,
+              } satisfies NotificationCreateEvent['payload']);
+            }
+          }),
+        );
+      }
+    }
+
+    return result;
   }
 
   // Like a comment

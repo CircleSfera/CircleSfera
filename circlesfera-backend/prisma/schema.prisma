@@ -647,6 +647,7 @@ model Comment {
   mediaType    String? // "image", "video", "file"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  isEdited     Boolean  @default(false)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?

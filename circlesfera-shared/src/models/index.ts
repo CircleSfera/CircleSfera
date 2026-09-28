@@ -153,6 +153,7 @@ export interface Comment {
   mediaType?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  isEdited?: boolean;
   profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];

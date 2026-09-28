@@ -26,6 +26,7 @@ describe('CommentsController', () => {
 
   const mockService = {
     create: vi.fn(),
+    update: vi.fn(),
     findByPost: vi.fn(),
     remove: vi.fn(),
     likeComment: vi.fn(),
@@ -155,6 +156,51 @@ describe('CommentsController', () => {
     expect(mockService.unlikeComment).toHaveBeenCalledWith(
       'c-1',
       TEST_USER.profileId,
+    );
+  });
+
+  it('rejects edit without a session', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/posts/post-1/comments/c-1')
+      .send({ content: 'Edited content' })
+      .expect(401);
+
+    expect(mockService.update).not.toHaveBeenCalled();
+  });
+
+  it('rejects edit with empty content', async () => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/posts/post-1/comments/c-1')
+      .set(BEARER)
+      .send({ content: '' })
+      .expect(400);
+
+    expect(mockService.update).not.toHaveBeenCalled();
+  });
+
+  it('edits a comment as the session profile', async () => {
+    mockService.update.mockResolvedValue({
+      id: 'c-1',
+      content: 'Edited content',
+      isEdited: true,
+    });
+
+    const res = await request(app.getHttpServer())
+      .patch('/api/v1/posts/post-1/comments/c-1')
+      .set(BEARER)
+      .send({ content: 'Edited content' })
+      .expect(200);
+
+    expect(res.body).toEqual({
+      id: 'c-1',
+      content: 'Edited content',
+      isEdited: true,
+    });
+    expect(mockService.update).toHaveBeenCalledWith(
+      'post-1',
+      'c-1',
+      TEST_USER.profileId,
+      { content: 'Edited content' },
     );
   });
 });
