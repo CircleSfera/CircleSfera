@@ -119,14 +119,34 @@ export class SendMessageUseCase {
           });
 
           if (!conv) {
+            const recipientFollowsSender = await tx.follow.findFirst({
+              where: {
+                followerId: recipientId,
+                followingId: senderId,
+                status: 'ACCEPTED',
+              },
+            });
+
             conv = await tx.conversation.create({
               data: {
                 isGroup: false,
                 participants: {
-                  create: [{ profileId: senderId }, { profileId: recipientId }],
+                  create: [
+                    { profileId: senderId, hasAccepted: true },
+                    {
+                      profileId: recipientId,
+                      hasAccepted: Boolean(recipientFollowsSender),
+                    },
+                  ],
                 },
               },
-              include: { participants: true },
+              include: {
+                participants: {
+                  include: {
+                    profile: { select: { id: true } },
+                  },
+                },
+              },
             });
           }
         } else {
@@ -265,7 +285,7 @@ export class SendMessageUseCase {
       this.eventEmitter.emit('chat.message.sent', event);
 
       conversation.participants.forEach((p: any) => {
-        if (p.profileId !== senderId) {
+        if (p.profileId !== senderId && p.hasAccepted !== false) {
           this.pushService
             .sendNotification(p.profileId, {
               title: `Nuevo mensaje cifrado`,

@@ -92,20 +92,28 @@ export class PostsController {
 
   // Get posts where a user has been tagged/mentioned.
   @Get('user/:username/tagged')
+  @UseGuards(JwtOptionalGuard)
   async getTaggedPosts(
+    @CurrentUser() user: CurrentUserData | null,
     @Param('username') username: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.postsService.getTaggedPosts(username, pagination);
+    return this.postsService.getTaggedPosts(
+      username,
+      pagination,
+      user?.profileId,
+    );
   }
 
   // Get posts filtered by hashtag.
   @Get('tags/:tag')
+  @UseGuards(JwtOptionalGuard)
   async getByTag(
+    @CurrentUser() user: CurrentUserData | null,
     @Param('tag') tag: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.postsService.getByTag(tag, pagination);
+    return this.postsService.getByTag(tag, pagination, user?.profileId);
   }
 
   // Get a single post by ID. Supports guest access.

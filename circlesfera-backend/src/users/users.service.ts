@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  AccountType,
   ContentRating,
   type Prisma,
   SubscriptionStatus,
@@ -51,6 +50,9 @@ export class UsersService {
         followers: {
           none: { followerId: { in: profileIds } },
         },
+        // Never suggest a Profile in a block relation, either way.
+        blocking: { none: { blockedId: { in: profileIds } } },
+        blockedBy: { none: { blockerId: { in: profileIds } } },
       },
       take: limit,
       orderBy: {
@@ -303,21 +305,6 @@ export class UsersService {
     };
 
     return safeData as Record<string, unknown>;
-  }
-
-  // GDPR: Fully deletes a user and all related data via cascading.
-  // Param userId: The user ID to delete
-  async deleteUser(userId: string) {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Double check user exists
-      const user = await tx.user.findUnique({ where: { id: userId } });
-      if (!user) throw new Error('User not found');
-
-      // 2. Perform deletion (Cascading will handle posts, comments, profile, settings, etc.)
-      return tx.user.delete({
-        where: { id: userId },
-      });
-    });
   }
 
   // Atomically deletes a user scheduled for deletion, guarding against concurrent restoration.
@@ -612,9 +599,9 @@ export class UsersService {
     return { status: session.status };
   }
 
-  // Evaluates the user's active subscriptions and KYC status to correctly set
-  // Their VerificationLevel and AccountType.
-  // This decoupled logic replaces manual updates from the Payments service.
+  // Derives each Profile's VerificationLevel from its active platform plans.
+  // Plans sell verification and status only: Account Type is chosen by the
+  // user and is never written here, and monetization never requires a plan.
   // Param userId: The user ID
   async syncUserTier(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
@@ -638,44 +625,29 @@ export class UsersService {
     if (!user) return;
 
     for (const profile of user.profiles ?? []) {
-      let targetAccountType = AccountType.PERSONAL as AccountType;
-      let targetVerificationLevel =
-        VerificationLevel.BASIC as VerificationLevel;
+      const planNames = profile.platformSubscriptions.map((sub) =>
+        sub.plan.name.toLowerCase(),
+      );
+      const has = (keyword: string) =>
+        planNames.some((name) => name.includes(keyword));
 
-      let hasBusiness = false;
-      let hasElite = false;
-      let hasPremium = false;
+      // Highest tier wins. 'premium' is the former name of the Verified plan
+      // and is kept so subscriptions created before the rename still count.
+      const targetVerificationLevel: VerificationLevel = has('business')
+        ? VerificationLevel.BUSINESS
+        : has('elite')
+          ? VerificationLevel.ELITE
+          : has('verified') || has('premium')
+            ? VerificationLevel.VERIFIED
+            : VerificationLevel.BASIC;
 
-      for (const sub of profile.platformSubscriptions) {
-        const name = sub.plan.name.toLowerCase();
-        if (name.includes('business')) hasBusiness = true;
-        else if (name.includes('elite')) hasElite = true;
-        else if (name.includes('premium')) hasPremium = true;
-      }
-
-      if (hasBusiness) {
-        targetAccountType = AccountType.BUSINESS;
-        targetVerificationLevel = VerificationLevel.BUSINESS;
-      } else if (hasElite) {
-        targetAccountType = AccountType.CREATOR;
-        targetVerificationLevel = VerificationLevel.ELITE;
-      } else if (hasPremium) {
-        targetVerificationLevel = VerificationLevel.VERIFIED;
-      }
-
-      if (
-        profile.accountType !== targetAccountType ||
-        profile.verificationLevel !== targetVerificationLevel
-      ) {
+      if (profile.verificationLevel !== targetVerificationLevel) {
         await this.prisma.profile.update({
           where: { id: profile.id },
-          data: {
-            accountType: targetAccountType,
-            verificationLevel: targetVerificationLevel,
-          },
+          data: { verificationLevel: targetVerificationLevel },
         });
         this.logger.log(
-          `Profile ${profile.id} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
+          `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );
       }
     }

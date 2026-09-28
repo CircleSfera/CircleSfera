@@ -37,6 +37,9 @@ import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.j
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
 import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
+// Request Commands
+import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
+import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
 
 interface AuthRequest extends Request {
   user: CurrentUserData;
@@ -70,17 +73,51 @@ export class ChatController {
     private readonly leaveGroupUseCase: LeaveGroupUseCase,
     @Inject(DeleteConversationUseCase)
     private readonly deleteConversationUseCase: DeleteConversationUseCase,
+    @Inject(AcceptMessageRequestUseCase)
+    private readonly acceptMessageRequestUseCase: AcceptMessageRequestUseCase,
+    @Inject(DeclineMessageRequestUseCase)
+    private readonly declineMessageRequestUseCase: DeclineMessageRequestUseCase,
   ) {}
 
   @Get('conversations')
-  async getConversations(@Req() req: AuthRequest): Promise<Conversation[]> {
-    return this.getConversationsQuery.execute(req.user.profileId);
+  async getConversations(
+    @Req() req: AuthRequest,
+    @Query('folder') folder?: 'inbox' | 'requests',
+  ): Promise<Conversation[]> {
+    return this.getConversationsQuery.execute(
+      req.user.profileId,
+      folder === 'requests' ? 'requests' : 'inbox',
+    );
   }
 
   @Get('conversations/unread-count')
   async getUnreadCount(@Req() req: AuthRequest): Promise<{ count: number }> {
     const count = await this.getUnreadCountQuery.execute(req.user.profileId);
     return { count };
+  }
+
+  @Get('conversations/:id')
+  async getConversation(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ): Promise<Conversation> {
+    return this.getConversationsQuery.executeOne(id, req.user.profileId);
+  }
+
+  @Post('conversations/:id/accept')
+  async acceptRequest(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ): Promise<{ success: boolean }> {
+    return this.acceptMessageRequestUseCase.execute(req.user.profileId, id);
+  }
+
+  @Post('conversations/:id/decline')
+  async declineRequest(
+    @Req() req: AuthRequest,
+    @Param('id') id: string,
+  ): Promise<{ success: boolean }> {
+    return this.declineMessageRequestUseCase.execute(req.user.profileId, id);
   }
 
   @Get('conversations/:id/messages')

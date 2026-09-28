@@ -122,6 +122,7 @@ describe('LiveController', () => {
     expect(mockLiveService.getViewerToken).toHaveBeenCalledWith(
       'stream-1',
       TEST_USER.userId,
+      TEST_USER.profileId,
     );
   });
 
@@ -157,6 +158,7 @@ describe('LiveController', () => {
       'rose',
       'https://example.com/live/stream-1',
       'gift-1',
+      TEST_USER.profileId,
     );
   });
 });

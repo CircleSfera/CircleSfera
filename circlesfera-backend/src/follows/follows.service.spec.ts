@@ -13,6 +13,7 @@ describe('FollowsService', () => {
   let service: FollowsService;
 
   const mockPrismaService = {
+    $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
     user: { findUnique: vi.fn(), findFirst: vi.fn() },
     profile: { findUnique: vi.fn(), findFirst: vi.fn() },
     follow: {
@@ -26,10 +27,15 @@ describe('FollowsService', () => {
     },
     block: {
       findUnique: vi.fn(),
-      findFirst: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(null),
       create: vi.fn(),
+      upsert: vi.fn(),
       delete: vi.fn(),
-      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    closeFriend: {
+      deleteMany: vi.fn(),
     },
     mute: {
       upsert: vi.fn(),
@@ -167,7 +173,9 @@ describe('FollowsService', () => {
         id: followingId,
         userId: 'user-2-account',
       });
-      mockPrismaService.block.findUnique.mockResolvedValue({ id: 'block-1' });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({
+        id: 'block-1',
+      });
 
       await expect(
         service.toggle(followingUsername, followerId, 'dummyUserId'),
@@ -200,12 +208,25 @@ describe('FollowsService', () => {
       expect(result.status).toBe('PENDING');
     });
 
-    it('should return status BLOCKED if blocked', async () => {
+    it('reports BLOCKED to the blocker so the UI can offer Unblock', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
-      mockPrismaService.block.findUnique.mockResolvedValue({ id: 'b1' });
+      mockPrismaService.block.findMany.mockResolvedValueOnce([
+        { blockerId: '1' },
+      ]);
 
       const result = await service.checkFollow('user2', '1');
-      expect(result.status).toBe('BLOCKED');
+      expect(result).toEqual({ following: false, status: 'BLOCKED' });
+    });
+
+    it('never reveals a block to the blocked viewer', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
+      mockPrismaService.block.findMany.mockResolvedValueOnce([
+        { blockerId: '2' },
+      ]);
+
+      const result = await service.checkFollow('user2', '1');
+      expect(result).toEqual({ following: false, status: 'NONE' });
+      expect(mockPrismaService.follow.findUnique).not.toHaveBeenCalled();
     });
   });
 
@@ -311,8 +332,52 @@ describe('FollowsService', () => {
 
       await service.blockUser('blocker-id', 'blocked');
 
-      expect(mockPrismaService.block.create).toHaveBeenCalled();
-      expect(mockPrismaService.follow.deleteMany).toHaveBeenCalled();
+      expect(mockPrismaService.$transaction).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.block.upsert).toHaveBeenCalledWith({
+        where: {
+          blockerId_blockedId: {
+            blockerId: 'blocker-id',
+            blockedId: 'blocked-id',
+          },
+        },
+        create: { blockerId: 'blocker-id', blockedId: 'blocked-id' },
+        update: {},
+      });
+      expect(mockPrismaService.follow.deleteMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { followerId: 'blocker-id', followingId: 'blocked-id' },
+            { followerId: 'blocked-id', followingId: 'blocker-id' },
+          ],
+        },
+      });
+      expect(mockPrismaService.closeFriend.deleteMany).toHaveBeenCalledWith({
+        where: {
+          OR: [
+            { profileId: 'blocker-id', friendId: 'blocked-id' },
+            { profileId: 'blocked-id', friendId: 'blocker-id' },
+          ],
+        },
+      });
+    });
+
+    it('treats a repeated block as a no-op instead of an error', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'blocked-id',
+      });
+      mockPrismaService.block.upsert.mockResolvedValue({ id: 'b1' });
+
+      await expect(service.blockUser('blocker-id', 'blocked')).resolves.toEqual(
+        {
+          success: true,
+        },
+      );
+      await expect(service.blockUser('blocker-id', 'blocked')).resolves.toEqual(
+        {
+          success: true,
+        },
+      );
+      expect(mockPrismaService.block.create).not.toHaveBeenCalled();
     });
 
     it('should throw AppException when blocking self', async () => {
@@ -324,11 +389,13 @@ describe('FollowsService', () => {
 
     it('should unblock user successfully', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({ id: '2' });
-      mockPrismaService.block.delete.mockResolvedValue({ id: 'b1' });
+      mockPrismaService.block.deleteMany.mockResolvedValue({ count: 1 });
 
       const result = await service.unblockUser('1', 'user2');
       expect(result.success).toBe(true);
-      expect(mockPrismaService.block.delete).toHaveBeenCalled();
+      expect(mockPrismaService.block.deleteMany).toHaveBeenCalledWith({
+        where: { blockerId: '1', blockedId: '2' },
+      });
     });
 
     it('should get blocked users', async () => {

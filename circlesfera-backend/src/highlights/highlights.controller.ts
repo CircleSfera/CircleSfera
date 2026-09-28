@@ -14,6 +14,7 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { CreateHighlightDto } from './dto/create-highlight.dto.js';
 import { UpdateHighlightDto } from './dto/update-highlight.dto.js';
 import { HighlightsService } from './highlights.service.js';
@@ -53,20 +54,32 @@ export class HighlightsController {
 
   // List all highlights for a specific profile.
   @Get('profile/:profileId')
-  findAll(@Param('profileId') profileId: string) {
-    return this.highlightsService.findAll(profileId);
+  @UseGuards(JwtOptionalGuard)
+  findAll(
+    @Param('profileId') profileId: string,
+    @CurrentUser() user: CurrentUserData | null,
+  ) {
+    return this.highlightsService.findAll(profileId, user?.profileId);
   }
 
   // Deprecated: Use GET highlights/profile/:profileId
   @Get('user/:profileId')
-  findAllLegacy(@Param('profileId') profileId: string) {
-    return this.highlightsService.findAll(profileId);
+  @UseGuards(JwtOptionalGuard)
+  findAllLegacy(
+    @Param('profileId') profileId: string,
+    @CurrentUser() user: CurrentUserData | null,
+  ) {
+    return this.highlightsService.findAll(profileId, user?.profileId);
   }
 
   // Get a single highlight by ID.
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.highlightsService.findOne(id);
+  @UseGuards(JwtOptionalGuard)
+  findOne(
+    @Param('id') id: string,
+    @CurrentUser() user: CurrentUserData | null,
+  ) {
+    return this.highlightsService.findOne(id, user?.profileId);
   }
 
   // Delete a highlight (requires auth).

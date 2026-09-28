@@ -79,13 +79,13 @@ export class ProfilesController {
   @Post('me/deactivate')
   @UseGuards(JwtAuthGuard)
   async deactivateAccount(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.deactivateAccount(user.profileId);
+    return this.profilesService.deactivateAccount(user.userId, user.profileId);
   }
 
-  // Permanently delete the authenticated user's account.
+  // Schedule deletion of the authenticated user's account (30-day grace).
   @Delete('me')
   @UseGuards(JwtAuthGuard)
   async deleteAccount(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.deleteAccount(user.profileId);
+    return this.profilesService.deleteAccount(user.userId, user.profileId);
   }
 }

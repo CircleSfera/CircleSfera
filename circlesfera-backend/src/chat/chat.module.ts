@@ -31,6 +31,9 @@ import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.j
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
 import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
+// Request Commands
+import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
+import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
 
 // System Commands
 import { CleanupExpiredMessagesUseCase } from './use-cases/system/cleanup-expired-messages.use-case.js';
@@ -50,6 +53,8 @@ const useCases = [
   LeaveGroupUseCase,
   RemoveParticipantUseCase,
   UpdateGroupUseCase,
+  AcceptMessageRequestUseCase,
+  DeclineMessageRequestUseCase,
   CleanupExpiredMessagesUseCase,
   HandleUserDeletedUseCase,
 ];

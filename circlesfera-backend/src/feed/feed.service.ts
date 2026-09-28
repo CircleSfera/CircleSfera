@@ -7,6 +7,7 @@ import {
   createPaginatedResult,
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { getBlockedProfileIds } from '../common/policies/block.policy.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -684,11 +685,21 @@ export class FeedService {
       mutedIds = mutes.map((m) => m.mutedId);
     }
 
+    // Same exclusions as the ranked feed: muted and blocked authors, and
+    // posts from private accounts.
+    const excludedIds = [
+      ...mutedIds,
+      ...(await getBlockedProfileIds(this.prisma, currentProfileId)),
+    ];
+
     const where = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE' as const,
       scheduledStatus: 'PUBLISHED' as const,
-      ...(mutedIds.length > 0 ? { profileId: { notIn: mutedIds } } : {}),
+      profile: {
+        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
+      },
+      ...(excludedIds.length > 0 ? { profileId: { notIn: excludedIds } } : {}),
       ...(viewerSettings.allowMature
         ? {}
         : { contentRating: 'GENERAL' as const }),

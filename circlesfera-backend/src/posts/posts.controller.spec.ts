@@ -203,13 +203,16 @@ describe('PostsController', () => {
       .query({ page: 1, limit: 10 })
       .expect(200);
 
+    // Anonymous viewers are forwarded as undefined.
     expect(mockService.getTaggedPosts).toHaveBeenCalledWith(
       'alice',
       expect.objectContaining({ page: 1, limit: 10 }),
+      undefined,
     );
     expect(mockService.getByTag).toHaveBeenCalledWith(
       'sfera',
       expect.objectContaining({ page: 1, limit: 10 }),
+      undefined,
     );
   });
 

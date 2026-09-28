@@ -24,6 +24,7 @@ describe('StoriesService', () => {
 
   const mockPrismaService = {
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
     story: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -377,6 +378,32 @@ describe('StoriesService', () => {
   });
 
   describe('view', () => {
+    const publicStory = {
+      profileId: 'author-1',
+      isCloseFriendsOnly: false,
+      profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+    };
+
+    beforeEach(() => {
+      mockPrismaService.story.findUnique.mockResolvedValue(publicStory);
+    });
+
+    it('rejects views across a block, and on close-friends stories for non-members', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
+        ...publicStory,
+        isCloseFriendsOnly: true,
+      });
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.storyView.create).not.toHaveBeenCalled();
+    });
+
     it('should create a new view if not exists', async () => {
       mockPrismaService.storyView.findUnique.mockResolvedValue(null);
       mockPrismaService.storyView.create.mockResolvedValue({ id: 'view-1' });

@@ -10,6 +10,7 @@ export class MarkAsReadUseCase {
       where: {
         conversationId,
         profileId,
+        hasAccepted: true,
       },
       data: {
         lastReadAt: new Date(),

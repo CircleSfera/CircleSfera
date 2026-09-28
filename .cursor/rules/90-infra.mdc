@@ -40,4 +40,4 @@ Rules:
 - Verify a restore path, not just a dump. An untested backup is not a backup.
 - Never restore or deploy `circlesfera-landing/` — it was removed and its nginx listener is gone.
 
-Full checks: @.ai/agents/devops.md
+Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).

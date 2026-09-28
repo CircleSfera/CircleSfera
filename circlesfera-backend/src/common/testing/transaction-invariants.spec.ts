@@ -305,6 +305,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         },
         block: {
           findUnique: vi.fn(),
+          findFirst: vi.fn(),
           create: vi.fn(),
         },
         follow: {
@@ -356,7 +357,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         id: 'prof-target',
         username: 'target',
       });
-      mockPrisma.block.findUnique.mockResolvedValue({
+      mockPrisma.block.findFirst.mockResolvedValue({
         id: 'block-1',
         blockerId: 'prof-target',
         blockedId: 'prof-actor',

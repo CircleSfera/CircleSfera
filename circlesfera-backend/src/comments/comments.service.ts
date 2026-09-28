@@ -1,9 +1,12 @@
-import type { NotificationCreateEvent } from '@circlesfera/shared';
+import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { $Enums } from '@prisma/client';
+import { $Enums, type Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
+import { AppException } from '../common/errors/app.exception.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
   buildMediaCreateInput,
   buildVoiceMediaCreateInput,
@@ -23,6 +26,7 @@ import {
   keysetBeforeDesc,
 } from '../common/pagination/keyset.util.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
+import { UpdateCommentDto } from './dto/update-comment.dto.js';
 
 // Service for creating, listing, and deleting comments on posts.
 // Supports threaded replies (parentId), media attachments, and @mention notifications.
@@ -42,63 +46,62 @@ export class CommentsService {
   // Param dto: Comment data (content, optional parentId, url, mediaType)
   // Throws NotFoundException if the post does not exist
   async create(postId: string, profileId: string, dto: CreateCommentDto) {
-    const post = await this.prisma.post.findUnique({ where: { id: postId } });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
+    // Commenting requires the same access as viewing.
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
     // nested relation create isn't a valid Prisma input shape. Wrapped in a
     // transaction so a failure partway through can't leave an orphaned
     // Media row with no owning comment.
-    const createdComment = await this.prisma.$transaction(async (tx) => {
-      const media = dto.url
-        ? await tx.media.create({
-            data: buildMediaCreateInput({
-              type: dto.mediaType || 'image',
-              url: dto.url,
-            }),
-          })
-        : null;
-      const voiceMedia = dto.voiceUrl
-        ? await tx.media.create({
-            data: buildVoiceMediaCreateInput(dto.voiceUrl),
-          })
-        : null;
+    const createdComment = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const media = dto.url
+          ? await tx.media.create({
+              data: buildMediaCreateInput({
+                type: dto.mediaType || 'image',
+                url: dto.url,
+              }),
+            })
+          : null;
+        const voiceMedia = dto.voiceUrl
+          ? await tx.media.create({
+              data: buildVoiceMediaCreateInput(dto.voiceUrl),
+            })
+          : null;
 
-      return tx.comment.create({
-        data: {
-          postId,
-          profileId,
-          content: dto.content,
-          url: dto.url,
-          mediaType: dto.mediaType,
-          mediaId: media?.id,
-          voiceUrl: dto.voiceUrl,
-          voiceDuration: dto.voiceDuration,
-          voiceMediaId: voiceMedia?.id,
-          voiceWaveform: dto.voiceWaveform
-            ? JSON.parse(JSON.stringify(dto.voiceWaveform))
-            : undefined,
-        },
-        include: {
-          profile: {
-            select: {
-              id: true,
-              username: true,
-              avatar: true,
-              fullName: true,
-              verificationLevel: true,
-              accountType: true,
-            },
+        return tx.comment.create({
+          data: {
+            postId,
+            profileId,
+            content: dto.content,
+            url: dto.url,
+            mediaType: dto.mediaType,
+            mediaId: media?.id,
+            voiceUrl: dto.voiceUrl,
+            voiceDuration: dto.voiceDuration,
+            voiceMediaId: voiceMedia?.id,
+            voiceWaveform: dto.voiceWaveform
+              ? JSON.parse(JSON.stringify(dto.voiceWaveform))
+              : undefined,
           },
-          media: true,
-          voiceMedia: true,
-        },
-      });
-    });
+          include: {
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+                verificationLevel: true,
+                accountType: true,
+              },
+            },
+            media: true,
+            voiceMedia: true,
+          },
+        });
+      },
+    );
     const { voiceMedia, ...commentWithoutVoiceMedia } = createdComment;
     const comment = {
       ...resolveMediaFields(commentWithoutVoiceMedia),
@@ -205,6 +208,8 @@ export class CommentsService {
     pagination: PaginationDto,
     currentProfileId?: string,
   ) {
+    await assertCanAccessPost(this.prisma, postId, currentProfileId);
+
     const { page = 1, limit = 10, cursor } = pagination;
 
     const likeInclude = currentProfileId
@@ -345,6 +350,125 @@ export class CommentsService {
     });
   }
 
+  // Update a comment on a post (author only, any time).
+  // Param postId: The post to which the comment belongs
+  // Param id: The comment ID
+  // Param profileId: The authenticated author profile ID
+  // Param dto: UpdateCommentDto containing updated content
+  async update(
+    postId: string,
+    id: string,
+    profileId: string,
+    dto: UpdateCommentDto,
+  ) {
+    const post = await assertCanAccessPost(this.prisma, postId, profileId);
+
+    const comment = await this.prisma.comment.findUnique({
+      where: { id },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            verificationLevel: true,
+            accountType: true,
+          },
+        },
+        media: true,
+        voiceMedia: true,
+      },
+    });
+
+    if (!comment || comment.postId !== postId) {
+      throw AppException.NotFound(
+        ErrorCode.COMMENT_NOT_FOUND,
+        'Comment not found',
+      );
+    }
+
+    if (comment.profileId !== profileId) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'You cannot edit this comment',
+      );
+    }
+
+    const updatedComment = await this.prisma.comment.update({
+      where: { id },
+      data: {
+        content: dto.content,
+        isEdited: true,
+      },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            verificationLevel: true,
+            accountType: true,
+          },
+        },
+        media: true,
+        voiceMedia: true,
+      },
+    });
+
+    const { voiceMedia, ...commentWithoutVoiceMedia } = updatedComment;
+    const result = {
+      ...resolveMediaFields(commentWithoutVoiceMedia),
+      voiceUrl: voiceMedia?.url ?? updatedComment.voiceUrl,
+    };
+
+    // Re-run moderation on edited text in background
+    if (dto.content) {
+      await this.aiQueue.add('moderate-content', {
+        targetId: id,
+        targetType: 'COMMENT',
+        text: dto.content,
+      });
+    }
+
+    // Handle mentions in edited comment
+    if (dto.content) {
+      const mentions = dto.content.match(/@[\w.]+/g);
+      if (mentions) {
+        const uniqueMentions = [...new Set(mentions.map((m) => m.slice(1)))];
+        const profiles = await this.prisma.profile.findMany({
+          where: {
+            username: { in: uniqueMentions },
+            id: { notIn: [profileId, post.profileId] },
+          },
+          select: { id: true },
+        });
+
+        await Promise.all(
+          profiles.map(async (p) => {
+            const blocked = await isBlockedEitherWay(
+              this.prisma,
+              profileId,
+              p.id,
+            );
+            if (!blocked) {
+              this.eventEmitter.emit('notification.create', {
+                recipientId: p.id,
+                senderId: profileId,
+                type: NotificationType.MENTION,
+                content: 'mentioned you in a comment',
+                postId,
+              } satisfies NotificationCreateEvent['payload']);
+            }
+          }),
+        );
+      }
+    }
+
+    return result;
+  }
+
   // Like a comment
   async likeComment(commentId: string, profileId: string) {
     const comment = await this.prisma.comment.findUnique({
@@ -352,6 +476,10 @@ export class CommentsService {
       include: { profile: true },
     });
     if (!comment) throw new NotFoundException('Comment not found');
+    await assertCanAccessPost(this.prisma, comment.postId, profileId);
+    if (await isBlockedEitherWay(this.prisma, profileId, comment.profileId)) {
+      throw new NotFoundException('Comment not found');
+    }
 
     const existingLike = await this.prisma.commentLike.findUnique({
       where: { commentId_profileId: { commentId, profileId } },

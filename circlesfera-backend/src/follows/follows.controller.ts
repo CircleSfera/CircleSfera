@@ -49,11 +49,13 @@ export class FollowsController {
   async getFollowers(
     @Param('username') username: string,
     @Query() query: PaginationDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
     return this.followsService.getFollowers(
       username,
       query.cursor,
       query.limit,
+      user.profileId,
     );
   }
 
@@ -64,11 +66,13 @@ export class FollowsController {
   async getFollowing(
     @Param('username') username: string,
     @Query() query: PaginationDto,
+    @CurrentUser() user: CurrentUserData,
   ) {
     return this.followsService.getFollowing(
       username,
       query.cursor,
       query.limit,
+      user.profileId,
     );
   }
 

@@ -80,6 +80,7 @@ export default function ChatWindow() {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const lastMessageCountRef = useRef(0);
+  const isPendingRequestRef = useRef(false);
 
   const messageVirtualizer = useVirtualizer({
     count: messages.length,
@@ -242,31 +243,42 @@ export default function ChatWindow() {
         if (!cancelled) setIsLoading(false);
       });
 
-    chatApi.getConversations().then((res) => {
-      if (cancelled) return;
-      const conv = res.data.find((c: Conversation) => c.id === id);
-      if (conv) {
-        setConversation(conv);
+    chatApi
+      .getConversation(id)
+      .then((res) => {
+        if (cancelled) return;
+        const conv = res.data;
+        if (conv) {
+          setConversation(conv);
 
-        chatApi
-          .markAsRead(id)
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
-          })
-          .catch((err) => {
-            logger.error('Failed to mark conversation as read', err);
-          });
-
-        if (!conv.isGroup && conv.participants) {
-          const other = conv.participants.find(
-            (p: Participant) => p.profileId !== currentProfileId,
+          const myParticipant = conv.participants?.find(
+            (p: Participant) => p.profileId === currentProfileId,
           );
-          if (other) {
-            markRead(id, other.profileId);
+
+          if (myParticipant?.hasAccepted !== false) {
+            chatApi
+              .markAsRead(id)
+              .then(() => {
+                queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+              })
+              .catch((err) => {
+                logger.error('Failed to mark conversation as read', err);
+              });
+
+            if (!conv.isGroup && conv.participants) {
+              const other = conv.participants.find(
+                (p: Participant) => p.profileId !== currentProfileId,
+              );
+              if (other) {
+                markRead(id, other.profileId);
+              }
+            }
           }
         }
-      }
-    });
+      })
+      .catch((err) => {
+        logger.error('Failed to load conversation', err);
+      });
 
     return () => {
       cancelled = true;
@@ -320,18 +332,20 @@ export default function ChatWindow() {
           return [...prev, msg];
         });
 
-        // Persist read status in database on new message while window is open
-        chatApi
-          .markAsRead(id)
-          .then(() => {
-            queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
-          })
-          .catch((err) => {
-            logger.error('Failed to mark conversation as read', err);
-          });
+        if (!isPendingRequestRef.current) {
+          // Persist read status in database on new message while window is open
+          chatApi
+            .markAsRead(id)
+            .then(() => {
+              queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+            })
+            .catch((err) => {
+              logger.error('Failed to mark conversation as read', err);
+            });
 
-        if (msg.senderId !== profile?.id) {
-          markRead(id, msg.senderId);
+          if (msg.senderId !== profile?.id) {
+            markRead(id, msg.senderId);
+          }
         }
       }
     };
@@ -507,6 +521,52 @@ export default function ChatWindow() {
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
+  };
+
+  const myParticipant = conversation?.participants?.find(
+    (p: Participant) => p.profileId === profile?.id,
+  );
+  const isPendingRequest = myParticipant?.hasAccepted === false;
+  isPendingRequestRef.current = isPendingRequest;
+
+  const handleAcceptRequest = async () => {
+    if (!id) return;
+    try {
+      await chatApi.acceptRequest(id);
+      setConversation((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          participants: prev.participants.map((p) =>
+            p.profileId === profile?.id ? { ...p, hasAccepted: true } : p,
+          ),
+        };
+      });
+      await chatApi.markAsRead(id);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
+      toast.success(t('chat.request_accepted', 'Solicitud aceptada'));
+    } catch (err) {
+      logger.error('Failed to accept message request', err);
+      toast.error(
+        t('chat.request_accept_error', 'Error al aceptar la solicitud'),
+      );
+    }
+  };
+
+  const handleDeclineRequest = async () => {
+    if (!id) return;
+    try {
+      await chatApi.declineRequest(id);
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast.success(t('chat.request_declined', 'Solicitud rechazada'));
+      navigate('/direct/inbox');
+    } catch (err) {
+      logger.error('Failed to decline message request', err);
+      toast.error(
+        t('chat.request_decline_error', 'Error al rechazar la solicitud'),
+      );
+    }
   };
 
   const cancelReply = () => {
@@ -1218,6 +1278,36 @@ export default function ChatWindow() {
               onSendVoice={handleVoiceSend}
               onCancel={() => setIsRecording(false)}
             />
+          ) : isPendingRequest ? (
+            <div className="flex flex-col items-center gap-3 p-4 glass-panel border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
+              <div className="text-center">
+                <p className="text-sm font-semibold text-white">
+                  {t('chat.request_title', '¿Aceptar solicitud de mensaje?')}
+                </p>
+                <p className="text-xs text-white/60 mt-1 max-w-md">
+                  {t(
+                    'chat.request_description',
+                    'Si aceptas, podrán ver cuándo estás conectado y si has leído sus mensajes. No sabrán que lo has leído hasta que aceptes.',
+                  )}
+                </p>
+              </div>
+              <div className="flex items-center gap-3 w-full max-w-xs justify-center">
+                <button
+                  type="button"
+                  onClick={handleDeclineRequest}
+                  className="flex-1 py-2 px-4 rounded-xl text-sm font-semibold bg-white/10 text-rose-400 hover:bg-rose-500/20 transition-all border border-rose-500/20 cursor-pointer"
+                >
+                  {t('chat.decline', 'Rechazar')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAcceptRequest}
+                  className="flex-1 py-2 px-4 rounded-xl text-sm font-semibold bg-linear-to-tr from-brand-primary to-brand-secondary text-white hover:opacity-90 shadow-md shadow-brand-primary/20 transition-all cursor-pointer"
+                >
+                  {t('chat.accept', 'Aceptar')}
+                </button>
+              </div>
+            </div>
           ) : (
             <form
               onSubmit={sendMessage}

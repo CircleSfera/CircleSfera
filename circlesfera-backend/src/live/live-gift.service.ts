@@ -9,6 +9,7 @@ import {
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -47,6 +48,7 @@ export class LiveGiftService {
     giftId: string,
     returnUrl: string,
     idempotencyKey?: string,
+    senderProfileId?: string,
   ) {
     const amountCents = resolveGiftAmountCents(giftId);
     if (amountCents === null) {
@@ -74,7 +76,10 @@ export class LiveGiftService {
       },
     });
 
-    if (stream?.status !== 'LIVE') {
+    if (
+      stream?.status !== 'LIVE' ||
+      (await isBlockedEitherWay(this.prisma, senderProfileId, stream.host.id))
+    ) {
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_ACTIVE,
         'Live stream not active',

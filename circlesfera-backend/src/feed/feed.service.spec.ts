@@ -13,6 +13,7 @@ describe('FeedService', () => {
   let service: FeedService;
 
   const mockPrismaService = {
+    block: { findMany: vi.fn().mockResolvedValue([]) },
     like: {
       findMany: vi.fn(),
     },

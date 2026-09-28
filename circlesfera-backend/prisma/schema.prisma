@@ -30,6 +30,7 @@ model User {
   strikeCount         Int       @default(0)
   deletedAt           DateTime? // Soft-delete / deactivation timestamp
   scheduledDeletionAt DateTime? // Hard-delete due date (grace window); null = not scheduled
+  deactivatedAt       DateTime? // Self-service deactivation; logging in reactivates. Never set by moderation.
 
   isOnline   Boolean   @default(false)
   lastSeenAt DateTime?
@@ -646,6 +647,7 @@ model Comment {
   mediaType    String? // "image", "video", "file"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  isEdited     Boolean  @default(false)
 
   moderationStatus ModerationStatus @default(VISIBLE)
   moderationNote   String?
@@ -992,6 +994,7 @@ model Participant {
   conversationId String
   profileId      String
   isAdmin        Boolean   @default(false)
+  hasAccepted    Boolean   @default(true)
   lastReadAt     DateTime  @default(now()) // For "Seen" status
   createdAt      DateTime  @default(now())
   deletedAt      DateTime? // Allows "Delete for me" functionality
@@ -1002,6 +1005,7 @@ model Participant {
 
   @@unique([conversationId, profileId])
   @@index([profileId, deletedAt])
+  @@index([profileId, deletedAt, hasAccepted])
   @@map("participants")
 }
 

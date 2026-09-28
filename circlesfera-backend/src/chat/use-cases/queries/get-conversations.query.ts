@@ -1,4 +1,6 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
+import { AppException } from '../../../common/errors/app.exception.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 
@@ -16,13 +18,15 @@ export class GetConversationsQuery {
     @Inject(CryptoService) private cryptoService: CryptoService,
   ) {}
 
-  async execute(profileId: string) {
+  async execute(profileId: string, folder: 'inbox' | 'requests' = 'inbox') {
+    const hasAccepted = folder !== 'requests';
     const conversations = await this.prisma.conversation.findMany({
       where: {
         participants: {
           some: {
             profileId,
             deletedAt: null,
+            hasAccepted,
           },
         },
       },
@@ -79,5 +83,71 @@ export class GetConversationsQuery {
     });
 
     return decryptedConversations;
+  }
+
+  async executeOne(conversationId: string, profileId: string) {
+    const conv = await this.prisma.conversation.findFirst({
+      where: {
+        id: conversationId,
+        participants: {
+          some: {
+            profileId,
+            deletedAt: null,
+          },
+        },
+      },
+      include: {
+        participants: {
+          include: {
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+              },
+            },
+          },
+        },
+        messages: {
+          orderBy: {
+            createdAt: 'desc',
+          },
+          take: 1,
+          include: {
+            post: {
+              include: {
+                media: true,
+                profile: {
+                  select: {
+                    id: true,
+                    username: true,
+                    avatar: true,
+                    thumbnailUrl: true,
+                    standardUrl: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!conv) {
+      throw AppException.NotFound(
+        ErrorCode.NOT_FOUND,
+        'Conversation not found',
+      );
+    }
+
+    if (conv.messages?.length > 0) {
+      const lastMsg = conv.messages[0];
+      if (lastMsg.content) {
+        lastMsg.content = this.cryptoService.decrypt(lastMsg.content);
+      }
+    }
+
+    return conv;
   }
 }

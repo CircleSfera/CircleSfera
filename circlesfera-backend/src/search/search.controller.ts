@@ -35,22 +35,34 @@ export class SearchController {
   // Get trending posts based on interaction velocity.
   @Get('trending')
   @UseGuards(JwtAuthGuard)
-  async getTrending(@Query('limit') limit?: number): Promise<any[]> {
-    return this.searchService.getTrending(limit ? Number(limit) : 10);
+  async getTrending(
+    @CurrentUser() user: CurrentUserData,
+    @Query('limit') limit?: number,
+  ): Promise<any[]> {
+    return this.searchService.getTrending(
+      limit ? Number(limit) : 10,
+      user.profileId,
+    );
   }
 
   // Search posts with velocity ranking.
   @Get('posts')
   @UseGuards(JwtAuthGuard)
-  async searchPosts(@Query('q') query: string): Promise<any[]> {
-    return this.searchService.searchPosts(query);
+  async searchPosts(
+    @CurrentUser() user: CurrentUserData,
+    @Query('q') query: string,
+  ): Promise<any[]> {
+    return this.searchService.searchPosts(query, user.profileId);
   }
 
   // AI Semantic search for posts.
   @Get('ai')
   @UseGuards(JwtAuthGuard)
-  async searchSemantic(@Query('q') query: string): Promise<any[]> {
-    return this.searchService.semanticSearchPosts(query);
+  async searchSemantic(
+    @CurrentUser() user: CurrentUserData,
+    @Query('q') query: string,
+  ): Promise<any[]> {
+    return this.searchService.semanticSearchPosts(query, 10, user.profileId);
   }
 
   // AI Semantic search for profiles.
