@@ -2,7 +2,7 @@ import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { $Enums } from '@prisma/client';
+import { $Enums, type Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
@@ -54,52 +54,54 @@ export class CommentsService {
     // nested relation create isn't a valid Prisma input shape. Wrapped in a
     // transaction so a failure partway through can't leave an orphaned
     // Media row with no owning comment.
-    const createdComment = await this.prisma.$transaction(async (tx) => {
-      const media = dto.url
-        ? await tx.media.create({
-            data: buildMediaCreateInput({
-              type: dto.mediaType || 'image',
-              url: dto.url,
-            }),
-          })
-        : null;
-      const voiceMedia = dto.voiceUrl
-        ? await tx.media.create({
-            data: buildVoiceMediaCreateInput(dto.voiceUrl),
-          })
-        : null;
+    const createdComment = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        const media = dto.url
+          ? await tx.media.create({
+              data: buildMediaCreateInput({
+                type: dto.mediaType || 'image',
+                url: dto.url,
+              }),
+            })
+          : null;
+        const voiceMedia = dto.voiceUrl
+          ? await tx.media.create({
+              data: buildVoiceMediaCreateInput(dto.voiceUrl),
+            })
+          : null;
 
-      return tx.comment.create({
-        data: {
-          postId,
-          profileId,
-          content: dto.content,
-          url: dto.url,
-          mediaType: dto.mediaType,
-          mediaId: media?.id,
-          voiceUrl: dto.voiceUrl,
-          voiceDuration: dto.voiceDuration,
-          voiceMediaId: voiceMedia?.id,
-          voiceWaveform: dto.voiceWaveform
-            ? JSON.parse(JSON.stringify(dto.voiceWaveform))
-            : undefined,
-        },
-        include: {
-          profile: {
-            select: {
-              id: true,
-              username: true,
-              avatar: true,
-              fullName: true,
-              verificationLevel: true,
-              accountType: true,
-            },
+        return tx.comment.create({
+          data: {
+            postId,
+            profileId,
+            content: dto.content,
+            url: dto.url,
+            mediaType: dto.mediaType,
+            mediaId: media?.id,
+            voiceUrl: dto.voiceUrl,
+            voiceDuration: dto.voiceDuration,
+            voiceMediaId: voiceMedia?.id,
+            voiceWaveform: dto.voiceWaveform
+              ? JSON.parse(JSON.stringify(dto.voiceWaveform))
+              : undefined,
           },
-          media: true,
-          voiceMedia: true,
-        },
-      });
-    });
+          include: {
+            profile: {
+              select: {
+                id: true,
+                username: true,
+                avatar: true,
+                fullName: true,
+                verificationLevel: true,
+                accountType: true,
+              },
+            },
+            media: true,
+            voiceMedia: true,
+          },
+        });
+      },
+    );
     const { voiceMedia, ...commentWithoutVoiceMedia } = createdComment;
     const comment = {
       ...resolveMediaFields(commentWithoutVoiceMedia),
