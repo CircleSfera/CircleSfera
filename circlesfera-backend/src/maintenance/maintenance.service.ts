@@ -381,4 +381,40 @@ export class MaintenanceService {
       this.logger.error('Error in purgeStaleDeviceSignals cron job', error);
     }
   }
+
+  // Purge high-volume behavioral interaction events older than 90 days (Responsible Data Handling).
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeOldInteractionEvents() {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    try {
+      const result = await this.prisma.interactionEvent.deleteMany({
+        where: { createdAt: { lt: ninetyDaysAgo } },
+      });
+      if (result.count > 0) {
+        this.logger.log(
+          `Purged ${result.count} interaction events older than 90 days.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeOldInteractionEvents cron job', error);
+    }
+  }
+
+  // Purge unique post view telemetry records older than 90 days (aggregate counters remain on Post.views).
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeOldPostViews() {
+    const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+    try {
+      const result = await this.prisma.postView.deleteMany({
+        where: { createdAt: { lt: ninetyDaysAgo } },
+      });
+      if (result.count > 0) {
+        this.logger.log(
+          `Purged ${result.count} post view records older than 90 days.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeOldPostViews cron job', error);
+    }
+  }
 }
