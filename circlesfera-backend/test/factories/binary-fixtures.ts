@@ -4,6 +4,7 @@
  * Self-contained, immutable buffers that require no external network requests
  * or filesystem dependencies.
  */
+import { Buffer } from 'node:buffer';
 
 /** Valid 1x1 transparent PNG buffer (67 bytes) */
 export const TINY_PNG_BUFFER: Buffer = Buffer.from(
