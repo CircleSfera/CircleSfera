@@ -680,6 +680,40 @@ describe('ProfilesService', () => {
         expect(res.id).toBe('p-new');
       });
 
+      it('creates a BUSINESS profile under the user identity with business accountType', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(2);
+        mockPrismaService.profile.findFirst.mockResolvedValue(null);
+        mockPrismaService.profile.create.mockResolvedValue({
+          id: 'p-biz',
+          userId: 'u-1',
+          username: 'acme_corp',
+          fullName: 'Acme Corporation',
+          bio: 'Official brand presence',
+          accountType: 'BUSINESS',
+        });
+
+        const res = await service.createProfile('u-1', {
+          username: 'acme_corp',
+          fullName: 'Acme Corporation',
+          bio: 'Official brand presence',
+          accountType: 'BUSINESS',
+        });
+
+        expect(mockPrismaService.profile.create).toHaveBeenCalledWith({
+          data: {
+            userId: 'u-1',
+            username: 'acme_corp',
+            fullName: 'Acme Corporation',
+            bio: 'Official brand presence',
+            avatar: null,
+            website: null,
+            location: null,
+            accountType: 'BUSINESS',
+          },
+        });
+        expect(res.accountType).toBe('BUSINESS');
+      });
+
       it('rejects creation when user has already reached 5 profiles', async () => {
         mockPrismaService.profile.count.mockResolvedValue(5);
 
