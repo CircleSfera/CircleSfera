@@ -910,7 +910,7 @@
       "delete": "Delete",
       "report": "Report",
       "save": "Save",
-      "promote": "Boost Post",
+      "promote": "Promote Post",
       "hide_author": "Hide author",
       "mute": "Mute user",
       "not_interested": "Not interested"
@@ -1643,7 +1643,7 @@
       "prev": "Previous",
       "next": "Next",
       "insights": "Insights",
-      "boost": "Boost"
+      "boost": "Promote"
     },
     "stories": {
       "empty_title": "No stories yet",
@@ -1742,7 +1742,7 @@
       "error_create": "Error creating promotion",
       "select_content": "Select Content",
       "configure_reach": "Configure Reach",
-      "boost_best": "Boost your best content",
+      "boost_best": "Promote your best content",
       "untitled": "Untitled",
       "no_posts": "No posts available",
       "selected_post": "Selected post",
@@ -1751,7 +1751,7 @@
       "campaign_duration": "Campaign Duration",
       "days": "{{count}} Days",
       "processing": "Processing...",
-      "boost_total": "Boost for {{currency}}{{total}} total",
+      "boost_total": "Promote for {{currency}}{{total}} total",
       "center": "Advertising Center",
       "marketing": "Performance Marketing for Creators",
       "new_campaign": "New Campaign",
@@ -1759,7 +1759,7 @@
       "select_campaign": "Select a campaign from the list",
       "repeat": "Repeat",
       "no_active": "No active campaigns",
-      "boost_desc": "Boost your best posts to reach thousands of new people and multiply your followers.",
+      "boost_desc": "Promote your content with sponsored disclosure to reach a targeted audience in the feed.",
       "create_first": "Create my first campaign",
       "in_progress": "In Progress ({{count}})",
       "campaign": "{{type}} Campaign",
@@ -1801,7 +1801,7 @@
       "interests_hint": "Interests (e.g. Music, Fashion)",
       "all_countries": "All countries",
       "all_interests": "All interests",
-      "accept_terms": "By boosting you accept the advertising terms.",
+      "accept_terms": "By promoting you accept the advertising terms.",
       "countries_placeholder": "Countries (comma-separated, optional)",
       "interests_placeholder": "Interests (comma-separated, optional)",
       "objective": "Objective",

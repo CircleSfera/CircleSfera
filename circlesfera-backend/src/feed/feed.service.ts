@@ -846,7 +846,22 @@ export class FeedService {
 
     const promotedPostIds = activePromotions.map((p) => p.targetId);
     const promotedPostsRaw = await this.prisma.post.findMany({
-      where: { id: { in: promotedPostIds } },
+      where: {
+        id: { in: promotedPostIds },
+        deletedAt: null,
+        visibility: 'PUBLIC',
+        author: {
+          isAccountBanned: false,
+          user: { isActive: true },
+          ...(profileId
+            ? {
+                blockedBy: { none: { blockerId: profileId } },
+                blocking: { none: { blockedId: profileId } },
+                mutedBy: { none: { muterId: profileId } },
+              }
+            : {}),
+        },
+      },
       include: this.postHydrationInclude(profileId),
     });
 
