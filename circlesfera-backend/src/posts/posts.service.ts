@@ -878,12 +878,26 @@ export class PostsService {
     const { likes, ...rest } = post as T & {
       likes?: unknown[];
       media?: any[];
+      _count?: { likes?: number | null; comments?: number };
+      hideLikes?: boolean;
+      profileId?: string;
     };
     const isLiked =
       currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
 
+    const isAuthor = currentProfileId && currentProfileId === post.profileId;
+    const hideLikes = Boolean(post.hideLikes);
+
+    const count = rest._count
+      ? {
+          ...rest._count,
+          likes: hideLikes && !isAuthor ? null : rest._count.likes,
+        }
+      : undefined;
+
     return {
       ...(rest as T),
+      ...(count ? { _count: count } : {}),
       ...(Array.isArray(rest.media)
         ? { media: rest.media.map(resolveMediaFields) }
         : {}),

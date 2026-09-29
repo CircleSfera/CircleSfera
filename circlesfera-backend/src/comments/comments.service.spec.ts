@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -86,6 +86,18 @@ describe('CommentsService', () => {
       await expect(
         service.create('post-1', 'viewer-1', { content: 'hi' } as never),
       ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects comments when turnOffComments is true', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...accessiblePost,
+        turnOffComments: true,
+      });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hello' } as never),
+      ).rejects.toThrow(ForbiddenException);
       expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
     });
 
@@ -285,6 +297,22 @@ describe('CommentsService', () => {
   });
 
   describe('findByPost', () => {
+    it('returns empty comments when turnOffComments is true and viewer is not author', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...accessiblePost,
+        turnOffComments: true,
+      });
+
+      const result = await service.findByPost(
+        'post-1',
+        { page: 1, limit: 10 },
+        'viewer-1',
+      );
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(mockPrismaService.comment.findMany).not.toHaveBeenCalled();
+    });
+
     it('prefers the linked Media rows over inline columns, including for nested replies', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([
         {

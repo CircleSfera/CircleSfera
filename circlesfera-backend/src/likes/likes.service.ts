@@ -1,11 +1,12 @@
 import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { notBlockedWithViewer } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -88,6 +89,8 @@ export class LikesService {
   // Param profileId: The user's ID
   // Returns `{ liked: boolean }`
   async checkLike(postId: string, profileId: string) {
+    await assertCanAccessPost(this.prisma, postId, profileId);
+
     const like = await this.prisma.like.findUnique({
       where: {
         postId_profileId: {
@@ -102,10 +105,26 @@ export class LikesService {
 
   // Get all users who have liked a specific post.
   // Param postId: The post ID
+  // Param viewerProfileId: Optional viewer profile id
   // Returns Array of users with profiles
-  async getLikesByPost(postId: string) {
+  async getLikesByPost(postId: string, viewerProfileId?: string) {
+    const post = await assertCanAccessPost(
+      this.prisma,
+      postId,
+      viewerProfileId,
+    );
+
+    if (post.hideLikes && viewerProfileId !== post.profileId) {
+      throw new ForbiddenException(
+        'Likes are hidden by the author for this post',
+      );
+    }
+
     const likes = await this.prisma.like.findMany({
-      where: { postId },
+      where: {
+        postId,
+        profile: notBlockedWithViewer(viewerProfileId),
+      },
       include: {
         profile: {
           include: { user: true },

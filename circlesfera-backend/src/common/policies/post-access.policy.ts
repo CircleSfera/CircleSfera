@@ -13,6 +13,7 @@ export type AccessiblePost = {
   visibility: Visibility;
   moderationStatus: string;
   turnOffComments: boolean;
+  hideLikes?: boolean;
   profile?: {
     user?: { settings?: { privacyLevel: Visibility } | null } | null;
   } | null;
@@ -86,6 +87,7 @@ function loadPost(
       visibility: true,
       moderationStatus: true,
       turnOffComments: true,
+      hideLikes: true,
       profile: {
         select: {
           user: { select: { settings: { select: { privacyLevel: true } } } },

@@ -1,6 +1,11 @@
 import { ErrorCode, type NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums, type Prisma } from '@prisma/client';
 import { Queue } from 'bullmq';
@@ -48,6 +53,10 @@ export class CommentsService {
   async create(postId: string, profileId: string, dto: CreateCommentDto) {
     // Commenting requires the same access as viewing.
     const post = await assertCanAccessPost(this.prisma, postId, profileId);
+
+    if (post.turnOffComments) {
+      throw new ForbiddenException('Comments are disabled for this post');
+    }
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
@@ -208,9 +217,27 @@ export class CommentsService {
     pagination: PaginationDto,
     currentProfileId?: string,
   ) {
-    await assertCanAccessPost(this.prisma, postId, currentProfileId);
+    const post = await assertCanAccessPost(
+      this.prisma,
+      postId,
+      currentProfileId,
+    );
 
     const { page = 1, limit = 10, cursor } = pagination;
+
+    if (post.turnOffComments && currentProfileId !== post.profileId) {
+      return {
+        data: [],
+        meta: {
+          page,
+          limit,
+          total: 0,
+          totalPages: 0,
+          nextCursor: null,
+          hasMore: false,
+        },
+      };
+    }
 
     const likeInclude = currentProfileId
       ? {

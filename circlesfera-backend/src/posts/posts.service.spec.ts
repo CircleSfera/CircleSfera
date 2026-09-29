@@ -756,6 +756,41 @@ describe('PostsService', () => {
       expect(result.isLiked).toBe(true);
     });
 
+    it('sanitizes _count.likes to null when hideLikes is true for a non-author viewer', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-1',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        hideLikes: true,
+        profile: {
+          id: 'author-1',
+          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        },
+        _count: { likes: 42, comments: 5 },
+        likes: [],
+      });
+      const result = (await service.findOne('p-1', 'viewer-1')) as any;
+      expect(result._count.likes).toBeNull();
+      expect(result._count.comments).toBe(5);
+    });
+
+    it('preserves _count.likes when hideLikes is true for the author viewer', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-1',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        hideLikes: true,
+        profile: {
+          id: 'author-1',
+          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        },
+        _count: { likes: 42, comments: 5 },
+        likes: [],
+      });
+      const result = (await service.findOne('p-1', 'author-1')) as any;
+      expect(result._count.likes).toBe(42);
+    });
+
     it('catches and logs error if analytics trackPostView fails', async () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
