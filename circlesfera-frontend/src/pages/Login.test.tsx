@@ -195,4 +195,60 @@ describe('Login Page Integration', () => {
       screen.queryByText('Motivo de la apelación'),
     ).not.toBeInTheDocument();
   });
+
+  it('shows ban reason when provided in error response', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'ACCOUNT_BANNED',
+          appealToken: 'appeal-token-2',
+          reason: 'Severe spam violations',
+        },
+      },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'spammer@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Severe spam violations/)).toBeInTheDocument();
+    });
+  });
+
+  it('shows suspension banner with date and reason when suspended', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'ACCOUNT_SUSPENDED',
+          suspendedUntil: '2026-10-15T00:00:00.000Z',
+          reason: 'Temporary safety hold',
+        },
+      },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'suspended@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Temporary safety hold/)).toBeInTheDocument();
+    });
+  });
 });

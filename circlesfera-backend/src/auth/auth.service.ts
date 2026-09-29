@@ -417,12 +417,19 @@ export class AuthService {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
+          reason: user.rootBanReason || undefined,
         });
       }
     } else if (user.isRootBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: user.rootBanReason,
+        appealToken,
       });
     }
 
@@ -437,9 +444,15 @@ export class AuthService {
       },
     });
     if (loginProfile?.isAccountBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: loginProfile.accountBanReason,
+        appealToken,
       });
     }
     if (
@@ -449,6 +462,7 @@ export class AuthService {
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
         suspendedUntil: loginProfile.suspendedUntil.toISOString(),
+        reason: loginProfile.accountBanReason || undefined,
       });
     }
 
@@ -558,12 +572,19 @@ export class AuthService {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
+          reason: user.rootBanReason || undefined,
         });
       }
     } else if (user.isRootBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: user.rootBanReason,
+        appealToken,
       });
     }
 

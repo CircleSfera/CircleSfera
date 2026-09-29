@@ -140,6 +140,9 @@ export default function Login() {
     : undefined;
   const is2FARequired = errorMessage === ApiErrorCode.TWO_FA_REQUIRED;
   const isBanned = errorMessage === ApiErrorCode.ACCOUNT_BANNED;
+  const isSuspended = errorMessage === ApiErrorCode.ACCOUNT_SUSPENDED;
+  const banReason = err?.response?.data?.reason;
+  const suspendedUntil = err?.response?.data?.suspendedUntil;
   const receivedAppealToken = err?.response?.data?.appealToken;
 
   if (isBanned && receivedAppealToken && !appealToken) {
@@ -216,9 +219,32 @@ export default function Login() {
               </Link>
             </div>
 
-            {loginMutation.isError && !is2FARequired && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
-                {errorMessage || t('auth.login.default_error')}
+            {loginMutation.isError &&
+              !is2FARequired &&
+              !isSuspended &&
+              !appealToken && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-red-400 text-sm text-center">
+                  {errorMessage || t('auth.login.default_error')}
+                </div>
+              )}
+
+            {isSuspended && (
+              <div className="flex items-center gap-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg animate-in fade-in">
+                <AlertOctagon className="text-amber-400 w-5 h-5 shrink-0" />
+                <div className="text-xs text-amber-300 font-medium leading-tight">
+                  <p>
+                    {t('auth.login.suspended_message', {
+                      date: suspendedUntil
+                        ? new Date(suspendedUntil).toLocaleDateString()
+                        : '',
+                    })}
+                  </p>
+                  {banReason && (
+                    <p className="mt-1 text-white/70 font-normal">
+                      {t('auth.login.banned_reason_label')}: {banReason}
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -232,9 +258,14 @@ export default function Login() {
               <div className="space-y-4 animate-in fade-in">
                 <div className="flex items-center gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
                   <AlertOctagon className="text-red-400 w-5 h-5 shrink-0" />
-                  <p className="text-xs text-red-400 font-medium leading-tight">
-                    {t('auth.login.banned_message')}
-                  </p>
+                  <div className="text-xs text-red-400 font-medium leading-tight">
+                    <p>{t('auth.login.banned_message')}</p>
+                    {banReason && (
+                      <p className="mt-1 text-white/80 font-normal">
+                        {t('auth.login.banned_reason_label')}: {banReason}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div>
                   <label

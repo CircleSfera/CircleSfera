@@ -431,6 +431,8 @@
       "no_account": "¿No tienes una cuenta?",
       "sign_up_link": "Regístrate",
       "banned_message": "Tu cuenta ha sido desactivada. Puedes enviar una apelación abajo.",
+      "banned_reason_label": "Motivo de la infracción",
+      "suspended_message": "Tu cuenta está suspendida temporalmente hasta el {{date}}. Podrás volver a iniciar sesión después de este período.",
       "appeal_reason_label": "Motivo de la apelación",
       "appeal_reason_placeholder": "Explica por qué debería restablecerse tu cuenta...",
       "submit_appeal": "Enviar apelación",

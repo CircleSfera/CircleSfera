@@ -537,9 +537,12 @@ describe('AuthService', () => {
       });
 
       await expect(service.login(dto)).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Community strike 3',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'Community strike 3',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });
@@ -923,9 +926,12 @@ describe('AuthService', () => {
       });
 
       await expect(service.loginById('u-banned-active')).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Spam violation',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'Spam violation',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });
@@ -1166,9 +1172,12 @@ describe('AuthService', () => {
           password: 'Password123!',
         }),
       ).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'TOS violation',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'TOS violation',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });

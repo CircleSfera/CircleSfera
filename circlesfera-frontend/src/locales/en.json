@@ -431,6 +431,8 @@
       "no_account": "Don't have an account?",
       "sign_up_link": "Sign up",
       "banned_message": "Your account has been deactivated. You may submit an appeal below.",
+      "banned_reason_label": "Violation Reason",
+      "suspended_message": "Your account is temporarily suspended until {{date}}. You may log back in after this period.",
       "appeal_reason_label": "Reason for Appeal",
       "appeal_reason_placeholder": "Explain why your account should be reinstated...",
       "submit_appeal": "Submit Appeal",
