@@ -62,10 +62,12 @@ export class SearchService {
           FROM "post_embeddings" pe
           JOIN "posts" p ON p.id = pe."postId"
           JOIN "profiles" pr ON pr.id = p."profileId"
+          JOIN "users" u ON u.id = pr."userId"
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -78,10 +80,12 @@ export class SearchService {
           FROM "post_embeddings" pe
           JOIN "posts" p ON p.id = pe."postId"
           JOIN "profiles" pr ON pr.id = p."profileId"
+          JOIN "users" u ON u.id = pr."userId"
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -138,8 +142,12 @@ export class SearchService {
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
           JOIN "profiles" pr ON pr.id = pe."profileId"
-          WHERE pr."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
-            AND pr."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
+          WHERE us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
+            AND pr.id NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND pr.id NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -148,6 +156,11 @@ export class SearchService {
           SELECT pe."profileId",
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
+          JOIN "profiles" pr ON pr.id = pe."profileId"
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
+          WHERE us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -306,6 +319,9 @@ export class SearchService {
           { username: { contains: sanitizedQuery, mode: 'insensitive' } },
           { fullName: { contains: sanitizedQuery, mode: 'insensitive' } },
         ],
+        user: {
+          deactivatedAt: null,
+        },
         // Blocked Profiles are not findable in either direction.
         ...notBlockedWithViewer(viewerId),
       },
@@ -406,11 +422,13 @@ export class SearchService {
         ) as velocity_score
       FROM posts p
       JOIN profiles pr ON pr.id = p."profileId"
+      JOIN users u ON u.id = pr."userId"
       JOIN user_settings us ON us."userId" = pr."userId"
       WHERE p."createdAt" > NOW() - INTERVAL '48 hours'
         AND p.visibility = 'PUBLIC'
         AND p."moderationStatus" = 'VISIBLE'
         AND us."privacyLevel" = 'PUBLIC'
+        AND u."deactivatedAt" IS NULL
       ORDER BY velocity_score DESC
       LIMIT ${limit};
     `;
@@ -450,7 +468,10 @@ export class SearchService {
         visibility: 'PUBLIC',
         moderationStatus: 'VISIBLE',
         profile: {
-          user: { settings: { is: { privacyLevel: 'PUBLIC' } } },
+          user: {
+            deactivatedAt: null,
+            settings: { is: { privacyLevel: 'PUBLIC' } },
+          },
           ...notBlockedWithViewer(viewerId),
         },
       },

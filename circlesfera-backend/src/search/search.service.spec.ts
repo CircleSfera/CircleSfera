@@ -182,6 +182,21 @@ describe('SearchService', () => {
       const result = await service.semanticSearchProfiles('failed profile');
       expect(result).toEqual([]);
     });
+
+    it('generates SQL referencing valid pr.id and enforcing public privacy and active accounts', async () => {
+      mockCacheManager.get.mockResolvedValueOnce(null);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
+
+      await service.semanticSearchProfiles('expert architect', 10, 'viewer-1');
+
+      const [strings] = mockPrismaService.$queryRaw.mock.calls.at(-1) ?? [[]];
+      const sql = (strings as string[]).join('?');
+      // Valid column reference on profiles table (pr.id, not pr."profileId")
+      expect(sql).toContain('pr.id NOT IN');
+      expect(sql).not.toContain('pr."profileId" NOT IN');
+      expect(sql).toContain(`us."privacyLevel" = 'PUBLIC'`);
+      expect(sql).toContain(`u."deactivatedAt" IS NULL`);
+    });
   });
 
   describe('search', () => {
@@ -396,6 +411,20 @@ describe('SearchService', () => {
       expect(mockPrismaService.follow.findMany).not.toHaveBeenCalled();
       expect(results[0].followedByFriends).toEqual([]);
     });
+
+    it('filters out deactivated users when searching by username or full name', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+
+      await service.searchUsers('alice', 'viewer-1');
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            user: { deactivatedAt: null },
+          }),
+        }),
+      );
+    });
   });
 
   describe('getTrending', () => {
@@ -446,6 +475,7 @@ describe('SearchService', () => {
       expect(sql).not.toContain('"Comment"');
       expect(sql).toContain(`p."moderationStatus" = 'VISIBLE'`);
       expect(sql).toContain(`us."privacyLevel" = 'PUBLIC'`);
+      expect(sql).toContain(`u."deactivatedAt" IS NULL`);
     });
 
     it('drops posts from Profiles in a block relation with the viewer, even from cache', async () => {
@@ -465,6 +495,24 @@ describe('SearchService', () => {
   describe('searchPosts', () => {
     it('returns empty array when query is under 2 characters', async () => {
       expect(await service.searchPosts('a')).toEqual([]);
+    });
+
+    it('filters out deactivated users and private accounts when searching posts', async () => {
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+
+      await service.searchPosts('vacation', 'viewer-1');
+
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            profile: expect.objectContaining({
+              user: expect.objectContaining({
+                deactivatedAt: null,
+              }),
+            }),
+          }),
+        }),
+      );
     });
 
     it('ranks posts by engagement and author verification authority', async () => {

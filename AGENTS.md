@@ -11,18 +11,22 @@ were removed (Sep 2026); do not recreate them or cite them.
 
 ## Documentation lives in Notion
 
-All CircleSfera documentation lives in Notion under **CircleSfera → CircleSfera Documentation**:
-https://app.notion.com/p/3e8dfa08f2f581a5ab7cd01e4ccafdbb
+## Documentation lives in Notion
 
-- Governance (source of truth, state model, standards):
-  https://app.notion.com/p/3e8dfa08f2f581b0a53cd29f2031abc5
+All CircleSfera documentation lives in Notion under **CircleSfera → Documentation**:
+https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30
+
+- Governance (source of truth, standards, conflict resolution):
+  https://app.notion.com/p/3e9dfa08f2f581e39f54c30945c52d5e
 - Canonical terminology: Notion → Governance → Canonical Terminology
-- Open conflicts and pending product decisions: Notion → Governance → Conflict & Decision Register
+- Product decisions & boundaries: Notion → Product → Product Decisions / Product Scope & Boundaries
+- Cross-domain conflicts: Notion → Governance → Cross-Domain Conflict Resolution
+- Implementation & capabilities: Notion → Execution → CircleSfera Implementation Backlog / Capability Implementation Register
 
-The documentation is being rebuilt, starting 2026-09-27. A domain with no published Notion section is
-UNKNOWN. `circlesfera-documentation/` is legacy source material that is being migrated to Notion and
-will then be removed from the repo. Do not treat it as current truth, and do not add new documents
-there.
+The documentation was comprehensively rebuilt (Sep 2026) across 8 authoritative domains (Product, Business,
+Technology, Architecture & Data, Quality, Design, Governance, Execution). A domain with no published
+Notion section is UNKNOWN. `circlesfera-documentation/` is legacy source material being migrated to Notion.
+Do not treat it as current truth, and do not add new documents there.
 
 ## Sources of truth in the repository
 
