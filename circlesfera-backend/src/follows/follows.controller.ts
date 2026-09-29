@@ -19,7 +19,7 @@ import { MuteUserDto } from './dto/mute-user.dto.js';
 import { FollowsService, type MutedUserEntry } from './follows.service.js';
 
 // REST controller for follow management, blocking, and follow requests. All endpoints require authentication.
-@ApiTags('Social Graph')
+@ApiTags('Relationship Management')
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class FollowsController {

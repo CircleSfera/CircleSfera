@@ -457,8 +457,8 @@ describe('Test Data Factories & Scenario Seeder', () => {
       seeder = new ScenarioSeeder(mockPrisma as unknown as PrismaClient);
     });
 
-    it('seeds social graph and executes isolated cleanup', async () => {
-      const scenario = await seeder.seedSocialGraph({
+    it('seeds relationship network and executes isolated cleanup', async () => {
+      const scenario = await seeder.seedRelationshipNetwork({
         usersCount: 3,
         mutualFollows: true,
       });

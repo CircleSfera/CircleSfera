@@ -209,7 +209,7 @@ export class FeedService {
       if (targetVectorStr) {
         // Hybrid Query WITH AI Vector
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph_raw AS (
+          WITH relationship_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
@@ -218,8 +218,8 @@ export class FeedService {
             FROM "close_friends"
             WHERE "profileId" = ${profileId}
           ),
-          social_graph AS (
-            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
+          relationships AS (
+            SELECT "followingId", MAX(weight) as weight FROM relationship_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
@@ -233,21 +233,21 @@ export class FeedService {
             -- an already-fetched page.
             EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
 
-            -- Social Graph Weight
-            COALESCE(sg.weight, 1.0) AS social_weight,
+            -- Relationship Weight
+            COALESCE(rel.weight, 1.0) AS social_weight,
 
             -- Final Hybrid Score Calculation
             (
               ((1 - (pe.vector <=> ${targetVectorStr}::vector)) * 0.4) +
-              (COALESCE(sg.weight, 1.0) * 0.3) +
+              (COALESCE(rel.weight, 1.0) * 0.3) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.3)
             ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
           JOIN "post_embeddings" pe ON p.id = pe."postId"
-          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
+          LEFT JOIN relationships rel ON p."profileId" = rel."followingId"
           
-          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "profileId" = ${profileId})
@@ -272,7 +272,7 @@ export class FeedService {
       } else {
         // Hybrid Query WITHOUT AI Vector (User has no likes yet)
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph_raw AS (
+          WITH relationship_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
@@ -281,27 +281,27 @@ export class FeedService {
             FROM "close_friends"
             WHERE "profileId" = ${profileId}
           ),
-          social_graph AS (
-            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
+          relationships AS (
+            SELECT "followingId", MAX(weight) as weight FROM relationship_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
             -- Time Decay: frozen asOf snapshot, see comment above (DATA-003)
             EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
 
-            -- Social Graph Weight
-            COALESCE(sg.weight, 1.0) AS social_weight,
+            -- Relationship Weight
+            COALESCE(rel.weight, 1.0) AS social_weight,
 
             -- Final Hybrid Score Calculation (Without AI)
             (
-              (COALESCE(sg.weight, 1.0) * 0.5) +
+              (COALESCE(rel.weight, 1.0) * 0.5) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.5)
             ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
-          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
+          LEFT JOIN relationships rel ON p."profileId" = rel."followingId"
           
-          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))

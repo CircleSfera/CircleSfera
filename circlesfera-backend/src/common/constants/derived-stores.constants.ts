@@ -64,7 +64,7 @@ export const DERIVED_STORES = {
     name: 'Feed Recommendation Cache',
     owner: 'FeedService',
     storageMedium: 'CacheManager / Redis (feed:hybrid:*, feed:trending:*)',
-    canonicalSource: 'posts + social graph + engagement metrics',
+    canonicalSource: 'posts + relationships + engagement metrics',
     deletionTrigger: 'Cache TTL expiration or profile deletion',
     deletionMethod: 'CacheManager TTL eviction or explicit del',
     rebuildSource: 'Full hybrid algorithm calculation query',
