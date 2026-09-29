@@ -16,6 +16,8 @@ describe('ProfilesService', () => {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
+      create: vi.fn(),
       update: vi.fn(),
     },
     user: {
@@ -597,6 +599,198 @@ describe('ProfilesService', () => {
       expect(mockUsersService.scheduleDeletion).toHaveBeenCalledWith('u-del');
       expect(res.scheduled_deletion_at).toBe(scheduledDate.toISOString());
       expect(mockCacheManager.del).toHaveBeenCalledWith('profile:deleteuser');
+    });
+  });
+
+  describe('multi-profile (One Identity, Multiple Profiles)', () => {
+    describe('getMyProfiles', () => {
+      it('returns all profiles for a user and calculates isSuspended correctly', async () => {
+        const futureDate = new Date(Date.now() + 100000);
+        mockPrismaService.profile.findMany.mockResolvedValue([
+          {
+            id: 'p-1',
+            username: 'persona_one',
+            fullName: 'Persona One',
+            suspendedUntil: null,
+            _count: { posts: 5, followers: 10, following: 2 },
+          },
+          {
+            id: 'p-2',
+            username: 'persona_two',
+            fullName: 'Persona Two',
+            suspendedUntil: futureDate,
+            _count: { posts: 0, followers: 0, following: 0 },
+          },
+        ]);
+
+        const profiles = await service.getMyProfiles('u-1');
+
+        expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+          where: { userId: 'u-1' },
+          orderBy: { createdAt: 'asc' },
+          select: expect.any(Object),
+        });
+        expect(profiles).toHaveLength(2);
+        expect(profiles[0].isSuspended).toBe(false);
+        expect(profiles[1].isSuspended).toBe(true);
+      });
+    });
+
+    describe('createProfile', () => {
+      it('creates an additional profile under the user and enqueues embedding', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(1);
+        mockPrismaService.profile.findFirst.mockResolvedValue(null); // username available
+        mockPrismaService.profile.create.mockResolvedValue({
+          id: 'p-new',
+          userId: 'u-1',
+          username: 'persona_creative',
+          fullName: 'Creative Persona',
+          bio: 'Artist and designer',
+        });
+
+        const res = await service.createProfile('u-1', {
+          username: 'persona_creative',
+          fullName: 'Creative Persona',
+          bio: 'Artist and designer',
+          accountType: 'CREATOR',
+        });
+
+        expect(mockPrismaService.profile.count).toHaveBeenCalledWith({
+          where: { userId: 'u-1' },
+        });
+        expect(mockPrismaService.profile.create).toHaveBeenCalledWith({
+          data: {
+            userId: 'u-1',
+            username: 'persona_creative',
+            fullName: 'Creative Persona',
+            bio: 'Artist and designer',
+            avatar: null,
+            website: null,
+            location: null,
+            accountType: 'CREATOR',
+          },
+        });
+        expect(mockAiQueue.add).toHaveBeenCalledWith(
+          'generate-profile-embedding',
+          {
+            profileId: 'p-new',
+            text: 'persona_creative Creative Persona Artist and designer',
+          },
+        );
+        expect(res.id).toBe('p-new');
+      });
+
+      it('rejects creation when user has already reached 5 profiles', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(5);
+
+        await expect(
+          service.createProfile('u-1', { username: 'profile_six' }),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining('Maximum limit of 5 profiles'),
+          }),
+        );
+        expect(mockPrismaService.profile.create).not.toHaveBeenCalled();
+      });
+
+      it('rejects creation when username is already taken', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(2);
+        mockPrismaService.profile.findFirst.mockResolvedValue({
+          id: 'existing-id',
+        });
+
+        await expect(
+          service.createProfile('u-1', { username: 'taken_user' }),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: 'This username is already taken',
+          }),
+        );
+        expect(mockPrismaService.profile.create).not.toHaveBeenCalled();
+      });
+
+      it('rejects creation when username format is invalid', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(1);
+
+        await expect(
+          service.createProfile('u-1', {
+            username: 'invalid name with spaces',
+          }),
+        ).rejects.toThrow();
+        expect(mockPrismaService.profile.create).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('switchProfile', () => {
+      it('allows switching to a valid profile owned by the user', async () => {
+        const targetProfile = {
+          id: 'p-2',
+          userId: 'u-1',
+          username: 'persona_two',
+          isAccountBanned: false,
+          suspendedUntil: null,
+        };
+        mockPrismaService.profile.findUnique.mockResolvedValue(targetProfile);
+
+        const res = await service.switchProfile('u-1', 'p-2');
+
+        expect(mockPrismaService.profile.findUnique).toHaveBeenCalledWith({
+          where: { id: 'p-2' },
+        });
+        expect(res).toEqual(targetProfile);
+      });
+
+      it('rejects switching if profile belongs to a different user', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          id: 'p-other',
+          userId: 'u-stranger',
+          username: 'stranger',
+          isAccountBanned: false,
+        });
+
+        await expect(service.switchProfile('u-1', 'p-other')).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining(
+              'Profile not found or does not belong to this account',
+            ),
+          }),
+        );
+      });
+
+      it('rejects switching if target profile is account banned', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          id: 'p-banned',
+          userId: 'u-1',
+          username: 'banned_persona',
+          isAccountBanned: true,
+          accountBanReason: 'Severe terms violation',
+        });
+
+        await expect(service.switchProfile('u-1', 'p-banned')).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining('Target profile is banned'),
+          }),
+        );
+      });
+
+      it('rejects switching if target profile is suspended', async () => {
+        const futureDate = new Date(Date.now() + 3600000);
+        mockPrismaService.profile.findUnique.mockResolvedValue({
+          id: 'p-suspended',
+          userId: 'u-1',
+          username: 'suspended_persona',
+          isAccountBanned: false,
+          suspendedUntil: futureDate,
+        });
+
+        await expect(
+          service.switchProfile('u-1', 'p-suspended'),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining('Target profile is suspended'),
+          }),
+        );
+      });
     });
   });
 });

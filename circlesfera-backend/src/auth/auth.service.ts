@@ -159,6 +159,9 @@ export class AuthService {
           },
         },
       },
+      include: {
+        profiles: true,
+      },
     });
 
     // Send verification email
@@ -178,6 +181,8 @@ export class AuthService {
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      user.profiles?.[0]?.id,
     );
   }
 
@@ -514,6 +519,8 @@ export class AuthService {
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      loginProfile?.id,
     );
   }
 
@@ -588,11 +595,19 @@ export class AuthService {
       });
     }
 
+    const loginProfile = await this.prisma.profile.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+
     return this.generateTokens(
       user.id,
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      loginProfile?.id,
     );
   }
 
@@ -617,6 +632,7 @@ export class AuthService {
     let payload: {
       sub: string;
       email: string;
+      profileId?: string;
       familyId?: string;
       jti?: string;
     };
@@ -625,6 +641,7 @@ export class AuthService {
       payload = this.jwtService.verify<{
         sub: string;
         email: string;
+        profileId?: string;
         familyId?: string;
         jti?: string;
       }>(refreshToken, {
@@ -696,7 +713,10 @@ export class AuthService {
       },
     });
 
-    const profile = user?.profiles?.[0];
+    const profile =
+      (payload.profileId
+        ? user?.profiles?.find((p) => p.id === payload.profileId)
+        : null) || user?.profiles?.[0];
     try {
       this.accountStateService.assertOperational(user, profile);
     } catch (error) {
@@ -724,6 +744,7 @@ export class AuthService {
       meta.userAgent || undefined,
       meta.ip || undefined,
       currentFamilyId,
+      profile?.id,
     );
   }
 
@@ -813,6 +834,7 @@ export class AuthService {
   // Param userAgent: Optional client browser/device User-Agent string
   // Param ipAddress: Optional client IP address
   // Param familyId: Optional token family identifier for session rotation lineage
+  // Param profileId: Optional active profile identifier bound to the session
   // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
@@ -820,17 +842,24 @@ export class AuthService {
     userAgent?: string,
     ipAddress?: string,
     familyId?: string,
+    profileId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenFamilyId = familyId || randomUUID();
     const payload = {
       sub: userId,
       email,
+      ...(profileId ? { profileId } : {}),
       jti: randomUUID(),
       familyId: tokenFamilyId,
     };
 
     const accessToken = this.jwtService.sign(
-      { sub: userId, email, jti: randomUUID() },
+      {
+        sub: userId,
+        email,
+        ...(profileId ? { profileId } : {}),
+        jti: randomUUID(),
+      },
       {
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
         expiresIn: '15m',

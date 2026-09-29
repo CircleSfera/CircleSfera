@@ -17,6 +17,23 @@ export const profileApi = {
   updateProfile: (data: UpdateProfileDto) =>
     apiClient.put<ProfileWithUser>('/profiles/me', data),
 
+  getMyProfiles: () => apiClient.get<any[]>('/profiles/my-profiles'),
+
+  createProfile: (data: {
+    username: string;
+    fullName?: string;
+    bio?: string;
+    avatar?: string;
+    website?: string | null;
+    location?: string | null;
+    accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+  }) => apiClient.post<any>('/profiles', data),
+
+  switchProfile: (profileId: string) =>
+    apiClient.post<{ message: string; profile: any }>(
+      `/profiles/switch/${profileId}`,
+    ),
+
   deactivateAccount: () => apiClient.post('/profiles/me/deactivate'),
 
   deleteAccount: () => apiClient.delete('/profiles/me'),

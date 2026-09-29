@@ -19,6 +19,7 @@ interface AuthState {
   setCreatorMode: (active: boolean) => void;
   setAuthenticated: () => void;
   setProfile: (profile: ProfileWithUser) => void;
+  switchProfile?: (profileId: string) => Promise<void>;
   logout: () => Promise<void>;
   // Validates the locally-persisted auth state against the backend by
   // Fetching the current profile. Persisted `isAuthenticated`/`profile`
@@ -41,6 +42,14 @@ export const useAuthStore = create<AuthState>()(
       setCreatorMode: (active) => set({ isCreatorModeActive: active }),
       setAuthenticated: () => set({ isAuthenticated: true }),
       setProfile: (profile) => set({ profile }),
+      switchProfile: async (profileId: string) => {
+        await profileApi.switchProfile(profileId);
+        const { data } = await profileApi.getMyProfile();
+        set({
+          profile: data,
+          isAuthenticated: true,
+        });
+      },
       checkSession: async () => {
         const state = get();
         if (state.isSessionChecked || state.isCheckingSession) return;
