@@ -167,17 +167,14 @@ describe('ProfilesController', () => {
       undefined,
       'profile-2',
     );
-    expect(res.headers['set-cookie']).toBeDefined();
-    expect(
-      res.headers['set-cookie'].some((c: string) =>
-        c.includes(ACCESS_TOKEN_COOKIE),
-      ),
-    ).toBe(true);
-    expect(
-      res.headers['set-cookie'].some((c: string) =>
-        c.includes(REFRESH_TOKEN_COOKIE),
-      ),
-    ).toBe(true);
+    const rawCookies = res.headers['set-cookie'];
+    const cookies: string[] = Array.isArray(rawCookies)
+      ? rawCookies
+      : typeof rawCookies === 'string'
+        ? [rawCookies]
+        : [];
+    expect(cookies.some((c) => c.includes(ACCESS_TOKEN_COOKIE))).toBe(true);
+    expect(cookies.some((c) => c.includes(REFRESH_TOKEN_COOKIE))).toBe(true);
     expect(res.body.message).toBe('Profile switched successfully');
     expect(res.body.profile.id).toBe('profile-2');
   });

@@ -82,7 +82,7 @@ export class ProfilesController {
     );
 
     const userAgent = req.headers['user-agent'] as string | undefined;
-    const ip = clientIpFromHeaders(req) || undefined;
+    const ip = clientIpFromHeaders(req.headers, req.ip) || undefined;
 
     const tokens = await this.authService.generateTokens(
       user.userId,

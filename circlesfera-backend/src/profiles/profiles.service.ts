@@ -582,7 +582,7 @@ export class ProfilesService {
     });
     if (profileCount >= 5) {
       throw AppException.BadRequest(
-        ErrorCode.VALIDATION_ERROR,
+        ErrorCode.INVALID_INPUT,
         'Maximum limit of 5 profiles per user identity reached',
       );
     }
@@ -590,7 +590,7 @@ export class ProfilesService {
     const availability = await this.checkUsernameAvailability(dto.username);
     if (!availability.available) {
       throw AppException.BadRequest(
-        ErrorCode.VALIDATION_ERROR,
+        ErrorCode.INVALID_INPUT,
         availability.message,
       );
     }
@@ -624,21 +624,21 @@ export class ProfilesService {
 
     if (!profile || profile.userId !== userId) {
       throw AppException.Forbidden(
-        ErrorCode.FORBIDDEN,
+        ErrorCode.FORBIDDEN_ACCESS,
         'Profile not found or does not belong to this account',
       );
     }
 
     if (profile.isAccountBanned) {
       throw AppException.Forbidden(
-        ErrorCode.ACCOUNT_BANNED,
+        ErrorCode.FORBIDDEN_ACCESS,
         `Target profile is banned: ${profile.accountBanReason || 'violation of community guidelines'}`,
       );
     }
 
     if (profile.suspendedUntil && profile.suspendedUntil > new Date()) {
       throw AppException.Forbidden(
-        ErrorCode.ACCOUNT_SUSPENDED,
+        ErrorCode.FORBIDDEN_ACCESS,
         `Target profile is suspended until ${profile.suspendedUntil.toISOString()}`,
       );
     }
