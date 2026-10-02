@@ -100,7 +100,7 @@ describe('ProfilesController', () => {
     );
   });
 
-  it('loads referrals and own profile as the caller profile', async () => {
+  it('loads referrals by the caller account and own profile by the caller profile', async () => {
     mockService.getMyReferrals.mockResolvedValue([]);
     mockService.getMyProfile.mockResolvedValue({ id: 'profile-1' });
 
@@ -113,9 +113,7 @@ describe('ProfilesController', () => {
       .set(BEARER)
       .expect(200);
 
-    expect(mockService.getMyReferrals).toHaveBeenCalledWith(
-      TEST_USER.profileId,
-    );
+    expect(mockService.getMyReferrals).toHaveBeenCalledWith(TEST_USER.userId);
     expect(mockService.getMyProfile).toHaveBeenCalledWith(TEST_USER.profileId);
   });
 

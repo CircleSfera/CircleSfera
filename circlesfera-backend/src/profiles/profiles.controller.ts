@@ -118,7 +118,7 @@ export class ProfilesController {
   @Get('me/referrals')
   @UseGuards(JwtAuthGuard)
   async getMyReferrals(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.getMyReferrals(user.profileId);
+    return this.profilesService.getMyReferrals(user.userId);
   }
 
   // Get the authenticated user's own active profile.

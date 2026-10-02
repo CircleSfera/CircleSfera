@@ -29,7 +29,9 @@ export interface Profile {
 export interface ProfileWithUser extends Profile {
   user?: {
     id: string;
-    email: string;
+    // Only present on the authenticated user's own profile; the API never
+    // returns another account's email.
+    email?: string;
     role?: string;
     createdAt: Date | string;
     isMonetizationEnabled?: boolean;

@@ -100,6 +100,25 @@ describe('AuthController', () => {
     expect(mockService.register).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['missing', undefined],
+    ['empty', ''],
+    ['malformed', 'not-an-email'],
+  ])('rejects register with a %s email', async (_label, email) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/register')
+      .set(ABUSE_HEADERS)
+      .send({
+        ...(email === undefined ? {} : { email }),
+        password: 'password1',
+        username: 'newuser',
+        dateOfBirth: '2000-01-01',
+      })
+      .expect(400);
+
+    expect(mockService.register).not.toHaveBeenCalled();
+  });
+
   it('registers and sets auth cookies', async () => {
     const dto = {
       email: 'new@example.com',

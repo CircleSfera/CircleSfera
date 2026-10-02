@@ -384,12 +384,10 @@ export class ProfilesService {
     return flattened;
   }
 
-  // Get the authenticated user's own profile (not cached).
-  // Param profileId: The user's ID
-  // Throws NotFoundException if profile not found
-  async getMyReferrals(profileId: string) {
+  // Referrals belong to the account (invite code lives on User), so this takes a User.id.
+  async getMyReferrals(userId: string) {
     const user = await this.prisma.user.findUnique({
-      where: { id: profileId },
+      where: { id: userId },
       select: {
         inviteCode: true,
         referrals: {
