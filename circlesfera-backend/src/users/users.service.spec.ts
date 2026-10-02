@@ -851,5 +851,4 @@ describe('UsersService', () => {
       });
     });
   });
-  });
 });
