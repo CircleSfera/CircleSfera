@@ -873,9 +873,9 @@ describe('UsersService', () => {
         where: { id: 'p_creator' },
         data: { verificationLevel: VerificationLevel.BASIC },
       });
-      expect(mockPrismaService.profile.update.mock.calls[0][0].data).not.toHaveProperty(
-        'accountType',
-      );
+      expect(
+        mockPrismaService.profile.update.mock.calls[0][0].data,
+      ).not.toHaveProperty('accountType');
     });
   });
 });
