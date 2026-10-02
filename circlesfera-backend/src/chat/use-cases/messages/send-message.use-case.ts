@@ -8,6 +8,7 @@ import {
   MIN_PPV_PRICE_CENTS,
 } from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
+import { PUBLIC_USER_SELECT } from '../../../common/selects/public-user.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import {
   buildMediaCreateInput,
@@ -224,12 +225,12 @@ export class SendMessageUseCase {
             post: {
               include: {
                 media: true,
-                profile: { include: { user: true } },
+                profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
               },
             },
             story: {
               include: {
-                profile: { include: { user: true } },
+                profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
               },
             },
             replyTo: {

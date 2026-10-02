@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { MediaStatus, Message, Participant } from '@prisma/client';
+import { PUBLIC_USER_SELECT } from '../../../common/selects/public-user.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { ChatAuthorizationService } from '../../services/chat-authorization.service.js';
@@ -59,7 +60,7 @@ export class GetMessagesQuery {
         post: {
           include: {
             media: true,
-            profile: { include: { user: true } },
+            profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
           },
         },
         replyTo: {

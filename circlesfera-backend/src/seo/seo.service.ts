@@ -1,5 +1,47 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { type Prisma, Visibility } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+
+// Public, unauthenticated surfaces (sitemap, Open Graph) may only describe
+// profiles and posts that any anonymous visitor could already open: active,
+// non-deactivated, non-banned accounts that are not private, and posts that are
+// public, published, unlocked and not moderated out.
+const PUBLIC_PROFILE_WHERE = {
+  user: {
+    isActive: true,
+    deactivatedAt: null,
+    isRootBanned: false,
+    settings: { isNot: { privacyLevel: Visibility.PRIVATE } },
+  },
+} satisfies Prisma.ProfileWhereInput;
+
+const PUBLIC_POST_WHERE = {
+  visibility: Visibility.PUBLIC,
+  isPremium: false,
+  moderationStatus: 'VISIBLE',
+  scheduledStatus: 'PUBLISHED',
+  profile: PUBLIC_PROFILE_WHERE,
+} satisfies Prisma.PostWhereInput;
+
+function escapeMarkup(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// Only same-origin absolute paths are echoed into the page. Anything else
+// (scheme-relative, userinfo tricks, control characters) falls back to the home
+// page instead of being reflected.
+function sanitizeSitePath(path: string): string {
+  if (!path.startsWith('/') || path.startsWith('//')) return '/';
+  for (const char of path) {
+    if (char === '\\' || char.charCodeAt(0) < 0x20) return '/';
+  }
+  return path;
+}
 
 @Injectable()
 export class SeoService {
@@ -10,18 +52,13 @@ export class SeoService {
 
     // Fetch public user profiles
     const publicProfiles = await this.prisma.profile.findMany({
-      where: {
-        user: { isActive: true },
-      },
+      where: PUBLIC_PROFILE_WHERE,
       select: { username: true, updatedAt: true },
     });
 
     // Fetch public posts (not locked/premium)
     const publicPosts = await this.prisma.post.findMany({
-      where: {
-        visibility: 'PUBLIC',
-        isPremium: false,
-      },
+      where: PUBLIC_POST_WHERE,
       select: { id: true, createdAt: true },
       take: 1000,
       orderBy: { createdAt: 'desc' },
@@ -100,8 +137,9 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
 `;
   }
 
-  async generateOpenGraphHtml(path: string): Promise<string> {
+  async generateOpenGraphHtml(requestedPath: string): Promise<string> {
     const baseUrl = 'https://circlesfera.com';
+    const path = sanitizeSitePath(requestedPath);
     const fallbackImage = 'https://circlesfera.com/assets/og-default.jpg';
 
     // Default meta tags
@@ -115,9 +153,9 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       if (path.startsWith('/p/')) {
         const postId = path.split('/p/')[1]?.split('?')[0];
         if (postId) {
-          const post = await this.prisma.post.findUnique({
-            where: { id: postId },
-            include: { profile: { include: { user: true } }, media: true },
+          const post = await this.prisma.post.findFirst({
+            where: { id: postId, ...PUBLIC_POST_WHERE },
+            include: { profile: true },
           });
 
           if (post) {
@@ -127,7 +165,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
             description = post.caption || description;
 
             // Point to dynamic OpenGraph image generator endpoint
-            imageUrl = `${baseUrl}/api/v1/og-image/post/${postId}`;
+            imageUrl = `${baseUrl}/api/v1/og-image/post/${encodeURIComponent(post.id)}`;
           }
         }
       }
@@ -140,10 +178,12 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       ) {
         const username = path.substring(1).split('?')[0]; // Remove leading slash
         const profile = await this.prisma.profile.findFirst({
-          where: { username: { equals: username, mode: 'insensitive' } },
+          where: {
+            username: { equals: username, mode: 'insensitive' },
+            ...PUBLIC_PROFILE_WHERE,
+          },
           include: {
             _count: { select: { followers: true, following: true } },
-            user: true,
           },
         });
 
@@ -154,7 +194,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
             : `Follow @${profile.username} on CircleSfera. ${profile._count?.followers || 0} Followers.`;
 
           // Point to dynamic OpenGraph image generator endpoint
-          imageUrl = `${baseUrl}/api/v1/og-image/profile/${username}`;
+          imageUrl = `${baseUrl}/api/v1/og-image/profile/${encodeURIComponent(profile.username)}`;
         }
       }
     } catch (error) {
@@ -162,52 +202,62 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       // Fallback to default metadata on error
     }
 
+    const safeTitle = escapeMarkup(title);
+    const safeDescription = escapeMarkup(description);
+    const safeImage = escapeMarkup(imageUrl);
+    const pageUrl = `${baseUrl}${path}`;
+    const safeUrl = escapeMarkup(pageUrl);
+    const redirectTarget = JSON.stringify(pageUrl).replace(/</g, '\\u003c');
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>${title}</title>
-    <meta name="description" content="${description}">
+    <title>${safeTitle}</title>
+    <meta name="description" content="${safeDescription}">
     
     <!-- Open Graph meta tags -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="${baseUrl}${path}">
-    <meta property="og:title" content="${title}">
-    <meta property="og:description" content="${description}">
-    <meta property="og:image" content="${imageUrl}">
+    <meta property="og:url" content="${safeUrl}">
+    <meta property="og:title" content="${safeTitle}">
+    <meta property="og:description" content="${safeDescription}">
+    <meta property="og:image" content="${safeImage}">
 
     <!-- Twitter Card meta tags -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="${baseUrl}${path}">
-    <meta property="twitter:title" content="${title}">
-    <meta property="twitter:description" content="${description}">
-    <meta property="twitter:image" content="${imageUrl}">
+    <meta property="twitter:url" content="${safeUrl}">
+    <meta property="twitter:title" content="${safeTitle}">
+    <meta property="twitter:description" content="${safeDescription}">
+    <meta property="twitter:image" content="${safeImage}">
 </head>
 <body>
     <p>CircleSfera preview. Redirecting...</p>
-    <script>window.location.replace("${baseUrl}${path}");</script>
+    <script>window.location.replace(${redirectTarget});</script>
 </body>
 </html>`;
   }
 
   // Dynamically renders a 1200x630 SVG OpenGraph Card for a Post.
   async generatePostOgImage(postId: string): Promise<string> {
-    const post = await this.prisma.post.findUnique({
-      where: { id: postId },
+    const post = await this.prisma.post.findFirst({
+      where: { id: postId, ...PUBLIC_POST_WHERE },
       include: {
-        profile: { include: { user: true } },
+        profile: true,
         _count: { select: { likes: true, comments: true } },
       },
     });
 
-    const authorName =
-      post?.profile?.fullName || post?.profile?.username || 'CircleSfera User';
-    const username = post?.profile?.username || 'user';
-    const caption = post?.caption
-      ? post.caption.length > 90
-        ? `${post.caption.substring(0, 90)}...`
-        : post.caption
-      : 'Visual content on CircleSfera';
+    const authorName = escapeMarkup(
+      post?.profile?.fullName || post?.profile?.username || 'CircleSfera User',
+    );
+    const username = escapeMarkup(post?.profile?.username || 'user');
+    const caption = escapeMarkup(
+      post?.caption
+        ? post.caption.length > 90
+          ? `${post.caption.substring(0, 90)}...`
+          : post.caption
+        : 'Visual content on CircleSfera',
+    );
     const likes = post?._count?.likes || 0;
     const comments = post?._count?.comments || 0;
     const isVerified = post?.profile?.verificationLevel !== 'BASIC';
@@ -230,7 +280,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       <text x="130" y="150" font-family="Inter, sans-serif" font-size="32" font-weight="bold" fill="#0EA5E9" text-anchor="middle">${username[0].toUpperCase()}</text>
       <text x="190" y="135" font-family="Inter, sans-serif" font-size="28" font-weight="bold" fill="#FFFFFF">${authorName}</text>
       <text x="190" y="165" font-family="Inter, sans-serif" font-size="20" fill="#9CA3AF">@${username} ${isVerified ? '✓' : ''}</text>
-      <text x="100" y="270" font-family="Inter, sans-serif" font-size="32" font-weight="500" fill="#F3F4F6">"${caption.replace(/"/g, '&quot;')}"</text>
+      <text x="100" y="270" font-family="Inter, sans-serif" font-size="32" font-weight="500" fill="#F3F4F6">"${caption}"</text>
       <rect x="100" y="390" width="900" height="2" fill="#374151" />
       <text x="100" y="440" font-family="Inter, sans-serif" font-size="22" font-weight="bold" fill="#38BDF8">❤️ ${likes} Likes</text>
       <text x="280" y="440" font-family="Inter, sans-serif" font-size="22" font-weight="bold" fill="#818CF8">💬 ${comments} Comments</text>
@@ -241,21 +291,26 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
   // Dynamically renders a 1200x630 SVG OpenGraph Card for a Profile.
   async generateProfileOgImage(username: string): Promise<string> {
     const profile = await this.prisma.profile.findFirst({
-      where: { username: { equals: username, mode: 'insensitive' } },
+      where: {
+        username: { equals: username, mode: 'insensitive' },
+        ...PUBLIC_PROFILE_WHERE,
+      },
       include: {
         _count: { select: { followers: true, following: true, posts: true } },
-        user: true,
       },
     });
 
-    const fullName =
-      profile?.fullName || profile?.username || 'CircleSfera User';
-    const userHandle = profile?.username || username;
-    const bio = profile?.bio
-      ? profile.bio.length > 100
-        ? `${profile.bio.substring(0, 100)}...`
-        : profile.bio
-      : `Explore @${userHandle} profile on CircleSfera.`;
+    const fullName = escapeMarkup(
+      profile?.fullName || profile?.username || 'CircleSfera User',
+    );
+    const userHandle = escapeMarkup(profile?.username || 'user');
+    const bio = escapeMarkup(
+      profile?.bio
+        ? profile.bio.length > 100
+          ? `${profile.bio.substring(0, 100)}...`
+          : profile.bio
+        : `Explore @${profile?.username || 'user'} profile on CircleSfera.`,
+    );
     const followers = profile?._count?.followers || 0;
     const following = profile?._count?.following || 0;
     const postsCount = profile?._count?.posts || 0;
@@ -277,7 +332,7 @@ Sitemap: ${baseUrl}/api/v1/sitemap.xml
       <text x="160" y="195" font-family="Inter, sans-serif" font-size="44" font-weight="bold" fill="#FFFFFF" text-anchor="middle">${userHandle[0].toUpperCase()}</text>
       <text x="240" y="170" font-family="Inter, sans-serif" font-size="36" font-weight="bold" fill="#FFFFFF">${fullName}</text>
       <text x="240" y="205" font-family="Inter, sans-serif" font-size="24" fill="#38BDF8">@${userHandle}</text>
-      <text x="100" y="300" font-family="Inter, sans-serif" font-size="26" font-weight="400" fill="#D1D5DB">"${bio.replace(/"/g, '&quot;')}"</text>
+      <text x="100" y="300" font-family="Inter, sans-serif" font-size="26" font-weight="400" fill="#D1D5DB">"${bio}"</text>
       <rect x="100" y="390" width="900" height="2" fill="#374151" />
       <text x="100" y="445" font-family="Inter, sans-serif" font-size="24" font-weight="bold" fill="#F3F4F6">${followers} Followers</text>
       <text x="350" y="445" font-family="Inter, sans-serif" font-size="24" font-weight="bold" fill="#F3F4F6">${following} Following</text>

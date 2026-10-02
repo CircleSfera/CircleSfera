@@ -4,8 +4,8 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   $Enums,
   type FollowStatus,
+  type Prisma,
   type Profile,
-  type User,
 } from '@prisma/client';
 import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
@@ -17,6 +17,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import {
@@ -31,7 +32,9 @@ const NotificationType = $Enums.NotificationType;
 // Type definitions for return values
 type FollowStatusResponse = { following: boolean; status: string };
 type SuccessResponse = { success: boolean; expiresAt?: string | null };
-type ProfileWithUser = Profile & { user: User };
+export type ProfileWithUser = Profile & {
+  user: Prisma.UserGetPayload<{ select: typeof PUBLIC_USER_SELECT }>;
+};
 export type MutedUserEntry = {
   createdAt: Date;
   expiresAt: Date | null;
@@ -222,7 +225,7 @@ export class FollowsService {
       },
       include: {
         follower: {
-          include: { user: true },
+          include: { user: { select: PUBLIC_USER_SELECT } },
         },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -266,7 +269,7 @@ export class FollowsService {
       },
       include: {
         following: {
-          include: { user: true },
+          include: { user: { select: PUBLIC_USER_SELECT } },
         },
       },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
@@ -355,7 +358,7 @@ export class FollowsService {
     const blocks = await this.prisma.block.findMany({
       where: { blockerId: profileId },
       include: {
-        blocked: { include: { user: true } },
+        blocked: { include: { user: { select: PUBLIC_USER_SELECT } } },
       },
     });
     return blocks.map((b) => b.blocked);
@@ -446,7 +449,7 @@ export class FollowsService {
     const mutes = await this.prisma.mute.findMany({
       where: activeMuteWhere(profileId),
       include: {
-        muted: { include: { user: true } },
+        muted: { include: { user: { select: PUBLIC_USER_SELECT } } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -466,7 +469,7 @@ export class FollowsService {
         status: 'PENDING',
       },
       include: {
-        follower: { include: { user: true } },
+        follower: { include: { user: { select: PUBLIC_USER_SELECT } } },
       },
       orderBy: { createdAt: 'desc' },
     });
