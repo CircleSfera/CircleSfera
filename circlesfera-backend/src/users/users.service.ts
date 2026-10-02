@@ -3,7 +3,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
-  AccountType,
   ContentRating,
   type Prisma,
   SubscriptionStatus,
@@ -612,9 +611,9 @@ export class UsersService {
     return { status: session.status };
   }
 
-  // Evaluates the user's active subscriptions and KYC status to correctly set
-  // Their VerificationLevel and AccountType.
-  // This decoupled logic replaces manual updates from the Payments service.
+  // Evaluates the user's active platform subscriptions to synchronize
+  // Platform Plan verification entitlements only. Profile.accountType is
+  // intentionally independent from PlatformSubscription (PD-005).
   // Param userId: The user ID
   async syncUserTier(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
@@ -638,7 +637,6 @@ export class UsersService {
     if (!user) return;
 
     for (const profile of user.profiles ?? []) {
-      let targetAccountType = AccountType.PERSONAL as AccountType;
       let targetVerificationLevel =
         VerificationLevel.BASIC as VerificationLevel;
 
@@ -654,28 +652,22 @@ export class UsersService {
       }
 
       if (hasBusiness) {
-        targetAccountType = AccountType.BUSINESS;
         targetVerificationLevel = VerificationLevel.BUSINESS;
       } else if (hasElite) {
-        targetAccountType = AccountType.CREATOR;
         targetVerificationLevel = VerificationLevel.ELITE;
       } else if (hasPremium) {
         targetVerificationLevel = VerificationLevel.VERIFIED;
       }
 
-      if (
-        profile.accountType !== targetAccountType ||
-        profile.verificationLevel !== targetVerificationLevel
-      ) {
+      if (profile.verificationLevel !== targetVerificationLevel) {
         await this.prisma.profile.update({
           where: { id: profile.id },
           data: {
-            accountType: targetAccountType,
             verificationLevel: targetVerificationLevel,
           },
         });
         this.logger.log(
-          `Profile ${profile.id} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
+          `Profile ${profile.id} verification tier synced: ${targetVerificationLevel}`,
         );
       }
     }
