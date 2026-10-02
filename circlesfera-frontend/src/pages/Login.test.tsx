@@ -157,6 +157,38 @@ describe('Login Page Integration', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('asks for a password reset instead of the raw error code when one is required', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: { data: { message: 'PASSWORD_RESET_REQUIRED' } },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'user@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(i18n!.t('auth.login.password_reset_required')),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('auth.login.password_reset_required_cta'),
+      }),
+    ).toHaveAttribute('href', '/forgot-password');
+    expect(
+      screen.queryByText('PASSWORD_RESET_REQUIRED'),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows appeal chrome from the catalog when banned with token', async () => {
     vi.mocked(authApi.login).mockRejectedValueOnce({
       response: {
