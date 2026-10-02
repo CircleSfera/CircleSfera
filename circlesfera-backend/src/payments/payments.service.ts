@@ -650,7 +650,7 @@ export class PaymentsService {
             },
           });
 
-          // Phase 3: Elevate account type and verification level based on plan
+          // Synchronize plan-derived verification entitlements; Account Type remains Profile-scoped per PD-005.
           const plan = await this.prisma.platformPlan.findUnique({
             where: { id: planId },
           });
