@@ -612,10 +612,8 @@ export class UsersService {
     return { status: session.status };
   }
 
-  // Evaluates the user's active subscriptions and KYC status to correctly set
-  // Their VerificationLevel and AccountType.
-  // This decoupled logic replaces manual updates from the Payments service.
-  // Param userId: The user ID
+  // Synchronizes Platform Plan-derived verification only. Account Type is a
+  // Profile-owned product attribute and must never be derived from subscription state.
   async syncUserTier(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -638,7 +636,6 @@ export class UsersService {
     if (!user) return;
 
     for (const profile of user.profiles ?? []) {
-      let targetAccountType = AccountType.PERSONAL as AccountType;
       let targetVerificationLevel =
         VerificationLevel.BASIC as VerificationLevel;
 
@@ -654,28 +651,20 @@ export class UsersService {
       }
 
       if (hasBusiness) {
-        targetAccountType = AccountType.BUSINESS;
         targetVerificationLevel = VerificationLevel.BUSINESS;
       } else if (hasElite) {
-        targetAccountType = AccountType.CREATOR;
         targetVerificationLevel = VerificationLevel.ELITE;
       } else if (hasPremium) {
         targetVerificationLevel = VerificationLevel.VERIFIED;
       }
 
-      if (
-        profile.accountType !== targetAccountType ||
-        profile.verificationLevel !== targetVerificationLevel
-      ) {
+      if (profile.verificationLevel !== targetVerificationLevel) {
         await this.prisma.profile.update({
           where: { id: profile.id },
-          data: {
-            accountType: targetAccountType,
-            verificationLevel: targetVerificationLevel,
-          },
+          data: { verificationLevel: targetVerificationLevel },
         });
         this.logger.log(
-          `Profile ${profile.id} tier synced: ${targetAccountType} / ${targetVerificationLevel}`,
+          `Profile \${profile.id} verification synced: \${targetVerificationLevel}`,
         );
       }
     }
