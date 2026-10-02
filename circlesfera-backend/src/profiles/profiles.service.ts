@@ -14,7 +14,10 @@ import {
   lastActiveBucket,
 } from '../common/abuse/trust-score.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { notBlockedWithViewer } from '../common/policies/block.policy.js';
+import {
+  isBlockedEitherWay,
+  visibleToViewerWhere,
+} from '../common/policies/block.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -56,21 +59,15 @@ export class ProfilesService {
 
   // Blocked in either direction: treated as not-found, same as a private/nonexistent profile
   // would be, so the response never reveals that a block exists.
+  // Blocked pairs and other audiences (PD-006) answer as if the profile did
+  // not exist. Applies to anonymous viewers too: they never see Test Accounts.
   private async assertNotBlocked(
-    viewerProfileId: string,
+    viewerProfileId: string | undefined,
     targetProfileId: string,
   ): Promise<void> {
-    if (viewerProfileId === targetProfileId) return;
-    const block = await this.prisma.block.findFirst({
-      where: {
-        OR: [
-          { blockerId: viewerProfileId, blockedId: targetProfileId },
-          { blockerId: targetProfileId, blockedId: viewerProfileId },
-        ],
-      },
-      select: { id: true },
-    });
-    if (block) {
+    if (
+      await isBlockedEitherWay(this.prisma, viewerProfileId, targetProfileId)
+    ) {
       throw AppException.NotFound(
         ErrorCode.PROFILE_NOT_FOUND,
         'Profile not found',
@@ -86,9 +83,7 @@ export class ProfilesService {
     const cacheKey = `profile:${username}`;
     const cachedProfile = await this.cacheManager.get<{ id: string }>(cacheKey);
     if (cachedProfile) {
-      if (viewerProfileId) {
-        await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
-      }
+      await this.assertNotBlocked(viewerProfileId, cachedProfile.id);
       return cachedProfile;
     }
 
@@ -131,9 +126,7 @@ export class ProfilesService {
       );
     }
 
-    if (viewerProfileId) {
-      await this.assertNotBlocked(viewerProfileId, profile.id);
-    }
+    await this.assertNotBlocked(viewerProfileId, profile.id);
 
     // Check if user is verified via subscription (PlatformSubscription is on User)
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
@@ -199,7 +192,7 @@ export class ProfilesService {
           { fullName: { contains: query, mode: 'insensitive' } },
         ],
         user: { deactivatedAt: null },
-        ...notBlockedWithViewer(viewerProfileId),
+        AND: [await visibleToViewerWhere(this.prisma, viewerProfileId)],
       },
       take: 10,
       select: {

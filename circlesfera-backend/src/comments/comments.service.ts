@@ -12,6 +12,7 @@ import { Queue } from 'bullmq';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import {
   buildMediaCreateInput,
   buildVoiceMediaCreateInput,
@@ -256,9 +257,12 @@ export class CommentsService {
       accountType: true,
     } as const;
 
+    // Comments by the other audience (PD-006) are left out, replies included.
+    const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
     const baseWhere = {
       postId,
       parentId: null,
+      profile: audience,
       moderationStatus: {
         in: ['VISIBLE', 'FLAGGED'] as ('VISIBLE' | 'FLAGGED')[],
       },
@@ -270,6 +274,7 @@ export class CommentsService {
       voiceMedia: true,
       _count: { select: { likes: true } },
       replies: {
+        where: { profile: audience },
         orderBy: { createdAt: 'asc' as const },
         include: {
           profile: { select: profileSelect },

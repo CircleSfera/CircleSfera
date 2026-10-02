@@ -37,6 +37,7 @@ export interface UserFactoryOverrides {
   emailVerified?: Date | null;
   dateOfBirth?: Date;
   createSettings?: boolean;
+  isTestAccount?: boolean;
 }
 
 /**
@@ -54,6 +55,7 @@ export async function buildUserAttributes(
     password: hashedPassword,
     role: overrides.role ?? 'USER',
     isActive: overrides.isActive ?? true,
+    isTestAccount: overrides.isTestAccount ?? false,
     emailVerified:
       overrides.emailVerified !== undefined
         ? overrides.emailVerified

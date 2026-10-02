@@ -8,6 +8,10 @@ import {
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { getBlockedProfileIds } from '../common/policies/block.policy.js';
+import {
+  isTestViewerProfile,
+  viewerAudienceWhere,
+} from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
@@ -182,6 +186,7 @@ export class FeedService {
       });
 
       const likedPostIds = lastLikes.map((l) => l.postId);
+      const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
 
       // If no likes, we skip vector search to avoid null vectors.
       let targetVectorStr = '';
@@ -255,6 +260,9 @@ export class FeedService {
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+            AND (
+              SELECT u."isTestAccount" FROM "profiles" pr JOIN "users" u ON u.id = pr."userId" WHERE pr.id = p."profileId"
+            ) = ${viewerIsTest}
             AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "profileId" = ${profileId})
             AND NOT EXISTS (
@@ -308,6 +316,9 @@ export class FeedService {
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+            AND (
+              SELECT u."isTestAccount" FROM "profiles" pr JOIN "users" u ON u.id = pr."userId" WHERE pr.id = p."profileId"
+            ) = ${viewerIsTest}
             AND p.id NOT IN (SELECT "postId" FROM "feed_hidden_posts" WHERE "profileId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "authorId" FROM "feed_hidden_authors" WHERE "profileId" = ${profileId})
             AND NOT EXISTS (
@@ -463,6 +474,7 @@ export class FeedService {
       const rawPosts = await this.prisma.post.findMany({
         where: {
           id: { in: inboxPostIds },
+          profile: await viewerAudienceWhere(this.prisma, profileId),
           moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
           scheduledStatus: 'PUBLISHED',
         },
@@ -547,6 +559,7 @@ export class FeedService {
         this.prisma.post.findMany({
           where: {
             profileId: { in: followingIds },
+            profile: await viewerAudienceWhere(this.prisma, profileId),
             type: 'POST',
             moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
             scheduledStatus: 'PUBLISHED',
@@ -698,7 +711,13 @@ export class FeedService {
       moderationStatus: 'VISIBLE' as const,
       scheduledStatus: 'PUBLISHED' as const,
       profile: {
-        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
+        user: {
+          settings: { is: { privacyLevel: Visibility.PUBLIC } },
+          isTestAccount: await isTestViewerProfile(
+            this.prisma,
+            currentProfileId,
+          ),
+        },
       },
       ...(excludedIds.length > 0 ? { profileId: { notIn: excludedIds } } : {}),
       ...(viewerSettings.allowMature
@@ -852,7 +871,10 @@ export class FeedService {
         visibility: 'PUBLIC',
         author: {
           isAccountBanned: false,
-          user: { isActive: true },
+          user: {
+            isActive: true,
+            isTestAccount: await isTestViewerProfile(this.prisma, profileId),
+          },
           ...(profileId
             ? {
                 blockedBy: { none: { blockerId: profileId } },

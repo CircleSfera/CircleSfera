@@ -26,6 +26,7 @@ describe('PostsService', () => {
   let service: PostsService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     block: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -981,8 +982,14 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         moderationStatus: 'VISIBLE',
         profile: {
-          blocking: { none: { blockedId: 'viewer-1' } },
-          blockedBy: { none: { blockerId: 'viewer-1' } },
+          AND: [
+            { user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } } },
+            {
+              user: { isTestAccount: false },
+              blocking: { none: { blockedId: 'viewer-1' } },
+              blockedBy: { none: { blockerId: 'viewer-1' } },
+            },
+          ],
         },
       });
     });

@@ -13,6 +13,7 @@ describe('FeedService', () => {
   let service: FeedService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findMany: vi.fn().mockResolvedValue([]) },
     like: {
       findMany: vi.fn(),
@@ -694,7 +695,7 @@ describe('FeedService', () => {
             visibility: 'PUBLIC',
             author: expect.objectContaining({
               isAccountBanned: false,
-              user: { isActive: true },
+              user: { isActive: true, isTestAccount: false },
               blockedBy: { none: { blockerId: 'viewer-prof' } },
               blocking: { none: { blockedId: 'viewer-prof' } },
               mutedBy: { none: { muterId: 'viewer-prof' } },

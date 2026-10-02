@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 
 type Viewer = { isTestAccount?: boolean } | null | undefined;
 
-type AudienceReader = Pick<Prisma.TransactionClient, 'profile'>;
+type AudienceReader = Pick<Prisma.TransactionClient, 'profile' | 'user'>;
 
 export function isTestViewer(viewer: Viewer): boolean {
   return viewer?.isTestAccount === true;
@@ -29,6 +29,76 @@ export function sameAudienceSql(
   usersAlias: string,
 ): Prisma.Sql {
   return Prisma.sql`${Prisma.raw(`"${usersAlias}"`)}."isTestAccount" = ${isTestViewer(viewer)}`;
+}
+
+// Audience (true = Test Account) of each existing Profile id given. Reads
+// through the account (User) because the mark lives there.
+export async function profileAudiences(
+  db: AudienceReader,
+  profileIds: Array<string | null | undefined>,
+): Promise<Map<string, boolean>> {
+  const ids = [...new Set(profileIds.filter((id): id is string => !!id))];
+  if (ids.length === 0) return new Map();
+  const accounts = await db.user.findMany({
+    where: { profiles: { some: { id: { in: ids } } } },
+    select: {
+      isTestAccount: true,
+      profiles: { where: { id: { in: ids } }, select: { id: true } },
+    },
+  });
+  const audiences = new Map<string, boolean>();
+  for (const account of accounts) {
+    for (const profile of account.profiles) {
+      audiences.set(profile.id, account.isTestAccount);
+    }
+  }
+  return audiences;
+}
+
+// Prisma `Profile` filter for the audience of a viewer Profile (anonymous
+// viewers: real accounts). Unlike sameAudienceProfileWhere, it resolves the
+// viewer's audience from the database, for services that only hold a Profile id.
+export async function viewerAudienceWhere(
+  db: AudienceReader,
+  viewerProfileId: string | null | undefined,
+): Promise<Prisma.ProfileWhereInput> {
+  return {
+    user: { isTestAccount: await isTestViewerProfile(db, viewerProfileId) },
+  };
+}
+
+// Audience of a viewer Profile; anonymous viewers are real (false).
+export async function isTestViewerProfile(
+  db: AudienceReader,
+  viewerProfileId: string | null | undefined,
+): Promise<boolean> {
+  if (!viewerProfileId) return false;
+  return (
+    (await profileAudiences(db, [viewerProfileId])).get(viewerProfileId) ??
+    false
+  );
+}
+
+// Keeps the items whose Profile is in the same audience as the viewer
+// Profile (anonymous viewers belong to the real audience). For lists built
+// once and shared across viewers, e.g. cached rankings.
+export async function filterToViewerAudience<T>(
+  db: AudienceReader,
+  viewerProfileId: string | null | undefined,
+  items: T[],
+  profileIdOf: (item: T) => string,
+): Promise<T[]> {
+  if (items.length === 0) return items;
+  const audiences = await profileAudiences(db, [
+    viewerProfileId,
+    ...items.map(profileIdOf),
+  ]);
+  const viewerIsTest = viewerProfileId
+    ? (audiences.get(viewerProfileId) ?? false)
+    : false;
+  return items.filter(
+    (item) => (audiences.get(profileIdOf(item)) ?? false) === viewerIsTest,
+  );
 }
 
 // True when the Profile exists and belongs to the viewer's audience.

@@ -3,7 +3,7 @@ import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
-  notBlockedWithViewer,
+  visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -143,7 +143,10 @@ export class LiveService {
   async getActiveStreams(viewerProfileId?: string) {
     const streams = await this.prisma.liveStream.findMany({
       // Hosts in a block relation with the viewer are hidden.
-      where: { status: 'LIVE', host: notBlockedWithViewer(viewerProfileId) },
+      where: {
+        status: 'LIVE',
+        host: await visibleToViewerWhere(this.prisma, viewerProfileId),
+      },
       include: {
         host: {
           select: { id: true, username: true, avatar: true },

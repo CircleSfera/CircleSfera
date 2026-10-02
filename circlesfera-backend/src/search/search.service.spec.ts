@@ -10,6 +10,7 @@ describe('SearchService', () => {
   let service: SearchService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findMany: vi.fn().mockResolvedValue([]) },
     profile: {
       findMany: vi.fn(),

@@ -27,6 +27,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import {
   PUBLIC_USER_SELECT,
   PUBLIC_USER_WITH_PRIVACY_SELECT,
@@ -271,6 +272,10 @@ export class StoriesService {
       };
       whereClause.isCloseFriendsOnly = false;
     }
+    // Never stories from the other audience (PD-006), even through a follow.
+    whereClause.AND = [
+      { profile: await viewerAudienceWhere(this.prisma, profileId) },
+    ];
 
     const stories = await this.prisma.story.findMany({
       where: whereClause,

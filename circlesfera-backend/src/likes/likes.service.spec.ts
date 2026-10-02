@@ -12,6 +12,7 @@ describe('LikesService', () => {
   let service: LikesService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     post: {
       findUnique: vi.fn(),
     },

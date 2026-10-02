@@ -4,7 +4,7 @@ import { isBlockedEitherWay } from './block.policy.js';
 
 type PostAccessReader = Pick<
   Prisma.TransactionClient,
-  'post' | 'block' | 'follow'
+  'post' | 'block' | 'follow' | 'profile' | 'user'
 >;
 
 export type AccessiblePost = {
