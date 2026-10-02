@@ -57,9 +57,9 @@ describe('CreatorAccountGuard', () => {
       profile: { findUnique: vi.fn() },
     } as never);
 
-    await expect(
-      guard.canActivate(context()),
-    ).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(
+      ForbiddenException,
+    );
   });
 
   it('denies missing profiles', async () => {
