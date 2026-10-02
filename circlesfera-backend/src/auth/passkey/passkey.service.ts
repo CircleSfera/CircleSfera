@@ -107,6 +107,7 @@ export class PasskeyService {
         // Fallback for legacy single-slot User.currentChallenge during transition
         const user = await tx.user.findUnique({
           where: { id: expectedUserId },
+          omit: { currentChallenge: false },
         });
         if (user?.currentChallenge === challenge) {
           await tx.user.update({
@@ -247,6 +248,7 @@ export class PasskeyService {
   async verifyRegistration(userId: string, body: unknown) {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
+      omit: { currentChallenge: false },
     })) as unknown as { currentChallenge?: string | null } | null;
 
     const challenge = extractChallengeFromClientResponse(
@@ -421,6 +423,7 @@ export class PasskeyService {
       include: {
         passkeys: true,
       },
+      omit: { currentChallenge: false },
     })) as unknown as {
       id: string;
       passkeys: {
