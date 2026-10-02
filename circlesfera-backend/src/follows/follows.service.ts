@@ -16,6 +16,7 @@ import {
   keysetBeforeDesc,
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import {
@@ -77,18 +78,9 @@ export class FollowsService {
       );
     }
 
-    // Check if blocked
-    const block = await this.prisma.block.findUnique({
-      where: {
-        blockerId_blockedId: {
-          blockerId: followingId,
-          blockedId: followerId,
-        },
-      },
-    });
-
-    if (block) {
-      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found'); // Mimic not found when blocked
+    // A block in either direction hides the target.
+    if (await isBlockedEitherWay(this.prisma, followerId, followingId)) {
+      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
     }
 
     const existingFollow = await this.prisma.follow.findUnique({
@@ -164,17 +156,21 @@ export class FollowsService {
       return { following: false, status: 'NONE' };
     }
 
-    // Check block
-    const block = await this.prisma.block.findUnique({
+    // BLOCKED is only reported to the blocker, so the UI can offer Unblock.
+    // A blocked viewer sees NONE and never learns about the block.
+    const blocks = await this.prisma.block.findMany({
       where: {
-        blockerId_blockedId: {
-          blockerId: profile.id,
-          blockedId: followerId,
-        },
+        OR: [
+          { blockerId: followerId, blockedId: profile.id },
+          { blockerId: profile.id, blockedId: followerId },
+        ],
       },
+      select: { blockerId: true },
     });
-
-    if (block) return { following: false, status: 'BLOCKED' };
+    if (blocks.some((b) => b.blockerId === followerId)) {
+      return { following: false, status: 'BLOCKED' };
+    }
+    if (blocks.length > 0) return { following: false, status: 'NONE' };
 
     const follow = await this.prisma.follow.findUnique({
       where: {
@@ -202,13 +198,17 @@ export class FollowsService {
     username: string,
     cursor?: string,
     limit = 20,
+    viewerProfileId?: string,
   ): Promise<KeysetPage<ProfileWithUser>> {
     const cappedLimit = Math.min(limit, 100);
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
 
-    if (!profile)
+    if (
+      !profile ||
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, profile.id))
+    )
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const decoded = cursor ? decodeKeysetCursor(cursor) : null;
@@ -242,13 +242,17 @@ export class FollowsService {
     username: string,
     cursor?: string,
     limit = 20,
+    viewerProfileId?: string,
   ): Promise<KeysetPage<ProfileWithUser>> {
     const cappedLimit = Math.min(limit, 100);
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
     });
 
-    if (!profile)
+    if (
+      !profile ||
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, profile.id))
+    )
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
     const decoded = cursor ? decodeKeysetCursor(cursor) : null;
@@ -273,7 +277,8 @@ export class FollowsService {
     return { ...page, data: page.data.map((f) => f.following) };
   }
 
-  // Block a user. Also removes any existing follow relationships.
+  // Block a user. Also removes follow and close-friend relationships in both
+  // directions.
   // Param blockerId: The blocking user's ID
   // Param blockedUsername: Username of the user to block
   // Throws NotFoundException if target user not found
@@ -294,20 +299,31 @@ export class FollowsService {
         'Cannot block yourself',
       );
 
-    // Create block
-    await this.prisma.block.create({
-      data: { blockerId, blockedId },
-    });
-
-    // Remove any existing follows (both directions)
-    await this.prisma.follow.deleteMany({
-      where: {
-        OR: [
-          { followerId: blockerId, followingId: blockedId },
-          { followerId: blockedId, followingId: blockerId },
-        ],
-      },
-    });
+    // Idempotent and atomic: repeating a block is a no-op, and the
+    // block, the follow removal and the close-friends removal happen together.
+    await this.prisma.$transaction([
+      this.prisma.block.upsert({
+        where: { blockerId_blockedId: { blockerId, blockedId } },
+        create: { blockerId, blockedId },
+        update: {},
+      }),
+      this.prisma.follow.deleteMany({
+        where: {
+          OR: [
+            { followerId: blockerId, followingId: blockedId },
+            { followerId: blockedId, followingId: blockerId },
+          ],
+        },
+      }),
+      this.prisma.closeFriend.deleteMany({
+        where: {
+          OR: [
+            { profileId: blockerId, friendId: blockedId },
+            { profileId: blockedId, friendId: blockerId },
+          ],
+        },
+      }),
+    ]);
     return { success: true };
   }
 
@@ -325,13 +341,9 @@ export class FollowsService {
     if (!profile)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
-    await this.prisma.block.delete({
-      where: {
-        blockerId_blockedId: {
-          blockerId,
-          blockedId: profile.id,
-        },
-      },
+    // Idempotent: unblocking someone who is not blocked is a no-op.
+    await this.prisma.block.deleteMany({
+      where: { blockerId, blockedId: profile.id },
     });
 
     return { success: true };

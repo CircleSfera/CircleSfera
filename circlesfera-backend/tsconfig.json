@@ -12,7 +12,7 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
 
     "incremental": true,
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
@@ -23,7 +23,7 @@
 
     "types": ["node", "vitest/globals"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "exclude": [
     "vitest.config.ts",
     "vitest.e2e.config.ts",

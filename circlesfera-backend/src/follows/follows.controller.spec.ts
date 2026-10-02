@@ -103,15 +103,18 @@ describe('FollowsController', () => {
       .set(BEARER)
       .expect(200);
 
+    // The viewer is forwarded so blocked viewers get NotFound.
     expect(mockService.getFollowers).toHaveBeenCalledWith(
       'alice',
       undefined,
       10,
+      TEST_USER.profileId,
     );
     expect(mockService.getFollowing).toHaveBeenCalledWith(
       'alice',
       undefined,
       10,
+      TEST_USER.profileId,
     );
   });
 
@@ -127,6 +130,7 @@ describe('FollowsController', () => {
       'alice',
       'abc-123',
       5,
+      TEST_USER.profileId,
     );
   });
 

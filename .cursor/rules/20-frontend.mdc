@@ -32,4 +32,4 @@ Load-bearing facts:
 
 Verify with `npm run lint`, `npm test` and `npm run build` (`tsc -b && vite build` is the typecheck).
 
-Full checks: @.ai/agents/frontend.md
+Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).

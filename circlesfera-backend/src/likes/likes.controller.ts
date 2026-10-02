@@ -31,4 +31,13 @@ export class LikesController {
   ) {
     return this.likesService.checkLike(postId, user.profileId);
   }
+
+  // Get all users who liked a post.
+  @Get()
+  async getLikes(
+    @Param('postId') postId: string,
+    @CurrentUser() user: CurrentUserData,
+  ) {
+    return this.likesService.getLikesByPost(postId, user.profileId);
+  }
 }

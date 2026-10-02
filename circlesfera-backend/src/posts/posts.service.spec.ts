@@ -26,6 +26,10 @@ describe('PostsService', () => {
   let service: PostsService;
 
   const mockPrismaService = {
+    block: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     $transaction: vi.fn(),
     post: {
       findUnique: vi.fn(),
@@ -752,6 +756,41 @@ describe('PostsService', () => {
       expect(result.isLiked).toBe(true);
     });
 
+    it('sanitizes _count.likes to null when hideLikes is true for a non-author viewer', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-1',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        hideLikes: true,
+        profile: {
+          id: 'author-1',
+          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        },
+        _count: { likes: 42, comments: 5 },
+        likes: [],
+      });
+      const result = (await service.findOne('p-1', 'viewer-1')) as any;
+      expect(result._count.likes).toBeNull();
+      expect(result._count.comments).toBe(5);
+    });
+
+    it('preserves _count.likes when hideLikes is true for the author viewer', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'p-1',
+        profileId: 'author-1',
+        visibility: Visibility.PUBLIC,
+        hideLikes: true,
+        profile: {
+          id: 'author-1',
+          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        },
+        _count: { likes: 42, comments: 5 },
+        likes: [],
+      });
+      const result = (await service.findOne('p-1', 'author-1')) as any;
+      expect(result._count.likes).toBe(42);
+    });
+
     it('catches and logs error if analytics trackPostView fails', async () => {
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
@@ -886,6 +925,75 @@ describe('PostsService', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('block and visibility rules', () => {
+    const publicPost = {
+      id: 'p-1',
+      profileId: 'author-1',
+      visibility: Visibility.PUBLIC,
+      moderationStatus: 'VISIBLE',
+      profile: {
+        id: 'author-1',
+        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+      },
+      likes: [],
+    };
+
+    it('answers NotFound on post detail across a block', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(publicPost);
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.findOne('p-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('hides HIDDEN and REMOVED posts from everyone but the author', async () => {
+      for (const moderationStatus of ['HIDDEN', 'REMOVED']) {
+        mockPrismaService.post.findUnique.mockResolvedValueOnce({
+          ...publicPost,
+          moderationStatus,
+        });
+        await expect(service.findOne('p-1', 'viewer-1')).rejects.toThrow(
+          NotFoundException,
+        );
+      }
+
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...publicPost,
+        moderationStatus: 'REMOVED',
+      });
+      await expect(service.findOne('p-1', 'author-1')).resolves.toBeDefined();
+    });
+
+    it('applies the public visibility filter, including blocks, to hashtag pages', async () => {
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      await service.getByTag('summer', { page: 1, limit: 10 }, 'viewer-1');
+
+      const where =
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where;
+      expect(where.hashtags).toBeDefined();
+      expect(where.OR[0]).toMatchObject({
+        visibility: Visibility.PUBLIC,
+        moderationStatus: 'VISIBLE',
+        profile: {
+          blocking: { none: { blockedId: 'viewer-1' } },
+          blockedBy: { none: { blockerId: 'viewer-1' } },
+        },
+      });
+    });
+
+    it('answers NotFound for the tagged tab of a Profile in a block relation', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({ id: 'p-x' });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(
+        service.getTaggedPosts('alice', { page: 1, limit: 10 }, 'viewer-1'),
+      ).rejects.toThrow('User not found');
     });
   });
 

@@ -21,6 +21,7 @@ describe('LiveService', () => {
   };
 
   const mockPrismaService = {
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
     liveStream: {
       updateMany: vi.fn(),
       update: vi.fn(),
@@ -113,6 +114,19 @@ describe('LiveService', () => {
       const result = await service.getViewerToken('stream-1', 'user-2');
       expect(result).toHaveProperty('token');
       expect(typeof result.token).toBe('string');
+    });
+
+    it('refuses a token to a viewer in a block relation with the host', async () => {
+      mockPrismaService.liveStream.findUnique.mockResolvedValue({
+        id: 'stream-1',
+        status: 'LIVE',
+        hostId: 'host-1',
+      });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(
+        service.getViewerToken('stream-1', 'user-2', 'viewer-1'),
+      ).rejects.toThrow(AppException);
     });
   });
 

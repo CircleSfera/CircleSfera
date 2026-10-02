@@ -5,7 +5,7 @@ import { ChevronLeft, Edit, Search } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { apiClient } from '../../services/api';
+import { chatApi } from '../../services/chat.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
@@ -19,14 +19,34 @@ export default function ConversationList() {
   const { id: activeId } = useParams();
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement>(null);
+  const [folder, setFolder] = useState<'inbox' | 'requests'>('inbox');
 
   const { data: conversations = [], isLoading: loading } = useQuery({
-    queryKey: ['conversations'],
+    queryKey: ['conversations', folder],
     queryFn: async () => {
-      const res = await apiClient.get('/chat/conversations');
+      const res = await chatApi.getConversations(folder);
       return res.data as Conversation[];
     },
   });
+
+  const { data: requests = [] } = useQuery({
+    queryKey: ['conversations', 'requests'],
+    queryFn: async () => {
+      const res = await chatApi.getConversations('requests');
+      return res.data as Conversation[];
+    },
+  });
+  const requestsCount = requests.length;
+
+  const { data: unreadData } = useQuery({
+    queryKey: ['unreadMessages'],
+    queryFn: async () => {
+      const res = await chatApi.getUnreadCount();
+      return res.data;
+    },
+  });
+  const unreadCount = unreadData?.count ?? 0;
+
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const me = useAuthStore((state) => state.profile);
   const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +174,48 @@ export default function ConversationList() {
             className="w-full h-11 bg-white/10 text-sm text-white rounded-xl pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
           />
         </div>
+
+        {/* Folder Tabs */}
+        <div className="flex border-b border-white/10 px-1 gap-6 text-sm font-medium">
+          <button
+            type="button"
+            onClick={() => setFolder('inbox')}
+            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
+              folder === 'inbox'
+                ? 'text-white font-semibold'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <span>{t('chat.inbox', 'Bandeja')}</span>
+            {unreadCount > 0 && (
+              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
+                {unreadCount}
+              </span>
+            )}
+            {folder === 'inbox' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-brand-secondary to-brand-primary rounded-full shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.5)]" />
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={() => setFolder('requests')}
+            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
+              folder === 'requests'
+                ? 'text-white font-semibold'
+                : 'text-white/50 hover:text-white/80'
+            }`}
+          >
+            <span>{t('chat.requests', 'Solicitudes')}</span>
+            {requestsCount > 0 && (
+              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
+                {requestsCount}
+              </span>
+            )}
+            {folder === 'requests' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-linear-to-r from-brand-secondary to-brand-primary rounded-full shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.5)]" />
+            )}
+          </button>
+        </div>
       </div>
 
       {isNewChatOpen && (
@@ -168,15 +230,26 @@ export default function ConversationList() {
         className="flex-1 overflow-y-auto custom-scrollbar p-2 min-h-0"
       >
         {conversations.length === 0 ? (
-          <EmptyState
-            icon="comments"
-            title={t('chat.no_messages')}
-            message={t('chat.start_connecting')}
-            action={{
-              label: t('chat.send_message'),
-              onClick: () => setIsNewChatOpen(true),
-            }}
-          />
+          folder === 'requests' ? (
+            <EmptyState
+              icon="comments"
+              title={t('chat.no_requests', 'No tienes solicitudes')}
+              message={t(
+                'chat.no_requests_desc',
+                'Las solicitudes de mensajes de personas a las que no sigues aparecerán aquí.',
+              )}
+            />
+          ) : (
+            <EmptyState
+              icon="comments"
+              title={t('chat.no_messages')}
+              message={t('chat.start_connecting')}
+              action={{
+                label: t('chat.send_message'),
+                onClick: () => setIsNewChatOpen(true),
+              }}
+            />
+          )
         ) : filteredConversations.length === 0 ? (
           <p className="text-center text-sm text-white/45 py-8">
             {t('chat.no_search_results')}
@@ -222,7 +295,7 @@ export default function ConversationList() {
                 >
                   <Link to={`/direct/inbox/t/${conv.id}`}>
                     <div
-                      className={`group relative flex items-center min-h-[72px] py-3 px-3 rounded-lg transition-all duration-300 ${
+                      className={`group relative flex items-center min-h-18 py-3 px-3 rounded-lg transition-all duration-300 ${
                         isActive
                           ? 'bg-white/10 shadow-lg shadow-black/20'
                           : 'hover:bg-white/5'

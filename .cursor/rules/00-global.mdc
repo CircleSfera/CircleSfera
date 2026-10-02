@@ -1,23 +1,23 @@
 ---
-description: CircleSfera global engineering rules and entry point to the .ai framework
+description: CircleSfera global engineering rules and entry point to the documentation
 alwaysApply: true
 ---
 
 CircleSfera is a production social platform: NestJS 11 API, React 19 SPA, PostgreSQL + Prisma 7,
 Redis, Stripe. Real users, real content, real money. Nothing here is a demo.
 
-`AGENTS.md` at the repo root outranks this rule. The `.ai/` framework is the operational layer under
-it, never a workaround for it.
+`AGENTS.md` at the repo root outranks this rule. All documentation lives in Notion → CircleSfera
+Documentation (links in `AGENTS.md`). `.ai/` and `.agents/` were removed — never cite or recreate them.
 
 ## Before changing code
 
 1. Read the owning module: service, DTOs, tests, and the Prisma models involved. Business rules live
    in services here, so reading a controller tells you almost nothing.
 2. Never state a schema fact from memory. `circlesfera-backend/prisma/schema.prisma` is canonical —
-   re-read it (see `.ai/core/sources-of-truth.md` for last verified counts). Never infer an endpoint
+   re-read it. Never infer an endpoint
    — grep the controller.
-3. Check `circlesfera-documentation/00-status.md` for the explicit OUT OF SCOPE list (and the
-   "in development" section) before proposing anything new.
+3. Check the OUT OF SCOPE list in `AGENTS.md` and the open entries in Notion → Governance →
+   Conflict & Decision Register before proposing anything new.
 4. Name the blast radius: schema, migrations, API contract, auth, cache keys, queues, sockets, i18n
    keys, tests, docs, money flows.
 
@@ -45,18 +45,12 @@ what risk remains open. Say what you do not know.
 
 ## Where to look
 
-- `.ai/orchestrator.md` — infers ship/advise/review, routes playbooks, auto-chains schema/architecture
-- `.ai/core/` — identity, principles, stack, architecture, conventions, quality, glossary,
-  sources-of-truth, known-gaps
-- `.ai/agents/` — 25 specialists
-- `.ai/playbooks/` — feature, architecture, bug, incident, refactor, schema change, performance,
-  security audit, UI redesign, dependency change, release, docs sync, audit
-- `.ai/checklists/` — closing gates
-- `circlesfera-documentation/adr/` — decisions already made
+- `AGENTS.md` — change policy, guardrails, links into the Notion documentation
+- Notion → Governance — source-of-truth registry, state model, terminology, conflict register
+- `circlesfera-documentation/adr/` — decisions already made (being migrated to Notion)
 
 Confirmation list items (schema, auth, money, deps, infra) require a pause for approval, then full
-implementation — not a permanent refusal. OUT OF SCOPE in `00-status.md` is the real stop. Default
-to shipping; do not wait for the user to name the playbook.
+implementation — not a permanent refusal. OUT OF SCOPE is the real stop.
 
-Read `.ai/core/known-gaps.md` before "fixing" something that looks wrong. Some of it is known,
-deliberate, or load-bearing.
+Check the Conflict & Decision Register before "fixing" something that looks wrong. Some of it is
+known, deliberate, or awaiting a product decision.

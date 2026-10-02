@@ -30,11 +30,16 @@ import { SendMessageUseCase } from './use-cases/messages/send-message.use-case.j
 import { GetConversationsQuery } from './use-cases/queries/get-conversations.query.js';
 import { GetMessagesQuery } from './use-cases/queries/get-messages.query.js';
 import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.js';
+import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
+import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
 
 describe('ChatController', () => {
   let app: INestApplication;
 
-  const mockGetConversationsQuery = { execute: vi.fn() };
+  const mockGetConversationsQuery = {
+    execute: vi.fn(),
+    executeOne: vi.fn(),
+  };
   const mockGetMessagesQuery = { execute: vi.fn() };
   const mockGetUnreadCountQuery = { execute: vi.fn() };
   const mockSendMessageUseCase = { execute: vi.fn() };
@@ -46,6 +51,8 @@ describe('ChatController', () => {
   const mockRemoveParticipantUseCase = { execute: vi.fn() };
   const mockLeaveGroupUseCase = { execute: vi.fn() };
   const mockDeleteConversationUseCase = { execute: vi.fn() };
+  const mockAcceptMessageRequestUseCase = { execute: vi.fn() };
+  const mockDeclineMessageRequestUseCase = { execute: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -68,6 +75,14 @@ describe('ChatController', () => {
         {
           provide: DeleteConversationUseCase,
           useValue: mockDeleteConversationUseCase,
+        },
+        {
+          provide: AcceptMessageRequestUseCase,
+          useValue: mockAcceptMessageRequestUseCase,
+        },
+        {
+          provide: DeclineMessageRequestUseCase,
+          useValue: mockDeclineMessageRequestUseCase,
         },
       ],
       guards: [
@@ -120,6 +135,7 @@ describe('ChatController', () => {
     expect(res.body).toEqual(conversations);
     expect(mockGetConversationsQuery.execute).toHaveBeenCalledWith(
       TEST_USER.profileId,
+      'inbox',
     );
   });
 
@@ -352,6 +368,70 @@ describe('ChatController', () => {
 
     expect(res.body).toEqual({ success: true });
     expect(mockLeaveGroupUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+    );
+  });
+
+  it('gets conversations filtered by folder=requests', async () => {
+    mockGetConversationsQuery.execute.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations?folder=requests')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockGetConversationsQuery.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'requests',
+    );
+  });
+
+  it('gets a single conversation by id', async () => {
+    const conv = { id: 'conv-1', participants: [] };
+    mockGetConversationsQuery.executeOne.mockResolvedValue(conv);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/chat/conversations/conv-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual(conv);
+    expect(mockGetConversationsQuery.executeOne).toHaveBeenCalledWith(
+      'conv-1',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('accepts a message request', async () => {
+    mockAcceptMessageRequestUseCase.execute.mockResolvedValue({
+      success: true,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chat/conversations/conv-1/accept')
+      .set(BEARER)
+      .expect(201);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockAcceptMessageRequestUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'conv-1',
+    );
+  });
+
+  it('declines a message request', async () => {
+    mockDeclineMessageRequestUseCase.execute.mockResolvedValue({
+      success: true,
+    });
+
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/chat/conversations/conv-1/decline')
+      .set(BEARER)
+      .expect(201);
+
+    expect(res.body).toEqual({ success: true });
+    expect(mockDeclineMessageRequestUseCase.execute).toHaveBeenCalledWith(
       TEST_USER.profileId,
       'conv-1',
     );

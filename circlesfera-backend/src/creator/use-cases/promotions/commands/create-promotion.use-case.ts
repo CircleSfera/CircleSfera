@@ -99,7 +99,7 @@ export class CreatePromotionUseCase {
             currency: currency.toLowerCase(),
             product_data: {
               name: `Promotion: ${targetType.toUpperCase()}`,
-              description: `Boost for ${durationDays} days`,
+              description: `Promotion for ${durationDays} days`,
             },
             unit_amount: budgetCents,
           },

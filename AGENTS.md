@@ -1,131 +1,97 @@
 # AGENTS.md — CircleSfera
 
-## Propósito
+Operating rules for AI agents working in this repository. This file is a pointer and a set of
+guardrails. It is **not** documentation.
 
-Reglas operativas para agentes de IA en CircleSfera: red social full-stack de producción (NestJS,
-React, PostgreSQL/Prisma, Redis, Stripe). Priorizar estabilidad, seguridad, coherencia
-arquitectónica y alineación con el estado real del proyecto — no con aspiraciones.
+CircleSfera is a B2C social network in production and under continuous active development
+(NestJS, React, PostgreSQL/Prisma, Redis, Stripe). Real users, real content, real money.
 
-`circlesfera-landing/` fue eliminado (Jul 2026); no restaurarlo ni desplegarlo.
+`circlesfera-landing/` was removed (Jul 2026); do not restore or deploy it. `.ai/` and `.agents/`
+were removed (Sep 2026); do not recreate them or cite them.
 
-## Fuente de verdad
+## Documentation lives in Notion
 
-La autoridad es específica por dominio, no una precedencia lineal universal. Antes de resolver un
-conflicto, clasifica primero qué tipo de pregunta estás respondiendo y consulta la fuente apropiada
-para ese tipo — modelo completo, dominios de autoridad y las 4 clases de conflicto (Documentation
-Drift, Implementation Drift, Decision Conflict, Ambiguous/Unknown) en
-[`.ai/core/authority.md`](.ai/core/authority.md). Comportamiento del agente y niveles de decisión (MAY
-DECIDE / MAY RECOMMEND / MUST CONFIRM / MUST STOP) en
-[`.ai/core/agent-contract.md`](.ai/core/agent-contract.md).
+## Documentation lives in Notion
 
-Guía rápida por tipo de pregunta:
+All CircleSfera documentation lives in Notion under **CircleSfera → Documentation**:
+https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30
 
-| Pregunta | Autoridad |
+- Governance (source of truth, standards, conflict resolution):
+  https://app.notion.com/p/3e9dfa08f2f581e39f54c30945c52d5e
+- Canonical terminology: Notion → Governance → Canonical Terminology
+- Product decisions & boundaries: Notion → Product → Product Decisions / Product Scope & Boundaries
+- Cross-domain conflicts: Notion → Governance → Cross-Domain Conflict Resolution
+- Implementation & capabilities: Notion → Execution → CircleSfera Implementation Backlog / Capability Implementation Register
+
+The documentation was comprehensively rebuilt (Sep 2026) across 8 authoritative domains (Product, Business,
+Technology, Architecture & Data, Quality, Design, Governance, Execution). A domain with no published
+Notion section is UNKNOWN. `circlesfera-documentation/` is legacy source material being migrated to Notion.
+Do not treat it as current truth, and do not add new documents there.
+
+## Sources of truth in the repository
+
+| Question | Authority |
 | --- | --- |
-| ¿Qué datos/relaciones existen? | `circlesfera-backend/prisma/schema.prisma` |
-| ¿Qué hace el código ahora mismo? | Código fuente implementado |
-| ¿Qué contrato API expone el sistema? | Controllers + DTOs vigentes |
-| ¿Qué decisión de arquitectura se aprobó? | ADRs — índice en [`circlesfera-documentation/adr/README.md`](circlesfera-documentation/adr/README.md) |
-| ¿Qué debería ser cierto del producto? | `circlesfera-documentation/`, empezando por [`00-status.md`](circlesfera-documentation/00-status.md) |
-| ¿Qué terminología es canónica? | [`.ai/core/terminology.md`](.ai/core/terminology.md) |
-| ¿Qué decisión sigue intencionalmente sin resolver? | [`.ai/core/deferred-decisions.md`](.ai/core/deferred-decisions.md) |
+| What data and relations exist? | `circlesfera-backend/prisma/schema.prisma` + migrations |
+| What does the code do right now? | Source code on `main` |
+| What API contract does the system expose? | Controllers + DTOs, `circlesfera-shared` |
+| How is behavior verified? | Tests and `.github/workflows/` (state what each test proves) |
+| What should be true of the product? | Notion → Product |
 
-Nunca inventar modelos, endpoints, enums, relaciones, permisos o flujos no respaldados por schema o
-código. Si hay ambigüedad, detenerse, explicitar la inconsistencia y proponer alternativas.
+Code shows what is **implemented**, not what is **intended**. Never document or treat current behavior
+as product intent without an explicit decision. When sources conflict, classify the conflict
+(documentation drift, implementation drift, decision conflict, or unknown). Never silently resolve it.
 
-Detalle operativo (stack, glosario, gaps): [`.ai/core/`](.ai/core/). Mapa pregunta → artefacto:
-[`.ai/core/sources-of-truth.md`](.ai/core/sources-of-truth.md).
+## Change policy
 
-## Routing de tareas
+**No extra confirmation needed:** small refactors, typing, lint or format changes that don't alter
+logic, readability improvements, focused tests of existing behavior.
 
-Antes de trabajo no trivial, leer [`.ai/orchestrator.md`](.ai/orchestrator.md). El agente **infiere**
-el modo (ship / advise / review), el playbook de entrada y el encadenamiento (p. ej. schema →
-feature) sin que el usuario nombre el workflow. Los slash commands de [`.agents/workflows/`](.agents/workflows/)
-son atajos opcionales. Cursor carga [`.cursor/rules/`](.cursor/rules/) por glob.
+**Explicit confirmation required, then full implementation:** schema and migrations; public API
+contracts; auth, permissions, roles or monetization; deleting code, tables or endpoints; critical
+business logic; new dependencies; infrastructure, deployment or secrets; destructive data operations.
 
-## Política de cambios
+The confirmation list is a gate (propose → wait → execute), not a ban.
 
-El framework **diseña, implementa y cambia schema** cuando el producto lo necesita. La lista de
-confirmación es un **gate** (proponer → esperar → ejecutar), no una prohibición.
+**Out of scope without an approved architecture decision.** This list will move to Notion → Product →
+Product Boundaries. Until then it is carried over from `circlesfera-documentation/00-status.md`.
 
-**Sin confirmación extra:** refactors pequeños, tipado, lint/format sin cambiar lógica, legibilidad,
-tests acotados del comportamiento existente, docs alineadas con código real.
+- Splitting the modular monolith into microservices
+- GraphQL (the API is REST)
+- A generic domain event bus or CQRS/event sourcing (`EventEmitter2` only for the closed list in ADR-0019)
+- Storing JWTs in `localStorage`
+- Native mobile apps. This is **disputed**: Capacitor `android/` and `ios/` projects exist. See the
+  Conflict & Decision Register.
 
-**Requieren confirmación explícita, luego implementación completa:** schema/migraciones; contratos
-API públicos; auth, permisos, roles o monetización; eliminación de código/tablas/endpoints; lógica
-de negocio crítica; nuevas dependencias; infraestructura, despliegue o secretos; operaciones
-destructivas sobre datos.
+## Before and after changing code
 
-El freno real es OUT OF SCOPE en [`00-status.md`](circlesfera-documentation/00-status.md). Playbooks:
-[`feature`](.ai/playbooks/feature.md), [`architecture`](.ai/playbooks/architecture.md),
-[`schema-change`](.ai/playbooks/schema-change.md), [`ui-redesign`](.ai/playbooks/ui-redesign.md).
+Before: read the owning module (service, DTOs, tests, Prisma models). Name the blast radius: schema,
+auth, cache, queues, sockets, i18n, tests, docs, money.
 
-## Antes / después de cambiar código
+After: verify types and imports, and run the relevant lint and tests. Summarize what changed, why, and
+what risk remains open. Never claim a check you did not run.
 
-Antes: leer el módulo dueño (servicio, DTOs, tests, modelos Prisma), delimitar impacto (schema,
-auth, cache, colas, sockets, i18n, tests, docs, dinero) y comprobar
-[`00-status.md`](circlesfera-documentation/00-status.md) (OUT OF SCOPE e *in development*).
+## Security and domain guardrails
 
-Después: verificar tipos/imports, correr lint/tests relevantes, resumir qué cambió, por qué y qué
-riesgo queda abierto. No afirmar checks no ejecutados.
+- Never expose or hardcode secrets. Never log tokens, cookies, chat plaintext or payment payloads.
+- Never relax guards, validation, throttling or CSRF exclusions for convenience.
+- Never move authorization to the client. Never trust client-supplied amounts, prices or
+  entitlements.
+- Critical business rules live in backend services, not only in the UI.
+- Social content attaches to `Profile.id`. Credentials, billing and GDPR concerns attach to
+  `User.id`. Staff access uses `AdminIdentity` RBAC, never `User.role`.
+- Money is integer cents. The platform fee constants are in
+  `circlesfera-backend/src/common/constants/monetization.constants.ts`.
+- Never invent models, endpoints, enums, relations, permissions or flows that are not backed by the
+  schema or code.
 
-Principios de ingeniería y calidad: [`.ai/core/principles.md`](.ai/core/principles.md),
-[`.ai/core/quality.md`](.ai/core/quality.md). Gaps conocidos: [`.ai/core/known-gaps.md`](.ai/core/known-gaps.md).
+## Frontend (mobile-first)
 
-## Frontend y diseño (mobile-first)
+Design and check at **390×844 px** first. On desktop, add parallel columns; never scale components or
+type proportionally. Buttons 44–48px, inputs 48–52px, avatars 32/40/56. Spacing scale
+4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Canonical tokens: `circlesfera-frontend/src/index.css`.
 
-- Diseñar y comprobar primero en **390×844 px** (iPhone 15 Pro). Desktop añade columnas paralelas;
-  nunca escala proporcionalmente componentes o tipografía.
-- Densidad comparable o superior a Instagram / Threads / X / TikTok: más contenido real que
-  decoración.
-- Botones: `44–48px`. Inputs: `48–52px`. Avatares: `32` / `40` / `56`. Cards: altura por contenido.
-- Espaciado en escala `4, 8, 12, 16, 20, 24, 32, 40, 48, 64`. Márgenes de pantalla `16–24px`.
-- Aprovechar el **80–90%** del viewport útil en móvil.
+## Response style
 
-Tokens canónicos: `circlesfera-frontend/src/index.css`. Narrative de diseño: docs 09/13 (Notion).
-
-## Seguridad y dominio
-
-- Nunca exponer o hardcodear secretos; no loguear tokens, cookies, plaintext de chat ni payloads de pago.
-- No relajar guards, validación, throttle o exclusiones CSRF por comodidad.
-- No mover autorización al cliente ni confiar en montos/precios/entitlements del cliente.
-- Reglas de negocio críticas viven en el backend (servicios), no solo en la UI.
-- No introducir flujos opacos de moderación, ranking o privilegios; respetar transparencia del producto.
-- No asumir features de otras redes si no existen en CircleSfera real (schema + código).
-- Respetar tiers y monetización reales (`PlatformPlan`, fee 20% ADR-0010, catálogos server-side).
-
-## Documentación
-
-Si el sistema y la documentación no coinciden, clasifica el conflicto antes de tocar cualquiera de los
-dos (ver [`.ai/core/authority.md`](.ai/core/authority.md)): documentación desactualizada →
-corrígela; código que no sigue una decisión normativa vigente → trátalo como candidato a defecto, no
-reescribas la documentación para legitimarlo; dos fuentes autoritativas en conflicto → detente y
-escala; evidencia insuficiente → verifica antes de decidir. Presente = shipped. Proceso:
-[`.ai/playbooks/docs-sync.md`](.ai/playbooks/docs-sync.md).
-
-## Estilo de respuesta
-
-Directo, preciso, sin vender humo. Separar hecho verificado / inferencia / propuesta.
-
-Formato útil: Objetivo → Hallazgos → Cambios → Verificación → Riesgos abiertos → Siguientes pasos.
-
-## Prohibiciones
-
-No inventar requisitos, tablas, endpoints ni estados de implementación que no existan aún en
-schema/código (sí se pueden **añadir** con confirmación vía `schema-change` / `feature`). No
-reescribir áreas grandes sin necesidad. No cambios destructivos ni tocar secretos/despliegue sin
-permiso. No afirmar “todo alineado” sin haberlo revisado.
-
-## Preferencias
-
-Profesionalidad sobre velocidad aparente. Consistencia del proyecto sobre improvisación. Precisión
-documental sobre storytelling. Seguridad y mantenibilidad sobre atajos. Alineación con producción y
-`schema.prisma`. Ante duda entre rapidez y solidez, elegir solidez.
-
-Referencias de sección en docs: `section 9.4` (nunca el símbolo de sección).
-
-## Instrucción final
-
-Si falta contexto, no asumir. Si hay conflicto entre documentos y código, clasifícalo (ver
-[`.ai/core/authority.md`](.ai/core/authority.md)) y señálalo — no asumas de antemano qué lado corregir.
-Si el cambio es sensible, pedir confirmación y, al recibirla, implementar.
+Direct and precise. Keep verified fact, inference and proposal separate. Cite sections as
+`section 9.4`, never with the section symbol. If context is missing, do not assume: say so.

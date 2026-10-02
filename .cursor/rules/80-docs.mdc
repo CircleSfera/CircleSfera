@@ -1,40 +1,28 @@
 ---
-description: Documentation and ADR rules for CircleSfera — keep docs true to the code
-globs: circlesfera-documentation/**, CHANGELOG.md, README.md, CONTRIBUTING.md, .ai/**, .agents/**, AGENTS.md
+description: Documentation rules for CircleSfera — documentation lives in Notion, the repo is evidence
+globs: circlesfera-documentation/**, CHANGELOG.md, README.md, CONTRIBUTING.md, AGENTS.md
 alwaysApply: false
 ---
 
-If the system and the documentation disagree, classify the conflict before fixing either side — see
-`.ai/core/authority.md`: stale documentation → correct it; code that no longer follows a valid
-normative decision → treat as a candidate defect, don't rewrite the documentation to legitimize it;
-two authoritative sources disagreeing → stop and escalate; insufficient evidence → verify before
-deciding.
+All CircleSfera documentation lives in Notion → CircleSfera Documentation (links in `AGENTS.md`),
+written in English. The repository holds code, schema, tests and configuration — evidence, not
+documentation.
 
-- Verify every factual statement against the canonical artifact before writing it: `schema.prisma` for
-  data, controllers for endpoints, the owning service for business rules,
-  `circlesfera-frontend/src/index.css` for tokens, the workflows and compose files for deployment, the
-  relevant `package.json` for versions.
-- Never paste canonical content. Link to it. That is why `08-schema-prisma.md` is only a pointer.
-- Present tense means shipped. Mark planned work explicitly — `11-backups-strategy.md` deliberately
-  separates shipped scripts from aspirational WAL/PITR, and that labelling must stay.
-- Numbered product docs are `00`–`15`. Prefer schema and controllers when they disagree with narrative
-  docs; check `00-status.md` for freshness.
-- Cross-references use plain section numbers (`section 9.4`, `sections 3.5 and 3.11`) — never the `§`
-  symbol.
-- Docs `09` and `13` are Notion-canonical for design/UI — do not rewrite them from CSS memory; prefer
-  `index.css` for shipped tokens (see `.ai/core/known-gaps.md` D3).
-- A durable decision with alternatives and consequences belongs in an ADR:
-  `circlesfera-documentation/adr/NNNN-slug.md`, numbered next in sequence and added to the table in
-  `adr/README.md`. Template: `.ai/templates/adr.md`.
-- Operational procedures belong in `circlesfera-documentation/runbooks/`.
-- `CHANGELOG.md` follows Keep a Changelog; user- and operator-visible changes go under `[Unreleased]`
-  and describe impact, not internal mechanics.
-- `.ai/` is derived context, never canonical. Every file there declares its source and verification
-  date.
-- Drift you find but do not fix goes in `.ai/core/known-gaps.md` with evidence and a risk note. Do not
-  silently rewrite documents you were not asked to touch.
-- Never document an endpoint, model, enum or flow that does not exist in code. Never mark a document
-  final when it rests on assumptions.
-- `circlesfera-landing/` was removed from the tree (Jul 2026). Do not document it as active or restore it.
-
-Full process: @.ai/playbooks/docs-sync.md
+- Do not add documents to `circlesfera-documentation/`. It is legacy source material being migrated
+  to Notion and will then be removed.
+- Follow Notion → Governance: Documentation State Model (NORMATIVE / IMPLEMENTED / VERIFIED /
+  PLANNED / EXPLORATORY / DEPRECATED / UNKNOWN), Source of Truth Registry, Documentation Standards,
+  Canonical Terminology.
+- When the system and the documentation disagree, classify the conflict before fixing either side:
+  documentation drift → correct the documentation; implementation drift → candidate defect, do not
+  rewrite documentation to legitimize the code; decision conflict → stop and escalate; insufficient
+  evidence → UNKNOWN. Record it in the Conflict & Decision Register — never resolve it silently.
+- Verify every factual statement against the canonical artifact: `schema.prisma` for data,
+  controllers for endpoints, the owning service for business rules, `circlesfera-frontend/src/index.css`
+  for tokens, workflows and compose files for deployment, `package.json` for versions.
+- Code shows what is implemented, not what is intended. A test proves only its own scope.
+- Never document an endpoint, model, enum or flow that does not exist in code.
+- Cross-references use plain section numbers (`section 9.4`) — never the section symbol.
+- Product name is always **CircleSfera**.
+- `CHANGELOG.md` follows Keep a Changelog; user- and operator-visible changes go under `[Unreleased]`.
+- `circlesfera-landing/` was removed (Jul 2026). Do not document it as active or restore it.

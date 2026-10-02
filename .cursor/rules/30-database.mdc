@@ -41,4 +41,4 @@ Rules:
 - Do not reintroduce a dropped concept without checking why it went — `payout_requests` and
   `PayoutStatus` were removed deliberately (ADR-0002).
 
-Full process and checklist: @.ai/playbooks/schema-change.md
+Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).

@@ -2,7 +2,23 @@ import type { Conversation, Message } from '../types';
 import { apiClient } from './api';
 
 export const chatApi = {
-  getConversations: () => apiClient.get<Conversation[]>('/chat/conversations'),
+  getConversations: (folder?: 'inbox' | 'requests') =>
+    apiClient.get<Conversation[]>(
+      folder ? `/chat/conversations?folder=${folder}` : '/chat/conversations',
+    ),
+
+  getConversation: (id: string) =>
+    apiClient.get<Conversation>(`/chat/conversations/${id}`),
+
+  acceptRequest: (conversationId: string) =>
+    apiClient.post<{ success: boolean }>(
+      `/chat/conversations/${conversationId}/accept`,
+    ),
+
+  declineRequest: (conversationId: string) =>
+    apiClient.post<{ success: boolean }>(
+      `/chat/conversations/${conversationId}/decline`,
+    ),
 
   getUnreadCount: () =>
     apiClient.get<{ count: number }>('/chat/conversations/unread-count'),

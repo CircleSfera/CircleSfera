@@ -18,10 +18,12 @@ import { createPost } from './post.factory.js';
 import { createUserWithProfile } from './profile.factory.js';
 import { createFollow } from './social.factory.js';
 
-export interface SocialGraphScenarioResult {
+export interface RelationshipNetworkScenarioResult {
   entities: Array<{ user: User; profile: Profile }>;
   cleanup: () => Promise<void>;
 }
+
+export type SocialGraphScenarioResult = RelationshipNetworkScenarioResult;
 
 export interface CreatorSubscribersScenarioResult {
   creator: { user: User; profile: Profile };
@@ -54,9 +56,9 @@ export class ScenarioSeeder {
   /**
    * Seed a network of interconnected users and profiles with follow relationships.
    */
-  async seedSocialGraph(
+  async seedRelationshipNetwork(
     options: { usersCount?: number; mutualFollows?: boolean } = {},
-  ): Promise<SocialGraphScenarioResult> {
+  ): Promise<RelationshipNetworkScenarioResult> {
     const count = options.usersCount ?? 3;
     const mutual = options.mutualFollows ?? true;
     const entities: Array<{ user: User; profile: Profile }> = [];
@@ -90,6 +92,16 @@ export class ScenarioSeeder {
     };
 
     return { entities, cleanup };
+  }
+
+  /**
+   * Backwards-compatible alias for seedRelationshipNetwork.
+   * @deprecated Use seedRelationshipNetwork instead.
+   */
+  async seedSocialGraph(
+    options: { usersCount?: number; mutualFollows?: boolean } = {},
+  ): Promise<RelationshipNetworkScenarioResult> {
+    return this.seedRelationshipNetwork(options);
   }
 
   /**

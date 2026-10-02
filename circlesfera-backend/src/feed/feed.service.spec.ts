@@ -13,6 +13,7 @@ describe('FeedService', () => {
   let service: FeedService;
 
   const mockPrismaService = {
+    block: { findMany: vi.fn().mockResolvedValue([]) },
     like: {
       findMany: vi.fn(),
     },
@@ -684,6 +685,23 @@ describe('FeedService', () => {
       expect(injected).toBeDefined();
       expect(injected.id).toBe('promoted-p1');
       expect(injected.promotionId).toBe('promo-1');
+
+      expect(mockPrismaService.post.findMany).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          where: expect.objectContaining({
+            deletedAt: null,
+            visibility: 'PUBLIC',
+            author: expect.objectContaining({
+              isAccountBanned: false,
+              user: { isActive: true },
+              blockedBy: { none: { blockerId: 'viewer-prof' } },
+              blocking: { none: { blockedId: 'viewer-prof' } },
+              mutedBy: { none: { muterId: 'viewer-prof' } },
+            }),
+          }),
+        }),
+      );
     });
 
     it('returns default content settings when viewer profile does not exist', async () => {

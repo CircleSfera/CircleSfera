@@ -1,4 +1,4 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -9,13 +9,29 @@ import { CommentsService } from './comments.service.js';
 describe('CommentsService', () => {
   let service: CommentsService;
 
+  // Default: an accessible public post.
+  const accessiblePost = {
+    id: 'post-1',
+    profileId: 'author-1',
+    visibility: 'PUBLIC',
+    moderationStatus: 'VISIBLE',
+    turnOffComments: false,
+  };
+
   const mockPrismaService = {
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     post: {
       findUnique: vi.fn(),
     },
+    block: {
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
+    follow: {
+      findUnique: vi.fn().mockResolvedValue(null),
+    },
     comment: {
       create: vi.fn(),
+      update: vi.fn(),
       findUnique: vi.fn(),
       findMany: vi.fn(),
       count: vi.fn(),
@@ -54,6 +70,9 @@ describe('CommentsService', () => {
 
     service = module.get<CommentsService>(CommentsService);
     vi.clearAllMocks();
+    mockPrismaService.post.findUnique
+      .mockReset()
+      .mockResolvedValue(accessiblePost);
   });
 
   it('should be defined', () => {
@@ -61,6 +80,41 @@ describe('CommentsService', () => {
   });
 
   describe('create', () => {
+    it('rejects comments across a block without creating anything', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hi' } as never),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects comments when turnOffComments is true', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...accessiblePost,
+        turnOffComments: true,
+      });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hello' } as never),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
+    it('rejects comments on a followers-only post from a non-follower', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        id: 'post-1',
+        profileId: 'author-1',
+        visibility: 'FOLLOWERS',
+        moderationStatus: 'VISIBLE',
+      });
+
+      await expect(
+        service.create('post-1', 'viewer-1', { content: 'hi' } as never),
+      ).rejects.toThrow();
+      expect(mockPrismaService.comment.create).not.toHaveBeenCalled();
+    });
+
     const postId = 'post-1';
     const profileId = 'user-1';
     const dto = { content: 'Nice post! @user2' };
@@ -243,6 +297,22 @@ describe('CommentsService', () => {
   });
 
   describe('findByPost', () => {
+    it('returns empty comments when turnOffComments is true and viewer is not author', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce({
+        ...accessiblePost,
+        turnOffComments: true,
+      });
+
+      const result = await service.findByPost(
+        'post-1',
+        { page: 1, limit: 10 },
+        'viewer-1',
+      );
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(mockPrismaService.comment.findMany).not.toHaveBeenCalled();
+    });
+
     it('prefers the linked Media rows over inline columns, including for nested replies', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([
         {
@@ -428,6 +498,24 @@ describe('CommentsService', () => {
       );
     });
 
+    it('rejects liking a comment across a block without creating anything', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        id: 'c-1',
+        profileId: 'owner-p',
+        postId: 'post-1',
+      });
+      // The post author is not blocked; the comment author is.
+      mockPrismaService.block.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.likeComment('c-1', 'liker-p')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.commentLike.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
     it('should like comment and emit notification if not self', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'c-1',
@@ -469,6 +557,7 @@ describe('CommentsService', () => {
     it('should do nothing if comment already liked', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'c-1',
+        postId: 'post-1',
         profileId: 'owner-p',
       });
       mockPrismaService.commentLike.findUnique.mockResolvedValue({
@@ -500,6 +589,135 @@ describe('CommentsService', () => {
       await service.unlikeComment('c-1', 'liker-p');
 
       expect(mockPrismaService.commentLike.delete).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    it('rejects editing a comment across a block', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(
+        service.update('post-1', 'c-1', 'viewer-1', { content: 'edited' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects editing a non-existent comment', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.update('post-1', 'c-1', 'author-1', { content: 'edited' }),
+      ).rejects.toThrow('Comment not found');
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects editing when comment belongs to a different post', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-other',
+        profileId: 'author-1',
+      });
+
+      await expect(
+        service.update('post-1', 'c-1', 'author-1', { content: 'edited' }),
+      ).rejects.toThrow('Comment not found');
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('rejects editing when viewer is not the comment author', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'different-author',
+      });
+
+      await expect(
+        service.update('post-1', 'c-1', 'attacker-profile', {
+          content: 'edited',
+        }),
+      ).rejects.toThrow('You cannot edit this comment');
+      expect(mockPrismaService.comment.update).not.toHaveBeenCalled();
+    });
+
+    it('successfully edits comment and sets isEdited to true without time limit', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'author-1',
+        content: 'Original comment posted long ago',
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+      });
+      mockPrismaService.comment.update.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'author-1',
+        content: 'Updated comment text',
+        isEdited: true,
+        createdAt: new Date('2025-01-01T00:00:00.000Z'),
+        updatedAt: new Date(),
+      });
+
+      const result = await service.update('post-1', 'c-1', 'author-1', {
+        content: 'Updated comment text',
+      });
+
+      expect(mockPrismaService.comment.update).toHaveBeenCalledWith({
+        where: { id: 'c-1' },
+        data: {
+          content: 'Updated comment text',
+          isEdited: true,
+        },
+        include: expect.any(Object),
+      });
+      expect(result.content).toBe('Updated comment text');
+      expect(result.isEdited).toBe(true);
+    });
+
+    it('notifies profiles mentioned in an edited comment, except across a block', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'commenter-1',
+      });
+      mockPrismaService.comment.update.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'commenter-1',
+        content: 'hey @alice and @bob, also @alice',
+        isEdited: true,
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'alice-p' },
+        { id: 'bob-p' },
+      ]);
+      // Only bob is across a block from the commenter.
+      mockPrismaService.block.findFirst.mockImplementation(
+        async (args: unknown) =>
+          JSON.stringify(args).includes('bob-p') ? { id: 'b1' } : null,
+      );
+
+      await service.update('post-1', 'c-1', 'commenter-1', {
+        content: 'hey @alice and @bob, also @alice',
+      });
+      mockPrismaService.block.findFirst.mockReset().mockResolvedValue(null);
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: {
+          username: { in: ['alice', 'bob'] },
+          id: { notIn: ['commenter-1', 'author-1'] },
+        },
+        select: { id: true },
+      });
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'alice-p',
+          senderId: 'commenter-1',
+          type: 'MENTION',
+          postId: 'post-1',
+        }),
+      );
     });
   });
 });

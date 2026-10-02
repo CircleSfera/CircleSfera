@@ -41,6 +41,12 @@ describe('MaintenanceService', () => {
     deviceSignal: {
       deleteMany: vi.fn(),
     },
+    interactionEvent: {
+      deleteMany: vi.fn(),
+    },
+    postView: {
+      deleteMany: vi.fn(),
+    },
     $transaction: vi.fn().mockResolvedValue([]),
   };
 
@@ -400,6 +406,64 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.purgeStaleDeviceSignals()).resolves.not.toThrow();
+    });
+  });
+
+  describe('purgeOldInteractionEvents', () => {
+    it('should purge interaction events older than 90 days and log when count > 0', async () => {
+      mockPrismaService.interactionEvent.deleteMany.mockResolvedValue({
+        count: 150,
+      });
+
+      await service.purgeOldInteractionEvents();
+      expect(
+        mockPrismaService.interactionEvent.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          createdAt: { lt: expect.any(Date) },
+        },
+      });
+    });
+
+    it('should handle count = 0', async () => {
+      mockPrismaService.interactionEvent.deleteMany.mockResolvedValue({
+        count: 0,
+      });
+      await service.purgeOldInteractionEvents();
+      expect(mockPrismaService.interactionEvent.deleteMany).toHaveBeenCalled();
+    });
+
+    it('should catch errors gracefully', async () => {
+      mockPrismaService.interactionEvent.deleteMany.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
+      await expect(service.purgeOldInteractionEvents()).resolves.not.toThrow();
+    });
+  });
+
+  describe('purgeOldPostViews', () => {
+    it('should purge post views older than 90 days and log when count > 0', async () => {
+      mockPrismaService.postView.deleteMany.mockResolvedValue({ count: 75 });
+
+      await service.purgeOldPostViews();
+      expect(mockPrismaService.postView.deleteMany).toHaveBeenCalledWith({
+        where: {
+          createdAt: { lt: expect.any(Date) },
+        },
+      });
+    });
+
+    it('should handle count = 0', async () => {
+      mockPrismaService.postView.deleteMany.mockResolvedValue({ count: 0 });
+      await service.purgeOldPostViews();
+      expect(mockPrismaService.postView.deleteMany).toHaveBeenCalled();
+    });
+
+    it('should catch errors gracefully', async () => {
+      mockPrismaService.postView.deleteMany.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
+      await expect(service.purgeOldPostViews()).resolves.not.toThrow();
     });
   });
 });

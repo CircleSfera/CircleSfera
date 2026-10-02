@@ -184,16 +184,23 @@ describe('UsersController', () => {
     );
   });
 
-  it('deletes the account as the caller userId', async () => {
-    mockUsersService.deleteUser.mockResolvedValue(undefined);
+  it('never hard-deletes from gdpr/account: it schedules the 30-day deletion', async () => {
+    const when = new Date('2026-10-27T00:00:00.000Z');
+    mockUsersService.scheduleDeletion.mockResolvedValue(when);
 
     const res = await request(app.getHttpServer())
       .delete('/api/v1/users/gdpr/account')
       .set(BEARER)
       .expect(200);
 
-    expect(mockUsersService.deleteUser).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(res.body).toEqual({ message: 'Account deleted successfully' });
+    expect(mockUsersService.deleteUser).not.toHaveBeenCalled();
+    expect(mockUsersService.scheduleDeletion).toHaveBeenCalledWith(
+      TEST_USER.userId,
+    );
+    expect(res.body).toMatchObject({
+      success: true,
+      scheduled_deletion_at: when.toISOString(),
+    });
   });
 
   it('schedules and cancels deletion as the caller userId', async () => {

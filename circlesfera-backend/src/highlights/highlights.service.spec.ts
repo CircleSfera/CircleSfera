@@ -16,6 +16,14 @@ describe('HighlightsService', () => {
       update: vi.fn(),
       delete: vi.fn(),
     },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
+    profile: {
+      findUnique: vi.fn().mockResolvedValue({
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+      }),
+    },
+    follow: { findUnique: vi.fn().mockResolvedValue(null) },
+    closeFriend: { findUnique: vi.fn().mockResolvedValue(null) },
   };
 
   beforeEach(async () => {
@@ -55,13 +63,51 @@ describe('HighlightsService', () => {
   });
 
   describe('findAll', () => {
+    const highlight = {
+      id: 'hl-1',
+      title: 'Summer 2026',
+      stories: [
+        { story: { id: 's-public', isCloseFriendsOnly: false } },
+        { story: { id: 's-cf', isCloseFriendsOnly: true } },
+      ],
+    };
+
     it('should return user highlights', async () => {
-      mockPrismaService.highlight.findMany.mockResolvedValue([
-        { id: 'hl-1', title: 'Summer 2026' },
-      ]);
+      mockPrismaService.highlight.findMany.mockResolvedValue([highlight]);
 
       const highlights = await service.findAll('user-1');
       expect(highlights).toHaveLength(1);
+    });
+
+    it('shows close-friends stories only to the owner and close friends', async () => {
+      mockPrismaService.highlight.findMany.mockResolvedValue([highlight]);
+
+      const [asStranger] = await service.findAll('owner', 'viewer');
+      expect(asStranger.stories.map((s) => s.story.id)).toEqual(['s-public']);
+
+      mockPrismaService.closeFriend.findUnique.mockResolvedValueOnce({
+        id: 'cf-1',
+      });
+      const [asCloseFriend] = await service.findAll('owner', 'viewer');
+      expect(asCloseFriend.stories).toHaveLength(2);
+
+      const [asOwner] = await service.findAll('owner', 'owner');
+      expect(asOwner.stories).toHaveLength(2);
+    });
+
+    it('returns nothing across a block, in either direction', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.findAll('owner', 'viewer')).resolves.toEqual([]);
+      expect(mockPrismaService.highlight.findMany).not.toHaveBeenCalled();
+    });
+
+    it('returns nothing for a private account the viewer does not follow', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        user: { settings: { privacyLevel: 'PRIVATE' } },
+      });
+
+      await expect(service.findAll('owner', 'viewer')).resolves.toEqual([]);
     });
   });
 
@@ -76,10 +122,48 @@ describe('HighlightsService', () => {
       mockPrismaService.highlight.findUnique.mockResolvedValue({
         id: 'hl-1',
         title: 'Travel',
+        profileId: 'owner',
+        stories: [],
       });
 
       const result = await service.findOne('hl-1');
       expect(result).toHaveProperty('id', 'hl-1');
+    });
+
+    it('shows close-friends stories only to the owner and close friends', async () => {
+      mockPrismaService.highlight.findUnique.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'owner',
+        stories: [
+          { story: { id: 's-public', isCloseFriendsOnly: false } },
+          { story: { id: 's-cf', isCloseFriendsOnly: true } },
+        ],
+      });
+
+      const asStranger = await service.findOne('hl-1', 'viewer');
+      expect(asStranger.stories.map((hs) => hs.story.id)).toEqual(['s-public']);
+
+      const asOwner = await service.findOne('hl-1', 'owner');
+      expect(asOwner.stories).toHaveLength(2);
+
+      mockPrismaService.closeFriend.findUnique.mockResolvedValueOnce({
+        id: 'cf-1',
+      });
+      const asCloseFriend = await service.findOne('hl-1', 'viewer');
+      expect(asCloseFriend.stories).toHaveLength(2);
+    });
+
+    it('answers NotFound to a blocked viewer, never Forbidden', async () => {
+      mockPrismaService.highlight.findUnique.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'owner',
+        stories: [],
+      });
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.findOne('hl-1', 'viewer')).rejects.toThrow(
+        AppException,
+      );
     });
   });
 

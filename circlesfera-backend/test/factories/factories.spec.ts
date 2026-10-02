@@ -1,3 +1,4 @@
+import { Buffer } from 'node:buffer';
 import type { PrismaClient } from '@prisma/client';
 import argon2 from 'argon2';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -457,8 +458,8 @@ describe('Test Data Factories & Scenario Seeder', () => {
       seeder = new ScenarioSeeder(mockPrisma as unknown as PrismaClient);
     });
 
-    it('seeds social graph and executes isolated cleanup', async () => {
-      const scenario = await seeder.seedSocialGraph({
+    it('seeds relationship network and executes isolated cleanup', async () => {
+      const scenario = await seeder.seedRelationshipNetwork({
         usersCount: 3,
         mutualFollows: true,
       });

@@ -7,6 +7,7 @@ import {
   createPaginatedResult,
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import { getBlockedProfileIds } from '../common/policies/block.policy.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -208,7 +209,7 @@ export class FeedService {
       if (targetVectorStr) {
         // Hybrid Query WITH AI Vector
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph_raw AS (
+          WITH relationship_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
@@ -217,8 +218,8 @@ export class FeedService {
             FROM "close_friends"
             WHERE "profileId" = ${profileId}
           ),
-          social_graph AS (
-            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
+          relationships AS (
+            SELECT "followingId", MAX(weight) as weight FROM relationship_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
@@ -232,21 +233,21 @@ export class FeedService {
             -- an already-fetched page.
             EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
 
-            -- Social Graph Weight
-            COALESCE(sg.weight, 1.0) AS social_weight,
+            -- Relationship Weight
+            COALESCE(rel.weight, 1.0) AS social_weight,
 
             -- Final Hybrid Score Calculation
             (
               ((1 - (pe.vector <=> ${targetVectorStr}::vector)) * 0.4) +
-              (COALESCE(sg.weight, 1.0) * 0.3) +
+              (COALESCE(rel.weight, 1.0) * 0.3) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.3)
             ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
           JOIN "post_embeddings" pe ON p.id = pe."postId"
-          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
+          LEFT JOIN relationships rel ON p."profileId" = rel."followingId"
           
-          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
             AND p.id NOT IN (SELECT "postId" FROM "likes" WHERE "profileId" = ${profileId})
@@ -271,7 +272,7 @@ export class FeedService {
       } else {
         // Hybrid Query WITHOUT AI Vector (User has no likes yet)
         postsRaw = await this.prisma.$queryRaw`
-          WITH social_graph_raw AS (
+          WITH relationship_graph_raw AS (
             SELECT "followingId", 1.5 AS weight
             FROM "follows"
             WHERE "followerId" = ${profileId} AND "status" = 'ACCEPTED'
@@ -280,27 +281,27 @@ export class FeedService {
             FROM "close_friends"
             WHERE "profileId" = ${profileId}
           ),
-          social_graph AS (
-            SELECT "followingId", MAX(weight) as weight FROM social_graph_raw GROUP BY "followingId"
+          relationships AS (
+            SELECT "followingId", MAX(weight) as weight FROM relationship_graph_raw GROUP BY "followingId"
           )
           SELECT 
             p.id,
             -- Time Decay: frozen asOf snapshot, see comment above (DATA-003)
             EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
 
-            -- Social Graph Weight
-            COALESCE(sg.weight, 1.0) AS social_weight,
+            -- Relationship Weight
+            COALESCE(rel.weight, 1.0) AS social_weight,
 
             -- Final Hybrid Score Calculation (Without AI)
             (
-              (COALESCE(sg.weight, 1.0) * 0.5) +
+              (COALESCE(rel.weight, 1.0) * 0.5) +
               ((1.0 - EXP(-COALESCE(p."performanceScore", 0) / 100.0)) * 0.5)
             ) * EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS final_score
             
           FROM "posts" p
-          LEFT JOIN social_graph sg ON p."profileId" = sg."followingId"
+          LEFT JOIN relationships rel ON p."profileId" = rel."followingId"
           
-          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND sg.weight IS NOT NULL))
+          WHERE (p.visibility = 'PUBLIC' OR (p.visibility = 'FOLLOWERS' AND rel.weight IS NOT NULL))
             AND p."moderationStatus" = 'VISIBLE'
             AND p."profileId" != ${profileId}
             AND p."profileId" NOT IN (SELECT "mutedId" FROM "mutes" WHERE "muterId" = ${profileId} AND ("expiresAt" IS NULL OR "expiresAt" > NOW()))
@@ -684,11 +685,21 @@ export class FeedService {
       mutedIds = mutes.map((m) => m.mutedId);
     }
 
+    // Same exclusions as the ranked feed: muted and blocked authors, and
+    // posts from private accounts.
+    const excludedIds = [
+      ...mutedIds,
+      ...(await getBlockedProfileIds(this.prisma, currentProfileId)),
+    ];
+
     const where = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE' as const,
       scheduledStatus: 'PUBLISHED' as const,
-      ...(mutedIds.length > 0 ? { profileId: { notIn: mutedIds } } : {}),
+      profile: {
+        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
+      },
+      ...(excludedIds.length > 0 ? { profileId: { notIn: excludedIds } } : {}),
       ...(viewerSettings.allowMature
         ? {}
         : { contentRating: 'GENERAL' as const }),
@@ -835,7 +846,22 @@ export class FeedService {
 
     const promotedPostIds = activePromotions.map((p) => p.targetId);
     const promotedPostsRaw = await this.prisma.post.findMany({
-      where: { id: { in: promotedPostIds } },
+      where: {
+        id: { in: promotedPostIds },
+        deletedAt: null,
+        visibility: 'PUBLIC',
+        author: {
+          isAccountBanned: false,
+          user: { isActive: true },
+          ...(profileId
+            ? {
+                blockedBy: { none: { blockerId: profileId } },
+                blocking: { none: { blockedId: profileId } },
+                mutedBy: { none: { muterId: profileId } },
+              }
+            : {}),
+        },
+      },
       include: this.postHydrationInclude(profileId),
     });
 

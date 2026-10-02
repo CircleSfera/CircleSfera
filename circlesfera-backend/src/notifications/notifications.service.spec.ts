@@ -20,6 +20,7 @@ describe('NotificationsService', () => {
     userSettings: {
       findFirst: vi.fn().mockResolvedValue({ pushNotifications: true }),
     },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
   };
 
   const mockEventEmitter = {
@@ -115,6 +116,20 @@ describe('NotificationsService', () => {
   });
 
   describe('create and real-time event decoupling', () => {
+    it('never notifies across a block, in either direction', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      const result = await service.create({
+        recipientId: 'user-1',
+        senderId: 'user-2',
+        type: 'MENTION' as never,
+        content: 'mentioned you in a post',
+      });
+
+      expect(result).toBeNull();
+      expect(mockPrismaService.notification.create).not.toHaveBeenCalled();
+    });
+
     it('should emit notification.dispatched domain event instead of calling AppGateway directly', async () => {
       const createdNotification = {
         id: 'notif-100',

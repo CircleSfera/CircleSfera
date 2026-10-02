@@ -153,6 +153,7 @@ export interface Comment {
   mediaType?: string | null;
   createdAt: Date | string;
   updatedAt: Date | string;
+  isEdited?: boolean;
   profile: ProfileWithUser;
   parentId?: string | null;
   replies?: Comment[];
@@ -233,6 +234,8 @@ export interface Message {
 export interface Participant {
   id: string;
   profileId: string;
+  isAdmin?: boolean;
+  hasAccepted?: boolean;
   lastReadAt?: Date | string;
   profile: ProfileWithUser;
 }

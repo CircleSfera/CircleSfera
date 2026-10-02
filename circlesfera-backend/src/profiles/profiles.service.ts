@@ -17,6 +17,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
+import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
 
 // Service for profile CRUD, username validation, and account lifecycle (deactivate/delete).
@@ -501,15 +502,15 @@ export class ProfilesService {
     };
   }
 
-  // Deactivate the authenticated user's account (soft, reversible).
-  // Param profileId: The user's ID
-  async deactivateAccount(profileId: string) {
+  // Deactivate the authenticated user's account (soft, reversible: logging in
+  // reactivates it). Acts on the owning User, not the Profile id.
+  async deactivateAccount(userId: string, profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
     });
     const result = await this.prisma.user.update({
-      where: { id: profileId },
-      data: { isActive: false },
+      where: { id: userId },
+      data: { isActive: false, deactivatedAt: new Date() },
     });
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
@@ -520,12 +521,12 @@ export class ProfilesService {
   // Schedule account deletion with 30-day grace window (canonical GDPR flow).
   // Delegates to UsersService so BullMQ hard-delete job is always enqueued.
   // Prefer DELETE /users/me from new clients; this keeps DELETE /profiles/me compatible.
-  async deleteAccount(profileId: string) {
+  async deleteAccount(userId: string, profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
     });
     const scheduledDeletionAt =
-      await this.usersService.scheduleDeletion(profileId);
+      await this.usersService.scheduleDeletion(userId);
     if (profile) {
       await this.cacheManager.del(`profile:${profile.username}`);
     }
@@ -534,5 +535,114 @@ export class ProfilesService {
       message: 'Account scheduled for deletion',
       scheduled_deletion_at: scheduledDeletionAt.toISOString(),
     };
+  }
+
+  // Get all profiles owned by the authenticated User identity.
+  async getMyProfiles(userId: string) {
+    const profiles = await this.prisma.profile.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        bio: true,
+        avatar: true,
+        thumbnailUrl: true,
+        standardUrl: true,
+        cover: true,
+        website: true,
+        location: true,
+        verificationLevel: true,
+        accountType: true,
+        isAccountBanned: true,
+        accountBanReason: true,
+        suspendedUntil: true,
+        createdAt: true,
+        _count: {
+          select: {
+            posts: true,
+            followers: { where: { status: 'ACCEPTED' } },
+            following: { where: { status: 'ACCEPTED' } },
+          },
+        },
+      },
+    });
+
+    return profiles.map((p) => ({
+      ...p,
+      isSuspended: !!(p.suspendedUntil && p.suspendedUntil > new Date()),
+    }));
+  }
+
+  // Create an additional profile under the authenticated user identity (max 5 per identity).
+  async createProfile(userId: string, dto: CreateProfileDto) {
+    const profileCount = await this.prisma.profile.count({
+      where: { userId },
+    });
+    if (profileCount >= 5) {
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_INPUT,
+        'Maximum limit of 5 profiles per user identity reached',
+      );
+    }
+
+    const availability = await this.checkUsernameAvailability(dto.username);
+    if (!availability.available) {
+      throw AppException.BadRequest(
+        ErrorCode.INVALID_INPUT,
+        availability.message,
+      );
+    }
+
+    const profile = await this.prisma.profile.create({
+      data: {
+        userId,
+        username: dto.username,
+        fullName: dto.fullName || null,
+        bio: dto.bio || null,
+        avatar: dto.avatar || null,
+        website: dto.website || null,
+        location: dto.location || null,
+        accountType: (dto.accountType as AccountType) || 'PERSONAL',
+      },
+    });
+
+    const embeddingText = this.buildProfileEmbeddingText(profile);
+    if (embeddingText) {
+      await this.enqueueProfileEmbedding(profile.id, embeddingText);
+    }
+
+    return profile;
+  }
+
+  // Validate that a profile belongs to the authenticated user and is operational for switching.
+  async switchProfile(userId: string, targetProfileId: string) {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: targetProfileId },
+    });
+
+    if (!profile || profile.userId !== userId) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Profile not found or does not belong to this account',
+      );
+    }
+
+    if (profile.isAccountBanned) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        `Target profile is banned: ${profile.accountBanReason || 'violation of community guidelines'}`,
+      );
+    }
+
+    if (profile.suspendedUntil && profile.suspendedUntil > new Date()) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        `Target profile is suspended until ${profile.suspendedUntil.toISOString()}`,
+      );
+    }
+
+    return profile;
   }
 }

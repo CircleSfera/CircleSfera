@@ -1097,7 +1097,13 @@ export class AdminUsersService {
 
     while (hasMore) {
       const queryArgs: Prisma.UserFindManyArgs = {
-        where: { isActive: true },
+        where: {
+          isActive: true,
+          OR: [
+            { settings: { is: null } },
+            { settings: { emailNotifications: true } },
+          ],
+        },
         select: { email: true, id: true },
         take: batchSize,
         skip: cursor ? 1 : 0,

@@ -38,4 +38,4 @@ Non-negotiable:
 - Test the **deny** path, not only the happy path.
 - If a change may affect privacy, compliance or data integrity, stop and warn first.
 
-Full audit process: @.ai/agents/security.md
+Documentation: Notion → CircleSfera Documentation (see `AGENTS.md` for links).

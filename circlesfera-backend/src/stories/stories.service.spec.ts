@@ -24,6 +24,7 @@ describe('StoriesService', () => {
 
   const mockPrismaService = {
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
     story: {
       create: vi.fn(),
       findMany: vi.fn(),
@@ -377,6 +378,89 @@ describe('StoriesService', () => {
   });
 
   describe('view', () => {
+    const publicStory = {
+      profileId: 'author-1',
+      isCloseFriendsOnly: false,
+      profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+    };
+
+    beforeEach(() => {
+      mockPrismaService.story.findUnique.mockResolvedValue(publicStory);
+    });
+
+    it('rejects views across a block, and on close-friends stories for non-members', async () => {
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
+        ...publicStory,
+        isCloseFriendsOnly: true,
+      });
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.storyView.create).not.toHaveBeenCalled();
+    });
+
+    it('answers NotFound for a missing story', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue(null);
+
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.storyView.create).not.toHaveBeenCalled();
+    });
+
+    it('lets the author view their own close-friends story without access checks', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...publicStory,
+        isCloseFriendsOnly: true,
+      });
+      mockPrismaService.storyView.findUnique.mockResolvedValue(null);
+      mockPrismaService.storyView.create.mockResolvedValue({ id: 'view-1' });
+
+      const result = await service.view('story-1', 'author-1');
+
+      expect(result.id).toBe('view-1');
+      expect(mockPrismaService.block.findFirst).not.toHaveBeenCalled();
+      expect(mockPrismaService.closeFriend.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('requires an accepted follow to view a private account story', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        ...publicStory,
+        profile: { user: { settings: { privacyLevel: 'PRIVATE' } } },
+      });
+      mockPrismaService.follow.findUnique.mockResolvedValueOnce({
+        status: 'PENDING',
+      });
+      await expect(service.view('story-1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.storyView.create).not.toHaveBeenCalled();
+
+      mockPrismaService.follow.findUnique.mockResolvedValueOnce({
+        status: 'ACCEPTED',
+      });
+      mockPrismaService.storyView.findUnique.mockResolvedValue(null);
+      mockPrismaService.storyView.create.mockResolvedValue({ id: 'view-1' });
+
+      const result = await service.view('story-1', 'viewer-1');
+
+      expect(result.id).toBe('view-1');
+      expect(mockPrismaService.follow.findUnique).toHaveBeenCalledWith({
+        where: {
+          followerId_followingId: {
+            followerId: 'viewer-1',
+            followingId: 'author-1',
+          },
+        },
+        select: { status: true },
+      });
+    });
+
     it('should create a new view if not exists', async () => {
       mockPrismaService.storyView.findUnique.mockResolvedValue(null);
       mockPrismaService.storyView.create.mockResolvedValue({ id: 'view-1' });

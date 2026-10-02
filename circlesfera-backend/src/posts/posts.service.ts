@@ -22,6 +22,12 @@ import {
   createPaginatedResult,
   type PaginationDto,
 } from '../common/dto/pagination.dto.js';
+import {
+  getBlockedProfileIds,
+  isBlockedEitherWay,
+  notBlockedWithViewer,
+} from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -82,6 +88,14 @@ export class PostsService {
     const uniqueMentions = mentions
       ? [...new Set(mentions.map((m) => m.trim().slice(1)))]
       : [];
+
+    // Profiles in a block relation with the author cannot be tagged.
+    const blockedForAuthor = dto.tags?.length
+      ? new Set(await getBlockedProfileIds(this.prisma, profileId))
+      : new Set<string>();
+    const taggable = (dto.tags ?? []).filter(
+      (t) => !blockedForAuthor.has(t.profileId),
+    );
 
     // AI Moderation before creation
     const mediaUrls = dto.media?.map((m) => m.url) || [];
@@ -187,9 +201,9 @@ export class PostsService {
             scheduledAt: scheduledAt ?? null,
             scheduledStatus: scheduledAt ? 'SCHEDULED' : 'PUBLISHED',
             tags:
-              dto.tags && dto.tags.length > 0
+              taggable.length > 0
                 ? {
-                    create: dto.tags.map((t) => ({
+                    create: taggable.map((t) => ({
                       profileId: t.profileId,
                       x: t.x,
                       y: t.y,
@@ -288,7 +302,11 @@ export class PostsService {
   // Param tag: The hashtag to filter by (without #)
   // Param pagination: Page and limit parameters
   // Returns Paginated list of posts containing the given hashtag
-  async getByTag(tag: string, pagination: PaginationDto) {
+  async getByTag(
+    tag: string,
+    pagination: PaginationDto,
+    currentProfileId?: string,
+  ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
 
@@ -302,6 +320,7 @@ export class PostsService {
               },
             },
           },
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
         skip,
         take: limit,
@@ -331,6 +350,7 @@ export class PostsService {
               },
             },
           },
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
       }),
     ]);
@@ -525,48 +545,8 @@ export class PostsService {
       throw new NotFoundException('Post not found');
     }
 
-    // Authorization: Check if the post is private
-    // Authorization: Check if the post belongs to a private account
-    const isProfilePrivate =
-      post.profile.user?.settings?.privacyLevel === Visibility.PRIVATE;
-    if (isProfilePrivate && post.profileId !== currentProfileId) {
-      const follow = currentProfileId
-        ? await this.prisma.follow.findUnique({
-            where: {
-              followerId_followingId: {
-                followerId: currentProfileId,
-                followingId: post.profileId,
-              },
-            },
-          })
-        : null;
-
-      if (follow?.status !== 'ACCEPTED') {
-        throw new ForbiddenException('This account is private');
-      }
-    }
-
-    // Author check is already done above for private profiles.
-    // Post-level visibility check
-    if (
-      post.visibility === Visibility.PRIVATE &&
-      post.profileId !== currentProfileId
-    ) {
-      throw new ForbiddenException('This post is private');
-    }
-
-    if (
-      post.visibility === Visibility.FOLLOWERS &&
-      post.profileId !== currentProfileId
-    ) {
-      const isFollower = currentProfileId
-        ? await this.isFollowing(currentProfileId, post.profileId)
-        : false;
-
-      if (!isFollower) {
-        throw new ForbiddenException('This post is for followers only');
-      }
-    }
+    // Shared read-access rule: blocks, privacy, audience and moderation.
+    await assertCanAccessPost(this.prisma, post, currentProfileId);
 
     // Track view asynchronously (don't block the response)
     this.analyticsService
@@ -600,7 +580,10 @@ export class PostsService {
       include: { user: { include: { settings: true } } },
     });
 
-    if (!profile) {
+    if (
+      !profile ||
+      (await isBlockedEitherWay(this.prisma, currentProfileId, profile.id))
+    ) {
       throw new NotFoundException('User not found');
     }
 
@@ -683,7 +666,11 @@ export class PostsService {
   // Retrieve posts where a user has been tagged/mentioned.
   // Param username: The tagged user's username
   // Param pagination: Page and limit parameters
-  async getTaggedPosts(username: string, pagination: PaginationDto) {
+  async getTaggedPosts(
+    username: string,
+    pagination: PaginationDto,
+    currentProfileId?: string,
+  ) {
     const { page = 1, limit = 10, cursor } = pagination;
     const skip = cursor ? 1 : (page - 1) * limit;
 
@@ -691,7 +678,10 @@ export class PostsService {
       where: { username: { equals: username, mode: 'insensitive' } },
     });
 
-    if (!profile) {
+    if (
+      !profile ||
+      (await isBlockedEitherWay(this.prisma, currentProfileId, profile.id))
+    ) {
       throw new NotFoundException('User not found');
     }
 
@@ -703,6 +693,7 @@ export class PostsService {
               profileId: profile.id,
             },
           },
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
         skip,
         take: limit,
@@ -730,6 +721,7 @@ export class PostsService {
               profileId: profile.id,
             },
           },
+          ...this.getGlobalVisibilityFilter(currentProfileId),
         },
       }),
     ]);
@@ -832,7 +824,16 @@ export class PostsService {
     if (!currentProfileId) return baseFilter;
 
     return {
-      OR: [baseFilter, { profileId: currentProfileId }],
+      OR: [
+        {
+          ...baseFilter,
+          profile: {
+            ...(baseFilter.profile as Prisma.ProfileWhereInput),
+            ...notBlockedWithViewer(currentProfileId),
+          },
+        },
+        { profileId: currentProfileId },
+      ],
     };
   }
 
@@ -877,31 +878,30 @@ export class PostsService {
     const { likes, ...rest } = post as T & {
       likes?: unknown[];
       media?: any[];
+      _count?: { likes?: number | null; comments?: number };
+      hideLikes?: boolean;
+      profileId?: string;
     };
     const isLiked =
       currentProfileId && Array.isArray(likes) ? likes.length > 0 : false;
 
+    const isAuthor = currentProfileId && currentProfileId === post.profileId;
+    const hideLikes = Boolean(post.hideLikes);
+
+    const count = rest._count
+      ? {
+          ...rest._count,
+          likes: hideLikes && !isAuthor ? null : rest._count.likes,
+        }
+      : undefined;
+
     return {
       ...(rest as T),
+      ...(count ? { _count: count } : {}),
       ...(Array.isArray(rest.media)
         ? { media: rest.media.map(resolveMediaFields) }
         : {}),
       isLiked,
     };
-  }
-
-  private async isFollowing(
-    followerId: string,
-    followingId: string,
-  ): Promise<boolean> {
-    const follow = await this.prisma.follow.findUnique({
-      where: {
-        followerId_followingId: {
-          followerId,
-          followingId,
-        },
-      },
-    });
-    return follow?.status === 'ACCEPTED';
   }
 }

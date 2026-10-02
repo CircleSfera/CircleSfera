@@ -28,6 +28,7 @@ describe('MarkAsReadUseCase', () => {
       where: {
         conversationId: 'conv-1',
         profileId: 'profile-1',
+        hasAccepted: true,
       },
       data: {
         lastReadAt: expect.any(Date),

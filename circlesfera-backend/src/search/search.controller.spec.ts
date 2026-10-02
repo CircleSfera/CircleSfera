@@ -89,7 +89,10 @@ describe('SearchController', () => {
       .set(BEARER)
       .expect(200);
 
-    expect(mockService.getTrending).toHaveBeenCalledWith(5);
+    expect(mockService.getTrending).toHaveBeenCalledWith(
+      5,
+      TEST_USER.profileId,
+    );
     expect(mockService.getHistory).toHaveBeenCalledWith(TEST_USER.profileId);
     expect(mockService.clearHistory).toHaveBeenCalledWith(TEST_USER.profileId);
   });
@@ -106,7 +109,10 @@ describe('SearchController', () => {
       .get('/api/v1/search/trending')
       .set(BEARER)
       .expect(200);
-    expect(mockService.getTrending).toHaveBeenCalledWith(10);
+    expect(mockService.getTrending).toHaveBeenCalledWith(
+      10,
+      TEST_USER.profileId,
+    );
 
     // searchPosts
     const postsRes = await request(app.getHttpServer())
@@ -115,7 +121,10 @@ describe('SearchController', () => {
       .set(BEARER)
       .expect(200);
     expect(postsRes.body).toEqual([{ id: 'p-1' }]);
-    expect(mockService.searchPosts).toHaveBeenCalledWith('photography');
+    expect(mockService.searchPosts).toHaveBeenCalledWith(
+      'photography',
+      TEST_USER.profileId,
+    );
 
     // semanticSearchPosts
     const aiRes = await request(app.getHttpServer())
@@ -126,6 +135,8 @@ describe('SearchController', () => {
     expect(aiRes.body).toEqual([{ id: 'p-ai' }]);
     expect(mockService.semanticSearchPosts).toHaveBeenCalledWith(
       'sunset beach',
+      10,
+      TEST_USER.profileId,
     );
 
     // semanticSearchProfiles

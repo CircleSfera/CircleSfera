@@ -24,6 +24,7 @@ describe('LikesController', () => {
   const mockService = {
     toggle: vi.fn(),
     checkLike: vi.fn(),
+    getLikesByPost: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -76,6 +77,23 @@ describe('LikesController', () => {
 
     expect(res.body).toEqual({ liked: false });
     expect(mockService.checkLike).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('gets likes with the session profileId', async () => {
+    mockService.getLikesByPost.mockResolvedValue([
+      { id: 'like-1', profileId: 'profile-2' },
+    ]);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/posts/post-1/likes')
+      .set(BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual([{ id: 'like-1', profileId: 'profile-2' }]);
+    expect(mockService.getLikesByPost).toHaveBeenCalledWith(
       'post-1',
       TEST_USER.profileId,
     );

@@ -4,6 +4,10 @@ import { OnEvent } from '@nestjs/event-emitter';
 import type { Hashtag, Post } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
+import {
+  getBlockedProfileIds,
+  notBlockedWithViewer,
+} from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -57,8 +61,13 @@ export class SearchService {
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "post_embeddings" pe
           JOIN "posts" p ON p.id = pe."postId"
+          JOIN "profiles" pr ON pr.id = p."profileId"
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
+            AND us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -70,8 +79,13 @@ export class SearchService {
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "post_embeddings" pe
           JOIN "posts" p ON p.id = pe."postId"
+          JOIN "profiles" pr ON pr.id = p."profileId"
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE p.visibility = 'PUBLIC'
             AND p."moderationStatus" = 'VISIBLE'
+            AND us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -128,8 +142,12 @@ export class SearchService {
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
           JOIN "profiles" pr ON pr.id = pe."profileId"
-          WHERE pr."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
-            AND pr."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
+          WHERE us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
+            AND pr.id NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
+            AND pr.id NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -138,6 +156,11 @@ export class SearchService {
           SELECT pe."profileId",
                  (pe.vector <=> ${vectorLiteral}::vector) as distance
           FROM "profile_embeddings" pe
+          JOIN "profiles" pr ON pr.id = pe."profileId"
+          JOIN "users" u ON u.id = pr."userId"
+          JOIN "user_settings" us ON us."userId" = pr."userId"
+          WHERE us."privacyLevel" = 'PUBLIC'
+            AND u."deactivatedAt" IS NULL
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -296,6 +319,11 @@ export class SearchService {
           { username: { contains: sanitizedQuery, mode: 'insensitive' } },
           { fullName: { contains: sanitizedQuery, mode: 'insensitive' } },
         ],
+        user: {
+          deactivatedAt: null,
+        },
+        // Blocked Profiles are not findable in either direction.
+        ...notBlockedWithViewer(viewerId),
       },
       take: 30, // Larger pool for better ranking
       include: {
@@ -371,10 +399,16 @@ export class SearchService {
   // Get trending posts based on interaction Velocity (decays over time).
   // Formula: (Likes_1h * 2 + Comments_1h * 5) / (Hours_Since_Post + 2)^1.8
   // Param limit: Number of posts to return
-  async getTrending(limit = 10): Promise<Post[]> {
-    const cacheKey = `trending_v2:${limit}`;
+  async getTrending(limit = 10, viewerId?: string): Promise<Post[]> {
+    // The cached list is viewer-independent; blocks are applied per viewer
+    // afterwards so a block never leaks through the shared cache.
+    const blocked = new Set(await getBlockedProfileIds(this.prisma, viewerId));
+    const withoutBlocked = (posts: Post[]) =>
+      posts.filter((p) => !blocked.has(p.profileId));
+
+    const cacheKey = `trending_v3:${limit}`;
     const cached = await this.cacheManager.get<Post[]>(cacheKey);
-    if (cached) return cached;
+    if (cached) return withoutBlocked(cached);
 
     // Use complex SQL for real-time velocity calculation with gravity decay
     const trending = await this.prisma.$queryRaw<any[]>`
@@ -383,12 +417,18 @@ export class SearchService {
         (
           (
             (SELECT COUNT(*) FROM likes l WHERE l."postId" = p.id AND l."createdAt" > NOW() - INTERVAL '1 hour') * 2.5 +
-            (SELECT COUNT(*) FROM "Comment" c WHERE c."postId" = p.id AND c."createdAt" > NOW() - INTERVAL '1 hour') * 5.0
+            (SELECT COUNT(*) FROM comments c WHERE c."postId" = p.id AND c."createdAt" > NOW() - INTERVAL '1 hour') * 5.0
           ) / POW(EXTRACT(EPOCH FROM (NOW() - p."createdAt")) / 3600 + 2, 1.8)
         ) as velocity_score
       FROM posts p
+      JOIN profiles pr ON pr.id = p."profileId"
+      JOIN users u ON u.id = pr."userId"
+      JOIN user_settings us ON us."userId" = pr."userId"
       WHERE p."createdAt" > NOW() - INTERVAL '48 hours'
         AND p.visibility = 'PUBLIC'
+        AND p."moderationStatus" = 'VISIBLE'
+        AND us."privacyLevel" = 'PUBLIC'
+        AND u."deactivatedAt" IS NULL
       ORDER BY velocity_score DESC
       LIMIT ${limit};
     `;
@@ -410,20 +450,30 @@ export class SearchService {
     );
 
     await this.cacheManager.set(cacheKey, sortedPosts, 60000); // 1 min cache for hot trending
-    return sortedPosts;
+    return withoutBlocked(sortedPosts);
   }
 
   // Search posts with Authority Weighting and Velocity ranking.
   // Param query: Keyword to search in captions
-  async searchPosts(query: string): Promise<Post[]> {
+  async searchPosts(query: string, viewerId?: string): Promise<Post[]> {
     if (!query || query.length < 2) return [];
 
     const sanitizedQuery = query.toLowerCase();
 
+    // Same public-content rule as semantic search: public posts from public
+    // accounts, visible under moderation, never across a block.
     const posts = await this.prisma.post.findMany({
       where: {
         caption: { contains: sanitizedQuery, mode: 'insensitive' },
         visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
+        profile: {
+          user: {
+            deactivatedAt: null,
+            settings: { is: { privacyLevel: 'PUBLIC' } },
+          },
+          ...notBlockedWithViewer(viewerId),
+        },
       },
       include: {
         profile: { include: { user: true } },

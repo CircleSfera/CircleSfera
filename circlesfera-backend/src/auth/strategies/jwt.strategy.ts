@@ -10,6 +10,8 @@ import { AccountStateService } from '../services/account-state.service.js';
 export interface JwtPayload {
   sub: string;
   email: string;
+  profileId?: string;
+  jti?: string;
 }
 
 // Custom extractor: tries HTTP-only cookie first, then Authorization header.
@@ -50,17 +52,32 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    const profile = user
-      ? await this.prisma.profile.findFirst({
-          where: { userId: user.id },
+    let profile = null;
+    if (user) {
+      if (payload.profileId) {
+        profile = await this.prisma.profile.findFirst({
+          where: { id: payload.profileId, userId: user.id },
           select: {
             id: true,
             isAccountBanned: true,
             accountBanReason: true,
             suspendedUntil: true,
           },
-        })
-      : null;
+        });
+      }
+      if (!profile) {
+        profile = await this.prisma.profile.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            isAccountBanned: true,
+            accountBanReason: true,
+            suspendedUntil: true,
+          },
+        });
+      }
+    }
 
     this.accountStateService.assertOperational(user, profile);
 

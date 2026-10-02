@@ -159,6 +159,9 @@ export class AuthService {
           },
         },
       },
+      include: {
+        profiles: true,
+      },
     });
 
     // Send verification email
@@ -178,6 +181,8 @@ export class AuthService {
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      user.profiles?.[0]?.id,
     );
   }
 
@@ -400,6 +405,14 @@ export class AuthService {
           message: ApiErrorCode.ACCOUNT_BANNED,
           reason: user.rootBanReason,
         });
+      } else if (user.deactivatedAt) {
+        // Self-deactivated accounts come back on login. Moderation never
+        // sets deactivatedAt, so staff deactivations still fall through to
+        // the banned response below.
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deactivatedAt: null },
+        });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
@@ -409,12 +422,19 @@ export class AuthService {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
+          reason: user.rootBanReason || undefined,
         });
       }
     } else if (user.isRootBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: user.rootBanReason,
+        appealToken,
       });
     }
 
@@ -429,9 +449,15 @@ export class AuthService {
       },
     });
     if (loginProfile?.isAccountBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: loginProfile.accountBanReason,
+        appealToken,
       });
     }
     if (
@@ -441,6 +467,7 @@ export class AuthService {
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
         suspendedUntil: loginProfile.suspendedUntil.toISOString(),
+        reason: loginProfile.accountBanReason || undefined,
       });
     }
 
@@ -492,6 +519,8 @@ export class AuthService {
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      loginProfile?.id,
     );
   }
 
@@ -533,6 +562,14 @@ export class AuthService {
           message: ApiErrorCode.ACCOUNT_BANNED,
           reason: user.rootBanReason,
         });
+      } else if (user.deactivatedAt) {
+        // Self-deactivated accounts come back on login. Moderation never
+        // sets deactivatedAt, so staff deactivations still fall through to
+        // the banned response below.
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isActive: true, deactivatedAt: null },
+        });
       } else {
         const secret = this.configService.getOrThrow<string>('JWT_SECRET');
         const appealToken = this.jwtService.sign(
@@ -542,20 +579,35 @@ export class AuthService {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
           appealToken,
+          reason: user.rootBanReason || undefined,
         });
       }
     } else if (user.isRootBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: user.id, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
         reason: user.rootBanReason,
+        appealToken,
       });
     }
+
+    const loginProfile = await this.prisma.profile.findFirst({
+      where: { userId: user.id },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
 
     return this.generateTokens(
       user.id,
       user.email,
       meta.userAgent || undefined,
       meta.ip || undefined,
+      undefined,
+      loginProfile?.id,
     );
   }
 
@@ -580,6 +632,7 @@ export class AuthService {
     let payload: {
       sub: string;
       email: string;
+      profileId?: string;
       familyId?: string;
       jti?: string;
     };
@@ -588,6 +641,7 @@ export class AuthService {
       payload = this.jwtService.verify<{
         sub: string;
         email: string;
+        profileId?: string;
         familyId?: string;
         jti?: string;
       }>(refreshToken, {
@@ -659,7 +713,10 @@ export class AuthService {
       },
     });
 
-    const profile = user?.profiles?.[0];
+    const profile =
+      (payload.profileId
+        ? user?.profiles?.find((p) => p.id === payload.profileId)
+        : null) || user?.profiles?.[0];
     try {
       this.accountStateService.assertOperational(user, profile);
     } catch (error) {
@@ -687,6 +744,7 @@ export class AuthService {
       meta.userAgent || undefined,
       meta.ip || undefined,
       currentFamilyId,
+      profile?.id,
     );
   }
 
@@ -776,6 +834,7 @@ export class AuthService {
   // Param userAgent: Optional client browser/device User-Agent string
   // Param ipAddress: Optional client IP address
   // Param familyId: Optional token family identifier for session rotation lineage
+  // Param profileId: Optional active profile identifier bound to the session
   // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
@@ -783,17 +842,24 @@ export class AuthService {
     userAgent?: string,
     ipAddress?: string,
     familyId?: string,
+    profileId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const tokenFamilyId = familyId || randomUUID();
     const payload = {
       sub: userId,
       email,
+      ...(profileId ? { profileId } : {}),
       jti: randomUUID(),
       familyId: tokenFamilyId,
     };
 
     const accessToken = this.jwtService.sign(
-      { sub: userId, email, jti: randomUUID() },
+      {
+        sub: userId,
+        email,
+        ...(profileId ? { profileId } : {}),
+        jti: randomUUID(),
+      },
       {
         secret: this.configService.getOrThrow<string>('JWT_SECRET'),
         expiresIn: '15m',

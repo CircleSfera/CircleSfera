@@ -183,6 +183,37 @@ describe('JwtStrategy', () => {
       });
     });
 
+    it('resolves specific profile when profileId is provided in token payload', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        isActive: true,
+        isRootBanned: false,
+        email: 'test@example.com',
+        role: 'USER',
+      });
+      mockPrisma.profile.findFirst.mockResolvedValue({
+        id: 'prof-2',
+        suspendedUntil: null,
+      });
+
+      const result = await strategy.validate({
+        sub: 'u-1',
+        email: 'test@example.com',
+        profileId: 'prof-2',
+      });
+
+      expect(mockPrisma.profile.findFirst).toHaveBeenCalledWith({
+        where: { id: 'prof-2', userId: 'u-1' },
+        select: {
+          id: true,
+          isAccountBanned: true,
+          accountBanReason: true,
+          suspendedUntil: true,
+        },
+      });
+      expect(result.profileId).toBe('prof-2');
+    });
+
     it('defaults role to USER and profileId to empty string when not provided', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({
         id: 'u-1',

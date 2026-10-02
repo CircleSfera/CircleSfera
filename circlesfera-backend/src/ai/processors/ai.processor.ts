@@ -249,7 +249,7 @@ export class AIProcessor extends WorkerHost {
           ? 'flagged for review'
           : String(status).toLowerCase();
 
-    const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment} You can appeal from Settings → Appeals.`;
+    const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment}. Review our Community Guidelines at /guidelines. You can appeal from Settings → Appeals.`;
 
     this.eventEmitter.emit('notification.create', {
       recipientId: authorId,

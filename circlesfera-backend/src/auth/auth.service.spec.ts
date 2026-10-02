@@ -257,16 +257,53 @@ describe('AuthService', () => {
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException for deactivated account', async () => {
+    it('keeps rejecting accounts deactivated by moderation (no deactivatedAt)', async () => {
       const argonHash = await argon2.hash(dto.password);
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: '1',
         email: dto.identifier,
         password: argonHash,
         isActive: false,
+        deactivatedAt: null,
       });
 
       await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('reactivates a self-deactivated account on login', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: false,
+        deactivatedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+
+      // Login continues past the account-state gate; later steps are not
+      // under test here, so only the reactivation write is asserted.
+      await service.login(dto).catch(() => undefined);
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: '1' },
+        data: { isActive: true, deactivatedAt: null },
+      });
+    });
+
+    it('never reactivates a self-deactivated account that is also root-banned', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: false,
+        isRootBanned: true,
+        deactivatedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(UnauthorizedException);
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
 
     it('should strictly reject plaintext passwords and fail closed without updating user', async () => {
@@ -500,9 +537,12 @@ describe('AuthService', () => {
       });
 
       await expect(service.login(dto)).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Community strike 3',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'Community strike 3',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });
@@ -886,9 +926,12 @@ describe('AuthService', () => {
       });
 
       await expect(service.loginById('u-banned-active')).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Spam violation',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'Spam violation',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });
@@ -1129,9 +1172,12 @@ describe('AuthService', () => {
           password: 'Password123!',
         }),
       ).rejects.toThrow(
-        new UnauthorizedException({
-          message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'TOS violation',
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'TOS violation',
+            appealToken: expect.any(String),
+          }),
         }),
       );
     });

@@ -1,6 +1,10 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
+import {
+  isBlockedEitherWay,
+  notBlockedWithViewer,
+} from '../common/policies/block.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
@@ -82,12 +86,19 @@ export class LiveService {
     return streamPromise;
   }
 
-  async getViewerToken(streamId: string, userId: string) {
+  async getViewerToken(
+    streamId: string,
+    userId: string,
+    viewerProfileId?: string,
+  ) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
     });
 
-    if (stream?.status !== 'LIVE') {
+    if (
+      stream?.status !== 'LIVE' ||
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
+    ) {
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found or ended',
@@ -129,9 +140,10 @@ export class LiveService {
   // Bounded, not paginated (DATA-003): concurrent live streams are
   // self-limiting in practice, unlike a growing social history, so a safety
   // cap is proportionate here rather than full cursor pagination.
-  async getActiveStreams() {
+  async getActiveStreams(viewerProfileId?: string) {
     const streams = await this.prisma.liveStream.findMany({
-      where: { status: 'LIVE' },
+      // Hosts in a block relation with the viewer are hidden.
+      where: { status: 'LIVE', host: notBlockedWithViewer(viewerProfileId) },
       include: {
         host: {
           select: { id: true, username: true, avatar: true },
@@ -147,7 +159,7 @@ export class LiveService {
     }));
   }
 
-  async getStream(streamId: string) {
+  async getStream(streamId: string, viewerProfileId?: string) {
     const stream = await this.prisma.liveStream.findUnique({
       where: { id: streamId },
       include: {
@@ -160,7 +172,10 @@ export class LiveService {
       },
     });
 
-    if (!stream)
+    if (
+      !stream ||
+      (await isBlockedEitherWay(this.prisma, viewerProfileId, stream.hostId))
+    )
       throw AppException.NotFound(
         ErrorCode.STREAM_NOT_FOUND,
         'Stream not found',
