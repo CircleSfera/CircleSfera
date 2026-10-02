@@ -19,6 +19,7 @@ import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 
