@@ -80,6 +80,36 @@ describe('SearchService', () => {
       expect(mockAIService.generateEmbedding).not.toHaveBeenCalled();
     });
 
+    it('limits semantic post matches to the viewer audience (PD-006)', async () => {
+      mockCacheManager.get.mockResolvedValueOnce(null);
+      mockPrismaService.user.findMany.mockResolvedValueOnce([
+        { isTestAccount: true, profiles: [{ id: 'test-viewer' }] },
+      ]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
+
+      await service.semanticSearchPosts('space rocket', 10, 'test-viewer');
+
+      const [strings, ...values] = mockPrismaService.$queryRaw.mock.calls.at(
+        -1,
+      ) as [TemplateStringsArray, ...unknown[]];
+      expect(strings.join('?')).toContain('u."isTestAccount" = ?');
+      expect(values).toContain(true);
+    });
+
+    it('limits anonymous semantic profile matches to real accounts (PD-006)', async () => {
+      mockCacheManager.get.mockResolvedValueOnce(null);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
+
+      await service.semanticSearchProfiles('space rocket');
+
+      const [strings, ...values] = mockPrismaService.$queryRaw.mock.calls.at(
+        -1,
+      ) as [TemplateStringsArray, ...unknown[]];
+      expect(strings.join('?')).toContain('u."isTestAccount" = ?');
+      expect(values).toContain(false);
+      expect(values).not.toContain(true);
+    });
+
     it('returns empty array when no vector matches are found', async () => {
       mockCacheManager.get.mockResolvedValueOnce(null);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]);

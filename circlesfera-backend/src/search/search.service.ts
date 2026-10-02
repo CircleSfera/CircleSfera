@@ -8,7 +8,10 @@ import {
   getBlockedProfileIds,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
-import { filterToViewerAudience } from '../common/policies/test-account.policy.js';
+import {
+  filterToViewerAudience,
+  isTestViewerProfile,
+} from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -53,6 +56,8 @@ export class SearchService {
       // 1. Generate embedding for the search query
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
+      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
 
       // 2. Find similar posts via post_embeddings (pgvector cosine distance)
       let matches: any[];
@@ -70,6 +75,7 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -88,6 +94,7 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -136,6 +143,8 @@ export class SearchService {
     try {
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
+      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
       let matches: any[];
 
       if (profileId) {
@@ -148,6 +157,7 @@ export class SearchService {
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
             AND pr.id NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND pr.id NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -163,6 +173,7 @@ export class SearchService {
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
