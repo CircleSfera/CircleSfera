@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { AnalyticsModule } from '../analytics/analytics.module.js';
-import { StripeModule } from '../common/stripe/stripe.module.js';
 import { MonetizationModule } from '../monetization/monetization.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { StripeModule } from '../common/stripe/stripe.module.js';
 import { CreatorController } from './creator.controller.js';
-import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
