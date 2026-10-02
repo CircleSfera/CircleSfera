@@ -21,6 +21,7 @@ describe('ProfilesService', () => {
       update: vi.fn(),
     },
     user: {
+      findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
       findUnique: vi.fn(),
     },
@@ -506,8 +507,13 @@ describe('ProfilesService', () => {
 
       const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
       expect(where.user).toEqual({ deactivatedAt: null });
-      expect(where.blocking).toEqual({ none: { blockedId: 'viewer-1' } });
-      expect(where.blockedBy).toEqual({ none: { blockerId: 'viewer-1' } });
+      expect(where.AND).toEqual([
+        {
+          user: { isTestAccount: false },
+          blocking: { none: { blockedId: 'viewer-1' } },
+          blockedBy: { none: { blockerId: 'viewer-1' } },
+        },
+      ]);
     });
   });
 

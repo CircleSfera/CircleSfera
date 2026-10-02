@@ -24,9 +24,7 @@ describe('LiveGiftService', () => {
     liveStream: {
       findUnique: vi.fn(),
     },
-    user: {
-      findUnique: vi.fn(),
-    },
+    user: { findMany: vi.fn().mockResolvedValue([]), findUnique: vi.fn() },
     liveGift: {
       create: vi.fn(),
       update: vi.fn(),

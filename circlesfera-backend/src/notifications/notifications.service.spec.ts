@@ -9,6 +9,7 @@ describe('NotificationsService', () => {
   let service: NotificationsService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     notification: {
       findMany: vi.fn(),
       count: vi.fn(),

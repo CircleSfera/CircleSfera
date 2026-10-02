@@ -6,8 +6,12 @@ import type { Cache } from 'cache-manager';
 import { AIService } from '../ai/ai.service.js';
 import {
   getBlockedProfileIds,
-  notBlockedWithViewer,
+  visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import {
+  filterToViewerAudience,
+  isTestViewerProfile,
+} from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -52,6 +56,8 @@ export class SearchService {
       // 1. Generate embedding for the search query
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
+      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
 
       // 2. Find similar posts via post_embeddings (pgvector cosine distance)
       let matches: any[];
@@ -69,6 +75,7 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
             AND p."profileId" NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND p."profileId" NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -87,6 +94,7 @@ export class SearchService {
             AND p."moderationStatus" = 'VISIBLE'
             AND us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -135,6 +143,8 @@ export class SearchService {
     try {
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
+      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
       let matches: any[];
 
       if (profileId) {
@@ -147,6 +157,7 @@ export class SearchService {
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
             AND pr.id NOT IN (SELECT "blockedId" FROM "blocks" WHERE "blockerId" = ${profileId})
             AND pr.id NOT IN (SELECT "blockerId" FROM "blocks" WHERE "blockedId" = ${profileId})
           ORDER BY distance ASC
@@ -162,6 +173,7 @@ export class SearchService {
           JOIN "user_settings" us ON us."userId" = pr."userId"
           WHERE us."privacyLevel" = 'PUBLIC'
             AND u."deactivatedAt" IS NULL
+            AND u."isTestAccount" = ${viewerIsTest}
           ORDER BY distance ASC
           LIMIT ${limit}
         `;
@@ -240,6 +252,14 @@ export class SearchService {
             tag: {
               contains: sanitizedQuery,
               mode: 'insensitive',
+            },
+            // Only tags used by Profiles the viewer can see (blocks, PD-006).
+            posts: {
+              some: {
+                post: {
+                  profile: await visibleToViewerWhere(this.prisma, profileId),
+                },
+              },
             },
           },
           take: 5,
@@ -323,8 +343,8 @@ export class SearchService {
         user: {
           deactivatedAt: null,
         },
-        // Blocked Profiles are not findable in either direction.
-        ...notBlockedWithViewer(viewerId),
+        // Blocked Profiles and other audiences (PD-006) are not findable.
+        AND: [await visibleToViewerWhere(this.prisma, viewerId)],
       },
       take: 30, // Larger pool for better ranking
       include: {
@@ -401,11 +421,16 @@ export class SearchService {
   // Formula: (Likes_1h * 2 + Comments_1h * 5) / (Hours_Since_Post + 2)^1.8
   // Param limit: Number of posts to return
   async getTrending(limit = 10, viewerId?: string): Promise<Post[]> {
-    // The cached list is viewer-independent; blocks are applied per viewer
-    // afterwards so a block never leaks through the shared cache.
+    // The cached list is viewer-independent; blocks and audiences (PD-006)
+    // are applied per viewer afterwards so neither leaks through the cache.
     const blocked = new Set(await getBlockedProfileIds(this.prisma, viewerId));
     const withoutBlocked = (posts: Post[]) =>
-      posts.filter((p) => !blocked.has(p.profileId));
+      filterToViewerAudience(
+        this.prisma,
+        viewerId,
+        posts.filter((p) => !blocked.has(p.profileId)),
+        (p) => p.profileId,
+      );
 
     const cacheKey = `trending_v3:${limit}`;
     const cached = await this.cacheManager.get<Post[]>(cacheKey);
@@ -473,7 +498,7 @@ export class SearchService {
             deactivatedAt: null,
             settings: { is: { privacyLevel: 'PUBLIC' } },
           },
-          ...notBlockedWithViewer(viewerId),
+          AND: [await visibleToViewerWhere(this.prisma, viewerId)],
         },
       },
       include: {

@@ -21,6 +21,7 @@ describe('LiveService', () => {
   };
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     liveStream: {
       updateMany: vi.fn(),

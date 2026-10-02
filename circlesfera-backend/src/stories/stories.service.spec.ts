@@ -23,6 +23,7 @@ describe('StoriesService', () => {
   let mockUploadsService: { deleteFile: ReturnType<typeof vi.fn> };
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     story: {

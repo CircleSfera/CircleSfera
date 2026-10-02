@@ -8,6 +8,7 @@ describe('HighlightsService', () => {
   let service: HighlightsService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     highlight: {
       create: vi.fn(),
       findMany: vi.fn(),

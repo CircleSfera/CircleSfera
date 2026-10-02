@@ -7,6 +7,7 @@ describe('SeoService', () => {
   let service: SeoService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     profile: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
@@ -61,6 +62,7 @@ describe('SeoService', () => {
           isActive: true,
           deactivatedAt: null,
           isRootBanned: false,
+          isTestAccount: false,
           settings: { isNot: { privacyLevel: 'PRIVATE' } },
         },
       });

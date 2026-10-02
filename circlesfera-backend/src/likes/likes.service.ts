@@ -6,7 +6,7 @@ import { $Enums } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verified.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
-import { notBlockedWithViewer } from '../common/policies/block.policy.js';
+import { visibleToViewerWhere } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -124,7 +124,7 @@ export class LikesService {
     const likes = await this.prisma.like.findMany({
       where: {
         postId,
-        profile: notBlockedWithViewer(viewerProfileId),
+        profile: await visibleToViewerWhere(this.prisma, viewerProfileId),
       },
       include: {
         profile: {

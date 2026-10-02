@@ -14,7 +14,11 @@ describe('FollowsService', () => {
 
   const mockPrismaService = {
     $transaction: vi.fn((ops: unknown[]) => Promise.all(ops)),
-    user: { findUnique: vi.fn(), findFirst: vi.fn() },
+    user: {
+      findMany: vi.fn().mockResolvedValue([]),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+    },
     profile: { findUnique: vi.fn(), findFirst: vi.fn() },
     follow: {
       findUnique: vi.fn(),
@@ -317,6 +321,7 @@ describe('FollowsService', () => {
           where: {
             followingId: '2',
             status: 'ACCEPTED',
+            follower: { user: { isTestAccount: false } },
           },
         }),
       );

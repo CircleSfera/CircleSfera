@@ -8,6 +8,8 @@ describe('InteractiveService', () => {
   let service: InteractiveService;
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
     poll: {
       findUnique: vi.fn(),
       create: vi.fn(),
@@ -325,6 +327,13 @@ describe('InteractiveService', () => {
         ],
       });
 
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        profileId: 'user-1',
+        visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
+      });
+
       const res = await service.votePoll('user-1', 'poll-1', 0);
       expect(res.totalVotes).toBe(2);
       expect(res.userVoteIndex).toBe(0);
@@ -346,6 +355,37 @@ describe('InteractiveService', () => {
       expect(res.totalVotes).toBe(0);
       expect(res.options[0].percentage).toBe(0);
       expect(res.userVoteIndex).toBeNull();
+    });
+
+    it('hides a story poll from a viewer of the other audience', async () => {
+      mockPrismaService.poll.findUnique.mockResolvedValueOnce({
+        id: 'poll-story',
+        question: 'Q?',
+        options: ['Yes'],
+        votes: [],
+        story: { profileId: 'test-author' },
+      });
+      mockPrismaService.user.findMany.mockResolvedValueOnce([
+        { isTestAccount: true, profiles: [{ id: 'test-author' }] },
+        { isTestAccount: false, profiles: [{ id: 'real-viewer' }] },
+      ]);
+
+      await expect(
+        service.getPoll('poll-story', 'real-viewer'),
+      ).rejects.toThrow('Poll not found');
+    });
+
+    it('shows a story poll to a viewer who may see the story author', async () => {
+      mockPrismaService.poll.findUnique.mockResolvedValueOnce({
+        id: 'poll-story',
+        question: 'Q?',
+        options: ['Yes'],
+        votes: [],
+        story: { profileId: 'author' },
+      });
+
+      const res = await service.getPoll('poll-story', 'viewer');
+      expect(res.totalVotes).toBe(0);
     });
 
     it('throws NotFound when poll is missing', async () => {

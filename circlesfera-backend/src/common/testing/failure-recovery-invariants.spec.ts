@@ -171,6 +171,7 @@ describe('Failure Injection & Recovery Invariants', () => {
 
     beforeEach(() => {
       mockPrisma = {
+        user: { findMany: vi.fn().mockResolvedValue([]) },
         post: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
         story: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
         message: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
@@ -442,6 +443,7 @@ describe('Failure Injection & Recovery Invariants', () => {
 
     beforeEach(() => {
       mockPrisma = {
+        user: { findMany: vi.fn().mockResolvedValue([]) },
         follow: {
           findMany: vi
             .fn()

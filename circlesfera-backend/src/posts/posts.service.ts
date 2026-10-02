@@ -25,7 +25,7 @@ import {
 import {
   getBlockedProfileIds,
   isBlockedEitherWay,
-  notBlockedWithViewer,
+  visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import {
@@ -324,7 +324,7 @@ export class PostsService {
               },
             },
           },
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
         skip,
         take: limit,
@@ -354,7 +354,7 @@ export class PostsService {
               },
             },
           },
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
       }),
     ]);
@@ -390,7 +390,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where: {
           type: 'POST',
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
         skip,
         take: limit,
@@ -419,7 +419,7 @@ export class PostsService {
       this.prisma.post.count({
         where: {
           type: 'POST',
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
       }),
     ]);
@@ -462,7 +462,7 @@ export class PostsService {
       this.prisma.post.findMany({
         where: {
           type: 'FRAME',
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
         skip,
         take: limit,
@@ -491,7 +491,7 @@ export class PostsService {
       this.prisma.post.count({
         where: {
           type: 'FRAME',
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
       }),
     ]);
@@ -697,7 +697,7 @@ export class PostsService {
               profileId: profile.id,
             },
           },
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
         skip,
         take: limit,
@@ -725,7 +725,7 @@ export class PostsService {
               profileId: profile.id,
             },
           },
-          ...this.getGlobalVisibilityFilter(currentProfileId),
+          ...(await this.getGlobalVisibilityFilter(currentProfileId)),
         },
       }),
     ]);
@@ -814,31 +814,23 @@ export class PostsService {
 
   // Returns a Prisma filter for global/discovery feeds.
   // Shows only PUBLIC posts from non-private profiles, plus user's own posts.
-  private getGlobalVisibilityFilter(
+  private async getGlobalVisibilityFilter(
     currentProfileId?: string,
-  ): Prisma.PostWhereInput {
+  ): Promise<Prisma.PostWhereInput> {
     const baseFilter: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
       profile: {
-        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
+        AND: [
+          { user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } } },
+          await visibleToViewerWhere(this.prisma, currentProfileId),
+        ],
       },
     };
 
     if (!currentProfileId) return baseFilter;
 
-    return {
-      OR: [
-        {
-          ...baseFilter,
-          profile: {
-            ...(baseFilter.profile as Prisma.ProfileWhereInput),
-            ...notBlockedWithViewer(currentProfileId),
-          },
-        },
-        { profileId: currentProfileId },
-      ],
-    };
+    return { OR: [baseFilter, { profileId: currentProfileId }] };
   }
 
   // Returns a Prisma filter for a specific user's profile.

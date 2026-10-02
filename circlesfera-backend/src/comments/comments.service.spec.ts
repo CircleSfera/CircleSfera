@@ -19,6 +19,7 @@ describe('CommentsService', () => {
   };
 
   const mockPrismaService = {
+    user: { findMany: vi.fn().mockResolvedValue([]) },
     $transaction: vi.fn((cb) => cb(mockPrismaService)),
     post: {
       findUnique: vi.fn(),

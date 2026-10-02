@@ -11,6 +11,7 @@ const PUBLIC_PROFILE_WHERE = {
     isActive: true,
     deactivatedAt: null,
     isRootBanned: false,
+    isTestAccount: false,
     settings: { isNot: { privacyLevel: Visibility.PRIVATE } },
   },
 } satisfies Prisma.ProfileWhereInput;

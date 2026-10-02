@@ -17,6 +17,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
@@ -221,6 +222,7 @@ export class FollowsService {
       where: {
         followingId: profile.id,
         status: 'ACCEPTED',
+        follower: await viewerAudienceWhere(this.prisma, viewerProfileId),
         ...cursorWhere,
       },
       include: {
@@ -265,6 +267,7 @@ export class FollowsService {
       where: {
         followerId: profile.id,
         status: 'ACCEPTED',
+        following: await viewerAudienceWhere(this.prisma, viewerProfileId),
         ...cursorWhere,
       },
       include: {

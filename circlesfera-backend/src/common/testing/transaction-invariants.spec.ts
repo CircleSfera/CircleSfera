@@ -15,6 +15,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         $transaction: vi.fn(async (cb: any) => cb(mockPrisma)),
         user: {
           findUnique: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
         },
         post: {
           findUnique: vi.fn(),
@@ -209,6 +210,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         stripe: {},
       };
       mockPrisma = {
+        user: { findMany: vi.fn().mockResolvedValue([]) },
         webhookEvent: {
           findUnique: vi.fn(),
           create: vi.fn(),
@@ -300,6 +302,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
     beforeEach(() => {
       mockPrisma = {
+        user: { findMany: vi.fn().mockResolvedValue([]) },
         profile: {
           findFirst: vi.fn(),
         },

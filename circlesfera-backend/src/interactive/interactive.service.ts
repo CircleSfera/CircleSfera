@@ -1,6 +1,8 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { AppException } from '../common/errors/app.exception.js';
+import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
@@ -201,10 +203,24 @@ export class InteractiveService {
       where: { id: pollId },
       include: {
         votes: true,
+        story: { select: { profileId: true } },
       },
     });
 
     if (!poll) {
+      throw AppException.NotFound(
+        ErrorCode.INTERACTIVE_NOT_FOUND,
+        'Poll not found',
+      );
+    }
+
+    // A poll is only as visible as the post or story it belongs to.
+    if (poll.postId) {
+      await assertCanAccessPost(this.prisma, poll.postId, profileId);
+    } else if (
+      poll.story &&
+      (await isBlockedEitherWay(this.prisma, profileId, poll.story.profileId))
+    ) {
       throw AppException.NotFound(
         ErrorCode.INTERACTIVE_NOT_FOUND,
         'Poll not found',
