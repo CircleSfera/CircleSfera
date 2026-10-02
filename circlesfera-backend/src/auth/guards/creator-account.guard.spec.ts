@@ -13,9 +13,13 @@ describe('CreatorAccountGuard', () => {
     const profileFindUnique = vi.fn().mockResolvedValue({
       accountType: AccountType.CREATOR,
     });
-    const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
+    const guard = new CreatorAccountGuard({
+      profile: { findUnique: profileFindUnique },
+    } as never);
 
-    await expect(guard.canActivate(context({ profileId: 'p-creator' }))).resolves.toBe(true);
+    await expect(
+      guard.canActivate(context({ profileId: 'p-creator' })),
+    ).resolves.toBe(true);
     expect(profileFindUnique).toHaveBeenCalledWith({
       where: { id: 'p-creator' },
       select: { accountType: true },
@@ -28,7 +32,9 @@ describe('CreatorAccountGuard', () => {
     });
     const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
 
-    await expect(guard.canActivate(context({ profileId: 'p-business' }))).resolves.toBe(true);
+    await expect(
+      guard.canActivate(context({ profileId: 'p-business' })),
+    ).resolves.toBe(true);
   });
 
   it('denies PERSONAL profiles', async () => {
@@ -52,8 +58,8 @@ describe('CreatorAccountGuard', () => {
     const profileFindUnique = vi.fn().mockResolvedValue(null);
     const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
 
-    await expect(guard.canActivate(context({ profileId: 'missing' }))).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      guard.canActivate(context({ profileId: 'missing' })),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 });
