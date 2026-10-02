@@ -10,9 +10,9 @@ import {
   vi,
 } from 'vitest';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
-import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import {
   BEARER,
   createControllerApp,
