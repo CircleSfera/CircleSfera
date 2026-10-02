@@ -18,8 +18,8 @@ import {
 import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
