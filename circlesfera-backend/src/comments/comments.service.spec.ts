@@ -498,6 +498,24 @@ describe('CommentsService', () => {
       );
     });
 
+    it('rejects liking a comment across a block without creating anything', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValue({
+        id: 'c-1',
+        profileId: 'owner-p',
+        postId: 'post-1',
+      });
+      // The post author is not blocked; the comment author is.
+      mockPrismaService.block.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.likeComment('c-1', 'liker-p')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.commentLike.create).not.toHaveBeenCalled();
+      expect(mockEventEmitter.emit).not.toHaveBeenCalled();
+    });
+
     it('should like comment and emit notification if not self', async () => {
       mockPrismaService.comment.findUnique.mockResolvedValue({
         id: 'c-1',
@@ -653,6 +671,53 @@ describe('CommentsService', () => {
       });
       expect(result.content).toBe('Updated comment text');
       expect(result.isEdited).toBe(true);
+    });
+
+    it('notifies profiles mentioned in an edited comment, except across a block', async () => {
+      mockPrismaService.comment.findUnique.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'commenter-1',
+      });
+      mockPrismaService.comment.update.mockResolvedValueOnce({
+        id: 'c-1',
+        postId: 'post-1',
+        profileId: 'commenter-1',
+        content: 'hey @alice and @bob, also @alice',
+        isEdited: true,
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'alice-p' },
+        { id: 'bob-p' },
+      ]);
+      // Only bob is across a block from the commenter.
+      mockPrismaService.block.findFirst.mockImplementation(
+        async (args: unknown) =>
+          JSON.stringify(args).includes('bob-p') ? { id: 'b1' } : null,
+      );
+
+      await service.update('post-1', 'c-1', 'commenter-1', {
+        content: 'hey @alice and @bob, also @alice',
+      });
+      mockPrismaService.block.findFirst.mockReset().mockResolvedValue(null);
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith({
+        where: {
+          username: { in: ['alice', 'bob'] },
+          id: { notIn: ['commenter-1', 'author-1'] },
+        },
+        select: { id: true },
+      });
+      expect(mockEventEmitter.emit).toHaveBeenCalledTimes(1);
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({
+          recipientId: 'alice-p',
+          senderId: 'commenter-1',
+          type: 'MENTION',
+          postId: 'post-1',
+        }),
+      );
     });
   });
 });

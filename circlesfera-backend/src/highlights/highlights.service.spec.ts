@@ -130,6 +130,29 @@ describe('HighlightsService', () => {
       expect(result).toHaveProperty('id', 'hl-1');
     });
 
+    it('shows close-friends stories only to the owner and close friends', async () => {
+      mockPrismaService.highlight.findUnique.mockResolvedValue({
+        id: 'hl-1',
+        profileId: 'owner',
+        stories: [
+          { story: { id: 's-public', isCloseFriendsOnly: false } },
+          { story: { id: 's-cf', isCloseFriendsOnly: true } },
+        ],
+      });
+
+      const asStranger = await service.findOne('hl-1', 'viewer');
+      expect(asStranger.stories.map((hs) => hs.story.id)).toEqual(['s-public']);
+
+      const asOwner = await service.findOne('hl-1', 'owner');
+      expect(asOwner.stories).toHaveLength(2);
+
+      mockPrismaService.closeFriend.findUnique.mockResolvedValueOnce({
+        id: 'cf-1',
+      });
+      const asCloseFriend = await service.findOne('hl-1', 'viewer');
+      expect(asCloseFriend.stories).toHaveLength(2);
+    });
+
     it('answers NotFound to a blocked viewer, never Forbidden', async () => {
       mockPrismaService.highlight.findUnique.mockResolvedValue({
         id: 'hl-1',
