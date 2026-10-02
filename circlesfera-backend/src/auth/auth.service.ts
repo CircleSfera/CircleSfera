@@ -41,6 +41,8 @@ import { AccountStateService } from './services/account-state.service.js';
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
 // And password reset flows. Supports legacy bcrypt migration on login.
 
+const LOGIN_USER_OMIT = { password: false, twoFactorSecret: false } as const;
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -319,15 +321,18 @@ export class AuthService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     await this.turnstile.assertValid(dto.captchaToken, meta.ip);
     // Find user by email or username
+    // Login is one of the few readers that needs the secrets the client omits
+    // by default (see USER_SECRET_OMIT).
     let user = await this.prisma.user.findUnique({
       where: { email: dto.identifier },
+      omit: LOGIN_USER_OMIT,
     });
 
     if (!user) {
       // Try finding by username in profile
       const profile = await this.prisma.profile.findFirst({
         where: { username: { equals: dto.identifier, mode: 'insensitive' } },
-        include: { user: true },
+        include: { user: { omit: LOGIN_USER_OMIT } },
       });
       if (profile) {
         user = profile.user;

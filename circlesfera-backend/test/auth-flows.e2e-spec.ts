@@ -68,6 +68,7 @@ describe('Authentication Flows (e2e)', () => {
 
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
+      omit: { verificationToken: false, resetToken: false },
     });
     expect(user).toBeDefined();
     expect(user?.emailVerified).toBeNull();
@@ -112,6 +113,7 @@ describe('Authentication Flows (e2e)', () => {
 
     const user = await prisma.user.findUnique({
       where: { email: testUser.email },
+      omit: { verificationToken: false, resetToken: false },
     });
     const resetToken = user?.resetToken;
     expect(resetToken).toBeDefined();

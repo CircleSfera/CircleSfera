@@ -31,7 +31,7 @@ vi.mock('pg', () => {
   };
 });
 
-import { PrismaService } from './prisma.service.js';
+import { PrismaService, USER_SECRET_OMIT } from './prisma.service.js';
 
 describe('PrismaService', () => {
   it('instantiates adapter and manages connect/disconnect lifecycle', async () => {
@@ -45,5 +45,21 @@ describe('PrismaService', () => {
 
     await service.onModuleDestroy();
     expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  it('omits credential and one-time-token columns from every User read by default', () => {
+    const service = new PrismaService(
+      'postgresql://test:test@localhost:5432/test',
+    ) as unknown as { options: { omit: { user: Record<string, boolean> } } };
+
+    expect(service.options.omit.user).toEqual(USER_SECRET_OMIT);
+    expect(Object.keys(USER_SECRET_OMIT).sort()).toEqual([
+      'currentChallenge',
+      'password',
+      'resetToken',
+      'twoFactorSecret',
+      'verificationToken',
+    ]);
+    expect(Object.values(USER_SECRET_OMIT).every((v) => v === true)).toBe(true);
   });
 });

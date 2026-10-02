@@ -43,6 +43,7 @@ export class TwoFactorService {
   ) {
     const userData = await this.prisma.user.findUnique({
       where: { id: user.id },
+      omit: { twoFactorSecret: false },
     });
 
     if (!userData?.twoFactorSecret) {
