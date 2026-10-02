@@ -12,6 +12,7 @@ import {
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import {
   BEARER,
   createControllerApp,
@@ -88,6 +89,7 @@ describe('CreatorController', () => {
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: SubscriptionGuard, mode: 'allow' },
+        { guard: CreatorAccountGuard, mode: 'allow' },
       ],
     });
   });
