@@ -14,6 +14,7 @@ import {
   lastActiveBucket,
 } from '../common/abuse/trust-score.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { notBlockedWithViewer } from '../common/policies/block.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -183,9 +184,12 @@ export class ProfilesService {
   }
 
   // Search profiles by username or full name (case-insensitive).
+  // Deactivated accounts are never findable, and Profiles in a block
+  // relation with the viewer are hidden in both directions (PD-001).
   // Param query: Search term
+  // Param viewerProfileId: The searching Profile, when authenticated
   // Returns Up to 10 matching profiles
-  async searchProfiles(query: string) {
+  async searchProfiles(query: string, viewerProfileId?: string) {
     if (!query) return [];
 
     return this.prisma.profile.findMany({
@@ -194,6 +198,8 @@ export class ProfilesService {
           { username: { contains: query, mode: 'insensitive' } },
           { fullName: { contains: query, mode: 'insensitive' } },
         ],
+        user: { deactivatedAt: null },
+        ...notBlockedWithViewer(viewerProfileId),
       },
       take: 10,
       select: {

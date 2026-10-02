@@ -82,7 +82,22 @@ describe('ProfilesController', () => {
       .query({ q: 'alice' })
       .expect(200);
 
-    expect(mockService.searchProfiles).toHaveBeenCalledWith('alice');
+    expect(mockService.searchProfiles).toHaveBeenCalledWith('alice', undefined);
+  });
+
+  it('passes the caller profile id when an authenticated viewer searches profiles', async () => {
+    mockService.searchProfiles.mockResolvedValue([]);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/profiles/search')
+      .query({ q: 'alice' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.searchProfiles).toHaveBeenCalledWith(
+      'alice',
+      TEST_USER.profileId,
+    );
   });
 
   it('loads referrals and own profile as the caller profile', async () => {
