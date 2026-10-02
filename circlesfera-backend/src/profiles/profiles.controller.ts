@@ -44,10 +44,14 @@ export class ProfilesController {
     private readonly authService: AuthService,
   ) {}
 
-  // Search for profiles by username or full name.
+  // Search for profiles by username or full name. Hidden from either side of a block.
   @Get('search')
-  async searchProfiles(@Query('q') query: string) {
-    return this.profilesService.searchProfiles(query);
+  @UseGuards(JwtOptionalGuard)
+  async searchProfiles(
+    @Query('q') query: string,
+    @CurrentUser() user: CurrentUserData | null,
+  ) {
+    return this.profilesService.searchProfiles(query, user?.profileId);
   }
 
   // Get all profiles owned by the authenticated identity.

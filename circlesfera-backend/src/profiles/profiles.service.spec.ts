@@ -487,6 +487,28 @@ describe('ProfilesService', () => {
         }),
       );
     });
+
+    it('never returns deactivated accounts, even to anonymous viewers', async () => {
+      mockPrismaService.profile.findMany = vi.fn().mockResolvedValue([]);
+
+      await service.searchProfiles('alice');
+
+      const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
+      expect(where.user).toEqual({ deactivatedAt: null });
+      expect(where).not.toHaveProperty('blocking');
+      expect(where).not.toHaveProperty('blockedBy');
+    });
+
+    it('hides Profiles in a block relation with the viewer, in both directions', async () => {
+      mockPrismaService.profile.findMany = vi.fn().mockResolvedValue([]);
+
+      await service.searchProfiles('alice', 'viewer-1');
+
+      const { where } = mockPrismaService.profile.findMany.mock.calls[0][0];
+      expect(where.user).toEqual({ deactivatedAt: null });
+      expect(where.blocking).toEqual({ none: { blockedId: 'viewer-1' } });
+      expect(where.blockedBy).toEqual({ none: { blockerId: 'viewer-1' } });
+    });
   });
 
   describe('getMyReferrals', () => {
