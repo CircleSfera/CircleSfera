@@ -30,7 +30,9 @@ describe('CreatorAccountGuard', () => {
     const profileFindUnique = vi.fn().mockResolvedValue({
       accountType: AccountType.BUSINESS,
     });
-    const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
+    const guard = new CreatorAccountGuard({
+      profile: { findUnique: profileFindUnique },
+    } as never);
 
     await expect(
       guard.canActivate(context({ profileId: 'p-business' })),
@@ -41,22 +43,30 @@ describe('CreatorAccountGuard', () => {
     const profileFindUnique = vi.fn().mockResolvedValue({
       accountType: AccountType.PERSONAL,
     });
-    const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
+    const guard = new CreatorAccountGuard({
+      profile: { findUnique: profileFindUnique },
+    } as never);
 
-    await expect(guard.canActivate(context({ profileId: 'p-personal' }))).rejects.toBeInstanceOf(
-      ForbiddenException,
-    );
+    await expect(
+      guard.canActivate(context({ profileId: 'p-personal' })),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('denies requests without a profile', async () => {
-    const guard = new CreatorAccountGuard({ profile: { findUnique: vi.fn() } } as never);
+    const guard = new CreatorAccountGuard({
+      profile: { findUnique: vi.fn() },
+    } as never);
 
-    await expect(guard.canActivate(context())).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      guard.canActivate(context()),
+    ).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('denies missing profiles', async () => {
     const profileFindUnique = vi.fn().mockResolvedValue(null);
-    const guard = new CreatorAccountGuard({ profile: { findUnique: profileFindUnique } } as never);
+    const guard = new CreatorAccountGuard({
+      profile: { findUnique: profileFindUnique },
+    } as never);
 
     await expect(
       guard.canActivate(context({ profileId: 'missing' })),
