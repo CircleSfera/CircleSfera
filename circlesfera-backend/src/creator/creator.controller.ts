@@ -80,16 +80,14 @@ export class CreatorController {
   ) {}
 
   @Get('stats')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
     return this.getCreatorStatsQ.execute(req.user.profileId);
   }
 
   @Get('activity-chart')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
     const dashboard = await this.analyticsService.getCreatorDashboard(
@@ -100,8 +98,7 @@ export class CreatorController {
   }
 
   @Get('posts')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getPosts(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -117,8 +114,7 @@ export class CreatorController {
   }
 
   @Get('stories')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getStories(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -249,8 +245,7 @@ export class CreatorController {
   }
 
   @Get('analytics/revenue')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getRevenueAnalytics(
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
@@ -261,15 +256,13 @@ export class CreatorController {
   }
 
   @Get('analytics/retention')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
 
   @Get('analytics/top-posts')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getTopPerformingContent(
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
@@ -281,8 +274,7 @@ export class CreatorController {
   }
 
   @Get('analytics/export')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @Header('Content-Type', 'text/csv')
   @Header(
     'Content-Disposition',
