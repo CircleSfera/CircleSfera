@@ -14,6 +14,7 @@ import { resolveSystemModeratorActor } from '../admin/utils/resolve-admin-notifi
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   type CreateReportDto,
@@ -155,7 +156,7 @@ export class ReportsService {
         take: limit,
         include: {
           reporter: {
-            include: { user: true },
+            include: { user: { select: PUBLIC_USER_SELECT } },
           },
         },
       }),

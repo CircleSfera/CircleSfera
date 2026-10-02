@@ -8,7 +8,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
-import type { Profile, User } from '@prisma/client';
 import {
   CurrentUser,
   type CurrentUserData,
@@ -16,7 +15,11 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { MuteUserDto } from './dto/mute-user.dto.js';
-import { FollowsService, type MutedUserEntry } from './follows.service.js';
+import {
+  FollowsService,
+  type MutedUserEntry,
+  type ProfileWithUser,
+} from './follows.service.js';
 
 // REST controller for follow management, blocking, and follow requests. All endpoints require authentication.
 @ApiTags('Relationship Management')
@@ -129,7 +132,7 @@ export class FollowsController {
   @Get('me/follow/blocked')
   async getBlocked(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(Profile & { user: User })[]> {
+  ): Promise<ProfileWithUser[]> {
     return this.followsService.getBlockedUsers(user.profileId);
   }
 
@@ -137,7 +140,7 @@ export class FollowsController {
   @Get('me/follow/pending')
   async getPendingRequests(
     @CurrentUser() user: CurrentUserData,
-  ): Promise<(Profile & { user: User })[]> {
+  ): Promise<ProfileWithUser[]> {
     return this.followsService.getPendingRequests(user.profileId);
   }
 

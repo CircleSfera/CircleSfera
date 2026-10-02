@@ -28,6 +28,10 @@ import {
   notBlockedWithViewer,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import {
+  PUBLIC_USER_SELECT,
+  PUBLIC_USER_WITH_PRIVACY_SELECT,
+} from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -271,7 +275,7 @@ export class PostsService {
         tags: true,
         audio: true,
         place: true,
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         _count: {
           select: {
             likes: true,
@@ -329,7 +333,7 @@ export class PostsService {
         include: {
           profile: {
             include: {
-              user: true,
+              user: { select: PUBLIC_USER_SELECT },
             },
           },
           media: { include: { media: true } },
@@ -395,7 +399,7 @@ export class PostsService {
         include: {
           profile: {
             include: {
-              user: true,
+              user: { select: PUBLIC_USER_SELECT },
             },
           },
           media: { include: { media: true } },
@@ -467,7 +471,7 @@ export class PostsService {
         include: {
           profile: {
             include: {
-              user: true,
+              user: { select: PUBLIC_USER_SELECT },
             },
           },
           media: { include: { media: true } },
@@ -521,7 +525,7 @@ export class PostsService {
       include: {
         profile: {
           include: {
-            user: { include: { settings: true } },
+            user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT },
           },
         },
         _count: {
@@ -577,7 +581,7 @@ export class PostsService {
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { include: { settings: true } } },
+      include: { user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT } },
     });
 
     if (
@@ -626,7 +630,7 @@ export class PostsService {
         include: {
           profile: {
             include: {
-              user: true,
+              user: { select: PUBLIC_USER_SELECT },
             },
           },
           media: { include: { media: true } },
@@ -702,7 +706,7 @@ export class PostsService {
         include: {
           profile: {
             include: {
-              user: true,
+              user: { select: PUBLIC_USER_SELECT },
             },
           },
           media: { include: { media: true } },
@@ -757,7 +761,7 @@ export class PostsService {
       include: {
         profile: {
           include: {
-            user: true,
+            user: { select: PUBLIC_USER_SELECT },
           },
         },
         _count: {

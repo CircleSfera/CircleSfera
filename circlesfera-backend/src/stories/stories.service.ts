@@ -27,6 +27,10 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import {
+  PUBLIC_USER_SELECT,
+  PUBLIC_USER_WITH_PRIVACY_SELECT,
+} from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -209,7 +213,7 @@ export class StoriesService {
           mediaId: media.id,
         },
         include: {
-          profile: { include: { user: true } },
+          profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
           audio: true,
           place: true,
           media: true,
@@ -271,7 +275,7 @@ export class StoriesService {
     const stories = await this.prisma.story.findMany({
       where: whereClause,
       include: {
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         audio: true,
         place: true,
         poll: { select: { id: true } },
@@ -392,7 +396,7 @@ export class StoriesService {
   async findByUser(username: string, currentProfileId?: string) {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { include: { settings: true } } },
+      include: { user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT } },
     });
 
     if (
@@ -431,7 +435,7 @@ export class StoriesService {
         moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
       },
       include: {
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         audio: true,
         place: true,
         media: true,
@@ -474,7 +478,7 @@ export class StoriesService {
         profileId,
       },
       include: {
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         media: true,
         _count: {
           select: { views: true },

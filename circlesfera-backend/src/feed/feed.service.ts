@@ -8,6 +8,7 @@ import {
   PaginationDto,
 } from '../common/dto/pagination.dto.js';
 import { getBlockedProfileIds } from '../common/policies/block.policy.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveMediaFields } from '../common/utils/media-lifecycle.util.js';
 import { ExperimentsService } from '../experiments/experiments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -33,7 +34,7 @@ export class FeedService {
 
   private postHydrationInclude(profileId?: string | null) {
     return {
-      profile: { include: { user: true } },
+      profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
       media: { include: { media: true } },
       poll: { select: { id: true } },
       qnaBox: { select: { id: true } },
@@ -807,7 +808,6 @@ export class FeedService {
     if (profileId) {
       const viewer = await this.prisma.profile.findUnique({
         where: { id: profileId },
-        include: { user: true },
       });
       viewerLocation = viewer?.location?.toLowerCase();
       viewerUserId = viewer?.userId;

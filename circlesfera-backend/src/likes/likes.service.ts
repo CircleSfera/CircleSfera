@@ -8,6 +8,7 @@ import { assertEmailVerifiedForWrite } from '../common/abuse/assert-email-verifi
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { notBlockedWithViewer } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 
@@ -127,7 +128,7 @@ export class LikesService {
       },
       include: {
         profile: {
-          include: { user: true },
+          include: { user: { select: PUBLIC_USER_SELECT } },
         },
       },
     });

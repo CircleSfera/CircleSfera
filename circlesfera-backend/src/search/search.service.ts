@@ -8,6 +8,7 @@ import {
   getBlockedProfileIds,
   notBlockedWithViewer,
 } from '../common/policies/block.policy.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   USER_HARD_DELETED_EVENT,
@@ -99,7 +100,7 @@ export class SearchService {
           const post = await this.prisma.post.findUnique({
             where: { id: m.id },
             include: {
-              profile: { include: { user: true } },
+              profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
               media: true,
               poll: { select: { id: true } },
               qnaBox: { select: { id: true } },
@@ -439,7 +440,7 @@ export class SearchService {
     const posts = await this.prisma.post.findMany({
       where: { id: { in: postIds } },
       include: {
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },
@@ -476,7 +477,7 @@ export class SearchService {
         },
       },
       include: {
-        profile: { include: { user: true } },
+        profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         media: true,
         _count: { select: { likes: true, comments: true } },
       },

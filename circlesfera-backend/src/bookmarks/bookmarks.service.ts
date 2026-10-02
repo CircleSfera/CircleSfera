@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // Service for bookmarking posts. Supports toggle, collection assignment, and paginated retrieval.
@@ -262,7 +263,7 @@ export class BookmarksService {
           post: {
             include: {
               profile: {
-                include: { user: true },
+                include: { user: { select: PUBLIC_USER_SELECT } },
               },
               media: {
                 orderBy: { order: 'asc' },
