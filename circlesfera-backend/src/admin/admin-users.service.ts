@@ -39,6 +39,7 @@ export interface UserWithVerification {
   stripeIdentitySessionId: string | null;
   verificationLevel: VLevel;
   accountType: AType;
+  isTestAccount: boolean;
 }
 
 @Injectable()
@@ -206,6 +207,7 @@ export class AdminUsersService {
           verificationLevel:
             (u.profiles[0]?.verificationLevel as VLevel) || 'BASIC',
           accountType: (u.profiles[0]?.accountType as AType) || 'PERSONAL',
+          isTestAccount: u.isTestAccount,
         }),
       ),
       meta: {

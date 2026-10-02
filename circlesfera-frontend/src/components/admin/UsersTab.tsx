@@ -485,6 +485,11 @@ export default function Dashboard({ onToast }: Props) {
                             level={user.verificationLevel as VerificationLevel}
                             size={14}
                           />
+                          {user.isTestAccount && (
+                            <span className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300">
+                              {t('admin.users.test_account')}
+                            </span>
+                          )}
                         </span>
                       }
                       subtitle={user.email}

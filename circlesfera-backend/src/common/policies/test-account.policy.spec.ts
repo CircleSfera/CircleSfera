@@ -1,6 +1,7 @@
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  assertRealMoneyAllowed,
   assertSameAudience,
   isSameAudience,
   isTestViewer,
@@ -62,5 +63,29 @@ describe('test-account policy', () => {
     await expect(
       assertSameAudience(db, { isTestAccount: false }, 'p-test'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('assertRealMoneyAllowed', () => {
+  it('rejects a Test Account before any payment request', async () => {
+    const db = {
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ isTestAccount: true }),
+      },
+    } as never;
+
+    await expect(assertRealMoneyAllowed(db, 'u-test')).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('allows a real account', async () => {
+    const db = {
+      user: {
+        findUnique: vi.fn().mockResolvedValue({ isTestAccount: false }),
+      },
+    } as never;
+
+    await expect(assertRealMoneyAllowed(db, 'u-real')).resolves.toBeUndefined();
   });
 });

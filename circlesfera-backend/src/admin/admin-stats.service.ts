@@ -5,6 +5,11 @@ import type { Cache } from 'cache-manager';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+// Platform metrics count real participants only; Test Accounts (PD-006) and
+// their content are left out.
+const REAL_ACCOUNT = { isTestAccount: false } as const;
+const REAL_CONTENT = { profile: { user: REAL_ACCOUNT } } as const;
+
 @Injectable()
 export class AdminStatsService {
   constructor(
@@ -35,9 +40,9 @@ export class AdminStatsService {
 
     const [totalUsers, totalPosts, activeUsers, pendingReports] =
       await Promise.all([
-        this.prisma.user.count(),
-        this.prisma.post.count(),
-        this.prisma.user.count({ where: { isActive: true } }),
+        this.prisma.user.count({ where: REAL_ACCOUNT }),
+        this.prisma.post.count({ where: REAL_CONTENT }),
+        this.prisma.user.count({ where: { ...REAL_ACCOUNT, isActive: true } }),
         this.prisma.report.count({
           where: { status: { in: ['PENDING', 'REVIEWING'] } },
         }),
@@ -80,27 +85,34 @@ export class AdminStatsService {
       totalComments,
       activeUsersToday,
     ] = await Promise.all([
-      this.prisma.user.count(),
-      this.prisma.post.count(),
-      this.prisma.story.count(),
+      this.prisma.user.count({ where: REAL_ACCOUNT }),
+      this.prisma.post.count({ where: REAL_CONTENT }),
+      this.prisma.story.count({ where: REAL_CONTENT }),
       this.prisma.report.count({ where: { status: 'PENDING' } }),
       this.prisma.report.count(),
       this.prisma.user.count({
-        where: { createdAt: { gte: oneWeekAgo } },
+        where: { ...REAL_ACCOUNT, createdAt: { gte: oneWeekAgo } },
       }),
-      this.prisma.user.count({
-        where: { createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo } },
-      }),
-      this.prisma.post.count({
-        where: { createdAt: { gte: oneWeekAgo } },
-      }),
-      this.prisma.post.count({
-        where: { createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo } },
-      }),
-      this.prisma.like.count(),
-      this.prisma.comment.count(),
       this.prisma.user.count({
         where: {
+          ...REAL_ACCOUNT,
+          createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo },
+        },
+      }),
+      this.prisma.post.count({
+        where: { ...REAL_CONTENT, createdAt: { gte: oneWeekAgo } },
+      }),
+      this.prisma.post.count({
+        where: {
+          ...REAL_CONTENT,
+          createdAt: { gte: twoWeeksAgo, lt: oneWeekAgo },
+        },
+      }),
+      this.prisma.like.count({ where: REAL_CONTENT }),
+      this.prisma.comment.count({ where: REAL_CONTENT }),
+      this.prisma.user.count({
+        where: {
+          ...REAL_ACCOUNT,
           OR: [{ isOnline: true }, { lastSeenAt: { gte: oneDayAgo } }],
         },
       }),
@@ -166,15 +178,15 @@ export class AdminStatsService {
 
     const [posts, users, stories, reports] = await Promise.all([
       this.prisma.post.findMany({
-        where: { createdAt: { gte: since } },
+        where: { ...REAL_CONTENT, createdAt: { gte: since } },
         select: { createdAt: true },
       }),
       this.prisma.user.findMany({
-        where: { createdAt: { gte: since } },
+        where: { ...REAL_ACCOUNT, createdAt: { gte: since } },
         select: { createdAt: true },
       }),
       this.prisma.story.findMany({
-        where: { createdAt: { gte: since } },
+        where: { ...REAL_CONTENT, createdAt: { gte: since } },
         select: { createdAt: true },
       }),
       this.prisma.report.findMany({

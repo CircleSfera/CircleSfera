@@ -7,6 +7,7 @@ import { SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   classifyStripeError,
   StripeService,
@@ -114,6 +115,7 @@ export class PaymentsService {
     billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
     profileId?: string,
   ): Promise<Stripe.Checkout.Session | { url: string }> {
+    await assertRealMoneyAllowed(this.prisma, userId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       include: { platformSubscriptions: true },
