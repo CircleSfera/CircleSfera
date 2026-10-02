@@ -18,9 +18,7 @@ import {
 import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
-import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 
 // Analytics
@@ -43,8 +41,6 @@ import { GetPromotionsQuery } from './use-cases/promotions/queries/get-promotion
 interface AuthRequest extends Request {
   user: CurrentUserData;
 }
-
-const ElitePlan = () => RequiresPlan('Elite Creator');
 
 @Controller('creator')
 @UseGuards(JwtAuthGuard)
@@ -277,8 +273,6 @@ export class CreatorController {
   }
 
   @Get('analytics/export')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
   @Header('Content-Type', 'text/csv')
   @Header(
     'Content-Disposition',
