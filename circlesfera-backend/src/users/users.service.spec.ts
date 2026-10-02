@@ -736,7 +736,7 @@ describe('UsersService', () => {
       expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
     });
 
-    it('promotes profile to BUSINESS account and BUSINESS verification for business plans', async () => {
+    it('updates verification to BUSINESS for business plans without changing account type', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u_biz',
         profiles: [
@@ -758,14 +758,11 @@ describe('UsersService', () => {
 
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
         where: { id: 'p_biz' },
-        data: {
-          accountType: AccountType.BUSINESS,
-          verificationLevel: VerificationLevel.BUSINESS,
-        },
+        data: { verificationLevel: VerificationLevel.BUSINESS },
       });
     });
 
-    it('promotes profile to CREATOR and ELITE for elite plans', async () => {
+    it('updates verification to ELITE for elite plans without changing account type', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u1',
         profiles: [
@@ -784,10 +781,7 @@ describe('UsersService', () => {
 
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
         where: { id: 'p1' },
-        data: {
-          accountType: AccountType.CREATOR,
-          verificationLevel: VerificationLevel.ELITE,
-        },
+        data: { verificationLevel: VerificationLevel.ELITE },
       });
     });
 
@@ -820,7 +814,7 @@ describe('UsersService', () => {
       });
     });
 
-    it('does not update profile if accountType and verificationLevel already match target', async () => {
+    it('does not update profile when verification already matches', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u_match',
         profiles: [
@@ -839,7 +833,7 @@ describe('UsersService', () => {
       expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
     });
 
-    it('downgrades to BASIC when no active subscriptions exist', async () => {
+    it('downgrades verification to BASIC without changing a CREATOR account type when no active subscriptions exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'u_downgrade',
         profiles: [
@@ -856,11 +850,32 @@ describe('UsersService', () => {
 
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
         where: { id: 'p_down' },
-        data: {
-          accountType: AccountType.PERSONAL,
-          verificationLevel: VerificationLevel.BASIC,
-        },
+        data: { verificationLevel: VerificationLevel.BASIC },
       });
+    });
+
+    it('never changes Profile.accountType when a Platform Plan changes', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u_creator',
+        profiles: [
+          {
+            id: 'p_creator',
+            accountType: AccountType.CREATOR,
+            verificationLevel: VerificationLevel.ELITE,
+            platformSubscriptions: [],
+          },
+        ],
+      });
+
+      await service.syncUserTier('u_creator');
+
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p_creator' },
+        data: { verificationLevel: VerificationLevel.BASIC },
+      });
+      expect(mockPrismaService.profile.update.mock.calls[0][0].data).not.toHaveProperty(
+        'accountType',
+      );
     });
   });
 });
