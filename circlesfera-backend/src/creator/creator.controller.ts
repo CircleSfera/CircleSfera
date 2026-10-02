@@ -243,6 +243,7 @@ export class CreatorController {
   @Get('analytics/revenue')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getRevenueAnalytics(
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
@@ -255,6 +256,7 @@ export class CreatorController {
   @Get('analytics/retention')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
@@ -262,6 +264,7 @@ export class CreatorController {
   @Get('analytics/top-posts')
   @UseGuards(SubscriptionGuard)
   @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getTopPerformingContent(
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
@@ -278,6 +281,7 @@ export class CreatorController {
     'Content-Disposition',
     'attachment; filename="circlesfera-analytics-report.csv"',
   )
+  @UseGuards(CreatorAccountGuard)
   async exportAnalyticsCsv(
     @Req() req: AuthRequest,
     @Query('period') period?: string,
