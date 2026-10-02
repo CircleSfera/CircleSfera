@@ -6,7 +6,7 @@ This document defines the architecture, design principles, entity factories, and
 
 ## 1. Scope and Core Principles
 
-CircleSfera requires deterministic, reproducible test environments to validate complex social graph interactions, financial transactions, and content moderation pipelines. Manual database mocks or ad-hoc SQL seeds introduce state pollution, cross-worker test flakiness, and maintenance overhead.
+CircleSfera requires deterministic, reproducible test environments to validate complex relationship interactions, financial transactions, and content moderation pipelines. Manual database mocks or ad-hoc SQL seeds introduce state pollution, cross-worker test flakiness, and maintenance overhead.
 
 The CircleSfera test factory suite addresses this with five foundational principles:
 
@@ -99,7 +99,7 @@ const post = await createPost(prisma, profile.id, {
 });
 ```
 
-### 3.4 Social Graph Factories (`social.factory.ts`)
+### 3.4 Relationship Factories (`social.factory.ts`)
 
 Provides idempotent upsert helpers for bi-directional social relationships:
 
@@ -124,18 +124,18 @@ Enforces backend catalog constraints and ledger integrity:
 
 The `ScenarioSeeder` combines individual factories into realistic multi-user scenarios, generating isolated data graphs and returning targeted cleanup handles:
 
-### 4.1 Social Graph Network Scenario
+### 4.1 Relationship Network Scenario
 Seeds an interconnected cluster of profiles with mutual follow relationships:
 
 ```typescript
 const seeder = new ScenarioSeeder(prisma);
-const { entities, cleanup } = await seeder.seedSocialGraph({
+const { entities, cleanup } = await seeder.seedRelationshipNetwork({
   usersCount: 5,
   mutualFollows: true,
 });
 
 try {
-  // Execute test assertions against social graph
+  // Execute test assertions against the relationship network
 } finally {
   await cleanup(); // Deletes only the 5 generated users and cascading relations
 }
