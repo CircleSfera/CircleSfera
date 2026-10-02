@@ -127,7 +127,7 @@ export class FeedService {
   }
 
   // Generates a hybrid "For You" feed using an advanced mathematical algorithm.
-  // Score = (AI_Similarity * 0.4) + (Social_Graph * 0.3) + (Popularity * 0.3) * Time_Decay
+  // Score = (AI_Similarity * 0.4) + (Relationship_Weight * 0.3) + (Popularity * 0.3) * Time_Decay
   async getHybridFeed(
     profileId: string | null,
     pagination: PaginationDto,

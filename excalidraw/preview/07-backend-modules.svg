@@ -11,7 +11,7 @@
 <text x="1040.0" y="153.2" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AuthModule (incl 2FA + passkeys as nested)</text>
 <text x="1040.0" y="170.7" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#F9A825" text-anchor="middle" opacity="1.00">AdminAuthModule · UsersModule · ProfilesModule · WhitelistModule</text>
 <rect x="60.0" y="230.0" width="1300.0" height="140.0" rx="10" fill="#E8EAF6" stroke="#3949AB" stroke-width="2" stroke-dasharray="8 6" opacity="1.00" />
-<text x="710.0" y="268.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Social graph &amp; content</text>
+<text x="710.0" y="268.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">Relationships &amp; content</text>
 <text x="710.0" y="285.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">PostsModule · CommentsModule · LikesModule · FollowsModule · CloseFriendsModule</text>
 <text x="710.0" y="303.1" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">StoriesModule · HighlightsModule · FeedModule · SearchModule</text>
 <text x="710.0" y="320.6" font-size="14.0" font-family="Helvetica, Arial, sans-serif" fill="#3949AB" text-anchor="middle" opacity="1.00">BookmarksModule · CollectionsModule · InteractiveModule (polls/QnA)</text>

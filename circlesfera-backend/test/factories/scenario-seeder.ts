@@ -23,8 +23,6 @@ export interface RelationshipNetworkScenarioResult {
   cleanup: () => Promise<void>;
 }
 
-export type SocialGraphScenarioResult = RelationshipNetworkScenarioResult;
-
 export interface CreatorSubscribersScenarioResult {
   creator: { user: User; profile: Profile };
   subscribers: Array<{
@@ -92,16 +90,6 @@ export class ScenarioSeeder {
     };
 
     return { entities, cleanup };
-  }
-
-  /**
-   * Backwards-compatible alias for seedRelationshipNetwork.
-   * @deprecated Use seedRelationshipNetwork instead.
-   */
-  async seedSocialGraph(
-    options: { usersCount?: number; mutualFollows?: boolean } = {},
-  ): Promise<RelationshipNetworkScenarioResult> {
-    return this.seedRelationshipNetwork(options);
   }
 
   /**
