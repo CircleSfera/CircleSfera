@@ -37,6 +37,10 @@ model User {
 
   role Role @default(USER)
 
+  // Test Account (PD-006): isolated from real participants. Set only by the
+  // staff script; no API flow may write it.
+  isTestAccount Boolean @default(false)
+
   // Identity & KYC
   identityVerifiedAt      DateTime?
   dateOfBirth             DateTime?
@@ -99,6 +103,7 @@ model User {
   stripePayoutLogs      StripePayoutLog[]
 
   @@index([isOnline])
+  @@index([isTestAccount])
   @@index([scheduledDeletionAt])
   @@index([signupIp])
   @@index([lastIp])

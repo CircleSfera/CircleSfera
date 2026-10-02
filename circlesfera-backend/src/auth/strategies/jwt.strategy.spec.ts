@@ -180,7 +180,30 @@ describe('JwtStrategy', () => {
         email: 'test@example.com',
         role: 'CREATOR',
         profileId: 'prof-1',
+        isTestAccount: false,
       });
+    });
+
+    it('reports a Test Account from the database row, not from the token', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({
+        id: 'u-1',
+        isActive: true,
+        isRootBanned: false,
+        email: 'test@example.com',
+        role: 'USER',
+        isTestAccount: true,
+      });
+      mockPrisma.profile.findFirst.mockResolvedValue({
+        id: 'prof-1',
+        suspendedUntil: null,
+      });
+
+      const result = await strategy.validate({
+        ...payload,
+        isTestAccount: false,
+      } as never);
+
+      expect(result.isTestAccount).toBe(true);
     });
 
     it('resolves specific profile when profileId is provided in token payload', async () => {
@@ -231,6 +254,7 @@ describe('JwtStrategy', () => {
         email: 'test@example.com',
         role: 'USER',
         profileId: '',
+        isTestAccount: false,
       });
     });
   });

@@ -47,6 +47,9 @@ export class UserEntity implements User {
   @Exclude()
   passwordResetRequiredAt!: Date | null;
 
+  @Exclude()
+  isTestAccount!: boolean;
+
   verificationLevel!: VerificationLevel;
   accountType!: AccountType;
 

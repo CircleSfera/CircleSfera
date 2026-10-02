@@ -24,6 +24,7 @@ export const TEST_USER: CurrentUserData = {
   email: 'test@example.com',
   role: 'USER',
   profileId: 'profile-1',
+  isTestAccount: false,
 };
 
 export const TEST_ADMIN: CurrentAdminData = {

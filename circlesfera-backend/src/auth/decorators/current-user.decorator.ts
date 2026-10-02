@@ -6,6 +6,9 @@ export interface CurrentUserData {
   email: string;
   role: 'USER' | 'ADMIN' | 'MODERATOR';
   profileId: string;
+  // Test Account (PD-006). Read from the database on every request, never
+  // from the token, so it cannot be forged or go stale.
+  isTestAccount: boolean;
 }
 
 interface RequestWithUser extends Request {
@@ -16,7 +19,7 @@ export const CurrentUser = createParamDecorator(
   (
     data: keyof CurrentUserData | undefined,
     ctx: ExecutionContext,
-  ): CurrentUserData | string | null => {
+  ): CurrentUserData | string | boolean | null => {
     const request = ctx.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     if (!user) return null;
