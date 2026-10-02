@@ -21,6 +21,7 @@ import { type CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { RequiresPlan } from '../auth/decorators/requires-plan.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { SubscriptionGuard } from '../auth/guards/subscription.guard.js';
+import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
@@ -79,16 +80,14 @@ export class CreatorController {
   ) {}
 
   @Get('stats')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getStats(@Req() req: AuthRequest) {
     return this.getCreatorStatsQ.execute(req.user.profileId);
   }
 
   @Get('activity-chart')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   @HttpCode(HttpStatus.OK)
   async getActivityChart(@Req() req: AuthRequest) {
     const dashboard = await this.analyticsService.getCreatorDashboard(
@@ -99,8 +98,7 @@ export class CreatorController {
   }
 
   @Get('posts')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getPosts(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
@@ -116,8 +114,7 @@ export class CreatorController {
   }
 
   @Get('stories')
-  @UseGuards(SubscriptionGuard)
-  @ElitePlan()
+  @UseGuards(CreatorAccountGuard)
   async getStories(
     @Req() req: AuthRequest,
     @Query('page') page?: string,
