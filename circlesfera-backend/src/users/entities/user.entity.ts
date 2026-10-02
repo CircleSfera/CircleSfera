@@ -44,6 +44,9 @@ export class UserEntity implements User {
   @Exclude()
   resetTokenExpires!: Date | null;
 
+  @Exclude()
+  passwordResetRequiredAt!: Date | null;
+
   verificationLevel!: VerificationLevel;
   accountType!: AccountType;
 

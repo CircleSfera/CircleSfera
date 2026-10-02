@@ -298,6 +298,7 @@ export class AuthService {
         password: hashedPassword,
         resetToken: null,
         resetTokenExpires: null,
+        passwordResetRequiredAt: null,
       },
     });
 
@@ -380,6 +381,12 @@ export class AuthService {
 
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Checked only after the password matches, so the response does not reveal
+    // which identifiers exist.
+    if (user.passwordResetRequiredAt) {
+      throw new UnauthorizedException(ApiErrorCode.PASSWORD_RESET_REQUIRED);
     }
 
     if (!user.isActive) {

@@ -49,6 +49,8 @@ model User {
   twoFactorSecret    String?
   resetToken         String?   @unique
   resetTokenExpires  DateTime?
+  // Set when the stored hash must no longer grant access; cleared only by a completed email reset.
+  passwordResetRequiredAt DateTime?
   currentChallenge   String? // WebAuthn registration/auth challenge (temporary)
 
   // Abuse / trust — raw IP for account lifetime; hashes for clustering. Public APIs never expose raw IP.

@@ -226,6 +226,36 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken');
     });
 
+    it('rejects a correct password while a password reset is required', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        passwordResetRequiredAt: new Date(),
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(
+        new UnauthorizedException(ApiErrorCode.PASSWORD_RESET_REQUIRED),
+      );
+    });
+
+    it('does not reveal a required reset when the password is wrong', async () => {
+      const argonHash = await argon2.hash('another-password');
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        passwordResetRequiredAt: new Date(),
+      });
+
+      await expect(service.login(dto)).rejects.toThrow(
+        new UnauthorizedException('Invalid credentials'),
+      );
+    });
+
     it('should fallback to bcrypt and migrate to argon2', async () => {
       const bcryptHash = await bcrypt.hash(dto.password, 10);
       mockPrismaService.user.findUnique.mockResolvedValue({
@@ -596,8 +626,11 @@ describe('AuthService', () => {
 
       const updateArgs = mockPrismaService.user.update.mock.calls[
         mockPrismaService.user.update.mock.calls.length - 1
-      ][0] as { data: { password: string } };
+      ][0] as {
+        data: { password: string; passwordResetRequiredAt: null };
+      };
       expect(updateArgs.data.password).toContain('$argon2');
+      expect(updateArgs.data.passwordResetRequiredAt).toBeNull();
     });
   });
 
