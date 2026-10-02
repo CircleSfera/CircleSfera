@@ -22,7 +22,9 @@ export class CreatorAccountGuard implements CanActivate {
     const profileId = request.user?.profileId;
 
     if (!profileId) {
-      throw new ForbiddenException('A profile is required for creator capabilities');
+      throw new ForbiddenException(
+        'A profile is required for creator capabilities',
+      );
     }
 
     const profile = await this.prisma.profile.findUnique({
