@@ -457,7 +457,7 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('This message is not locked or has no price');
     });
 
-    it('should throw if the stored price is outside the €5.00-€500.00 bounds (defense-in-depth)', async () => {
+    it('should throw if the stored price is outside the €3.00-€500.00 bounds (defense-in-depth)', async () => {
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'm-1',
         isLocked: true,
@@ -466,7 +466,7 @@ describe('MonetizationService', () => {
       });
       await expect(
         service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow(/entre €5.00 y €500.00/);
+      ).rejects.toThrow(/entre €3.00 y €500.00/);
 
       mockPrismaService.message.findUnique.mockResolvedValueOnce({
         id: 'm-1',
@@ -476,7 +476,7 @@ describe('MonetizationService', () => {
       });
       await expect(
         service.createMessageUnlockSession('user-1', 'm-1', 'http://return'),
-      ).rejects.toThrow(/entre €5.00 y €500.00/);
+      ).rejects.toThrow(/entre €3.00 y €500.00/);
     });
 
     it('should throw if sender (by User.id, not Profile.id) is unlocking own message', async () => {
@@ -608,19 +608,19 @@ describe('MonetizationService', () => {
   });
 
   describe('createTipSession', () => {
-    // Tip minimum (100 cents / €1.00) is hardcoded in createTipSession and is
-    // independent of MIN_PPV_PRICE_CENTS (the PPV content price floor).
+    // Tip minimum is MIN_TIP_CENTS (€2.00), independent of
+    // MIN_PPV_PRICE_CENTS (the pay-per-view price floor).
     const tipCents = 500;
 
-    it('should throw if amount is less than the €1.00 minimum', async () => {
+    it('should throw if amount is below the €2.00 minimum, in euros', async () => {
       await expect(
         service.createTipSession(
           'user-1',
           'creator-1',
-          99,
+          199,
           'http://localhost/return',
         ),
-      ).rejects.toThrow();
+      ).rejects.toThrow('Minimum tip is €2.00');
     });
 
     it('should throw if tipping yourself', async () => {

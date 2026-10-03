@@ -125,7 +125,7 @@ describe('StoriesService', () => {
       };
 
       await expect(service.create('user-1', dto)).rejects.toThrow(
-        'El precio de la historia premium debe estar entre €5.00 y €500.00.',
+        'El precio de la historia premium debe estar entre €3.00 y €500.00.',
       );
     });
 

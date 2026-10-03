@@ -14,7 +14,7 @@ interface TipModalProps {
   receiverName: string;
 }
 
-export const TIP_AMOUNTS = [1, 5, 10, 50];
+export const TIP_AMOUNTS = [2, 5, 10, 50];
 
 export default function TipModal({
   isOpen,
@@ -88,7 +88,7 @@ export default function TipModal({
             <span
               className={`font-bold text-xl ${selectedAmount === amount ? 'text-brand-primary' : 'text-white'}`}
             >
-              ${amount}
+              €{amount}
             </span>
           </button>
         ))}

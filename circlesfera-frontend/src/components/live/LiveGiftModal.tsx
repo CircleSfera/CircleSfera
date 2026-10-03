@@ -17,7 +17,7 @@ export const VIRTUAL_GIFTS: VirtualGift[] = [
   {
     id: 'star',
     nameKey: 'live.gifts.star',
-    price: 1,
+    price: 2,
     icon: Star,
     color: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
   },
