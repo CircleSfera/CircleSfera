@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { sanitizeUrl } from './apiUtils';
+import { getBlurFallbackUrl, sanitizeUrl } from './apiUtils';
 
 // Stub VITE_API_URL env variable
 vi.stubEnv('VITE_API_URL', 'http://localhost:3000/api/v1');
@@ -28,5 +28,25 @@ describe('apiUtils', () => {
         'https://res.cloudinary.com/demo/image/upload/v1/sample.jpg';
       expect(sanitizeUrl(input)).toBe(input);
     });
+  });
+});
+
+describe('getBlurFallbackUrl host check', () => {
+  it('transforms Cloudinary delivery URLs', () => {
+    expect(
+      getBlurFallbackUrl(
+        'https://res.cloudinary.com/demo/image/upload/sample.jpg',
+      ),
+    ).toBe(
+      'https://res.cloudinary.com/demo/image/upload/w_10,e_blur:1000,q_1,f_auto/sample.jpg',
+    );
+  });
+
+  it.each([
+    'https://evil.example/res.cloudinary.com/upload/x.jpg',
+    'https://res.cloudinary.com.evil.example/upload/x.jpg',
+    'not a url res.cloudinary.com',
+  ])('ignores %s', (url) => {
+    expect(getBlurFallbackUrl(url)).toBeUndefined();
   });
 });

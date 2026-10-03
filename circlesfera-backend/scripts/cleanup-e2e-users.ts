@@ -24,14 +24,28 @@ const { Pool } = pkg;
 
 const E2E_EMAIL_SUFFIX = '@circlesfera.test';
 
+const MANAGED_HOST_SUFFIXES = [
+  'circlesfera.com',
+  'amazonaws.com',
+  'neon.tech',
+  'supabase.co',
+  'supabase.com',
+];
+
+function hostMatches(host: string, domain: string): boolean {
+  return host === domain || host.endsWith(`.${domain}`);
+}
+
 function assertSafeTarget(databaseUrl: string): void {
-  const lower = databaseUrl.toLowerCase();
+  let host = '';
+  try {
+    host = new URL(databaseUrl).hostname.toLowerCase();
+  } catch {
+    throw new Error('DATABASE_URL is not a valid URL');
+  }
   if (
-    lower.includes('prod') ||
-    lower.includes('circlesfera.com') ||
-    lower.includes('amazonaws') ||
-    lower.includes('neon.tech') ||
-    lower.includes('supabase')
+    databaseUrl.toLowerCase().includes('prod') ||
+    MANAGED_HOST_SUFFIXES.some((domain) => hostMatches(host, domain))
   ) {
     throw new Error(
       `Refusing to run against a URL that looks non-local: ${databaseUrl.replace(/:[^:@/]+@/, ':***@')}`,

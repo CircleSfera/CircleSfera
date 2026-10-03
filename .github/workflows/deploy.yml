@@ -22,11 +22,10 @@ permissions:
 jobs:
   test:
     name: Run Lint and Unit Tests
-    # Prefer owner/repo@ref over `./.github/workflows/...`: the Actions language
-    # service fails to resolve relative reusable workflows in this workspace
-    # (path with spaces → "Unable to find reusable workflow"). Pin to main so
-    # the call matches the shared gate on origin; change ci-quality.yml on main.
-    uses: CircleSfera/CircleSfera/.github/workflows/ci-quality.yml@main
+    # Local path: a PR that changes ci-quality.yml is checked with its own
+    # version. (Some editors cannot resolve this path because the workspace
+    # path contains spaces; GitHub resolves it fine.)
+    uses: ./.github/workflows/ci-quality.yml
     secrets: inherit
 
   build:
@@ -37,17 +36,16 @@ jobs:
     permissions:
       contents: read
       packages: write
-      actions: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Log in to the Container registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -127,7 +125,7 @@ jobs:
           echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry + Turnstile)."
 
       - name: Build and push Backend
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./circlesfera-backend/Dockerfile
@@ -139,7 +137,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build and push Frontend
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: ./circlesfera-frontend/Dockerfile
@@ -167,7 +165,7 @@ jobs:
 
     steps:
       - name: Execute Remote SSH Deployment
-        uses: appleboy/ssh-action@v1.2.5
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
@@ -311,6 +309,10 @@ jobs:
               # the disk. 7 days covers "did this specific deploy just break
               # something" without relying on the 30-day nightly backup's cadence.
               find "${BACKUP_ROOT}" -type f -name 'pre_deploy_*.dump' -mtime +7 -delete || true
+              # Dumps taken by ops workflows (e.g. pre_secret_invalidation_*) and
+              # their reports hold the same data; same 7-day retention.
+              find "${BACKUP_ROOT}" -type f -name 'pre_*.dump' -mtime +7 -delete || true
+              find /srv/circlesfera/backups/ops -type f -mtime +7 -delete 2>/dev/null || true
             else
               echo "⚠️  Could not create ${BACKUP_ROOT} (permission denied). Skipping pre-deploy backup."
             fi
@@ -472,11 +474,20 @@ jobs:
                 echo "  FAIL  could not obtain CSRF token"
                 auth_smoke_ok=0
               else
-                login_code=$(curl -sS -o /tmp/cs-auth-login -w "%{http_code}" \
-                  -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
-                  -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
-                  -d "{\"identifier\":\"${SMOKE_TEST_EMAIL}\",\"password\":\"${SMOKE_TEST_PASSWORD}\"}" \
-                  "${SMOKE_TEST_API_URL}/auth/login")
+                # Body built with shell builtins (printf, parameter expansion) and
+                # sent on stdin, so the password never appears on a command line
+                # (ps) and backslashes or quotes in it are JSON-escaped. No jq
+                # dependency on the VPS.
+                smoke_email=${SMOKE_TEST_EMAIL//\\/\\\\}
+                smoke_email=${smoke_email//\"/\\\"}
+                smoke_password=${SMOKE_TEST_PASSWORD//\\/\\\\}
+                smoke_password=${smoke_password//\"/\\\"}
+                login_code=$(printf '{"identifier":"%s","password":"%s"}' "$smoke_email" "$smoke_password" \
+                  | curl -sS -o /tmp/cs-auth-login -w "%{http_code}" \
+                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                    --data-binary @- \
+                    "${SMOKE_TEST_API_URL}/auth/login")
                 if [ "$login_code" != "200" ]; then
                   echo "  FAIL  login ($login_code)"
                   head -c 400 /tmp/cs-auth-login; echo

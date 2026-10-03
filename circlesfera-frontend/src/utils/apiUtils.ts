@@ -52,13 +52,23 @@ export function sanitizeUrl(
   return /^https?:\/\//i.test(processed) ? processed : `${baseUrl}${processed}`;
 }
 
+// True only when the URL's host is Cloudinary's delivery host; a substring
+// check would also accept e.g. https://evil.example/res.cloudinary.com/...
+function isCloudinaryUrl(url: string): boolean {
+  try {
+    return new URL(url).hostname === 'res.cloudinary.com';
+  } catch {
+    return false;
+  }
+}
+
 // Generates an ultra-low resolution blurred URL for Cloudinary images.
 // If the image is not from Cloudinary, returns undefined.
 export function getBlurFallbackUrl(
   url: string | null | undefined,
 ): string | undefined {
   if (!url) return undefined;
-  if (url.includes('res.cloudinary.com')) {
+  if (isCloudinaryUrl(url)) {
     // Inject Cloudinary transformations for a tiny, blurred image
     return url.replace('/upload/', '/upload/w_10,e_blur:1000,q_1,f_auto/');
   }
