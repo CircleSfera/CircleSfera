@@ -176,7 +176,9 @@ describe('ProfilesController', () => {
       TEST_USER.userId,
       TEST_USER.email,
       'test-agent',
-      undefined,
+      // The session now records the client address (req.ip is populated by
+      // the HTTP adapter even without proxy headers).
+      expect.stringMatching(/127\.0\.0\.1$/),
       undefined,
       'profile-2',
     );
