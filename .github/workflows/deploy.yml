@@ -104,7 +104,20 @@ jobs:
             )"
           fi
 
+          # Public (pk.) token, restricted by URL in the Mapbox account. Optional:
+          # without it the map and place search show a "token missing" notice.
+          MAPBOX_ACCESS_TOKEN="$(
+            grep -E '^VITE_MAPBOX_ACCESS_TOKEN=' "$ENV_FILE" \
+              | head -1 \
+              | cut -d= -f2- \
+              | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//"
+          )"
+
           rm -f "$ENV_FILE"
+
+          if [ -z "$MAPBOX_ACCESS_TOKEN" ]; then
+            echo "::warning::VITE_MAPBOX_ACCESS_TOKEN missing in .env.production; maps and place search will be disabled."
+          fi
 
           if [ -z "$API_URL" ]; then
             echo "❌ VITE_API_URL missing (GitHub secret VITE_API_URL or key in .env.production)."
@@ -121,8 +134,9 @@ jobs:
             echo "livekit_url=$LIVEKIT_URL"
             echo "sentry_dsn=$SENTRY_DSN"
             echo "turnstile_site_key=$TURNSTILE_SITE_KEY"
+            echo "mapbox_access_token=$MAPBOX_ACCESS_TOKEN"
           } >> "$GITHUB_OUTPUT"
-          echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry + Turnstile)."
+          echo "✅ Vite build args resolved (API + LiveKit URL + optional Sentry, Turnstile and Mapbox)."
 
       - name: Build and push Backend
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -150,6 +164,7 @@ jobs:
             VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
             VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
             VITE_TURNSTILE_SITE_KEY=${{ steps.vite_args.outputs.turnstile_site_key }}
+            VITE_MAPBOX_ACCESS_TOKEN=${{ steps.vite_args.outputs.mapbox_access_token }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
