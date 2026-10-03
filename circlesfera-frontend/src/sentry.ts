@@ -7,6 +7,7 @@ import {
   useNavigationType,
 } from 'react-router-dom';
 import { getCookieConsent } from './utils/cookieConsent';
+import { scrubSentryPayload } from './utils/sentryScrub';
 
 let sentryInitialized = false;
 
@@ -33,9 +34,22 @@ export function initSentry() {
         createRoutesFromChildren,
         matchRoutes,
       }),
-      Sentry.replayIntegration(),
+      // Explicit privacy settings, so a change of SDK defaults can never start
+      // recording message text, form values or media.
+      Sentry.replayIntegration({
+        maskAllText: true,
+        maskAllInputs: true,
+        blockAllMedia: true,
+      }),
     ],
     environment: import.meta.env.MODE,
+    sendDefaultPii: false,
+
+    // Reset and verification links carry tokens in the URL: strip them from
+    // everything sent to Sentry.
+    beforeSend: (event) => scrubSentryPayload(event),
+    beforeSendTransaction: (event) => scrubSentryPayload(event),
+    beforeBreadcrumb: (breadcrumb) => scrubSentryPayload(breadcrumb),
 
     // Performance Monitoring
     tracesSampleRate: isProd ? 0.1 : 1.0,
