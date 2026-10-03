@@ -34,7 +34,7 @@ describe('TopNav', () => {
     ).toHaveAttribute('href', '/');
     expect(
       screen.getByRole('link', { name: i18n!.t('nav.notifications') }),
-    ).toHaveAttribute('href', '/activity');
+    ).toHaveAttribute('href', '/notifications');
     expect(
       screen.getByRole('link', { name: i18n!.t('nav.messages') }),
     ).toHaveAttribute('href', '/direct/inbox');

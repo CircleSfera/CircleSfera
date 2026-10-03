@@ -432,9 +432,9 @@ function App() {
         <Route path="/admin" element={<AdminApexRedirect />} />
         <Route path="/admin/:tab" element={<AdminApexRedirect />} />
 
-        {/* Notifications / Activity */}
+        {/* Notifications */}
         <Route
-          path="/activity"
+          path="/notifications"
           element={
             <AuthGuard>
               <Notifications />

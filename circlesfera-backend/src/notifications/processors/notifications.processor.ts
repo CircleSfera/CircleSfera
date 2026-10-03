@@ -100,7 +100,7 @@ export class NotificationsProcessor extends WorkerHost {
             body: bodyText,
             data: {
               type: 'DIGEST',
-              url: '/activity',
+              url: '/notifications',
             },
           })
           .catch((err) =>

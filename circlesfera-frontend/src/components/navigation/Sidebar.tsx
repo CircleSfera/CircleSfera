@@ -92,7 +92,7 @@ export default function Sidebar() {
     {
       icon: Heart,
       label: t('nav.notifications'),
-      to: '/activity',
+      to: '/notifications',
       badge: unreadCount,
     },
     { icon: Bookmark, label: t('nav.saved'), to: '/saved', badge: 0 },
