@@ -9,7 +9,7 @@ export type MutedUserEntry = {
   profile: ProfileWithUser;
 };
 
-// Cursor pagination response shape (DATA-003) — pass `nextCursor` back as
+// Cursor pagination response shape — pass `nextCursor` back as
 // `cursor` to fetch the next page; absent/undefined means no further pages.
 export interface KeysetPage<T> {
   data: T[];

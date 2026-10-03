@@ -11,7 +11,7 @@ import {
 } from './helpers/composer';
 
 /**
- * Visual regression against the real Post/Frame composer (ADR-0018).
+ * Visual regression against the real Post/Frame composer.
  * Locale es + product fixtures with visible media content.
  */
 test.use({

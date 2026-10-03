@@ -59,7 +59,7 @@ export class ProfilesService {
 
   // Blocked in either direction: treated as not-found, same as a private/nonexistent profile
   // would be, so the response never reveals that a block exists.
-  // Blocked pairs and other audiences (PD-006) answer as if the profile did
+  // Blocked pairs and other audiences answer as if the profile did
   // not exist. Applies to anonymous viewers too: they never see Test Accounts.
   private async assertNotBlocked(
     viewerProfileId: string | undefined,
@@ -178,7 +178,7 @@ export class ProfilesService {
 
   // Search profiles by username or full name (case-insensitive).
   // Deactivated accounts are never findable, and Profiles in a block
-  // relation with the viewer are hidden in both directions (PD-001).
+  // relation with the viewer are hidden in both directions.
   // Param query: Search term
   // Param viewerProfileId: The searching Profile, when authenticated
   // Returns Up to 10 matching profiles

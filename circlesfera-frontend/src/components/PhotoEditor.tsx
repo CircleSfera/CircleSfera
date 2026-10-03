@@ -326,7 +326,7 @@ export default function PhotoEditor({
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
-      {/* Header — same glass icon language as StoryComposerChrome (ADR-0018) */}
+      {/* Header — same glass icon language as StoryComposerChrome */}
       <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent min-h-11">
         <button
           type="button"

@@ -5,7 +5,7 @@ import pkg from 'pg';
 
 const { Pool } = pkg;
 
-// Staff-only: create a Test Account (PD-006), or mark an existing account as
+// Staff-only: create a Test Account, or mark an existing account as
 // one. This script is the only way the mark is ever set; there is no way to
 // clear it, because a Test Account never becomes a real account.
 //

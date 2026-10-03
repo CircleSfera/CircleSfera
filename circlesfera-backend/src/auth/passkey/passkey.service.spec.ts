@@ -874,7 +874,7 @@ describe('PasskeyService', () => {
     });
   });
 
-  describe('User-Verification Assurance Policy (SEC-006)', () => {
+  describe('User-Verification Assurance Policy', () => {
     it('sets userVerification: required and scope REGISTRATION:SENSITIVE for sensitive registration', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'user-sensitive-reg',
@@ -1095,7 +1095,7 @@ describe('PasskeyService', () => {
     });
   });
 
-  describe('Production WebAuthn Configuration Fail-Closed Invariant (SEC-007)', () => {
+  describe('Production WebAuthn Configuration Fail-Closed Invariant', () => {
     it('throws error when initializing PasskeyService in production with localhost RP ID', () => {
       const prodConfigService = {
         get: vi.fn((key: string) => {

@@ -1,6 +1,6 @@
 /**
  * Discriminated event contracts for governed EventEmitter2 domain events
- * (ADR-0019's closed category list). Provides strict compile-time type
+ * (the closed category list). Provides strict compile-time type
  * safety across backend and shared consumers, and a single source of
  * truth for what each event's payload actually contains.
  */

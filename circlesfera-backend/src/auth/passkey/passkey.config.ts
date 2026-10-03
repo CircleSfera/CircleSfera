@@ -1,7 +1,7 @@
 import type { ConfigService } from '@nestjs/config';
 
 /**
- * Operation sensitivity tiers for Passkey ceremonies (SEC-006).
+ * Operation sensitivity tiers for Passkey ceremonies.
  * - 'standard': Standard passwordless login. Prefers biometric UV but allows User Presence (UP)
  *   security keys to avoid authentication lockout.
  * - 'sensitive': High-privilege operations (passkey enrollment, deletion, step-up auth).
@@ -52,7 +52,7 @@ export const DEFAULT_DEV_RP_ID = 'localhost';
 export const DEFAULT_DEV_ORIGIN = ['http://localhost:5173'];
 
 /**
- * Parses and strictly validates WebAuthn configuration (SEC-007).
+ * Parses and strictly validates WebAuthn configuration.
  * In production:
  *  - Disallows localhost fallbacks for WEBAUTHN_RP_ID and WEBAUTHN_ORIGIN.
  *  - Enforces HTTPS for all configured origins.

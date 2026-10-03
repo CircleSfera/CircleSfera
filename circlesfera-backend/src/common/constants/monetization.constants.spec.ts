@@ -9,7 +9,7 @@ import {
 } from './monetization.constants.js';
 
 describe('monetization money helpers', () => {
-  it('keeps the 20% platform / 80% creator split (ADR-0010)', () => {
+  it('keeps the 20% platform / 80% creator split', () => {
     expect(PLATFORM_FEE_PERCENT).toBe(20);
     expect(PLATFORM_FEE_DECIMAL).toBe(0.2);
     expect(CREATOR_SHARE_DECIMAL).toBe(0.8);

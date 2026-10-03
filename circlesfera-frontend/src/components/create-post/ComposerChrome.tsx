@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-/** Shared stepped-path shell (ADR-0018). Mobile full-bleed; desktop card. */
+/** Shared stepped-path shell. Mobile full-bleed; desktop card. */
 export const COMPOSER_CARD_DEFAULT =
   'relative flex flex-col min-h-0 w-full bg-surface-elevated border-white/8 overflow-hidden max-md:h-full max-md:max-h-none max-md:rounded-none max-md:border-0 max-md:shadow-none md:max-w-sm md:w-full md:h-[min(90dvh,720px)] md:rounded-3xl md:border md:shadow-[0_8px_32px_rgba(0,0,0,0.4)]';
 

@@ -46,7 +46,7 @@ export class FollowsController {
     return this.followsService.checkFollow(username, user.profileId);
   }
 
-  // Get followers for a user. Cursor pagination (DATA-003): pass `cursor`
+  // Get followers for a user. Cursor pagination: pass `cursor`
   // (the last item's id from the previous page) to fetch the next page.
   @Get(':username/follow/followers')
   async getFollowers(
@@ -62,7 +62,7 @@ export class FollowsController {
     );
   }
 
-  // Get users that a user follows. Cursor pagination (DATA-003): pass
+  // Get users that a user follows. Cursor pagination: pass
   // `cursor` (the last item's id from the previous page) to fetch the next
   // page.
   @Get(':username/follow/following')

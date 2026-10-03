@@ -192,7 +192,7 @@ export class FollowsService {
   }
 
   // Get followers of a user by username, newest first. Cursor/keyset
-  // pagination (DATA-003) — stable under concurrent follows, unlike
+  // pagination — stable under concurrent follows, unlike
   // skip/take: a new follower inserted ahead of the cursor never shifts an
   // already-fetched page.
   // Param username: The profile username

@@ -140,7 +140,7 @@ export class FeedService {
   ) {
     const { page = 1, limit = 10 } = pagination;
     const skip = (page - 1) * limit;
-    // Ranking snapshot (DATA-003): frozen at the first page of a scroll
+    // Ranking snapshot: frozen at the first page of a scroll
     // session and echoed back by the client on subsequent pages, so
     // time-decay doesn't drift and a post created mid-session can't be
     // inserted into an already-fetched page. See the SQL below for where
@@ -233,7 +233,7 @@ export class FeedService {
             (1 - (pe.vector <=> ${targetVectorStr}::vector)) AS ai_score,
             
             -- Time Decay: Exponential decay based on days since creation.
-            -- Uses the frozen asOf snapshot (DATA-003), not NOW(), so the
+            -- Uses the frozen asOf snapshot, not NOW(), so the
             -- ranking basis doesn't drift between pages of one scroll
             -- session -- a post created after asOf can't be inserted into
             -- an already-fetched page.
@@ -295,7 +295,7 @@ export class FeedService {
           )
           SELECT 
             p.id,
-            -- Time Decay: frozen asOf snapshot, see comment above (DATA-003)
+            -- Time Decay: frozen asOf snapshot, see comment above
             EXP(-EXTRACT(EPOCH FROM (${asOf}::timestamptz - p."createdAt")) / 86400.0) AS time_decay,
 
             -- Relationship Weight
@@ -666,7 +666,7 @@ export class FeedService {
   }
 
   // Fallback / Trending feed logic
-  // Param asOf: ranking snapshot (DATA-003) carried over from the hybrid
+  // Param asOf: ranking snapshot carried over from the hybrid
   // feed when this is used as its fallback — filters out posts created
   // after the snapshot so the asOf guarantee holds across the fallback too,
   // not just the score formula on the primary hybrid path.

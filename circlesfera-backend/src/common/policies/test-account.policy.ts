@@ -2,7 +2,7 @@ import { ApiErrorCode } from '@circlesfera/shared';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-// Test Account policy (PD-006): Test Accounts and real accounts are two
+// Test Account policy: Test Accounts and real accounts are two
 // separate audiences. A viewer only ever sees, and acts on, Profiles of their
 // own audience. Anonymous viewers belong to the real audience. Callers must
 // answer a cross-audience lookup as if the target did not exist (NotFound,
@@ -125,7 +125,7 @@ export async function assertSameAudience(
   }
 }
 
-// Test Accounts never move real money (PD-006): they cannot pay, and since
+// Test Accounts never move real money: they cannot pay, and since
 // they cannot onboard a payout account they cannot be paid either. Call with
 // the paying (or onboarding) account before any payment provider request.
 export async function assertRealMoneyAllowed(

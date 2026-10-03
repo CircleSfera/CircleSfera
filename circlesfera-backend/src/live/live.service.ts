@@ -137,7 +137,7 @@ export class LiveService {
     return { success: true, endedCount: activeStreams.length };
   }
 
-  // Bounded, not paginated (DATA-003): concurrent live streams are
+  // Bounded, not paginated: concurrent live streams are
   // self-limiting in practice, unlike a growing social history, so a safety
   // cap is proportionate here rather than full cursor pagination.
   async getActiveStreams(viewerProfileId?: string) {

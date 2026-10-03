@@ -56,7 +56,7 @@ export class SearchService {
       // 1. Generate embedding for the search query
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
-      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      // Only the viewer's audience; anonymous callers see real accounts.
       const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
 
       // 2. Find similar posts via post_embeddings (pgvector cosine distance)
@@ -143,7 +143,7 @@ export class SearchService {
     try {
       const queryEmbedding = await this.aiService.generateEmbedding(query);
       const vectorLiteral = JSON.stringify(queryEmbedding);
-      // Only the viewer's audience (PD-006); anonymous callers see real accounts.
+      // Only the viewer's audience; anonymous callers see real accounts.
       const viewerIsTest = await isTestViewerProfile(this.prisma, profileId);
       let matches: any[];
 
@@ -226,7 +226,7 @@ export class SearchService {
     if (cached) return cached;
 
     // Save search history if profileId is provided.
-    // expiresAt is set explicitly (DATA-005): MaintenanceService.cleanupOldSearchHistory
+    // expiresAt is set explicitly: MaintenanceService.cleanupOldSearchHistory
     // is the canonical purge job and relies on this 90-day GDPR retention window.
     if (profileId) {
       const expiresAt = new Date();
@@ -253,7 +253,7 @@ export class SearchService {
               contains: sanitizedQuery,
               mode: 'insensitive',
             },
-            // Only tags used by Profiles the viewer can see (blocks, PD-006).
+            // Only tags used by Profiles the viewer can see (blocks).
             posts: {
               some: {
                 post: {
@@ -343,7 +343,7 @@ export class SearchService {
         user: {
           deactivatedAt: null,
         },
-        // Blocked Profiles and other audiences (PD-006) are not findable.
+        // Blocked Profiles and other audiences are not findable.
         AND: [await visibleToViewerWhere(this.prisma, viewerId)],
       },
       take: 30, // Larger pool for better ranking
@@ -359,7 +359,7 @@ export class SearchService {
     // 2. Personalize ranking if viewerId is provided.
     // Social Discovery: for each candidate, find up to 3 people the viewer
     // follows who also follow that candidate. Batched into a single query
-    // across all candidates (DATA-002) instead of one findMany per profile —
+    // across all candidates instead of one findMany per profile —
     // grouped by followingId below, same "up to 3, arbitrary order" shape as
     // the original per-profile take: 3.
     const mutualsByCandidate = new Map<string, string[]>();
@@ -421,7 +421,7 @@ export class SearchService {
   // Formula: (Likes_1h * 2 + Comments_1h * 5) / (Hours_Since_Post + 2)^1.8
   // Param limit: Number of posts to return
   async getTrending(limit = 10, viewerId?: string): Promise<Post[]> {
-    // The cached list is viewer-independent; blocks and audiences (PD-006)
+    // The cached list is viewer-independent; blocks and audiences
     // are applied per viewer afterwards so neither leaks through the cache.
     const blocked = new Set(await getBlockedProfileIds(this.prisma, viewerId));
     const withoutBlocked = (posts: Post[]) =>

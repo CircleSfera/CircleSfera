@@ -7,7 +7,7 @@ import {
   parseAllowedOrigins,
 } from './origin.config.js';
 
-describe('Origin & CSP Hardening Configuration (SEC-014)', () => {
+describe('Origin & CSP Hardening Configuration', () => {
   describe('parseAllowedOrigins', () => {
     it('returns default development origins when CORS_ORIGIN is empty in non-production', () => {
       expect(parseAllowedOrigins(undefined, false)).toEqual(

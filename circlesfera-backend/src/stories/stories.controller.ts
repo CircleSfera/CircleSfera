@@ -82,7 +82,7 @@ export class StoriesController {
 
   // Get viewers of a story. Owner-only — view lists can reveal who watched,
   // which is sensitive the same way message read-receipts are. Cursor
-  // pagination (DATA-003): pass `cursor` (opaque, from the previous page's
+  // pagination: pass `cursor` (opaque, from the previous page's
   // nextCursor) to fetch the next page.
   @Get(':id/views')
   @UseGuards(JwtAuthGuard, OwnershipGuard)
@@ -102,7 +102,7 @@ export class StoriesController {
     return this.storiesService.addReaction(id, user.profileId, dto.reaction);
   }
 
-  // Get reactions for a story. Cursor pagination (DATA-003): pass `cursor`
+  // Get reactions for a story. Cursor pagination: pass `cursor`
   // (the last item's id from the previous page) to fetch the next page.
   @Get(':id/reactions')
   async getReactions(@Param('id') id: string, @Query() query: PaginationDto) {

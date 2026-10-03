@@ -104,8 +104,8 @@ describe('FeedService', () => {
       })) as any;
       expect(result.data).toHaveLength(1);
       expect(result.data[0].id).toBe('1');
-      // Anonymous browsing was never part of the asOf-session semantics
-      // (DATA-003) — no scroll session to freeze.
+      // Anonymous browsing was never part of the asOf-session semantics —
+      // no scroll session to freeze.
       expect(result.asOf).toBeUndefined();
     });
 
@@ -154,7 +154,7 @@ describe('FeedService', () => {
       expect((result.data[0] as any).algScore).toBe(5.5);
     });
 
-    it('generates and returns an asOf snapshot when the client sends none (DATA-003)', async () => {
+    it('generates and returns an asOf snapshot when the client sends none', async () => {
       vi.useFakeTimers();
       const fixedNow = new Date('2026-03-01T12:00:00.000Z');
       vi.setSystemTime(fixedNow);
@@ -178,7 +178,7 @@ describe('FeedService', () => {
       }
     });
 
-    it('filters out posts created after asOf in both the vector and non-vector SQL branches (DATA-003)', async () => {
+    it('filters out posts created after asOf in both the vector and non-vector SQL branches', async () => {
       const fixedAsOf = '2026-01-01T00:00:00.000Z';
 
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
@@ -220,7 +220,7 @@ describe('FeedService', () => {
       expect(vectorStrings.join('')).toContain('AND p."createdAt" <= ');
     });
 
-    it('freezes the ranking snapshot to the client-supplied asOf instead of NOW() (DATA-003)', async () => {
+    it('freezes the ranking snapshot to the client-supplied asOf instead of NOW()', async () => {
       mockPrismaService.like.findMany.mockResolvedValue([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([
         { id: '4', final_score: 1 },
@@ -527,7 +527,7 @@ describe('FeedService', () => {
       expect(res.data[0].recommendationSignals).toContain('high_engagement');
     });
 
-    it('falls back to trending when hybrid query returns 0 posts, carrying asOf forward (DATA-003)', async () => {
+    it('falls back to trending when hybrid query returns 0 posts, carrying asOf forward', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]); // 0 posts
@@ -553,7 +553,7 @@ describe('FeedService', () => {
       );
     });
 
-    it('catches hybrid query errors and falls back to trending, carrying asOf forward (DATA-003)', async () => {
+    it('catches hybrid query errors and falls back to trending, carrying asOf forward', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockRejectedValueOnce(
         new Error('SQL crash'),

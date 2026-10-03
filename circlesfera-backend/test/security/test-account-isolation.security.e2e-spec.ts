@@ -14,7 +14,7 @@ import {
 } from '../factories/index.js';
 import { uniqueSuffix } from '../utils/unique-id.js';
 
-// PD-006: Test Accounts and real accounts are separate audiences. Real and
+// Test Accounts and real accounts are separate audiences. Real and
 // anonymous viewers must never see a Test Account or its content, and a Test
 // Account must never see real accounts. Every fixture of one audience carries
 // a marker; a response to the other audience must not contain it anywhere.

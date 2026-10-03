@@ -47,7 +47,7 @@ export class TurnstileService {
   }
 
   // Exempts a small, explicit set of trusted infrastructure IPs (e.g. the
-  // deploy server's own outbound IP, for the QA-008 authenticated post-deploy
+  // deploy server's own outbound IP, for the authenticated post-deploy
   // smoke check) from the CAPTCHA requirement. Configured via TURNSTILE_BYPASS_IPS
   // (comma-separated). Empty/unset means no exemptions — behavior is unchanged
   // for every existing deployment until this is explicitly configured.

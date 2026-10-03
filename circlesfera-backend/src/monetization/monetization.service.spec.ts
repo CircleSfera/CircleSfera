@@ -392,7 +392,7 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('Buyer not found');
     });
 
-    it('creates Checkout for story unlock with ADR-0010 20% platform fee', async () => {
+    it('creates Checkout for story unlock with the 20% platform fee', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue({
         id: 's-1',
         isPremium: true,
@@ -664,7 +664,7 @@ describe('MonetizationService', () => {
       ).rejects.toThrow('Sender not found');
     });
 
-    it('creates Checkout with the requested amount and ADR-0010 fee', async () => {
+    it('creates Checkout with the requested amount and the platform fee', async () => {
       mockPrismaService.user.findUnique
         .mockResolvedValueOnce({
           id: 'creator-1',

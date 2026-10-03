@@ -89,7 +89,7 @@ describe('LiveGiftService', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
-    it('charges the catalog price and the ADR-0010 application fee', async () => {
+    it('charges the catalog price and the platform application fee', async () => {
       mockPrismaService.liveStream.findUnique.mockResolvedValue(liveHost);
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'fan-1',

@@ -55,7 +55,7 @@ export default function Home() {
     },
     getNextPageParam: (lastPage) => {
       if (lastPage.meta.page < lastPage.meta.totalPages) {
-        // Echo the ranking snapshot back (DATA-003) so the "for you" feed's
+        // Echo the ranking snapshot back so the "for you" feed's
         // time-decay stays frozen across pages of one scroll session
         // instead of recomputing against a moving NOW(). No-op for the
         // "following" tab, which doesn't return asOf.

@@ -26,7 +26,7 @@ export class PaginationDto {
   @IsString()
   cursor?: string;
 
-  // Ranking snapshot timestamp for score-based feeds (DATA-003): the client
+  // Ranking snapshot timestamp for score-based feeds: the client
   // captures this from the first page's response and echoes it back on
   // subsequent pages so a ranking computed against "now" (e.g. time-decay)
   // stays frozen for the duration of one scroll session — a post created
