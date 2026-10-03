@@ -26,22 +26,43 @@ TIMESTAMP="\$(date -u +%Y%m%d_%H%M%S)"
 OUT_DIR="${BACKUP_DIR}/postgres/full"
 mkdir -p "\${OUT_DIR}" "${BACKUP_DIR}/uploads"
 DUMP="\${OUT_DIR}/pg_backup_\${TIMESTAMP}.dump"
+UP_DIR="${BACKUP_DIR}/uploads"
+UP_ARCHIVE="\${UP_DIR}/uploads_\${TIMESTAMP}.tar"
+DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+FAILED=0
+ts() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 {
-  echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] Starting Postgres dump → \${DUMP}"
-  if docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \\
-    pg_dump -U "\${POSTGRES_USER}" -Fc "\${POSTGRES_DB}" > "\${DUMP}"; then
-    echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] Postgres backup OK"
+  echo "[\$(ts)] Starting Postgres dump → \${DUMP}"
+  if \${DC} exec -T postgres pg_dump -U "\${POSTGRES_USER}" -Fc "\${POSTGRES_DB}" > "\${DUMP}"; then
+    echo "[\$(ts)] Postgres backup OK"
   else
-    echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] Postgres backup FAILED" >&2
+    echo "[\$(ts)] Postgres backup FAILED" >&2
     rm -f "\${DUMP}" || true
+    FAILED=1
   fi
   find "\${OUT_DIR}" -type f -name 'pg_backup_*.dump' -mtime "+\${RETENTION_DAYS}" -delete || true
-  # Uploads: prefer bind-mounted path; fall back to docker volume copy if missing
-  UPLOADS_DIR="\${UPLOADS_DIR:-${ROOT}/circlesfera-backend/uploads}"
-  if [ -d "\${UPLOADS_DIR}" ]; then
-    UPLOADS_DIR="\${UPLOADS_DIR}" ${ROOT}/scripts/backup-uploads.sh || true
+
+  # Media lives in the uploads_data Docker volume, mounted only inside the
+  # containers, so the archive is streamed from the backend container. Media
+  # files are already compressed, so the archive is plain tar. It is read back
+  # before it replaces the partial file, and old archives are pruned only after
+  # a good one exists.
+  echo "[\$(ts)] Starting media backup → \${UP_ARCHIVE}"
+  if \${DC} exec -T backend tar -cf - -C /app/circlesfera-backend uploads > "\${UP_ARCHIVE}.partial" \\
+    && tar -tf "\${UP_ARCHIVE}.partial" > /dev/null; then
+    mv "\${UP_ARCHIVE}.partial" "\${UP_ARCHIVE}"
+    echo "[\$(ts)] Media backup OK (\$(du -h "\${UP_ARCHIVE}" | cut -f1), \$(tar -tf "\${UP_ARCHIVE}" | grep -vc '/\$') files)"
+    find "\${UP_DIR}" -type f \\( -name 'uploads_*.tar' -o -name 'uploads_*.tar.gz' \\) -mtime "+\${RETENTION_DAYS}" -delete || true
   else
-    echo "[\$(date -u +%Y-%m-%dT%H:%M:%SZ)] UPLOADS_DIR missing (\${UPLOADS_DIR}); skip uploads backup"
+    echo "[\$(ts)] Media backup FAILED" >&2
+    rm -f "\${UP_ARCHIVE}.partial" || true
+    FAILED=1
+  fi
+
+  if [ "\${FAILED}" = 1 ] && [ -n "\${SLACK_WEBHOOK_ALERTS:-}" ]; then
+    curl -s -m 10 -X POST -H 'Content-type: application/json' \\
+      --data '{"text":"CircleSfera: the nightly backup FAILED on the VPS. See backups/backup.log."}' \\
+      "\${SLACK_WEBHOOK_ALERTS}" > /dev/null 2>&1 || true
   fi
 } >> "${BACKUP_DIR}/backup.log" 2>&1
 EOF

@@ -1,0 +1,47 @@
+name: Ops — install backup cron
+
+# Reinstalls the nightly backup cron from scripts/install-backup-cron.sh (the
+# deploy already checked out the current main on the VPS), then runs one
+# backup straight away and prints the result lines from backups/backup.log.
+# The run adds one database dump and one media archive; it deletes nothing
+# newer than the retention period. Actions logs are public, so it prints only
+# status lines, sizes and file counts.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: Install the backup cron and run one backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production-ops
+    steps:
+      - name: Install and run on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 12m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            ./scripts/install-backup-cron.sh
+            LOG=/srv/circlesfera/backups/backup.log
+            START=$(wc -l < "$LOG" 2>/dev/null || echo 0)
+            ./scripts/.run-daily-backups.sh
+            echo "=== Result of this run ==="
+            tail -n +"$((START + 1))" "$LOG" | sed -E 's#://[^:/@ ]+:[^@ ]+@#://***:***@#g'
+            if tail -n +"$((START + 1))" "$LOG" | grep -q FAILED; then
+              echo "A backup step failed."
+              exit 1
+            fi
