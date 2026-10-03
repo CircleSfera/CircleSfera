@@ -120,7 +120,7 @@ describe('SlackService', () => {
       expect(axios.post).not.toHaveBeenCalled();
     });
 
-    describe('retry classification (INT-001)', () => {
+    describe('retry classification', () => {
       beforeEach(() => {
         vi.useFakeTimers();
       });

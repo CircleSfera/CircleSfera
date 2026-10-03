@@ -112,7 +112,7 @@ describe('EmailService', () => {
       expect(mockEmailQueue.add).not.toHaveBeenCalled();
     });
 
-    it('swallows a Redis/BullMQ enqueue failure instead of throwing (INT-001)', async () => {
+    it('swallows a Redis/BullMQ enqueue failure instead of throwing', async () => {
       mockEmailQueue.add.mockRejectedValueOnce(new Error('Redis unreachable'));
 
       // Caller (e.g. AuthService) already committed its own DB mutation --

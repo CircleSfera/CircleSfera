@@ -829,7 +829,7 @@ model SearchHistory {
   profileId String
   query     String
   createdAt DateTime  @default(now())
-  expiresAt DateTime? // INC-08: GDPR retention (90 days)
+  expiresAt DateTime? // GDPR retention (90 days)
 
   profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
 
@@ -1148,12 +1148,12 @@ model PlatformPlan {
   name                String // e.g. "Pro Creator", "Verified"
   description         String?
   priceCents          Int      @default(0) // Source of truth (e.g. 999 = €9.99)
-  yearlyPriceCents    Int? // INC-04: yearly price in cents
-  currency            String   @default("EUR") // INC-13: Default to EUR
+  yearlyPriceCents    Int? // Yearly price in cents
+  currency            String   @default("EUR") // Default to EUR
   interval            String   @default("month") // "month", "year"
   stripeProductId     String   @unique
   stripePriceId       String   @unique
-  yearlyStripePriceId String?  @unique // INC-04: Support for yearly pricing
+  yearlyStripePriceId String?  @unique // Support for yearly pricing
   features            String[] // Array of included features
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
@@ -1226,8 +1226,8 @@ model Promotion {
   targetType  PromotionTargetType
   targetId    String
   budgetCents Int                 @default(0) // Remaining budget in cents
-  currency    String              @default("EUR") // INC-13: Default to EUR
-  status      PromotionStatus     @default(PENDING) // INC-02: Use enum and PENDING default
+  currency    String              @default("EUR") // Default to EUR
+  status      PromotionStatus     @default(PENDING) // Use enum and PENDING default
   startDate   DateTime            @default(now())
   endDate     DateTime
   reach       Int                 @default(0)
@@ -1286,7 +1286,7 @@ model StripePayoutLog {
   // (onDelete: SetNull). The row survives for fiscal audit compliance (7-year retention).
   userId         String? // Connected account owner
   amountCents    Int
-  currency       String   @default("EUR") // Aligns with platform-wide EUR default (see INC-13); always overwritten by Stripe's payout.currency
+  currency       String   @default("EUR") // Aligns with platform-wide EUR default; always overwritten by Stripe's payout.currency
   status         String // 'paid', 'pending', 'failed', 'canceled'
   arrivalDate    DateTime
   failureReason  String?

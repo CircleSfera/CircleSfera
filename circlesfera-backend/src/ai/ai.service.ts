@@ -13,7 +13,7 @@ export interface ContentModerationResult {
 
 export type OpenAIFailureClass = 'transient' | 'permanent';
 
-// Classifies an OpenAI SDK error by retryability (INT-001). AIProcessor's
+// Classifies an OpenAI SDK error by retryability. AIProcessor's
 // BullMQ retry (attempts: 4, exponential backoff -- see
 // queue-policy.constants.ts) previously applied identically regardless of
 // whether the failure was a genuine transient blip or a permanent 4xx

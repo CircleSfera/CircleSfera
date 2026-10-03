@@ -15,7 +15,7 @@ export class BookmarksService {
 
   // Shared ownership check for assigning a bookmark to a collection — the one
   // authoritative implementation for every write/read path that accepts a
-  // collectionId (AUTHZ-002). Prevents a caller from attaching bookmarks to,
+  // collectionId. Prevents a caller from attaching bookmarks to,
   // or reading, a collection owned by another profile.
   // Throws NotFoundException if collection not found, ForbiddenException if not owner.
   private async verifyCollectionOwnership(

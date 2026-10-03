@@ -594,7 +594,7 @@ export class PaymentsService {
         // Creator monetization (post/story/message unlocks, tips, live
         // gifts, promotions) is fulfilled by MonetizationWebhookService —
         // an independent application boundary from platform subscription
-        // billing below, per FIN-008. Both share this webhook's signature
+        // billing below. Both share this webhook's signature
         // verification and WebhookEvent idempotency bookkeeping.
         if (isMonetizationCheckoutType(metadata?.type)) {
           await this.monetizationWebhookService.handleCheckoutSessionCompleted(

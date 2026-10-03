@@ -7,7 +7,7 @@ import { Redis } from 'ioredis';
 // Socket.IO adapter) rather than through @nestjs/terminus's
 // MicroserviceHealthIndicator, which exists to verify an actual NestJS
 // microservice transport endpoint is reachable — this app has none; it was
-// only ever used to open a raw Redis connection (ARCH-002).
+// only ever used to open a raw Redis connection.
 @Injectable()
 export class RedisHealthIndicator {
   constructor(@Inject(ConfigService) private configService: ConfigService) {}

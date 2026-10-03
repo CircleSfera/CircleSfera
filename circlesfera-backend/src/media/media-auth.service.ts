@@ -31,7 +31,7 @@ interface MessageAccess {
  *
  * Every content-owning table that stores user-uploaded media (PostMedia,
  * Story, Message, Comment, Collection) is checked in parallel for a URL
- * match (MEDIA-007). A file that matches none of them is a public asset
+ * match. A file that matches none of them is a public asset
  * (avatar, cover, ...) and is allowed — this is the deliberate default,
  * not an oversight, so keep it that way when adding new content types:
  * add an explicit branch above the fallback, never rely on the fallback

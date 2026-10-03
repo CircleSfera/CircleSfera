@@ -14,7 +14,7 @@ export interface SendMailOptions {
 
 // Service for sending transactional emails (verification, password reset, welcome).
 // Uses Brevo (formerly Sendinblue) API v3 via the official Node.js SDK (v5+).
-// Public methods enqueue via BullMQ (INT-001) rather than calling Brevo inline:
+// Public methods enqueue via BullMQ rather than calling Brevo inline:
 // a synchronous call that only logged-and-swallowed on failure meant a Brevo
 // outage silently and permanently lost a password-reset email (1h token) with
 // no automatic recovery. deliverMail (called by EmailProcessor) does the
@@ -193,7 +193,7 @@ export class EmailService {
     });
   }
 
-  // Enqueue an email for delivery (INT-001). Returns as soon as the job is
+  // Enqueue an email for delivery. Returns as soon as the job is
   // queued -- callers never block on Brevo's actual response time, and a
   // transient Brevo failure gets BullMQ's retry/backoff instead of being
   // silently dropped. See deliverMail for the actual send.
