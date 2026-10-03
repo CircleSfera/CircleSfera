@@ -60,8 +60,9 @@ Product Boundaries. Until then it is carried over from `circlesfera-documentatio
 - GraphQL (the API is REST)
 - A generic domain event bus or CQRS/event sourcing (`EventEmitter2` only for the closed list in ADR-0019)
 - Storing JWTs in `localStorage`
-- Native mobile apps. This is **disputed**: Capacitor `android/` and `ios/` projects exist. See the
-  Conflict & Decision Register.
+
+Native iOS and Android apps (Capacitor `android/` and `ios/`) are **in scope**, built from the same
+frontend as the web app (Notion → Product → Product Decisions).
 
 ## Before and after changing code
 
