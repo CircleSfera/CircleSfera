@@ -65,10 +65,13 @@ jobs:
               pg_restore -U "$POSTGRES_USER" -d restore_drill --no-owner --no-acl /tmp/restore_drill.dump 2>/tmp/restore_drill.err
               rc=$?
               set -e
-              echo "pg_restore exit code: $rc (0 clean, 1 warnings only)"
-              if [ "$rc" -gt 1 ]; then echo "RESULT database: FAIL (pg_restore)"; exit 1; fi
-              [ "$rc" -eq 1 ] && echo "pg_restore warnings: $(wc -l < /tmp/restore_drill.err) lines (not printed)"
+              # pg_restore keeps going after errors and exits 1 if any were
+              # recorded, so any non-zero code fails the drill. Error text is
+              # not printed (it can quote data); only the count is.
+              errors=$(grep -c "error:" /tmp/restore_drill.err || true)
               rm -f /tmp/restore_drill.err
+              echo "pg_restore exit code: $rc, errors: $errors"
+              if [ "$rc" -ne 0 ]; then echo "RESULT database: FAIL (pg_restore)"; exit 1; fi
               tables="SELECT count(*) FROM information_schema.tables WHERE table_schema = '"'"'public'"'"' AND table_type = '"'"'BASE TABLE'"'"';"
               migs="SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;"
               printf "%-22s %10s %10s\n" "check" "restored" "live"
