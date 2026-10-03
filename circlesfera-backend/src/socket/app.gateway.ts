@@ -63,7 +63,7 @@ export interface SocketWithAuth extends Socket {
     // Live streams this socket has joined via live:join, tracked separately
     // from Socket.IO's own room membership because rooms are already left
     // by the time the 'disconnect' event fires, so handleDisconnect can't
-    // read client.rooms to reconcile abandoned viewer counts (RT-004).
+    // read client.rooms to reconcile abandoned viewer counts.
     liveStreamIds?: Set<string>;
   };
 }
@@ -197,7 +197,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
         // Reconcile viewer counts for live streams this socket never sent
         // live:leave for (tab closed, network drop) — otherwise the count
-        // stays permanently inflated (RT-004).
+        // stays permanently inflated.
         const liveStreamIds = (client as SocketWithAuth).data?.liveStreamIds;
         if (liveStreamIds?.size) {
           for (const streamId of liveStreamIds) {
@@ -637,7 +637,7 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Shared policy for stream host/co-host-only live actions — the one
   // authoritative gate-and-log implementation for pin/unpin comment,
-  // highlight/clear question and set goal (AUTHZ-002). Returns the caller's
+  // highlight/clear question and set goal. Returns the caller's
   // profileId when authorized, or null (after logging) when not.
   private async requireStreamHostOrCoHost(
     client: SocketWithAuth,

@@ -309,7 +309,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
       );
     });
 
-    // Ownership is enforced by OwnershipGuard at the controller level (AUTHZ-002)
+    // Ownership is enforced by OwnershipGuard at the controller level
     // rather than inside CommentsService — see OwnershipGuard's own IDOR
     // regression coverage in ownership.guard.spec.ts.
     it('blocks User B from deleting User A comment via OwnershipGuard', async () => {

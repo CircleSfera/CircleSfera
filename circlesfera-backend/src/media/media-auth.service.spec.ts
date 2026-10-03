@@ -330,7 +330,7 @@ describe('MediaAuthService', () => {
     });
   });
 
-  describe('Story media (MEDIA-007)', () => {
+  describe('Story media', () => {
     it('allows the story author', async () => {
       mockPrismaService.story.findMany.mockResolvedValue([
         {
@@ -483,7 +483,7 @@ describe('MediaAuthService', () => {
     });
   });
 
-  describe('Message media (MEDIA-007)', () => {
+  describe('Message media', () => {
     it('denies anonymous access to a DM attachment', async () => {
       mockPrismaService.message.findMany.mockResolvedValue([
         {
@@ -627,7 +627,7 @@ describe('MediaAuthService', () => {
     });
   });
 
-  describe('Comment media (MEDIA-007, inherits parent Post policy)', () => {
+  describe('Comment media (inherits parent Post policy)', () => {
     it('allows comment media on a public free post', async () => {
       mockPrismaService.comment.findMany.mockResolvedValue([
         {
@@ -666,7 +666,7 @@ describe('MediaAuthService', () => {
     });
   });
 
-  describe('Collection media (MEDIA-007, owner-only)', () => {
+  describe('Collection media (owner-only)', () => {
     it('allows the collection owner', async () => {
       mockPrismaService.collection.findMany.mockResolvedValue([
         { profileId: 'owner-p' },

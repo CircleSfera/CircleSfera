@@ -53,7 +53,7 @@ export class SlackService {
   // dropped with no retry -- for handleSystemIncident specifically, that
   // meant an infra problem severe enough to take Slack down with it (a
   // plausible correlated failure) silently lost the one alert meant to tell
-  // a human about it. Retries with backoff (INT-001); if every attempt
+  // a human about it. Retries with backoff; if every attempt
   // fails, logs a distinctive high-severity marker so ops has a trace to
   // grep for even without Slack.
   private static readonly SEND_MAX_ATTEMPTS = 3;
@@ -82,7 +82,7 @@ export class SlackService {
         // A malformed payload (400) or a deleted/invalid webhook URL (404)
         // will fail identically on retry -- only network errors, 429, and
         // 5xx are worth retrying (same transient/permanent split as the
-        // rest of INT-001).
+        // rest of the retry policy).
         const status = axios.isAxiosError(error)
           ? error.response?.status
           : undefined;

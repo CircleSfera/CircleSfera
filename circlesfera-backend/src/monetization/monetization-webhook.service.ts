@@ -37,9 +37,8 @@ export function isMonetizationCheckoutType(type: string | undefined): boolean {
  * monetization and Stripe Connect — as opposed to platform subscription
  * billing, which stays in PaymentsService. Both share the same Stripe
  * webhook signature verification, WebhookEvent idempotency/lease
- * bookkeeping and single `/payments/webhook` endpoint (PaymentsService),
- * per FIN-008: independent application boundaries, shared Stripe
- * infrastructure.
+ * bookkeeping and single `/payments/webhook` endpoint (PaymentsService):
+ * independent application boundaries, shared Stripe infrastructure.
  */
 @Injectable()
 export class MonetizationWebhookService {

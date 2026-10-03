@@ -1,8 +1,7 @@
 // Single source of truth for "is this profile the host/co-host of this
 // stream" — used by both the REST live-stream flows (LiveService) and the
 // Socket.IO realtime flows (LiveRealtimeService, app.gateway.ts) so the two
-// never drift into independently-maintained copies of the same rule
-// (AUTHZ-005).
+// never drift into independently-maintained copies of the same rule.
 export interface StreamHostRoles {
   hostId: string;
   coHostId: string | null;

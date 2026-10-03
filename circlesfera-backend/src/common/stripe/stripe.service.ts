@@ -289,7 +289,7 @@ export class StripeService implements OnModuleInit {
 
 export type StripeFailureClass = 'transient' | 'permanent';
 
-// Classifies a Stripe SDK error by retryability (INT-001). Nothing in this
+// Classifies a Stripe SDK error by retryability. Nothing in this
 // codebase previously distinguished a permanent failure (bad card, invalid
 // request, bad API key -- will fail identically on retry) from a transient
 // one (network blip, Stripe-side outage, rate limit -- worth retrying).

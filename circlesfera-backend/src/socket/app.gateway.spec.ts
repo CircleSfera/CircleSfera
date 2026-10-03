@@ -1169,7 +1169,7 @@ describe('AppGateway payload bounds and authorization', () => {
       await gateway.handleLiveLeave({ streamId: 's-1' }, emptySocket);
     });
 
-    it('reconciles viewer counts for live streams still joined on disconnect (RT-004)', async () => {
+    it('reconciles viewer counts for live streams still joined on disconnect', async () => {
       const mockEmit = vi.fn();
       const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
       const mockPresenceService = {

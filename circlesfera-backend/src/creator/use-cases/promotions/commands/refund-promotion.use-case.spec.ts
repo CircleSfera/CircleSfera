@@ -135,7 +135,7 @@ describe('RefundPromotionUseCase', () => {
         status: 'REFUNDED',
         receiverId: 'user-1',
         promotionId: 'promo-1',
-        // Regression test (FIN-006): the refund's own Stripe id must be
+        // Regression test: the refund's own Stripe id must be
         // stored so Transaction.stripePaymentIntentId's unique constraint
         // protects against a concurrent duplicate refund double-counting
         // in the ledger, same as every other monetization Transaction.
