@@ -31,6 +31,7 @@ import {
 import { JwtAuthGuard } from '../guards/jwt-auth.guard.js';
 import {
   AuthenticatePasskeyDto,
+  DeletePasskeyDto,
   GetPasskeyOptionsDto,
   RegisterPasskeyDto,
 } from './dto/passkey.dto.js';
@@ -117,14 +118,27 @@ export class PasskeyController {
     throw new UnauthorizedException('Passkey authentication failed');
   }
 
-  // Delete a registered passkey (requires auth).
+  // Sensitive authentication options for the signed-in user (step-up before
+  // removing a passkey).
+  @UseGuards(JwtAuthGuard)
+  @Post('step-up-options')
+  async generateStepUpOptions(@CurrentUser() user: CurrentUserData) {
+    return this.passkeyService.generateStepUpOptions(user.userId);
+  }
+
+  // Delete a registered passkey (requires auth and a fresh step-up assertion).
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
   async deletePasskey(
     @CurrentUser() user: CurrentUserData,
     @Param('id') passkeyId: string,
+    @Body() body: DeletePasskeyDto,
   ) {
-    return this.passkeyService.deletePasskey(user.userId, passkeyId);
+    return this.passkeyService.deletePasskey(
+      user.userId,
+      passkeyId,
+      body.authenticationResponse,
+    );
   }
 
   private abuseMeta(req: Request) {
