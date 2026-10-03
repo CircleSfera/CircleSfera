@@ -3612,7 +3612,7 @@
   },
   "landing": {
     "seo": {
-      "title": "CircleSfera — Your feed. You decide.",
+      "title": "CircleSfera — Your World, Connected.",
       "description": "CircleSfera is a social network for posts, stories, Frames, Direct, and Live. You choose what you see and who can reach you."
     },
     "nav": {
@@ -3624,8 +3624,8 @@
     },
     "hero": {
       "badge": "Feed · Frames · Direct · Live",
-      "title_part1": "Your feed.",
-      "title_part2": "You decide.",
+      "title_part1": "Your World,",
+      "title_part2": "Connected.",
       "subtitle": "Posts, stories, Frames, Direct, and Live. You choose what you see and who can reach you.",
       "get_started": "Create account",
       "log_in": "Log in",
