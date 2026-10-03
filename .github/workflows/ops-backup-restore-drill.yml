@@ -1,0 +1,102 @@
+name: Ops — backup restore drill
+
+# Proves that the latest nightly backups can be restored, without touching the
+# live data:
+# - Database: restores the newest daily dump into a temporary database inside
+#   the Postgres container, compares table, migration and row counts with the
+#   live database, then drops the temporary database.
+# - Media: extracts the newest media archive into a temporary folder on the
+#   host, compares the file count with the live volume, then deletes it.
+# Actions logs are public, so it prints only counts, sizes and PASS/FAIL lines.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  drill:
+    name: Restore the latest backups and compare
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-ops
+    steps:
+      - name: Run the drill on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            B=/srv/circlesfera/backups
+            WORK=$(mktemp -d "$B/restore-drill.XXXXXX")
+            cleanup() {
+              $DC exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d postgres -qc "DROP DATABASE IF EXISTS restore_drill WITH (FORCE);"; rm -f /tmp/restore_drill.dump' >/dev/null 2>&1 || true
+              rm -rf "$WORK"
+            }
+            trap cleanup EXIT
+            FAIL=0
+
+            echo "=== Database ==="
+            DUMP=$(ls -1t "$B"/postgres/full/pg_backup_*.dump | head -n 1)
+            echo "dump: $(basename "$DUMP") ($(du -h "$DUMP" | cut -f1))"
+            $DC exec -T postgres sh -c 'cat > /tmp/restore_drill.dump' < "$DUMP"
+            $DC exec -T postgres sh -c '
+              set -e
+              q() { psql -U "$POSTGRES_USER" -d "$1" -t -A -c "$2"; }
+              q postgres "DROP DATABASE IF EXISTS restore_drill WITH (FORCE);" >/dev/null
+              q postgres "CREATE DATABASE restore_drill;" >/dev/null
+              set +e
+              pg_restore -U "$POSTGRES_USER" -d restore_drill --no-owner --no-acl /tmp/restore_drill.dump 2>/tmp/restore_drill.err
+              rc=$?
+              set -e
+              echo "pg_restore exit code: $rc (0 clean, 1 warnings only)"
+              if [ "$rc" -gt 1 ]; then echo "RESULT database: FAIL (pg_restore)"; exit 1; fi
+              [ "$rc" -eq 1 ] && echo "pg_restore warnings: $(wc -l < /tmp/restore_drill.err) lines (not printed)"
+              rm -f /tmp/restore_drill.err
+              tables="SELECT count(*) FROM information_schema.tables WHERE table_schema = '"'"'public'"'"' AND table_type = '"'"'BASE TABLE'"'"';"
+              migs="SELECT count(*) FROM _prisma_migrations WHERE finished_at IS NOT NULL;"
+              printf "%-22s %10s %10s\n" "check" "restored" "live"
+              ok=1
+              for pair in "tables|$tables" "migrations|$migs" "users|SELECT count(*) FROM users;" "profiles|SELECT count(*) FROM profiles;" "posts|SELECT count(*) FROM posts;" "transactions|SELECT count(*) FROM transactions;"; do
+                name=${pair%%|*}; sql=${pair#*|}
+                r=$(q restore_drill "$sql"); l=$(q "$POSTGRES_DB" "$sql")
+                printf "%-22s %10s %10s\n" "$name" "$r" "$l"
+                # The dump is from last night, so the live database may have grown since.
+                if [ "$r" -gt "$l" ]; then ok=0; fi
+                if [ "$name" = tables ] || [ "$name" = migrations ]; then [ "$r" -eq "$l" ] || ok=0; fi
+              done
+              if [ "$ok" = 1 ]; then echo "RESULT database: PASS"; else echo "RESULT database: FAIL (counts)"; exit 1; fi
+            ' || FAIL=1
+
+            echo "=== Media ==="
+            ARCHIVE=$(ls -1t "$B"/uploads/uploads_*.tar 2>/dev/null | head -n 1 || true)
+            if [ -z "$ARCHIVE" ]; then
+              echo "no media archive (uploads_*.tar) found"
+              echo "RESULT media: FAIL"
+              FAIL=1
+            else
+              echo "archive: $(basename "$ARCHIVE") ($(du -h "$ARCHIVE" | cut -f1))"
+              tar -xf "$ARCHIVE" -C "$WORK"
+              R=$(find "$WORK/uploads" -type f | wc -l)
+              RS=$(du -sh "$WORK/uploads" | cut -f1)
+              L=$($DC exec -T backend sh -c 'find /app/circlesfera-backend/uploads -type f | wc -l')
+              printf "%-22s %10s %10s\n" "check" "restored" "live"
+              printf "%-22s %10s %10s\n" "files" "$R" "$L"
+              echo "restored size: $RS"
+              # The archive is from the last backup, so live media may have grown since.
+              if [ "$R" -gt 0 ] && [ "$R" -le "$L" ]; then echo "RESULT media: PASS"; else echo "RESULT media: FAIL"; FAIL=1; fi
+            fi
+
+            if [ "$FAIL" = 1 ]; then echo "Drill FAILED"; exit 1; fi
+            echo "Drill PASSED"
