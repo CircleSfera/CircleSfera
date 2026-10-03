@@ -1,0 +1,87 @@
+name: Ops — backup status
+
+# Read-only report of the production backups: recent backup log lines, the
+# backup files with their size and age, free disk space, and the size of the
+# media volume. It changes nothing. The repository and its Actions logs are
+# public, so it prints only file names, sizes, counts and status lines: never
+# database content, environment values or secrets. Delete this workflow once
+# the backup fix is in place.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  status:
+    name: Report backup status
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Read backup state on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            set -uo pipefail
+            cd /srv/circlesfera
+            B=/srv/circlesfera/backups
+            # Masks anything shaped like user:password@ in case a line carries a URL.
+            mask() { sed -E 's#://[^:/@ ]+:[^@ ]+@#://***:***@#g'; }
+
+            echo "=== Cron entry ==="
+            crontab -l 2>/dev/null | grep 'circlesfera-backups' | sed -E 's#^(.{0,200}).*#\1#' || echo "(no backup cron entry)"
+
+            echo "=== Host uploads directory used by the cron ==="
+            if [ -d circlesfera-backend/uploads ]; then echo "exists"; else echo "missing (the cron skips the media backup)"; fi
+
+            echo "=== Last 60 lines of backup.log ==="
+            tail -n 60 "$B/backup.log" 2>/dev/null | mask || echo "(no backup.log)"
+
+            echo "=== Backup files (newest 15 per folder: size, date, name) ==="
+            for d in "$B/postgres/full" "$B/postgres" "$B/uploads"; do
+              echo "--- $d"
+              if [ -d "$d" ]; then
+                find "$d" -maxdepth 1 -type f -printf '%TY-%Tm-%Td %s %f\n' 2>/dev/null \
+                  | sort -r | head -n 15 \
+                  | awk '{ printf "%s  %8.1f MB  %s\n", $1, $2/1048576, $3 }'
+                echo "files: $(find "$d" -maxdepth 1 -type f | wc -l)"
+              else
+                echo "(missing)"
+              fi
+            done
+
+            echo "=== Total size per backup folder ==="
+            du -sh "$B"/* 2>/dev/null || true
+
+            echo "=== Disk space ==="
+            df -h /srv | tail -n +1
+
+            echo "=== Media volume (inside the backend container) ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T backend \
+              sh -c 'du -sh /app/circlesfera-backend/uploads 2>/dev/null; echo "files: $(find /app/circlesfera-backend/uploads -type f | wc -l)"' \
+              || echo "(could not read the media volume)"
+
+            echo "=== Database size ==="
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+              sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -t -A -c "SELECT pg_size_pretty(pg_database_size(current_database()));"' \
+              || echo "(could not read the database size)"
+
+            echo "=== Slack webhook for alerts (presence only) ==="
+            for v in SLACK_WEBHOOK_ALERTS SLACK_WEBHOOK_URL; do
+              if grep -qE "^${v}=.+" .env.production; then echo "$v: set"; else echo "$v: not set"; fi
+            done
+
+            echo "=== Host tools ==="
+            for t in tar rsync curl; do
+              if command -v "$t" >/dev/null; then echo "$t: yes"; else echo "$t: no"; fi
+            done
