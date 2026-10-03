@@ -86,6 +86,8 @@ jobs:
                 printf "%-22s %10s %10s\n" "$name" "$r" "$l"
                 # The dump is from last night, so the live database may have grown since.
                 if [ "$r" -gt "$l" ]; then ok=0; fi
+                # An empty restore of a table that has rows live is a failure.
+                if [ "$l" -gt 0 ] && [ "$r" -le 0 ]; then ok=0; fi
                 if [ "$name" = tables ] || [ "$name" = migrations ]; then [ "$r" -eq "$l" ] || ok=0; fi
               done
               if [ "$ok" = 1 ]; then echo "RESULT database: PASS"; else echo "RESULT database: FAIL (counts)"; exit 1; fi
