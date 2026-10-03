@@ -171,7 +171,7 @@ jobs:
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
-          # QA-008: authenticated post-deploy smoke. Reuses VITE_API_URL (the
+          # Authenticated post-deploy smoke. Reuses VITE_API_URL (the
           # same public HTTPS origin the frontend calls, e.g.
           # https://circlesfera.com/api/v1) rather than a new secret — the
           # internal 127.0.0.1 loopback used by the unauthenticated checks
@@ -221,7 +221,7 @@ jobs:
               exit 1
             fi
 
-            # Merge ABUSE_HASH_PEPPER when ENV_PRODUCTION_B64 predates ADR-0014 (avoid full env re-upload).
+            # Merge ABUSE_HASH_PEPPER when ENV_PRODUCTION_B64 predates the pepper (avoid full env re-upload).
             if ! grep -qE '^ABUSE_HASH_PEPPER=.{32,}' .env.production; then
               if [ -n "${ABUSE_HASH_PEPPER:-}" ]; then
                 printf '\nABUSE_HASH_PEPPER=%s\n' "$ABUSE_HASH_PEPPER" >> .env.production
@@ -242,7 +242,7 @@ jobs:
               fi
             fi
 
-            # QA-008: keep TURNSTILE_BYPASS_IPS pointed at this deploy server
+            # Keep TURNSTILE_BYPASS_IPS pointed at this deploy server
             # even though .env.production above was just overwritten wholesale
             # from ENV_PRODUCTION_B64 (which doesn't carry this value).
             if [ -n "${DEPLOY_SERVER_IP:-}" ]; then
@@ -446,7 +446,7 @@ jobs:
             fi
             echo "✅ Post-deploy API smoke passed."
 
-            # QA-008: authenticated smoke — login + CSRF + create/delete one PRIVATE
+            # Authenticated smoke — login + CSRF + create/delete one PRIVATE
             # post as a dedicated low-privilege test account (scripts/create-smoke-test-user.ts).
             # Runs against the public HTTPS origin: access_token/CSRF cookies are
             # Secure-flagged in production and curl will not resend a Secure cookie
@@ -547,7 +547,7 @@ jobs:
               fi
               echo "✅ Post-deploy authenticated smoke passed."
             else
-              echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (QA-008 not enforced)."
+              echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (not enforced)."
             fi
 
             echo "${IMAGE_SHA}" > .deploy-sha

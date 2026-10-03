@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Export bounded analytics tables to CSV for warehouse load (ADR-0016 v0).
+# Export bounded analytics tables to CSV for warehouse load.
 # Read-only; no ClickHouse client required yet.
 #
 # Usage:

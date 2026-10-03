@@ -41,7 +41,7 @@ interface StoryTextTakeoverChromeProps {
 }
 
 /**
- * Text takeover chrome (ADR-0018): Cancelar/Listo + one style strip.
+ * Text takeover chrome: Cancelar/Listo + one style strip.
  * Fonts / size / spacing / width / gradients live under Aa (progressive disclosure).
  * Dock rides visualViewport so it sits above the keyboard.
  */

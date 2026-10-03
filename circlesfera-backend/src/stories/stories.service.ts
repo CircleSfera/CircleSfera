@@ -272,7 +272,7 @@ export class StoriesService {
       };
       whereClause.isCloseFriendsOnly = false;
     }
-    // Never stories from the other audience (PD-006), even through a follow.
+    // Never stories from the other audience, even through a follow.
     whereClause.AND = [
       { profile: await viewerAudienceWhere(this.prisma, profileId) },
     ];
@@ -556,7 +556,7 @@ export class StoriesService {
   // Get viewers of a story with their profiles, newest first. Owner-only
   // (enforced by OwnershipGuard at the controller level) — a view list
   // reveals who watched, which is sensitive the same way read receipts are.
-  // Cursor/keyset pagination (DATA-003) — was fully unbounded, stable under
+  // Cursor/keyset pagination — was fully unbounded, stable under
   // concurrent views unlike skip/take.
   // Only public-safe profile fields are selected here, never the raw User
   // record — that would leak auth secrets (password hash, tokens) to the
@@ -625,7 +625,7 @@ export class StoriesService {
   }
 
   // Get reactions for a story with reactor profiles, newest first.
-  // Cursor/keyset pagination (DATA-003) — was fully unbounded, stable under
+  // Cursor/keyset pagination — was fully unbounded, stable under
   // concurrent reactions unlike skip/take.
   // Param storyId: The story ID
   // Param cursor: opaque cursor from the previous page's nextCursor

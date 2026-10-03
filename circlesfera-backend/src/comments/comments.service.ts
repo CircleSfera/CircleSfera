@@ -203,8 +203,7 @@ export class CommentsService {
   // Param postId: The post ID
   // Param pagination: Page and limit parameters
   // Param currentProfileId: Optional viewer profile for isLiked hydration
-  // Lists top-level comments on a post, newest first. Supports two modes
-  // (DATA-003):
+  // Lists top-level comments on a post, newest first. Supports two modes:
   //  - `pagination.cursor` set: keyset pagination, stable under concurrent
   //    inserts (a comment posted ahead of the cursor never shifts an
   //    already-fetched page) — the resolution path for high-traffic/viral
@@ -257,7 +256,7 @@ export class CommentsService {
       accountType: true,
     } as const;
 
-    // Comments by the other audience (PD-006) are left out, replies included.
+    // Comments by the other audience are left out, replies included.
     const audience = await viewerAudienceWhere(this.prisma, currentProfileId);
     const baseWhere = {
       postId,

@@ -6,15 +6,15 @@ import {
   parseWebAuthnConfig,
 } from './passkey.config.js';
 
-describe('Passkey Configuration and Assurance Policy (SEC-006 / SEC-007)', () => {
+describe('Passkey Configuration and Assurance Policy', () => {
   describe('getAssurancePolicy', () => {
-    it('returns preferred user verification for standard sensitivity (SEC-006)', () => {
+    it('returns preferred user verification for standard sensitivity', () => {
       const policy = getAssurancePolicy('standard');
       expect(policy.userVerification).toBe('preferred');
       expect(policy.requireUserVerification).toBe(false);
     });
 
-    it('returns required user verification for sensitive operations (SEC-006)', () => {
+    it('returns required user verification for sensitive operations', () => {
       const policy = getAssurancePolicy('sensitive');
       expect(policy.userVerification).toBe('required');
       expect(policy.requireUserVerification).toBe(true);
@@ -63,7 +63,7 @@ describe('Passkey Configuration and Assurance Policy (SEC-006 / SEC-007)', () =>
       });
     });
 
-    describe('Production Environment (SEC-007 Fail-Closed Policy)', () => {
+    describe('Production Environment (Fail-Closed Policy)', () => {
       const validProdEnv: Record<string, string> = {
         NODE_ENV: 'production',
         WEBAUTHN_RP_ID: 'circlesfera.com',

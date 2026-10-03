@@ -18,7 +18,7 @@ interface SocketState {
   markRead: (conversationId: string, recipientId?: string) => void;
 }
 
-// Socket store no longer owns the Socket lifecycle (FE-006)
+// Socket store no longer owns the Socket lifecycle
 // It only holds the reactive state and delegates to realtime.service.ts
 export const useSocketStore = create<SocketState>(() => ({
   socket: null,

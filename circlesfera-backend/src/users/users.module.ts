@@ -46,7 +46,7 @@ export class UsersModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    // DATA-005: SearchHistory TTL purge consolidated into
+    // SearchHistory TTL purge consolidated into
     // MaintenanceService.cleanupOldSearchHistory (the only implementation that
     // ever actually matched rows, since expiresAt was never populated here).
     // Remove any pre-existing repeatable registration from before this change

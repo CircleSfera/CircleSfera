@@ -37,7 +37,7 @@ model User {
 
   role Role @default(USER)
 
-  // Test Account (PD-006): isolated from real participants. Set only by the
+  // Test Account: isolated from real participants. Set only by the
   // staff script; no API flow may write it.
   isTestAccount Boolean @default(false)
 

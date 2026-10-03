@@ -80,7 +80,7 @@ describe('SearchService', () => {
       expect(mockAIService.generateEmbedding).not.toHaveBeenCalled();
     });
 
-    it('limits semantic post matches to the viewer audience (PD-006)', async () => {
+    it('limits semantic post matches to the viewer audience', async () => {
       mockCacheManager.get.mockResolvedValueOnce(null);
       mockPrismaService.user.findMany.mockResolvedValueOnce([
         { isTestAccount: true, profiles: [{ id: 'test-viewer' }] },
@@ -96,7 +96,7 @@ describe('SearchService', () => {
       expect(values).toContain(true);
     });
 
-    it('limits anonymous semantic profile matches to real accounts (PD-006)', async () => {
+    it('limits anonymous semantic profile matches to real accounts', async () => {
       mockCacheManager.get.mockResolvedValueOnce(null);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
 
@@ -288,7 +288,7 @@ describe('SearchService', () => {
       expect(mockCacheManager.set).toHaveBeenCalled();
     });
 
-    it('sets a 90-day expiresAt when saving search history (DATA-005)', async () => {
+    it('sets a 90-day expiresAt when saving search history', async () => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-01-15T12:00:00.000Z'));
       try {

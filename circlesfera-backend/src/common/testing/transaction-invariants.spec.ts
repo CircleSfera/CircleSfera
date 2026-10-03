@@ -109,7 +109,7 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
-    it('enforces 20% platform fee calculation and transfers 80% to creator (ADR-0010)', async () => {
+    it('enforces 20% platform fee calculation and transfers 80% to creator', async () => {
       const tipAmountCents = 1000;
       mockPrisma.user.findUnique
         .mockResolvedValueOnce({

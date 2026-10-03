@@ -23,7 +23,7 @@ function build() {
   return { service, prisma };
 }
 
-describe('AdminStatsService excludes Test Accounts (PD-006)', () => {
+describe('AdminStatsService excludes Test Accounts', () => {
   it('counts only real accounts and their content on the dashboard', async () => {
     const { service, prisma } = build();
 

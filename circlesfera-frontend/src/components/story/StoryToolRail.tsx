@@ -39,7 +39,7 @@ interface StoryToolRailProps {
 }
 
 /**
- * Thumb-zone tool rail (ADR-0018): icon-first, progressive disclosure for Poll/Q&A.
+ * Thumb-zone tool rail: icon-first, progressive disclosure for Poll/Q&A.
  * Active = soft fill + brand tick — not a heavy white pill that fights the canvas.
  */
 export default function StoryToolRail({

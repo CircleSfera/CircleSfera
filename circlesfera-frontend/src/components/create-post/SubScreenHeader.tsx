@@ -11,7 +11,7 @@ interface SubScreenHeaderProps {
   trailing?: ReactNode;
 }
 
-/** Shared glass sticky header for caption subscreens (ADR-0018 stepped path). */
+/** Shared glass sticky header for caption subscreens (stepped path). */
 export default function SubScreenHeader({
   title,
   subtitle,

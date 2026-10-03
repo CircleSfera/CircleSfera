@@ -7,7 +7,7 @@ import { profileAudiences } from './test-account.policy.js';
 // viewer as if the target did not exist (NotFound, never Forbidden) so the
 // block itself is never revealed.
 //
-// Profiles of different audiences (Test Account vs real, PD-006) are treated
+// Profiles of different audiences (Test Account vs real) are treated
 // exactly like a block, so every surface that honours blocks also keeps the
 // audiences apart. Anonymous viewers belong to the real audience.
 
@@ -61,7 +61,7 @@ export async function getBlockedProfileIds(
 }
 
 // Prisma `Profile` filter keeping only Profiles the viewer may see: not in a
-// block relation with the viewer and in the viewer's audience (PD-006).
+// block relation with the viewer and in the viewer's audience.
 // Anonymous viewers see only real accounts.
 export async function visibleToViewerWhere(
   db: BlockReader,

@@ -6,7 +6,7 @@ import { PrismaService } from '../../../prisma/prisma.service.js';
 
 // Hard cap on the conversation list — this endpoint returns a plain array
 // (not createPaginatedResult) to keep the existing API contract, so bounding
-// is a fixed take rather than page/limit params (DATA-002). Ordered by
+// is a fixed take rather than page/limit params. Ordered by
 // updatedAt desc, so the most recently active conversations are the ones
 // that would ever fall outside this cap.
 const MAX_CONVERSATIONS = 100;

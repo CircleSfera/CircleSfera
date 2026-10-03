@@ -39,7 +39,7 @@ describe('UsersProcessor', () => {
     expect(processor).toBeDefined();
   });
 
-  it('rejects the retired clean-expired-search-history job name (DATA-005: consolidated into MaintenanceService)', async () => {
+  it('rejects the retired clean-expired-search-history job name (consolidated into MaintenanceService)', async () => {
     const job = { id: 'job-1', name: 'clean-expired-search-history' } as any;
     await expect(processor.process(job)).rejects.toThrow(UnrecoverableError);
     expect(accountDeletionProcessor.process).not.toHaveBeenCalled();

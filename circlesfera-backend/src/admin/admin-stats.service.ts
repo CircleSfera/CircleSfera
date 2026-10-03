@@ -5,7 +5,7 @@ import type { Cache } from 'cache-manager';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-// Platform metrics count real participants only; Test Accounts (PD-006) and
+// Platform metrics count real participants only; Test Accounts and
 // their content are left out.
 const REAL_ACCOUNT = { isTestAccount: false } as const;
 const REAL_CONTENT = { profile: { user: REAL_ACCOUNT } } as const;

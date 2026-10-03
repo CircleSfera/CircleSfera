@@ -6,7 +6,7 @@ export interface CurrentUserData {
   email: string;
   role: 'USER' | 'ADMIN' | 'MODERATOR';
   profileId: string;
-  // Test Account (PD-006). Read from the database on every request, never
+  // Test Account. Read from the database on every request, never
   // from the token, so it cannot be forged or go stale.
   isTestAccount: boolean;
 }

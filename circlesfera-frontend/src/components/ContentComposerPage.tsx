@@ -23,7 +23,7 @@ export default function ContentComposerPage() {
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const modeParam = searchParams.get('mode');
-  // Explicit entry from CreateBottomSheet locks mode switcher (ADR-0018)
+  // Explicit entry from CreateBottomSheet locks mode switcher
   const modeLockedFromEntry =
     modeParam === 'post' ||
     modeParam === 'story' ||
