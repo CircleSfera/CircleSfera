@@ -1,0 +1,42 @@
+name: Ops — mark smoke account as Test Account
+
+# One-shot (PD-006 step 4/4): marks the post-deploy smoke-test account
+# (SMOKE_TEST_EMAIL secret) as a Test Account in production and removes its
+# follow relations. Idempotent: an already marked account is left unchanged.
+# Remove this workflow once it has run.
+on:
+  workflow_dispatch: {}
+
+# Never overlap with a deploy: the deploy smoke check logs in with this account.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  mark:
+    name: Mark smoke account as Test Account
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Run the staff script on the VPS
+        uses: appleboy/ssh-action@v1.2.5
+        env:
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          envs: SMOKE_TEST_EMAIL
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            if [ -z "${SMOKE_TEST_EMAIL:-}" ]; then
+              echo "SMOKE_TEST_EMAIL secret is not set."
+              exit 1
+            fi
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              backend node scripts/create-test-account.ts "${SMOKE_TEST_EMAIL}" --mark-existing
