@@ -2,5 +2,60 @@
   "$schema": "./scripts/schemas/dependency-security-exceptions.schema.json",
   "version": "1.0.0",
   "description": "Approved temporary dependency vulnerability exceptions for CircleSfera. Each exception must include a package name, advisory/CVE identifier, severity, justification, runtime mitigation, expiration date, and approving owner.",
-  "exceptions": []
+  "exceptions": [
+    {
+      "package": "http-cache-semantics",
+      "advisoryId": "GHSA-ch52-4w7c-c8xp",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    },
+    {
+      "package": "cacheable-request",
+      "advisoryId": "transitive",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    },
+    {
+      "package": "got",
+      "advisoryId": "transitive",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    },
+    {
+      "package": "@xhmikosr/downloader",
+      "advisoryId": "transitive",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    },
+    {
+      "package": "@xhmikosr/bin-wrapper",
+      "advisoryId": "transitive",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    },
+    {
+      "package": "@swc/cli",
+      "advisoryId": "transitive",
+      "severity": "HIGH",
+      "reason": "GHSA-ch52-4w7c-c8xp (http-cache-semantics <=4.2.0, max-stale handling can disclose cross-user cached responses). No patched release exists (4.2.0 is the latest). It reaches the backend only through the devDependency @swc/cli (build-time compiler) -> @xhmikosr/bin-wrapper -> @xhmikosr/downloader -> got -> cacheable-request, which downloads compiler binaries during install. That path handles no user data and no shared cache across users.",
+      "mitigation": "Not shipped: the production backend image installs with npm ci --omit=dev, so none of these packages are in the running service. Remove this exception as soon as a fixed http-cache-semantics or an updated @swc/cli chain is published.",
+      "expiresAt": "2026-11-02T00:00:00.000Z",
+      "approvedBy": "Project owner (EasyFeliu), approved 2026-10-03"
+    }
+  ]
 }
