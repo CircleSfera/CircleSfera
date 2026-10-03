@@ -10,6 +10,7 @@ import {
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AppGateway } from '../socket/app.gateway.js';
@@ -50,6 +51,7 @@ export class LiveGiftService {
     idempotencyKey?: string,
     senderProfileId?: string,
   ) {
+    await assertRealMoneyAllowed(this.prisma, senderId);
     const amountCents = resolveGiftAmountCents(giftId);
     if (amountCents === null) {
       throw new BadRequestException(

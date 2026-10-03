@@ -7,6 +7,7 @@ import {
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
+import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   deriveConnectAccountFlags,
   StripeService,
@@ -120,6 +121,7 @@ export class MonetizationService {
     returnUrl: string;
     idempotencyKey?: string;
   }): Promise<{ url: string | null }> {
+    await assertRealMoneyAllowed(this.prisma, params.buyerId);
     const platformFee = Math.floor(params.priceCents * PLATFORM_FEE_DECIMAL);
 
     const session = await this.stripeService.createCheckoutSession(
@@ -419,6 +421,7 @@ export class MonetizationService {
     returnUrl: string,
     refreshUrl: string,
   ) {
+    await assertRealMoneyAllowed(this.prisma, userId);
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');

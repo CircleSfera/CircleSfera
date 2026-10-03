@@ -69,6 +69,7 @@ export interface AdminUser {
   } | null;
   identityVerifiedAt?: string | null;
   stripeIdentitySessionId?: string | null;
+  isTestAccount?: boolean;
 }
 
 export interface AdminOperatorRoleOption {

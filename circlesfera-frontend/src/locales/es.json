@@ -2044,6 +2044,7 @@
       "col_status": "Estado",
       "col_actions": "Acciones",
       "role_admin": "Operador",
+      "test_account": "Cuenta de test",
       "role_user": "Usuario",
       "action_ban": "Banear",
       "action_unban": "Desbanear",

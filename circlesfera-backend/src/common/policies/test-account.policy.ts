@@ -1,4 +1,5 @@
-import { NotFoundException } from '@nestjs/common';
+import { ApiErrorCode } from '@circlesfera/shared';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
 // Test Account policy (PD-006): Test Accounts and real accounts are two
@@ -121,5 +122,21 @@ export async function assertSameAudience(
 ): Promise<void> {
   if (!(await isSameAudience(db, viewer, profileId))) {
     throw new NotFoundException('Profile not found');
+  }
+}
+
+// Test Accounts never move real money (PD-006): they cannot pay, and since
+// they cannot onboard a payout account they cannot be paid either. Call with
+// the paying (or onboarding) account before any payment provider request.
+export async function assertRealMoneyAllowed(
+  db: Pick<Prisma.TransactionClient, 'user'>,
+  userId: string,
+): Promise<void> {
+  const account = await db.user.findUnique({
+    where: { id: userId },
+    select: { isTestAccount: true },
+  });
+  if (account?.isTestAccount) {
+    throw new ForbiddenException(ApiErrorCode.TEST_ACCOUNT_NO_REAL_MONEY);
   }
 }
