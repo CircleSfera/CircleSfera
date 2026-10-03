@@ -153,6 +153,9 @@ async function bootstrap(): Promise<void> {
       normalizedPath.includes('/admin-auth/refresh') ||
       normalizedPath.includes('/csrf-token') ||
       normalizedPath.includes('/payments/webhook') ||
+      // Browsers send CSP violation reports without cookies or a CSRF token.
+      // The endpoint only logs a sanitized summary and changes nothing.
+      normalizedPath === '/api/v1/security/csp-report' ||
       normalizedPath.includes('/socket.io');
 
     if (isExcluded) {
@@ -170,6 +173,15 @@ async function bootstrap(): Promise<void> {
   app.use(
     '/api/v1/payments/webhook',
     bodyParser.raw({ type: 'application/json', limit: '1mb' }),
+  );
+
+  // CSP violation reports use their own content types; bounded to 16KB.
+  app.use(
+    '/api/v1/security/csp-report',
+    bodyParser.json({
+      type: ['application/csp-report', 'application/reports+json'],
+      limit: '16kb',
+    }),
   );
 
   // Use sensible global body parser limits (DoS protection)

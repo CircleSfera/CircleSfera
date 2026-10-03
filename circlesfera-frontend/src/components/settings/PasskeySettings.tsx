@@ -1,4 +1,7 @@
-import { startRegistration } from '@simplewebauthn/browser';
+import {
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser';
 import {
   AlertCircle,
   CheckCircle,
@@ -94,11 +97,22 @@ export const PasskeySettings: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
+    setError(null);
+    setSuccess(false);
     try {
-      await passkeyApi.deletePasskey(id);
+      // Confirm with a passkey (biometric or PIN) before removing one.
+      const optionsResponse = await passkeyApi.getStepUpOptions();
+      const assertion = await startAuthentication({
+        optionsJSON: optionsResponse.data,
+      });
+      await passkeyApi.deletePasskey(
+        id,
+        assertion as unknown as Record<string, unknown>,
+      );
       setPasskeys((prev) => prev.filter((p) => p.id !== id));
     } catch (err) {
       logger.error('Failed to delete passkey:', err);
+      setError(t('settings.passkey_settings.remove_error'));
     } finally {
       setDeletingId(null);
     }

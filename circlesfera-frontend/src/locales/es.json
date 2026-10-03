@@ -399,6 +399,7 @@
       "fido": "Protección Certificada FIDO2 / WebAuthn",
       "empty": "Aún no tienes ninguna passkey registrada.",
       "register_error": "No se pudo registrar la passkey.",
+      "remove_error": "No se pudo eliminar la passkey. Confírmalo con tu huella, cara o PIN e inténtalo de nuevo.",
       "biometric_available": "Biometría disponible",
       "created_on": "Creado el {{date}}"
     },

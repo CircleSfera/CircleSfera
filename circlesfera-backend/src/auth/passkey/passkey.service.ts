@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type {
@@ -572,9 +573,35 @@ export class PasskeyService {
     return passkeys;
   }
 
-  // Delete a passkey by its ID (only if it belongs to the user).
-  async deletePasskey(userId: string, passkeyId: string) {
-    const passkey = await (
+  // Step-up for a signed-in user: sensitive authentication options (biometric
+  // or PIN required) bound to that user's own passkeys.
+  async generateStepUpOptions(userId: string) {
+    return this.generateAuthenticationOptions(
+      await this.getEmailForStepUp(userId),
+      'sensitive',
+    );
+  }
+
+  private async getEmailForStepUp(userId: string): Promise<string> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    if (!user?.email) {
+      throw new NotFoundException('User not found');
+    }
+    return user.email;
+  }
+
+  // Delete a passkey by its ID (only if it belongs to the user). Requires a
+  // fresh passkey assertion with user verification from the same user, so a
+  // stolen session alone cannot remove credentials.
+  async deletePasskey(
+    userId: string,
+    passkeyId: string,
+    authenticationResponse: unknown,
+  ) {
+    const owned = await (
       this.prisma as unknown as {
         passkey: {
           findUnique: (args: {
@@ -586,19 +613,44 @@ export class PasskeyService {
       where: { id: passkeyId },
     });
 
-    if (!passkey || passkey.userId !== userId) {
+    if (!owned || owned.userId !== userId) {
       throw new NotFoundException('Passkey not found');
     }
 
-    await (
+    const stepUp = await this.verifyAuthentication(
+      await this.getEmailForStepUp(userId),
+      authenticationResponse,
+    );
+    if (
+      !stepUp.verified ||
+      stepUp.userId !== userId ||
+      stepUp.userVerified !== true
+    ) {
+      throw new UnauthorizedException(
+        'Confirm with your passkey (biometric or PIN) to remove a passkey',
+      );
+    }
+
+    return this.removePasskey(userId, passkeyId);
+  }
+
+  private async removePasskey(userId: string, passkeyId: string) {
+    // deleteMany scoped to the owner: a concurrent change cannot make this
+    // remove someone else's credential.
+    const { count } = await (
       this.prisma as unknown as {
         passkey: {
-          delete: (args: { where: { id: string } }) => Promise<unknown>;
+          deleteMany: (args: {
+            where: { id: string; userId: string };
+          }) => Promise<{ count: number }>;
         };
       }
-    ).passkey.delete({
-      where: { id: passkeyId },
+    ).passkey.deleteMany({
+      where: { id: passkeyId, userId },
     });
+    if (count === 0) {
+      throw new NotFoundException('Passkey not found');
+    }
 
     return { deleted: true };
   }

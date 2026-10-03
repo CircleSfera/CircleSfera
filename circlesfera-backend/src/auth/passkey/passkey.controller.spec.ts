@@ -46,6 +46,7 @@ describe('PasskeyController', () => {
     verifyRegistration: vi.fn(),
     generateAuthenticationOptions: vi.fn(),
     verifyAuthentication: vi.fn(),
+    generateStepUpOptions: vi.fn(),
     deletePasskey: vi.fn(),
   };
 
@@ -186,17 +187,41 @@ describe('PasskeyController', () => {
     expect(cookieHeader(res)).not.toContain('access_token=');
   });
 
-  it('deletes a passkey as the caller userId', async () => {
+  it('deletes a passkey as the caller userId with the step-up assertion', async () => {
     mockPasskey.deletePasskey.mockResolvedValue({ ok: true });
 
     await request(app.getHttpServer())
       .delete('/api/v1/auth/passkey/pk-1')
       .set(BEARER)
+      .send({ authenticationResponse: { id: 'cred-1' } })
       .expect(200);
 
     expect(mockPasskey.deletePasskey).toHaveBeenCalledWith(
       TEST_USER.userId,
       'pk-1',
+      { id: 'cred-1' },
+    );
+  });
+
+  it('rejects a passkey deletion without a step-up assertion', async () => {
+    await request(app.getHttpServer())
+      .delete('/api/v1/auth/passkey/pk-1')
+      .set(BEARER)
+      .expect(400);
+
+    expect(mockPasskey.deletePasskey).not.toHaveBeenCalled();
+  });
+
+  it('issues step-up options for the signed-in user', async () => {
+    mockPasskey.generateStepUpOptions.mockResolvedValue({ challenge: 'c' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/step-up-options')
+      .set(BEARER)
+      .expect(201);
+
+    expect(mockPasskey.generateStepUpOptions).toHaveBeenCalledWith(
+      TEST_USER.userId,
     );
   });
 });

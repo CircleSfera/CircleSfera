@@ -24,6 +24,13 @@ export class GetPasskeyOptionsDto {
   sensitivity?: 'standard' | 'sensitive';
 }
 
+// Body of DELETE /auth/passkey/:id: a fresh passkey assertion (step-up).
+export class DeletePasskeyDto {
+  @IsNotEmpty()
+  @IsObject()
+  authenticationResponse!: AuthenticationResponseJSON;
+}
+
 export class AuthenticatePasskeyDto {
   @IsNotEmpty()
   @IsString()

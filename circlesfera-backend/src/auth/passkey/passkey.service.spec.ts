@@ -1,4 +1,8 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
@@ -48,6 +52,7 @@ describe('PasskeyService', () => {
       findMany: vi.fn(),
       findUnique: vi.fn(),
       delete: vi.fn(),
+      deleteMany: vi.fn(),
     },
     passkeyChallenge: {
       create: vi.fn(async ({ data }: { data: any }) => {
@@ -839,13 +844,31 @@ describe('PasskeyService', () => {
     });
   });
 
+  describe('generateStepUpOptions', () => {
+    it('issues sensitive options bound to the signed-in user', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        email: 'me@example.com',
+      });
+      const spy = vi
+        .spyOn(service, 'generateAuthenticationOptions')
+        .mockResolvedValue({ challenge: 'c' } as never);
+
+      await service.generateStepUpOptions('user-1');
+
+      expect(spy).toHaveBeenCalledWith('me@example.com', 'sensitive');
+      spy.mockRestore();
+    });
+  });
+
   describe('deletePasskey', () => {
+    const assertion = { id: 'cred-1' };
+
     it('throws NotFoundException when passkey is not found', async () => {
       mockPrismaService.passkey.findUnique.mockResolvedValue(null);
 
-      await expect(service.deletePasskey('user-1', 'pk-999')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.deletePasskey('user-1', 'pk-999', assertion),
+      ).rejects.toThrow(NotFoundException);
     });
 
     it('throws NotFoundException when passkey belongs to another user', async () => {
@@ -854,23 +877,61 @@ describe('PasskeyService', () => {
         userId: 'user-other',
       });
 
-      await expect(service.deletePasskey('user-1', 'pk-1')).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(
+        service.deletePasskey('user-1', 'pk-1', assertion),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.passkey.deleteMany).not.toHaveBeenCalled();
     });
 
-    it('deletes passkey successfully when it belongs to the user', async () => {
+    it('refuses to delete without a verified step-up from the same user', async () => {
       mockPrismaService.passkey.findUnique.mockResolvedValue({
         id: 'pk-1',
         userId: 'user-1',
       });
-      mockPrismaService.passkey.delete.mockResolvedValue({ id: 'pk-1' });
-
-      const result = await service.deletePasskey('user-1', 'pk-1');
-      expect(result).toEqual({ deleted: true });
-      expect(mockPrismaService.passkey.delete).toHaveBeenCalledWith({
-        where: { id: 'pk-1' },
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        email: 'me@example.com',
       });
+      const verify = vi.spyOn(service, 'verifyAuthentication');
+
+      for (const result of [
+        { verified: false },
+        { verified: true, userId: 'user-other', userVerified: true },
+        { verified: true, userId: 'user-1', userVerified: false },
+      ]) {
+        verify.mockResolvedValueOnce(result as never);
+        await expect(
+          service.deletePasskey('user-1', 'pk-1', assertion),
+        ).rejects.toThrow(UnauthorizedException);
+      }
+      expect(mockPrismaService.passkey.deleteMany).not.toHaveBeenCalled();
+      verify.mockRestore();
+    });
+
+    it('deletes the passkey after a verified step-up', async () => {
+      mockPrismaService.passkey.findUnique.mockResolvedValue({
+        id: 'pk-1',
+        userId: 'user-1',
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        email: 'me@example.com',
+      });
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue({
+          verified: true,
+          userId: 'user-1',
+          userVerified: true,
+        } as never);
+      mockPrismaService.passkey.deleteMany.mockResolvedValue({ count: 1 });
+
+      const result = await service.deletePasskey('user-1', 'pk-1', assertion);
+
+      expect(result).toEqual({ deleted: true });
+      expect(verify).toHaveBeenCalledWith('me@example.com', assertion);
+      expect(mockPrismaService.passkey.deleteMany).toHaveBeenCalledWith({
+        where: { id: 'pk-1', userId: 'user-1' },
+      });
+      verify.mockRestore();
     });
   });
 
