@@ -24,22 +24,25 @@ jobs:
     uses: ./.github/workflows/ci-quality.yml
     secrets: inherit
 
-  playwright-smoke:
-    name: Playwright Smoke (unauthenticated)
+  # The full browser suite runs on every PR and is a required check, so a
+  # broken user journey cannot be merged. The nightly run stays as a daily
+  # check of main.
+  playwright-e2e:
+    name: Playwright E2E
     needs: test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     services:
       postgres:
         image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
-          POSTGRES_DB: circlesfera_smoke
+          POSTGRES_DB: circlesfera_e2e
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U prisma -d circlesfera_smoke"
+          --health-cmd "pg_isready -U prisma -d circlesfera_e2e"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -53,7 +56,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/circlesfera_smoke
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/circlesfera_e2e
       REDIS_HOST: localhost
       REDIS_PORT: 6379
       NODE_ENV: test
@@ -66,9 +69,8 @@ jobs:
       STRIPE_SECRET_KEY: sk_test_dummy
       STRIPE_WEBHOOK_SECRET: whsec_dummy
       CORS_ORIGIN: http://localhost:5173
-      # smoke.spec.ts is unauthenticated (empty storageState). Do not set
-      # CLOUDINARY_NAME — a dummy name selects Cloudinary and would break
-      # authenticated publish journeys if this job is expanded.
+      # Do not set CLOUDINARY_NAME — a dummy name selects Cloudinary and
+      # breaks the authenticated publish journeys.
       PLAYWRIGHT_SKIP_WEBSERVER: 'true'
       BASE_URL: http://localhost:5173
       BACKEND_URL: http://localhost:3005/api/v1
@@ -139,10 +141,10 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps chromium
 
-      - name: Run Playwright smoke tests
+      - name: Run Playwright E2E
         env:
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
-        run: npm run test:e2e -- e2e/smoke.spec.ts
+        run: npm run test:e2e -- --project=chromium
 
       - name: Dump server logs on failure
         if: failure()

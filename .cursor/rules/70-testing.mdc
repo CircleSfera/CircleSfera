@@ -26,7 +26,7 @@ Rules:
   single-controller HTTP (401, ValidationPipe) via `createControllerApp`; backend e2e for real JWT,
   CSRF, KYC and Postgres; Testing Library for user-visible component behaviour; Playwright for a
   critical journey.
-- Keep `e2e/smoke.spec.ts` fast and auth-free — it gates every PR. Root journeys in `e2e/` hit
+- The whole `e2e/` suite (chromium) gates every PR, so keep it green and fast. Root journeys in `e2e/` hit
   live Nest and must not stub `**/api/v1/**`. Do not share `storageState.json` across specs.
 - Backend e2e tests share one database and run serially; clean up your fixtures.
 - Frontend tests assert what the user sees, not internal state. `src/test/setup.ts`
