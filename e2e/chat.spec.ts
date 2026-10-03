@@ -49,6 +49,26 @@ test.describe('Direct', () => {
       pageA.getByText(text).filter({ visible: true }).first(),
     ).toBeVisible();
 
+    // B does not follow A, so the first message lands in Message
+    // Requests, not in B's inbox, until B accepts it.
+    await pageB.goto('/direct/inbox');
+    await expect(pageB.getByText('Aún no hay mensajes')).toBeVisible();
+    await pageB.getByRole('button', { name: /^Solicitudes/ }).click();
+    const request = pageB.getByText(text).filter({ visible: true }).first();
+    await expect(request).toBeVisible({ timeout: 20_000 });
+
+    await request.click();
+    await expect(pageB).toHaveURL(/\/direct\/inbox\/t\//, { timeout: 15_000 });
+    const accepted = pageB.waitForResponse(
+      (res) =>
+        res.url().includes('/accept') && res.request().method() === 'POST',
+      { timeout: 20_000 },
+    );
+    await pageB.getByRole('button', { name: 'Aceptar', exact: true }).click();
+    expect((await accepted).ok()).toBe(true);
+    await expect(pageB.getByPlaceholder('Mensaje...')).toBeVisible();
+
+    // Once accepted, the conversation moves to B's inbox.
     await pageB.goto('/direct/inbox');
     await expect(
       pageB.getByText(text).filter({ visible: true }).first(),
