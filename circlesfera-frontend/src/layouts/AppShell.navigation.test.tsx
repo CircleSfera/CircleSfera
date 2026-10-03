@@ -51,7 +51,7 @@ vi.mock('../components/navigation/BottomNav', () => ({
   default: () => (
     <nav aria-label="Mobile navigation">
       <Link to="/frames">Frames</Link>
-      <Link to="/activity">Notifications</Link>
+      <Link to="/notifications">Notifications</Link>
     </nav>
   ),
 }));
@@ -60,7 +60,7 @@ vi.mock('../components/navigation/Sidebar', () => ({
   default: () => (
     <aside aria-label="Sidebar">
       <Link to="/frames">Frames</Link>
-      <Link to="/activity">Notifications</Link>
+      <Link to="/notifications">Notifications</Link>
     </aside>
   ),
 }));
@@ -106,7 +106,7 @@ function renderFramesNavigationTest() {
     <Routes>
       <Route element={<AppShell />}>
         <Route path="/frames" element={<FramesStub />} />
-        <Route path="/activity" element={<NotificationsStub />} />
+        <Route path="/notifications" element={<NotificationsStub />} />
       </Route>
     </Routes>,
     {
@@ -119,7 +119,7 @@ function renderFramesNavigationTest() {
 }
 
 describe('AppShell navigation from Frames', () => {
-  it('unmounts Frames and mounts Notifications when navigating to /activity', async () => {
+  it('unmounts Frames and mounts Notifications when navigating to /notifications', async () => {
     const user = userEvent.setup();
     renderFramesNavigationTest();
 

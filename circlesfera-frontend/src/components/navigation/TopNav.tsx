@@ -60,7 +60,7 @@ export default function TopNav() {
       <div className="flex items-center gap-1">
         {/* Notifications */}
         <Link
-          to="/activity"
+          to="/notifications"
           onClick={triggerHaptic}
           className="relative flex items-center justify-center rounded-xl text-white/80 hover:text-white hover:bg-white/8 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
           aria-label={t('nav.notifications')}
