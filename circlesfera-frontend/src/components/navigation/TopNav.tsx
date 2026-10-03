@@ -15,12 +15,11 @@ export default function TopNav() {
   );
   const unreadCount = useNotificationsStore((state) => state.unreadCount);
 
+  // Haptics.impact() returns a promise that rejects where the platform has no
+  // vibration API (e.g. iOS Safari on the web); a try/catch around the
+  // un-awaited call never saw it, so it surfaced as an unhandled rejection.
   const triggerHaptic = () => {
-    try {
-      Haptics.impact({ style: ImpactStyle.Light });
-    } catch {
-      // Ignored
-    }
+    void Haptics.impact({ style: ImpactStyle.Light }).catch(() => {});
   };
 
   return (

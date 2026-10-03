@@ -147,7 +147,9 @@ export const creatorApi = {
     apiClient.post(`analytics/post/${postId}/loop`),
 
   trackFrameWatch: (postId: string, seconds: number) =>
-    apiClient.post(`analytics/post/${postId}/watch`, null, {
+    // No body: the endpoint reads `seconds` from the query string, and a JSON
+    // `null` body is rejected by the server's strict JSON parser (400).
+    apiClient.post(`analytics/post/${postId}/watch`, undefined, {
       params: { seconds },
     }),
 
