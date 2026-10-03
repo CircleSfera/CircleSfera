@@ -10,10 +10,12 @@ const rejectedImpact = () => {
   const promise = Promise.reject(
     new Error('Browser does not support the vibrate API'),
   );
-  const handled = promise.catch(() => {});
+  const originalCatch = promise.catch.bind(promise);
+  // Spy on the original promise's catch so the component's handler runs
+  // against the real rejection and its own failures surface.
   return Object.assign(promise, {
     catch: vi.fn((onRejected: (reason: unknown) => unknown) =>
-      handled.then(() => undefined, onRejected),
+      originalCatch(onRejected),
     ),
   });
 };
@@ -57,16 +59,17 @@ describe('TopNav', () => {
     ).toBeInTheDocument();
   });
 
-  it('handles the rejected haptics call when the platform cannot vibrate', () => {
+  it('handles the rejected haptics call when the platform cannot vibrate', async () => {
     renderWithProviders(<TopNav />);
     for (const link of screen.getAllByRole('link')) fireEvent.click(link);
 
     const calls = vi.mocked(Haptics.impact).mock.results;
     expect(calls.length).toBeGreaterThan(0);
     for (const { value } of calls) {
-      expect(
-        (value as { catch: ReturnType<typeof vi.fn> }).catch,
-      ).toHaveBeenCalled();
+      const catchSpy = (value as { catch: ReturnType<typeof vi.fn> }).catch;
+      expect(catchSpy).toHaveBeenCalled();
+      // Await the handler's own promise: a handler that throws fails here.
+      await Promise.all(catchSpy.mock.results.map((r) => r.value));
     }
   });
 });
