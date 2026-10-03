@@ -6,6 +6,11 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AccountStateService } from '../services/account-state.service.js';
+import {
+  pickSessionProfile,
+  SESSION_PROFILE_ORDER,
+  SESSION_PROFILE_SELECT,
+} from '../services/session-profile.util.js';
 
 export interface JwtPayload {
   sub: string;
@@ -53,32 +58,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
     });
 
-    let profile = null;
-    if (user) {
-      if (payload.profileId) {
-        profile = await this.prisma.profile.findFirst({
-          where: { id: payload.profileId, userId: user.id },
-          select: {
-            id: true,
-            isAccountBanned: true,
-            accountBanReason: true,
-            suspendedUntil: true,
-          },
-        });
-      }
-      if (!profile) {
-        profile = await this.prisma.profile.findFirst({
-          where: { userId: user.id },
-          orderBy: { createdAt: 'asc' },
-          select: {
-            id: true,
-            isAccountBanned: true,
-            accountBanReason: true,
-            suspendedUntil: true,
-          },
-        });
-      }
-    }
+    // The session's Profile (rejected below if it is banned or suspended);
+    // tokens without a Profile fall back to the oldest usable one.
+    const profile = user
+      ? pickSessionProfile(
+          await this.prisma.profile.findMany({
+            where: { userId: user.id },
+            orderBy: SESSION_PROFILE_ORDER,
+            select: SESSION_PROFILE_SELECT,
+          }),
+          payload.profileId,
+        )
+      : undefined;
 
     this.accountStateService.assertOperational(user, profile);
 

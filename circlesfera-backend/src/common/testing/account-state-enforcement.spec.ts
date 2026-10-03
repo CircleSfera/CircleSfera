@@ -25,8 +25,14 @@ describe('Cross-Surface Account State Enforcement Policy Invariants', () => {
     beforeEach(() => {
       mockPrisma = {
         user: { findUnique: vi.fn() },
-        profile: { findFirst: vi.fn() },
+        profile: { findFirst: vi.fn(), findMany: vi.fn() },
       };
+      // The strategy reads the account's Profiles; each test sets the
+      // single Profile through findFirst.
+      mockPrisma.profile.findMany.mockImplementation(async () => {
+        const profile = await mockPrisma.profile.findFirst();
+        return profile ? [profile] : [];
+      });
       mockConfigService = {
         getOrThrow: vi
           .fn()

@@ -9,12 +9,19 @@ import { JwtService } from '@nestjs/jwt';
 import * as cookie from 'cookie';
 import type { Socket } from 'socket.io';
 import { AccountStateService } from '../../auth/services/account-state.service.js';
+import {
+  pickSessionProfile,
+  SESSION_PROFILE_ORDER,
+  SESSION_PROFILE_SELECT,
+} from '../../auth/services/session-profile.util.js';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 export interface JwtPayload {
   sub: string;
   email: string;
+  // Profile the session acts as (set at sign-in and on Profile switch).
+  profileId?: string;
 }
 
 export interface SocketAuthUser extends JwtPayload {
@@ -82,10 +89,16 @@ export class SocketAuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: { profiles: true },
+      include: {
+        profiles: {
+          orderBy: SESSION_PROFILE_ORDER,
+          select: SESSION_PROFILE_SELECT,
+        },
+      },
     });
 
-    const profile = user?.profiles?.[0];
+    // The socket acts as the session's Profile, like REST requests do.
+    const profile = pickSessionProfile(user?.profiles ?? [], payload.profileId);
     this.accountStateService.assertOperational(user, profile);
 
     const profileId = profile?.id;

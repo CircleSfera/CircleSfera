@@ -36,6 +36,11 @@ import type {
   VerifyEmailDto,
 } from './dto/index.js';
 import { AccountStateService } from './services/account-state.service.js';
+import {
+  pickSessionProfile,
+  SESSION_PROFILE_ORDER,
+  SESSION_PROFILE_SELECT,
+} from './services/session-profile.util.js';
 
 // Service responsible for authentication, registration, and session management.
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
@@ -450,38 +455,8 @@ export class AuthService {
       });
     }
 
-    // Profile-level bans and temporary suspensions
-    const loginProfile = await this.prisma.profile.findFirst({
-      where: { userId: user.id },
-      select: {
-        id: true,
-        isAccountBanned: true,
-        accountBanReason: true,
-        suspendedUntil: true,
-      },
-    });
-    if (loginProfile?.isAccountBanned) {
-      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
-      const appealToken = this.jwtService.sign(
-        { sub: user.id, isAppealToken: true },
-        { expiresIn: '15m', secret },
-      );
-      throw new UnauthorizedException({
-        message: ApiErrorCode.ACCOUNT_BANNED,
-        reason: loginProfile.accountBanReason,
-        appealToken,
-      });
-    }
-    if (
-      loginProfile?.suspendedUntil &&
-      loginProfile.suspendedUntil > new Date()
-    ) {
-      throw new UnauthorizedException({
-        message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: loginProfile.suspendedUntil.toISOString(),
-        reason: loginProfile.accountBanReason || undefined,
-      });
-    }
+    // Profile-level bans and suspensions: sign in with a usable Profile.
+    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
 
     if (user.isTwoFactorEnabled) {
       if (!dto.twoFactorCode) {
@@ -607,11 +582,7 @@ export class AuthService {
       });
     }
 
-    const loginProfile = await this.prisma.profile.findFirst({
-      where: { userId: user.id },
-      orderBy: { createdAt: 'asc' },
-      select: { id: true },
-    });
+    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
 
     return this.generateTokens(
       user.id,
@@ -715,20 +686,13 @@ export class AuthService {
       where: { id: payload.sub },
       include: {
         profiles: {
-          select: {
-            id: true,
-            isAccountBanned: true,
-            accountBanReason: true,
-            suspendedUntil: true,
-          },
+          orderBy: SESSION_PROFILE_ORDER,
+          select: SESSION_PROFILE_SELECT,
         },
       },
     });
 
-    const profile =
-      (payload.profileId
-        ? user?.profiles?.find((p) => p.id === payload.profileId)
-        : null) || user?.profiles?.[0];
+    const profile = pickSessionProfile(user?.profiles ?? [], payload.profileId);
     try {
       this.accountStateService.assertOperational(user, profile);
     } catch (error) {
@@ -836,6 +800,42 @@ export class AuthService {
       },
     });
     return { success: true };
+  }
+
+  // Picks the Profile to sign in with: the oldest one that is not banned or
+  // suspended. Access is refused only when every Profile of the account is
+  // banned or suspended, with the reason of the oldest one.
+  private async resolveLoginProfileOrThrow(userId: string) {
+    const profiles = await this.prisma.profile.findMany({
+      where: { userId },
+      orderBy: SESSION_PROFILE_ORDER,
+      select: SESSION_PROFILE_SELECT,
+    });
+    const loginProfile = pickSessionProfile(profiles);
+
+    if (loginProfile?.isAccountBanned) {
+      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+      const appealToken = this.jwtService.sign(
+        { sub: userId, isAppealToken: true },
+        { expiresIn: '15m', secret },
+      );
+      throw new UnauthorizedException({
+        message: ApiErrorCode.ACCOUNT_BANNED,
+        reason: loginProfile.accountBanReason,
+        appealToken,
+      });
+    }
+    if (
+      loginProfile?.suspendedUntil &&
+      loginProfile.suspendedUntil > new Date()
+    ) {
+      throw new UnauthorizedException({
+        message: ApiErrorCode.ACCOUNT_SUSPENDED,
+        suspendedUntil: loginProfile.suspendedUntil.toISOString(),
+        reason: loginProfile.accountBanReason || undefined,
+      });
+    }
+    return loginProfile;
   }
 
   // Generate a new access/refresh token pair and persist the refresh token in the database.
