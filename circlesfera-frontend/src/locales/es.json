@@ -354,7 +354,8 @@
         "CSAM": "Abuso sexual infantil",
         "SCAM": "Estafa",
         "OTHER": "Incumplimiento de las normas de la comunidad"
-      }
+      },
+      "type_restriction": "Restricción temporal de actividad"
     },
     "reports": {
       "title": "Reportes",
@@ -1545,7 +1546,9 @@
       "moderation_warning": "Has recibido un aviso por incumplir las normas de la comunidad. Esta vez no tiene consecuencias.",
       "moderation_strike": "Has recibido un strike por incumplir las normas de la comunidad.",
       "moderation_suspension": "Has recibido un strike y este perfil está suspendido 7 días.",
-      "moderation_ban": "Este perfil ha sido bloqueado por incumplir las normas de la comunidad. Tus otros perfiles no se ven afectados."
+      "moderation_ban": "Este perfil ha sido bloqueado por incumplir las normas de la comunidad. Tus otros perfiles no se ven afectados.",
+      "moderation_restriction": "Un sistema automático ha detectado actividad inusual en este perfil (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). Hasta que una persona del equipo lo revise, como máximo 72 horas, podrás seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. Puedes apelar esta decisión.",
+      "moderation_restriction_review": "Tras una revisión de nuestro equipo, durante 7 días este perfil podrá seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día, por actividad inusual (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). No se oculta ni se elimina nada. Puedes apelar esta decisión."
     },
     "appeal_cta": "Apelar esta decisión",
     "strike_details_cta": "Ver detalles y apelar"
@@ -1983,7 +1986,8 @@
       "live": "Directos",
       "roles": "Roles",
       "operators": "Operadores",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "spam_review": "Revisión de spam"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -3108,6 +3112,48 @@
       "select_item": "Selecciona un elemento de la lista",
       "list_region": "Lista",
       "detail_region": "Detalle"
+    },
+    "spam_review": {
+      "title": "Revisión de spam y bots",
+      "subtitle": "Perfiles que el detector ha marcado. El detector solo propone: la decisión es tuya. El usuario es avisado (salvo al descartar) y puede apelar.",
+      "stats": "{{open}} abiertos · {{reviewed}} revisados en 90 días · precisión {{precision}}",
+      "filter_status": "Estado",
+      "status_open": "Abiertos",
+      "status_actioned": "Con acción",
+      "status_dismissed": "Descartados",
+      "empty_title": "No hay perfiles pendientes de revisión",
+      "empty_description": "El detector no ha marcado ningún perfil con este estado.",
+      "score": "Riesgo {{score}}",
+      "restricted_until": "Límites reducidos hasta {{date}}",
+      "open_user": "Abrir usuario",
+      "note_label": "Nota (opcional; para la etiqueta de bot, es el motivo que ve el usuario)",
+      "toast_resolved": "Caso resuelto",
+      "toast_error": "No se pudo resolver el caso",
+      "signal": {
+        "velocity": "Actividad muy rápida ({{value}} acciones en la ventana)",
+        "repeatedText": "Mismo texto repetido ({{value}} veces en 24 h)",
+        "coordinatedText": "Mismo texto que otros perfiles ({{value}} perfiles en 1 h)",
+        "newAndHyperactive": "Cuenta nueva muy activa ({{value}} acciones hoy)",
+        "clusterSmall": "Comparte IP o dispositivo ({{value}} cuentas)",
+        "clusterLarge": "Comparte IP o dispositivo ({{value}} cuentas)",
+        "followRatio": "Sigue a muchos y casi nadie le sigue (ratio {{value}})",
+        "reports": "Denuncias de {{value}} personas en 7 días",
+        "identityVerified": "Identidad verificada (resta riesgo)"
+      },
+      "decision": {
+        "DISMISSED": "Descartar (es una persona real)",
+        "RESTRICTED": "Mantener límites 7 días",
+        "BOT_LABEL": "Etiquetar como bot",
+        "SUSPENDED": "Suspender el perfil 7 días",
+        "BANNED": "Banear el perfil"
+      },
+      "confirm": {
+        "DISMISSED": "Se levantan los límites de @{{username}} y se cierra el caso. No se avisa al usuario.",
+        "RESTRICTED": "@{{username}} mantendrá límites reducidos de follows y mensajes durante 7 días. Se le avisará y podrá apelar.",
+        "BOT_LABEL": "La cuenta de @{{username}} se mostrará como posible bot. Se le avisará y podrá apelar.",
+        "SUSPENDED": "Se suspende solo el perfil @{{username}} durante 7 días. Sus otros perfiles no se ven afectados.",
+        "BANNED": "Se banea solo el perfil @{{username}}. Sus otros perfiles no se ven afectados. Podrá apelar."
+      }
     }
   },
   "collections": {
@@ -3870,5 +3916,13 @@
     "send": "Enviar nota de voz",
     "stop": "Detener grabación",
     "uploading": "Subiendo nota de voz..."
+  },
+  "errors": {
+    "action_limit": {
+      "follow": "Has alcanzado el límite de cuentas que puedes seguir por ahora. Vuelve a intentarlo a las {{time}}.",
+      "message_request": "Has alcanzado el límite de mensajes a personas que no te siguen. Vuelve a intentarlo a las {{time}}.",
+      "comment": "Has alcanzado el límite de comentarios por ahora. Vuelve a intentarlo a las {{time}}.",
+      "other": "Has alcanzado un límite de actividad. Vuelve a intentarlo más tarde."
+    }
   }
 }

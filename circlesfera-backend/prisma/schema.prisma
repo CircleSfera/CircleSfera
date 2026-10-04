@@ -339,6 +339,7 @@ model Profile {
   taggedPosts           PostTag[]
   reports               Report[]               @relation("ReportReporter")
   strikes               ProfileStrike[]
+  riskCases             RiskCase[]
   searchHistory         SearchHistory[]
   postViews             PostView[]
   feedHiddenPosts       FeedHiddenPost[]
@@ -1414,13 +1415,14 @@ model AdminIdentity {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  linkedUser      User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-  roles           AdminIdentityRole[]
-  refreshTokens   AdminRefreshToken[]
-  passkeys        AdminPasskey[]
-  auditLogs       AdminAuditLog[]
-  assignedReports Report[]            @relation("ReportAssignedAdmin")
-  issuedStrikes   ProfileStrike[]
+  linkedUser        User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  roles             AdminIdentityRole[]
+  refreshTokens     AdminRefreshToken[]
+  passkeys          AdminPasskey[]
+  auditLogs         AdminAuditLog[]
+  assignedReports   Report[]            @relation("ReportAssignedAdmin")
+  issuedStrikes     ProfileStrike[]
+  reviewedRiskCases RiskCase[]
 
   @@index([linkedUserId])
   @@index([status])
@@ -1840,6 +1842,7 @@ enum AdminAction {
   ACCOUNT_BOT_LABEL_CLEARED
   STRIKE_ADDED
   STRIKE_REMOVED
+  RISK_CASE_RESOLVED
   MANUAL_OVERRIDE
   UPDATE_SETTINGS
   SUBSCRIPTION_ADJUSTED
@@ -1877,6 +1880,7 @@ enum AppealTargetType {
   POST_REMOVAL
   BOT_LABEL
   STRIKE
+  RESTRICTION
 }
 
 // A warning is the notice for a first minor violation; it has no consequence.
@@ -2129,4 +2133,50 @@ enum WhitelistStatus {
 generator sharedClient {
   provider = "prisma-client-js"
   output   = "../../circlesfera-shared/src/prisma"
+}
+
+enum RiskCaseStatus {
+  OPEN
+  DISMISSED
+  ACTIONED
+}
+
+enum RiskCaseDecision {
+  DISMISSED
+  BOT_LABEL
+  RESTRICTED
+  SUSPENDED
+  BANNED
+}
+
+// A Profile the spam and bot detector flagged for human review. The detector
+// scores and proposes; staff decide. While restrictedUntil is in the future
+// the Profile has reduced follow and message-request limits. Closed cases are
+// deleted 12 months after they close.
+model RiskCase {
+  id              String            @id @default(uuid())
+  profileId       String
+  score           Int
+  // Signals that contributed: [{ key, points, value }]. Numbers only, never
+  // message or comment text.
+  signals         Json
+  status          RiskCaseStatus    @default(OPEN)
+  restrictedUntil DateTime?
+  // When the case first restricted the Profile. An approved appeal clears
+  // restrictedUntil but not this, so the detector never restricts the same
+  // case again.
+  restrictedAt    DateTime?
+  decision        RiskCaseDecision?
+  reviewedById    String?
+  reviewedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  profile    Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  reviewedBy AdminIdentity? @relation(fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([profileId, status])
+  @@index([status, score])
+  @@index([status, updatedAt])
+  @@map("risk_cases")
 }

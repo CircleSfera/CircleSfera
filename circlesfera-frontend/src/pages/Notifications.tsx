@@ -28,6 +28,9 @@ const STRIKE_NOTICE_KEYS: Record<string, string> = {
   profile_strike: 'notifications.types.moderation_strike',
   profile_suspension: 'notifications.types.moderation_suspension',
   profile_ban: 'notifications.types.moderation_ban',
+  profile_restriction: 'notifications.types.moderation_restriction',
+  profile_restriction_review:
+    'notifications.types.moderation_restriction_review',
 };
 
 export default function Notifications() {
@@ -211,6 +214,14 @@ export default function Notifications() {
   const moderationAppealPath = (notif: Notification) => {
     // Warning and strike notices open the profile standing, which shows the
     // details and an appeal action for each record.
+    // A protective restriction is appealed directly, as its own decision.
+    if (
+      (notif.targetType === 'profile_restriction' ||
+        notif.targetType === 'profile_restriction_review') &&
+      notif.targetId
+    ) {
+      return `/accounts/appeals?targetType=RESTRICTION&targetId=${encodeURIComponent(notif.targetId)}`;
+    }
     if (notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]) {
       return '/accounts/appeals';
     }

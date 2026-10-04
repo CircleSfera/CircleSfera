@@ -306,6 +306,11 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         mockEventEmitter as any,
         mockAnalyticsQueue as any,
         mockAiQueue as any,
+        {
+          consume: vi.fn().mockResolvedValue(undefined),
+          trackWrite: vi.fn().mockResolvedValue(undefined),
+          recordText: vi.fn().mockResolvedValue(undefined),
+        } as never,
       );
     });
 

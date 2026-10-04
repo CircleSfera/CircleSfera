@@ -52,6 +52,7 @@ export function AdminMobileDrawer({
   const trustBadgeTotal =
     (trustQueue?.counts.reports ?? 0) +
     (trustQueue?.counts.appeals ?? 0) +
+    (trustQueue?.counts.riskCases ?? 0) +
     (trustQueue?.counts.tickets ?? 0);
 
   const badgeById = useMemo(() => {
@@ -64,6 +65,8 @@ export function AdminMobileDrawer({
           map.set(item.id, String(trustQueue.counts.reports));
         } else if (item.id === 'appeals' && trustQueue?.counts?.appeals) {
           map.set(item.id, String(trustQueue.counts.appeals));
+        } else if (item.id === 'spam-review' && trustQueue?.counts?.riskCases) {
+          map.set(item.id, String(trustQueue.counts.riskCases));
         } else if (item.id === 'support' && trustQueue?.counts?.tickets) {
           map.set(item.id, String(trustQueue.counts.tickets));
         } else {

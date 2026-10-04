@@ -85,4 +85,62 @@ describe('Notifications: warning and strike notices', () => {
       screen.queryByText(i18n!.t('notifications.strike_details_cta')),
     ).not.toBeInTheDocument();
   });
+
+  it('a staff restriction says it followed a review and links to its appeal', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue({
+      data: {
+        data: [
+          moderationNotice({
+            targetType: 'profile_restriction_review',
+            targetId: 'case-8',
+          }),
+        ],
+      },
+    } as never);
+
+    const { i18n } = renderWithProviders(<Notifications />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('notifications.types.moderation_restriction_review'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('notifications.strike_details_cta'),
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/accounts/appeals?targetType=RESTRICTION&targetId=case-8',
+    );
+  });
+
+  it('a restriction notice links to its own appeal', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue({
+      data: {
+        data: [
+          moderationNotice({
+            targetType: 'profile_restriction',
+            targetId: 'case-7',
+          }),
+        ],
+      },
+    } as never);
+
+    const { i18n } = renderWithProviders(<Notifications />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('notifications.types.moderation_restriction'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('notifications.strike_details_cta'),
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/accounts/appeals?targetType=RESTRICTION&targetId=case-7',
+    );
+  });
 });

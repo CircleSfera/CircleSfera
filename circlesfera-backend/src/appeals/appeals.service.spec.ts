@@ -6,6 +6,8 @@ import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfileStrikesService } from '../strikes/profile-strikes.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
+import { RiskDetectorService } from '../trust/risk-detector.service.js';
 import { AppealsService } from './appeals.service.js';
 
 describe('AppealsService', () => {
@@ -22,11 +24,20 @@ describe('AppealsService', () => {
     post: { findFirst: vi.fn(), update: vi.fn() },
     profile: { findFirst: vi.fn(), findMany: vi.fn() },
     profileStrike: { findFirst: vi.fn(), findUnique: vi.fn() },
+    riskCase: { findFirst: vi.fn(), findUnique: vi.fn() },
     user: { update: vi.fn(), findUnique: vi.fn() },
     adminIdentity: { findUnique: vi.fn() },
     adminAuditLog: { create: vi.fn() },
     $queryRaw: vi.fn(),
     $transaction: vi.fn(),
+  };
+
+  const mockActionLimits = {
+    clearRestricted: vi.fn(),
+  };
+
+  const mockRiskDetector = {
+    liftRestrictionForAppeal: vi.fn(),
   };
 
   const mockStrikesService = {
@@ -47,6 +58,8 @@ describe('AppealsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AppealsService,
+        { provide: ActionLimitsService, useValue: mockActionLimits },
+        { provide: RiskDetectorService, useValue: mockRiskDetector },
         {
           provide: NotificationsService,
           useValue: { create: vi.fn().mockResolvedValue(undefined) },
@@ -179,6 +192,22 @@ describe('AppealsService', () => {
       expect(lockOrder).toBeLessThan(checkOrder);
     });
 
+    it('refuses an appeal about a restriction of another account', async () => {
+      mockPrismaService.riskCase.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'RESTRICTION' as any,
+          targetId: 'case-of-someone-else',
+          reason: 'I am a real person, please review',
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.riskCase.findFirst).toHaveBeenCalledWith({
+        where: { id: 'case-of-someone-else', profile: { userId: 'user-1' } },
+        select: { id: true },
+      });
+    });
+
     it('refuses a second pending appeal about the same decision', async () => {
       mockPrismaService.profileStrike.findFirst.mockResolvedValue({
         id: 'strike-1',
@@ -242,6 +271,30 @@ describe('AppealsService', () => {
       expect(
         mockStrikesService.liftRestrictionForAppeal,
       ).not.toHaveBeenCalled();
+    });
+
+    it('approving a restriction appeal lifts the reduced caps', async () => {
+      mockRiskDetector.liftRestrictionForAppeal.mockResolvedValue('profile-1');
+      mockPrismaService.riskCase.findUnique.mockResolvedValue({
+        profileId: 'profile-1',
+      });
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'RESTRICTION', targetId: 'case-1' }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(mockRiskDetector.liftRestrictionForAppeal).toHaveBeenCalledWith(
+        mockPrismaService,
+        'case-1',
+      );
+      expect(mockActionLimits.clearRestricted).toHaveBeenCalledWith(
+        'profile-1',
+      );
     });
 
     it('rejecting a strike appeal keeps the strike', async () => {

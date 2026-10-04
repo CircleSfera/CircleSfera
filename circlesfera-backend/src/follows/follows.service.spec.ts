@@ -7,6 +7,7 @@ import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
 import { FollowsService } from './follows.service.js';
 
 describe('FollowsService', () => {
@@ -57,6 +58,15 @@ describe('FollowsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FollowsService,
+        {
+          provide: ActionLimitsService,
+          useValue: {
+            consume: vi.fn().mockResolvedValue(undefined),
+            trackWrite: vi.fn().mockResolvedValue(undefined),
+            recordText: vi.fn().mockResolvedValue(undefined),
+            clearRestricted: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         {

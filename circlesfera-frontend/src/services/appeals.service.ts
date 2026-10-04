@@ -5,7 +5,8 @@ export type AppealTargetType =
   | 'ACCOUNT_BAN'
   | 'POST_REMOVAL'
   | 'BOT_LABEL'
-  | 'STRIKE';
+  | 'STRIKE'
+  | 'RESTRICTION';
 export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Appeal {

@@ -175,7 +175,12 @@ export default function Profile() {
       navigate(`/direct/inbox/t/${res.data.id}`);
     } catch (err) {
       console.error(err);
-      toast.error(t('profile.messages.chat_error'));
+      // A reached message-request cap already shows its own notice.
+      const errorCode = (err as { data?: { errorCode?: string } }).data
+        ?.errorCode;
+      if (errorCode !== 'ACTION_LIMIT_REACHED') {
+        toast.error(t('profile.messages.chat_error'));
+      }
     } finally {
       setIsCreatingChat(false);
     }

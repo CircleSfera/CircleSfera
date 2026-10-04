@@ -4,6 +4,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
 import { CommentsService } from './comments.service.js';
 
 describe('CommentsService', () => {
@@ -59,6 +60,15 @@ describe('CommentsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CommentsService,
+        {
+          provide: ActionLimitsService,
+          useValue: {
+            consume: vi.fn().mockResolvedValue(undefined),
+            trackWrite: vi.fn().mockResolvedValue(undefined),
+            recordText: vi.fn().mockResolvedValue(undefined),
+            clearRestricted: vi.fn().mockResolvedValue(undefined),
+          },
+        },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: 'BullQueue_ai-processing', useValue: { add: vi.fn() } },
