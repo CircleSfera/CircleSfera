@@ -23,6 +23,9 @@ server {
     # Turnstile and Google Fonts; blob: and wasm for the video editor (ffmpeg)
     # and map workers. Enforce it once the reports are clean.
     add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss://circlesfera.com wss://www.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report" always;
+    # nginx owns these headers; drop the backend copies so each is sent once.
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Strict-Transport-Security;
 
     # Bounded default timeouts: prevent slowloris and hung backend connections
     client_body_timeout 30s;
@@ -236,6 +239,9 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    # nginx owns these headers; drop the backend copies so each is sent once.
+    proxy_hide_header X-Frame-Options;
+    proxy_hide_header Strict-Transport-Security;
 
     # Bounded default timeouts
     client_body_timeout 30s;
