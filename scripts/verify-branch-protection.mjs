@@ -5,8 +5,10 @@
  *
  * Verifies that the production branch (`main`) satisfies change control requirements:
  * 1. Branch protection active.
- * 2. Required status checks enforced (CI Quality & Playwright Smoke).
- * 3. Pull request reviews mandated with stale approval dismissal.
+ * 2. Required status checks enforced (CI Quality and the full Playwright E2E suite).
+ * 3. Pull requests required; stale approvals dismissed. No approving review is
+ *    required: the project has a single maintainer, so automated checks and
+ *    resolved review threads are the merge gate.
  * 4. Conversation resolution enforced on all review threads.
  * 5. Admin enforcement enabled.
  * 6. Destructive actions (force pushes, deletions) blocked.
@@ -24,8 +26,11 @@ const DEFAULT_BRANCH = 'main';
 
 const REQUIRED_STATUS_CHECKS = [
   'Run Lint and Unit Tests / Run Lint and Unit Tests',
-  'Playwright Smoke (unauthenticated)',
+  'Playwright E2E',
 ];
+
+// Single maintainer: requiring an approving review would block every merge.
+const REQUIRED_APPROVING_REVIEWS = 0;
 
 const TARGET_POLICY = {
   required_status_checks: {
@@ -36,7 +41,7 @@ const TARGET_POLICY = {
   required_pull_request_reviews: {
     dismiss_stale_reviews: true,
     require_code_owner_reviews: false,
-    required_approving_review_count: 1,
+    required_approving_review_count: REQUIRED_APPROVING_REVIEWS,
     require_last_push_approval: false,
   },
   restrictions: null,
@@ -148,9 +153,9 @@ function auditProtection(protection) {
 
   findings.push({
     rule: 'Require Pull Request Reviews',
-    expected: '>= 1 approving review',
+    expected: `pull requests required, >= ${REQUIRED_APPROVING_REVIEWS} approving review(s)`,
     actual: prReviews ? `${reviewCount} review(s)` : 'Disabled',
-    passed: Boolean(prReviews && reviewCount >= 1),
+    passed: Boolean(prReviews && reviewCount >= REQUIRED_APPROVING_REVIEWS),
   });
 
   findings.push({
