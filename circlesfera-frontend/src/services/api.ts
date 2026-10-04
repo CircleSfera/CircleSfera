@@ -1,6 +1,7 @@
 import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
-
+import i18n from '../i18n';
+import { notifyActionLimit } from '../utils/actionLimit';
 import { isAdminPanelHost } from '../utils/adminPanel';
 import { handleApiError } from '../utils/apiUtils';
 
@@ -133,6 +134,14 @@ class ApiClient {
             return Promise.reject(refreshError);
           }
         }
+
+        // A per-profile cap (follows, message requests, comments) gets a
+        // localized notice wherever the action was started.
+        notifyActionLimit(
+          error.response?.status,
+          error.response?.data,
+          i18n.t.bind(i18n),
+        );
 
         return handleApiError(error);
       },

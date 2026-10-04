@@ -1,5 +1,6 @@
 import {
   Activity,
+  Bot,
   Clock,
   DollarSign,
   Flag,
@@ -45,6 +46,7 @@ export type AdminTab =
   | 'experiments'
   | 'system-health'
   | 'appeals'
+  | 'spam-review'
   | 'support'
   | 'roles'
   | 'trust'
@@ -90,6 +92,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   audit: 'audit',
   roles: 'admins.manage',
   appeals: 'appeals',
+  'spam-review': 'users.read',
   support: 'support',
 };
 
@@ -236,6 +239,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'appeals',
         labelKey: 'admin.nav.appeals',
         icon: Scale,
+      },
+      {
+        id: 'spam-review',
+        labelKey: 'admin.nav.spam_review',
+        icon: Bot,
       },
       {
         id: 'support',

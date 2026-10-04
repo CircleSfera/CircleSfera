@@ -19,6 +19,7 @@ import {
   resolveMediaFields,
 } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
 
 const NotificationType = $Enums.NotificationType;
 
@@ -43,6 +44,8 @@ export class CommentsService {
     private readonly eventEmitter: EventEmitter2,
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('analytics-processing') private readonly analyticsQueue: Queue,
+    @Inject(ActionLimitsService)
+    private readonly actionLimits: ActionLimitsService,
   ) {}
 
   // Create a comment on a post. Sends notifications to the post owner, mentioned users,
@@ -58,6 +61,9 @@ export class CommentsService {
     if (post.turnOffComments) {
       throw new ForbiddenException('Comments are disabled for this post');
     }
+
+    // Per-Profile comment caps (spam protection).
+    await this.actionLimits.consume(profileId, 'comment');
 
     // Media rows are created separately (not via a nested `media: { create
     // }`) because mixing raw FK scalars (postId, profileId, ...) with a
@@ -112,6 +118,9 @@ export class CommentsService {
         });
       },
     );
+    // Spots the same comment pasted again and again (keyed hash only).
+    void this.actionLimits.recordText(profileId, dto.content ?? '');
+
     const { voiceMedia, ...commentWithoutVoiceMedia } = createdComment;
     const comment = {
       ...resolveMediaFields(commentWithoutVoiceMedia),

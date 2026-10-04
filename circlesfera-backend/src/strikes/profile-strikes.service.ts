@@ -255,6 +255,34 @@ export class ProfileStrikesService {
     );
   }
 
+  // Staff suspension of one Profile (not from a strike), for example from
+  // the spam review queue. Ends only that Profile's sessions.
+  async suspendProfile(params: {
+    adminId: string;
+    userId: string | null;
+    profileId: string;
+    until: Date;
+  }): Promise<void> {
+    await this.prisma.profile.update({
+      where: { id: params.profileId },
+      // A staff suspension has no strike behind it.
+      data: { suspendedUntil: params.until, suspensionStrikeId: null },
+    });
+    await this.invalidateProfileCache([params.profileId]);
+    this.endProfileSessions(
+      params.userId,
+      params.profileId,
+      'Profile suspended after a review',
+    );
+    await this.notify(
+      params.adminId,
+      params.profileId,
+      `This profile is suspended until ${isoDay(params.until)} after a review of unusual activity. Your other profiles are not affected. You can appeal this decision.`,
+      STRIKE_NOTIFICATION_TARGET.SUSPENDED,
+      params.profileId,
+    );
+  }
+
   // Every warning and strike of a Profile, newest first, with its state.
   async listForProfile(profileId: string): Promise<ProfileStrikeView[]> {
     const now = new Date();

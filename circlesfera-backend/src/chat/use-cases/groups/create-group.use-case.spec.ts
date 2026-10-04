@@ -35,6 +35,11 @@ describe('CreateGroupUseCase', () => {
     useCase = new CreateGroupUseCase(
       mockPrisma as unknown as PrismaService,
       mockEventEmitter as unknown as EventEmitter2,
+      {
+        consume: vi.fn().mockResolvedValue(undefined),
+        trackWrite: vi.fn().mockResolvedValue(undefined),
+        recordText: vi.fn().mockResolvedValue(undefined),
+      } as never,
     );
   });
 

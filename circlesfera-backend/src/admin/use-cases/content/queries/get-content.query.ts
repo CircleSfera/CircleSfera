@@ -244,6 +244,10 @@ export class GetContentQuery {
         reports: reportCount,
         appeals: appealCount,
         tickets: ticketCount,
+        // Profiles the spam and bot detector sent for review.
+        riskCases: await this.prisma.riskCase.count({
+          where: { status: 'OPEN' },
+        }),
       },
       reportMttr: computeMttr(resolvedReportsForMttr),
       appealMttr: computeMttr(resolvedAppealsForMttr),

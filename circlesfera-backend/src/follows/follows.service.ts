@@ -21,6 +21,7 @@ import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
 import {
   activeMuteWhere,
   type MuteDuration,
@@ -52,6 +53,8 @@ export class FollowsService {
     @Inject(SystemSettingsService)
     private readonly systemSettings: SystemSettingsService,
     @Inject(TurnstileService) private readonly turnstile: TurnstileService,
+    @Inject(ActionLimitsService)
+    private readonly actionLimits: ActionLimitsService,
   ) {}
 
   // Toggle follow/unfollow for a user. Handles private accounts by creating pending requests.
@@ -107,6 +110,8 @@ export class FollowsService {
         this.turnstile,
         userId,
       );
+      // Per-Profile follow caps (spam protection).
+      await this.actionLimits.consume(followerId, 'follow');
       // Follow
       // Check privacy level from settings
       const targetUser = await this.prisma.user.findUnique({

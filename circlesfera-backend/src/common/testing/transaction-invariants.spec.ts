@@ -335,6 +335,11 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
         mockEventEmitter,
         mockSystemSettings,
         mockTurnstile,
+        {
+          consume: vi.fn().mockResolvedValue(undefined),
+          trackWrite: vi.fn().mockResolvedValue(undefined),
+          recordText: vi.fn().mockResolvedValue(undefined),
+        } as never,
       );
     });
 

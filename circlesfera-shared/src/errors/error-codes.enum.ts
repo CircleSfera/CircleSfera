@@ -15,6 +15,9 @@ export enum ErrorCode {
   CANNOT_BLOCK_SELF = 'CANNOT_BLOCK_SELF',
   CANNOT_MUTE_SELF = 'CANNOT_MUTE_SELF',
   FOLLOW_REQUEST_NOT_FOUND = 'FOLLOW_REQUEST_NOT_FOUND',
+  // A per-Profile cap on follows, message requests or comments was reached;
+  // details carry the action and when it can be retried.
+  ACTION_LIMIT_REACHED = 'ACTION_LIMIT_REACHED',
 
   // Monetization & Payments
   INSUFFICIENT_FUNDS = 'INSUFFICIENT_FUNDS',

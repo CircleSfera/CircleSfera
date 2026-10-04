@@ -354,7 +354,8 @@
         "CSAM": "Child sexual abuse material",
         "SCAM": "Scam",
         "OTHER": "Community guidelines violation"
-      }
+      },
+      "type_restriction": "Temporary activity restriction"
     },
     "reports": {
       "title": "Reports",
@@ -1545,7 +1546,8 @@
       "moderation_warning": "You received a warning for breaking the community guidelines. There is no penalty this time.",
       "moderation_strike": "You received a strike for breaking the community guidelines.",
       "moderation_suspension": "You received a strike and this profile is suspended for 7 days.",
-      "moderation_ban": "This profile was banned for breaking the community guidelines. Your other profiles are not affected."
+      "moderation_ban": "This profile was banned for breaking the community guidelines. Your other profiles are not affected.",
+      "moderation_restriction": "We have temporarily limited how many accounts this profile can follow and message while we review unusual activity."
     },
     "appeal_cta": "Appeal this decision",
     "strike_details_cta": "See details and appeal"
@@ -1983,7 +1985,8 @@
       "live": "Live Streams",
       "roles": "Roles",
       "operators": "Operators",
-      "settings": "Settings"
+      "settings": "Settings",
+      "spam_review": "Spam review"
     },
     "table": {
       "empty_title": "No data available",
@@ -3108,6 +3111,48 @@
       "select_item": "Select an item from the list",
       "list_region": "List",
       "detail_region": "Detail"
+    },
+    "spam_review": {
+      "title": "Spam and bot review",
+      "subtitle": "Profiles the detector flagged. The detector only proposes: you decide. The participant is told (except on dismissal) and can appeal.",
+      "stats": "{{open}} open · {{reviewed}} reviewed in 90 days · precision {{precision}}",
+      "filter_status": "Status",
+      "status_open": "Open",
+      "status_actioned": "Actioned",
+      "status_dismissed": "Dismissed",
+      "empty_title": "No profiles waiting for review",
+      "empty_description": "The detector has not flagged any profile with this status.",
+      "score": "Risk {{score}}",
+      "restricted_until": "Reduced limits until {{date}}",
+      "open_user": "Open user",
+      "note_label": "Note (optional; for a bot label it is the reason the participant sees)",
+      "toast_resolved": "Case resolved",
+      "toast_error": "Couldn't resolve the case",
+      "signal": {
+        "velocity": "Very fast activity ({{value}} actions in the window)",
+        "repeatedText": "Same text repeated ({{value}} times in 24 h)",
+        "coordinatedText": "Same text as other profiles ({{value}} profiles in 1 h)",
+        "newAndHyperactive": "New and very active account ({{value}} actions today)",
+        "clusterSmall": "Shares an IP or device ({{value}} accounts)",
+        "clusterLarge": "Shares an IP or device ({{value}} accounts)",
+        "followRatio": "Follows many, few follow back (ratio {{value}})",
+        "reports": "Reports from {{value}} people in 7 days",
+        "identityVerified": "Verified identity (lowers risk)"
+      },
+      "decision": {
+        "DISMISSED": "Dismiss (real person)",
+        "RESTRICTED": "Keep limits for 7 days",
+        "BOT_LABEL": "Label as bot",
+        "SUSPENDED": "Suspend the profile for 7 days",
+        "BANNED": "Ban the profile"
+      },
+      "confirm": {
+        "DISMISSED": "@{{username}}'s limits are lifted and the case is closed. The participant is not told.",
+        "RESTRICTED": "@{{username}} keeps reduced follow and message limits for 7 days. They are told and can appeal.",
+        "BOT_LABEL": "@{{username}}'s account will show as a possible bot. They are told and can appeal.",
+        "SUSPENDED": "Only the profile @{{username}} is suspended for 7 days. Their other profiles are not affected.",
+        "BANNED": "Only the profile @{{username}} is banned. Their other profiles are not affected. They can appeal."
+      }
     }
   },
   "collections": {
@@ -3870,5 +3915,13 @@
     "send": "Send voice note",
     "stop": "Stop recording",
     "uploading": "Uploading voice note..."
+  },
+  "errors": {
+    "action_limit": {
+      "follow": "You've reached the limit of accounts you can follow for now. Try again at {{time}}.",
+      "message_request": "You've reached the limit of messages to people who don't follow you. Try again at {{time}}.",
+      "comment": "You've reached the comment limit for now. Try again at {{time}}.",
+      "other": "You've reached an activity limit. Try again later."
+    }
   }
 }

@@ -15,6 +15,8 @@ import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfileStrikesService } from '../strikes/profile-strikes.service.js';
+import { ActionLimitsService } from '../trust/action-limits.service.js';
+import { RiskDetectorService } from '../trust/risk-detector.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
@@ -28,6 +30,10 @@ export class AppealsService {
     private readonly eventEmitter: EventEmitter2,
     @Inject(ProfileStrikesService)
     private readonly strikesService: ProfileStrikesService,
+    @Inject(RiskDetectorService)
+    private readonly riskDetector: RiskDetectorService,
+    @Inject(ActionLimitsService)
+    private readonly actionLimits: ActionLimitsService,
   ) {}
 
   // The appealed item must belong to the appellant: approving an appeal
@@ -60,6 +66,15 @@ export class AppealsService {
           select: { id: true },
         });
         if (!strike) throw new NotFoundException('Strike not found');
+        return targetId;
+      }
+      case 'RESTRICTION': {
+        if (!targetId) throw new BadRequestException('targetId is required');
+        const riskCase = await this.prisma.riskCase.findFirst({
+          where: { id: targetId, profile: { userId } },
+          select: { id: true },
+        });
+        if (!riskCase) throw new NotFoundException('Restriction not found');
         return targetId;
       }
       case 'ACCOUNT_BAN': {
@@ -222,6 +237,22 @@ export class AppealsService {
               type: 'STRIKE',
             };
           }
+        } else if (appeal.targetType === 'RESTRICTION' && appeal.targetId) {
+          const riskCase = await this.prisma.riskCase.findUnique({
+            where: { id: appeal.targetId },
+            select: { score: true, restrictedUntil: true, status: true },
+          });
+          if (riskCase) {
+            targetPreview = {
+              text: `Spam review case, score ${riskCase.score}`,
+              moderationStatus:
+                riskCase.restrictedUntil &&
+                riskCase.restrictedUntil > new Date()
+                  ? 'RESTRICTED'
+                  : riskCase.status,
+              type: 'RESTRICTION',
+            };
+          }
         } else if (appeal.targetType === 'BOT_LABEL') {
           targetPreview = {
             text: 'Possible bot label',
@@ -267,6 +298,8 @@ export class AppealsService {
 
     // Profiles whose public view changes, to drop their cache afterwards.
     const affectedProfileIds: string[] = [];
+    // Profiles whose protective restriction is lifted, to clear their caps.
+    const liftedRestrictionIds: string[] = [];
     const updatedAppeal = await this.prisma.$transaction(async (tx) => {
       const resolvedAt = resolvedAtOnStatusChange(
         dto.status,
@@ -285,6 +318,13 @@ export class AppealsService {
 
       // Approving twice must not repeat the side effects.
       if (dto.status === 'APPROVED' && appeal.status !== 'APPROVED') {
+        if (appeal.targetType === 'RESTRICTION' && appeal.targetId) {
+          const profileId = await this.riskDetector.liftRestrictionForAppeal(
+            tx,
+            appeal.targetId,
+          );
+          if (profileId) liftedRestrictionIds.push(profileId);
+        }
         if (appeal.targetType === 'STRIKE' && appeal.targetId) {
           const profileId = await this.strikesService.revokeForAppeal(
             tx,
@@ -339,6 +379,9 @@ export class AppealsService {
       return res;
     });
     await this.strikesService.invalidateProfileCache(affectedProfileIds);
+    await Promise.all(
+      liftedRestrictionIds.map((id) => this.actionLimits.clearRestricted(id)),
+    );
 
     await this.prisma.adminAuditLog
       .create({
@@ -433,6 +476,13 @@ export class AppealsService {
     }
     if (appeal.targetType === 'ACCOUNT_BAN' && appeal.targetId) {
       return { id: appeal.targetId };
+    }
+    if (appeal.targetType === 'RESTRICTION' && appeal.targetId) {
+      const riskCase = await this.prisma.riskCase.findUnique({
+        where: { id: appeal.targetId },
+        select: { profileId: true },
+      });
+      if (riskCase) return { id: riskCase.profileId };
     }
     return this.prisma.profile.findFirst({
       where: { userId: appeal.userId },

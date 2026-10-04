@@ -85,4 +85,33 @@ describe('Notifications: warning and strike notices', () => {
       screen.queryByText(i18n!.t('notifications.strike_details_cta')),
     ).not.toBeInTheDocument();
   });
+
+  it('a restriction notice links to its own appeal', async () => {
+    vi.mocked(notificationsApi.getAll).mockResolvedValue({
+      data: {
+        data: [
+          moderationNotice({
+            targetType: 'profile_restriction',
+            targetId: 'case-7',
+          }),
+        ],
+      },
+    } as never);
+
+    const { i18n } = renderWithProviders(<Notifications />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('notifications.types.moderation_restriction'),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {
+        name: i18n!.t('notifications.strike_details_cta'),
+      }),
+    ).toHaveAttribute(
+      'href',
+      '/accounts/appeals?targetType=RESTRICTION&targetId=case-7',
+    );
+  });
 });

@@ -68,6 +68,11 @@ describe('SendMessageUseCase', () => {
       mockCryptoService as unknown as CryptoService,
       mockPushService as unknown as PushService,
       mockEventEmitter as unknown as EventEmitter2,
+      {
+        consume: vi.fn().mockResolvedValue(undefined),
+        trackWrite: vi.fn().mockResolvedValue(undefined),
+        recordText: vi.fn().mockResolvedValue(undefined),
+      } as never,
     );
   });
 

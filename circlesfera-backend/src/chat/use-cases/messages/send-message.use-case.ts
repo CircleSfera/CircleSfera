@@ -17,6 +17,7 @@ import {
 } from '../../../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
 import { PushService } from '../../../push/push.service.js';
+import { ActionLimitsService } from '../../../trust/action-limits.service.js';
 
 @Injectable()
 export class SendMessageUseCase {
@@ -27,6 +28,8 @@ export class SendMessageUseCase {
     @Inject(CryptoService) private cryptoService: CryptoService,
     @Inject(PushService) private pushService: PushService,
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
+    @Inject(ActionLimitsService)
+    private readonly actionLimits: ActionLimitsService,
   ) {}
 
   async execute(
@@ -127,6 +130,11 @@ export class SendMessageUseCase {
                 status: 'ACCEPTED',
               },
             });
+            // A first message to someone who does not follow the sender is a
+            // message request, which has its own per-Profile cap.
+            if (!recipientFollowsSender) {
+              await this.actionLimits.consume(senderId, 'message_request');
+            }
 
             conv = await tx.conversation.create({
               data: {
@@ -270,6 +278,18 @@ export class SendMessageUseCase {
         return { message: msg, conversation: conv };
       },
     );
+
+    // Spam signals: count the write, and fingerprint text sent to someone
+    // who has not accepted the conversation (a message request). Ordinary
+    // chats are never fingerprinted.
+    void this.actionLimits.trackWrite(senderId);
+    const unsolicited = conversation.participants.some(
+      (p: { profileId: string; hasAccepted: boolean }) =>
+        p.profileId !== senderId && !p.hasAccepted,
+    );
+    if (unsolicited && content) {
+      void this.actionLimits.recordText(senderId, content);
+    }
 
     const { voiceMedia, ...messageWithoutVoiceMedia } = message;
     const resolvedMessage = {

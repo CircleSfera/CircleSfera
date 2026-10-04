@@ -28,6 +28,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   const trustBadgeTotal =
     (trustQueue?.counts.reports ?? 0) +
     (trustQueue?.counts.appeals ?? 0) +
+    (trustQueue?.counts.riskCases ?? 0) +
     (trustQueue?.counts.tickets ?? 0);
 
   const getItemBadge = (itemId: AdminTab) => {
@@ -39,6 +40,9 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
     }
     if (itemId === 'appeals' && trustQueue?.counts?.appeals) {
       return String(trustQueue.counts.appeals);
+    }
+    if (itemId === 'spam-review' && trustQueue?.counts?.riskCases) {
+      return String(trustQueue.counts.riskCases);
     }
     if (itemId === 'support' && trustQueue?.counts?.tickets) {
       return String(trustQueue.counts.tickets);

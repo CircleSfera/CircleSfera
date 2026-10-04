@@ -46,6 +46,7 @@ export { default as PromotionsTab } from './PromotionsTab';
 export { default as ReportsTab } from './ReportsTab';
 export { default as RolesTab } from './RolesTab';
 export { default as SettingsTab } from './SettingsTab';
+export { default as SpamReviewTab } from './SpamReviewTab';
 export { default as StatCard } from './StatCard';
 export { default as StatsTab } from './StatsTab';
 export { default as StoriesTab } from './StoriesTab';

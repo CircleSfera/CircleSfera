@@ -18,6 +18,7 @@ import {
   ReportsTab,
   RolesTab,
   SettingsTab,
+  SpamReviewTab,
   StatsTab,
   StoriesTab,
   SupportTicketsTab,
@@ -78,6 +79,7 @@ export default function Admin() {
         {activeTab === 'whitelist' && <WhitelistTab />}
         {activeTab === 'audit' && <AuditLogTab />}
         {activeTab === 'appeals' && <AppealsTab />}
+        {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}

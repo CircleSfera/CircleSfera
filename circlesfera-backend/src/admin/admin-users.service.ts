@@ -10,6 +10,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction, NotificationType, Prisma, Role } from '@prisma/client';
 import type { Cache } from 'cache-manager';
+import { linkedAccountsWhere } from '../common/abuse/linked-accounts.js';
 import { computeTrustScore } from '../common/abuse/trust-score.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -853,32 +854,10 @@ export class AdminUsersService {
     });
     if (!user) throw new NotFoundException('User not found');
 
-    const visitorHashes = user.deviceSignals.map((d) => d.visitorHash);
-    const ipHashes = [user.signupIpHash, user.lastIpHash].filter(
-      (h): h is string => !!h,
-    );
-
+    const where = linkedAccountsWhere(user);
     const linked = await this.prisma.user.findMany({
-      where: {
-        id: { not: userId },
-        OR: [
-          ...(ipHashes.length
-            ? [
-                { signupIpHash: { in: ipHashes } },
-                { lastIpHash: { in: ipHashes } },
-              ]
-            : []),
-          ...(visitorHashes.length
-            ? [
-                {
-                  deviceSignals: {
-                    some: { visitorHash: { in: visitorHashes } },
-                  },
-                },
-              ]
-            : []),
-        ],
-      },
+      // No IP or device signal: nothing to compare, so no linked accounts.
+      where: where ?? { id: { in: [] } },
       select: {
         id: true,
         createdAt: true,

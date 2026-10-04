@@ -175,7 +175,10 @@ export default function Profile() {
       navigate(`/direct/inbox/t/${res.data.id}`);
     } catch (err) {
       console.error(err);
-      toast.error(t('profile.messages.chat_error'));
+      // A reached message-request cap already shows its own notice.
+      if ((err as { status?: number }).status !== 429) {
+        toast.error(t('profile.messages.chat_error'));
+      }
     } finally {
       setIsCreatingChat(false);
     }

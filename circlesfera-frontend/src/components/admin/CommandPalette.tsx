@@ -17,6 +17,7 @@ import {
 
 const QUICK_ACTION_TABS: AdminTab[] = [
   'appeals',
+  'spam-review',
   'reports',
   'moderation',
   'monetization',

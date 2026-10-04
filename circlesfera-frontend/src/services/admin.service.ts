@@ -479,6 +479,8 @@ export interface TrustQueueResponse {
     reports: number;
     appeals: number;
     tickets: number;
+    // Profiles the spam and bot detector sent for review.
+    riskCases?: number;
   };
   reportMttr: TrustQueueMttr;
   appealMttr: TrustQueueMttr;
@@ -515,7 +517,92 @@ export interface AdminSystemSetting {
   updatedBy: string;
 }
 
+export type RiskCaseStatus = 'OPEN' | 'DISMISSED' | 'ACTIONED';
+export type RiskCaseDecision =
+  | 'DISMISSED'
+  | 'BOT_LABEL'
+  | 'RESTRICTED'
+  | 'SUSPENDED'
+  | 'BANNED';
+export type RiskSignalKey =
+  | 'velocity'
+  | 'repeatedText'
+  | 'coordinatedText'
+  | 'newAndHyperactive'
+  | 'clusterSmall'
+  | 'clusterLarge'
+  | 'followRatio'
+  | 'reports'
+  | 'identityVerified';
+
+export interface RiskSignal {
+  key: RiskSignalKey;
+  points: number;
+  value: number;
+}
+
+// A Profile the spam and bot detector sent for staff review.
+export interface AdminRiskCase {
+  id: string;
+  profileId: string;
+  score: number;
+  signals: RiskSignal[];
+  status: RiskCaseStatus;
+  restrictedUntil: string | null;
+  decision: RiskCaseDecision | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  profile: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    avatar: string | null;
+    userId: string;
+  };
+  reviewedBy: { id: string; displayName: string } | null;
+}
+
+export interface AdminRiskCaseStats {
+  open: number;
+  reviewedLast90Days: number;
+  actionedLast90Days: number;
+  dismissedLast90Days: number;
+  // Actioned share of reviewed cases; null before any review.
+  precision: number | null;
+}
+
 export const adminApi = {
+  getRiskCases: async (
+    status: RiskCaseStatus = 'OPEN',
+    page = 1,
+    limit = 20,
+  ) => {
+    const { data } = await apiClient.get<PaginatedResponse<AdminRiskCase>>(
+      'admin/risk-cases',
+      { params: { status, page, limit } },
+    );
+    return data;
+  },
+
+  getRiskCaseStats: async () => {
+    const { data } = await apiClient.get<AdminRiskCaseStats>(
+      'admin/risk-cases/stats',
+    );
+    return data;
+  },
+
+  resolveRiskCase: async (
+    id: string,
+    decision: RiskCaseDecision,
+    note?: string,
+  ) => {
+    const { data } = await apiClient.post<AdminRiskCase>(
+      `admin/risk-cases/${id}/resolve`,
+      { decision, note },
+    );
+    return data;
+  },
+
   getStats: async (): Promise<AdminStats> => {
     const { data } = await apiClient.get<AdminStats>('/admin/stats');
     return data;

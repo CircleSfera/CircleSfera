@@ -6,12 +6,15 @@ import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AppException } from '../../../common/errors/app.exception.js';
 import { PrismaService } from '../../../prisma/prisma.service.js';
+import { ActionLimitsService } from '../../../trust/action-limits.service.js';
 
 @Injectable()
 export class CreateGroupUseCase {
   constructor(
     @Inject(PrismaService) private prisma: PrismaService,
     @Inject(EventEmitter2) private eventEmitter: EventEmitter2,
+    @Inject(ActionLimitsService)
+    private readonly actionLimits: ActionLimitsService,
   ) {}
 
   async execute(profileId: string, participantIds: string[], name?: string) {
@@ -79,6 +82,12 @@ export class CreateGroupUseCase {
         },
       });
 
+      // A conversation with someone who does not follow the creator is a
+      // message request, which has its own per-Profile cap.
+      if (!recipientFollows) {
+        await this.actionLimits.consume(profileId, 'message_request');
+      }
+
       return this.prisma.conversation.create({
         data: {
           isGroup: false,
@@ -119,6 +128,12 @@ export class CreateGroupUseCase {
       select: { followerId: true },
     });
     const followerIdSet = new Set(follows.map((f) => f.followerId));
+    // Each participant who does not follow the creator receives a request.
+    for (const id of nonCreatorIds) {
+      if (!followerIdSet.has(id)) {
+        await this.actionLimits.consume(profileId, 'message_request');
+      }
+    }
 
     const allParticipantIds = Array.from(
       new Set([profileId, ...uniqueParticipantIds]),

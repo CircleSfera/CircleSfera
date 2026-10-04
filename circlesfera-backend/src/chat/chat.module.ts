@@ -12,6 +12,7 @@ import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PushModule } from '../push/push.module.js';
 
+import { TrustModule } from '../trust/trust.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
 import { ChatAuthorizationService } from './services/chat-authorization.service.js';
@@ -63,6 +64,7 @@ const useCases = [
   imports: [
     PrismaModule,
     PushModule,
+    TrustModule,
     ConfigModule,
     BullModule.registerQueue(
       getRegisterQueueOptions(QUEUE_NAMES.CHAT_PROCESSING),
