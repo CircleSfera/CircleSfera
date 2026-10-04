@@ -8,7 +8,7 @@ Security fixes are applied to the `main` branch of CircleSfera. There are no lon
 
 **Do not open a public GitHub issue for security vulnerabilities.**
 
-Email the maintainers privately with:
+Email **legal@circlesfera.com** privately with:
 
 - A clear description of the issue and impact
 - Steps to reproduce (PoC if available)
