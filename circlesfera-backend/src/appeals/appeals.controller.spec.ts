@@ -107,6 +107,7 @@ describe('AppealsController', () => {
     expect(mockService.create).toHaveBeenCalledWith(
       TEST_USER.userId,
       createDto,
+      undefined,
     );
   });
 
@@ -123,7 +124,81 @@ describe('AppealsController', () => {
     expect(mockJwt.verify).toHaveBeenCalledWith('token-1', {
       secret: 'test-jwt-secret',
     });
-    expect(mockService.create).toHaveBeenCalledWith('banned-1', createDto);
+    expect(mockService.create).toHaveBeenCalledWith(
+      'banned-1',
+      createDto,
+      undefined,
+    );
+  });
+
+  it('an appeal from the login screen is about the Profile in the appeal token', async () => {
+    mockJwt.verify.mockReturnValue({
+      isAppealToken: true,
+      sub: 'banned-1',
+      profileId: 'profile-9',
+    });
+    mockService.create.mockResolvedValue({ id: 'appeal-2' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'token-1')
+      .send({ targetType: 'ACCOUNT_BAN', reason: 'I did not break the rules' })
+      .expect(201);
+
+    expect(mockService.create).toHaveBeenCalledWith(
+      'banned-1',
+      {
+        targetType: 'ACCOUNT_BAN',
+        targetId: 'profile-9',
+        reason: 'I did not break the rules',
+      },
+      'profile-9',
+    );
+  });
+
+  it('a login-screen token cannot name another Profile in a ban appeal', async () => {
+    mockJwt.verify.mockReturnValue({
+      isAppealToken: true,
+      sub: 'banned-1',
+      profileId: 'profile-9',
+    });
+    mockService.create.mockResolvedValue({ id: 'appeal-3' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'token-1')
+      .send({
+        targetType: 'ACCOUNT_BAN',
+        targetId: 'other-profile',
+        reason: 'I did not break the rules',
+      })
+      .expect(201);
+
+    expect(mockService.create).toHaveBeenCalledWith(
+      'banned-1',
+      expect.objectContaining({ targetId: 'profile-9' }),
+      'profile-9',
+    );
+  });
+
+  it('a login-screen token cannot appeal anything but its Profile restriction or strikes', async () => {
+    mockJwt.verify.mockReturnValue({
+      isAppealToken: true,
+      sub: 'banned-1',
+      profileId: 'profile-9',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'token-1')
+      .send({
+        targetType: 'POST_REMOVAL',
+        targetId: 'post-1',
+        reason: 'Restore my post please',
+      })
+      .expect(403);
+
+    expect(mockService.create).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid appeal token', async () => {

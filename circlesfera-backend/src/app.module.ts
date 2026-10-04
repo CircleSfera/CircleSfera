@@ -78,6 +78,7 @@ import { SeoModule } from './seo/seo.module.js';
 import { SlackModule } from './slack/slack.module.js';
 import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
+import { ProfileStrikesModule } from './strikes/profile-strikes.module.js';
 import { SupportModule } from './support/support.module.js';
 import { SystemSettingsModule } from './system-settings/system-settings.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
@@ -189,6 +190,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     ReportsModule,
     UsersModule,
     AppealsModule,
+    ProfileStrikesModule,
     SocketModule,
     AIModule,
     AudioModule,

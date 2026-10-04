@@ -507,9 +507,6 @@ describe('AIProcessor', () => {
         profileId: 'admin-prof-1',
       });
 
-      prisma.profile.findUnique.mockResolvedValue({ userId: 'u-bad' });
-      prisma.user.update.mockResolvedValue({ id: 'u-bad', strikeCount: 3 });
-
       await processor.process(job);
 
       expect(prisma.post.update).toHaveBeenCalledWith({
@@ -531,16 +528,10 @@ describe('AIProcessor', () => {
         },
       });
 
-      // Escalation report because strikeCount >= 3
-      expect(prisma.report.create).toHaveBeenCalledWith({
-        data: {
-          reporterId: 'admin-prof-1',
-          targetType: 'USER',
-          targetId: 'u-bad',
-          reason: 'OTHER',
-          details: expect.stringContaining('[URGENT]'),
-        },
-      });
+      // Hiding files one report for human review and never adds a strike:
+      // staff decide on warnings and strikes.
+      expect(prisma.report.create).toHaveBeenCalledTimes(1);
+      expect(prisma.user.update).not.toHaveBeenCalled();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
         recipientId: 'author-prof-1',
@@ -625,8 +616,6 @@ describe('AIProcessor', () => {
         userId: 'admin-1',
         profileId: 'admin-prof-1',
       });
-      prisma.profile.findUnique.mockResolvedValue({ userId: 'u-1' });
-      prisma.user.update.mockResolvedValue({ id: 'u-1', strikeCount: 1 });
 
       await processor.process(job);
 
@@ -642,7 +631,7 @@ describe('AIProcessor', () => {
         select: { profileId: true },
       });
 
-      // No strike applied for non-severe flag (applyStrike: false)
+      // Automated moderation never adds a strike.
       expect(prisma.user.update).not.toHaveBeenCalled();
 
       expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
@@ -687,8 +676,6 @@ describe('AIProcessor', () => {
         userId: 'admin-1',
         profileId: 'admin-prof-1',
       });
-      prisma.profile.findUnique.mockResolvedValue({ userId: 'u-2' });
-      prisma.user.update.mockResolvedValue({ id: 'u-2', strikeCount: 1 });
 
       // Should not throw, should continue to hide and notify
       await processor.process(job);
@@ -737,8 +724,6 @@ describe('AIProcessor', () => {
           userId: 'admin-1',
           profileId: 'admin-prof-1',
         });
-        prisma.profile.findUnique.mockResolvedValue({ userId: 'u-5' });
-        prisma.user.update.mockResolvedValue({ id: 'u-5', strikeCount: 1 });
 
         await processor.process(job);
 
@@ -759,36 +744,6 @@ describe('AIProcessor', () => {
           }),
         );
       }
-    });
-
-    it('handles author profile not found during applyStrike', async () => {
-      const job = {
-        name: 'moderate-content',
-        data: { targetId: 'p-orphaned', targetType: 'POST', text: 'bad words' },
-      } as Job;
-
-      prisma.post.findUnique.mockResolvedValue({ id: 'p-orphaned', media: [] });
-      aiService.generateEmbedding.mockResolvedValue([0.1]);
-      prisma.$queryRaw.mockResolvedValue([]);
-
-      aiService.moderateContent.mockResolvedValue({
-        flagged: true,
-        categories: { hate: true },
-        category_scores: { hate: 0.99 },
-      });
-
-      prisma.post.update.mockResolvedValue({
-        profileId: 'non-existent-profile',
-      });
-      (resolveSystemModeratorActor as any).mockResolvedValue({
-        userId: 'admin-1',
-        profileId: 'admin-prof-1',
-      });
-      prisma.profile.findUnique.mockResolvedValue(null);
-
-      await processor.process(job);
-
-      expect(prisma.user.update).not.toHaveBeenCalled();
     });
 
     it('catches and rethrows Error instance during moderation', async () => {

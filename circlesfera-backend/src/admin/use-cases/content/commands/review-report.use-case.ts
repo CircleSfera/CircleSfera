@@ -1,4 +1,3 @@
-import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import {
   BadRequestException,
   ConflictException,
@@ -8,7 +7,6 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   AdminAction,
   NotificationType,
@@ -18,11 +16,9 @@ import {
 import { primaryProfileIdForUser } from '../../../../common/utils/user-profile-shape.util.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
+import { ProfileStrikesService } from '../../../../strikes/profile-strikes.service.js';
 import { resolveAdminNotificationSenderId } from '../../../utils/resolve-admin-notification-sender.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
-
-// Strikes on one Profile before that Profile is banned.
-export const PROFILE_STRIKE_BAN_THRESHOLD = 3;
 
 @Injectable()
 export class ReviewReportUseCase {
@@ -34,38 +30,9 @@ export class ReviewReportUseCase {
     private readonly notificationsService: NotificationsService,
     @Inject(LogAdminActionUseCase)
     private readonly logAdminAction: LogAdminActionUseCase,
-    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(ProfileStrikesService)
+    private readonly strikesService: ProfileStrikesService,
   ) {}
-
-  // Bans one Profile and ends the sessions acting as it. The account and its
-  // other Profiles are not affected; banning a whole account is a separate
-  // staff action for severe cases.
-  private async banProfile(params: {
-    adminId: string;
-    userId: string | null;
-    profileId: string;
-    reason: string;
-  }) {
-    await this.prisma.profile.update({
-      where: { id: params.profileId },
-      data: { isAccountBanned: true, accountBanReason: params.reason },
-    });
-    if (params.userId) {
-      const event: UserSessionTerminateEvent['payload'] = {
-        userId: params.userId,
-        profileId: params.profileId,
-        reason: 'Profile banned after a report review',
-        scope: 'profile',
-      };
-      this.eventEmitter.emit('user.session.terminate', event);
-    }
-    await this.notifyModeration({
-      adminId: params.adminId,
-      recipientId: params.profileId,
-      content:
-        'This profile was banned after a report review. Your other profiles are not affected. You may appeal from the login screen.',
-    });
-  }
 
   private async notifyModeration(params: {
     adminId: string;
@@ -300,51 +267,25 @@ export class ReviewReportUseCase {
       }
     }
 
-    // Sanctions apply to the Profile that committed the infraction.
+    // Sanctions apply to the Profile that committed the infraction. STRIKE
+    // is an upheld minor violation: the strike policy turns it into a
+    // warning, a strike, a suspension or a ban. BAN is for severe cases and
+    // skips the ladder.
     if (penaltyAction === 'STRIKE' && targetProfileId) {
-      const { strikeCount } = await this.prisma.profile.update({
-        where: { id: targetProfileId },
-        data: { strikeCount: { increment: 1 } },
-        select: { strikeCount: true },
+      await this.strikesService.applyViolation({
+        adminId,
+        profileId: targetProfileId,
+        userId: targetUserId,
+        reportId,
+        reason: report.reason,
       });
-      if (strikeCount >= PROFILE_STRIKE_BAN_THRESHOLD) {
-        await this.banProfile({
-          adminId,
-          userId: targetUserId,
-          profileId: targetProfileId,
-          reason: `Repeated violations of the community guidelines (${strikeCount} strikes)`,
-        });
-      } else {
-        await this.notifyModeration({
-          adminId,
-          recipientId: targetProfileId,
-          content: `A moderation strike was applied to this profile after a report review (${strikeCount} of ${PROFILE_STRIKE_BAN_THRESHOLD}).`,
-        });
-      }
     } else if (penaltyAction === 'BAN' && targetProfileId) {
-      await this.banProfile({
+      await this.strikesService.banProfile({
         adminId,
         userId: targetUserId,
         profileId: targetProfileId,
         reason: 'Violation of the community guidelines after a report review',
       });
-    } else if (
-      penaltyAction === 'IGNORE' &&
-      targetProfileId &&
-      report.targetType === 'USER'
-    ) {
-      // A dismissed report about a Profile at the strike limit takes one
-      // strike back.
-      const profile = await this.prisma.profile.findUnique({
-        where: { id: targetProfileId },
-        select: { strikeCount: true },
-      });
-      if (profile && profile.strikeCount >= PROFILE_STRIKE_BAN_THRESHOLD) {
-        await this.prisma.profile.update({
-          where: { id: targetProfileId },
-          data: { strikeCount: { decrement: 1 } },
-        });
-      }
     } else if (penaltyAction !== 'IGNORE') {
       this.logger.warn(
         `Report ${reportId}: ${penaltyAction} not applied, target Profile not found`,

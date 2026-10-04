@@ -1,7 +1,11 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
-export type AppealTargetType = 'ACCOUNT_BAN' | 'POST_REMOVAL' | 'BOT_LABEL';
+export type AppealTargetType =
+  | 'ACCOUNT_BAN'
+  | 'POST_REMOVAL'
+  | 'BOT_LABEL'
+  | 'STRIKE';
 export type AppealStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
 export interface Appeal {
@@ -24,7 +28,6 @@ export interface Appeal {
     email: string;
     isActive?: boolean;
     suspendedUntil?: string | null;
-    strikeCount?: number;
     profile: {
       username: string;
       fullName: string | null;
@@ -64,5 +67,36 @@ export const updateAdminAppeal = async (
   data: { status: AppealStatus; adminNotes?: string },
 ): Promise<Appeal> => {
   const response = await apiClient.patch<Appeal>(`/appeals/admin/${id}`, data);
+  return response.data;
+};
+
+export type ProfileStrikeKind = 'WARNING' | 'STRIKE';
+export type ProfileStrikeConsequence = 'NONE' | 'SUSPENDED' | 'BANNED';
+export type ProfileStrikeStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+export type ProfileStrikeReason =
+  | 'SPAM'
+  | 'HARASSMENT'
+  | 'ILLEGAL_CONTENT'
+  | 'VIOLENCE'
+  | 'HATE_SPEECH'
+  | 'IMPERSONATION'
+  | 'CSAM'
+  | 'SCAM'
+  | 'OTHER';
+
+// A warning or strike on the Profile the session acts as.
+export interface ProfileStrike {
+  id: string;
+  kind: ProfileStrikeKind;
+  reason: ProfileStrikeReason;
+  consequence: ProfileStrikeConsequence;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  status: ProfileStrikeStatus;
+}
+
+export const getMyStrikes = async (): Promise<ProfileStrike[]> => {
+  const response = await apiClient.get<ProfileStrike[]>('/strikes/me');
   return response.data;
 };

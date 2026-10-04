@@ -20,6 +20,7 @@ import {
 } from '../common/policies/block.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { UsersService } from '../users/users.service.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -96,7 +97,6 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            strikeCount: true,
             emailVerified: true,
             identityVerifiedAt: true,
             signupCountry: true,
@@ -114,6 +114,7 @@ export class ProfilesService {
             posts: true,
             followers: { where: { status: 'ACCEPTED' } },
             following: { where: { status: 'ACCEPTED' } },
+            strikes: { where: activeStrikeWhere() },
           },
         },
       },
@@ -163,7 +164,8 @@ export class ProfilesService {
       emailConfirmed: !!user?.emailVerified,
       joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
       signupCountry: user?.signupCountry ?? null,
-      strikeCount: user?.strikeCount ?? 0,
+      // Active strikes of this Profile; warnings are not shown.
+      strikeCount: profile._count.strikes,
       botLabeled: !!user?.botLabeledAt,
       lastActiveBucket: lastActiveBucket(user?.lastSeenAt),
       accountStanding: accountStanding({
@@ -429,7 +431,6 @@ export class ProfilesService {
             createdAt: true,
             lastSeenAt: true,
             isActive: true,
-            strikeCount: true,
             emailVerified: true,
 
             inviteCode: true,
@@ -446,6 +447,7 @@ export class ProfilesService {
           select: {
             followers: { where: { status: 'ACCEPTED' } },
             following: { where: { status: 'ACCEPTED' } },
+            strikes: { where: activeStrikeWhere() },
           },
         },
       },
@@ -487,7 +489,7 @@ export class ProfilesService {
       emailVerified: profile.user?.emailVerified,
       joinedAt: profile.user?.createdAt,
       signupCountry: profile.user?.signupCountry ?? null,
-      strikeCount: profile.user?.strikeCount ?? 0,
+      strikeCount: profile._count.strikes,
       botLabeled: !!profile.user?.botLabeledAt,
       lastActiveBucket: lastActiveBucket(profile.user?.lastSeenAt),
       accountStanding: accountStanding({

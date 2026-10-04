@@ -11,6 +11,7 @@ import { EmailModule } from '../email/email.module.js';
 import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PaymentsModule } from '../payments/payments.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { ProfileStrikesModule } from '../strikes/profile-strikes.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminService } from './admin.service.js';
 import { AdminContentController } from './admin-content.controller.js';
@@ -46,6 +47,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AIModule,
     EmailModule,
     NotificationsModule,
+    ProfileStrikesModule,
     CreatorModule,
     UsersModule,
     PaymentsModule,

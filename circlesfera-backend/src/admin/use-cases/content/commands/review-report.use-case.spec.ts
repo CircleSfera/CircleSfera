@@ -37,7 +37,10 @@ describe('ReviewReportUseCase assignee', () => {
   };
   let logAdminAction: { execute: ReturnType<typeof vi.fn> };
   let notificationsService: { create: ReturnType<typeof vi.fn> };
-  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let strikesService: {
+    applyViolation: ReturnType<typeof vi.fn>;
+    banProfile: ReturnType<typeof vi.fn>;
+  };
   let useCase: ReviewReportUseCase;
 
   beforeEach(() => {
@@ -67,12 +70,15 @@ describe('ReviewReportUseCase assignee', () => {
     notificationsService = {
       create: vi.fn().mockResolvedValue(undefined),
     };
-    eventEmitter = { emit: vi.fn() };
+    strikesService = {
+      applyViolation: vi.fn().mockResolvedValue(null),
+      banProfile: vi.fn().mockResolvedValue(undefined),
+    };
     useCase = new ReviewReportUseCase(
       prisma as never,
       notificationsService as never,
       logAdminAction as unknown as LogAdminActionUseCase,
-      eventEmitter as never,
+      strikesService as never,
     );
   });
 
@@ -200,6 +206,7 @@ describe('ReviewReportUseCase assignee', () => {
       id: reportId,
       targetType: 'POST',
       targetId: 'post-uuid',
+      reason: 'HARASSMENT',
     });
     prisma.post.findUnique.mockResolvedValue({
       profile: { id: 'profile-uuid', userId: 'user-uuid' },
@@ -210,80 +217,57 @@ describe('ReviewReportUseCase assignee', () => {
     });
   };
 
-  it('STRIKE counts against the offending Profile, never the account', async () => {
+  it('STRIKE records the violation against the offending Profile with the report rule', async () => {
     reportOnPost();
-    prisma.profile.update.mockResolvedValue({ strikeCount: 1 });
 
     await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
 
-    expect(prisma.profile.update).toHaveBeenCalledWith({
-      where: { id: 'profile-uuid' },
-      data: { strikeCount: { increment: 1 } },
-      select: { strikeCount: true },
+    expect(strikesService.applyViolation).toHaveBeenCalledWith({
+      adminId,
+      profileId: 'profile-uuid',
+      userId: 'user-uuid',
+      reportId,
+      reason: 'HARASSMENT',
     });
+    expect(strikesService.banProfile).not.toHaveBeenCalled();
     expect(prisma.user.update).not.toHaveBeenCalled();
-    expect(eventEmitter.emit).not.toHaveBeenCalled();
-    expect(notificationsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ recipientId: 'profile-uuid' }),
+    expect(prisma.report.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: reportId },
+        data: expect.objectContaining({ status: ReportStatus.RESOLVED }),
+      }),
     );
   });
 
-  it('the third STRIKE bans only that Profile and ends only its sessions', async () => {
+  it('BAN bans the offending Profile at once, without the strike ladder', async () => {
     reportOnPost();
-    prisma.profile.update
-      .mockResolvedValueOnce({ strikeCount: 3 })
-      .mockResolvedValueOnce({});
-
-    await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
-
-    expect(prisma.profile.update).toHaveBeenLastCalledWith({
-      where: { id: 'profile-uuid' },
-      data: {
-        isAccountBanned: true,
-        accountBanReason: expect.stringContaining('3 strikes'),
-      },
-    });
-    expect(prisma.user.update).not.toHaveBeenCalled();
-    expect(eventEmitter.emit).toHaveBeenCalledWith('user.session.terminate', {
-      userId: 'user-uuid',
-      profileId: 'profile-uuid',
-      reason: expect.any(String),
-      scope: 'profile',
-    });
-  });
-
-  it('BAN bans the offending Profile and leaves the account active', async () => {
-    reportOnPost();
-    prisma.profile.update.mockResolvedValue({});
 
     await useCase.resolveWithPenalty(adminId, reportId, 'BAN');
 
-    expect(prisma.profile.update).toHaveBeenCalledWith({
-      where: { id: 'profile-uuid' },
-      data: {
-        isAccountBanned: true,
-        accountBanReason: expect.any(String),
-      },
+    expect(strikesService.banProfile).toHaveBeenCalledWith({
+      adminId,
+      userId: 'user-uuid',
+      profileId: 'profile-uuid',
+      reason: expect.any(String),
     });
+    expect(strikesService.applyViolation).not.toHaveBeenCalled();
     expect(prisma.user.update).not.toHaveBeenCalled();
   });
 
-  it('IGNORE on a Profile report at the strike limit takes one strike back', async () => {
+  it('IGNORE resolves the report without touching any strike', async () => {
     prisma.report.findUnique.mockResolvedValue({
       id: reportId,
       targetType: 'USER',
       targetId: 'user-uuid',
+      reason: 'SPAM',
     });
     prisma.profile.findFirst.mockResolvedValue({ id: 'profile-uuid' });
-    prisma.profile.findUnique.mockResolvedValue({ strikeCount: 3 });
     prisma.report.update.mockResolvedValue({ id: reportId });
 
     await useCase.resolveWithPenalty(adminId, reportId, 'IGNORE');
 
-    expect(prisma.profile.update).toHaveBeenCalledWith({
-      where: { id: 'profile-uuid' },
-      data: { strikeCount: { decrement: 1 } },
-    });
-    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(strikesService.applyViolation).not.toHaveBeenCalled();
+    expect(strikesService.banProfile).not.toHaveBeenCalled();
+    expect(prisma.profile.update).not.toHaveBeenCalled();
   });
 });

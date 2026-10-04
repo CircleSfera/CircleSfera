@@ -298,7 +298,6 @@ export class AIProcessor extends WorkerHost {
     authorProfileId: string | null;
     assessment: string;
     status: ModerationStatus;
-    applyStrike: boolean;
   }) {
     const actor = await resolveSystemModeratorActor(this.prisma);
     if (!actor) {
@@ -318,13 +317,8 @@ export class AIProcessor extends WorkerHost {
       },
     });
 
-    if (params.applyStrike && params.authorProfileId) {
-      await this.applyStrikeAndCheckEscalation(
-        params.authorProfileId,
-        actor.profileId,
-      );
-    }
-
+    // No strike here: the report goes to the human review queue, and staff
+    // decide whether the author gets a warning or a strike.
     await this.notifyAuthorOfModeration({
       authorId: params.authorProfileId,
       senderProfileId: actor.profileId,
@@ -422,7 +416,6 @@ export class AIProcessor extends WorkerHost {
             authorProfileId,
             assessment: aiAssessment,
             status: ModerationStatus.HIDDEN,
-            applyStrike: true,
           });
 
           return; // EXIT EARLY! DO NOT CALL OPENAI
@@ -484,7 +477,6 @@ export class AIProcessor extends WorkerHost {
           authorProfileId,
           assessment: aiAssessment,
           status,
-          applyStrike: shouldHide,
         });
         this.logger.warn(
           `AI automatically set ${targetType} ${targetId} to ${status} for ${flags.join(', ')}`,
@@ -500,40 +492,6 @@ export class AIProcessor extends WorkerHost {
         error,
         `Moderation failed for ${targetType} ${targetId}`,
       );
-    }
-  }
-
-  private async applyStrikeAndCheckEscalation(
-    authorProfileId: string,
-    reporterProfileId: string,
-  ) {
-    const profile = await this.prisma.profile.findUnique({
-      where: { id: authorProfileId },
-      select: { userId: true },
-    });
-    if (!profile) return;
-
-    const user = await this.prisma.user.update({
-      where: { id: profile.userId },
-      data: { strikeCount: { increment: 1 } },
-      select: { strikeCount: true, id: true },
-    });
-
-    this.logger.log(`User ${user.id} now has ${user.strikeCount} strikes.`);
-
-    if (user.strikeCount >= 3) {
-      this.logger.warn(
-        `User ${user.id} reached 3 strikes. Escalating to Admin...`,
-      );
-      await this.prisma.report.create({
-        data: {
-          reporterId: reporterProfileId,
-          targetType: 'USER',
-          targetId: user.id,
-          reason: 'OTHER',
-          details: `[URGENT] El usuario ha acumulado ${user.strikeCount} strikes por violaciones de contenido ocultadas automáticamente. Requiere revisión manual para posible suspensión de cuenta.`,
-        },
-      });
     }
   }
 }

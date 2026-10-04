@@ -143,11 +143,14 @@ export default function Login() {
   const isSuspended = errorMessage === ApiErrorCode.ACCOUNT_SUSPENDED;
   const isPasswordResetRequired =
     errorMessage === ApiErrorCode.PASSWORD_RESET_REQUIRED;
-  const banReason = err?.response?.data?.reason;
-  const suspendedUntil = err?.response?.data?.suspendedUntil;
-  const receivedAppealToken = err?.response?.data?.appealToken;
+  // Ban and suspension details arrive under `details`.
+  const errorDetails = err?.response?.data?.details ?? err?.response?.data;
+  const banReason = errorDetails?.reason;
+  const suspendedUntil = errorDetails?.suspendedUntil;
+  const receivedAppealToken = errorDetails?.appealToken;
 
-  if (isBanned && receivedAppealToken && !appealToken) {
+  // A banned or suspended Profile can appeal without signing in.
+  if ((isBanned || isSuspended) && receivedAppealToken && !appealToken) {
     setAppealToken(receivedAppealToken);
   }
 
@@ -274,17 +277,19 @@ export default function Login() {
 
             {appealToken ? (
               <div className="space-y-4 animate-in fade-in">
-                <div className="flex items-center gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <AlertOctagon className="text-red-400 w-5 h-5 shrink-0" />
-                  <div className="text-xs text-red-400 font-medium leading-tight">
-                    <p>{t('auth.login.banned_message')}</p>
-                    {banReason && (
-                      <p className="mt-1 text-white/80 font-normal">
-                        {t('auth.login.banned_reason_label')}: {banReason}
-                      </p>
-                    )}
+                {!isSuspended && (
+                  <div className="flex items-center gap-3 mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <AlertOctagon className="text-red-400 w-5 h-5 shrink-0" />
+                    <div className="text-xs text-red-400 font-medium leading-tight">
+                      <p>{t('auth.login.banned_message')}</p>
+                      {banReason && (
+                        <p className="mt-1 text-white/80 font-normal">
+                          {t('auth.login.banned_reason_label')}: {banReason}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
                 <div>
                   <label
                     htmlFor="appealReason"

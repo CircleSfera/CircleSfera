@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -45,6 +46,7 @@ export class AppealsController {
   @UseGuards(JwtOptionalGuard)
   create(@Req() req: any, @Body() createAppealDto: CreateAppealDto) {
     let userId: string | undefined;
+    let appealProfileId: string | undefined;
 
     if (req.user?.userId) {
       userId = req.user.userId;
@@ -58,6 +60,10 @@ export class AppealsController {
           });
           if (payload.isAppealToken) {
             userId = payload.sub;
+            appealProfileId =
+              typeof payload.profileId === 'string'
+                ? payload.profileId
+                : undefined;
           }
         } catch {
           throw new UnauthorizedException('Invalid or expired appeal token');
@@ -69,7 +75,19 @@ export class AppealsController {
       throw new UnauthorizedException('Authentication required');
     }
 
-    return this.appealsService.create(userId, createAppealDto);
+    // An appeal filed with a login-screen token may only concern the Profile
+    // that could not sign in: its ban or suspension, or one of its strikes.
+    if (appealProfileId) {
+      if (createAppealDto.targetType === 'ACCOUNT_BAN') {
+        createAppealDto.targetId = appealProfileId;
+      } else if (createAppealDto.targetType !== 'STRIKE') {
+        throw new ForbiddenException(
+          'Only the restricted profile can be appealed from the login screen',
+        );
+      }
+    }
+
+    return this.appealsService.create(userId, createAppealDto, appealProfileId);
   }
 
   @Get('my-appeals')

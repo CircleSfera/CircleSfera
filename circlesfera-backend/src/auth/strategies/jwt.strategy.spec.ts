@@ -124,7 +124,9 @@ describe('JwtStrategy', () => {
       await expect(strategy.validate(payload)).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Abusive spam behavior',
+          details: {
+            reason: 'Abusive spam behavior',
+          },
         }),
       );
     });
@@ -145,7 +147,9 @@ describe('JwtStrategy', () => {
       await expect(strategy.validate(payload)).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Profile violated community terms',
+          details: {
+            reason: 'Profile violated community terms',
+          },
         }),
       );
     });
@@ -166,7 +170,9 @@ describe('JwtStrategy', () => {
       await expect(strategy.validate(payload)).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: futureDate.toISOString(),
+          details: {
+            suspendedUntil: futureDate.toISOString(),
+          },
         }),
       );
     });

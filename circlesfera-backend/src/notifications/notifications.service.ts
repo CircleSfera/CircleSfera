@@ -95,11 +95,17 @@ export class NotificationsService {
     type: NotificationType;
     content: string;
     postId?: string;
+    // What the notice is about when it is not a post, e.g. a moderation strike.
+    targetType?: string;
+    targetId?: string;
   }) {
     try {
-      // Never notify across a block, in either direction.
+      // Never notify across a block, in either direction. Moderation notices
+      // are platform decisions, not messages from the staff member's profile,
+      // so a block must not hide them from the affected participant.
       if (
-        await isBlockedEitherWay(this.prisma, data.senderId, data.recipientId)
+        data.type !== $Enums.NotificationType.MODERATION &&
+        (await isBlockedEitherWay(this.prisma, data.senderId, data.recipientId))
       ) {
         return null;
       }
@@ -164,6 +170,7 @@ export class NotificationsService {
           senderId: data.senderId,
           type: data.type,
           postId: data.postId,
+          targetId: data.targetId ?? null,
           createdAt: { gte: oneMinuteAgo },
         },
       });
@@ -179,6 +186,8 @@ export class NotificationsService {
           type: data.type,
           content: data.content,
           postId: data.postId,
+          targetType: data.targetType,
+          targetId: data.targetId,
         } as Prisma.NotificationUncheckedCreateInput,
         include: {
           sender: { include: { user: { select: PUBLIC_USER_SELECT } } },

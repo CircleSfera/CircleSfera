@@ -261,6 +261,10 @@ export interface Notification {
   createdAt: Date | string;
   postId?: string;
   commentId?: string;
+  // What the notice is about when it is not a post, e.g. 'profile_strike'
+  // with the strike id for a moderation notice.
+  targetType?: string | null;
+  targetId?: string | null;
   sender: ProfileWithUser | null;
 }
 

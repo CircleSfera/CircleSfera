@@ -312,6 +312,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       expect(mockAppealsService.create).toHaveBeenCalledWith(
         'user-appeal-1',
         expect.objectContaining({ reason: 'Account suspension review' }),
+        undefined,
       );
     });
 

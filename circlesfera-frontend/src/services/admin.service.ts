@@ -254,6 +254,20 @@ export interface AdminStory {
   moderationNote?: string | null;
 }
 
+export interface AdminUserStrike {
+  id: string;
+  profileId: string;
+  username: string;
+  kind: 'WARNING' | 'STRIKE';
+  reason: string;
+  consequence: 'NONE' | 'SUSPENDED' | 'BANNED';
+  reportId: string | null;
+  createdAt: string;
+  expiresAt: string;
+  revokedAt: string | null;
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
+}
+
 export interface AdminUserDetail {
   id: string;
   email: string;
@@ -283,6 +297,10 @@ export interface AdminUserDetail {
     type: string;
   }[];
   reports: { id: string; reason: string; status: string; createdAt: string }[];
+  // Active strikes across the account's Profiles.
+  strikeCount?: number;
+  // Warnings and strikes of every Profile of the account, newest first.
+  strikes?: AdminUserStrike[];
   _count: {
     posts: number;
     comments: number;

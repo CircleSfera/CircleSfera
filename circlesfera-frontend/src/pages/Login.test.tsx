@@ -194,7 +194,7 @@ describe('Login Page Integration', () => {
       response: {
         data: {
           message: 'ACCOUNT_BANNED',
-          appealToken: 'appeal-token-1',
+          details: { appealToken: 'appeal-token-1' },
         },
       },
     });
@@ -233,8 +233,10 @@ describe('Login Page Integration', () => {
       response: {
         data: {
           message: 'ACCOUNT_BANNED',
-          appealToken: 'appeal-token-2',
-          reason: 'Severe spam violations',
+          details: {
+            appealToken: 'appeal-token-2',
+            reason: 'Severe spam violations',
+          },
         },
       },
     });
@@ -261,8 +263,10 @@ describe('Login Page Integration', () => {
       response: {
         data: {
           message: 'ACCOUNT_SUSPENDED',
-          suspendedUntil: '2026-10-15T00:00:00.000Z',
-          reason: 'Temporary safety hold',
+          details: {
+            suspendedUntil: '2026-10-15T00:00:00.000Z',
+            reason: 'Temporary safety hold',
+          },
         },
       },
     });
@@ -282,5 +286,40 @@ describe('Login Page Integration', () => {
     await waitFor(() => {
       expect(screen.getByText(/Temporary safety hold/)).toBeInTheDocument();
     });
+  });
+
+  it('lets a suspended Profile appeal without showing the ban message', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: {
+        data: {
+          message: 'ACCOUNT_SUSPENDED',
+          details: {
+            suspendedUntil: '2026-10-15T00:00:00.000Z',
+            appealToken: 'appeal-token-3',
+          },
+        },
+      },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'suspended@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    await waitFor(() => {
+      expect(
+        screen.getByLabelText(i18n!.t('auth.login.appeal_reason_label')),
+      ).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText(i18n!.t('auth.login.banned_message')),
+    ).not.toBeInTheDocument();
   });
 });
