@@ -43,3 +43,7 @@ CircleSfera uses:
 - `circlesfera-backend/src/auth/guards/email-verified.guard.ts`
 - `circlesfera-backend/prisma/schema.prisma` — `DeviceSignal`, bot label fields, `signupIp` / `lastIp`
 - ADR index: `circlesfera-documentation/adr/README.md`
+
+## Amendment — plaintext IP retention
+
+Decision 4 is amended by the owner for data minimisation (GDPR Article 5(1)(c)): plaintext `signupIp` and `lastIp` are kept for **90 days** after they are recorded (`User.lastIpAt` records when the last IP was stored), then erased by a daily job. The keyed hashes (`signupIpHash`, `lastIpHash`) stay for linked-account checks, so clustering is unaffected. Admin and GDPR export show an IP only while it is retained. The rest of this ADR stands.

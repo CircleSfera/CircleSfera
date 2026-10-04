@@ -17,7 +17,7 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0011](./0011-ai-engineering-framework.md) | In-repository AI engineering framework under `.ai/` | Accepted |
 | [0012](./0012-webrtc-signaling-architecture.md) | WebRTC Voice & Video Call Signaling Architecture and Socket Event Compatibility | Accepted |
 | [0013](./0013-admin-panel-admin-identity.md) | Admin Panel — separate Admin Identity, RBAC, MFA, admin.circlesfera.com | Accepted |
-| [0014](./0014-account-trust-signals.md) | Account trust signals (Turnstile, email gate, KYC vs plan, abuse hashes) | Accepted |
+| [0014](./0014-account-trust-signals.md) | Account trust signals (Turnstile, email gate, KYC vs plan, abuse hashes) | Accepted (amended: plaintext IP kept 90 days) |
 | [0015](./0015-user-profile-identity-split.md) | User / Profile identity split — account vs social profile, JWT `profileId`, admin `user.profile` shim | Accepted |
 | [0016](./0016-analytical-warehouse-clickhouse.md) | Analytical warehouse (ClickHouse) + nightly ETL from Postgres | Proposed |
 | [0017](./0017-content-presentation-shells.md) | Content presentation shells (create / broadcast / playback / vertical / stream) | Accepted |

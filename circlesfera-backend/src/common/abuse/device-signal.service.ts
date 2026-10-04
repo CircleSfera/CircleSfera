@@ -41,7 +41,7 @@ export class DeviceSignalService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...(signupIp && { signupIp, lastIp: signupIp }),
+        ...(signupIp && { signupIp, lastIp: signupIp, lastIpAt: new Date() }),
         ...(signupIpHash && { signupIpHash, lastIpHash }),
         ...(signupCountry && { signupCountry }),
       },
@@ -55,7 +55,7 @@ export class DeviceSignalService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        ...(lastIp && { lastIp }),
+        ...(lastIp && { lastIp, lastIpAt: new Date() }),
         ...(lastIpHash && { lastIpHash }),
       },
     });
