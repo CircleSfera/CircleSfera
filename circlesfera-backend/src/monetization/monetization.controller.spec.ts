@@ -173,7 +173,7 @@ describe('MonetizationController', () => {
       .set(BEARER)
       .send({
         receiverId: 'receiver-1',
-        amountCents: 100,
+        amountCents: 200,
         returnUrl: 'https://example.com/return',
         postId: 'post-1',
         idempotencyKey: 'tip-1',
@@ -183,7 +183,7 @@ describe('MonetizationController', () => {
     expect(mockService.createTipSession).toHaveBeenCalledWith(
       TEST_USER.userId,
       'receiver-1',
-      100,
+      200,
       'https://example.com/return',
       'post-1',
       'tip-1',

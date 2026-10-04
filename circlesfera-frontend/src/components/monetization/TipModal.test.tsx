@@ -66,7 +66,7 @@ describe('TipModal', () => {
       screen.queryByText('Apoya a alice con una propina'),
     ).not.toBeInTheDocument();
     for (const amount of TIP_AMOUNTS) {
-      expect(screen.getByText(`$${amount}`)).toBeInTheDocument();
+      expect(screen.getByText(`€${amount}`)).toBeInTheDocument();
     }
     expect(
       screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
@@ -90,7 +90,7 @@ describe('TipModal', () => {
     expect(api.post).not.toHaveBeenCalled();
   });
 
-  it('posts amountCents as dollars times 100 and redirects to Checkout', async () => {
+  it('posts amountCents as euros times 100 and redirects to Checkout', async () => {
     const five = TIP_AMOUNTS[1];
     const { i18n } = renderWithProviders(
       <TipModal
@@ -102,7 +102,7 @@ describe('TipModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText(`$${five}`));
+    fireEvent.click(screen.getByText(`€${five}`));
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
@@ -133,7 +133,7 @@ describe('TipModal', () => {
       />,
     );
 
-    fireEvent.click(screen.getByText(`$${one}`));
+    fireEvent.click(screen.getByText(`€${one}`));
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
@@ -159,7 +159,7 @@ describe('TipModal', () => {
     };
     const view = renderWithProviders(<TipModal isOpen {...props} />);
 
-    fireEvent.click(screen.getByText(`$${ten}`));
+    fireEvent.click(screen.getByText(`€${ten}`));
     expect(
       screen.getByRole('button', { name: view.i18n!.t('wallet.send_tip') }),
     ).toBeEnabled();

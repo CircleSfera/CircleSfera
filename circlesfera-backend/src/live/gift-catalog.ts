@@ -13,7 +13,8 @@ export type LiveGiftCatalogEntry = {
 export const LIVE_GIFT_CATALOG: Record<string, LiveGiftCatalogEntry> = {
   star: {
     names: { en: 'Sfera Star', es: 'Estrella Sfera' },
-    amountCents: 100,
+    // Cheapest gift matches the minimum tip (Stripe fee absorbed by CircleSfera).
+    amountCents: 200,
   },
   flame: {
     names: { en: 'Flame', es: 'Fuego' },

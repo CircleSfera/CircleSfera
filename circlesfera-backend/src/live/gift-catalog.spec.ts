@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { MIN_TIP_CENTS } from '../common/constants/monetization.constants.js';
 import {
   LIVE_GIFT_CATALOG,
   resolveGiftAmountCents,
@@ -32,6 +33,13 @@ describe('LIVE_GIFT_CATALOG', () => {
       expect(resolveGiftName(giftId, 'es')).toBe(names.es);
       expect(resolveGiftName(giftId)).toBe(names.en);
     }
+  });
+
+  it('never prices a gift below the minimum tip', () => {
+    for (const entry of Object.values(LIVE_GIFT_CATALOG)) {
+      expect(entry.amountCents).toBeGreaterThanOrEqual(MIN_TIP_CENTS);
+    }
+    expect(resolveGiftAmountCents('star')).toBe(200);
   });
 
   it('rejects ids that are not in the catalog', () => {

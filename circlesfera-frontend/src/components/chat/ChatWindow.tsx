@@ -24,6 +24,10 @@ import {
   useParams,
   useSearchParams,
 } from 'react-router-dom';
+import {
+  MAX_PPV_PRICE_EUR,
+  MIN_PPV_PRICE_EUR,
+} from '../../constants/monetization';
 import { apiClient, chatApi, uploadApi } from '../../services/index';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
@@ -1373,8 +1377,8 @@ export default function ChatWindow() {
                         <input
                           id="lock-message-price"
                           type="number"
-                          min="5"
-                          max="500"
+                          min={MIN_PPV_PRICE_EUR}
+                          max={MAX_PPV_PRICE_EUR}
                           step="0.50"
                           value={lockPriceDraft}
                           onChange={(e) => setLockPriceDraft(e.target.value)}
@@ -1402,8 +1406,8 @@ export default function ChatWindow() {
                             const euros = Number.parseFloat(lockPriceDraft);
                             if (
                               !Number.isFinite(euros) ||
-                              euros < 5 ||
-                              euros > 500
+                              euros < MIN_PPV_PRICE_EUR ||
+                              euros > MAX_PPV_PRICE_EUR
                             ) {
                               return;
                             }
