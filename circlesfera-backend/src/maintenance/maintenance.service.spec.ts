@@ -1,5 +1,5 @@
 import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { MaintenanceService } from './maintenance.service.js';
@@ -44,6 +44,11 @@ describe('MaintenanceService', () => {
     profileStrike: {
       deleteMany: vi.fn(),
     },
+    notification: { deleteMany: vi.fn() },
+    supportTicket: { deleteMany: vi.fn() },
+    appeal: { deleteMany: vi.fn() },
+    adminAuditLog: { deleteMany: vi.fn() },
+    dataExportRequest: { deleteMany: vi.fn() },
     interactionEvent: {
       deleteMany: vi.fn(),
     },
@@ -383,6 +388,97 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.publishScheduledPosts()).resolves.not.toThrow();
+    });
+  });
+
+  describe('purgeExpiredRecords', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const now = new Date('2026-10-06T03:00:00.000Z');
+
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(now);
+      for (const model of [
+        'notification',
+        'supportTicket',
+        'appeal',
+        'adminAuditLog',
+        'dataExportRequest',
+      ] as const) {
+        mockPrismaService[model].deleteMany.mockResolvedValue({ count: 1 });
+      }
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('applies each retention period', async () => {
+      const twoYears = new Date(now.getTime() - 730 * DAY);
+
+      await service.purgeExpiredRecords();
+
+      expect(mockPrismaService.notification.deleteMany).toHaveBeenCalledWith({
+        where: {
+          read: true,
+          createdAt: { lt: new Date(now.getTime() - 90 * DAY) },
+        },
+      });
+      expect(mockPrismaService.supportTicket.deleteMany).toHaveBeenCalledWith({
+        where: {
+          status: { in: ['RESOLVED', 'CLOSED'] },
+          OR: [
+            { resolvedAt: { lt: twoYears } },
+            { resolvedAt: null, updatedAt: { lt: twoYears } },
+          ],
+        },
+      });
+      expect(mockPrismaService.appeal.deleteMany).toHaveBeenCalledWith({
+        where: {
+          status: { in: ['APPROVED', 'REJECTED'] },
+          OR: [
+            { resolvedAt: { lt: twoYears } },
+            { resolvedAt: null, updatedAt: { lt: twoYears } },
+          ],
+        },
+      });
+      expect(mockPrismaService.adminAuditLog.deleteMany).toHaveBeenCalledWith({
+        where: { createdAt: { lt: twoYears } },
+      });
+      expect(
+        mockPrismaService.dataExportRequest.deleteMany,
+      ).toHaveBeenCalledWith({
+        where: {
+          status: 'FAILED',
+          createdAt: { lt: new Date(now.getTime() - 7 * DAY) },
+        },
+      });
+    });
+
+    it('never deletes unread notifications, open tickets or pending appeals', async () => {
+      await service.purgeExpiredRecords();
+
+      expect(
+        mockPrismaService.notification.deleteMany.mock.calls[0][0].where.read,
+      ).toBe(true);
+      expect(
+        mockPrismaService.supportTicket.deleteMany.mock.calls[0][0].where
+          .status,
+      ).toEqual({ in: ['RESOLVED', 'CLOSED'] });
+      expect(
+        mockPrismaService.appeal.deleteMany.mock.calls[0][0].where.status,
+      ).toEqual({ in: ['APPROVED', 'REJECTED'] });
+    });
+
+    it('one failing job does not stop the others', async () => {
+      mockPrismaService.notification.deleteMany.mockRejectedValueOnce(
+        new Error('db'),
+      );
+
+      await service.purgeExpiredRecords();
+
+      expect(mockPrismaService.adminAuditLog.deleteMany).toHaveBeenCalled();
+      expect(mockPrismaService.dataExportRequest.deleteMany).toHaveBeenCalled();
     });
   });
 

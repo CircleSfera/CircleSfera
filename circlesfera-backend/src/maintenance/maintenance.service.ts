@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Prisma } from '@prisma/client';
 import {
+  CASE_RECORD_RETENTION_DAYS,
+  FAILED_EXPORT_RETENTION_DAYS,
   PLAINTEXT_IP_RETENTION_DAYS,
+  READ_NOTIFICATION_RETENTION_DAYS,
   STRIKE_RECORD_RETENTION_DAYS_AFTER_EXPIRY,
 } from '../common/constants/data-retention.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -433,6 +436,80 @@ export class MaintenanceService {
       }
     } catch (error) {
       this.logger.error('Error in purgeExpiredStrikeRecords cron job', error);
+    }
+  }
+
+  // Retention of records with no product use after a while: read
+  // notifications (90 days), closed support tickets, resolved appeals and
+  // the staff audit log (2 years), failed export requests (7 days).
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeExpiredRecords() {
+    const daysAgo = (days: number) =>
+      new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const caseCutoff = daysAgo(CASE_RECORD_RETENTION_DAYS);
+    const jobs: Array<[string, () => Promise<{ count: number }>]> = [
+      [
+        'read notifications',
+        () =>
+          this.prisma.notification.deleteMany({
+            where: {
+              read: true,
+              createdAt: { lt: daysAgo(READ_NOTIFICATION_RETENTION_DAYS) },
+            },
+          }),
+      ],
+      [
+        'closed support tickets',
+        () =>
+          this.prisma.supportTicket.deleteMany({
+            where: {
+              status: { in: ['RESOLVED', 'CLOSED'] },
+              OR: [
+                { resolvedAt: { lt: caseCutoff } },
+                { resolvedAt: null, updatedAt: { lt: caseCutoff } },
+              ],
+            },
+          }),
+      ],
+      [
+        'resolved appeals',
+        () =>
+          this.prisma.appeal.deleteMany({
+            where: {
+              status: { in: ['APPROVED', 'REJECTED'] },
+              OR: [
+                { resolvedAt: { lt: caseCutoff } },
+                { resolvedAt: null, updatedAt: { lt: caseCutoff } },
+              ],
+            },
+          }),
+      ],
+      [
+        'staff audit log entries',
+        () =>
+          this.prisma.adminAuditLog.deleteMany({
+            where: { createdAt: { lt: caseCutoff } },
+          }),
+      ],
+      [
+        'failed export requests',
+        () =>
+          this.prisma.dataExportRequest.deleteMany({
+            where: {
+              status: 'FAILED',
+              createdAt: { lt: daysAgo(FAILED_EXPORT_RETENTION_DAYS) },
+            },
+          }),
+      ],
+    ];
+    // Each job runs on its own, so one failure does not stop the others.
+    for (const [label, job] of jobs) {
+      try {
+        const { count } = await job();
+        if (count > 0) this.logger.log(`Purged ${count} ${label}.`);
+      } catch (error) {
+        this.logger.error(`Error purging ${label}`, error);
+      }
     }
   }
 
