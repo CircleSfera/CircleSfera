@@ -137,7 +137,7 @@ export function LegalDocumentLayout({
                   </h2>
                 </div>
                 <div className="prose prose-invert max-w-none">
-                  <p className="text-sm text-white/60 leading-relaxed font-medium">
+                  <p className="text-sm text-white/60 leading-relaxed font-medium whitespace-pre-line">
                     {section.content}
                   </p>
                 </div>
