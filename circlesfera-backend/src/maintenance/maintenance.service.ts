@@ -1,6 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Prisma } from '@prisma/client';
+import {
+  PLAINTEXT_IP_RETENTION_DAYS,
+  STRIKE_RECORD_RETENTION_DAYS_AFTER_EXPIRY,
+} from '../common/constants/data-retention.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
@@ -363,6 +367,72 @@ export class MaintenanceService {
         'Error during scheduled posts publishing worker:',
         error,
       );
+    }
+  }
+
+  // Erase plain-text IP addresses 90 days after they were recorded. The
+  // keyed hashes stay for linked-account checks. A last IP with no
+  // recording date is older than this rule and is erased too; the next
+  // sign-in records it again.
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async erasePlaintextIps() {
+    const cutoff = new Date(
+      Date.now() - PLAINTEXT_IP_RETENTION_DAYS * 24 * 60 * 60 * 1000,
+    );
+    try {
+      const signup = await this.prisma.user.updateMany({
+        where: { signupIp: { not: null }, createdAt: { lt: cutoff } },
+        data: { signupIp: null },
+      });
+      const last = await this.prisma.user.updateMany({
+        where: {
+          lastIp: { not: null },
+          OR: [{ lastIpAt: null }, { lastIpAt: { lt: cutoff } }],
+        },
+        data: { lastIp: null, lastIpAt: null },
+      });
+      if (signup.count + last.count > 0) {
+        this.logger.log(
+          `Erased ${signup.count} sign-up and ${last.count} last-access plain-text IPs.`,
+        );
+      }
+    } catch (error) {
+      this.logger.error('Error in erasePlaintextIps cron job', error);
+    }
+  }
+
+  // Delete warning and strike records 12 months after they expire, except
+  // those that still cause a ban or suspension in force.
+  @Cron(CronExpression.EVERY_DAY_AT_3AM)
+  async purgeExpiredStrikeRecords() {
+    const cutoff = new Date(
+      Date.now() -
+        STRIKE_RECORD_RETENTION_DAYS_AFTER_EXPIRY * 24 * 60 * 60 * 1000,
+    );
+    try {
+      const causes = await this.prisma.profile.findMany({
+        where: {
+          OR: [
+            { banStrikeId: { not: null } },
+            { suspensionStrikeId: { not: null } },
+          ],
+        },
+        select: { banStrikeId: true, suspensionStrikeId: true },
+      });
+      const keep = causes
+        .flatMap((p) => [p.banStrikeId, p.suspensionStrikeId])
+        .filter((id): id is string => !!id);
+      const result = await this.prisma.profileStrike.deleteMany({
+        where: {
+          expiresAt: { lt: cutoff },
+          ...(keep.length ? { id: { notIn: keep } } : {}),
+        },
+      });
+      if (result.count > 0) {
+        this.logger.log(`Purged ${result.count} expired strike records.`);
+      }
+    } catch (error) {
+      this.logger.error('Error in purgeExpiredStrikeRecords cron job', error);
     }
   }
 

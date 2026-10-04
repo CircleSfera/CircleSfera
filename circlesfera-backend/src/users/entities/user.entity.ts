@@ -78,6 +78,9 @@ export class UserEntity implements User {
   @Exclude()
   lastIp!: string | null;
 
+  @Exclude()
+  lastIpAt!: Date | null;
+
   signupCountry!: string | null;
   botLabeledAt!: Date | null;
   botLabelReason!: string | null;

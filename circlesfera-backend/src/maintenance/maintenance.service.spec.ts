@@ -41,6 +41,9 @@ describe('MaintenanceService', () => {
     deviceSignal: {
       deleteMany: vi.fn(),
     },
+    profileStrike: {
+      deleteMany: vi.fn(),
+    },
     interactionEvent: {
       deleteMany: vi.fn(),
     },
@@ -380,6 +383,85 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.publishScheduledPosts()).resolves.not.toThrow();
+    });
+  });
+
+  describe('erasePlaintextIps', () => {
+    it('erases sign-up IPs older than 90 days and last IPs recorded over 90 days ago or never dated', async () => {
+      vi.useFakeTimers();
+      const now = new Date('2026-10-06T03:00:00.000Z');
+      vi.setSystemTime(now);
+      const cutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      mockPrismaService.user.updateMany
+        .mockResolvedValueOnce({ count: 2 })
+        .mockResolvedValueOnce({ count: 3 });
+
+      await service.erasePlaintextIps();
+
+      expect(mockPrismaService.user.updateMany).toHaveBeenNthCalledWith(1, {
+        where: { signupIp: { not: null }, createdAt: { lt: cutoff } },
+        data: { signupIp: null },
+      });
+      expect(mockPrismaService.user.updateMany).toHaveBeenNthCalledWith(2, {
+        where: {
+          lastIp: { not: null },
+          OR: [{ lastIpAt: null }, { lastIpAt: { lt: cutoff } }],
+        },
+        data: { lastIp: null, lastIpAt: null },
+      });
+      vi.useRealTimers();
+    });
+
+    it('logs and continues when the update fails', async () => {
+      mockPrismaService.user.updateMany.mockRejectedValueOnce(new Error('db'));
+      await expect(service.erasePlaintextIps()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('purgeExpiredStrikeRecords', () => {
+    it('deletes records expired over 12 months ago, keeping causes of restrictions in force', async () => {
+      vi.useFakeTimers();
+      const now = new Date('2026-10-06T03:00:00.000Z');
+      vi.setSystemTime(now);
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        { banStrikeId: 's-ban', suspensionStrikeId: null },
+        { banStrikeId: null, suspensionStrikeId: 's-susp' },
+      ]);
+      mockPrismaService.profileStrike.deleteMany.mockResolvedValue({
+        count: 4,
+      });
+
+      await service.purgeExpiredStrikeRecords();
+
+      expect(mockPrismaService.profileStrike.deleteMany).toHaveBeenCalledWith({
+        where: {
+          expiresAt: {
+            lt: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+          },
+          id: { notIn: ['s-ban', 's-susp'] },
+        },
+      });
+      vi.useRealTimers();
+    });
+
+    it('deletes without exclusions when no restriction has a strike cause', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([]);
+      mockPrismaService.profileStrike.deleteMany.mockResolvedValue({
+        count: 0,
+      });
+
+      await service.purgeExpiredStrikeRecords();
+
+      expect(
+        mockPrismaService.profileStrike.deleteMany.mock.calls[0][0].where,
+      ).not.toHaveProperty('id');
+    });
+
+    it('logs and continues when the delete fails', async () => {
+      mockPrismaService.profile.findMany.mockRejectedValueOnce(new Error('db'));
+      await expect(
+        service.purgeExpiredStrikeRecords(),
+      ).resolves.toBeUndefined();
     });
   });
 
