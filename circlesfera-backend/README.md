@@ -2,7 +2,7 @@
 
 NestJS API for CircleSfera. Global prefix: **`/api/v1`**.
 
-This is a production codebase (auth, monetization, chat, live, moderation, admin RBAC), not a tutorial API. For route inventory use [03-api-detailed-endpoints.md](../circlesfera-documentation/03-api-detailed-endpoints.md); for models use [`prisma/schema.prisma`](./prisma/schema.prisma).
+This is a production codebase (auth, monetization, chat, live, moderation, admin RBAC), not a tutorial API. For the route inventory use the OpenAPI reference at `/api/docs` on a running backend (generated from the controllers); for models use [`prisma/schema.prisma`](./prisma/schema.prisma).
 
 ## Identity model
 
@@ -12,14 +12,14 @@ This is a production codebase (auth, monetization, chat, live, moderation, admin
 | `Profile` | Social identity: **`username`**, avatar, content & graph FKs (`profileId`) |
 | `AdminIdentity` | Admin Panel operators (separate JWT, MFA, RBAC) |
 
-JWT session exposes `userId` (`sub`) and primary `profileId`. Details: [15-identity-profile-model.md](../circlesfera-documentation/15-identity-profile-model.md).
+JWT session exposes `userId` (`sub`) and the session `profileId`. Details: Notion → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1).
 
 ## Stack
 
 - NestJS 11, TypeScript, Vitest
-- PostgreSQL 16 + Prisma 7 (`@prisma/client` 7.8)
+- PostgreSQL 16 + Prisma 7
 - Redis (cache, BullMQ, Socket.IO adapter)
-- Argon2 password hashing, cookie JWT + CSRF ([ADR-0007](../circlesfera-documentation/adr/0007-auth-cookies-csrf.md))
+- Argon2 password hashing, cookie JWT + CSRF ([ADR-0007](../docs/adr/0007-auth-cookies-csrf.md))
 
 ## Module map (high level)
 
@@ -99,9 +99,9 @@ Message re-encryption after key rotation: `dist/scripts/reencrypt-messages.js` (
 
 ## Related docs
 
-- [06-security-privacy-compliance.md](../circlesfera-documentation/06-security-privacy-compliance.md)
-- [02-database-er-diagram.md](../circlesfera-documentation/02-database-er-diagram.md)
-- [ADR index](../circlesfera-documentation/adr/README.md)
+- Notion → [Cross-Cutting Architecture](https://app.notion.com/p/3e9dfa08f2f58150b99ee8bf2dcfae16) (authorization matrix, CSP, passkeys, account state, redaction)
+- Notion → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1) (data domains and model map)
+- [ADR index](../docs/adr/README.md)
 
 ## License
 

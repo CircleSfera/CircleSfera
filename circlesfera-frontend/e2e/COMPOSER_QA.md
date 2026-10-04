@@ -2,7 +2,8 @@
 
 Product coverage for the Post/Frame stepped composer. The UI under test is always the real React
 composer (`ContentComposerPage` / `ComposerChrome`). This file is the composer slice of the repo
-pyramid in [`.ai/core/quality.md`](../../.ai/core/quality.md) — not a second architecture.
+pyramid in Notion → Quality → [Test Architecture](https://app.notion.com/p/3e9dfa08f2f5810a86b9c59354278d0a) — not a
+second architecture.
 
 | Layer | Command | What it catches |
 | --- | --- | --- |

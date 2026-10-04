@@ -6,8 +6,8 @@ Thanks for helping improve CircleSfera. This project is a production social plat
 
 1. Read [AGENTS.md](./AGENTS.md) for operational rules (source-of-truth order, security, change policy).
 2. Treat [`circlesfera-backend/prisma/schema.prisma`](./circlesfera-backend/prisma/schema.prisma) as the data model source of truth.
-3. Check [ADRs](./circlesfera-documentation/adr/README.md) for durable architectural decisions.
-4. Skim [`.ai/core/`](./.ai/README.md) for the condensed repo context (stack, architecture, conventions, quality bar) and [`.ai/core/known-gaps.md`](./.ai/core/known-gaps.md) for known doc/code drift.
+3. Check [ADRs](./docs/adr/README.md) for durable architectural decisions.
+4. Read the relevant pages in [Notion → CircleSfera → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30) (product intent, architecture, quality gates, known conflicts).
 
 ## Development setup
 
@@ -35,17 +35,16 @@ Open a PR for any meaningful change, even as a single developer. The PR should s
 - Schema/API/auth/monetization changes need explicit rationale and migration notes.
 - Run relevant lint/tests (`npm run check` at root; backend/frontend test scripts as applicable).
 - Do not commit secrets (`.env`, keys, tokens).
-- Update docs when behavior or contracts change in a user-visible or operator-visible way.
-- Before requesting review, walk the relevant gate in [`.ai/checklists/`](./.ai/checklists/README.md) (`pull-request.md` always; plus `api`, `database`, `security`, `ui`, `accessibility`, `performance` or `release` when they apply).
+- Update the Notion documentation when behavior or contracts change in a user-visible or operator-visible way.
+- Before requesting review, walk the relevant gate in Notion → Execution → [Implementation Checklists](https://app.notion.com/p/3eadfa08f2f581a68accde43268a2a61).
 
 ## AI-assisted contributions
 
 AI agents are welcome, but they follow the same rules as humans:
 
-- [AGENTS.md](./AGENTS.md) has the highest precedence and overrides anything under `.ai/`.
-- [`.ai/orchestrator.md`](./.ai/orchestrator.md) routes a task to a playbook in [`.ai/playbooks/`](./.ai/playbooks/README.md) and the specialist roles in [`.ai/agents/`](./.ai/agents/README.md).
-- Cursor users get the relevant context automatically through [`.cursor/rules/`](./.cursor/rules/); Antigravity users through [`.agents/`](./.agents/README.md), which also exposes the playbooks as slash commands. Other tools should be pointed at `.ai/core/` plus the applicable playbook.
-- `.ai/` is documentation, not a source of truth. If a statement there contradicts the code, the code wins and the `.ai/` file is corrected in the same PR.
+- [AGENTS.md](./AGENTS.md) holds the operating rules and guardrails; every agent reads it first.
+- Cursor users get the relevant context automatically through [`.cursor/rules/`](./.cursor/rules/). Other tools should be pointed at `AGENTS.md`.
+- Documentation is not a source of truth for current behavior. If a statement in Notion contradicts the code, classify the conflict (Notion → Governance → Cross-Domain Conflict Resolution) instead of silently changing either side.
 
 ## Commit style
 

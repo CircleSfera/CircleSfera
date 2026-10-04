@@ -6,7 +6,6 @@ import 'dotenv/config';
 
 console.error(
   'DEPRECATED: grant-admin.ts no longer grants Admin Panel access.\n' +
-    'Use: npx ts-node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]\n' +
-    'See circlesfera-documentation/runbooks/admin-panel-cutover.md',
+    'Use: npx ts-node scripts/bootstrap-admin.ts <email> <password> [displayName] [ROLE]',
 );
 process.exit(1);
