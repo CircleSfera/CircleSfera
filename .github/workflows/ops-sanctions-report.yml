@@ -1,0 +1,62 @@
+name: Ops — sanctions report
+
+# Read-only counts used to decide how to handle accounts sanctioned before
+# sanctions moved from the account to the Profile. It changes nothing and
+# prints only counts: no ids, usernames, emails or reasons (Actions logs are
+# public). Delete this workflow once the decision is applied.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Count sanctioned accounts and Profiles
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Read counts on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T postgres \
+              sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -A -F " | " -c "
+                SELECT
+                  (SELECT count(*) FROM users
+                     WHERE NOT \"isActive\" AND NOT \"isRootBanned\"
+                       AND \"deactivatedAt\" IS NULL AND \"scheduledDeletionAt\" IS NULL
+                       AND \"deletedAt\" IS NULL) AS accounts_inactive_by_moderation,
+                  (SELECT count(*) FROM users WHERE \"isRootBanned\") AS accounts_root_banned,
+                  (SELECT count(*) FROM users WHERE \"strikeCount\" > 0) AS accounts_with_strikes,
+                  (SELECT count(*) FROM profiles WHERE \"strikeCount\" > 0) AS profiles_with_strikes,
+                  (SELECT count(*) FROM profiles WHERE \"isAccountBanned\") AS profiles_banned,
+                  (SELECT count(*) FROM admin_audit_logs
+                     WHERE action = '\''REPORT_RESOLVED'\'' AND details LIKE '\''%penalty action: BAN%'\'') AS report_bans_ever,
+                  (SELECT count(*) FROM admin_audit_logs
+                     WHERE action = '\''REPORT_RESOLVED'\'' AND details LIKE '\''%penalty action: STRIKE%'\'') AS report_strikes_ever;
+              "'
