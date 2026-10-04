@@ -144,7 +144,7 @@ export class AdminRiskCasesService {
         break;
       case 'RESTRICTED':
         await this.limits.setRestricted(profileId, restrictedUntil as Date);
-        await this.detector.notifyRestriction(profileId, caseId);
+        await this.detector.notifyRestriction(profileId, caseId, 'staff');
         break;
       case 'BOT_LABEL':
         await this.adminUsers.applyBotLabel(

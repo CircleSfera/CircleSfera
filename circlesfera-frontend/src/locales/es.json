@@ -1547,7 +1547,8 @@
       "moderation_strike": "Has recibido un strike por incumplir las normas de la comunidad.",
       "moderation_suspension": "Has recibido un strike y este perfil está suspendido 7 días.",
       "moderation_ban": "Este perfil ha sido bloqueado por incumplir las normas de la comunidad. Tus otros perfiles no se ven afectados.",
-      "moderation_restriction": "Hemos limitado temporalmente cuántas cuentas puede seguir y a cuántas personas puede escribir este perfil mientras revisamos actividad inusual."
+      "moderation_restriction": "Un sistema automático ha detectado actividad inusual en este perfil (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). Hasta que una persona del equipo lo revise, como máximo 72 horas, podrás seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. Puedes apelar esta decisión.",
+      "moderation_restriction_review": "Tras una revisión de nuestro equipo, durante 7 días este perfil podrá seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día, por actividad inusual (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). No se oculta ni se elimina nada. Puedes apelar esta decisión."
     },
     "appeal_cta": "Apelar esta decisión",
     "strike_details_cta": "Ver detalles y apelar"

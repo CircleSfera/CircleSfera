@@ -108,7 +108,11 @@ describe('AdminRiskCasesService', () => {
       restrictedAt: NOW,
     });
     expect(limits.setRestricted).toHaveBeenCalledWith('p-1', until);
-    expect(detector.notifyRestriction).toHaveBeenCalledWith('p-1', 'case-1');
+    expect(detector.notifyRestriction).toHaveBeenCalledWith(
+      'p-1',
+      'case-1',
+      'staff',
+    );
   });
 
   it('a bot label goes to the account, with the staff note as reason', async () => {

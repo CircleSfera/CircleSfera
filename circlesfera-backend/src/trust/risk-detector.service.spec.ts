@@ -251,6 +251,8 @@ describe('RiskDetectorService', () => {
           type: NotificationType.MODERATION,
           targetType: 'profile_restriction',
           targetId: 'case-1',
+          // The notice says the decision was automated (statement of reasons).
+          content: expect.stringContaining('automated system'),
         }),
       );
     });

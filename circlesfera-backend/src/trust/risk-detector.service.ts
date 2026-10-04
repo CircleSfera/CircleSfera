@@ -21,14 +21,20 @@ import {
   RISK_POINTS,
   type RiskSignal,
   riskScore,
+  STAFF_RESTRICTION_DAYS,
   VELOCITY_THRESHOLDS,
 } from './trust.constants.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 // Notification.targetType for the participant notice about a protective
-// restriction; the client shows a localized message.
-export const RESTRICTION_NOTIFICATION_TARGET = 'profile_restriction';
+// restriction; the client shows a localized message. The notice states
+// whether the restriction was applied automatically or by staff, as the EU
+// Digital Services Act requires of every statement of reasons.
+export const RESTRICTION_NOTIFICATION_TARGET = {
+  automated: 'profile_restriction',
+  staff: 'profile_restriction_review',
+} as const;
 
 export interface RiskEvaluation {
   profileId: string;
@@ -277,14 +283,21 @@ export class RiskDetectorService implements OnModuleInit {
     return riskCase.profileId;
   }
 
-  async notifyRestriction(profileId: string, caseId: string): Promise<void> {
+  async notifyRestriction(
+    profileId: string,
+    caseId: string,
+    by: 'automated' | 'staff' = 'automated',
+  ): Promise<void> {
+    const content =
+      by === 'automated'
+        ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${RESTRICTION_MAX_HOURS} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.`
+        : `After a review by our team, this profile can follow at most 20 accounts and send at most 5 message requests a day for ${STAFF_RESTRICTION_DAYS} days, because of unusual activity such as many actions in a short time or repeated messages. Nothing is hidden or removed. You can appeal this decision.`;
     await this.notificationsService
       .create({
         recipientId: profileId,
         type: NotificationType.MODERATION,
-        content:
-          'We have temporarily limited how many accounts this profile can follow and message while we review unusual activity. You can appeal this decision.',
-        targetType: RESTRICTION_NOTIFICATION_TARGET,
+        content,
+        targetType: RESTRICTION_NOTIFICATION_TARGET[by],
         targetId: caseId,
       })
       .catch((e: unknown) => this.logger.error(e));
