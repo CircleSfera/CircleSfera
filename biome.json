@@ -7,7 +7,7 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "includes": ["**", "!excalidraw", "!**/*.svg"]
+    "includes": ["**", "!**/*.svg"]
   },
   "formatter": {
     "enabled": true,

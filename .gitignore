@@ -23,7 +23,7 @@ out/
 .DS_Store
 Thumbs.db
 
-# Python (Excalidraw SVG export)
+# Python bytecode
 __pycache__/
 *.pyc
 
