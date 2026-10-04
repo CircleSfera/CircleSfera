@@ -233,17 +233,18 @@ export class RiskDetectorService implements OnModuleInit {
         });
       }
 
-      // Restrict once per case, never longer than the maximum.
+      // Restrict once per case, never longer than the maximum. An appeal
+      // that lifted the restriction keeps restrictedAt, so it sticks.
       if (
         evaluation.score >= RESTRICT_THRESHOLD &&
-        riskCase.restrictedUntil === null
+        riskCase.restrictedAt === null
       ) {
         const until = new Date(
           now.getTime() + RESTRICTION_MAX_HOURS * 60 * 60 * 1000,
         );
         await tx.riskCase.update({
           where: { id: riskCase.id },
-          data: { restrictedUntil: until },
+          data: { restrictedUntil: until, restrictedAt: now },
         });
         return { caseId: riskCase.id, until };
       }

@@ -2162,6 +2162,10 @@ model RiskCase {
   signals         Json
   status          RiskCaseStatus    @default(OPEN)
   restrictedUntil DateTime?
+  // When the case first restricted the Profile. An approved appeal clears
+  // restrictedUntil but not this, so the detector never restricts the same
+  // case again.
+  restrictedAt    DateTime?
   decision        RiskCaseDecision?
   reviewedById    String?
   reviewedAt      DateTime?

@@ -70,6 +70,7 @@ describe('RiskDetectorService', () => {
         create: vi.fn(async ({ data }) => ({
           id: 'case-1',
           restrictedUntil: null,
+          restrictedAt: null,
           ...data,
         })),
         update: vi.fn(async ({ data }) => ({
@@ -241,7 +242,7 @@ describe('RiskDetectorService', () => {
       const until = new Date(NOW.getTime() + 72 * 60 * 60 * 1000);
       expect(tx.riskCase.update).toHaveBeenCalledWith({
         where: { id: 'case-1' },
-        data: { restrictedUntil: until },
+        data: { restrictedUntil: until, restrictedAt: NOW },
       });
       expect(limits.setRestricted).toHaveBeenCalledWith('p-1', until);
       expect(notifications.create).toHaveBeenCalledWith(
@@ -267,6 +268,21 @@ describe('RiskDetectorService', () => {
       expect(tx.riskCase.create).not.toHaveBeenCalled();
       expect(tx.riskCase.update).not.toHaveBeenCalled();
       expect(limits.setRestricted).not.toHaveBeenCalled();
+    });
+
+    it('never restricts again a case whose restriction an appeal lifted', async () => {
+      live({ velocity: { follow: 80 }, coordinatedText: 3, repeatedText: 5 });
+      tx.riskCase.findFirst.mockResolvedValue({
+        id: 'case-1',
+        score: 70,
+        restrictedUntil: null,
+        restrictedAt: new Date(NOW.getTime() - DAY_MS),
+      });
+
+      await service.evaluateAndRecord('p-1');
+
+      expect(limits.setRestricted).not.toHaveBeenCalled();
+      expect(notifications.create).not.toHaveBeenCalled();
     });
 
     it('evaluateSoon does nothing when the Profile was evaluated in the last minute', async () => {

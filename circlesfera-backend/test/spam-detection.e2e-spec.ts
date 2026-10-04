@@ -6,6 +6,7 @@ import { AdminRiskCasesService } from '../src/admin/admin-risk-cases.service.js'
 import { AppModule } from '../src/app.module.js';
 import { AppealsService } from '../src/appeals/appeals.service.js';
 import { CreateGroupUseCase } from '../src/chat/use-cases/groups/create-group.use-case.js';
+import { SendMessageUseCase } from '../src/chat/use-cases/messages/send-message.use-case.js';
 import { FollowsService } from '../src/follows/follows.service.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import {
@@ -29,6 +30,7 @@ describe('Spam and bot protection (e2e)', () => {
   let redis: Redis;
   let follows: FollowsService;
   let createConversation: CreateGroupUseCase;
+  let sendMessage: SendMessageUseCase;
   let limits: ActionLimitsService;
   let detector: RiskDetectorService;
   let riskCases: AdminRiskCasesService;
@@ -74,6 +76,7 @@ describe('Spam and bot protection (e2e)', () => {
     redis = app.get(TRUST_REDIS);
     follows = app.get(FollowsService);
     createConversation = app.get(CreateGroupUseCase);
+    sendMessage = app.get(SendMessageUseCase);
     limits = app.get(ActionLimitsService);
     detector = app.get(RiskDetectorService);
     riskCases = app.get(AdminRiskCasesService);
@@ -234,6 +237,89 @@ describe('Spam and bot protection (e2e)', () => {
     });
     expect(lifted.restrictedUntil).toBeNull();
     expect(await redis.exists(trustKeys.restricted(pid))).toBe(0);
+  });
+
+  // Current value of a Profile's message-request counter for today.
+  const requestsToday = async (profileId: string) => {
+    const w = ACTION_WINDOWS.message_request.find((x) => x.name === '1d');
+    if (!w) throw new Error('unknown window');
+    const bucket = Math.floor(Date.now() / 1000 / w.seconds);
+    return Number(
+      (await redis.get(
+        trustKeys.counter('message_request', w, profileId, bucket),
+      )) ?? 0,
+    );
+  };
+
+  it('a first message refused by a block does not use the message-request cap', async () => {
+    const actor = await newAccount();
+    const blocker = await newAccount();
+    await prisma.block.create({
+      data: { blockerId: blocker.profile.id, blockedId: actor.profile.id },
+    });
+
+    await expect(
+      sendMessage.execute(
+        actor.profile.id,
+        blocker.profile.id,
+        'Hello there, nice to meet you',
+      ),
+    ).rejects.toMatchObject({ errorCode: 'FORBIDDEN_ACCESS' });
+
+    expect(await requestsToday(actor.profile.id)).toBe(0);
+  });
+
+  it('a group refused by the cap counts none of its requests', async () => {
+    const actor = await newAccount();
+    const strangers = await Promise.all([
+      newAccount(),
+      newAccount(),
+      newAccount(),
+    ]);
+    await setCounter('message_request', '1d', actor.profile.id, 58);
+
+    await expect(
+      createConversation.execute(
+        actor.profile.id,
+        strangers.map((s) => s.profile.id),
+        'Group',
+      ),
+    ).rejects.toMatchObject({ errorCode: 'ACTION_LIMIT_REACHED' });
+
+    expect(await requestsToday(actor.profile.id)).toBe(58);
+  });
+
+  it('a restriction lifted on appeal is not reapplied by the next evaluation', async () => {
+    const actor = await newAccount();
+    const pid = actor.profile.id;
+    await setCounter('follow', '10m', pid, 60);
+    await redis.set(trustKeys.repeatedSignal(pid), '6', 'EX', 3600);
+    await redis.set(trustKeys.coordinatedSignal(pid), '3', 'EX', 3600);
+    await detector.evaluateAndRecord(pid);
+    const riskCase = await prisma.riskCase.findFirstOrThrow({
+      where: { profileId: pid, status: 'OPEN' },
+    });
+
+    const appeal = await appeals.create(actor.user.id, {
+      targetType: 'RESTRICTION',
+      targetId: riskCase.id,
+      reason: 'I was inviting friends to my event',
+    });
+    await appeals.update(appeal.id, { status: 'APPROVED' }, adminId);
+    // The signals are still there; the nightly run evaluates again.
+    await detector.evaluateAndRecord(pid);
+
+    const after = await prisma.riskCase.findUniqueOrThrow({
+      where: { id: riskCase.id },
+    });
+    expect(after.restrictedUntil).toBeNull();
+    expect(after.restrictedAt).not.toBeNull();
+    expect(await redis.exists(trustKeys.restricted(pid))).toBe(0);
+    expect(
+      await prisma.notification.count({
+        where: { recipientId: pid, targetType: 'profile_restriction' },
+      }),
+    ).toBe(1);
   });
 
   it('never evaluates Test Accounts', async () => {

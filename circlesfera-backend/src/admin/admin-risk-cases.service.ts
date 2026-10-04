@@ -116,16 +116,35 @@ export class AdminRiskCasesService {
     }
     const { id: profileId, userId } = riskCase.profile;
     const now = new Date();
+    const restrictedUntil =
+      decision === 'RESTRICTED'
+        ? new Date(now.getTime() + STAFF_RESTRICTION_DAYS * DAY_MS)
+        : null;
 
-    let restrictedUntil: Date | null = null;
+    // Claim the case atomically before any side effect, so two staff
+    // members deciding at the same moment cannot both act on it.
+    const claim = await this.prisma.riskCase.updateMany({
+      where: { id: caseId, status: 'OPEN' },
+      data: {
+        status: decision === 'DISMISSED' ? 'DISMISSED' : 'ACTIONED',
+        decision,
+        reviewedById: adminId,
+        reviewedAt: now,
+        restrictedUntil,
+        ...(restrictedUntil ? { restrictedAt: now } : {}),
+      },
+    });
+    if (claim.count === 0) {
+      throw new ConflictException('Risk case is already resolved');
+    }
+
     switch (decision) {
       case 'DISMISSED':
         await this.limits.clearRestricted(profileId);
         break;
       case 'RESTRICTED':
-        restrictedUntil = new Date(
-          now.getTime() + STAFF_RESTRICTION_DAYS * DAY_MS,
-        );
+        await this.limits.setRestricted(profileId, restrictedUntil as Date);
+        await this.detector.notifyRestriction(profileId, caseId);
         break;
       case 'BOT_LABEL':
         await this.adminUsers.applyBotLabel(
@@ -156,22 +175,6 @@ export class AdminRiskCasesService {
         break;
     }
 
-    const updated = await this.prisma.riskCase.update({
-      where: { id: caseId },
-      data: {
-        status: decision === 'DISMISSED' ? 'DISMISSED' : 'ACTIONED',
-        decision,
-        reviewedById: adminId,
-        reviewedAt: now,
-        restrictedUntil,
-      },
-    });
-
-    if (restrictedUntil) {
-      await this.limits.setRestricted(profileId, restrictedUntil);
-      await this.detector.notifyRestriction(profileId, caseId);
-    }
-
     await this.logAdminAction.execute(
       adminId,
       AdminAction.RISK_CASE_RESOLVED,
@@ -179,6 +182,6 @@ export class AdminRiskCasesService {
       caseId,
       `Decision: ${decision}${note?.trim() ? ` (${note.trim().slice(0, 200)})` : ''}`,
     );
-    return updated;
+    return this.prisma.riskCase.findUnique({ where: { id: caseId } });
   }
 }

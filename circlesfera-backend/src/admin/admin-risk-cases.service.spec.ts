@@ -12,7 +12,7 @@ describe('AdminRiskCasesService', () => {
       findUnique: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
       count: ReturnType<typeof vi.fn>;
-      update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
   };
   let limits: {
@@ -42,7 +42,7 @@ describe('AdminRiskCasesService', () => {
         findUnique: vi.fn().mockResolvedValue(openCase),
         findMany: vi.fn().mockResolvedValue([]),
         count: vi.fn().mockResolvedValue(0),
-        update: vi.fn(async ({ data }) => ({ id: 'case-1', ...data })),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
     };
     limits = {
@@ -70,17 +70,23 @@ describe('AdminRiskCasesService', () => {
     vi.useRealTimers();
   });
 
-  it('dismissing lifts the protective restriction and notifies nobody', async () => {
-    const result = await service.resolve('admin-1', 'case-1', 'DISMISSED');
+  // The claim written for a decision.
+  const claimed = () => prisma.riskCase.updateMany.mock.calls[0]?.[0];
 
-    expect(limits.clearRestricted).toHaveBeenCalledWith('p-1');
-    expect(result).toMatchObject({
-      status: 'DISMISSED',
-      decision: 'DISMISSED',
-      reviewedById: 'admin-1',
-      reviewedAt: NOW,
-      restrictedUntil: null,
+  it('dismissing claims the case, lifts the restriction and notifies nobody', async () => {
+    await service.resolve('admin-1', 'case-1', 'DISMISSED');
+
+    expect(claimed()).toEqual({
+      where: { id: 'case-1', status: 'OPEN' },
+      data: {
+        status: 'DISMISSED',
+        decision: 'DISMISSED',
+        reviewedById: 'admin-1',
+        reviewedAt: NOW,
+        restrictedUntil: null,
+      },
     });
+    expect(limits.clearRestricted).toHaveBeenCalledWith('p-1');
     expect(detector.notifyRestriction).not.toHaveBeenCalled();
     expect(audit.execute).toHaveBeenCalledWith(
       'admin-1',
@@ -94,11 +100,12 @@ describe('AdminRiskCasesService', () => {
   it('restricting keeps the reduced caps for 7 days and tells the participant', async () => {
     const until = new Date(NOW.getTime() + 7 * DAY_MS);
 
-    const result = await service.resolve('admin-1', 'case-1', 'RESTRICTED');
+    await service.resolve('admin-1', 'case-1', 'RESTRICTED');
 
-    expect(result).toMatchObject({
+    expect(claimed().data).toMatchObject({
       status: 'ACTIONED',
       restrictedUntil: until,
+      restrictedAt: NOW,
     });
     expect(limits.setRestricted).toHaveBeenCalledWith('p-1', until);
     expect(detector.notifyRestriction).toHaveBeenCalledWith('p-1', 'case-1');
@@ -134,7 +141,7 @@ describe('AdminRiskCasesService', () => {
     );
   });
 
-  it('refuses to resolve a case twice', async () => {
+  it('refuses to resolve a case that is already resolved', async () => {
     prisma.riskCase.findUnique.mockResolvedValue({
       ...openCase,
       status: 'ACTIONED',
@@ -143,7 +150,19 @@ describe('AdminRiskCasesService', () => {
     await expect(
       service.resolve('admin-1', 'case-1', 'BANNED'),
     ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.riskCase.updateMany).not.toHaveBeenCalled();
     expect(strikes.banProfile).not.toHaveBeenCalled();
+  });
+
+  it('applies nothing when another staff member claimed the case first', async () => {
+    prisma.riskCase.updateMany.mockResolvedValue({ count: 0 });
+
+    await expect(
+      service.resolve('admin-1', 'case-1', 'BANNED'),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(strikes.banProfile).not.toHaveBeenCalled();
+    expect(limits.clearRestricted).not.toHaveBeenCalled();
+    expect(audit.execute).not.toHaveBeenCalled();
   });
 
   it('refuses an unknown case', async () => {

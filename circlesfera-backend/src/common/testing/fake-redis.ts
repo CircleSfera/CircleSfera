@@ -28,6 +28,16 @@ export class FakeRedis {
     return this.incrBy(key, 1);
   }
 
+  async incrby(key: string, by: number): Promise<number> {
+    this.check();
+    return this.incrBy(key, by);
+  }
+
+  async decrby(key: string, by: number): Promise<number> {
+    this.check();
+    return this.incrBy(key, -by);
+  }
+
   async decr(key: string): Promise<number> {
     this.check();
     return this.incrBy(key, -1);
@@ -113,6 +123,7 @@ export class FakeRedis {
     };
     const chain = {
       incr: (k: string) => queue(() => this.incr(k)),
+      incrby: (k: string, n: number) => queue(() => this.incrby(k, n)),
       expire: (k: string, s: number) => queue(() => this.expire(k, s)),
       sadd: (k: string, m: string) => queue(() => this.sadd(k, m)),
       scard: (k: string) => queue(() => this.scard(k)),

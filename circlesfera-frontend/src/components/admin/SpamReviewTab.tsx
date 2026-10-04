@@ -137,7 +137,7 @@ export default function SpamReviewTab() {
                       .join(' · ')}
                   </span>
                   {riskCase.restrictedUntil ? (
-                    <span className="block text-xs text-amber-400 mt-1">
+                    <span className="block text-xs text-brand-accent mt-1">
                       {t('admin.spam_review.restricted_until', {
                         date: new Date(
                           riskCase.restrictedUntil,
@@ -159,8 +159,8 @@ export default function SpamReviewTab() {
                 <span
                   className={`px-2 py-1 rounded text-xs font-semibold ${
                     riskCase.score >= 70
-                      ? 'bg-red-500/10 text-red-400'
-                      : 'bg-amber-500/10 text-amber-400'
+                      ? 'bg-brand-secondary/10 text-brand-secondary'
+                      : 'bg-brand-accent/10 text-brand-accent'
                   }`}
                 >
                   {t('admin.spam_review.score', { score: riskCase.score })}

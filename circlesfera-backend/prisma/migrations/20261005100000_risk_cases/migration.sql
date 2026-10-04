@@ -21,6 +21,7 @@ CREATE TABLE "risk_cases" (
     "signals" JSONB NOT NULL,
     "status" "RiskCaseStatus" NOT NULL DEFAULT 'OPEN',
     "restrictedUntil" TIMESTAMP(3),
+    "restrictedAt" TIMESTAMP(3),
     "decision" "RiskCaseDecision",
     "reviewedById" TEXT,
     "reviewedAt" TIMESTAMP(3),

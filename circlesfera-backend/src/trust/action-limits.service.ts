@@ -70,9 +70,14 @@ export class ActionLimitsService {
     this.trigger = trigger;
   }
 
-  // Counts one action and refuses it when a cap is exceeded. Call before
-  // the action is written.
-  async consume(profileId: string, action: LimitedAction): Promise<void> {
+  // Counts `count` actions at once and refuses them all when a cap would be
+  // exceeded (nothing is counted then). Call before the action is written.
+  async consume(
+    profileId: string,
+    action: LimitedAction,
+    count = 1,
+  ): Promise<void> {
+    if (count <= 0) return;
     const now = new Date();
     let counts: number[];
     const windows = ACTION_WINDOWS[action];
@@ -87,7 +92,7 @@ export class ActionLimitsService {
     try {
       const pipeline = this.redis.multi();
       windows.forEach((w, i) => {
-        pipeline.incr(keys[i]);
+        pipeline.incrby(keys[i], count);
         pipeline.expire(keys[i], w.seconds);
       });
       const results = (await pipeline.exec()) ?? [];
@@ -106,7 +111,9 @@ export class ActionLimitsService {
     });
     if (exceeded >= 0) {
       // The refused action must not count.
-      await Promise.all(keys.map((k) => this.redis.decr(k))).catch(() => {});
+      await Promise.all(keys.map((k) => this.redis.decrby(k, count))).catch(
+        () => {},
+      );
       const w = windows[exceeded];
       const bucketEnd =
         (Math.floor(now.getTime() / 1000 / w.seconds) + 1) * w.seconds * 1000;

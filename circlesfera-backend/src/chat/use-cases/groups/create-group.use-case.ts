@@ -128,12 +128,13 @@ export class CreateGroupUseCase {
       select: { followerId: true },
     });
     const followerIdSet = new Set(follows.map((f) => f.followerId));
-    // Each participant who does not follow the creator receives a request.
-    for (const id of nonCreatorIds) {
-      if (!followerIdSet.has(id)) {
-        await this.actionLimits.consume(profileId, 'message_request');
-      }
-    }
+    // Each participant who does not follow the creator receives a request;
+    // they are counted together, so a refused group counts nothing.
+    await this.actionLimits.consume(
+      profileId,
+      'message_request',
+      nonCreatorIds.filter((id) => !followerIdSet.has(id)).length,
+    );
 
     const allParticipantIds = Array.from(
       new Set([profileId, ...uniqueParticipantIds]),

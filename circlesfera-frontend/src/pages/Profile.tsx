@@ -176,7 +176,9 @@ export default function Profile() {
     } catch (err) {
       console.error(err);
       // A reached message-request cap already shows its own notice.
-      if ((err as { status?: number }).status !== 429) {
+      const errorCode = (err as { data?: { errorCode?: string } }).data
+        ?.errorCode;
+      if (errorCode !== 'ACTION_LIMIT_REACHED') {
         toast.error(t('profile.messages.chat_error'));
       }
     } finally {

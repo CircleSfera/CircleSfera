@@ -77,6 +77,7 @@ export class SendMessageUseCase {
     const { message, conversation } = await this.prisma.$transaction(
       async (tx) => {
         let conv: any;
+        let isNewRequest = false;
 
         if (conversationId) {
           conv = await tx.conversation.findUnique({
@@ -130,11 +131,7 @@ export class SendMessageUseCase {
                 status: 'ACCEPTED',
               },
             });
-            // A first message to someone who does not follow the sender is a
-            // message request, which has its own per-Profile cap.
-            if (!recipientFollowsSender) {
-              await this.actionLimits.consume(senderId, 'message_request');
-            }
+            isNewRequest = !recipientFollowsSender;
 
             conv = await tx.conversation.create({
               data: {
@@ -183,6 +180,14 @@ export class SendMessageUseCase {
             ErrorCode.FORBIDDEN_ACCESS,
             'Cannot send message: Blocked by a participant or you blocked them',
           );
+        }
+
+        // A first message to someone who does not follow the sender is a
+        // message request, which has its own per-Profile cap. Checked after
+        // the block check so a refused attempt is not counted; a refusal
+        // rolls back the new conversation.
+        if (isNewRequest) {
+          await this.actionLimits.consume(senderId, 'message_request');
         }
 
         // Media rows are created separately (not via a nested `media: {

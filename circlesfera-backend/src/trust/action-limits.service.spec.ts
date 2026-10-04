@@ -74,6 +74,21 @@ describe('ActionLimitsService', () => {
     expect(await redis.get(key)).toBe('120');
   });
 
+  it('counts several actions at once and refuses them all if the cap would be passed', async () => {
+    await consumeTimes(55, 'message_request');
+
+    await expect(
+      service.consume('p-1', 'message_request', 6),
+    ).rejects.toBeInstanceOf(AppException);
+    // Nothing of the refused batch was counted: 5 more still fit.
+    await service.consume('p-1', 'message_request', 5);
+  });
+
+  it('counting zero actions does nothing', async () => {
+    await service.consume('p-1', 'follow', 0);
+    expect(redis.keys()).toEqual([]);
+  });
+
   it('halves the caps for accounts younger than 7 days', async () => {
     createdAt(NEW_ACCOUNT);
     await consumeTimes(60);
