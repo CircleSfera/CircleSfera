@@ -72,3 +72,31 @@ describe('AdminStatsService excludes Test Accounts', () => {
     );
   });
 });
+
+describe('AdminStatsService monetization tiers', () => {
+  it('counts the €9.99 plan as Premium under its current and former name', async () => {
+    const { service, prisma } = build();
+    const plan = (name: string, priceCents: number) => ({
+      plan: { name, priceCents },
+    });
+    (prisma as Record<string, unknown>).platformSubscription = {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([
+          plan('Premium', 999),
+          plan('Verified', 999),
+          plan('Elite Creator', 1999),
+          plan('Business', 4999),
+        ]),
+      count: vi.fn().mockResolvedValue(0),
+    };
+
+    const result = await service.getMonetizationAnalytics();
+
+    expect(result.tierDistribution).toEqual({
+      PREMIUM: 2,
+      ELITE: 1,
+      BUSINESS: 1,
+    });
+  });
+});

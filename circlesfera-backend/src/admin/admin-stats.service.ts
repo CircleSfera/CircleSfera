@@ -273,7 +273,9 @@ export class AdminStatsService {
     rawSubscriptions.forEach((sub) => {
       activeMRR += (sub.plan?.priceCents || 0) / 100;
       const planName = sub.plan?.name?.toUpperCase() || '';
-      if (planName.includes('PREMIUM')) tierCounts.PREMIUM++;
+      // The €9.99 plan is named Premium (formerly Verified).
+      if (planName.includes('PREMIUM') || planName.includes('VERIFIED'))
+        tierCounts.PREMIUM++;
       else if (planName.includes('ELITE')) tierCounts.ELITE++;
       else if (planName.includes('BUSINESS')) tierCounts.BUSINESS++;
     });

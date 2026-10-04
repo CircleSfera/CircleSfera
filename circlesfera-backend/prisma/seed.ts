@@ -166,7 +166,7 @@ async function main() {
       where: { stripeProductId: 'prod_UtQGHGBnYo5yGX' },
       update: {},
       create: {
-        name: 'Verified',
+        name: 'Premium',
         description:
           'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
         priceCents: 999,

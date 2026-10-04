@@ -204,7 +204,7 @@ export class MonetizationService {
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: post.priceCents,
-      productName: 'Premium Post Unlock',
+      productName: 'Post unlock',
       description: `Unlock exclusive content from ${creator.email}`,
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {
@@ -268,7 +268,7 @@ export class MonetizationService {
       buyerId: userId,
       buyerEmail: buyer.email,
       priceCents: story.priceCents,
-      productName: 'Premium Story Unlock',
+      productName: 'Story unlock',
       description: `Unlock exclusive story from ${creator.email}`,
       creatorStripeAccountId: creator.stripeConnectAccountId,
       metadata: {

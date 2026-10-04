@@ -147,7 +147,8 @@ export default function CreatorMonetizationTab({
 
   const getTierIcon = (name: string) => {
     const lower = name.toLowerCase();
-    if (lower.includes('verified'))
+    // The €9.99 plan is named Premium (formerly Verified).
+    if (lower.includes('premium') || lower.includes('verified'))
       return <Star className="text-brand-blue" size={20} />;
     if (lower.includes('elite'))
       return <Award className="text-brand-primary" size={20} />;
@@ -162,7 +163,8 @@ export default function CreatorMonetizationTab({
       return billingPlan.includes(planName.toLowerCase());
     }
     const lower = planName.toLowerCase();
-    if (lower.includes('verified')) return currentLevel === 'VERIFIED';
+    if (lower.includes('premium') || lower.includes('verified'))
+      return currentLevel === 'VERIFIED';
     if (lower.includes('elite')) return currentLevel === 'ELITE';
     if (lower.includes('business')) return currentLevel === 'BUSINESS';
     return false;
