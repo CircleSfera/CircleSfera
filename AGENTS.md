@@ -11,8 +11,6 @@ were removed (Sep 2026); do not recreate them or cite them.
 
 ## Documentation lives in Notion
 
-## Documentation lives in Notion
-
 All CircleSfera documentation lives in Notion under **CircleSfera → Documentation**:
 https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30
 
@@ -53,8 +51,8 @@ business logic; new dependencies; infrastructure, deployment or secrets; destruc
 
 The confirmation list is a gate (propose → wait → execute), not a ban.
 
-**Out of scope without an approved architecture decision.** This list will move to Notion → Product →
-Product Boundaries. Until then it is carried over from `circlesfera-documentation/00-status.md`.
+**Out of scope without an approved architecture decision** (canonical list: Notion → Product →
+Product Scope & Boundaries, section 8a):
 
 - Splitting the modular monolith into microservices
 - GraphQL (the API is REST)
