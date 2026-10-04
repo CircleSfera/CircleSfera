@@ -1,4 +1,5 @@
 import type { UserSessionTerminateEvent } from '@circlesfera/shared';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -9,6 +10,7 @@ import {
   type ProfileStrikeKind,
   type ReportReason,
 } from '@prisma/client';
+import type { Cache } from 'cache-manager';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -83,7 +85,25 @@ export class ProfileStrikesService {
     @Inject(NotificationsService)
     private readonly notificationsService: NotificationsService,
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
+
+  // The public profile is cached by username; drop it after a sanction or
+  // an appeal changes what it shows (active strikes, standing).
+  async invalidateProfileCache(profileIds: string[]): Promise<void> {
+    if (profileIds.length === 0) return;
+    const profiles = await this.prisma.profile.findMany({
+      where: { id: { in: profileIds } },
+      select: { username: true },
+    });
+    await Promise.all(
+      profiles.map((p) =>
+        this.cacheManager
+          .del(`profile:${p.username}`)
+          .catch((e: unknown) => this.logger.warn(String(e))),
+      ),
+    );
+  }
 
   // Records an upheld violation and applies its consequence. The first
   // violation while nothing is active is a warning; later ones are strikes,
@@ -155,6 +175,7 @@ export class ProfileStrikesService {
           data: {
             isAccountBanned: true,
             accountBanReason: `Repeated violations of the community guidelines (${activeStrikes} active strikes)`,
+            banStrikeId: strike.id,
           },
         });
       } else if (consequence === 'SUSPENDED') {
@@ -163,21 +184,24 @@ export class ProfileStrikesService {
           select: { suspendedUntil: true },
         });
         const proposed = suspensionEndsAt(now);
-        // Never shorten a longer suspension that is already running.
-        suspendedUntil =
-          profile?.suspendedUntil && profile.suspendedUntil > proposed
-            ? profile.suspendedUntil
-            : proposed;
-        await tx.profile.update({
-          where: { id: violation.profileId },
-          data: { suspendedUntil },
-        });
+        if (profile?.suspendedUntil && profile.suspendedUntil > proposed) {
+          // Never shorten a longer suspension that is already running; it
+          // keeps its own cause.
+          suspendedUntil = profile.suspendedUntil;
+        } else {
+          suspendedUntil = proposed;
+          await tx.profile.update({
+            where: { id: violation.profileId },
+            data: { suspendedUntil, suspensionStrikeId: strike.id },
+          });
+        }
       }
 
       return { strike, activeStrikes, suspendedUntil };
     });
     if (!result) return null;
 
+    await this.invalidateProfileCache([violation.profileId]);
     if (result.strike.consequence !== 'NONE') {
       this.endProfileSessions(
         violation.userId,
@@ -209,8 +233,14 @@ export class ProfileStrikesService {
   }): Promise<void> {
     await this.prisma.profile.update({
       where: { id: params.profileId },
-      data: { isAccountBanned: true, accountBanReason: params.reason },
+      // A direct ban has no strike behind it, so no strike appeal can lift it.
+      data: {
+        isAccountBanned: true,
+        accountBanReason: params.reason,
+        banStrikeId: null,
+      },
     });
+    await this.invalidateProfileCache([params.profileId]);
     this.endProfileSessions(
       params.userId,
       params.profileId,
@@ -251,45 +281,56 @@ export class ProfileStrikesService {
     }));
   }
 
-  // Withdraws a strike after an approved appeal. A suspension or ban that
-  // this strike caused is lifted if it is still in force.
+  // Withdraws a strike after an approved appeal. A ban or suspension is
+  // lifted only if this strike is recorded as its cause, so a later direct
+  // ban or staff suspension stays in force. Returns the affected Profile.
   async revokeForAppeal(
     tx: Prisma.TransactionClient,
     strikeId: string,
-  ): Promise<void> {
+  ): Promise<string | null> {
     const now = new Date();
     const strike = await tx.profileStrike.findUnique({
       where: { id: strikeId },
-      select: { id: true, profileId: true, consequence: true, revokedAt: true },
+      select: { id: true, profileId: true, revokedAt: true },
     });
-    if (!strike || strike.revokedAt) return;
+    if (!strike || strike.revokedAt) return null;
 
     await tx.profileStrike.update({
       where: { id: strike.id },
       data: { revokedAt: now },
     });
-    await this.liftConsequence(tx, strike.profileId, strike.consequence, now);
+    await tx.profile.updateMany({
+      where: { id: strike.profileId, banStrikeId: strike.id },
+      data: {
+        isAccountBanned: false,
+        accountBanReason: null,
+        banStrikeId: null,
+      },
+    });
+    await tx.profile.updateMany({
+      where: { id: strike.profileId, suspensionStrikeId: strike.id },
+      data: { suspendedUntil: null, suspensionStrikeId: null },
+    });
+    return strike.profileId;
   }
 
-  // Lifts a Profile ban or suspension after an approved appeal, and
-  // withdraws the strike that caused it, if any.
+  // Lifts the Profile's current ban and suspension after an approved appeal
+  // about them, and withdraws the strikes recorded as their cause.
   async liftRestrictionForAppeal(
     tx: Prisma.TransactionClient,
     profileId: string,
   ): Promise<void> {
     const now = new Date();
-    const cause = await tx.profileStrike.findFirst({
-      where: {
-        profileId,
-        revokedAt: null,
-        consequence: { in: ['BANNED', 'SUSPENDED'] },
-      },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
+    const profile = await tx.profile.findUnique({
+      where: { id: profileId },
+      select: { banStrikeId: true, suspensionStrikeId: true },
     });
-    if (cause) {
-      await tx.profileStrike.update({
-        where: { id: cause.id },
+    const causes = [profile?.banStrikeId, profile?.suspensionStrikeId].filter(
+      (id): id is string => !!id,
+    );
+    if (causes.length > 0) {
+      await tx.profileStrike.updateMany({
+        where: { id: { in: causes }, revokedAt: null },
         data: { revokedAt: now },
       });
     }
@@ -299,27 +340,10 @@ export class ProfileStrikesService {
         isAccountBanned: false,
         accountBanReason: null,
         suspendedUntil: null,
+        banStrikeId: null,
+        suspensionStrikeId: null,
       },
     });
-  }
-
-  private async liftConsequence(
-    tx: Prisma.TransactionClient,
-    profileId: string,
-    consequence: ProfileStrikeConsequence,
-    now: Date,
-  ): Promise<void> {
-    if (consequence === 'BANNED') {
-      await tx.profile.updateMany({
-        where: { id: profileId, isAccountBanned: true },
-        data: { isAccountBanned: false, accountBanReason: null },
-      });
-    } else if (consequence === 'SUSPENDED') {
-      await tx.profile.updateMany({
-        where: { id: profileId, suspendedUntil: { gt: now } },
-        data: { suspendedUntil: null },
-      });
-    }
   }
 
   private notificationTarget(strike: ProfileStrike): string {

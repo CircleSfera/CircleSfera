@@ -36,6 +36,7 @@ export class AppealsService {
   private async resolveOwnedTarget(
     userId: string,
     dto: CreateAppealDto,
+    onlyProfileId?: string,
   ): Promise<string | undefined> {
     const targetId = dto.targetId?.trim() || undefined;
     switch (dto.targetType) {
@@ -51,7 +52,11 @@ export class AppealsService {
       case 'STRIKE': {
         if (!targetId) throw new BadRequestException('targetId is required');
         const strike = await this.prisma.profileStrike.findFirst({
-          where: { id: targetId, profile: { userId } },
+          where: {
+            id: targetId,
+            profile: { userId },
+            ...(onlyProfileId ? { profileId: onlyProfileId } : {}),
+          },
           select: { id: true },
         });
         if (!strike) throw new NotFoundException('Strike not found');
@@ -71,31 +76,37 @@ export class AppealsService {
     }
   }
 
-  async create(userId: string, dto: CreateAppealDto) {
-    const targetId = await this.resolveOwnedTarget(userId, dto);
+  // onlyProfileId: set for appeals filed with a login-screen appeal token,
+  // which may only concern the Profile that could not sign in.
+  async create(userId: string, dto: CreateAppealDto, onlyProfileId?: string) {
+    const targetId = await this.resolveOwnedTarget(userId, dto, onlyProfileId);
 
-    const pending = await this.prisma.appeal.findFirst({
-      where: {
-        userId,
-        targetType: dto.targetType,
-        targetId: targetId ?? null,
-        status: 'PENDING',
-      },
-      select: { id: true },
-    });
-    if (pending) {
-      throw new ConflictException(
-        'An appeal for this decision is already pending',
-      );
-    }
-
-    const appeal = await this.prisma.appeal.create({
-      data: {
-        userId,
-        targetType: dto.targetType,
-        targetId,
-        reason: dto.reason,
-      },
+    const appeal = await this.prisma.$transaction(async (tx) => {
+      // Serialize appeals of one account so two concurrent requests cannot
+      // both pass the pending check.
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId} FOR UPDATE`;
+      const pending = await tx.appeal.findFirst({
+        where: {
+          userId,
+          targetType: dto.targetType,
+          targetId: targetId ?? null,
+          status: 'PENDING',
+        },
+        select: { id: true },
+      });
+      if (pending) {
+        throw new ConflictException(
+          'An appeal for this decision is already pending',
+        );
+      }
+      return tx.appeal.create({
+        data: {
+          userId,
+          targetType: dto.targetType,
+          targetId,
+          reason: dto.reason,
+        },
+      });
     });
 
     const reportFiledEvent: ModerationReportFiledEvent['payload'] = {
@@ -254,6 +265,8 @@ export class AppealsService {
   async update(id: string, dto: UpdateAppealDto, adminId: string) {
     const appeal = await this.findOne(id);
 
+    // Profiles whose public view changes, to drop their cache afterwards.
+    const affectedProfileIds: string[] = [];
     const updatedAppeal = await this.prisma.$transaction(async (tx) => {
       const resolvedAt = resolvedAtOnStatusChange(
         dto.status,
@@ -273,7 +286,11 @@ export class AppealsService {
       // Approving twice must not repeat the side effects.
       if (dto.status === 'APPROVED' && appeal.status !== 'APPROVED') {
         if (appeal.targetType === 'STRIKE' && appeal.targetId) {
-          await this.strikesService.revokeForAppeal(tx, appeal.targetId);
+          const profileId = await this.strikesService.revokeForAppeal(
+            tx,
+            appeal.targetId,
+          );
+          if (profileId) affectedProfileIds.push(profileId);
         }
         if (appeal.targetType === 'ACCOUNT_BAN') {
           // A Profile ban or suspension is lifted on that Profile only.
@@ -293,6 +310,7 @@ export class AppealsService {
               });
           for (const profile of restricted) {
             await this.strikesService.liftRestrictionForAppeal(tx, profile.id);
+            affectedProfileIds.push(profile.id);
           }
           await tx.user.update({
             where: { id: appeal.userId },
@@ -320,6 +338,7 @@ export class AppealsService {
 
       return res;
     });
+    await this.strikesService.invalidateProfileCache(affectedProfileIds);
 
     await this.prisma.adminAuditLog
       .create({

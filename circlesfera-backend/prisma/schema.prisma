@@ -295,12 +295,17 @@ model Profile {
 
   // Account Ban Flags
 
-  isAccountBanned  Boolean   @default(false)
-  accountBanReason String?   @db.Text
-  suspendedUntil   DateTime?
+  isAccountBanned    Boolean   @default(false)
+  accountBanReason   String?   @db.Text
+  suspendedUntil     DateTime?
+  // The strike that caused the current ban or suspension, if any. An appeal
+  // about that strike lifts only a restriction it caused; staff restrictions
+  // and direct bans clear these.
+  banStrikeId        String?
+  suspensionStrikeId String?
   // Legacy strike counter. Strikes, their expiry and their consequences are
   // recorded in profile_strikes; nothing reads or writes this column any more.
-  strikeCount      Int       @default(0)
+  strikeCount        Int       @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

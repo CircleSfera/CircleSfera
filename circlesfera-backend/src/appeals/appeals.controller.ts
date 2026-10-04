@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -74,17 +75,19 @@ export class AppealsController {
       throw new UnauthorizedException('Authentication required');
     }
 
-    // An appeal filed from the login screen is about the Profile that could
-    // not sign in.
-    if (
-      appealProfileId &&
-      createAppealDto.targetType === 'ACCOUNT_BAN' &&
-      !createAppealDto.targetId
-    ) {
-      createAppealDto.targetId = appealProfileId;
+    // An appeal filed with a login-screen token may only concern the Profile
+    // that could not sign in: its ban or suspension, or one of its strikes.
+    if (appealProfileId) {
+      if (createAppealDto.targetType === 'ACCOUNT_BAN') {
+        createAppealDto.targetId = appealProfileId;
+      } else if (createAppealDto.targetType !== 'STRIKE') {
+        throw new ForbiddenException(
+          'Only the restricted profile can be appealed from the login screen',
+        );
+      }
     }
 
-    return this.appealsService.create(userId, createAppealDto);
+    return this.appealsService.create(userId, createAppealDto, appealProfileId);
   }
 
   @Get('my-appeals')

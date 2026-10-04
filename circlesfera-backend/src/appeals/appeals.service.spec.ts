@@ -25,12 +25,14 @@ describe('AppealsService', () => {
     user: { update: vi.fn(), findUnique: vi.fn() },
     adminIdentity: { findUnique: vi.fn() },
     adminAuditLog: { create: vi.fn() },
+    $queryRaw: vi.fn(),
     $transaction: vi.fn(),
   };
 
   const mockStrikesService = {
     revokeForAppeal: vi.fn(),
     liftRestrictionForAppeal: vi.fn(),
+    invalidateProfileCache: vi.fn(),
   };
 
   const mockEventEmitter = {
@@ -136,6 +138,47 @@ describe('AppealsService', () => {
       expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
     });
 
+    it('a login-screen appeal about a strike must concern the restricted Profile', async () => {
+      mockPrismaService.profileStrike.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create(
+          'user-1',
+          {
+            targetType: 'STRIKE' as any,
+            targetId: 'strike-of-other-profile',
+            reason: 'This strike is not fair at all',
+          },
+          'profile-restricted',
+        ),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.profileStrike.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'strike-of-other-profile',
+          profile: { userId: 'user-1' },
+          profileId: 'profile-restricted',
+        },
+        select: { id: true },
+      });
+    });
+
+    it('serializes appeals of one account before the pending check', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'p-1' });
+      mockPrismaService.appeal.create.mockResolvedValue({ id: 'appeal-1' });
+
+      await service.create('user-1', {
+        targetType: 'ACCOUNT_BAN' as any,
+        targetId: 'p-1',
+        reason: 'Please review this ban',
+      });
+
+      expect(mockPrismaService.$queryRaw).toHaveBeenCalledTimes(1);
+      const lockOrder = mockPrismaService.$queryRaw.mock.invocationCallOrder[0];
+      const checkOrder =
+        mockPrismaService.appeal.findFirst.mock.invocationCallOrder[0];
+      expect(lockOrder).toBeLessThan(checkOrder);
+    });
+
     it('refuses a second pending appeal about the same decision', async () => {
       mockPrismaService.profileStrike.findFirst.mockResolvedValue({
         id: 'strike-1',
@@ -164,6 +207,7 @@ describe('AppealsService', () => {
     });
 
     beforeEach(() => {
+      mockStrikesService.revokeForAppeal.mockResolvedValue('profile-1');
       mockPrismaService.appeal.update.mockImplementation(
         async ({ data }: { data: Record<string, unknown> }) => ({
           id: 'appeal-1',
@@ -192,6 +236,9 @@ describe('AppealsService', () => {
         mockPrismaService,
         'strike-1',
       );
+      expect(mockStrikesService.invalidateProfileCache).toHaveBeenCalledWith([
+        'profile-1',
+      ]);
       expect(
         mockStrikesService.liftRestrictionForAppeal,
       ).not.toHaveBeenCalled();

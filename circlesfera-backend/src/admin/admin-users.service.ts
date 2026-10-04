@@ -282,7 +282,12 @@ export class AdminUsersService {
   async unbanUser(adminId: string, userId: string) {
     await this.prisma.profile.updateMany({
       where: { userId },
-      data: { suspendedUntil: null, isAccountBanned: false },
+      data: {
+        suspendedUntil: null,
+        isAccountBanned: false,
+        banStrikeId: null,
+        suspensionStrikeId: null,
+      },
     });
     const result = await this.prisma.user.update({
       where: { id: userId },
@@ -610,8 +615,10 @@ export class AdminUsersService {
     until.setDate(until.getDate() + Math.max(1, days));
     await this.prisma.profile.updateMany({
       where: { userId },
+      // A staff suspension has no strike behind it.
       data: {
         suspendedUntil: until,
+        suspensionStrikeId: null,
       },
     });
     await this.prisma.user.update({
@@ -659,6 +666,7 @@ export class AdminUsersService {
       where: { userId },
       data: {
         suspendedUntil: null,
+        suspensionStrikeId: null,
       },
     });
     await this.prisma.user.update({

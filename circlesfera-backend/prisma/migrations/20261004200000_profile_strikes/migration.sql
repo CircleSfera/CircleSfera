@@ -10,6 +10,10 @@ CREATE TYPE "ProfileStrikeConsequence" AS ENUM ('NONE', 'SUSPENDED', 'BANNED');
 -- AlterEnum
 ALTER TYPE "AppealTargetType" ADD VALUE 'STRIKE';
 
+-- AlterTable
+ALTER TABLE "profiles" ADD COLUMN     "banStrikeId" TEXT,
+ADD COLUMN     "suspensionStrikeId" TEXT;
+
 -- CreateTable
 CREATE TABLE "profile_strikes" (
     "id" TEXT NOT NULL,

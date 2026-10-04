@@ -19,9 +19,11 @@ describe('ProfileStrikesService', () => {
       findUnique: ReturnType<typeof vi.fn>;
       create: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
+      updateMany: ReturnType<typeof vi.fn>;
     };
     profile: {
       findUnique: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
       update: ReturnType<typeof vi.fn>;
       updateMany: ReturnType<typeof vi.fn>;
     };
@@ -32,6 +34,7 @@ describe('ProfileStrikesService', () => {
   };
   let notifications: { create: ReturnType<typeof vi.fn> };
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let cache: { del: ReturnType<typeof vi.fn> };
   let service: ProfileStrikesService;
 
   const violation = {
@@ -59,9 +62,11 @@ describe('ProfileStrikesService', () => {
         findUnique: vi.fn(),
         create: vi.fn(async ({ data }) => ({ id: 'strike-new', ...data })),
         update: vi.fn().mockResolvedValue({}),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
       profile: {
         findUnique: vi.fn().mockResolvedValue({ suspendedUntil: null }),
+        findMany: vi.fn().mockResolvedValue([{ username: 'offender' }]),
         update: vi.fn().mockResolvedValue({}),
         updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       },
@@ -73,10 +78,12 @@ describe('ProfileStrikesService', () => {
     };
     notifications = { create: vi.fn().mockResolvedValue(undefined) };
     eventEmitter = { emit: vi.fn() };
+    cache = { del: vi.fn().mockResolvedValue(undefined) };
     service = new ProfileStrikesService(
       prisma as never,
       notifications as never,
       eventEmitter as never,
+      cache as never,
     );
   });
 
@@ -158,9 +165,10 @@ describe('ProfileStrikesService', () => {
       });
       expect(tx.profile.update).toHaveBeenCalledWith({
         where: { id: 'profile-1' },
-        data: { suspendedUntil: until },
+        data: { suspendedUntil: until, suspensionStrikeId: 'strike-new' },
       });
       expect(result?.suspendedUntil).toEqual(until);
+      expect(cache.del).toHaveBeenCalledWith('profile:offender');
       expect(eventEmitter.emit).toHaveBeenCalledWith('user.session.terminate', {
         userId: 'user-1',
         profileId: 'profile-1',
@@ -177,12 +185,11 @@ describe('ProfileStrikesService', () => {
       const longer = new Date(NOW.getTime() + 30 * DAY_MS);
       tx.profile.findUnique.mockResolvedValue({ suspendedUntil: longer });
 
-      await service.applyViolation(violation);
+      const result = await service.applyViolation(violation);
 
-      expect(tx.profile.update).toHaveBeenCalledWith({
-        where: { id: 'profile-1' },
-        data: { suspendedUntil: longer },
-      });
+      // The running suspension and its cause are left as they are.
+      expect(tx.profile.update).not.toHaveBeenCalled();
+      expect(result?.suspendedUntil).toEqual(longer);
     });
 
     it('the third active strike bans only that Profile', async () => {
@@ -202,6 +209,7 @@ describe('ProfileStrikesService', () => {
         data: {
           isAccountBanned: true,
           accountBanReason: expect.stringContaining('3 active strikes'),
+          banStrikeId: 'strike-new',
         },
       });
       expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -246,7 +254,11 @@ describe('ProfileStrikesService', () => {
 
       expect(prisma.profile.update).toHaveBeenCalledWith({
         where: { id: 'profile-1' },
-        data: { isAccountBanned: true, accountBanReason: 'Severe violation' },
+        data: {
+          isAccountBanned: true,
+          accountBanReason: 'Severe violation',
+          banStrikeId: null,
+        },
       });
       expect(prisma.profileStrike.create).not.toHaveBeenCalled();
       expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -299,39 +311,33 @@ describe('ProfileStrikesService', () => {
   });
 
   describe('revokeForAppeal', () => {
-    it('withdraws the strike and lifts the ban it caused', async () => {
+    it('withdraws the strike and lifts only restrictions recorded as caused by it', async () => {
       tx.profileStrike.findUnique.mockResolvedValue({
         id: 'strike-1',
         profileId: 'profile-1',
-        consequence: 'BANNED',
         revokedAt: null,
       });
 
-      await service.revokeForAppeal(tx as never, 'strike-1');
+      const profileId = await service.revokeForAppeal(tx as never, 'strike-1');
 
+      expect(profileId).toBe('profile-1');
       expect(tx.profileStrike.update).toHaveBeenCalledWith({
         where: { id: 'strike-1' },
         data: { revokedAt: NOW },
       });
+      // A direct ban or staff suspension has another cause (or none), so
+      // these conditional updates leave it in force.
       expect(tx.profile.updateMany).toHaveBeenCalledWith({
-        where: { id: 'profile-1', isAccountBanned: true },
-        data: { isAccountBanned: false, accountBanReason: null },
+        where: { id: 'profile-1', banStrikeId: 'strike-1' },
+        data: {
+          isAccountBanned: false,
+          accountBanReason: null,
+          banStrikeId: null,
+        },
       });
-    });
-
-    it('withdraws the strike and lifts the suspension it caused if still running', async () => {
-      tx.profileStrike.findUnique.mockResolvedValue({
-        id: 'strike-1',
-        profileId: 'profile-1',
-        consequence: 'SUSPENDED',
-        revokedAt: null,
-      });
-
-      await service.revokeForAppeal(tx as never, 'strike-1');
-
       expect(tx.profile.updateMany).toHaveBeenCalledWith({
-        where: { id: 'profile-1', suspendedUntil: { gt: NOW } },
-        data: { suspendedUntil: null },
+        where: { id: 'profile-1', suspensionStrikeId: 'strike-1' },
+        data: { suspendedUntil: null, suspensionStrikeId: null },
       });
     });
 
@@ -339,25 +345,28 @@ describe('ProfileStrikesService', () => {
       tx.profileStrike.findUnique.mockResolvedValue({
         id: 'strike-1',
         profileId: 'profile-1',
-        consequence: 'BANNED',
         revokedAt: NOW,
       });
 
-      await service.revokeForAppeal(tx as never, 'strike-1');
+      const profileId = await service.revokeForAppeal(tx as never, 'strike-1');
 
+      expect(profileId).toBeNull();
       expect(tx.profileStrike.update).not.toHaveBeenCalled();
       expect(tx.profile.updateMany).not.toHaveBeenCalled();
     });
   });
 
   describe('liftRestrictionForAppeal', () => {
-    it('withdraws the strike that caused the restriction and clears it', async () => {
-      tx.profileStrike.findFirst.mockResolvedValue({ id: 'strike-3' });
+    it('withdraws the strikes recorded as causes and clears the restriction', async () => {
+      tx.profile.findUnique.mockResolvedValue({
+        banStrikeId: 'strike-3',
+        suspensionStrikeId: 'strike-2',
+      });
 
       await service.liftRestrictionForAppeal(tx as never, 'profile-1');
 
-      expect(tx.profileStrike.update).toHaveBeenCalledWith({
-        where: { id: 'strike-3' },
+      expect(tx.profileStrike.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['strike-3', 'strike-2'] }, revokedAt: null },
         data: { revokedAt: NOW },
       });
       expect(tx.profile.update).toHaveBeenCalledWith({
@@ -366,16 +375,21 @@ describe('ProfileStrikesService', () => {
           isAccountBanned: false,
           accountBanReason: null,
           suspendedUntil: null,
+          banStrikeId: null,
+          suspensionStrikeId: null,
         },
       });
     });
 
-    it('clears a direct ban that no strike caused', async () => {
-      tx.profileStrike.findFirst.mockResolvedValue(null);
+    it('clears a direct ban without withdrawing any strike', async () => {
+      tx.profile.findUnique.mockResolvedValue({
+        banStrikeId: null,
+        suspensionStrikeId: null,
+      });
 
       await service.liftRestrictionForAppeal(tx as never, 'profile-1');
 
-      expect(tx.profileStrike.update).not.toHaveBeenCalled();
+      expect(tx.profileStrike.updateMany).not.toHaveBeenCalled();
       expect(tx.profile.update).toHaveBeenCalledTimes(1);
     });
   });

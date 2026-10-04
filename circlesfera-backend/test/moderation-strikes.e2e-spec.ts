@@ -262,6 +262,52 @@ describe('Moderation strikes (e2e)', () => {
     await login(user.email).expect(200);
   });
 
+  it('approving a strike appeal never lifts a later direct ban', async () => {
+    const { user, profile } = await newAccount();
+    const recent = new Date(Date.now() - DAY_MS);
+    await prisma.profileStrike.create({
+      data: {
+        profileId: profile.id,
+        kind: 'STRIKE',
+        reason: 'SPAM',
+        createdAt: recent,
+        expiresAt: new Date(recent.getTime() + 90 * DAY_MS),
+      },
+    });
+    // Strike 2 suspends the Profile; then staff ban it directly for a
+    // severe case.
+    await upholdViolation(user);
+    const suspending = (await strikesOf(profile.id)).at(-1);
+    expect(suspending?.consequence).toBe('SUSPENDED');
+    const severe = await prisma.report.create({
+      data: {
+        reporterId: reporter.id,
+        targetType: 'USER',
+        targetId: user.id,
+        reason: 'ILLEGAL_CONTENT',
+      },
+    });
+    await reviewReport.resolveWithPenalty(adminId, severe.id, 'BAN');
+
+    const appeal = await appeals.create(user.id, {
+      targetType: 'STRIKE',
+      targetId: suspending?.id,
+      reason: 'The spam report was a mistake',
+    });
+    await appeals.update(appeal.id, { status: 'APPROVED' }, adminId);
+
+    const after = await prisma.profile.findUniqueOrThrow({
+      where: { id: profile.id },
+    });
+    // The suspension the strike caused is lifted; the direct ban stays.
+    expect(after.suspendedUntil).toBeNull();
+    expect(after.isAccountBanned).toBe(true);
+    expect(
+      (await strikesOf(profile.id)).find((r) => r.id === suspending?.id)
+        ?.revokedAt,
+    ).not.toBeNull();
+  });
+
   it('a Profile cannot appeal a strike of another account', async () => {
     const victim = await newAccount();
     const stranger = await newAccount();
