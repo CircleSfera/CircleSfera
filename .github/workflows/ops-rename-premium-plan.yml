@@ -1,0 +1,63 @@
+name: Ops — rename the Premium plan
+
+# One-shot data change approved by the owner: the €9.99 Platform Plan is
+# named Premium. Renames the production row still called Verified. Takes a
+# database backup first, changes only that row, and prints the plan names and
+# prices before and after (public catalog data, nothing else). Delete this
+# workflow after the run.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  rename:
+    name: Rename Verified to Premium
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Back up and rename on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            BACKUP_ROOT=/srv/circlesfera/backups/postgres
+            mkdir -p "$BACKUP_ROOT"
+            BACKUP_FILE="$BACKUP_ROOT/pre_plan_rename_$(date -u +%Y%m%d_%H%M%S).dump"
+            $DC exec -T postgres sh -c 'pg_dump -U "$POSTGRES_USER" -Fc "$POSTGRES_DB"' > "$BACKUP_FILE"
+            echo "Backup written ($(du -h "$BACKUP_FILE" | cut -f1))"
+
+            $DC exec -T postgres sh -c 'psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" -d "$POSTGRES_DB" -A -F " | " <<SQL
+            SELECT name, "priceCents", "isActive" FROM platform_plans ORDER BY "priceCents";
+            BEGIN;
+            UPDATE platform_plans SET name = '\''Premium'\'', "updatedAt" = now()
+              WHERE name = '\''Verified'\'';
+            SELECT count(*) AS premium_plans FROM platform_plans WHERE name = '\''Premium'\'';
+            COMMIT;
+            SELECT name, "priceCents", "isActive" FROM platform_plans ORDER BY "priceCents";
+            SQL'
