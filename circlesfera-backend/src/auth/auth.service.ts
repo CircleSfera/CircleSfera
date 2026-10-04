@@ -420,7 +420,11 @@ export class AuthService {
       } else if (user.isRootBanned) {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: user.rootBanReason,
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            reason: user.rootBanReason,
+          },
         });
       } else if (user.deactivatedAt) {
         // Self-deactivated accounts come back on login. Moderation never
@@ -438,8 +442,12 @@ export class AuthService {
         );
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          appealToken,
-          reason: user.rootBanReason || undefined,
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            appealToken,
+            reason: user.rootBanReason || undefined,
+          },
         });
       }
     } else if (user.isRootBanned) {
@@ -450,8 +458,12 @@ export class AuthService {
       );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
-        reason: user.rootBanReason,
-        appealToken,
+        // Extra fields go under details: the global exception filter only
+        // forwards message, errorCode and details to the client.
+        details: {
+          reason: user.rootBanReason,
+          appealToken,
+        },
       });
     }
 
@@ -547,7 +559,11 @@ export class AuthService {
       } else if (user.isRootBanned) {
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: user.rootBanReason,
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            reason: user.rootBanReason,
+          },
         });
       } else if (user.deactivatedAt) {
         // Self-deactivated accounts come back on login. Moderation never
@@ -565,8 +581,12 @@ export class AuthService {
         );
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          appealToken,
-          reason: user.rootBanReason || undefined,
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            appealToken,
+            reason: user.rootBanReason || undefined,
+          },
         });
       }
     } else if (user.isRootBanned) {
@@ -577,8 +597,12 @@ export class AuthService {
       );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
-        reason: user.rootBanReason,
-        appealToken,
+        // Extra fields go under details: the global exception filter only
+        // forwards message, errorCode and details to the client.
+        details: {
+          reason: user.rootBanReason,
+          appealToken,
+        },
       });
     }
 
@@ -802,6 +826,16 @@ export class AuthService {
     return { success: true };
   }
 
+  // Short-lived token that only allows filing an appeal about the restricted
+  // Profile while that Profile cannot sign in.
+  private signAppealToken(userId: string, profileId: string): string {
+    const secret = this.configService.getOrThrow<string>('JWT_SECRET');
+    return this.jwtService.sign(
+      { sub: userId, profileId, isAppealToken: true },
+      { expiresIn: '15m', secret },
+    );
+  }
+
   // Picks the Profile to sign in with: the oldest one that is not banned or
   // suspended. Access is refused only when every Profile of the account is
   // banned or suspended, with the reason of the oldest one.
@@ -814,25 +848,30 @@ export class AuthService {
     const loginProfile = pickSessionProfile(profiles);
 
     if (loginProfile?.isAccountBanned) {
-      const secret = this.configService.getOrThrow<string>('JWT_SECRET');
-      const appealToken = this.jwtService.sign(
-        { sub: userId, isAppealToken: true },
-        { expiresIn: '15m', secret },
-      );
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_BANNED,
-        reason: loginProfile.accountBanReason,
-        appealToken,
+        // Extra fields go under details: the global exception filter only
+        // forwards message, errorCode and details to the client.
+        details: {
+          reason: loginProfile.accountBanReason,
+          appealToken: this.signAppealToken(userId, loginProfile.id),
+        },
       });
     }
     if (
       loginProfile?.suspendedUntil &&
       loginProfile.suspendedUntil > new Date()
     ) {
+      // A suspended Profile can appeal the suspension without signing in.
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
-        suspendedUntil: loginProfile.suspendedUntil.toISOString(),
-        reason: loginProfile.accountBanReason || undefined,
+        // Extra fields go under details: the global exception filter only
+        // forwards message, errorCode and details to the client.
+        details: {
+          suspendedUntil: loginProfile.suspendedUntil.toISOString(),
+          reason: loginProfile.accountBanReason || undefined,
+          appealToken: this.signAppealToken(userId, loginProfile.id),
+        },
       });
     }
     return loginProfile;

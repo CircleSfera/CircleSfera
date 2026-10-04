@@ -62,7 +62,9 @@ describe('Cross-Surface Account State Enforcement Policy Invariants', () => {
       ).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Fraudulent platform activity',
+          details: {
+            reason: 'Fraudulent platform activity',
+          },
         }),
       );
     });
@@ -88,7 +90,9 @@ describe('Cross-Surface Account State Enforcement Policy Invariants', () => {
       ).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Severe harassment violation',
+          details: {
+            reason: 'Severe harassment violation',
+          },
         }),
       );
     });
@@ -115,7 +119,9 @@ describe('Cross-Surface Account State Enforcement Policy Invariants', () => {
       ).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: future.toISOString(),
+          details: {
+            suspendedUntil: future.toISOString(),
+          },
         }),
       );
     });

@@ -45,6 +45,7 @@ export class AppealsController {
   @UseGuards(JwtOptionalGuard)
   create(@Req() req: any, @Body() createAppealDto: CreateAppealDto) {
     let userId: string | undefined;
+    let appealProfileId: string | undefined;
 
     if (req.user?.userId) {
       userId = req.user.userId;
@@ -58,6 +59,10 @@ export class AppealsController {
           });
           if (payload.isAppealToken) {
             userId = payload.sub;
+            appealProfileId =
+              typeof payload.profileId === 'string'
+                ? payload.profileId
+                : undefined;
           }
         } catch {
           throw new UnauthorizedException('Invalid or expired appeal token');
@@ -67,6 +72,16 @@ export class AppealsController {
 
     if (!userId) {
       throw new UnauthorizedException('Authentication required');
+    }
+
+    // An appeal filed from the login screen is about the Profile that could
+    // not sign in.
+    if (
+      appealProfileId &&
+      createAppealDto.targetType === 'ACCOUNT_BAN' &&
+      !createAppealDto.targetId
+    ) {
+      createAppealDto.targetId = appealProfileId;
     }
 
     return this.appealsService.create(userId, createAppealDto);

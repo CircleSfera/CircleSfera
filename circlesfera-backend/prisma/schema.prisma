@@ -27,6 +27,8 @@ model User {
   isActive            Boolean   @default(true)
   isRootBanned        Boolean   @default(false)
   rootBanReason       String?   @db.Text
+  // Legacy account-level strike counter. Strikes are recorded per Profile in
+  // profile_strikes; nothing reads or writes this column any more.
   strikeCount         Int       @default(0)
   deletedAt           DateTime? // Soft-delete / deactivation timestamp
   scheduledDeletionAt DateTime? // Hard-delete due date (grace window); null = not scheduled
@@ -49,13 +51,13 @@ model User {
   verificationToken       String?   @unique
 
   // Auth secrets
-  isTwoFactorEnabled Boolean   @default(false)
-  twoFactorSecret    String?
-  resetToken         String?   @unique
-  resetTokenExpires  DateTime?
+  isTwoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret         String?
+  resetToken              String?   @unique
+  resetTokenExpires       DateTime?
   // Set when the stored hash must no longer grant access; cleared only by a completed email reset.
   passwordResetRequiredAt DateTime?
-  currentChallenge   String? // WebAuthn registration/auth challenge (temporary)
+  currentChallenge        String? // WebAuthn registration/auth challenge (temporary)
 
   // Abuse / trust — raw IP for account lifetime; hashes for clustering. Public APIs never expose raw IP.
   signupIp       String?
@@ -296,8 +298,8 @@ model Profile {
   isAccountBanned  Boolean   @default(false)
   accountBanReason String?   @db.Text
   suspendedUntil   DateTime?
-  // Moderation strikes against this Profile; three strikes ban the Profile,
-  // not the whole account.
+  // Legacy strike counter. Strikes, their expiry and their consequences are
+  // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount      Int       @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -331,6 +333,7 @@ model Profile {
   storyReactions        StoryReaction[]
   taggedPosts           PostTag[]
   reports               Report[]               @relation("ReportReporter")
+  strikes               ProfileStrike[]
   searchHistory         SearchHistory[]
   postViews             PostView[]
   feedHiddenPosts       FeedHiddenPost[]
@@ -1412,6 +1415,7 @@ model AdminIdentity {
   passkeys        AdminPasskey[]
   auditLogs       AdminAuditLog[]
   assignedReports Report[]            @relation("ReportAssignedAdmin")
+  issuedStrikes   ProfileStrike[]
 
   @@index([linkedUserId])
   @@index([status])
@@ -1583,8 +1587,9 @@ model Report {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reporter      Profile        @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reporter      Profile         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
+  strikes       ProfileStrike[]
 
   @@index([reporterId])
   @@index([targetType, targetId])
@@ -1866,6 +1871,45 @@ enum AppealTargetType {
   ACCOUNT_BAN
   POST_REMOVAL
   BOT_LABEL
+  STRIKE
+}
+
+// A warning is the notice for a first minor violation; it has no consequence.
+enum ProfileStrikeKind {
+  WARNING
+  STRIKE
+}
+
+// What the strike triggered when it was applied.
+enum ProfileStrikeConsequence {
+  NONE
+  SUSPENDED
+  BANNED
+}
+
+// One upheld violation by a Profile, decided by staff after a report review.
+// A record counts while it is not revoked and has not expired.
+model ProfileStrike {
+  id          String                   @id @default(uuid())
+  profileId   String
+  kind        ProfileStrikeKind
+  // The rule that was broken.
+  reason      ReportReason
+  consequence ProfileStrikeConsequence @default(NONE)
+  reportId    String?
+  adminId     String?
+  createdAt   DateTime                 @default(now())
+  expiresAt   DateTime
+  // Set when an approved appeal withdraws the record.
+  revokedAt   DateTime?
+
+  profile Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  report  Report?        @relation(fields: [reportId], references: [id], onDelete: SetNull)
+  admin   AdminIdentity? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([profileId, expiresAt])
+  @@index([reportId])
+  @@map("profile_strikes")
 }
 
 enum ContentRating {

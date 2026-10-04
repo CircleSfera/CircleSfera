@@ -1,10 +1,11 @@
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ProfileStrikesService } from '../strikes/profile-strikes.service.js';
 import { AppealsService } from './appeals.service.js';
 
 describe('AppealsService', () => {
@@ -13,11 +14,23 @@ describe('AppealsService', () => {
   const mockPrismaService = {
     appeal: {
       create: vi.fn(),
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
+    post: { findFirst: vi.fn(), update: vi.fn() },
+    profile: { findFirst: vi.fn(), findMany: vi.fn() },
+    profileStrike: { findFirst: vi.fn(), findUnique: vi.fn() },
+    user: { update: vi.fn(), findUnique: vi.fn() },
+    adminIdentity: { findUnique: vi.fn() },
+    adminAuditLog: { create: vi.fn() },
     $transaction: vi.fn(),
+  };
+
+  const mockStrikesService = {
+    revokeForAppeal: vi.fn(),
+    liftRestrictionForAppeal: vi.fn(),
   };
 
   const mockEventEmitter = {
@@ -34,8 +47,9 @@ describe('AppealsService', () => {
         AppealsService,
         {
           provide: NotificationsService,
-          useValue: { sendInApp: vi.fn(), push: vi.fn() },
+          useValue: { create: vi.fn().mockResolvedValue(undefined) },
         },
+        { provide: ProfileStrikesService, useValue: mockStrikesService },
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: EmailService, useValue: mockEmailService },
@@ -44,6 +58,12 @@ describe('AppealsService', () => {
 
     service = module.get<AppealsService>(AppealsService);
     vi.clearAllMocks();
+    mockPrismaService.appeal.findFirst.mockResolvedValue(null);
+    mockPrismaService.adminAuditLog.create.mockResolvedValue({});
+    mockPrismaService.$transaction.mockImplementation(
+      async (fn: (tx: typeof mockPrismaService) => unknown) =>
+        fn(mockPrismaService),
+    );
   });
 
   it('should be defined', () => {
@@ -57,6 +77,7 @@ describe('AppealsService', () => {
         targetId: 'ban-1',
         reason: 'Unfair ban, I did not break rules',
       };
+      mockPrismaService.profile.findFirst.mockResolvedValue({ id: 'ban-1' });
 
       mockPrismaService.appeal.create.mockResolvedValue({
         id: 'appeal-1',
@@ -83,6 +104,150 @@ describe('AppealsService', () => {
         }),
       );
       expect(result).toHaveProperty('id', 'appeal-1');
+    });
+
+    it('refuses an appeal about a post of another account', async () => {
+      mockPrismaService.post.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'POST_REMOVAL' as any,
+          targetId: 'someone-elses-post',
+          reason: 'Please restore this post now',
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.post.findFirst).toHaveBeenCalledWith({
+        where: { id: 'someone-elses-post', profile: { userId: 'user-1' } },
+        select: { id: true },
+      });
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses an appeal about a strike of another account', async () => {
+      mockPrismaService.profileStrike.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'STRIKE' as any,
+          targetId: 'strike-of-someone-else',
+          reason: 'This strike is not fair at all',
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a second pending appeal about the same decision', async () => {
+      mockPrismaService.profileStrike.findFirst.mockResolvedValue({
+        id: 'strike-1',
+      });
+      mockPrismaService.appeal.findFirst.mockResolvedValue({ id: 'appeal-0' });
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'STRIKE' as any,
+          targetId: 'strike-1',
+          reason: 'This strike is not fair at all',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('update', () => {
+    const pendingAppeal = (overrides: Record<string, unknown>) => ({
+      id: 'appeal-1',
+      userId: 'user-1',
+      status: 'PENDING',
+      resolvedAt: null,
+      user: { profiles: [] },
+      ...overrides,
+    });
+
+    beforeEach(() => {
+      mockPrismaService.appeal.update.mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          id: 'appeal-1',
+          ...data,
+        }),
+      );
+      mockPrismaService.adminIdentity.findUnique.mockResolvedValue(null);
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profileStrike.findUnique.mockResolvedValue({
+        profileId: 'profile-1',
+      });
+    });
+
+    it('approving a strike appeal withdraws that strike', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'STRIKE', targetId: 'strike-1' }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(mockStrikesService.revokeForAppeal).toHaveBeenCalledWith(
+        mockPrismaService,
+        'strike-1',
+      );
+      expect(
+        mockStrikesService.liftRestrictionForAppeal,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('rejecting a strike appeal keeps the strike', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'STRIKE', targetId: 'strike-1' }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'REJECTED' as any },
+        'admin-1',
+      );
+
+      expect(mockStrikesService.revokeForAppeal).not.toHaveBeenCalled();
+    });
+
+    it('approving a ban appeal lifts the restriction of that Profile only', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({ targetType: 'ACCOUNT_BAN', targetId: 'profile-2' }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(mockStrikesService.liftRestrictionForAppeal).toHaveBeenCalledTimes(
+        1,
+      );
+      expect(mockStrikesService.liftRestrictionForAppeal).toHaveBeenCalledWith(
+        mockPrismaService,
+        'profile-2',
+      );
+      expect(mockPrismaService.profile.findMany).not.toHaveBeenCalled();
+    });
+
+    it('approving an already approved appeal does not repeat its effects', async () => {
+      mockPrismaService.appeal.findUnique.mockResolvedValue(
+        pendingAppeal({
+          targetType: 'STRIKE',
+          targetId: 'strike-1',
+          status: 'APPROVED',
+        }),
+      );
+
+      await service.update(
+        'appeal-1',
+        { status: 'APPROVED' as any },
+        'admin-1',
+      );
+
+      expect(mockStrikesService.revokeForAppeal).not.toHaveBeenCalled();
     });
   });
 

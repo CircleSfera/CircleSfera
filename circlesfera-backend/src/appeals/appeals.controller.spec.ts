@@ -126,6 +126,27 @@ describe('AppealsController', () => {
     expect(mockService.create).toHaveBeenCalledWith('banned-1', createDto);
   });
 
+  it('an appeal from the login screen is about the Profile in the appeal token', async () => {
+    mockJwt.verify.mockReturnValue({
+      isAppealToken: true,
+      sub: 'banned-1',
+      profileId: 'profile-9',
+    });
+    mockService.create.mockResolvedValue({ id: 'appeal-2' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/appeals')
+      .set('x-appeal-token', 'token-1')
+      .send({ targetType: 'ACCOUNT_BAN', reason: 'I did not break the rules' })
+      .expect(201);
+
+    expect(mockService.create).toHaveBeenCalledWith('banned-1', {
+      targetType: 'ACCOUNT_BAN',
+      targetId: 'profile-9',
+      reason: 'I did not break the rules',
+    });
+  });
+
   it('rejects an invalid appeal token', async () => {
     mockJwt.verify.mockImplementation(() => {
       throw new Error('expired');

@@ -529,7 +529,9 @@ describe('AuthService', () => {
       await expect(service.login(dto)).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Major violation',
+          details: {
+            reason: 'Major violation',
+          },
         }),
       );
     });
@@ -576,8 +578,10 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_BANNED,
-            reason: 'Community strike 3',
-            appealToken: expect.any(String),
+            details: expect.objectContaining({
+              reason: 'Community strike 3',
+              appealToken: expect.any(String),
+            }),
           }),
         }),
       );
@@ -650,7 +654,9 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_BANNED,
-            reason: 'First ban',
+            details: expect.objectContaining({
+              reason: 'First ban',
+            }),
           }),
         }),
       );
@@ -1007,7 +1013,9 @@ describe('AuthService', () => {
       await expect(service.loginById('u-banned-inactive')).rejects.toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Fraud violation',
+          details: {
+            reason: 'Fraud violation',
+          },
         }),
       );
     });
@@ -1023,7 +1031,9 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_BANNED,
-            appealToken: expect.any(String),
+            details: expect.objectContaining({
+              appealToken: expect.any(String),
+            }),
           }),
         }),
       );
@@ -1041,8 +1051,10 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_BANNED,
-            reason: 'Spam violation',
-            appealToken: expect.any(String),
+            details: expect.objectContaining({
+              reason: 'Spam violation',
+              appealToken: expect.any(String),
+            }),
           }),
         }),
       );
@@ -1230,7 +1242,9 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_SUSPENDED,
-            suspendedUntil: futureDate.toISOString(),
+            details: expect.objectContaining({
+              suspendedUntil: futureDate.toISOString(),
+            }),
           }),
         }),
       );
@@ -1287,8 +1301,10 @@ describe('AuthService', () => {
         expect.objectContaining({
           response: expect.objectContaining({
             message: ApiErrorCode.ACCOUNT_BANNED,
-            reason: 'TOS violation',
-            appealToken: expect.any(String),
+            details: expect.objectContaining({
+              reason: 'TOS violation',
+              appealToken: expect.any(String),
+            }),
           }),
         }),
       );

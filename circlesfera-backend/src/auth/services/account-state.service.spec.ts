@@ -154,7 +154,9 @@ describe('AccountStateService', () => {
       expect(() => service.assertOperational(user)).toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Fraudulent activity',
+          details: {
+            reason: 'Fraudulent activity',
+          },
         }),
       );
     });
@@ -172,7 +174,9 @@ describe('AccountStateService', () => {
       expect(() => service.assertOperational(user, profile)).toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: 'Impersonation violation',
+          details: {
+            reason: 'Impersonation violation',
+          },
         }),
       );
     });
@@ -190,7 +194,9 @@ describe('AccountStateService', () => {
       expect(() => service.assertOperational(user, profile)).toThrow(
         new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: future.toISOString(),
+          details: {
+            suspendedUntil: future.toISOString(),
+          },
         }),
       );
     });

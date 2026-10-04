@@ -508,6 +508,58 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
           </p>
         )}
       </section>
+
+      <section data-testid="user-strikes">
+        <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2 flex items-center gap-1.5">
+          <AlertCircle size={12} className="text-amber-400" />
+          {t('admin.user_preview.strikes_title', {
+            count: user.strikeCount ?? 0,
+          })}
+        </h4>
+        <ul className="divide-y divide-white/5">
+          {(user.strikes ?? []).map((strike) => (
+            <li key={strike.id} className="py-2 space-y-0.5 text-xs">
+              <div className="flex justify-between items-center gap-2">
+                <span className="text-white/80 truncate min-w-0">
+                  {strike.kind === 'WARNING'
+                    ? t('settings.appeals.strike_kind_warning')
+                    : t('settings.appeals.strike_kind_strike')}
+                  {' · '}
+                  {t(`settings.appeals.strike_reason.${strike.reason}`)}
+                  {' · @'}
+                  {strike.username}
+                </span>
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase shrink-0 ${
+                    strike.status === 'ACTIVE'
+                      ? 'bg-amber-500/15 text-amber-300'
+                      : 'bg-white/5 text-white/50'
+                  }`}
+                >
+                  {t(
+                    `settings.appeals.strike_status_${strike.status.toLowerCase()}`,
+                  )}
+                </span>
+              </div>
+              <p className="text-white/40">
+                {new Date(strike.createdAt).toLocaleDateString()}
+                {' → '}
+                {new Date(strike.expiresAt).toLocaleDateString()}
+                {strike.consequence === 'SUSPENDED'
+                  ? ` · ${t('settings.appeals.strike_consequence_suspended')}`
+                  : strike.consequence === 'BANNED'
+                    ? ` · ${t('settings.appeals.strike_consequence_banned')}`
+                    : ''}
+              </p>
+            </li>
+          ))}
+        </ul>
+        {(user.strikes ?? []).length === 0 && (
+          <p className="text-xs text-white/40 py-1">
+            {t('admin.user_preview.no_strikes')}
+          </p>
+        )}
+      </section>
     </div>
   );
 }

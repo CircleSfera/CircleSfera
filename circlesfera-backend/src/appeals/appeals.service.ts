@@ -1,5 +1,11 @@
 import type { ModerationReportFiledEvent } from '@circlesfera/shared';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
@@ -8,6 +14,7 @@ import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ProfileStrikesService } from '../strikes/profile-strikes.service.js';
 import { CreateAppealDto } from './dto/create-appeal.dto.js';
 import { UpdateAppealDto } from './dto/update-appeal.dto.js';
 
@@ -19,14 +26,74 @@ export class AppealsService {
     private readonly notificationsService: NotificationsService,
     @Inject(EmailService) private readonly emailService: EmailService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(ProfileStrikesService)
+    private readonly strikesService: ProfileStrikesService,
   ) {}
 
+  // The appealed item must belong to the appellant: approving an appeal
+  // restores it, so an appeal about someone else's post, strike or Profile
+  // is refused. Returns the target id to store.
+  private async resolveOwnedTarget(
+    userId: string,
+    dto: CreateAppealDto,
+  ): Promise<string | undefined> {
+    const targetId = dto.targetId?.trim() || undefined;
+    switch (dto.targetType) {
+      case 'POST_REMOVAL': {
+        if (!targetId) throw new BadRequestException('targetId is required');
+        const post = await this.prisma.post.findFirst({
+          where: { id: targetId, profile: { userId } },
+          select: { id: true },
+        });
+        if (!post) throw new NotFoundException('Post not found');
+        return targetId;
+      }
+      case 'STRIKE': {
+        if (!targetId) throw new BadRequestException('targetId is required');
+        const strike = await this.prisma.profileStrike.findFirst({
+          where: { id: targetId, profile: { userId } },
+          select: { id: true },
+        });
+        if (!strike) throw new NotFoundException('Strike not found');
+        return targetId;
+      }
+      case 'ACCOUNT_BAN': {
+        if (!targetId) return undefined;
+        const profile = await this.prisma.profile.findFirst({
+          where: { id: targetId, userId },
+          select: { id: true },
+        });
+        if (!profile) throw new NotFoundException('Profile not found');
+        return targetId;
+      }
+      default:
+        return undefined;
+    }
+  }
+
   async create(userId: string, dto: CreateAppealDto) {
+    const targetId = await this.resolveOwnedTarget(userId, dto);
+
+    const pending = await this.prisma.appeal.findFirst({
+      where: {
+        userId,
+        targetType: dto.targetType,
+        targetId: targetId ?? null,
+        status: 'PENDING',
+      },
+      select: { id: true },
+    });
+    if (pending) {
+      throw new ConflictException(
+        'An appeal for this decision is already pending',
+      );
+    }
+
     const appeal = await this.prisma.appeal.create({
       data: {
         userId,
         targetType: dto.targetType,
-        targetId: dto.targetId,
+        targetId,
         reason: dto.reason,
       },
     });
@@ -35,7 +102,7 @@ export class AppealsService {
       reportId: appeal.id,
       reporterId: userId,
       targetType: dto.targetType,
-      targetId: dto.targetId || 'N/A',
+      targetId: targetId || 'N/A',
       reason: `New Appeal Created: ${dto.reason}`,
     };
     this.eventEmitter.emit('moderation.report_filed', reportFiledEvent);
@@ -69,7 +136,6 @@ export class AppealsService {
               id: true,
               email: true,
               isActive: true,
-              strikeCount: true,
               profiles: {
                 select: {
                   username: true,
@@ -123,6 +189,28 @@ export class AppealsService {
                 : 'ACTIVE',
             type: 'ACCOUNT',
           };
+        } else if (appeal.targetType === 'STRIKE' && appeal.targetId) {
+          const strike = await this.prisma.profileStrike.findUnique({
+            where: { id: appeal.targetId },
+            select: {
+              kind: true,
+              reason: true,
+              consequence: true,
+              revokedAt: true,
+              expiresAt: true,
+            },
+          });
+          if (strike) {
+            targetPreview = {
+              text: `${strike.kind} for ${strike.reason}${strike.consequence === 'NONE' ? '' : ` (${strike.consequence})`}`,
+              moderationStatus: strike.revokedAt
+                ? 'REVOKED'
+                : strike.expiresAt > new Date()
+                  ? 'ACTIVE'
+                  : 'EXPIRED',
+              type: 'STRIKE',
+            };
+          }
         } else if (appeal.targetType === 'BOT_LABEL') {
           targetPreview = {
             text: 'Possible bot label',
@@ -182,12 +270,30 @@ export class AppealsService {
         },
       });
 
-      if (dto.status === 'APPROVED') {
+      // Approving twice must not repeat the side effects.
+      if (dto.status === 'APPROVED' && appeal.status !== 'APPROVED') {
+        if (appeal.targetType === 'STRIKE' && appeal.targetId) {
+          await this.strikesService.revokeForAppeal(tx, appeal.targetId);
+        }
         if (appeal.targetType === 'ACCOUNT_BAN') {
-          await tx.profile.updateMany({
-            where: { userId: appeal.userId },
-            data: { suspendedUntil: null },
-          });
+          // A Profile ban or suspension is lifted on that Profile only.
+          // Older appeals carry no Profile, so every restricted Profile of
+          // the account is lifted.
+          const restricted = appeal.targetId
+            ? [{ id: appeal.targetId }]
+            : await tx.profile.findMany({
+                where: {
+                  userId: appeal.userId,
+                  OR: [
+                    { isAccountBanned: true },
+                    { suspendedUntil: { not: null } },
+                  ],
+                },
+                select: { id: true },
+              });
+          for (const profile of restricted) {
+            await this.strikesService.liftRestrictionForAppeal(tx, profile.id);
+          }
           await tx.user.update({
             where: { id: appeal.userId },
             data: {
@@ -248,10 +354,7 @@ export class AppealsService {
       this.prisma,
       adminId,
     );
-    const appealProfile = await this.prisma.profile.findFirst({
-      where: { userId: appeal.userId },
-      select: { id: true },
-    });
+    const appealProfile = await this.appealedProfile(appeal);
     if (appealProfile) {
       await this.notificationsService
         .create({
@@ -293,5 +396,29 @@ export class AppealsService {
     }
 
     return updatedAppeal;
+  }
+
+  // The Profile the appealed decision was about, to send the outcome there;
+  // falls back to the account's first Profile.
+  private async appealedProfile(appeal: {
+    userId: string;
+    targetType: string;
+    targetId: string | null;
+  }): Promise<{ id: string } | null> {
+    if (appeal.targetType === 'STRIKE' && appeal.targetId) {
+      const strike = await this.prisma.profileStrike.findUnique({
+        where: { id: appeal.targetId },
+        select: { profileId: true },
+      });
+      if (strike) return { id: strike.profileId };
+    }
+    if (appeal.targetType === 'ACCOUNT_BAN' && appeal.targetId) {
+      return { id: appeal.targetId };
+    }
+    return this.prisma.profile.findFirst({
+      where: { userId: appeal.userId },
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
   }
 }

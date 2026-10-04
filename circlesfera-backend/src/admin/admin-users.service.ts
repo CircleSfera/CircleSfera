@@ -15,6 +15,7 @@ import { TurnstileService } from '../common/abuse/turnstile.service.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
@@ -711,6 +712,20 @@ export class AdminUsersService {
               take: 3,
               select: { id: true, caption: true, createdAt: true, type: true },
             },
+            strikes: {
+              orderBy: { createdAt: 'desc' },
+              take: 20,
+              select: {
+                id: true,
+                kind: true,
+                reason: true,
+                consequence: true,
+                reportId: true,
+                createdAt: true,
+                expiresAt: true,
+                revokedAt: true,
+              },
+            },
             _count: {
               select: {
                 posts: true,
@@ -748,10 +763,32 @@ export class AdminUsersService {
       .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
       .slice(0, 3);
 
+    // Warnings and strikes of every Profile of the account, newest first.
+    const now = new Date();
+    const strikes = user.profiles
+      .flatMap((p) =>
+        p.strikes.map((strike) => ({
+          ...strike,
+          profileId: p.id,
+          username: p.username,
+          status: strike.revokedAt
+            ? ('REVOKED' as const)
+            : strike.expiresAt > now
+              ? ('ACTIVE' as const)
+              : ('EXPIRED' as const),
+        })),
+      )
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
     const { profiles: _profiles, linkedAdminIdentities, ...userRest } = user;
 
     return {
       ...userRest,
+      // Active strikes across the account's Profiles.
+      strikeCount: strikes.filter(
+        (s) => s.kind === 'STRIKE' && s.status === 'ACTIVE',
+      ).length,
+      strikes,
       role: linkedAdminIdentities.length > 0 ? Role.ADMIN : user.role,
       profile: primaryProfile
         ? {
@@ -840,9 +877,15 @@ export class AdminUsersService {
         emailVerified: true,
         identityVerifiedAt: true,
         botLabeledAt: true,
-        strikeCount: true,
         isActive: true,
-        profiles: { select: { username: true, fullName: true, avatar: true } },
+        profiles: {
+          select: {
+            username: true,
+            fullName: true,
+            avatar: true,
+            _count: { select: { strikes: { where: activeStrikeWhere() } } },
+          },
+        },
       },
       take: 50,
       orderBy: { createdAt: 'desc' },
@@ -859,7 +902,8 @@ export class AdminUsersService {
         emailConfirmed: !!a.emailVerified,
         identityVerified: !!a.identityVerifiedAt,
         botLabeled: !!a.botLabeledAt,
-        strikeCount: a.strikeCount,
+        // Active strikes across the account's Profiles.
+        strikeCount: a.profiles.reduce((sum, p) => sum + p._count.strikes, 0),
         isActive: a.isActive,
       })),
     };
@@ -872,9 +916,13 @@ export class AdminUsersService {
         emailVerified: true,
         identityVerifiedAt: true,
         createdAt: true,
-        strikeCount: true,
         botLabeledAt: true,
         signupIpHash: true,
+        profiles: {
+          select: {
+            _count: { select: { strikes: { where: activeStrikeWhere() } } },
+          },
+        },
         lastIpHash: true,
         deviceSignals: { select: { visitorHash: true } },
       },
@@ -886,7 +934,7 @@ export class AdminUsersService {
       emailVerified: !!user.emailVerified,
       identityVerified: !!user.identityVerifiedAt,
       createdAt: user.createdAt,
-      strikeCount: user.strikeCount,
+      strikeCount: user.profiles.reduce((sum, p) => sum + p._count.strikes, 0),
       botLabeled: !!user.botLabeledAt,
       clusterSize: linked.clusterSize,
     });

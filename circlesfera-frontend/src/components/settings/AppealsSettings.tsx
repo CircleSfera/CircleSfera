@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -12,6 +12,7 @@ import {
 } from '../../services/appeals.service';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button, Select, Textarea } from '../ui';
+import ProfileStandingSection from './ProfileStandingSection';
 import SettingsSection from './SettingsSection';
 
 const FIELD_LABEL = 'block text-sm font-medium text-white mb-1.5';
@@ -20,6 +21,7 @@ const APPEAL_TYPES: AppealTargetType[] = [
   'POST_REMOVAL',
   'ACCOUNT_BAN',
   'BOT_LABEL',
+  'STRIKE',
 ];
 
 function parseAppealTargetType(value: string | null): AppealTargetType | null {
@@ -39,6 +41,15 @@ export default function AppealsSettings() {
   const [targetId, setTargetId] = useState('');
   const [reason, setReason] = useState('');
   const [targetIdLocked, setTargetIdLocked] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Opens the form for a warning or strike listed in the profile standing.
+  const appealStrike = (strikeId: string) => {
+    setTargetType('STRIKE');
+    setTargetId(strikeId);
+    setTargetIdLocked(true);
+    formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   useEffect(() => {
     const typeFromQuery = parseAppealTargetType(searchParams.get('targetType'));
@@ -61,6 +72,16 @@ export default function AppealsSettings() {
     queryKey: ['myAppeals'],
     queryFn: getMyAppeals,
   });
+
+  const pendingAppealIds = useMemo(
+    () =>
+      new Set(
+        (appeals ?? [])
+          .filter((a) => a.status === 'PENDING' && a.targetId)
+          .map((a) => a.targetId as string),
+      ),
+    [appeals],
+  );
 
   const createMutation = useMutation({
     mutationFn: createAppeal,
@@ -91,12 +112,18 @@ export default function AppealsSettings() {
 
   return (
     <div className="max-w-xl space-y-5">
+      <ProfileStandingSection
+        onAppeal={appealStrike}
+        pendingAppealIds={pendingAppealIds}
+      />
+
       <SettingsSection
         title={t('settings.appeals.title')}
         description={t('settings.appeals.subtitle')}
         card={false}
       >
         <form
+          ref={formRef}
           onSubmit={handleSubmit}
           className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-4"
         >
@@ -123,6 +150,9 @@ export default function AppealsSettings() {
               </option>
               <option value="BOT_LABEL">
                 {t('settings.appeals.type_bot_label')}
+              </option>
+              <option value="STRIKE">
+                {t('settings.appeals.type_strike')}
               </option>
             </Select>
           </div>
@@ -231,7 +261,9 @@ function AppealRow({ appeal }: { appeal: Appeal }) {
       ? t('settings.appeals.type_ban')
       : appeal.targetType === 'BOT_LABEL'
         ? t('settings.appeals.type_bot_label')
-        : t('settings.appeals.type_post');
+        : appeal.targetType === 'STRIKE'
+          ? t('settings.appeals.type_strike')
+          : t('settings.appeals.type_post');
 
   return (
     <li className="rounded-xl border border-white/5 bg-white/[0.02] p-4 space-y-2">

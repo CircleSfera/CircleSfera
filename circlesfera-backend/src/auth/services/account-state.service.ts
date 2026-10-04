@@ -137,12 +137,20 @@ export class AccountStateService {
       case 'BANNED':
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_BANNED,
-          reason: evaluation.reason,
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            reason: evaluation.reason,
+          },
         });
       case 'SUSPENDED':
         throw new UnauthorizedException({
           message: ApiErrorCode.ACCOUNT_SUSPENDED,
-          suspendedUntil: evaluation.suspendedUntil?.toISOString(),
+          // Extra fields go under details: the global exception filter only
+          // forwards message, errorCode and details to the client.
+          details: {
+            suspendedUntil: evaluation.suspendedUntil?.toISOString(),
+          },
         });
       default:
         throw new UnauthorizedException(

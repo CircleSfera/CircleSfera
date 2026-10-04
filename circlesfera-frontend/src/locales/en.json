@@ -326,7 +326,35 @@
       "status_approved": "Approved",
       "status_rejected": "Rejected",
       "type_bot_label": "Possible bot label",
-      "target_id_from_notification": "Filled from your moderation notification."
+      "target_id_from_notification": "Filled from your moderation notification.",
+      "type_strike": "Warning or strike",
+      "strikes_title": "This profile's standing",
+      "strikes_subtitle": "Each warning and strike expires 90 days after it is applied. With 2 active strikes the profile is suspended for 7 days; with 3, it is banned. Your other profiles are not affected.",
+      "strikes_active_count": "{{count}} of 3 active strikes",
+      "strikes_empty": "This profile has no warnings or strikes.",
+      "strikes_error": "Couldn't load this profile's standing.",
+      "strike_kind_warning": "Warning",
+      "strike_kind_strike": "Strike",
+      "strike_status_active": "Active",
+      "strike_status_expired": "Expired",
+      "strike_status_revoked": "Withdrawn on appeal",
+      "strike_consequence_suspended": "Suspended the profile for 7 days",
+      "strike_consequence_banned": "Banned the profile",
+      "strike_applied_on": "Applied on {{date}}",
+      "strike_expires_on": "Expires on {{date}}",
+      "strike_expired_on": "Expired on {{date}}",
+      "strike_appeal": "Appeal",
+      "strike_reason": {
+        "SPAM": "Spam",
+        "HARASSMENT": "Harassment",
+        "ILLEGAL_CONTENT": "Illegal content",
+        "VIOLENCE": "Violence",
+        "HATE_SPEECH": "Hate speech",
+        "IMPERSONATION": "Impersonation",
+        "CSAM": "Child sexual abuse material",
+        "SCAM": "Scam",
+        "OTHER": "Community guidelines violation"
+      }
     },
     "reports": {
       "title": "Reports",
@@ -1513,9 +1541,14 @@
       "follow_accepted": "accepted your follow request.",
       "moderation": "Moderation update: {{content}}",
       "promotion_success": "Promotion Approved! {{content}}",
-      "promotion_rejected": "Promotion Rejected. {{content}}"
+      "promotion_rejected": "Promotion Rejected. {{content}}",
+      "moderation_warning": "You received a warning for breaking the community guidelines. There is no penalty this time.",
+      "moderation_strike": "You received a strike for breaking the community guidelines.",
+      "moderation_suspension": "You received a strike and this profile is suspended for 7 days.",
+      "moderation_ban": "This profile was banned for breaking the community guidelines. Your other profiles are not affected."
     },
-    "appeal_cta": "Appeal this decision"
+    "appeal_cta": "Appeal this decision",
+    "strike_details_cta": "See details and appeal"
   },
   "chat": {
     "loading": "Loading chats...",
@@ -2959,7 +2992,9 @@
       "cluster_size": "Linked accounts in cluster: {{count}}",
       "last_ip": "Last IP",
       "signup_ip": "Signup IP",
-      "trust_title": "Trust signals"
+      "trust_title": "Trust signals",
+      "strikes_title": "Warnings and strikes ({{count}} active)",
+      "no_strikes": "No warnings or strikes."
     },
     "cmd": {
       "placeholder": "Search sections or users...",
