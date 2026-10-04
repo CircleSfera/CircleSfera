@@ -186,9 +186,15 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'post-aud' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn() },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
       mockPrismaService.$transaction.mockImplementation(async (cb) =>
         cb(mockTx),
@@ -237,9 +243,15 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'frame-1' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn() },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
       mockPrismaService.$transaction.mockImplementation(async (cb) =>
         cb(mockTx),
@@ -266,9 +278,15 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'post-vid' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn() },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
       mockPrismaService.$transaction.mockImplementation(async (cb) =>
         cb(mockTx),
@@ -309,9 +327,15 @@ describe('PostsService', () => {
           create: vi.fn().mockResolvedValue({ id: 'scheduled-post' }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn() },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
       mockPrismaService.$transaction.mockImplementation(async (cb) =>
         cb(mockTx),
@@ -354,9 +378,15 @@ describe('PostsService', () => {
             .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn().mockResolvedValue({ id: 'tag-1' }) },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
 
       mockPrismaService.$transaction.mockImplementation(
@@ -388,16 +418,25 @@ describe('PostsService', () => {
           }),
         }),
       );
-      expect(mockTx.hashtag.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { tag: 'alpha' },
-        }),
-      );
-      expect(mockTx.hashtag.upsert).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { tag: 'world' },
-        }),
-      );
+      // Hashtags are written in four batched statements, sorted by tag.
+      expect(mockTx.hashtag.createMany).toHaveBeenCalledWith({
+        data: [
+          { tag: 'alpha', postCount: 0 },
+          { tag: 'world', postCount: 0 },
+        ],
+        skipDuplicates: true,
+      });
+      expect(mockTx.hashtag.updateMany).toHaveBeenCalledWith({
+        where: { tag: { in: ['alpha', 'world'] } },
+        data: { postCount: { increment: 1 } },
+      });
+      expect(mockTx.postHashtag.createMany).toHaveBeenCalledWith({
+        data: [
+          { postId: 'post-1', hashtagId: 'tag-1' },
+          { postId: 'post-1', hashtagId: 'tag-2' },
+        ],
+        skipDuplicates: true,
+      });
 
       expect(
         mockPostDistributionService.dispatchPostPublished,
@@ -426,9 +465,15 @@ describe('PostsService', () => {
             .mockResolvedValue({ id: 'post-1', media: [] }),
         },
         postMedia: { createMany: vi.fn(), create: vi.fn() },
-        media: { create: vi.fn().mockResolvedValue({ id: 'media-1' }) },
-        hashtag: { upsert: vi.fn() },
-        postHashtag: { create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi
+            .fn()
+            .mockResolvedValue([{ id: 'tag-1' }, { id: 'tag-2' }]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
       };
 
       mockPrismaService.$transaction.mockImplementation(
@@ -448,36 +493,45 @@ describe('PostsService', () => {
 
       await service.create(profileId, dto);
 
-      expect(mockTx.media.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+      // One batched insert for Media and one for PostMedia, linked by the
+      // ids generated before the inserts.
+      expect(mockTx.media.createMany).toHaveBeenCalledTimes(1);
+      expect(mockTx.postMedia.createMany).toHaveBeenCalledTimes(1);
+      expect(mockTx.media.create).not.toHaveBeenCalled();
+      expect(mockTx.postMedia.create).not.toHaveBeenCalled();
+
+      const mediaRows = mockTx.media.createMany.mock.calls[0][0].data;
+      const postMediaRows = mockTx.postMedia.createMany.mock.calls[0][0].data;
+      expect(mediaRows).toEqual([
+        expect.objectContaining({
           kind: 'IMAGE',
           status: 'READY',
           url: 'url1',
         }),
-      });
-      expect(mockTx.media.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
+        expect.objectContaining({
           kind: 'IMAGE',
           status: 'READY',
           url: 'url2',
         }),
-      });
-      expect(mockTx.postMedia.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          mediaId: 'media-1',
+      ]);
+      expect(postMediaRows).toEqual([
+        expect.objectContaining({
+          postId: 'post-1',
           url: 'url1',
           type: 'image',
           order: 0,
         }),
-      });
-      expect(mockTx.postMedia.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({
-          mediaId: 'media-1',
+        expect.objectContaining({
+          postId: 'post-1',
           url: 'url2',
           type: 'image',
           order: 1,
         }),
-      });
+      ]);
+      expect(postMediaRows.map((r: { mediaId: string }) => r.mediaId)).toEqual(
+        mediaRows.map((r: { id: string }) => r.id),
+      );
+      expect(new Set(mediaRows.map((r: { id: string }) => r.id)).size).toBe(2);
     });
   });
 
