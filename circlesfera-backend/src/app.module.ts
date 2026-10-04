@@ -84,6 +84,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WarehouseModule } from './warehouse/warehouse.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
+import { WellKnownModule } from './well-known/well-known.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
 
 @Module({
@@ -213,6 +214,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     WarehouseModule,
     OutboxModule,
     SecurityReportsModule,
+    WellKnownModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [
