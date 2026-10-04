@@ -25,6 +25,10 @@ describe('ReviewReportUseCase assignee', () => {
     profile: {
       findFirst: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
+    post: {
+      findUnique: ReturnType<typeof vi.fn>;
     };
     user: {
       update: ReturnType<typeof vi.fn>;
@@ -33,6 +37,7 @@ describe('ReviewReportUseCase assignee', () => {
   };
   let logAdminAction: { execute: ReturnType<typeof vi.fn> };
   let notificationsService: { create: ReturnType<typeof vi.fn> };
+  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
   let useCase: ReviewReportUseCase;
 
   beforeEach(() => {
@@ -48,6 +53,10 @@ describe('ReviewReportUseCase assignee', () => {
       profile: {
         findFirst: vi.fn(),
         findUnique: vi.fn(),
+        update: vi.fn(),
+      },
+      post: {
+        findUnique: vi.fn(),
       },
       user: {
         update: vi.fn(),
@@ -58,10 +67,12 @@ describe('ReviewReportUseCase assignee', () => {
     notificationsService = {
       create: vi.fn().mockResolvedValue(undefined),
     };
+    eventEmitter = { emit: vi.fn() };
     useCase = new ReviewReportUseCase(
       prisma as never,
       notificationsService as never,
       logAdminAction as unknown as LogAdminActionUseCase,
+      eventEmitter as never,
     );
   });
 
@@ -184,27 +195,95 @@ describe('ReviewReportUseCase assignee', () => {
     );
   });
 
-  it('resolveWithPenalty STRIKE writes the strike on User and notifies Profile', async () => {
+  const reportOnPost = () => {
+    prisma.report.findUnique.mockResolvedValue({
+      id: reportId,
+      targetType: 'POST',
+      targetId: 'post-uuid',
+    });
+    prisma.post.findUnique.mockResolvedValue({
+      profile: { id: 'profile-uuid', userId: 'user-uuid' },
+    });
+    prisma.report.update.mockResolvedValue({
+      id: reportId,
+      status: ReportStatus.RESOLVED,
+    });
+  };
+
+  it('STRIKE counts against the offending Profile, never the account', async () => {
+    reportOnPost();
+    prisma.profile.update.mockResolvedValue({ strikeCount: 1 });
+
+    await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
+
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { id: 'profile-uuid' },
+      data: { strikeCount: { increment: 1 } },
+      select: { strikeCount: true },
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).not.toHaveBeenCalled();
+    expect(notificationsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: 'profile-uuid' }),
+    );
+  });
+
+  it('the third STRIKE bans only that Profile and ends only its sessions', async () => {
+    reportOnPost();
+    prisma.profile.update
+      .mockResolvedValueOnce({ strikeCount: 3 })
+      .mockResolvedValueOnce({});
+
+    await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
+
+    expect(prisma.profile.update).toHaveBeenLastCalledWith({
+      where: { id: 'profile-uuid' },
+      data: {
+        isAccountBanned: true,
+        accountBanReason: expect.stringContaining('3 strikes'),
+      },
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+    expect(eventEmitter.emit).toHaveBeenCalledWith('user.session.terminate', {
+      userId: 'user-uuid',
+      profileId: 'profile-uuid',
+      reason: expect.any(String),
+      scope: 'profile',
+    });
+  });
+
+  it('BAN bans the offending Profile and leaves the account active', async () => {
+    reportOnPost();
+    prisma.profile.update.mockResolvedValue({});
+
+    await useCase.resolveWithPenalty(adminId, reportId, 'BAN');
+
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { id: 'profile-uuid' },
+      data: {
+        isAccountBanned: true,
+        accountBanReason: expect.any(String),
+      },
+    });
+    expect(prisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('IGNORE on a Profile report at the strike limit takes one strike back', async () => {
     prisma.report.findUnique.mockResolvedValue({
       id: reportId,
       targetType: 'USER',
       targetId: 'user-uuid',
     });
     prisma.profile.findFirst.mockResolvedValue({ id: 'profile-uuid' });
-    prisma.user.update.mockResolvedValue({ id: 'user-uuid', strikeCount: 1 });
-    prisma.report.update.mockResolvedValue({
-      id: reportId,
-      status: ReportStatus.RESOLVED,
-    });
+    prisma.profile.findUnique.mockResolvedValue({ strikeCount: 3 });
+    prisma.report.update.mockResolvedValue({ id: reportId });
 
-    await useCase.resolveWithPenalty(adminId, reportId, 'STRIKE');
+    await useCase.resolveWithPenalty(adminId, reportId, 'IGNORE');
 
-    expect(prisma.user.update).toHaveBeenCalledWith({
-      where: { id: 'user-uuid' },
-      data: { strikeCount: { increment: 1 } },
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { id: 'profile-uuid' },
+      data: { strikeCount: { decrement: 1 } },
     });
-    expect(notificationsService.create).toHaveBeenCalledWith(
-      expect.objectContaining({ recipientId: 'profile-uuid' }),
-    );
+    expect(prisma.user.update).not.toHaveBeenCalled();
   });
 });

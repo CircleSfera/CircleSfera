@@ -40,6 +40,12 @@ describe('AuthService', () => {
     profile: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
+      // Sign-in reads the account's Profiles; tests configure the single
+      // Profile through findFirst.
+      findMany: vi.fn(async () => {
+        const profile = await mockPrismaService.profile.findFirst();
+        return profile ? [profile] : [];
+      }),
     },
     refreshToken: {
       findUnique: vi.fn(),
@@ -572,6 +578,79 @@ describe('AuthService', () => {
             message: ApiErrorCode.ACCOUNT_BANNED,
             reason: 'Community strike 3',
             appealToken: expect.any(String),
+          }),
+        }),
+      );
+    });
+
+    it('signs in with another Profile when the first Profile is banned', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'multi-profile-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isRootBanned: false,
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        {
+          id: 'prof-banned',
+          isAccountBanned: true,
+          accountBanReason: 'Community strike 3',
+          suspendedUntil: null,
+        },
+        {
+          id: 'prof-ok',
+          isAccountBanned: false,
+          accountBanReason: null,
+          suspendedUntil: null,
+        },
+      ]);
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      const result = await service.login(dto);
+
+      expect(result).toHaveProperty('accessToken');
+      expect(issue).toHaveBeenCalledWith(
+        'multi-profile-user',
+        dto.identifier,
+        undefined,
+        undefined,
+        undefined,
+        'prof-ok',
+      );
+      issue.mockRestore();
+    });
+
+    it('refuses sign-in only when every Profile is banned', async () => {
+      const argonHash = await argon2.hash(dto.password);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'all-banned-user',
+        email: dto.identifier,
+        password: argonHash,
+        isActive: true,
+        isRootBanned: false,
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        {
+          id: 'prof-a',
+          isAccountBanned: true,
+          accountBanReason: 'First ban',
+          suspendedUntil: null,
+        },
+        {
+          id: 'prof-b',
+          isAccountBanned: true,
+          accountBanReason: 'Second ban',
+          suspendedUntil: null,
+        },
+      ]);
+
+      await expect(service.login(dto)).rejects.toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({
+            message: ApiErrorCode.ACCOUNT_BANNED,
+            reason: 'First ban',
           }),
         }),
       );

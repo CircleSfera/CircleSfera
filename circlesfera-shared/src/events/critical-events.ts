@@ -188,6 +188,9 @@ export interface UserSessionTerminateEvent {
     userId: string;
     profileId?: string;
     reason?: string;
+    // 'profile' ends only the sessions acting as profileId (a Profile-level
+    // sanction); the default ends every session of the account.
+    scope?: 'account' | 'profile';
   };
 }
 
