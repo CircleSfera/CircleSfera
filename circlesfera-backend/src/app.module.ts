@@ -73,6 +73,7 @@ import { ProfilesModule } from './profiles/profiles.module.js';
 import { PushModule } from './push/push.module.js';
 import { ReportsModule } from './reports/reports.module.js';
 import { SearchModule } from './search/search.module.js';
+import { SecurityReportsModule } from './security-reports/security-reports.module.js';
 import { SeoModule } from './seo/seo.module.js';
 import { SlackModule } from './slack/slack.module.js';
 import { SocketModule } from './socket/socket.module.js';
@@ -83,6 +84,7 @@ import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
 import { WarehouseModule } from './warehouse/warehouse.module.js';
 import { WebrtcModule } from './webrtc/webrtc.module.js';
+import { WellKnownModule } from './well-known/well-known.module.js';
 import { WhitelistModule } from './whitelist/whitelist.module.js';
 
 @Module({
@@ -211,6 +213,8 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     LiveModule,
     WarehouseModule,
     OutboxModule,
+    SecurityReportsModule,
+    WellKnownModule,
   ],
   controllers: [AppController, CsrfController],
   providers: [

@@ -12,7 +12,10 @@ describe('JwtStrategy', () => {
   let strategy: JwtStrategy;
   let mockPrisma: {
     user: { findUnique: ReturnType<typeof vi.fn> };
-    profile: { findFirst: ReturnType<typeof vi.fn> };
+    profile: {
+      findFirst: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
   };
   let mockConfigService: {
     getOrThrow: ReturnType<typeof vi.fn>;
@@ -21,8 +24,16 @@ describe('JwtStrategy', () => {
   beforeEach(async () => {
     mockPrisma = {
       user: { findUnique: vi.fn() },
-      profile: { findFirst: vi.fn() },
+      profile: { findFirst: vi.fn(), findMany: vi.fn() },
     };
+    // The strategy reads the account's Profiles; tests configure them
+    // through findFirst (one call per Profile).
+    mockPrisma.profile.findMany.mockImplementation(async () => {
+      const profile = await (
+        mockPrisma.profile.findFirst as () => Promise<unknown>
+      )();
+      return profile ? [profile] : [];
+    });
 
     mockConfigService = {
       getOrThrow: vi
@@ -206,18 +217,26 @@ describe('JwtStrategy', () => {
       expect(result.isTestAccount).toBe(true);
     });
 
-    it('resolves specific profile when profileId is provided in token payload', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({
-        id: 'u-1',
-        isActive: true,
-        isRootBanned: false,
-        email: 'test@example.com',
-        role: 'USER',
-      });
-      mockPrisma.profile.findFirst.mockResolvedValue({
-        id: 'prof-2',
-        suspendedUntil: null,
-      });
+    const activeUser = {
+      id: 'u-1',
+      isActive: true,
+      isRootBanned: false,
+      email: 'test@example.com',
+      role: 'USER',
+    };
+    const profileRow = (id: string, isAccountBanned = false) => ({
+      id,
+      isAccountBanned,
+      accountBanReason: isAccountBanned ? 'Banned after a report review' : null,
+      suspendedUntil: null,
+    });
+
+    it('acts as the Profile bound to the session', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(activeUser);
+      mockPrisma.profile.findMany.mockResolvedValue([
+        profileRow('prof-1'),
+        profileRow('prof-2'),
+      ]);
 
       const result = await strategy.validate({
         sub: 'u-1',
@@ -225,15 +244,40 @@ describe('JwtStrategy', () => {
         profileId: 'prof-2',
       });
 
-      expect(mockPrisma.profile.findFirst).toHaveBeenCalledWith({
-        where: { id: 'prof-2', userId: 'u-1' },
-        select: {
-          id: true,
-          isAccountBanned: true,
-          accountBanReason: true,
-          suspendedUntil: true,
-        },
+      expect(mockPrisma.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { userId: 'u-1' } }),
+      );
+      expect(result.profileId).toBe('prof-2');
+    });
+
+    it('rejects a session bound to a banned Profile instead of switching Profile', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(activeUser);
+      mockPrisma.profile.findMany.mockResolvedValue([
+        profileRow('prof-1'),
+        profileRow('prof-2', true),
+      ]);
+
+      await expect(
+        strategy.validate({
+          sub: 'u-1',
+          email: 'test@example.com',
+          profileId: 'prof-2',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+    });
+
+    it('without a bound Profile, uses the oldest Profile that is not banned', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue(activeUser);
+      mockPrisma.profile.findMany.mockResolvedValue([
+        profileRow('prof-1', true),
+        profileRow('prof-2'),
+      ]);
+
+      const result = await strategy.validate({
+        sub: 'u-1',
+        email: 'test@example.com',
       });
+
       expect(result.profileId).toBe('prof-2');
     });
 

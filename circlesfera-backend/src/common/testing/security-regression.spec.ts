@@ -43,6 +43,12 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
         profile: {
           findFirst: vi.fn().mockResolvedValue(null),
           findUnique: vi.fn(),
+          // Sign-in reads the account's Profiles; each test sets the single
+          // Profile through findFirst.
+          findMany: vi.fn(async () => {
+            const profile = await mockPrisma.profile.findFirst();
+            return profile ? [profile] : [];
+          }),
         },
         refreshToken: {
           create: vi.fn().mockResolvedValue({ id: 'rt-1', token: 'hash' }),

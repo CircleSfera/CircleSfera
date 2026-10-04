@@ -1,4 +1,5 @@
 import { IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { MIN_TIP_CENTS } from '../../common/constants/monetization.constants.js';
 
 export class SendTipDto {
   @IsString()
@@ -6,7 +7,9 @@ export class SendTipDto {
   receiverId!: string;
 
   @IsInt()
-  @Min(100, { message: 'Minimum tip is $1.00 USD' })
+  @Min(MIN_TIP_CENTS, {
+    message: `Minimum tip is €${(MIN_TIP_CENTS / 100).toFixed(2)}`,
+  })
   amountCents!: number;
 
   @IsString()

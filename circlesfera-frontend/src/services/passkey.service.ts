@@ -30,5 +30,14 @@ export const passkeyApi = {
 
   listPasskeys: () => apiClient.get<PasskeyInfo[]>('auth/passkey'),
 
-  deletePasskey: (id: string) => apiClient.delete(`auth/passkey/${id}`),
+  // Biometric or PIN confirmation required before removing a passkey.
+  getStepUpOptions: () => apiClient.post('auth/passkey/step-up-options'),
+
+  deletePasskey: (
+    id: string,
+    authenticationResponse: Record<string, unknown>,
+  ) =>
+    apiClient.delete(`auth/passkey/${id}`, {
+      data: { authenticationResponse },
+    }),
 };

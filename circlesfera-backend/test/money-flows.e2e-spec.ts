@@ -4,7 +4,10 @@ import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { AppModule } from './../src/app.module.js';
-import { MIN_PPV_PRICE_CENTS } from '../src/common/constants/monetization.constants.js';
+import {
+  MIN_PPV_PRICE_CENTS,
+  MIN_TIP_CENTS,
+} from '../src/common/constants/monetization.constants.js';
 import { LIVE_GIFT_CATALOG } from '../src/live/gift-catalog.js';
 import { PrismaService } from '../src/prisma/prisma.service.js';
 import { uniqueSuffix } from './utils/unique-id.js';
@@ -311,21 +314,21 @@ describe('Money flows (e2e)', () => {
       );
     });
 
-    it('rejects a tip below the $1.00 minimum', async () => {
+    it('rejects a tip below the €2.00 minimum', async () => {
       const res = await request(app.getHttpServer())
         .post('/api/v1/monetization/tip')
         .set('Cookie', [`access_token=${accessToken}`, csrfCookie])
         .set('x-csrf-token', csrfToken)
         .send({
           receiverId: userId,
-          // Tip minimum (100 cents) is hardcoded and independent of
-          // MIN_PPV_PRICE_CENTS (the PPV content price floor).
-          amountCents: 99,
+          // Tip minimum is MIN_TIP_CENTS (€2.00), independent of
+          // MIN_PPV_PRICE_CENTS (the pay-per-view price floor).
+          amountCents: MIN_TIP_CENTS - 1,
           returnUrl: 'http://localhost:5173/',
         })
         .expect(400);
 
-      expect(String(res.body.message)).toContain('Minimum tip is $1.00 USD');
+      expect(String(res.body.message)).toContain('Minimum tip is €2.00');
     });
 
     it('rejects unlock payloads that include a client price', async () => {

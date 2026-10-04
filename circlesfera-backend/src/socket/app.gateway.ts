@@ -959,7 +959,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @OnEvent('user.session.terminate')
   handleUserSessionTerminate(event: UserSessionTerminateEvent['payload']) {
-    const { userId, profileId, reason = 'Account state changed' } = event;
+    const {
+      userId,
+      profileId,
+      reason = 'Account state changed',
+      scope = 'account',
+    } = event;
     this.logger.log(
       `Terminating realtime sessions for user=${userId} profile=${profileId} (reason: ${reason})`,
     );
@@ -978,10 +983,10 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     for (const client of this.connectedSockets()) {
       const authData = client.data;
-      if (
-        authData?.user?.sub === userId ||
-        (profileId && authData?.user?.profileId === profileId)
-      ) {
+      const sameProfile =
+        !!profileId && authData?.user?.profileId === profileId;
+      const sameAccount = scope === 'account' && authData?.user?.sub === userId;
+      if (sameProfile || sameAccount) {
         client.emit('session_terminated', { reason });
         client.disconnect(true);
       }

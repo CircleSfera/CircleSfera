@@ -1,5 +1,9 @@
-import { DollarSign } from 'lucide-react';
+import { Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  MAX_PPV_PRICE_EUR,
+  MIN_PPV_PRICE_EUR,
+} from '../../constants/monetization';
 import { Switch } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
 import SubScreenHeader from './SubScreenHeader';
@@ -31,7 +35,7 @@ export default function MonetizationSubScreen({
       <div className={SUBSCREEN_BODY}>
         <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 flex items-start gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
-            <DollarSign size={14} className="text-brand-primary" />
+            <Euro size={14} className="text-brand-primary" />
           </div>
           <div className="flex-1 min-w-0">
             <Switch
@@ -61,8 +65,8 @@ export default function MonetizationSubScreen({
               <input
                 id="premium-price"
                 type="number"
-                min="1"
-                max="500"
+                min={MIN_PPV_PRICE_EUR}
+                max={MAX_PPV_PRICE_EUR}
                 step="0.50"
                 value={price || ''}
                 onChange={(e) =>
@@ -73,18 +77,18 @@ export default function MonetizationSubScreen({
               />
             </div>
 
-            {price > 0 && price < 1 && (
+            {price > 0 && price < MIN_PPV_PRICE_EUR && (
               <p className="text-[11px] text-brand-accent font-medium">
                 {t('createPost.caption.min_price_warning')}
               </p>
             )}
-            {price > 500 && (
+            {price > MAX_PPV_PRICE_EUR && (
               <p className="text-[11px] text-brand-accent font-medium">
                 {t('createPost.caption.max_price_warning')}
               </p>
             )}
 
-            {price >= 1 && price <= 500 && (
+            {price >= MIN_PPV_PRICE_EUR && price <= MAX_PPV_PRICE_EUR && (
               <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-[11px] text-white/80 space-y-0.5">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>

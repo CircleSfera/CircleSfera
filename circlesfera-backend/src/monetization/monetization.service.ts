@@ -4,6 +4,7 @@ import {
   canMonetize,
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
+  MIN_TIP_CENTS,
   PLATFORM_FEE_DECIMAL,
 } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
@@ -368,10 +369,10 @@ export class MonetizationService {
     postId?: string,
     idempotencyKey?: string,
   ) {
-    if (amountCents < 100) {
+    if (amountCents < MIN_TIP_CENTS) {
       throw AppException.BadRequest(
         ErrorCode.MINIMUM_TIP_NOT_MET,
-        'Minimum tip is €1.00',
+        `Minimum tip is €${(MIN_TIP_CENTS / 100).toFixed(2)}`,
       );
     }
     if (senderId === receiverId)

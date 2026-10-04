@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
   ForbiddenException,
@@ -217,49 +218,58 @@ export class PostsService {
           },
         });
 
-        // Create PostMedia entries, each linked to its own Media lifecycle
-        // row. Individual creates rather than createMany since createMany
-        // can't express the relation write. The Media row is created first
-        // (separately, not nested) because mixing a raw postId FK with a
-        // nested `media: { create }` relation isn't a valid Prisma input
-        // shape — Prisma requires either all-relations or all-raw-FKs.
+        // Media and PostMedia rows are written in two batched inserts. Media
+        // ids are generated here so each PostMedia row can reference its
+        // Media row without a query per item.
         if (dto.media && dto.media.length > 0) {
-          for (const [index, item] of dto.media.entries()) {
-            const media = await tx.media.create({
-              data: buildMediaCreateInput(item),
-            });
-            await tx.postMedia.create({
-              data: {
-                postId: post.id,
-                mediaId: media.id,
-                url: item.url,
-                standardUrl: item.standardUrl,
-                thumbnailUrl: item.thumbnailUrl,
-                type: item.type || 'image',
-                filter: item.filter,
-                altText: item.altText,
-                order: index,
-              },
-            });
-          }
+          const items = dto.media.map((item, index) => ({
+            item,
+            index,
+            mediaId: randomUUID(),
+          }));
+          await tx.media.createMany({
+            data: items.map(({ item, mediaId }) => ({
+              id: mediaId,
+              ...buildMediaCreateInput(item),
+            })),
+          });
+          await tx.postMedia.createMany({
+            data: items.map(({ item, index, mediaId }) => ({
+              postId: post.id,
+              mediaId,
+              url: item.url,
+              standardUrl: item.standardUrl,
+              thumbnailUrl: item.thumbnailUrl,
+              type: item.type || 'image',
+              filter: item.filter,
+              altText: item.altText,
+              order: index,
+            })),
+          });
         }
 
-        // Process hashtags inside the transaction (sorted to avoid deadlocks)
+        // Hashtags in four statements whatever their number: create the
+        // missing tags, increment every tag's count, read their ids, link
+        // them to the post. Tags are sorted so concurrent posts touch rows in
+        // the same order.
         if (uniqueTags.length > 0) {
           const sortedTags = [...uniqueTags].sort();
-          for (const tag of sortedTags) {
-            const hashtag = await tx.hashtag.upsert({
-              where: { tag },
-              create: { tag, postCount: 1 },
-              update: { postCount: { increment: 1 } },
-            });
-            await tx.postHashtag.create({
-              data: {
-                postId: post.id,
-                hashtagId: hashtag.id,
-              },
-            });
-          }
+          await tx.hashtag.createMany({
+            data: sortedTags.map((tag) => ({ tag, postCount: 0 })),
+            skipDuplicates: true,
+          });
+          await tx.hashtag.updateMany({
+            where: { tag: { in: sortedTags } },
+            data: { postCount: { increment: 1 } },
+          });
+          const hashtags = await tx.hashtag.findMany({
+            where: { tag: { in: sortedTags } },
+            select: { id: true },
+          });
+          await tx.postHashtag.createMany({
+            data: hashtags.map((h) => ({ postId: post.id, hashtagId: h.id })),
+            skipDuplicates: true,
+          });
         }
 
         return post;

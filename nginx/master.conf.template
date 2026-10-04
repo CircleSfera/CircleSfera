@@ -17,6 +17,12 @@ server {
     # messages) and location (composer, map); other sites embedding it do not.
     add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+    # Content Security Policy for the web app, in report-only mode: browsers
+    # report violations to the backend and block nothing yet. Origins: the app
+    # and its API (self), realtime sockets, LiveKit, Sentry, Mapbox, Cloudflare
+    # Turnstile and Google Fonts; blob: and wasm for the video editor (ffmpeg)
+    # and map workers. Enforce it once the reports are clean.
+    add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss://circlesfera.com wss://www.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report" always;
     # nginx owns these headers; drop the backend copies so each is sent once.
     proxy_hide_header X-Frame-Options;
     proxy_hide_header Strict-Transport-Security;
@@ -180,6 +186,22 @@ server {
 
     location = /robots.txt {
         proxy_pass $backend_upstream/api/v1/robots.txt;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    # App links: iOS and Android fetch these files to open circlesfera.com
+    # links in the native apps. They must be JSON, served without redirects.
+    location = /.well-known/apple-app-site-association {
+        proxy_pass $backend_upstream/api/v1/.well-known/apple-app-site-association;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    location = /.well-known/assetlinks.json {
+        proxy_pass $backend_upstream/api/v1/.well-known/assetlinks.json;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;

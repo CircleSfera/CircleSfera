@@ -296,6 +296,9 @@ model Profile {
   isAccountBanned  Boolean   @default(false)
   accountBanReason String?   @db.Text
   suspendedUntil   DateTime?
+  // Moderation strikes against this Profile; three strikes ban the Profile,
+  // not the whole account.
+  strikeCount      Int       @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
