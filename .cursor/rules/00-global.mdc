@@ -47,7 +47,7 @@ what risk remains open. Say what you do not know.
 
 - `AGENTS.md` — change policy, guardrails, links into the Notion documentation
 - Notion → Governance — source-of-truth registry, state model, terminology, conflict register
-- `circlesfera-documentation/adr/` — decisions already made (being migrated to Notion)
+- `docs/adr/` — full text of decisions already made (indexed in Notion → Architecture Decisions)
 
 Confirmation list items (schema, auth, money, deps, infra) require a pause for approval, then full
 implementation — not a permanent refusal. OUT OF SCOPE is the real stop.

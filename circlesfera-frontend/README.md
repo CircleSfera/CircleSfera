@@ -2,7 +2,7 @@
 
 React 19 SPA for the CircleSfera consumer app and the **Admin Panel** (host-based routing on `admin.circlesfera.com` in production).
 
-Mobile-first UI (390×844 baseline), high information density. Design tokens and layout rules: [09-design-system.md](../circlesfera-documentation/09-design-system.md), [13-layout-guidelines.md](../circlesfera-documentation/13-layout-guidelines.md).
+Mobile-first UI (390×844 baseline), high information density. Canonical tokens: `src/index.css`. Design rules: Notion → [Design System](https://app.notion.com/p/3e9dfa08f2f581d29ac6d8db0f9fc882).
 
 ## Stack
 
@@ -21,13 +21,13 @@ Platform auth uses **HTTP-only cookies** managed by the backend — not Bearer t
 
 CSRF: fetch `/api/v1/csrf-token` and send `x-csrf-token` on mutating requests.
 
-Admin Panel uses a separate `adminAuthStore` and admin cookie domain ([ADR-0013](../circlesfera-documentation/adr/0013-admin-panel-admin-identity.md)).
+Admin Panel uses a separate `adminAuthStore` and admin cookie domain ([ADR-0013](../docs/adr/0013-admin-panel-admin-identity.md)).
 
 ### Identity in the UI
 
 - Public routes use **`Profile.username`** (`/:username`, profile cards, mentions).
 - Account settings, billing, GDPR: account-scoped APIs under `/users/*`.
-- See [15-identity-profile-model.md](../circlesfera-documentation/15-identity-profile-model.md).
+- See Notion → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1).
 
 ### Code layout
 
@@ -81,7 +81,7 @@ Root repo also runs Playwright from `/e2e`.
 
 Domain modules under `src/services/` (e.g. `posts`, `profiles`, `chat`, `monetization`, `passkey`, `notifications`). Prefer TanStack Query hooks in components; invalidate queries on mutations.
 
-Do not duplicate endpoint lists here — use [03-api-detailed-endpoints.md](../circlesfera-documentation/03-api-detailed-endpoints.md).
+Do not duplicate endpoint lists here — use the OpenAPI reference at `/api/docs` on a running backend.
 
 ## Product surfaces (non-exhaustive)
 
@@ -97,8 +97,8 @@ Admin (`admin.*` host): Trust queue, users, content, monetization, live ops, exp
 
 ## Related docs
 
-- [Frontend backlog / UI roadmap](../circlesfera-documentation/14-uiux-improvement-roadmap.md)
-- [04-user-stories.md](../circlesfera-documentation/04-user-stories.md)
+- Notion → [CircleSfera Implementation Backlog](https://app.notion.com/p/db2a8e9c93df451984da91a2ab31eaa2)
+- Notion → [Product Specifications](https://app.notion.com/p/3e8dfa08f2f58159a0bbf0f87ff9ddd5)
 - [AGENTS.md](../AGENTS.md) — mobile-first sizing rules
 
 ## License

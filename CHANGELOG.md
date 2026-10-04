@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 - BullMQ nightly analytics export (`warehouse-export` queue) with optional ClickHouse HTTP load; bash script remains plan B
 - Appeal and support ticket `resolvedAt` with 30-day MTTR on Trust tab (`appealMttr`, `ticketMttr` on `GET admin/trust/queue`)
 - Default-off `feed_home_following_first` FeatureFlag seed + [runbook](circlesfera-documentation/runbooks/feed-following-first-experiment.md)
-- [ADR-0016](circlesfera-documentation/adr/0016-analytical-warehouse-clickhouse.md): ClickHouse warehouse + nightly ETL (proposed)
+- [ADR-0016](docs/adr/0016-analytical-warehouse-clickhouse.md): ClickHouse warehouse + nightly ETL (proposed)
 - [Runbook: ClickHouse Cloud analytics](circlesfera-documentation/runbooks/clickhouse-cloud-analytics.md)
 - Admin Trust tab shows 30-day median report resolution time (MTTR) from `Report.resolvedAt`, exposed on `GET admin/trust/queue` as `reportMttr`
 - Webhook signature accepts a second secret (`STRIPE_CONNECT_WEBHOOK_SECRET`) so a Connected-accounts destination can share `POST /api/v1/payments/webhook`
@@ -53,7 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/) where ver
 
 ### Added
 
-- Account trust signals: Cloudflare Turnstile on register/login, email-verification gate on writes, first-party device hashes for T&S clustering, plaintext signup/last IP retained for account lifetime (admin + GDPR export; not public), public “About this account” facts (including strikes and staff bot labels with appeal), admin trust score and signup funnel metrics — see [ADR-0014](./circlesfera-documentation/adr/0014-account-trust-signals.md)
+- Account trust signals: Cloudflare Turnstile on register/login, email-verification gate on writes, first-party device hashes for T&S clustering, plaintext signup/last IP retained for account lifetime (admin + GDPR export; not public), public “About this account” facts (including strikes and staff bot labels with appeal), admin trust score and signup funnel metrics — see [ADR-0014](./docs/adr/0014-account-trust-signals.md)
 - Create flow: posts and Frames can be marked **sensitive** (violence, strong language, artistic context) from Advanced settings. Stories have no rating field; explicit sexual content remains prohibited.
 - Admin Panel report workflow: my-queue filter, unclaim, claim conflict handling, bulk assignee/`resolvedAt`, Trust assignee preview
 - Admin whitelist create API/UI; comments hide via moderation status; Live HLS detail panel wired

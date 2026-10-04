@@ -9,26 +9,24 @@ CircleSfera/
 ├── circlesfera-backend/       # NestJS REST + WebSockets API
 ├── circlesfera-frontend/      # React SPA (consumer + admin.circlesfera.com panel)
 ├── circlesfera-shared/        # Shared types (partial adoption)
-├── circlesfera-documentation/ # Product/tech docs, ADRs, runbooks
+├── docs/adr/                  # Architecture Decision Records (full text)
 ├── scripts/                   # Backups, schema checks, profile-drift smoke
 ├── e2e/                       # Playwright tests
 ├── nginx/                     # Reverse-proxy templates
-├── .ai/                       # AI engineering framework (see AGENTS.md)
 └── AGENTS.md                  # Operating rules (highest precedence)
 ```
 
 ## Source of truth
 
-When docs disagree with code, trust in this order:
+All documentation lives in Notion under [CircleSfera → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30). In the repository:
 
-1. `circlesfera-backend/prisma/schema.prisma`
-2. Implemented NestJS / React code
-3. `circlesfera-documentation/` (indexed in [circlesfera-documentation/README.md](./circlesfera-documentation/README.md))
-4. ADRs in [circlesfera-documentation/adr/](./circlesfera-documentation/adr/README.md)
+1. `circlesfera-backend/prisma/schema.prisma` and its migrations for data and relations
+2. Implemented NestJS / React code on `main` for current behaviour
+3. ADRs in [docs/adr/](./docs/adr/README.md) for the full text of architecture decisions
 
-Identity model (**User** = account/billing, **Profile** = social `@username`, **AdminIdentity** = staff panel): [15-identity-profile-model.md](./circlesfera-documentation/15-identity-profile-model.md).
+Code shows what is implemented, not what is intended; product intent lives in Notion → Product. See [AGENTS.md](./AGENTS.md).
 
-Project status and known gaps: [00-status.md](./circlesfera-documentation/00-status.md).
+Identity model (**User** = account/billing, **Profile** = social `@username`, **AdminIdentity** = staff panel): Notion → Architecture & Data → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1).
 
 ## Stack (summary)
 
@@ -63,7 +61,7 @@ cd circlesfera-backend && npm install && npx prisma migrate dev && npm run start
 cd circlesfera-frontend && npm install && npm run dev
 ```
 
-Required env highlights: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ADMIN_SECRET`, `CSRF_SECRET`, `ENCRYPTION_KEY` (DM crypto), `REDIS_PASSWORD`. See root `.env.example` and [05-deployment-strategy.md](./circlesfera-documentation/05-deployment-strategy.md).
+Required env highlights: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `JWT_ADMIN_SECRET`, `CSRF_SECRET`, `ENCRYPTION_KEY` (DM crypto), `REDIS_PASSWORD`. See root `.env.example`.
 
 ## Scripts
 
@@ -80,16 +78,16 @@ Per-package scripts: see [backend README](./circlesfera-backend/README.md) and [
 | Doc | Use when |
 | --- | --- |
 | [AGENTS.md](./AGENTS.md) | AI-assisted or human engineering rules |
-| [circlesfera-documentation/README.md](./circlesfera-documentation/README.md) | Full doc index (PRD, ERD, API inventory, security) |
-| [03-api-detailed-endpoints.md](./circlesfera-documentation/03-api-detailed-endpoints.md) | Controller route inventory |
-| [runbooks/](./circlesfera-documentation/runbooks/README.md) | Restore, rollback, admin cutover |
+| [Notion → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30) | Product, architecture, operations, quality and decisions |
+| `/api/docs` on a running backend | OpenAPI reference generated from the controllers |
+| [docs/adr/](./docs/adr/README.md) | Architecture Decision Records |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) / [SECURITY.md](./SECURITY.md) | Contributions and vulnerability reporting |
 
 ## Production notes
 
 - Deploy: GitHub Actions → OVH VPS, `docker-compose.prod.yml`, TLS on the host.
-- Backups: `scripts/backup-postgres.sh`, `scripts/backup-uploads.sh` — [11-backups-strategy.md](./circlesfera-documentation/11-backups-strategy.md).
-- Admin Panel: `admin.circlesfera.com`, separate operator auth ([ADR-0013](./circlesfera-documentation/adr/0013-admin-panel-admin-identity.md)).
+- Backups: `scripts/backup-postgres.sh`, `scripts/backup-uploads.sh` (nightly via `scripts/install-backup-cron.sh`) — Notion → [Backup & Recovery](https://app.notion.com/p/3e9dfa08f2f581f4b21bca7f1356434c).
+- Admin Panel: `admin.circlesfera.com`, separate operator auth ([ADR-0013](./docs/adr/0013-admin-panel-admin-identity.md)).
 
 ## License
 

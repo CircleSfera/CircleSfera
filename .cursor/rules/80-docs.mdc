@@ -1,6 +1,6 @@
 ---
 description: Documentation rules for CircleSfera — documentation lives in Notion, the repo is evidence
-globs: circlesfera-documentation/**, CHANGELOG.md, README.md, CONTRIBUTING.md, AGENTS.md
+globs: docs/**, CHANGELOG.md, README.md, CONTRIBUTING.md, AGENTS.md
 alwaysApply: false
 ---
 
@@ -8,8 +8,8 @@ All CircleSfera documentation lives in Notion → CircleSfera Documentation (lin
 written in English. The repository holds code, schema, tests and configuration — evidence, not
 documentation.
 
-- Do not add documents to `circlesfera-documentation/`. It is legacy source material being migrated
-  to Notion and will then be removed.
+- Do not add documentation files to the repository. The only exception is the full text of a new
+  Architecture Decision Record in `docs/adr/`, indexed in Notion → Architecture Decisions.
 - Follow Notion → Governance: Documentation State Model (NORMATIVE / IMPLEMENTED / VERIFIED /
   PLANNED / EXPLORATORY / DEPRECATED / UNKNOWN), Source of Truth Registry, Documentation Standards,
   Canonical Terminology.

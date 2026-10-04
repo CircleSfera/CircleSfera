@@ -23,8 +23,8 @@ https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30
 
 The documentation was comprehensively rebuilt (Sep 2026) across 8 authoritative domains (Product, Business,
 Technology, Architecture & Data, Quality, Design, Governance, Execution). A domain with no published
-Notion section is UNKNOWN. `circlesfera-documentation/` is legacy source material being migrated to Notion.
-Do not treat it as current truth, and do not add new documents there.
+Notion section is UNKNOWN. The legacy `circlesfera-documentation/` folder was migrated to Notion and
+removed; do not recreate it. The full text of Architecture Decision Records stays in `docs/adr/`.
 
 ## Sources of truth in the repository
 
