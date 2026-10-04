@@ -179,6 +179,16 @@ jobs:
       packages: read
 
     steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
       - name: Execute Remote SSH Deployment
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         env:
@@ -206,6 +216,8 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
           envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD,DEPLOY_SERVER_IP
           script: |
             set -e
