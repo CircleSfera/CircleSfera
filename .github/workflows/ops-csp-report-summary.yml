@@ -8,7 +8,8 @@ name: Ops — CSP report summary
 on:
   workflow_dispatch: {}
 
-# Shares the deploy-production queue so it never runs during a deploy.
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
@@ -46,10 +47,16 @@ jobs:
             set -euo pipefail
             cd /srv/circlesfera
             DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
-            LINES=$($DC logs --no-color --no-log-prefix backend 2>/dev/null \
-              | grep -o 'CSP violation ([a-z-]*): [a-z-]* blocked [^ "]*' || true)
+            # A failed read must fail the run, not report zero violations.
+            LOGS=$(mktemp)
+            trap 'rm -f "$LOGS"' EXIT
+            if ! $DC logs --no-color --no-log-prefix --timestamps backend > "$LOGS" 2>/dev/null; then
+              echo "Could not read the backend logs."
+              exit 1
+            fi
+            LINES=$(grep -o 'CSP violation ([a-z-]*): [a-z-]* blocked [^ "]*' "$LOGS" || true)
             TOTAL=$(printf '%s\n' "$LINES" | grep -c 'CSP violation' || true)
-            echo "Retained log window: $($DC logs --no-color --no-log-prefix --timestamps backend 2>/dev/null | head -n 1 | cut -c1-19) to now"
+            echo "Retained log window: $(head -n 1 "$LOGS" | cut -c1-19) to now"
             echo "Total CSP violation reports: $TOTAL"
             if [ "$TOTAL" -gt 0 ]; then
               echo "count | disposition | directive | blocked origin"
