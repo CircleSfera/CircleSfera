@@ -291,6 +291,9 @@ jobs:
 
             # Ensure default Compose env file exists for ${REDIS_PASSWORD} / ${POSTGRES_*} interpolation
             cp .env.production .env
+            # Both files hold every production secret; only the deploy user may
+            # read them (other project users share this VPS).
+            chmod 600 .env.production .env
 
             # Extract the deployment webhook directly from the .env file to bypass IDE schema warnings
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
@@ -309,6 +312,8 @@ jobs:
             BACKUP_ROOT="/srv/circlesfera/backups/postgres"
             mkdir -p "${BACKUP_ROOT}" /srv/circlesfera/backups/etl
             MKDIR_RC=$?
+            # Database dumps and media archives: closed to other users of the VPS.
+            chmod 700 /srv/circlesfera/backups
             set -a
             # shellcheck disable=SC1091
             source .env.production
