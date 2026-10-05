@@ -441,6 +441,7 @@ jobs:
             # /tmp can belong to another VPS user (sticky /tmp), and curl then
             # fails to write them, which reads as a failed check.
             SMOKE_TMP=$(mktemp -d)
+            trap 'rm -rf "$SMOKE_TMP"' EXIT
             smoke_ok=1
             smoke_check() {
               path="$1"
@@ -513,7 +514,8 @@ jobs:
                 fi
                 rm -f "$SMOKE_JAR"
               }
-              trap cleanup_smoke_post EXIT
+              # Replaces the folder cleanup while the post may exist; both run.
+              trap 'cleanup_smoke_post; rm -rf "$SMOKE_TMP"' EXIT
 
               csrf_body=$(curl -sS -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
               SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
@@ -583,7 +585,7 @@ jobs:
                 fi
               fi
 
-              trap - EXIT
+              trap 'rm -rf "$SMOKE_TMP"' EXIT
               cleanup_smoke_post
 
               if [ "$auth_smoke_ok" != "1" ]; then
@@ -599,6 +601,7 @@ jobs:
               echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (not enforced)."
             fi
 
+            trap - EXIT
             rm -rf "$SMOKE_TMP"
             echo "${IMAGE_SHA}" > .deploy-sha
 
