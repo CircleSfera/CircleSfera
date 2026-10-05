@@ -79,7 +79,11 @@ export class AuthService {
     dto: RegisterDto,
     meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    await this.turnstile.assertValid(dto.captchaToken, meta.ip);
+    await this.turnstile.assertValid(
+      dto.captchaToken,
+      meta.ip,
+      meta.turnstileBypassToken,
+    );
     const registrationOpen = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.REGISTRATION_OPEN,
     );
@@ -325,7 +329,11 @@ export class AuthService {
     dto: LoginDto,
     meta: AbuseRequestMeta = {},
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    await this.turnstile.assertValid(dto.captchaToken, meta.ip);
+    await this.turnstile.assertValid(
+      dto.captchaToken,
+      meta.ip,
+      meta.turnstileBypassToken,
+    );
     // Find user by email or username
     // Login is one of the few readers that needs the secrets the client omits
     // by default (see USER_SECRET_OMIT).

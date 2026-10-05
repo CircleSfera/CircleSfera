@@ -26,9 +26,10 @@ const ABUSE_HEADERS = {
 } as const;
 
 const expectedAbuseMeta = {
-  ip: '203.0.113.10',
+  ip: '127.0.0.1',
   userAgent: 'Vitest',
   country: 'ES',
+  turnstileBypassToken: null,
 };
 
 function cookieHeader(res: { headers: Record<string, unknown> }): string {

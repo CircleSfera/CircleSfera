@@ -9,7 +9,7 @@ Infrastructure, deployment and secrets are on the `AGENTS.md` confirmation list:
 How production actually works:
 
 - OVH VPS, Docker Compose, images from GHCR tagged `latest` and the commit SHA. TLS terminates on the
-  host nginx; the compose proxy service is **`nginx-proxy`** on port 8082.
+  host nginx; the compose proxy service is **`nginx-proxy`** on `127.0.0.1:8082` (loopback only; never publish it on all interfaces).
 - `push` to `main` triggers `.github/workflows/deploy.yml`: quality gate via `ci-quality.yml` →
   buildx push → SSH (`git reset --hard origin/main`, write `.env.production` from a base64 secret,
   best-effort `pg_dump`, `docker compose pull`, `up -d --no-deps backend frontend nginx-proxy`) →

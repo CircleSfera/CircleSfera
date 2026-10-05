@@ -206,19 +206,13 @@ jobs:
           SMOKE_TEST_API_URL: ${{ secrets.VITE_API_URL }}
           SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
           SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
-          # Not a secret (the deploy server's own public IP, same value as the
-          # `host:` field below) — passed through so the script can merge it
-          # into .env.production as TURNSTILE_BYPASS_IPS, letting the
-          # authenticated smoke check's login skip Turnstile. Every other
-          # caller still needs a real token.
-          DEPLOY_SERVER_IP: ${{ secrets.VPS_HOST }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD,DEPLOY_SERVER_IP
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -269,14 +263,14 @@ jobs:
               fi
             fi
 
-            # Keep TURNSTILE_BYPASS_IPS pointed at this deploy server
-            # even though .env.production above was just overwritten wholesale
-            # from ENV_PRODUCTION_B64 (which doesn't carry this value).
-            if [ -n "${DEPLOY_SERVER_IP:-}" ]; then
-              sed -i '/^TURNSTILE_BYPASS_IPS=/d' .env.production
-              printf 'TURNSTILE_BYPASS_IPS=%s\n' "$DEPLOY_SERVER_IP" >> .env.production
-              echo "✅ TURNSTILE_BYPASS_IPS merged (deploy server IP)."
-            fi
+            # A fresh random token lets the authenticated smoke check below
+            # sign in without Turnstile. It replaces an IP allowlist, which a
+            # client could match by spoofing X-Forwarded-For. New on every
+            # deploy, never printed, known only to this script and the backend.
+            sed -i '/^TURNSTILE_BYPASS_IPS=/d;/^TURNSTILE_BYPASS_TOKEN=/d' .env.production
+            SMOKE_BYPASS_TOKEN=$(od -An -tx1 -N32 /dev/urandom | tr -d ' \n')
+            printf 'TURNSTILE_BYPASS_TOKEN=%s\n' "$SMOKE_BYPASS_TOKEN" >> .env.production
+            echo "✅ TURNSTILE_BYPASS_TOKEN rotated."
 
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
@@ -478,6 +472,16 @@ jobs:
             # Runs against the public HTTPS origin: access_token/CSRF cookies are
             # Secure-flagged in production and curl will not resend a Secure cookie
             # over the plain-http loopback used by the checks above.
+            # The login carries the smoke password and the Turnstile bypass
+            # token, so a non-HTTPS URL fails the deploy before anything is sent.
+            case "${SMOKE_TEST_API_URL:-}" in
+              ""|https://*) ;;
+              *)
+                echo "❌ SMOKE_TEST_API_URL must start with https://; refusing to send smoke credentials."
+                rollback
+                exit 1
+                ;;
+            esac
             if [ -n "${SMOKE_TEST_API_URL:-}" ] && [ -n "${SMOKE_TEST_EMAIL:-}" ] && [ -n "${SMOKE_TEST_PASSWORD:-}" ]; then
               echo "Running post-deploy authenticated smoke..."
               auth_smoke_ok=1
@@ -513,6 +517,7 @@ jobs:
                   | curl -sS -o /tmp/cs-auth-login -w "%{http_code}" \
                     -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
                     -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                    -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
                     --data-binary @- \
                     "${SMOKE_TEST_API_URL}/auth/login")
                 if [ "$login_code" != "200" ]; then

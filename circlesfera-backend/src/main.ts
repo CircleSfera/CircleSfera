@@ -48,8 +48,20 @@ async function bootstrap(): Promise<void> {
 
   app.useLogger(app.get(Logger));
 
-  // Trust reverse proxies (Nginx / Cloudflare / Docker ingress) for correct IP rate-limiting
-  app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  // Trusted reverse proxies in front of the backend: the host nginx (TLS)
+  // and the nginx-proxy container. With both trusted, req.ip is the address
+  // the host nginx saw, which the client cannot spoof; rate limiting and
+  // abuse signals key on it. TRUSTED_PROXY_HOPS overrides the count.
+  const trustedProxyHops = Number(process.env.TRUSTED_PROXY_HOPS ?? 2);
+  app
+    .getHttpAdapter()
+    .getInstance()
+    .set(
+      'trust proxy',
+      Number.isInteger(trustedProxyHops) && trustedProxyHops >= 0
+        ? trustedProxyHops
+        : 2,
+    );
   app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   // Hardened query parser: bounds length, depth, parameter count, and blocks prototype pollution

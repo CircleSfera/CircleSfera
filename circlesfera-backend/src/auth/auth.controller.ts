@@ -15,10 +15,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
-import {
-  clientIpFromHeaders,
-  countryFromHeaders,
-} from '../common/abuse/device-signal.service.js';
+import { requestAbuseMeta } from '../common/abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
@@ -245,17 +242,8 @@ export class AuthController {
   }
 
   private abuseMeta(req: Request) {
-    const headers = req.headers as Record<
-      string,
-      string | string[] | undefined
-    >;
-    return {
-      ip: clientIpFromHeaders(headers, req.ip),
-      userAgent:
-        typeof req.headers['user-agent'] === 'string'
-          ? req.headers['user-agent']
-          : null,
-      country: countryFromHeaders(headers),
-    };
+    return requestAbuseMeta(
+      req as unknown as Parameters<typeof requestAbuseMeta>[0],
+    );
   }
 }

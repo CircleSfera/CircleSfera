@@ -13,13 +13,16 @@ services:
     image: nginx:alpine@sha256:c8497b180665e631ec92a5091125bec5b214f0e2b99409e30653a125b37557da
     container_name: CircleSfera-Proxy
     ports:
-      - "8082:80"
+      # Loopback only: the host nginx is the single way in. Published on all
+      # interfaces, the port let clients skip TLS and forge X-Forwarded-For.
+      # Docker publishes ports past ufw, so the firewall would not close it.
+      - "127.0.0.1:8082:80"
     environment:
       - FRONTEND_PORT=80
       - BACKEND_PORT=3000
     volumes:
       # TLS terminates on the VPS host nginx (certs generated/renewed on the host).
-      # This container only serves HTTP on the published port (e.g. 8082→80).
+      # This container only serves HTTP on the published port (127.0.0.1:8082→80).
       - ./nginx/master.conf.template:/etc/nginx/templates/default.conf.template:ro
       - uploads_data:/usr/share/nginx/html/uploads:ro
     depends_on:
