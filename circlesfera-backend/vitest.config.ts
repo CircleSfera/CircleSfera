@@ -15,19 +15,39 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      exclude: ['node_modules/', 'dist/', 'test/'],
-      // Risk-based coverage threshold policy:
-      // Global baseline floor plus explicit thresholds for critical paths
-      // (Security, Authorization, Payments, Monetization, and Data Lifecycle).
+      // Standard exclusions (QD-007): the entry point, type-only files,
+      // configuration, generated code and the tests themselves.
+      exclude: [
+        'node_modules/',
+        'dist/',
+        'test/',
+        'prisma/',
+        'src/main.ts',
+        '**/*.d.ts',
+        '**/*.spec.ts',
+        '**/*.config.ts',
+        'src/common/testing/**',
+      ],
+      // Risk-based coverage threshold policy (QD-007): a global floor plus
+      // explicit thresholds for critical paths. Thresholds are a ratchet: set
+      // to the measured coverage and only ever raised, never lowered.
       thresholds: {
-        // Global baseline across all backend code
-        statements: 45,
-        lines: 45,
+        // Global floor across all backend code (target 80%, met).
+        statements: 84,
+        lines: 84,
+        branches: 75,
+        functions: 85,
 
         // Security & Authentication: auth services, 2FA, passkeys, credential lifecycle
         'src/auth/**': {
-          statements: 65,
-          lines: 65,
+          statements: 95,
+          lines: 95,
+        },
+
+        // Authorization guards (target 100%)
+        'src/auth/guards/**': {
+          statements: 78,
+          lines: 79,
         },
 
         // Authorization: Admin RBAC access control (100% fully covered)
@@ -66,32 +86,80 @@ export default defineConfig({
 
         // Payments: Stripe integration, checkout sessions, invoices, and billing
         'src/payments/**': {
-          statements: 45,
-          lines: 45,
+          statements: 99,
+          lines: 99,
         },
 
         // Monetization: Creator payouts, tips, and fee calculations
         'src/monetization/**': {
-          statements: 30,
-          lines: 30,
+          statements: 100,
+          lines: 100,
         },
 
-        // Data Lifecycle: GDPR personal data extraction service
-        'src/users/services/data-export.service.ts': {
-          statements: 85,
-          lines: 85,
+        // Data Lifecycle: GDPR personal data export and account deletion
+        'src/users/data-export.service.ts': {
+          statements: 96,
+          lines: 97,
+        },
+        'src/users/data-export.processor.ts': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/users/account-deletion.processor.ts': {
+          statements: 100,
+          lines: 100,
         },
 
-        // Data Lifecycle: Permanent user deletion and purgatory purge processor
-        'src/users/processors/user-deletion.processor.ts': {
-          statements: 60,
-          lines: 60,
+        // Moderation: warnings, strikes, appeals, reports, spam detection
+        'src/strikes/**': {
+          statements: 93,
+          lines: 94,
+        },
+        'src/appeals/**': {
+          statements: 71,
+          lines: 72,
+        },
+        'src/reports/**': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/trust/**': {
+          statements: 90,
+          lines: 91,
+        },
+        'src/admin/admin-risk-cases.*': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/admin/use-cases/content/commands/review-report.use-case.ts': {
+          statements: 63,
+          lines: 65,
+        },
+
+        // Security: abuse protection (Turnstile, device signals) and policies
+        'src/common/abuse/**': {
+          statements: 44,
+          lines: 45,
+        },
+        'src/common/policies/**': {
+          statements: 98,
+          lines: 100,
+        },
+        'src/security-reports/**': {
+          statements: 100,
+          lines: 100,
+        },
+
+        // Data Lifecycle: retention jobs
+        'src/maintenance/**': {
+          statements: 100,
+          lines: 100,
         },
 
         // Reliability: Transactional outbox event dispatch and delivery guarantees
         'src/outbox/**': {
-          statements: 80,
-          lines: 80,
+          statements: 100,
+          lines: 100,
         },
 
         // Core and lightweight services elevated to full coverage
