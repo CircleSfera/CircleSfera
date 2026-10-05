@@ -1,0 +1,66 @@
+name: Ops — CSP report summary
+
+# Summarises the Content-Security-Policy violation reports the backend has
+# logged (report-only mode), so the policy can be made enforcing without
+# breaking the app. Read-only: it only reads container logs.
+# Actions logs are public, so it prints only the directive, the blocked origin
+# and a count. Page paths are never printed: they can contain usernames.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  summary:
+    name: Summarise CSP violation reports
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Count violations by directive and blocked origin
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            # A failed read must fail the run, not report zero violations.
+            LOGS=$(mktemp)
+            trap 'rm -f "$LOGS"' EXIT
+            if ! $DC logs --no-color --no-log-prefix --timestamps backend > "$LOGS" 2>/dev/null; then
+              echo "Could not read the backend logs."
+              exit 1
+            fi
+            LINES=$(grep -o 'CSP violation ([a-z-]*): [a-z-]* blocked [^ "]*' "$LOGS" || true)
+            TOTAL=$(printf '%s\n' "$LINES" | grep -c 'CSP violation' || true)
+            echo "Retained log window: $(head -n 1 "$LOGS" | cut -c1-19) to now"
+            echo "Total CSP violation reports: $TOTAL"
+            if [ "$TOTAL" -gt 0 ]; then
+              echo "count | disposition | directive | blocked origin"
+              printf '%s\n' "$LINES" \
+                | sed -E 's/CSP violation \(([a-z-]*)\): ([a-z-]*) blocked (.*)/\1 | \2 | \3/' \
+                | sort | uniq -c | sort -rn | head -n 60
+            fi
