@@ -437,12 +437,17 @@ jobs:
             # API smoke: catch schema/runtime 500s that healthchecks miss (e.g. missing tables).
             # Retry briefly — nginx may still be starting after recreate.
             echo "Running post-deploy API smoke..."
+            # Response bodies go to a private folder of this run. Fixed names in
+            # /tmp can belong to another VPS user (sticky /tmp), and curl then
+            # fails to write them, which reads as a failed check.
+            SMOKE_TMP=$(mktemp -d)
+            trap 'rm -rf "$SMOKE_TMP"' EXIT
             smoke_ok=1
             smoke_check() {
               path="$1"
               code="000"
               for attempt in 1 2 3 4 5; do
-                code=$(curl -sS -o /tmp/cs-smoke-body -w "%{http_code}" \
+                code=$(curl -sS -o "$SMOKE_TMP"/cs-smoke-body -w "%{http_code}" \
                   --max-time 15 \
                   "http://127.0.0.1:8082/api/v1${path}" || echo "000")
                 case "$code" in
@@ -460,7 +465,7 @@ jobs:
                 esac
               done
               echo "  FAIL $code  $path"
-              head -c 400 /tmp/cs-smoke-body 2>/dev/null || true
+              head -c 400 "$SMOKE_TMP"/cs-smoke-body 2>/dev/null || true
               echo
               smoke_ok=0
             }
@@ -509,7 +514,8 @@ jobs:
                 fi
                 rm -f "$SMOKE_JAR"
               }
-              trap cleanup_smoke_post EXIT
+              # Replaces the folder cleanup while the post may exist; both run.
+              trap 'cleanup_smoke_post; rm -rf "$SMOKE_TMP"' EXIT
 
               csrf_body=$(curl -sS -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
               SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
@@ -527,7 +533,7 @@ jobs:
                 smoke_password=${SMOKE_TEST_PASSWORD//\\/\\\\}
                 smoke_password=${smoke_password//\"/\\\"}
                 login_code=$(printf '{"identifier":"%s","password":"%s"}' "$smoke_email" "$smoke_password" \
-                  | curl -sS -o /tmp/cs-auth-login -w "%{http_code}" \
+                  | curl -sS -o "$SMOKE_TMP"/cs-auth-login -w "%{http_code}" \
                     -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
                     -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
                     -H "x-turnstile-bypass: $SMOKE_BYPASS_TOKEN" \
@@ -535,7 +541,7 @@ jobs:
                     "${SMOKE_TEST_API_URL}/auth/login")
                 if [ "$login_code" != "200" ]; then
                   echo "  FAIL  login ($login_code)"
-                  head -c 400 /tmp/cs-auth-login; echo
+                  head -c 400 "$SMOKE_TMP"/cs-auth-login; echo
                   auth_smoke_ok=0
                 else
                   echo "  OK    login"
@@ -544,31 +550,31 @@ jobs:
                   csrf_body=$(curl -sS -b "$SMOKE_JAR" -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
                   SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
 
-                  create_code=$(curl -sS -o /tmp/cs-auth-create -w "%{http_code}" \
+                  create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-create -w "%{http_code}" \
                     -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
                     -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
                     -d '{"caption":"CircleSfera post-deploy smoke check — safe to ignore, auto-deleted.","visibility":"PRIVATE"}' \
                     "${SMOKE_TEST_API_URL}/posts")
-                  if [ "$create_code" = "403" ] && grep -q "CONTENT_POSTING_DISABLED" /tmp/cs-auth-create; then
+                  if [ "$create_code" = "403" ] && grep -q "CONTENT_POSTING_DISABLED" "$SMOKE_TMP"/cs-auth-create; then
                     echo "  SKIP  create post: content posting is intentionally disabled (system setting)"
                   elif [ "$create_code" != "201" ]; then
                     echo "  FAIL  create post ($create_code)"
-                    head -c 400 /tmp/cs-auth-create; echo
+                    head -c 400 "$SMOKE_TMP"/cs-auth-create; echo
                     auth_smoke_ok=0
                   else
                     echo "  OK    create post"
-                    SMOKE_POST_ID=$(grep -o '"id":"[^"]*"' /tmp/cs-auth-create | head -1 | cut -d'"' -f4)
+                    SMOKE_POST_ID=$(grep -o '"id":"[^"]*"' "$SMOKE_TMP"/cs-auth-create | head -1 | cut -d'"' -f4)
                     if [ -z "$SMOKE_POST_ID" ]; then
                       echo "  FAIL  could not parse created post id"
                       auth_smoke_ok=0
                     else
-                      delete_code=$(curl -sS -o /tmp/cs-auth-delete -w "%{http_code}" \
+                      delete_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-delete -w "%{http_code}" \
                         -b "$SMOKE_JAR" \
                         -H "x-csrf-token: $SMOKE_CSRF_TOKEN" \
                         -X DELETE "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}")
                       if [ "$delete_code" != "204" ]; then
                         echo "  FAIL  delete post ($delete_code)"
-                        head -c 400 /tmp/cs-auth-delete; echo
+                        head -c 400 "$SMOKE_TMP"/cs-auth-delete; echo
                         auth_smoke_ok=0
                       else
                         echo "  OK    delete post"
@@ -579,7 +585,7 @@ jobs:
                 fi
               fi
 
-              trap - EXIT
+              trap 'rm -rf "$SMOKE_TMP"' EXIT
               cleanup_smoke_post
 
               if [ "$auth_smoke_ok" != "1" ]; then
@@ -595,6 +601,8 @@ jobs:
               echo "⚠️  SMOKE_TEST_API_URL/SMOKE_TEST_EMAIL/SMOKE_TEST_PASSWORD not set — skipping authenticated smoke (not enforced)."
             fi
 
+            trap - EXIT
+            rm -rf "$SMOKE_TMP"
             echo "${IMAGE_SHA}" > .deploy-sha
 
             # Clean up old SHA-tagged images and dangling layers
