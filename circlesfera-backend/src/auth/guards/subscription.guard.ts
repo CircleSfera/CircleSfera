@@ -45,18 +45,8 @@ export class SubscriptionGuard implements CanActivate {
       return false;
     }
 
-    // 1. Fetch fresh user data to ensure role is correct
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { role: true },
-    });
-
-    // Administrators bypass subscription requirements
-    const currentRole = (dbUser?.role as string) || (user.role as string);
-    if (currentRole === 'ADMIN') {
-      return true;
-    }
-
+    // No role-based bypass: staff work through AdminIdentity, never through
+    // User.role, so every participant account needs the plan.
     // Fetch the required plan details dynamically to determine its tier (using price as rank)
     const dbRequiredPlan = await this.prisma.platformPlan.findFirst({
       where: { name: requiredPlan },
