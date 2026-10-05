@@ -472,6 +472,16 @@ jobs:
             # Runs against the public HTTPS origin: access_token/CSRF cookies are
             # Secure-flagged in production and curl will not resend a Secure cookie
             # over the plain-http loopback used by the checks above.
+            # The login carries the smoke password and the Turnstile bypass
+            # token, so a non-HTTPS URL fails the deploy before anything is sent.
+            case "${SMOKE_TEST_API_URL:-}" in
+              ""|https://*) ;;
+              *)
+                echo "❌ SMOKE_TEST_API_URL must start with https://; refusing to send smoke credentials."
+                rollback
+                exit 1
+                ;;
+            esac
             if [ -n "${SMOKE_TEST_API_URL:-}" ] && [ -n "${SMOKE_TEST_EMAIL:-}" ] && [ -n "${SMOKE_TEST_PASSWORD:-}" ]; then
               echo "Running post-deploy authenticated smoke..."
               auth_smoke_ok=1
