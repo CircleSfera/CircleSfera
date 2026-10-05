@@ -1,0 +1,31 @@
+# fail2ban jails for the production VPS. Installed as
+# /etc/fail2ban/jail.d/circlesfera.local by infra/host/apply.sh.
+#
+# The VPS keeps its own allow list (for example the owner's home address) in
+# /etc/fail2ban/jail.d/zz-local-ignore.local, which is never committed.
+
+[DEFAULT]
+ignoreip = 127.0.0.1/8 ::1
+# Repeat offenders get longer bans each time, up to one week.
+bantime = 1h
+bantime.increment = true
+bantime.maxtime = 1w
+findtime = 10m
+maxretry = 5
+
+[sshd]
+enabled = true
+backend = systemd
+# Also counts connections that fail before authentication (scanners probing
+# key exchange or sending garbage), not only wrong keys.
+mode = aggressive
+
+# Bans for a week, on every port, an address that fail2ban has banned three
+# times in a day.
+[recidive]
+enabled = true
+backend = auto
+logpath = /var/log/fail2ban.log
+bantime = 1w
+findtime = 1d
+maxretry = 3
