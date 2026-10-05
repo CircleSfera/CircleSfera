@@ -25,10 +25,13 @@ const ABUSE_HEADERS = {
   'cf-ipcountry': 'ES',
 } as const;
 
+// A client-sent X-Forwarded-For is ignored: the IP is the one Express
+// resolves from the trusted proxy chain (the loopback in these tests).
 const expectedAbuseMeta = {
-  ip: '203.0.113.10',
+  ip: '127.0.0.1',
   userAgent: 'Vitest',
   country: 'ES',
+  turnstileBypassToken: null,
 };
 
 function cookieHeader(res: { headers: Record<string, unknown> }): string {

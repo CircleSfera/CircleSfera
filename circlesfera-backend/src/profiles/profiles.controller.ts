@@ -23,7 +23,7 @@ import {
 import { EmailVerifiedGuard } from '../auth/guards/email-verified.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
-import { clientIpFromHeaders } from '../common/abuse/device-signal.service.js';
+import { clientIp } from '../common/abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
@@ -86,7 +86,7 @@ export class ProfilesController {
     );
 
     const userAgent = req.headers['user-agent'] as string | undefined;
-    const ip = clientIpFromHeaders(req.headers, req.ip) || undefined;
+    const ip = clientIp(req) || undefined;
 
     const tokens = await this.authService.generateTokens(
       user.userId,

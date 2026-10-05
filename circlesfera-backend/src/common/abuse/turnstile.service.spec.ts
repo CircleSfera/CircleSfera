@@ -42,51 +42,49 @@ describe('TurnstileService', () => {
     mockCache.get.mockResolvedValue(0);
   });
 
-  describe('assertValid — TURNSTILE_BYPASS_IPS', () => {
-    it('rejects a missing token when the caller IP is not in the bypass list', async () => {
-      configValues.TURNSTILE_BYPASS_IPS = '10.0.0.1,10.0.0.2';
+  describe('assertValid — post-deploy bypass token', () => {
+    const TOKEN = 'a'.repeat(64);
+
+    it('skips the CAPTCHA only for the exact bypass token', async () => {
+      configValues.TURNSTILE_BYPASS_TOKEN = TOKEN;
 
       await expect(
-        service.assertValid(undefined, '203.0.113.5'),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('skips the CAPTCHA requirement when the caller IP matches the bypass list', async () => {
-      configValues.TURNSTILE_BYPASS_IPS = '10.0.0.1, 54.37.159.171';
-
-      await expect(
-        service.assertValid(undefined, '54.37.159.171'),
+        service.assertValid(undefined, '203.0.113.5', TOKEN),
       ).resolves.toBeUndefined();
     });
 
-    it('does not bypass when TURNSTILE_BYPASS_IPS is unset (no behavior change by default)', async () => {
+    it('rejects a wrong or truncated token', async () => {
+      configValues.TURNSTILE_BYPASS_TOKEN = TOKEN;
+
       await expect(
-        service.assertValid(undefined, '54.37.159.171'),
+        service.assertValid(undefined, '203.0.113.5', 'b'.repeat(64)),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        service.assertValid(undefined, '203.0.113.5', TOKEN.slice(1)),
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('does not bypass when remoteIp is null/undefined even if the list is configured', async () => {
+    it('never bypasses when no token is configured', async () => {
+      await expect(
+        service.assertValid(undefined, '203.0.113.5', TOKEN),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('never bypasses with a configured token shorter than 32 characters', async () => {
+      configValues.TURNSTILE_BYPASS_TOKEN = 'short';
+
+      await expect(
+        service.assertValid(undefined, '203.0.113.5', 'short'),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('an IP, even the deploy server one, never skips the CAPTCHA', async () => {
+      configValues.TURNSTILE_BYPASS_TOKEN = TOKEN;
       configValues.TURNSTILE_BYPASS_IPS = '54.37.159.171';
 
-      await expect(service.assertValid(undefined, null)).rejects.toThrow(
-        BadRequestException,
-      );
-    });
-
-    it('ignores blank entries and surrounding whitespace in the list', async () => {
-      configValues.TURNSTILE_BYPASS_IPS = ' , 54.37.159.171 ,,';
-
       await expect(
         service.assertValid(undefined, '54.37.159.171'),
-      ).resolves.toBeUndefined();
-    });
-
-    it('still requires a valid token for a bypass-list IP if TURNSTILE_BYPASS_IPS does not match it', async () => {
-      configValues.TURNSTILE_BYPASS_IPS = '10.0.0.9';
-
-      await expect(service.assertValid(undefined, '10.0.0.10')).rejects.toThrow(
-        BadRequestException,
-      );
+      ).rejects.toThrow(BadRequestException);
     });
   });
 

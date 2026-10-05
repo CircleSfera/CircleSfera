@@ -7,7 +7,12 @@ export type AbuseRequestMeta = {
   userAgent?: string | null;
   visitorId?: string | null;
   country?: string | null;
+  // Secret that lets the post-deploy smoke check skip Turnstile.
+  turnstileBypassToken?: string | null;
 };
+
+// Header carrying the post-deploy smoke check's Turnstile bypass token.
+export const TURNSTILE_BYPASS_HEADER = 'x-turnstile-bypass';
 
 // Normalize client IP for storage (IPv4 / IPv6). Rejects garbage; max 45 chars.
 export function normalizeIp(raw?: string | null): string | null {
@@ -93,18 +98,26 @@ export function normalizeCountry(raw?: string | null): string | null {
   return code;
 }
 
-export function clientIpFromHeaders(
-  headers: Record<string, string | string[] | undefined>,
-  fallback?: string | null,
-): string | null {
-  const xf = headers['x-forwarded-for'];
-  const first =
-    typeof xf === 'string'
-      ? xf.split(',')[0]?.trim()
-      : Array.isArray(xf)
-        ? xf[0]
-        : '';
-  return normalizeIp(first || fallback || null);
+// Client IP as resolved by Express from the trusted proxy chain ('trust
+// proxy' in main.ts). Never read X-Forwarded-For directly: its first entry is
+// whatever the client sent.
+export function clientIp(req: { ip?: string | null }): string | null {
+  return normalizeIp(req.ip?.replace(/^::ffff:/, '') ?? null);
+}
+
+// Abuse signals of a sign-in or sign-up request.
+export function requestAbuseMeta(req: {
+  ip?: string | null;
+  headers: Record<string, string | string[] | undefined>;
+}): AbuseRequestMeta {
+  const userAgent = req.headers['user-agent'];
+  const bypass = req.headers[TURNSTILE_BYPASS_HEADER];
+  return {
+    ip: clientIp(req),
+    userAgent: typeof userAgent === 'string' ? userAgent : null,
+    country: countryFromHeaders(req.headers),
+    turnstileBypassToken: typeof bypass === 'string' ? bypass : null,
+  };
 }
 
 export function countryFromHeaders(

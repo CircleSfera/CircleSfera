@@ -13,10 +13,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
-import {
-  clientIpFromHeaders,
-  countryFromHeaders,
-} from '../../common/abuse/device-signal.service.js';
+import { requestAbuseMeta } from '../../common/abuse/device-signal.service.js';
 import {
   ACCESS_TOKEN_COOKIE,
   accessTokenCookieOptions,
@@ -142,17 +139,8 @@ export class PasskeyController {
   }
 
   private abuseMeta(req: Request) {
-    const headers = req.headers as Record<
-      string,
-      string | string[] | undefined
-    >;
-    return {
-      ip: clientIpFromHeaders(headers, req.ip),
-      userAgent:
-        typeof req.headers['user-agent'] === 'string'
-          ? req.headers['user-agent']
-          : null,
-      country: countryFromHeaders(headers),
-    };
+    return requestAbuseMeta(
+      req as unknown as Parameters<typeof requestAbuseMeta>[0],
+    );
   }
 }

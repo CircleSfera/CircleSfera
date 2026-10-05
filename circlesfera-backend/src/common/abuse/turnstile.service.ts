@@ -1,3 +1,4 @@
+import { timingSafeEqual } from 'node:crypto';
 import { ApiErrorCode } from '@circlesfera/shared';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
@@ -46,27 +47,26 @@ export class TurnstileService {
     return false;
   }
 
-  // Exempts a small, explicit set of trusted infrastructure IPs (e.g. the
-  // deploy server's own outbound IP, for the authenticated post-deploy
-  // smoke check) from the CAPTCHA requirement. Configured via TURNSTILE_BYPASS_IPS
-  // (comma-separated). Empty/unset means no exemptions — behavior is unchanged
-  // for every existing deployment until this is explicitly configured.
-  private isBypassIp(remoteIp: string): boolean {
-    const raw = this.config.get<string>('TURNSTILE_BYPASS_IPS');
-    if (!raw?.trim()) return false;
-    const allowlist = raw
-      .split(',')
-      .map((ip) => ip.trim())
-      .filter(Boolean);
-    return allowlist.includes(remoteIp);
+  // Lets the authenticated post-deploy smoke check sign in without a
+  // CAPTCHA. The deploy writes a fresh random TURNSTILE_BYPASS_TOKEN (at
+  // least 32 characters) on every run and the smoke check sends it in a
+  // header. It replaces an IP allowlist: client IPs come from a header that
+  // a caller can spoof, a secret cannot be guessed. Unset means no bypass.
+  private isBypassToken(candidate: string | null | undefined): boolean {
+    const expected = this.config.get<string>('TURNSTILE_BYPASS_TOKEN')?.trim();
+    if (!expected || expected.length < 32 || !candidate) return false;
+    const a = Buffer.from(expected);
+    const b = Buffer.from(candidate.trim());
+    return a.length === b.length && timingSafeEqual(a, b);
   }
 
   async assertValid(
     token: string | undefined,
     remoteIp?: string | null,
+    bypassToken?: string | null,
   ): Promise<void> {
     if (!(await this.isRequired())) return;
-    if (remoteIp && this.isBypassIp(remoteIp)) return;
+    if (this.isBypassToken(bypassToken)) return;
 
     if (!token?.trim()) {
       await this.increment(TURNSTILE_FAIL_CACHE_KEY);
