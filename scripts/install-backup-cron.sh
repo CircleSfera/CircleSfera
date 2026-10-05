@@ -9,12 +9,15 @@ BACKUP_DIR="${BACKUP_DIR:-/srv/circlesfera/backups}"
 CRON_MARKER="# circlesfera-backups"
 
 mkdir -p "${BACKUP_DIR}/postgres/full" "${BACKUP_DIR}/uploads" "${BACKUP_DIR}/etl"
+# Dumps and media archives are readable by the deploy user only.
+chmod 700 "${BACKUP_DIR}"
 
 # Wrapper: dump Postgres via compose (host has no published 5432), then uploads tarball.
 WRAPPER="${ROOT}/scripts/.run-daily-backups.sh"
 cat > "${WRAPPER}" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
+umask 077
 cd "${ROOT}"
 set -a
 # shellcheck disable=SC1091

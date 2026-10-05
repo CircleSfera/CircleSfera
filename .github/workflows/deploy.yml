@@ -230,6 +230,11 @@ jobs:
             # Write secrets AFTER reset so they are never affected by checkout.
             # Compose interpolates ${VAR} from the project `.env` file by default;
             # service `env_file:` does NOT feed interpolation.
+            # Both env files hold every production secret and other project
+            # users share this VPS: close existing copies before writing, and
+            # create new ones private (umask is restored once they exist).
+            chmod 600 .env.production .env 2>/dev/null || true
+            umask 077
             if [ -n "$ENV_PRODUCTION_B64" ]; then
               echo "$ENV_PRODUCTION_B64" | base64 -d > .env.production
               echo "✅ .env.production written from secret."
@@ -291,6 +296,8 @@ jobs:
 
             # Ensure default Compose env file exists for ${REDIS_PASSWORD} / ${POSTGRES_*} interpolation
             cp .env.production .env
+            chmod 600 .env.production .env
+            umask 022
 
             # Extract the deployment webhook directly from the .env file to bypass IDE schema warnings
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
@@ -309,6 +316,12 @@ jobs:
             BACKUP_ROOT="/srv/circlesfera/backups/postgres"
             mkdir -p "${BACKUP_ROOT}" /srv/circlesfera/backups/etl
             MKDIR_RC=$?
+            # Database dumps and media archives: closed to other users of the
+            # VPS. Fails the deploy (before any container changes) if it cannot.
+            if [ -d /srv/circlesfera/backups ] && ! chmod 700 /srv/circlesfera/backups; then
+              echo "❌ Could not restrict /srv/circlesfera/backups to the deploy user."
+              exit 1
+            fi
             set -a
             # shellcheck disable=SC1091
             source .env.production
