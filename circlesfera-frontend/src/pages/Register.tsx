@@ -59,6 +59,11 @@ export default function Register() {
       toast.success(t('auth.register.success'), { duration: 5000 });
       navigate('/onboarding');
     },
+    // A refused sign-up (email or username taken, closed registration,
+    // failed security check) used to leave the form silent.
+    onError: () => {
+      toast.error(t('auth.register.default_error'));
+    },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
