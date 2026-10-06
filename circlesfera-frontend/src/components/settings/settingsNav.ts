@@ -13,12 +13,14 @@ import {
   UserCog,
   UserPlus,
   Users,
+  UsersRound,
   UserX,
 } from 'lucide-react';
 
 // Canonical settings section ids (URL slug = id).
 export type SettingsSectionId =
   | 'profile'
+  | 'profiles'
   | 'privacy'
   | 'notifications'
   | 'security'
@@ -54,6 +56,7 @@ export const ACCOUNTS_RESERVED_SEGMENTS = [
 
 export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'profile',
+  'profiles',
   'privacy',
   'notifications',
   'security',
@@ -78,6 +81,11 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'profile',
         labelKey: 'settings.tabs.profile.label',
         icon: User,
+      },
+      {
+        id: 'profiles',
+        labelKey: 'settings.tabs.profiles.label',
+        icon: UsersRound,
       },
       {
         id: 'notifications',

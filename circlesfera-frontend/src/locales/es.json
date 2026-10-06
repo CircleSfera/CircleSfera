@@ -111,6 +111,10 @@
       "feed_prefs": {
         "label": "Preferencias de Feed",
         "desc": "Personaliza tu contenido"
+      },
+      "profiles": {
+        "label": "Perfiles",
+        "desc": "Cambiar y crear"
       }
     },
     "profile": {
@@ -439,6 +443,41 @@
       "push_notifications": "Notificaciones push",
       "update_error": "No se pudieron actualizar los ajustes",
       "updated": "Ajustes actualizados"
+    },
+    "profiles": {
+      "title": "Tus perfiles",
+      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. El inicio de sesión, la seguridad y el plan son compartidos.",
+      "current": "Actual",
+      "suspended": "Suspendido",
+      "banned": "Bloqueado",
+      "switch_a11y": "Cambiar a @{{username}}",
+      "switching": "Cambiando de perfil…",
+      "switch_failed": "No se pudo cambiar a este perfil. Inténtalo de nuevo.",
+      "load_failed": "No se pudieron cargar tus perfiles.",
+      "retry": "Reintentar",
+      "create": "Crear un perfil nuevo",
+      "limit_reached": "Has alcanzado el límite de {{max}} perfiles.",
+      "manage": "Gestionar perfiles",
+      "switcher_title": "Cambiar de perfil",
+      "switcher_open_a11y": "Cambiar de perfil, actual @{{username}}",
+      "form": {
+        "title": "Perfil nuevo",
+        "description": "Empieza vacío: sin publicaciones ni seguidores. Puedes volver a tu otro perfil cuando quieras.",
+        "username": "Nombre de usuario",
+        "username_placeholder": "nuevo.usuario",
+        "username_hint": "De 3 a 30 caracteres: letras, números, puntos y guiones bajos.",
+        "username_invalid": "Usa de 3 a 30 letras, números, puntos o guiones bajos.",
+        "username_checking": "Comprobando disponibilidad…",
+        "username_available": "@{{username}} está disponible.",
+        "username_taken": "@{{username}} ya está en uso.",
+        "full_name": "Nombre (opcional)",
+        "full_name_placeholder": "Cómo verán los demás este perfil",
+        "type": "Tipo de perfil",
+        "submit": "Crear y cambiar",
+        "submitting": "Creando perfil…",
+        "cancel": "Cancelar",
+        "failed": "No se pudo crear el perfil. Inténtalo de nuevo."
+      }
     }
   },
   "auth": {
