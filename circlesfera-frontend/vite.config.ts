@@ -91,5 +91,28 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text-summary', 'json-summary', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
+      // Standard exclusions: the tests and their helpers, the entry point,
+      // the service worker and type-only files.
+      exclude: [
+        'src/**/*.{test,spec}.{ts,tsx}',
+        'src/test/**',
+        'src/main.tsx',
+        'src/service-worker.ts',
+        'src/**/*.d.ts',
+        'src/types/**',
+      ],
+      // Ratchet: set to the measured coverage and only ever raised, never
+      // lowered, until the 80% global target is met.
+      thresholds: {
+        statements: 23,
+        lines: 24,
+        branches: 23,
+        functions: 20,
+      },
+    },
   },
 });
