@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion';
 import { Lock } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { formatCents } from '../../utils/money';
 import { Button } from '../ui';
 
 interface PaywallOverlayProps {
+  // Price in euros (the callers convert from cents).
   price: number;
   onUnlock: () => void;
   isLoading?: boolean;
@@ -14,7 +16,7 @@ export default function PaywallOverlay({
   onUnlock,
   isLoading,
 }: PaywallOverlayProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   return (
     <motion.div
       initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
@@ -50,7 +52,9 @@ export default function PaywallOverlay({
         >
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-white/40 to-transparent -translate-x-[150%] group-hover:animate-[shimmer_1.5s_infinite]" />
           <span className="relative z-10 flex items-center gap-2">
-            {t('monetization.unlock_for_money', { price: price.toFixed(2) })}
+            {t('monetization.unlock_for_money', {
+              price: formatCents(Math.round(price * 100), i18n.language),
+            })}
           </span>
         </Button>
       </motion.div>
