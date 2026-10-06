@@ -588,10 +588,15 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
       expect(aliceQuery.where.profileId).toBe('profile-alice');
     });
 
-    it('allows admin role bypass on creator subscription requirements', async () => {
+    it('gives no subscription bypass to a User.role of ADMIN (staff use AdminIdentity)', async () => {
       const mockPrisma = {
         user: { findUnique: vi.fn().mockResolvedValue({ role: 'ADMIN' }) },
-        platformPlan: { findFirst: vi.fn() },
+        platformPlan: {
+          findFirst: vi
+            .fn()
+            .mockResolvedValue({ name: 'Elite Creator', priceCents: 1999 }),
+        },
+        platformSubscription: { findFirst: vi.fn().mockResolvedValue(null) },
       };
       const guard = new SubscriptionGuard(
         mockPrisma as unknown as PrismaService,
@@ -603,7 +608,10 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         {},
         { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
       );
-      await expect(guard.canActivate(adminCtx)).resolves.toBe(true);
+      await expect(guard.canActivate(adminCtx)).rejects.toThrow(
+        ForbiddenException,
+      );
+      expect(mockPrisma.user.findUnique).not.toHaveBeenCalled();
     });
   });
 
