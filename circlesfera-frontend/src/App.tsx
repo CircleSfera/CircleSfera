@@ -14,6 +14,7 @@ import GuestGuard from './components/auth/GuestGuard';
 import ContentComposerPage from './components/ContentComposerPage';
 import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
+import { useAccountLocaleSync } from './hooks/useAccountLocaleSync';
 import { useNativeApp } from './hooks/useNativeApp';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import AppShell from './layouts/AppShell';
@@ -191,6 +192,7 @@ function App() {
 
   usePushNotifications();
   useNativeApp();
+  useAccountLocaleSync();
 
   useEffect(() => {
     if (!adminPanel) {

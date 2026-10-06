@@ -30,6 +30,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { DataExportService } from './data-export.service.js';
 
+import { UpdateLocaleDto } from './dto/update-locale.dto.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 import { UsersService } from './users.service.js';
 
@@ -144,6 +145,17 @@ export class UsersController {
     @Body() dto: UpdateSettingsDto,
   ) {
     return this.usersService.updateSettings(user.userId, dto);
+  }
+
+  // Language of the account's emails and notices. Not behind the
+  // verified-email gate: the verification email itself must use it.
+  @Put('me/locale')
+  @UseGuards(JwtAuthGuard)
+  async updateLocale(
+    @CurrentUser() user: CurrentUserData,
+    @Body() dto: UpdateLocaleDto,
+  ) {
+    return this.usersService.updateLocale(user.userId, dto.locale);
   }
 
   // Identity Verification

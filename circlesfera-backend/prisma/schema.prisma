@@ -39,6 +39,10 @@ model User {
 
   role Role @default(USER)
 
+  // Language for emails and notices built on the server; follows the app
+  // language the participant chooses.
+  locale Locale @default(es)
+
   // Test Account: isolated from real participants. Set only by the
   // staff script; no API flow may write it.
   isTestAccount Boolean @default(false)
@@ -181,6 +185,12 @@ model DeviceSignal {
   @@unique([userId, visitorHash])
   @@index([visitorHash])
   @@map("device_signals")
+}
+
+// Languages the app and the server texts are available in.
+enum Locale {
+  en
+  es
 }
 
 model UserSettings {

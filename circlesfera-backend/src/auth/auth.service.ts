@@ -22,6 +22,7 @@ import {
   DeviceSignalService,
 } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -159,6 +160,7 @@ export class AuthService {
         password: hashedPassword,
         verificationToken,
         dateOfBirth,
+        locale: toSupportedLocale(dto.locale),
         inviteCode:
           randomUUID().split('-')[0].toUpperCase() +
           Math.random().toString(36).substring(2, 6).toUpperCase(),

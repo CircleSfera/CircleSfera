@@ -8,6 +8,8 @@ export interface RegisterDto {
   dateOfBirth: string;
   captchaToken?: string;
   visitorId?: string;
+  // App language at sign-up ('en' or 'es'), for the account's emails.
+  locale?: 'en' | 'es';
 }
 
 export interface LoginDto {
