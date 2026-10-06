@@ -11,9 +11,10 @@ import { LoadingSpinner } from '../components/LoadingStates';
 import UserAvatar from '../components/UserAvatar';
 import { Button, Textarea } from '../components/ui';
 import VerificationBadge from '../components/VerificationBadge';
-import { followsApi, profileApi, usersApi } from '../services';
+import { followsApi, profileApi, uploadApi, usersApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { SuggestedUser } from '../types';
+import { logger } from '../utils/logger';
 import { pickNativeImage } from '../utils/nativeFilePicker';
 import { OnboardingEmptyCircle } from './OnboardingEmptyCircle';
 
@@ -28,6 +29,7 @@ export default function Onboarding() {
   const [step, setStep] = useState<1 | 2>(1);
   const [bio, setBio] = useState('');
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [followedUsernames, setFollowedUsernames] = useState<Set<string>>(
     () => new Set(),
   );
@@ -54,9 +56,20 @@ export default function Onboarding() {
 
   const updateProfileMutation = useMutation({
     mutationFn: async () => {
-      await profileApi.updateProfile({
-        bio,
-      });
+      // A photo that fails to upload must not keep the account out of the
+      // app: it can be added later from Settings.
+      let avatar: string | undefined;
+      if (avatarFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', avatarFile);
+          avatar = (await uploadApi.upload(formData)).data.url;
+        } catch (error) {
+          logger.error('Failed to upload the onboarding photo:', error);
+          toast.error(t('onboarding.avatar_error'));
+        }
+      }
+      await profileApi.updateProfile(avatar ? { bio, avatar } : { bio });
       await usersApi.updateSettings({
         isOnboarded: true,
       });
@@ -104,6 +117,7 @@ export default function Onboarding() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
   };
 

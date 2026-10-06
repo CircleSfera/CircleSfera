@@ -1242,7 +1242,8 @@
     "error": "Something went wrong.",
     "reload_error": "Failed to reload profile",
     "follow_error": "Couldn't follow this account.",
-    "followed": "Followed successfully"
+    "followed": "Followed successfully",
+    "avatar_error": "We couldn't save your photo. You can add it later in Settings."
   },
   "createPost": {
     "accessibility": {
