@@ -1999,7 +1999,7 @@
     "growth_desc": "Descubre patrones de interacción y optimiza tu alcance con nuestras herramientas de IA propietarias.",
     "vip_community": "Comunidad VIP",
     "vip_desc": "Acceso exclusivo a círculos de otros creadores certificados y prioridad en el descubrimiento global.",
-    "unlock_for_money": "Desbloquear por €{{price}}",
+    "unlock_for_money": "Desbloquear por {{price}}",
     "failed_to_unlock": "No se pudo desbloquear el mensaje",
     "connect_stripe_error": "No se pudo conectar Stripe.",
     "connect_with_stripe": "Conectar con Stripe",

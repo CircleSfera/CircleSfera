@@ -191,6 +191,20 @@ describe('MessageBubble', () => {
     expect(onUnlock).toHaveBeenCalledWith('msg-1');
   });
 
+  it('prices a locked message in the reader language', () => {
+    const { i18n } = renderBubble(
+      { content: 'x', isLocked: true, priceCents: 1250 },
+      { onUnlock: vi.fn() },
+      'es',
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('chat.unlock_for', { price: '12,50\u00a0€' }),
+      }),
+    ).toBeInTheDocument();
+  });
+
   it('labels edited and delivery state from the catalog for own messages', () => {
     const { i18n } = renderBubble(
       { content: 'edited body', isEdited: true },

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useStoryStore } from '../../stores/storyStore';
 import type { Message } from '../../types';
 import { getMessageDisplayText } from '../../utils/chatMessageDisplay';
+import { formatCents } from '../../utils/money';
 import { VoicePlayer } from '../audio/VoicePlayer';
 import UserAvatar from '../UserAvatar';
 import AudioPlayer from './AudioPlayer';
@@ -230,10 +231,7 @@ export default memo(function MessageBubble({
                       className="mt-2 w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
                     >
                       {t('chat.unlock_for', {
-                        price: ((msg.priceCents || 0) / 100).toLocaleString(
-                          i18n.language,
-                          { style: 'currency', currency: 'EUR' },
-                        ),
+                        price: formatCents(msg.priceCents || 0, i18n.language),
                       })}
                     </button>
                   </div>

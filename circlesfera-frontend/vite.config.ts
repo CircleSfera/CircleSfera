@@ -135,6 +135,15 @@ export default defineConfig({
         'src/stores/adminAuthStore.ts': { statements: 95, lines: 95 },
         'src/pages/Onboarding.tsx': { statements: 80, lines: 80 },
         'src/pages/Settings.tsx': { statements: 95, lines: 95 },
+        'src/services/monetization.service.ts': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/monetization/PaywallOverlay.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/utils/format.ts': { statements: 100, lines: 100 },
       },
     },
   },

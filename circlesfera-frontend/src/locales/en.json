@@ -1999,7 +1999,7 @@
     "vip_desc": "Exclusive access to circles of other certified creators and priority in global discovery.",
     "send_gift": "Send Gift",
     "send_tip": "Send Tip",
-    "unlock_for_money": "Unlock for €{{price}}",
+    "unlock_for_money": "Unlock for {{price}}",
     "failed_to_unlock": "Failed to unlock message",
     "connect_stripe_error": "Failed to connect Stripe.",
     "connect_with_stripe": "Connect with Stripe",
