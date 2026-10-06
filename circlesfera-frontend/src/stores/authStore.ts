@@ -33,12 +33,15 @@ interface AuthState {
 
 // Drops the Service Worker cache of API responses, which belong to whoever
 // was signed in when they were fetched.
-async function clearApiCache() {
-  if (typeof window === 'undefined' || !('caches' in window)) return;
+// Returns false when the cache exists but could not be cleared.
+async function clearApiCache(): Promise<boolean> {
+  if (typeof window === 'undefined' || !('caches' in window)) return true;
   try {
     await caches.delete('api-cache');
+    return true;
   } catch (e) {
     console.error('Failed to clear api-cache', e);
+    return false;
   }
 }
 
@@ -54,16 +57,21 @@ export const useAuthStore = create<AuthState>()(
       setAuthenticated: () => set({ isAuthenticated: true }),
       setProfile: (profile) => set({ profile }),
       switchProfile: async (profileId: string) => {
+        // Responses cached for the previous Profile must never reach the new
+        // one, so the cache goes first and a failure stops the switch.
+        if (!(await clearApiCache())) {
+          throw new Error('Could not clear the API cache');
+        }
         await profileApi.switchProfile(profileId);
-        // Responses cached for the previous Profile must not be served to the
-        // new one (same reason as on logout).
-        await clearApiCache();
-        const { data } = await profileApi.getMyProfile();
-        set({
-          profile: data,
-          isAuthenticated: true,
-          isCreatorModeActive: false,
-        });
+        // From here the session belongs to the new Profile. The caller
+        // reloads the app, which loads it again if this refresh fails.
+        set({ isCreatorModeActive: false });
+        try {
+          const { data } = await profileApi.getMyProfile();
+          set({ profile: data, isAuthenticated: true });
+        } catch {
+          set({ isSessionChecked: false });
+        }
       },
       checkSession: async () => {
         const state = get();

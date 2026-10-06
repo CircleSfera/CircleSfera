@@ -1,4 +1,4 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, X } from 'lucide-react';
 import { type FormEvent, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { useProfileSwitch } from '../../hooks/useProfileSwitch';
 import { type ProfileAccountType, profileApi } from '../../services';
 import { Button, Input } from '../ui';
+import { MY_PROFILES_QUERY_KEY } from './OwnedProfileList';
 
 // Same rule the backend applies to every username.
 const USERNAME_PATTERN = /^[a-zA-Z0-9._]{3,30}$/;
@@ -49,6 +50,7 @@ function useUsernameAvailability(username: string): Availability {
 }
 
 // Creates another Profile under the signed-in account and switches to it.
+// onCancel also closes the form once the Profile is created.
 export default function CreateProfileForm({
   onCancel,
 }: {
@@ -60,16 +62,24 @@ export default function CreateProfileForm({
   const [accountType, setAccountType] =
     useState<ProfileAccountType>('PERSONAL');
   const availability = useUsernameAvailability(username.trim());
-  const { switchToAsync } = useProfileSwitch();
+  const queryClient = useQueryClient();
+  const { switchTo } = useProfileSwitch();
 
+  // Creating and switching fail separately: once the Profile exists, a
+  // failed switch leaves it listed (the switch reports its own error).
   const create = useMutation({
-    mutationFn: async () => {
-      const { data } = await profileApi.createProfile({
-        username: username.trim(),
-        fullName: fullName.trim() || undefined,
-        accountType,
-      });
-      await switchToAsync(data.id);
+    mutationFn: async () =>
+      (
+        await profileApi.createProfile({
+          username: username.trim(),
+          fullName: fullName.trim() || undefined,
+          accountType,
+        })
+      ).data,
+    onSuccess: (profile) => {
+      void queryClient.invalidateQueries({ queryKey: MY_PROFILES_QUERY_KEY });
+      onCancel();
+      switchTo(profile.id);
     },
     onError: () => {
       toast.error(t('settings.profiles.form.failed'));
@@ -134,7 +144,7 @@ export default function CreateProfileForm({
             aria-live="polite"
             className={`text-xs px-0.5 ${
               availability === 'available'
-                ? 'text-emerald-400'
+                ? 'text-brand-primary'
                 : 'text-white/50'
             }`}
           >
@@ -230,10 +240,10 @@ function AvailabilityIcon({ state }: { state: Availability }) {
     );
   }
   if (state === 'available') {
-    return <Check size={16} className="text-emerald-400" aria-hidden />;
+    return <Check size={16} className="text-brand-primary" aria-hidden />;
   }
   if (state === 'taken' || state === 'invalid') {
-    return <X size={16} className="text-red-400" aria-hidden />;
+    return <X size={16} className="text-brand-secondary" aria-hidden />;
   }
   return null;
 }

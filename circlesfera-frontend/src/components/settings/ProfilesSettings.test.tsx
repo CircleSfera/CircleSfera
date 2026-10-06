@@ -258,6 +258,47 @@ describe('ProfilesSettings', () => {
       expect(switchProfile).toHaveBeenCalledWith('p-new');
     });
 
+    it('a failed switch after creating keeps the new profile listed', async () => {
+      vi.mocked(profileApi.checkUsername).mockResolvedValue({
+        data: { available: true, message: '' },
+      } as never);
+      vi.mocked(profileApi.createProfile).mockResolvedValue({
+        data: owned({ id: 'p-new', username: 'ana.new' }),
+      } as never);
+      switchProfile.mockRejectedValue(new Error('403'));
+      const { user, username, i18n } = await openForm();
+      vi.mocked(profileApi.getMyProfiles).mockResolvedValue({
+        data: [...profiles, owned({ id: 'p-new', username: 'ana.new' })],
+      } as never);
+
+      await user.type(username, 'ana.new');
+      await screen.findByText(
+        i18n.t('settings.profiles.form.username_available', {
+          username: 'ana.new',
+        }),
+      );
+      await user.click(
+        screen.getByRole('button', {
+          name: i18n.t('settings.profiles.form.submit'),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          i18n.t('settings.profiles.switch_failed'),
+        ),
+      );
+      expect(toast.error).not.toHaveBeenCalledWith(
+        i18n.t('settings.profiles.form.failed'),
+      );
+      expect(await screen.findByText('@ana.new')).toBeVisible();
+      expect(
+        screen.queryByLabelText(i18n.t('settings.profiles.form.username')),
+      ).not.toBeInTheDocument();
+      expect(profileApi.createProfile).toHaveBeenCalledTimes(1);
+      expect(assign).not.toHaveBeenCalled();
+    });
+
     it('a failed creation keeps the form and says so', async () => {
       vi.mocked(profileApi.checkUsername).mockResolvedValue({
         data: { available: true, message: '' },

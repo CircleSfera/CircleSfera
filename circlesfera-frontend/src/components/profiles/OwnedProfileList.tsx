@@ -120,7 +120,7 @@ function ProfileRow({
           {t('settings.profiles.current')}
         </span>
       ) : restriction ? (
-        <span className="px-2 py-0.5 rounded-full bg-red-500/10 border border-red-500/20 text-[11px] font-medium text-red-300 shrink-0">
+        <span className="px-2 py-0.5 rounded-full bg-brand-secondary/10 border border-brand-secondary/30 text-[11px] font-medium text-brand-secondary shrink-0">
           {restriction}
         </span>
       ) : null}
