@@ -108,7 +108,7 @@ export default defineConfig({
       // Ratchet: set to the measured coverage and only ever raised, never
       // lowered, until the 80% global target is met.
       thresholds: {
-        statements: 27,
+        statements: 28,
         lines: 28,
         branches: 27,
         functions: 24,
@@ -133,6 +133,8 @@ export default defineConfig({
         'src/services/passkey.service.ts': { statements: 100, lines: 100 },
         'src/stores/authStore.ts': { statements: 95, lines: 95 },
         'src/stores/adminAuthStore.ts': { statements: 95, lines: 95 },
+        'src/pages/Onboarding.tsx': { statements: 80, lines: 80 },
+        'src/pages/Settings.tsx': { statements: 95, lines: 95 },
       },
     },
   },
