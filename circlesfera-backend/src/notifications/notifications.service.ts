@@ -1,12 +1,14 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { $Enums, Prisma } from '@prisma/client';
+import { $Enums, type Locale, Prisma } from '@prisma/client';
+import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
 import type { PaginationDto } from '../common/dto/pagination.dto.js';
 import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { PushService } from '../push/push.service.js';
+import { type Notice, renderNotice } from './notice-copy.js';
 
 type NotificationType = $Enums.NotificationType;
 
@@ -93,13 +95,20 @@ export class NotificationsService {
     // Optional: omit for system / AdminIdentity-without-linked-user notices.
     senderId?: string;
     type: NotificationType;
-    content: string;
+    // Text as written; ignored when a notice is given.
+    content?: string;
+    // Written in the recipient account's language (in-app and push).
+    notice?: Notice;
     postId?: string;
     // What the notice is about when it is not a post, e.g. a moderation strike.
     targetType?: string;
     targetId?: string;
   }) {
     try {
+      const locale = await this.recipientLocale(data.recipientId);
+      const content = data.notice
+        ? renderNotice(locale, data.notice)
+        : (data.content ?? '');
       // Never notify across a block, in either direction. Moderation notices
       // are platform decisions, not messages from the staff member's profile,
       // so a block must not hide them from the affected participant.
@@ -131,12 +140,18 @@ export class NotificationsService {
             return existingUnread;
           }
 
-          // Aggregate text logic. "User A liked your post" -> "A User B y otras personas les gustó..."
-          const senderName = data.content.split(' ')[0];
-          const newContent =
-            data.type === 'LIKE'
-              ? `A ${senderName} y a otras personas les gustó tu publicación`
-              : `A ${senderName} y a otras personas les gustó tu comentario`;
+          // "B and others liked your post", with the latest sender's name.
+          const sender = data.senderId
+            ? await this.prisma.profile.findUnique({
+                where: { id: data.senderId },
+                select: { username: true },
+              })
+            : null;
+          const newContent = renderNotice(locale, {
+            key: 'likes_aggregated',
+            name: sender?.username ?? '',
+            target: data.type === 'LIKE' ? 'post' : 'comment',
+          });
 
           const updated = await this.prisma.notification.update({
             where: { id: existingUnread.id },
@@ -184,7 +199,7 @@ export class NotificationsService {
           recipientId: data.recipientId,
           senderId: data.senderId,
           type: data.type,
-          content: data.content,
+          content,
           postId: data.postId,
           targetType: data.targetType,
           targetId: data.targetId,
@@ -214,7 +229,7 @@ export class NotificationsService {
         this.pushService
           .sendNotification(data.recipientId, {
             title: (notification as any).sender?.username || 'CircleSfera',
-            body: data.content,
+            body: content,
             data: {
               type: data.type,
               postId: data.postId,
@@ -232,5 +247,16 @@ export class NotificationsService {
         `Failed to create notification for ${data.recipientId}: ${error}`,
       );
     }
+  }
+
+  // Language of the account that owns the recipient Profile.
+  private async recipientLocale(profileId: string): Promise<Locale> {
+    const profile = await this.prisma.profile
+      .findUnique({
+        where: { id: profileId },
+        select: { user: { select: { locale: true } } },
+      })
+      .catch(() => null);
+    return profile?.user?.locale ?? DEFAULT_LOCALE;
   }
 }

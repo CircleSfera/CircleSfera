@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
+import type { Notice } from '../notifications/notice-copy.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -30,22 +31,6 @@ export const STRIKE_NOTIFICATION_TARGET = {
   SUSPENDED: 'profile_suspension',
   BANNED: 'profile_ban',
 } as const;
-
-const REASON_LABEL: Record<ReportReason, string> = {
-  SPAM: 'spam',
-  HARASSMENT: 'harassment',
-  ILLEGAL_CONTENT: 'illegal content',
-  VIOLENCE: 'violence',
-  HATE_SPEECH: 'hate speech',
-  IMPERSONATION: 'impersonation',
-  CSAM: 'child sexual abuse material',
-  SCAM: 'scam',
-  OTHER: 'a community guidelines violation',
-};
-
-function isoDay(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
 
 export interface ProfileViolation {
   adminId: string;
@@ -214,7 +199,7 @@ export class ProfileStrikesService {
     await this.notify(
       violation.adminId,
       violation.profileId,
-      this.describe(result),
+      this.notice(result),
       this.notificationTarget(result.strike),
       result.strike.id,
     );
@@ -249,7 +234,7 @@ export class ProfileStrikesService {
     await this.notify(
       params.adminId,
       params.profileId,
-      'This profile was banned after a report review. Your other profiles are not affected. You can appeal this decision.',
+      { key: 'profile_banned' },
       STRIKE_NOTIFICATION_TARGET.BANNED,
       params.profileId,
     );
@@ -277,7 +262,7 @@ export class ProfileStrikesService {
     await this.notify(
       params.adminId,
       params.profileId,
-      `This profile is suspended until ${isoDay(params.until)} after a review of unusual activity. Your other profiles are not affected. You can appeal this decision.`,
+      { key: 'profile_suspended_activity', until: params.until },
       STRIKE_NOTIFICATION_TARGET.SUSPENDED,
       params.profileId,
     );
@@ -387,21 +372,24 @@ export class ProfileStrikesService {
 
   // English text stored on the notification; the client shows a localized
   // message from the notification's target type.
-  private describe(result: AppliedViolation): string {
+  private notice(result: AppliedViolation): Notice {
     const { strike, activeStrikes, suspendedUntil } = result;
-    const rule = REASON_LABEL[strike.reason];
-    const expires = isoDay(strike.expiresAt);
     if (strike.kind === 'WARNING') {
-      return `Warning: this profile broke the community guidelines (${rule}). There is no penalty this time. The warning expires on ${expires}. You can appeal it.`;
+      return {
+        key: 'profile_warning',
+        rule: strike.reason,
+        expires: strike.expiresAt,
+      };
     }
-    const prefix = `Strike ${activeStrikes} of ${STRIKES_TO_BAN} on this profile for breaking the community guidelines (${rule}). It expires on ${expires}.`;
-    if (strike.consequence === 'BANNED') {
-      return `${prefix} This profile is banned. Your other profiles are not affected. You can appeal this decision.`;
-    }
-    if (strike.consequence === 'SUSPENDED' && suspendedUntil) {
-      return `${prefix} This profile is suspended until ${isoDay(suspendedUntil)}. You can appeal this decision.`;
-    }
-    return `${prefix} You can appeal it.`;
+    return {
+      key: 'profile_strike',
+      rule: strike.reason,
+      expires: strike.expiresAt,
+      count: activeStrikes,
+      max: STRIKES_TO_BAN,
+      consequence: strike.consequence,
+      suspendedUntil: suspendedUntil ?? undefined,
+    };
   }
 
   private endProfileSessions(
@@ -422,7 +410,7 @@ export class ProfileStrikesService {
   private async notify(
     adminId: string,
     recipientId: string,
-    content: string,
+    notice: Notice,
     targetType: string,
     targetId: string,
   ): Promise<void> {
@@ -435,7 +423,7 @@ export class ProfileStrikesService {
         recipientId,
         senderId,
         type: NotificationType.MODERATION,
-        content,
+        notice,
         targetType,
         targetId,
       })

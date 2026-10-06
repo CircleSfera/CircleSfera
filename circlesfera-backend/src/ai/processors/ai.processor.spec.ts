@@ -537,9 +537,20 @@ describe('AIProcessor', () => {
         recipientId: 'author-prof-1',
         senderId: 'admin-prof-1',
         type: NotificationType.MODERATION,
-        content: expect.stringContaining('was hidden by automated moderation'),
+        notice: expect.objectContaining({
+          key: 'content_moderated',
+          status: 'hidden',
+          automated: true,
+        }),
         postId: 'p-bad',
       });
+      // The classifier's staff note never reaches the author.
+      const notice = vi
+        .mocked(eventEmitter.emit)
+        .mock.calls.find(([name]) => name === 'notification.create')?.[1] as {
+        notice: { note?: string };
+      };
+      expect(notice.notice.note).toBeUndefined();
 
       expect(aiService.moderateContent).not.toHaveBeenCalled();
     });
@@ -638,7 +649,7 @@ describe('AIProcessor', () => {
         recipientId: 'author-prof-3',
         senderId: 'admin-prof-1',
         type: NotificationType.MODERATION,
-        content: expect.stringContaining('was flagged for review'),
+        notice: expect.objectContaining({ status: 'flagged' }),
         postId: 'p-flagged',
       });
     });

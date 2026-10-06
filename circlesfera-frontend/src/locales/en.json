@@ -1598,7 +1598,8 @@
       "moderation_restriction_review": "After a review by our team, for 7 days this profile can follow 20 accounts and send 5 message requests a day, because of unusual activity (for example, many actions in a short time or repeated messages). Nothing is hidden or removed. You can appeal this decision."
     },
     "appeal_cta": "Appeal this decision",
-    "strike_details_cta": "See details and appeal"
+    "strike_details_cta": "See details and appeal",
+    "just_now": "now"
   },
   "chat": {
     "loading": "Loading chats...",

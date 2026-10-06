@@ -1,12 +1,14 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Logger } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
+import { DEFAULT_LOCALE } from '../../common/constants/locale.constants.js';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
 } from '../../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { PushService } from '../../push/push.service.js';
+import { renderDigest } from '../notice-copy.js';
 
 @Processor(
   QUEUE_NAMES.NOTIFICATIONS_PROCESSING,
@@ -84,20 +86,25 @@ export class NotificationsProcessor extends WorkerHost {
       {} as Record<string, typeof recentUnreadNotifications>,
     );
 
-    // Send a single digest push per user
+    // Send a single digest push per user, in the account's language.
     const recipientIds = Object.keys(notificationsByUser);
+    const recipients = await this.prisma.profile.findMany({
+      where: { id: { in: recipientIds } },
+      select: { id: true, user: { select: { locale: true } } },
+    });
+    const localeOf = new Map(recipients.map((p) => [p.id, p.user.locale]));
     for (const recipientId of recipientIds) {
       const count = notificationsByUser[recipientId].length;
       if (count > 0) {
-        const bodyText =
-          count === 1
-            ? 'Tienes 1 nueva notificación sobre tus publicaciones.'
-            : `Tienes ${count} nuevas interacciones en tus publicaciones.`;
+        const digest = renderDigest(
+          localeOf.get(recipientId) ?? DEFAULT_LOCALE,
+          count,
+        );
 
         await this.pushService
           .sendNotification(recipientId, {
-            title: 'Nuevas interacciones',
-            body: bodyText,
+            title: digest.title,
+            body: digest.body,
             data: {
               type: 'DIGEST',
               url: '/notifications',

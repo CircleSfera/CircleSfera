@@ -14,6 +14,7 @@ import {
   ReportStatus,
 } from '@prisma/client';
 import { primaryProfileIdForUser } from '../../../../common/utils/user-profile-shape.util.js';
+import type { Notice } from '../../../../notifications/notice-copy.js';
 import { NotificationsService } from '../../../../notifications/notifications.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { ProfileStrikesService } from '../../../../strikes/profile-strikes.service.js';
@@ -37,7 +38,7 @@ export class ReviewReportUseCase {
   private async notifyModeration(params: {
     adminId: string;
     recipientId: string;
-    content: string;
+    notice: Notice;
     postId?: string;
   }) {
     const senderId = await resolveAdminNotificationSenderId(
@@ -49,7 +50,7 @@ export class ReviewReportUseCase {
         recipientId: params.recipientId,
         senderId,
         type: NotificationType.MODERATION,
-        content: params.content,
+        notice: params.notice,
         postId: params.postId,
       })
       .catch((e) => this.logger.error(e));
@@ -99,7 +100,11 @@ export class ReviewReportUseCase {
       await this.notifyModeration({
         adminId,
         recipientId: existing.reporterId,
-        content: `Your report (${existing.targetType}) was updated to ${status}.`,
+        notice: {
+          key: 'report_updated',
+          reportType: existing.targetType,
+          status,
+        },
         postId: existing.targetType === 'POST' ? existing.targetId : undefined,
       });
     }

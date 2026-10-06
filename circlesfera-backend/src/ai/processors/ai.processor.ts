@@ -230,32 +230,31 @@ export class AIProcessor extends WorkerHost {
     targetType: 'POST' | 'STORY' | 'COMMENT';
     targetId: string;
     status: ModerationStatus;
-    assessment: string;
   }) {
-    const {
-      authorId,
-      senderProfileId,
-      targetType,
-      targetId,
-      status,
-      assessment,
-    } = params;
+    const { authorId, senderProfileId, targetType, targetId, status } = params;
     if (!authorId) return;
 
-    const statusLabel =
-      status === ModerationStatus.HIDDEN
-        ? 'hidden'
-        : status === ModerationStatus.FLAGGED
-          ? 'flagged for review'
-          : String(status).toLowerCase();
-
-    const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment}. Review our Community Guidelines at /guidelines. You can appeal from Settings → Appeals.`;
+    const statusLabel = (
+      {
+        [ModerationStatus.HIDDEN]: 'hidden',
+        [ModerationStatus.FLAGGED]: 'flagged',
+        [ModerationStatus.REMOVED]: 'removed',
+        [ModerationStatus.VISIBLE]: 'restored',
+      } as const
+    )[status];
 
     this.eventEmitter.emit('notification.create', {
       recipientId: authorId,
       senderId: senderProfileId,
       type: NotificationType.MODERATION,
-      content: content.slice(0, 500),
+      notice: {
+        key: 'content_moderated',
+        contentType: targetType,
+        status: statusLabel,
+        // The assessment is a staff note (scores, categories): it stays on
+        // the content for review and is never shown to the author.
+        automated: true,
+      },
       postId: targetType === 'POST' ? targetId : undefined,
     } satisfies NotificationCreateEvent['payload']);
   }
@@ -325,7 +324,6 @@ export class AIProcessor extends WorkerHost {
       targetType: params.targetType,
       targetId: params.targetId,
       status: params.status,
-      assessment: params.assessment,
     });
   }
 

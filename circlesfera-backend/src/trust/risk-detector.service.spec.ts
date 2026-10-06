@@ -252,7 +252,10 @@ describe('RiskDetectorService', () => {
           targetType: 'profile_restriction',
           targetId: 'case-1',
           // The notice says the decision was automated (statement of reasons).
-          content: expect.stringContaining('automated system'),
+          notice: expect.objectContaining({
+            key: 'profile_restricted',
+            by: 'automated',
+          }),
         }),
       );
     });

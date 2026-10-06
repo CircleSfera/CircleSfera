@@ -73,7 +73,7 @@ export class LikesService {
           recipientId: post.profileId,
           senderId: profileId,
           type: NotificationType.LIKE,
-          content: 'liked your post',
+          notice: { key: 'post_liked' },
           postId: post.id,
         } satisfies NotificationCreateEvent['payload']);
       }

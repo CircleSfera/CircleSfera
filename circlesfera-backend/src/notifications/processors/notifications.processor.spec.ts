@@ -13,6 +13,7 @@ describe('NotificationsProcessor', () => {
       findMany: vi.fn(),
       deleteMany: vi.fn(),
     },
+    profile: { findMany: vi.fn().mockResolvedValue([]) },
   };
 
   const mockPushService = {
@@ -74,7 +75,10 @@ describe('NotificationsProcessor', () => {
       expect(mockPushService.sendNotification).not.toHaveBeenCalled();
     });
 
-    it('groups notifications by recipient and sends single or plural push digests', async () => {
+    it('groups notifications by recipient and sends each digest in the account language', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'user-multi', user: { locale: 'en' } },
+      ]);
       mockPrismaService.notification.findMany.mockResolvedValueOnce([
         { id: 'n1', recipientId: 'user-single', type: 'LIKE' },
         { id: 'n2', recipientId: 'user-multi', type: 'LIKE' },
@@ -88,14 +92,17 @@ describe('NotificationsProcessor', () => {
 
       expect(mockPushService.sendNotification).toHaveBeenCalledWith(
         'user-single',
+        // No language on record: the default (Spanish).
         expect.objectContaining({
-          body: 'Tienes 1 nueva notificación sobre tus publicaciones.',
+          title: 'Nueva actividad',
+          body: 'Tienes 1 interacción nueva en tus publicaciones.',
         }),
       );
       expect(mockPushService.sendNotification).toHaveBeenCalledWith(
         'user-multi',
         expect.objectContaining({
-          body: 'Tienes 2 nuevas interacciones en tus publicaciones.',
+          title: 'New activity',
+          body: 'You have 2 new interactions on your posts.',
         }),
       );
     });

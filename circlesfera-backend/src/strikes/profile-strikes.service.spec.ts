@@ -128,7 +128,7 @@ describe('ProfileStrikesService', () => {
           type: NotificationType.MODERATION,
           targetType: 'profile_warning',
           targetId: 'strike-new',
-          content: expect.stringContaining('no penalty'),
+          notice: expect.objectContaining({ key: 'profile_warning' }),
         }),
       );
     });
@@ -146,7 +146,11 @@ describe('ProfileStrikesService', () => {
       expect(notifications.create).toHaveBeenCalledWith(
         expect.objectContaining({
           targetType: 'profile_strike',
-          content: expect.stringContaining('Strike 1 of 3'),
+          notice: expect.objectContaining({
+            key: 'profile_strike',
+            count: 1,
+            max: 3,
+          }),
         }),
       );
     });
@@ -219,7 +223,7 @@ describe('ProfileStrikesService', () => {
       expect(notifications.create).toHaveBeenCalledWith(
         expect.objectContaining({
           targetType: 'profile_ban',
-          content: expect.stringContaining('other profiles are not affected'),
+          notice: expect.objectContaining({ consequence: 'BANNED' }),
         }),
       );
     });
@@ -268,6 +272,62 @@ describe('ProfileStrikesService', () => {
       expect(notifications.create).toHaveBeenCalledWith(
         expect.objectContaining({ targetType: 'profile_ban' }),
       );
+    });
+  });
+
+  describe('suspendProfile', () => {
+    it('suspends one Profile without a strike, ends its sessions and tells it why', async () => {
+      const until = new Date(NOW.getTime() + 7 * DAY_MS);
+
+      await service.suspendProfile({
+        adminId: 'admin-1',
+        userId: 'user-1',
+        profileId: 'profile-1',
+        until,
+      });
+
+      expect(prisma.profile.update).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        data: { suspendedUntil: until, suspensionStrikeId: null },
+      });
+      expect(cache.del).toHaveBeenCalledWith('profile:offender');
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'user.session.terminate',
+        expect.objectContaining({ profileId: 'profile-1', scope: 'profile' }),
+      );
+      expect(notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notice: { key: 'profile_suspended_activity', until },
+          targetType: 'profile_suspension',
+        }),
+      );
+    });
+
+    it('a Profile with no owner on record only skips ending sessions', async () => {
+      await service.suspendProfile({
+        adminId: 'admin-1',
+        userId: null,
+        profileId: 'profile-1',
+        until: NOW,
+      });
+
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+      expect(notifications.create).toHaveBeenCalled();
+    });
+
+    it('a failing cache or notice does not undo the suspension', async () => {
+      cache.del.mockRejectedValue(new Error('redis down'));
+      notifications.create.mockRejectedValue(new Error('notices down'));
+
+      await expect(
+        service.suspendProfile({
+          adminId: 'admin-1',
+          userId: 'user-1',
+          profileId: 'profile-1',
+          until: NOW,
+        }),
+      ).resolves.toBeUndefined();
+      expect(prisma.profile.update).toHaveBeenCalled();
     });
   });
 

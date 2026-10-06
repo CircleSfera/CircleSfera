@@ -202,7 +202,11 @@ export interface NotificationCreateEvent {
     // Mirrors Prisma's NotificationType enum as a string to keep this
     // package independent of @prisma/client.
     type: string;
-    content: string;
+    // Text as written; ignored when a notice is given.
+    content?: string;
+    // A notice the server writes in the recipient's language. The key and
+    // fields follow the backend notice catalog.
+    notice?: { key: string } & Record<string, unknown>;
     postId?: string;
   };
 }

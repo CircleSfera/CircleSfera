@@ -187,7 +187,7 @@ describe('CommentsService', () => {
         'notification.create',
         expect.objectContaining({
           type: 'COMMENT',
-          content: 'replied to your comment',
+          notice: { key: 'comment_replied' },
         }),
       );
     });
@@ -211,7 +211,7 @@ describe('CommentsService', () => {
 
       expect(mockEventEmitter.emit).not.toHaveBeenCalledWith(
         'notification.create',
-        expect.objectContaining({ content: 'replied to your comment' }),
+        expect.objectContaining({ notice: { key: 'comment_replied' } }),
       );
     });
 

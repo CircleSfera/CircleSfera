@@ -11,6 +11,7 @@ import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constant
 import { AppException } from '../common/errors/app.exception.js';
 import { deriveConnectAccountFlags } from '../common/stripe/stripe.service.js';
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
+import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 // Stripe Checkout Session metadata.type values fulfilled here rather than
@@ -52,7 +53,7 @@ export class MonetizationWebhookService {
   private async emitPaymentNotification(params: {
     recipientUserId: string;
     senderUserId: string;
-    content: string;
+    notice: Notice;
     postId?: string;
   }) {
     if (!this.eventEmitter) return;
@@ -65,7 +66,7 @@ export class MonetizationWebhookService {
       recipientId,
       senderId: senderId ?? undefined,
       type: 'PAYMENT',
-      content: params.content,
+      notice: params.notice,
       postId: params.postId,
     } satisfies NotificationCreateEvent['payload']);
   }
@@ -295,14 +296,14 @@ export class MonetizationWebhookService {
           });
         });
 
-        const amountFormatted = (amount / 100).toLocaleString('en-US', {
-          style: 'currency',
-          currency: session.currency || 'eur',
-        });
         await this.emitPaymentNotification({
           recipientUserId: creatorId,
           senderUserId: clientReferenceId,
-          content: `Someone unlocked your private message for ${amountFormatted}!`,
+          notice: {
+            key: 'message_unlocked',
+            amountCents: amount,
+            currency: session.currency || 'eur',
+          },
         });
       }
     } else if (metadata?.type === 'DIRECT_TIP') {
@@ -358,14 +359,14 @@ export class MonetizationWebhookService {
         };
         this.eventEmitter?.emit('payment.alert', tipAlert);
 
-        const amountFormatted = (amount / 100).toLocaleString('en-US', {
-          style: 'currency',
-          currency: session.currency || 'eur',
-        });
         await this.emitPaymentNotification({
           recipientUserId: creatorId,
           senderUserId: clientReferenceId,
-          content: `You received a ${amountFormatted} tip!`,
+          notice: {
+            key: 'tip_received',
+            amountCents: amount,
+            currency: session.currency || 'eur',
+          },
           postId: postId || undefined,
         });
       }

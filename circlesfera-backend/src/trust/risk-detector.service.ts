@@ -288,15 +288,16 @@ export class RiskDetectorService implements OnModuleInit {
     caseId: string,
     by: 'automated' | 'staff' = 'automated',
   ): Promise<void> {
-    const content =
-      by === 'automated'
-        ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${RESTRICTION_MAX_HOURS} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.`
-        : `After a review by our team, this profile can follow at most 20 accounts and send at most 5 message requests a day for ${STAFF_RESTRICTION_DAYS} days, because of unusual activity such as many actions in a short time or repeated messages. Nothing is hidden or removed. You can appeal this decision.`;
     await this.notificationsService
       .create({
         recipientId: profileId,
         type: NotificationType.MODERATION,
-        content,
+        notice: {
+          key: 'profile_restricted',
+          by,
+          hours: RESTRICTION_MAX_HOURS,
+          days: STAFF_RESTRICTION_DAYS,
+        },
         targetType: RESTRICTION_NOTIFICATION_TARGET[by],
         targetId: caseId,
       })

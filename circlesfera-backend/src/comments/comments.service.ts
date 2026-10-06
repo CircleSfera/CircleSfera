@@ -142,7 +142,7 @@ export class CommentsService {
         recipientId: post.profileId,
         senderId: profileId,
         type: 'COMMENT',
-        content: 'commented on your post',
+        notice: { key: 'post_commented' },
         postId: post.id,
       } satisfies NotificationCreateEvent['payload']);
     }
@@ -174,7 +174,7 @@ export class CommentsService {
               recipientId: profile.id,
               senderId: profileId,
               type: NotificationType.MENTION,
-              content: 'mentioned you in a comment',
+              notice: { key: 'mentioned_in_comment' },
               postId: post.id,
             } satisfies NotificationCreateEvent['payload']),
           ),
@@ -196,7 +196,7 @@ export class CommentsService {
           recipientId: parentComment.profileId,
           senderId: profileId,
           type: 'COMMENT',
-          content: 'replied to your comment',
+          notice: { key: 'comment_replied' },
           postId: post.id,
         } satisfies NotificationCreateEvent['payload']);
       }
@@ -497,7 +497,7 @@ export class CommentsService {
                 recipientId: p.id,
                 senderId: profileId,
                 type: NotificationType.MENTION,
-                content: 'mentioned you in a comment',
+                notice: { key: 'mentioned_in_comment' },
                 postId,
               } satisfies NotificationCreateEvent['payload']);
             }
@@ -535,7 +535,7 @@ export class CommentsService {
           recipientId: comment.profileId,
           senderId: profileId,
           type: NotificationType.COMMENT_LIKE,
-          content: 'liked your comment.',
+          notice: { key: 'comment_liked' },
           postId: comment.postId,
         } satisfies NotificationCreateEvent['payload']);
       }

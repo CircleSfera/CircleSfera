@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AtSign,
   Bell,
+  Coins,
   Heart,
   MessageCircle,
   Rocket,
@@ -34,7 +35,7 @@ const STRIKE_NOTICE_KEYS: Record<string, string> = {
 };
 
 export default function Notifications() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     data: notifications,
     isLoading,
@@ -139,6 +140,8 @@ export default function Notifications() {
       case 'PROMOTION_SUCCESS':
       case 'PROMOTION_REJECTED':
         return <Rocket size={13} />;
+      case 'PAYMENT':
+        return <Coins size={13} />;
       default:
         return <Bell size={13} />;
     }
@@ -190,6 +193,12 @@ export default function Notifications() {
           background: 'linear-gradient(135deg, #f97316, #ea580c)',
           boxShadow: '0 2px 8px rgba(249,115,22,0.4)',
         };
+      case 'PAYMENT':
+        return {
+          background:
+            'linear-gradient(135deg, var(--brand-secondary), var(--brand-primary))',
+          boxShadow: '0 2px 8px rgba(var(--brand-primary-rgb), 0.45)',
+        };
       default:
         return { background: 'linear-gradient(135deg, #6b7280, #4b5563)' };
     }
@@ -199,13 +208,13 @@ export default function Notifications() {
   const getRelativeTime = (dateStr: string) => {
     const diff = Date.now() - new Date(dateStr).getTime();
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'ahora';
+    if (mins < 1) return t('notifications.just_now');
     if (mins < 60) return `${mins}m`;
     const hours = Math.floor(mins / 60);
     if (hours < 24) return `${hours}h`;
     const days = Math.floor(hours / 24);
     if (days < 7) return `${days}d`;
-    return new Date(dateStr).toLocaleDateString('es-ES', {
+    return new Date(dateStr).toLocaleDateString(i18n.language, {
       day: 'numeric',
       month: 'short',
     });
@@ -224,6 +233,9 @@ export default function Notifications() {
     }
     if (notif.targetType && STRIKE_NOTICE_KEYS[notif.targetType]) {
       return '/accounts/appeals';
+    }
+    if (notif.targetType === 'account_bot_label') {
+      return '/accounts/appeals?targetType=BOT_LABEL';
     }
     const content = (notif.content || '').toLowerCase();
     if (notif.postId) {
@@ -347,6 +359,9 @@ export default function Notifications() {
                       t('notifications.types.promotion_rejected', {
                         content: notif.content,
                       })}
+                    {/* Written by the server in the reader's language. */}
+                    {(notif.type === 'PAYMENT' || notif.type === 'SYSTEM') &&
+                      notif.content}
                   </span>
                 </p>
                 {notif.type === 'MODERATION' && (

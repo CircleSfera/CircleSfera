@@ -578,7 +578,11 @@ describe('AppealsService.update — effects and notices', () => {
       recipientId: 'p-banned',
       senderId: undefined,
       type: 'MODERATION',
-      content: 'Your appeal was rejected. Notes: Repeated spam',
+      notice: {
+        key: 'appeal_decided',
+        outcome: 'REJECTED',
+        notes: 'Repeated spam',
+      },
       postId: undefined,
     });
   });
@@ -596,7 +600,9 @@ describe('AppealsService.update — effects and notices', () => {
     );
 
     expect(t.notifications.create).toHaveBeenCalledWith(
-      expect.objectContaining({ content: 'Your appeal was pending.' }),
+      expect.objectContaining({
+        notice: { key: 'appeal_decided', outcome: 'PENDING', notes: undefined },
+      }),
     );
   });
 
