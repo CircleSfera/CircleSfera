@@ -308,6 +308,12 @@ jobs:
             if [ -f .deploy-sha ]; then
               PREV_SHA="$(cat .deploy-sha)"
             fi
+            # The version a rollback returns to. On a rerun of the same commit
+            # it is the one recorded before it, whose images must stay too.
+            KEEP_PREV="$PREV_SHA"
+            if [ "$PREV_SHA" = "$IMAGE_SHA" ] && [ -f .deploy-sha.previous ]; then
+              KEEP_PREV="$(cat .deploy-sha.previous)"
+            fi
 
             # Pre-migrate Postgres backup (best-effort; never fail the deploy).
             # Prefer a path writable by the deploy user (/srv/...), not /var/backups.
@@ -366,13 +372,13 @@ jobs:
 
             # Every deploy leaves its SHA-tagged backend/frontend images on disk
             # forever — `docker system prune -f` alone never touches them (they're
-            # tagged, not dangling). rollback() always re-pulls PREV_SHA fresh from
-            # GHCR rather than relying on a locally cached copy, so no old SHA tag
-            # is ever actually needed locally: keeping only `:latest` is safe.
+            # tagged, not dangling). Keep `:latest`, this deploy and the previous
+            # one: infra/host/emergency-deploy.sh rolls back to the previous
+            # images without GHCR, for when GitHub itself is down.
             cleanup_old_images() {
               for repo in backend frontend; do
                 docker images "${REGISTRY}/${repo}" --format '{{.Tag}}' \
-                  | grep -v '^latest$' \
+                  | grep -vxF -e latest -e "${IMAGE_SHA}" -e "${KEEP_PREV:-latest}" \
                   | xargs -r -I{} docker rmi "${REGISTRY}/${repo}:{}" >/dev/null 2>&1 || true
               done
               docker system prune -f || true
@@ -603,6 +609,10 @@ jobs:
 
             trap - EXIT
             rm -rf "$SMOKE_TMP"
+            # The version this deploy replaced, for the emergency rollback.
+            if [ -n "$PREV_SHA" ] && [ "$PREV_SHA" != "$IMAGE_SHA" ]; then
+              echo "${PREV_SHA}" > .deploy-sha.previous
+            fi
             echo "${IMAGE_SHA}" > .deploy-sha
 
             # Clean up old SHA-tagged images and dangling layers
