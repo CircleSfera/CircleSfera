@@ -544,6 +544,13 @@ describe('AIProcessor', () => {
         }),
         postId: 'p-bad',
       });
+      // The classifier's staff note never reaches the author.
+      const notice = vi
+        .mocked(eventEmitter.emit)
+        .mock.calls.find(([name]) => name === 'notification.create')?.[1] as {
+        notice: { note?: string };
+      };
+      expect(notice.notice.note).toBeUndefined();
 
       expect(aiService.moderateContent).not.toHaveBeenCalled();
     });

@@ -230,16 +230,8 @@ export class AIProcessor extends WorkerHost {
     targetType: 'POST' | 'STORY' | 'COMMENT';
     targetId: string;
     status: ModerationStatus;
-    assessment: string;
   }) {
-    const {
-      authorId,
-      senderProfileId,
-      targetType,
-      targetId,
-      status,
-      assessment,
-    } = params;
+    const { authorId, senderProfileId, targetType, targetId, status } = params;
     if (!authorId) return;
 
     const statusLabel = (
@@ -259,7 +251,8 @@ export class AIProcessor extends WorkerHost {
         key: 'content_moderated',
         contentType: targetType,
         status: statusLabel,
-        note: assessment.slice(0, 300),
+        // The assessment is a staff note (scores, categories): it stays on
+        // the content for review and is never shown to the author.
         automated: true,
       },
       postId: targetType === 'POST' ? targetId : undefined,
@@ -331,7 +324,6 @@ export class AIProcessor extends WorkerHost {
       targetType: params.targetType,
       targetId: params.targetId,
       status: params.status,
-      assessment: params.assessment,
     });
   }
 

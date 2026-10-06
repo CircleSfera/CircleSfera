@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/test-utils';
 import Notifications from './Notifications';
 
@@ -16,13 +16,17 @@ vi.mock('../components/notifications/PendingFollowRequests', () => ({
 
 import { notificationsApi } from '../services';
 
+// Notices are created and rendered at the same frozen instant, so the
+// relative time never depends on how long the test takes.
+const NOW = new Date('2026-11-03T12:00:00.000Z');
+
 const notice = (overrides: Record<string, unknown>) => ({
   id: 'n-1',
   recipientId: 'p-1',
   senderId: 'p-2',
   sender: { username: 'ana', avatar: null },
   read: false,
-  createdAt: new Date().toISOString(),
+  createdAt: NOW.toISOString(),
   ...overrides,
 });
 
@@ -34,6 +38,11 @@ const show = (items: object[]) =>
 describe('Notifications written for the reader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+  });
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('shows payment notices, which the server writes in the reader language', async () => {

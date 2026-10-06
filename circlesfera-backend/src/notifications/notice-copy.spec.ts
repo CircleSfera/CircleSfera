@@ -155,3 +155,25 @@ describe('renderDigest', () => {
     expect(renderDigest(locale, count).body).toBe(body);
   });
 });
+
+describe('aggregated likes', () => {
+  it('aggregated likes never show a blank sender name', () => {
+    const notice: Notice = {
+      key: 'likes_aggregated',
+      name: '',
+      target: 'post',
+    };
+
+    expect(renderNotice('en', notice)).toBe('Several people liked your post');
+    expect(renderNotice('es', notice)).toBe(
+      'A varias personas les ha gustado tu publicación',
+    );
+    expect(
+      renderNotice('es', {
+        key: 'likes_aggregated',
+        name: 'ana',
+        target: 'comment',
+      }),
+    ).toBe('A ana y a otras personas les ha gustado tu comentario');
+  });
+});

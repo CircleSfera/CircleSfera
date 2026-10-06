@@ -175,7 +175,10 @@ function renderEn(n: Notice): string {
     case 'follow_accepted':
       return 'accepted your follow request';
     case 'likes_aggregated':
-      return `${n.name} and others liked your ${n.target}`;
+      // The sender may have no name (deleted Profile): no blank subject.
+      return n.name
+        ? `${n.name} and others liked your ${n.target}`
+        : `Several people liked your ${n.target}`;
     case 'content_moderated': {
       const verb = {
         restored: 'restored',
@@ -267,8 +270,12 @@ function renderEs(n: Notice): string {
       return 'ha solicitado seguirte';
     case 'follow_accepted':
       return 'ha aceptado tu solicitud de seguimiento';
-    case 'likes_aggregated':
-      return `A ${n.name} y a otras personas les ha gustado tu ${n.target === 'post' ? 'publicación' : 'comentario'}`;
+    case 'likes_aggregated': {
+      const target = n.target === 'post' ? 'publicación' : 'comentario';
+      return n.name
+        ? `A ${n.name} y a otras personas les ha gustado tu ${target}`
+        : `A varias personas les ha gustado tu ${target}`;
+    }
     case 'content_moderated': {
       const verb = {
         restored: 'ha restaurado',
