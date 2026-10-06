@@ -28,15 +28,15 @@ export default defineConfig({
         '**/*.config.ts',
         'src/common/testing/**',
       ],
-      // Risk-based coverage threshold policy (QD-007): a global floor plus
+      // Risk-based coverage threshold policy: a global floor plus
       // explicit thresholds for critical paths. Thresholds are a ratchet: set
       // to the measured coverage and only ever raised, never lowered.
       thresholds: {
         // Global floor across all backend code (target 80%, met).
-        statements: 84,
-        lines: 84,
-        branches: 75,
-        functions: 85,
+        statements: 86,
+        lines: 86,
+        branches: 78,
+        functions: 86,
 
         // Security & Authentication: auth services, 2FA, passkeys, credential lifecycle
         'src/auth/**': {
@@ -46,8 +46,8 @@ export default defineConfig({
 
         // Authorization guards (target 100%)
         'src/auth/guards/**': {
-          statements: 78,
-          lines: 79,
+          statements: 100,
+          lines: 100,
         },
 
         // Authorization: Admin RBAC access control (100% fully covered)
@@ -116,8 +116,8 @@ export default defineConfig({
           lines: 94,
         },
         'src/appeals/**': {
-          statements: 71,
-          lines: 72,
+          statements: 100,
+          lines: 100,
         },
         'src/reports/**': {
           statements: 100,
@@ -132,14 +132,14 @@ export default defineConfig({
           lines: 100,
         },
         'src/admin/use-cases/content/commands/review-report.use-case.ts': {
-          statements: 63,
-          lines: 65,
+          statements: 100,
+          lines: 100,
         },
 
         // Security: abuse protection (Turnstile, device signals) and policies
         'src/common/abuse/**': {
-          statements: 44,
-          lines: 45,
+          statements: 99,
+          lines: 99,
         },
         'src/common/policies/**': {
           statements: 98,
