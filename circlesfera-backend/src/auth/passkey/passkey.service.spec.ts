@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -17,7 +18,7 @@ import {
 } from '@simplewebauthn/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { PasskeyService } from './passkey.service.js';
+import { MAX_PASSKEYS_PER_ACCOUNT, PasskeyService } from './passkey.service.js';
 
 vi.mock('@simplewebauthn/server', () => ({
   generateRegistrationOptions: vi.fn(),
@@ -47,6 +48,7 @@ describe('PasskeyService', () => {
       update: vi.fn(),
     },
     passkey: {
+      count: vi.fn(async () => 0),
       create: vi.fn(),
       update: vi.fn(),
       findMany: vi.fn(),
@@ -125,6 +127,47 @@ describe('PasskeyService', () => {
       });
     });
 
+    it('refuses a new passkey once the account has the most it may register', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        passkeys: Array.from({ length: MAX_PASSKEYS_PER_ACCOUNT }, (_, i) => ({
+          credentialID: `cred-${i}`,
+        })),
+      });
+
+      const error = await service
+        .generateRegistrationOptions('user-1')
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(409);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        errorCode: 'PASSKEY_LIMIT_REACHED',
+        details: { max: MAX_PASSKEYS_PER_ACCOUNT },
+      });
+      expect(mockGenerateRegistrationOptions).not.toHaveBeenCalled();
+      expect(mockPrismaService.passkeyChallenge.create).not.toHaveBeenCalled();
+    });
+
+    it('still offers a passkey to an account one below the limit', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'test@example.com',
+        passkeys: Array.from(
+          { length: MAX_PASSKEYS_PER_ACCOUNT - 1 },
+          (_, i) => ({ credentialID: `cred-${i}` }),
+        ),
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'c',
+      } as PublicKeyCredentialCreationOptionsJSON);
+
+      await expect(
+        service.generateRegistrationOptions('user-1'),
+      ).resolves.toMatchObject({ challenge: 'c' });
+    });
+
     it('should throw NotFoundException if user does not exist', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await expect(
@@ -159,6 +202,55 @@ describe('PasskeyService', () => {
         where: { id: userId },
         data: { currentChallenge: null },
       });
+    });
+
+    it('does not store a passkey that would go past the limit, even after a valid ceremony', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        currentChallenge: 'expected-challenge',
+      });
+      mockVerifyRegistrationResponse.mockResolvedValue({
+        verified: true,
+        registrationInfo: {
+          credential: { id: 'cred-6', publicKey: Buffer.from('k'), counter: 0 },
+        },
+      } as unknown as VerifiedRegistrationResponse);
+      mockPrismaService.passkey.count.mockResolvedValueOnce(
+        MAX_PASSKEYS_PER_ACCOUNT,
+      );
+
+      const error = await service
+        .verifyRegistration('user-1', { response: {} })
+        .catch((e: unknown) => e);
+
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(409);
+      expect((error as HttpException).getResponse()).toMatchObject({
+        errorCode: 'PASSKEY_LIMIT_REACHED',
+      });
+      expect(mockPrismaService.passkey.create).not.toHaveBeenCalled();
+    });
+
+    it('locks the account before counting so simultaneous registrations are counted in turn', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        currentChallenge: 'expected-challenge',
+      });
+      mockVerifyRegistrationResponse.mockResolvedValue({
+        verified: true,
+        registrationInfo: {
+          credential: { id: 'cred-2', publicKey: Buffer.from('k'), counter: 0 },
+        },
+      } as unknown as VerifiedRegistrationResponse);
+
+      await service.verifyRegistration('user-1', { response: {} });
+
+      const lock =
+        mockPrismaService.user.update.mock.invocationCallOrder.at(-1)!;
+      const count = mockPrismaService.passkey.count.mock.invocationCallOrder[0];
+      const create =
+        mockPrismaService.passkey.create.mock.invocationCallOrder[0];
+      expect(lock).toBeLessThan(count);
+      expect(count).toBeLessThan(create);
+      expect(mockPrismaService.$transaction).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException if challenge is missing', async () => {

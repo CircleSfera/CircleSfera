@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import {
   BadRequestException,
   Inject,
@@ -14,6 +15,7 @@ import type {
   VerifyAuthenticationResponseOpts,
   VerifyRegistrationResponseOpts,
 } from '@simplewebauthn/server';
+import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   getAssurancePolicy,
@@ -28,6 +30,18 @@ import {
 } from './simplewebauthn.js';
 
 const PASSKEY_CHALLENGE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// Passkeys an account may register. One synced passkey covers a whole device
+// ecosystem, so a few cover phones, computers and a hardware key.
+export const MAX_PASSKEYS_PER_ACCOUNT = 5;
+
+function passkeyLimitReached(): AppException {
+  return AppException.Conflict(
+    ErrorCode.PASSKEY_LIMIT_REACHED,
+    'Passkey limit reached',
+    { max: MAX_PASSKEYS_PER_ACCOUNT },
+  );
+}
 
 function extractChallengeFromClientResponse(
   body: unknown,
@@ -194,6 +208,9 @@ export class PasskeyService {
     if (!user) {
       throw new NotFoundException('User not found');
     }
+    if (user.passkeys.length >= MAX_PASSKEYS_PER_ACCOUNT) {
+      throw passkeyLimitReached();
+    }
 
     const primaryProfile = user.profiles?.[0];
     const policy = getAssurancePolicy(sensitivity);
@@ -293,38 +310,17 @@ export class PasskeyService {
           );
         }
 
-        const prisma = this.prisma as unknown as {
-          passkey: {
-            create: (args: {
-              data: {
-                userId: string;
-                credentialID: string;
-                publicKey: Buffer;
-                counter: bigint;
-                transports: AuthenticatorTransport[];
-              };
-            }) => Promise<any>;
-          };
-        };
-
-        await prisma.passkey.create({
-          data: {
-            userId,
-            credentialID: id,
-            publicKey: Buffer.from(publicKey),
-            counter: BigInt(counter),
-            transports:
-              (
-                body as {
-                  response: { transports?: AuthenticatorTransport[] };
-                }
-              ).response.transports || [],
-          },
-        });
-
-        await this.prisma.user.update({
-          where: { id: userId },
-          data: { currentChallenge: null },
+        await this.storePasskeyWithinLimit(userId, {
+          userId,
+          credentialID: id,
+          publicKey: Buffer.from(publicKey),
+          counter: BigInt(counter),
+          transports:
+            (
+              body as {
+                response: { transports?: AuthenticatorTransport[] };
+              }
+            ).response.transports || [],
         });
 
         return { verified: true, userVerified };
@@ -332,9 +328,43 @@ export class PasskeyService {
 
       return { verified: false };
     } catch (error: unknown) {
+      if (error instanceof AppException) throw error;
       const message = error instanceof Error ? error.message : 'Unknown error';
       throw new BadRequestException(`Passkey registration failed: ${message}`);
     }
+  }
+
+  // Stores a verified passkey unless the account is already at the limit.
+  // The account row is updated first, which locks it until the transaction
+  // ends, so simultaneous registrations for one account are counted in turn.
+  private async storePasskeyWithinLimit(
+    userId: string,
+    data: {
+      userId: string;
+      credentialID: string;
+      publicKey: Buffer;
+      counter: bigint;
+      transports: AuthenticatorTransport[];
+    },
+  ): Promise<void> {
+    const prisma = this.prisma as any;
+    const store = async (tx: any) => {
+      await tx.user.update({
+        where: { id: userId },
+        data: { currentChallenge: null },
+      });
+      const registered = await tx.passkey.count({ where: { userId } });
+      if (registered >= MAX_PASSKEYS_PER_ACCOUNT) {
+        throw passkeyLimitReached();
+      }
+      await tx.passkey.create({ data });
+    };
+
+    if (typeof prisma.$transaction === 'function') {
+      await prisma.$transaction(store);
+      return;
+    }
+    await store(prisma);
   }
 
   // Generate WebAuthn authentication options (challenge) for login.

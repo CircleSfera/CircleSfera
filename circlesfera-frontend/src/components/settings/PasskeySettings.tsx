@@ -17,7 +17,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { passkeyApi } from '../../services';
-import type { PasskeyInfo } from '../../services/passkey.service';
+import {
+  MAX_PASSKEYS_PER_ACCOUNT,
+  type PasskeyInfo,
+} from '../../services/passkey.service';
 import { logger } from '../../utils/logger';
 
 export const PasskeySettings: React.FC = () => {
@@ -61,6 +64,8 @@ export const PasskeySettings: React.FC = () => {
     }
   }, [fetchPasskeys]);
 
+  const atLimit = passkeys.length >= MAX_PASSKEYS_PER_ACCOUNT;
+
   const handleRegister = async () => {
     setLoading(true);
     setError(null);
@@ -86,7 +91,16 @@ export const PasskeySettings: React.FC = () => {
     } catch (err: unknown) {
       // The browser and server texts are technical and not translated.
       logger.error('Passkey registration error:', err);
-      setError(t('settings.passkey_settings.register_error'));
+      const limitReached =
+        (err as { data?: { errorCode?: string } } | null)?.data?.errorCode ===
+        'PASSKEY_LIMIT_REACHED';
+      setError(
+        limitReached
+          ? t('settings.passkey_settings.limit_reached', {
+              max: MAX_PASSKEYS_PER_ACCOUNT,
+            })
+          : t('settings.passkey_settings.register_error'),
+      );
     } finally {
       setLoading(false);
     }
@@ -142,7 +156,7 @@ export const PasskeySettings: React.FC = () => {
         <button
           type="button"
           onClick={handleRegister}
-          disabled={loading}
+          disabled={loading || loadingPasskeys || atLimit}
           className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-[11px] uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
         >
           {loading ? (
@@ -153,6 +167,14 @@ export const PasskeySettings: React.FC = () => {
           {t('settings.passkey_settings.add_new')}
         </button>
       </div>
+
+      {atLimit && !error && (
+        <p className="text-xs text-gray-400">
+          {t('settings.passkey_settings.limit_reached', {
+            max: MAX_PASSKEYS_PER_ACCOUNT,
+          })}
+        </p>
+      )}
 
       {error && (
         <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
@@ -175,7 +197,7 @@ export const PasskeySettings: React.FC = () => {
             {t('settings.passkey_settings.registered')}
           </span>
           <span className="text-xs font-bold text-gray-500">
-            {passkeys.length}
+            {passkeys.length} / {MAX_PASSKEYS_PER_ACCOUNT}
           </span>
         </div>
 
