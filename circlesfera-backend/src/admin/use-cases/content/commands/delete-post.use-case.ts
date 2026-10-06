@@ -16,7 +16,9 @@ export class DeletePostUseCase {
   async execute(
     adminId: string,
     postId: string,
-    reason = 'Violación de políticas',
+    // Staff note for the author; without one the email uses the generic
+    // reason in the author's language.
+    reason?: string,
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
