@@ -20,9 +20,9 @@ export default function PostContent({
   hideStats,
   isDetailMode = false,
 }: PostContentProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
-  const formattedLikes = new Intl.NumberFormat('es-ES', {
+  const formattedLikes = new Intl.NumberFormat(i18n.language, {
     notation: likesCount >= 10000 ? 'compact' : 'standard',
     maximumFractionDigits: 1,
   }).format(likesCount);
@@ -75,7 +75,7 @@ export default function PostContent({
           className="text-[10px] font-semibold uppercase tracking-widest mt-0.5"
           style={{ color: 'rgba(255,255,255,0.22)' }}
         >
-          {new Date(post.createdAt).toLocaleDateString('es-ES', {
+          {new Date(post.createdAt).toLocaleDateString(i18n.language, {
             day: 'numeric',
             month: 'long',
             year: 'numeric',

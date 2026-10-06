@@ -5,6 +5,7 @@ import {
   getMyStrikes,
   type ProfileStrike,
 } from '../../services/appeals.service';
+import { formatDate } from '../../utils/format';
 import { LoadingSpinner } from '../LoadingStates';
 import SettingsSection from './SettingsSection';
 
@@ -88,7 +89,7 @@ function StrikeRow({
   appealPending: boolean;
   onAppeal: (strikeId: string) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isWarning = strike.kind === 'WARNING';
   const Icon = isWarning ? AlertTriangle : ShieldAlert;
   const statusLabel =
@@ -107,7 +108,7 @@ function StrikeRow({
       : strike.consequence === 'SUSPENDED'
         ? t('settings.appeals.strike_consequence_suspended')
         : null;
-  const expiry = new Date(strike.expiresAt).toLocaleDateString();
+  const expiry = formatDate(strike.expiresAt, i18n.language);
 
   return (
     <li
@@ -142,7 +143,7 @@ function StrikeRow({
       </div>
       <p className="text-xs text-white/40">
         {t('settings.appeals.strike_applied_on', {
-          date: new Date(strike.createdAt).toLocaleDateString(),
+          date: formatDate(strike.createdAt, i18n.language),
         })}
         {strike.status !== 'REVOKED' ? (
           <>

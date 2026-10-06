@@ -20,6 +20,7 @@ import type {
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { formatNumber } from '../../utils/format';
 import { AdminListRow } from '../admin/AdminList';
 import { AdminSplitView } from '../admin/AdminSplitView';
 import { Button } from '../ui';
@@ -83,7 +84,7 @@ interface Props {
 }
 
 export default function CreatorPromotionsTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [showNewPromo, setShowNewPromo] = useState(false);
@@ -241,7 +242,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               {t('creator.promotions.total_reach')}
             </p>
             <p className="text-brand-primary font-bold text-lg">
-              +{promo.reach.toLocaleString()}
+              +{formatNumber(promo.reach, i18n.language)}
             </p>
           </div>
         </div>
@@ -252,7 +253,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
               {t('creator.promotions.clicks')}
             </p>
             <p className="text-white font-bold text-base">
-              {promo.clicks?.toLocaleString() || 0}
+              {formatNumber(promo.clicks, i18n.language) || 0}
             </p>
           </div>
           <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
@@ -474,7 +475,9 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                             {(promo.budgetCents / 100).toFixed(2)}{' '}
                             {promo.currency}
                           </span>
-                          <span>+{promo.reach.toLocaleString()}</span>
+                          <span>
+                            +{formatNumber(promo.reach, i18n.language)}
+                          </span>
                         </>
                       }
                       badge={
@@ -530,7 +533,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                         <>
                           <span className="inline-flex items-center gap-1">
                             <Zap size={10} className="text-brand-primary" />
-                            {promo.reach.toLocaleString()}
+                            {formatNumber(promo.reach, i18n.language)}
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <DollarSign

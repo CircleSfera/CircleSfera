@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { commentsApi, uploadApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Comment, CreateCommentDto } from '../types';
+import { formatDate } from '../utils/format';
 import { logger } from '../utils/logger';
 import { pickNativeImage } from '../utils/nativeFilePicker';
 import { VoicePlayer } from './audio/VoicePlayer';
@@ -53,7 +54,7 @@ const CommentItem = ({
   onLike,
   depth = 0,
 }: CommentItemProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isOwner =
     currentUserId === comment.profileId ||
     currentUserId === comment.profile?.id;
@@ -162,7 +163,7 @@ const CommentItem = ({
 
           <div className="flex items-center gap-4 mt-1.5">
             <span className="text-xs text-gray-500">
-              {new Date(comment.createdAt).toLocaleDateString()}
+              {formatDate(comment.createdAt, i18n.language)}
             </span>
             {likesCount > 0 && (
               <span className="text-xs font-semibold text-gray-500">

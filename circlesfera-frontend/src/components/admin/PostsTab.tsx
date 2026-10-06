@@ -15,6 +15,7 @@ import type { AdminPost } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
+import { formatDate, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -37,7 +38,7 @@ interface Props {
 }
 
 export default function PostsTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -141,7 +142,7 @@ export default function PostsTab({ onToast }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <AdminKpiWidget
           title={t('admin.posts.kpi_total')}
-          value={statsData?.posts.toLocaleString() || '0'}
+          value={formatNumber(statsData?.posts, i18n.language) || '0'}
           icon={<ImageIcon size={16} />}
           trend={{
             value: statsData?.postGrowth || 0,
@@ -150,7 +151,9 @@ export default function PostsTab({ onToast }: Props) {
         />
         <AdminKpiWidget
           title={t('admin.posts.kpi_new_week')}
-          value={statsData?.newPostsThisWeek.toLocaleString() || '0'}
+          value={
+            formatNumber(statsData?.newPostsThisWeek, i18n.language) || '0'
+          }
           icon={<TrendingUp size={16} />}
           iconColorClass="text-green-400 bg-green-400/10"
         />
@@ -260,9 +263,7 @@ export default function PostsTab({ onToast }: Props) {
                     }
                     meta={
                       <>
-                        <span>
-                          {new Date(post.createdAt).toLocaleDateString()}
-                        </span>
+                        <span>{formatDate(post.createdAt, i18n.language)}</span>
                         {post._count && (
                           <span>
                             {t('admin.posts.likes_comments', {

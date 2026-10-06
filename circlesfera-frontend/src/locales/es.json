@@ -262,7 +262,13 @@
       "verified_badge": "Insignia de verificado",
       "verified_desc": "Incluido en Verificado",
       "pro_insights": "Estadísticas Pro",
-      "pro_desc": "Mejora para creadores élite"
+      "pro_desc": "Mejora para creadores élite",
+      "status_active": "Activa",
+      "status_trialing": "Prueba gratuita",
+      "status_past_due": "Pago atrasado",
+      "status_incomplete": "Pago pendiente",
+      "status_cancelled": "Cancelada",
+      "status_expired": "Caducada"
     },
     "security": {
       "title": "Seguridad",
@@ -3278,7 +3284,9 @@
     "billing_yearly": "Anual",
     "per_month": "mes",
     "per_year": "año",
-    "save_percent": "Ahorra {{percent}}%"
+    "save_percent": "Ahorra {{percent}}%",
+    "load_error_title": "No se han podido cargar los planes",
+    "load_error_message": "Revisa tu conexión e inténtalo de nuevo."
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",

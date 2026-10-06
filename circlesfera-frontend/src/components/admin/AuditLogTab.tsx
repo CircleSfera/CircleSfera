@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime } from '../../utils/format';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
@@ -73,7 +74,7 @@ function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 export default function AuditLogTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [actionFilter, setActionFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -195,7 +196,9 @@ export default function AuditLogTab() {
                       </span>
                     }
                     meta={
-                      <span>{new Date(log.createdAt).toLocaleString()}</span>
+                      <span>
+                        {formatDateTime(log.createdAt, i18n.language)}
+                      </span>
                     }
                   />
                 ))
@@ -216,7 +219,7 @@ export default function AuditLogTab() {
                   {formatActionLabel(selected.action)}
                 </p>
                 <p className="text-xs text-white/40 mt-1">
-                  {new Date(selected.createdAt).toLocaleString()}
+                  {formatDateTime(selected.createdAt, i18n.language)}
                 </p>
               </div>
               <dl>

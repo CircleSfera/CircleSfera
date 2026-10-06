@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { Post } from '../../types';
+import { formatNumber } from '../../utils/format';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -22,7 +23,7 @@ interface Props {
 }
 
 export default function PromoteModal({ post, onClose, onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
 
   const [objective, setObjective] = useState('PROFILE_VISITS');
@@ -241,7 +242,8 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             {t('creator.promotions.estimated_reach')}
           </span>
           <span className="text-white font-medium text-sm tabular-nums">
-            {minReach.toLocaleString()} - {maxReach.toLocaleString()}
+            {formatNumber(minReach, i18n.language)} -{' '}
+            {formatNumber(maxReach, i18n.language)}
           </span>
         </div>
       </div>

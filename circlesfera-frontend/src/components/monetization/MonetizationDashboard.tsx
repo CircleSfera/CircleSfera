@@ -3,6 +3,7 @@ import { ArrowDownLeft, ArrowUpRight, Coins, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
+import { formatDate } from '../../utils/format';
 import { Card } from '../ui';
 
 interface Transaction {
@@ -22,7 +23,7 @@ interface MonetizationData {
 
 // Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet.
 export default function MonetizationDashboard() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const hasConnect = !!profile?.user?.stripeConnectAccountId;
 
@@ -175,7 +176,7 @@ export default function MonetizationDashboard() {
                       {tx.description || tx.type.replace(/_/g, ' ')}
                     </p>
                     <p className="text-[11px] text-white/40">
-                      {new Date(tx.createdAt).toLocaleDateString()}
+                      {formatDate(tx.createdAt, i18n.language)}
                     </p>
                   </div>
                 </div>

@@ -28,7 +28,7 @@ import { Card } from '../ui';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 
 export default function CreatorAnalyticsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { data: chartData, isLoading: isChartLoading } = useQuery<
     CreatorChartDay[]
@@ -135,7 +135,7 @@ export default function CreatorAnalyticsTab() {
                   dy={10}
                   tickFormatter={(val) => {
                     const date = new Date(val);
-                    return date.toLocaleDateString('es-ES', {
+                    return date.toLocaleDateString(i18n.language, {
                       day: 'numeric',
                       month: 'short',
                     });

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { AdminSupportTicket } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate, formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -34,7 +35,7 @@ function statusBadgeClass(status: TicketStatus) {
 }
 
 export default function SupportTicketsTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
@@ -174,7 +175,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         {ticket.status}
                       </span>
                     }
-                    meta={new Date(ticket.createdAt).toLocaleDateString()}
+                    meta={formatDate(ticket.createdAt, i18n.language)}
                   />
                 ))
               )}
@@ -258,7 +259,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
                   </dl>
                   <p className="text-xs text-white/40">
                     {t('admin.support.created_at', {
-                      date: new Date(selectedTicket.createdAt).toLocaleString(),
+                      date: formatDateTime(
+                        selectedTicket.createdAt,
+                        i18n.language,
+                      ),
                     })}
                   </p>
 

@@ -8,6 +8,8 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminStripePayoutLog } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -32,7 +34,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default function PayoutsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || '');
@@ -175,13 +177,14 @@ export default function PayoutsTab() {
                   meta={
                     <div className="text-right">
                       <div className="text-white font-semibold">
-                        {(payout.amountCents / 100).toLocaleString('en-US', {
-                          style: 'currency',
-                          currency: payout.currency.toUpperCase(),
-                        })}
+                        {formatCents(
+                          payout.amountCents,
+                          i18n.language,
+                          payout.currency,
+                        )}
                       </div>
                       <div className="text-xs text-white/50">
-                        {new Date(payout.arrivalDate).toLocaleDateString()}
+                        {formatDate(payout.arrivalDate, i18n.language)}
                       </div>
                     </div>
                   }

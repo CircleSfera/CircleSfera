@@ -2,13 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { profileApi } from '../../services';
+import { formatDate } from '../../utils/format';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
 export default function ReferralsSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['myReferrals'],
     queryFn: () => profileApi.getMyReferrals(),
@@ -117,7 +118,7 @@ export default function ReferralsSettings() {
                     <p className="text-xs text-white/45 truncate">
                       @{referral.profile?.username}{' '}
                       {t('referralsSettings.joined_on', {
-                        date: new Date(referral.createdAt).toLocaleDateString(),
+                        date: formatDate(referral.createdAt, i18n.language),
                       })}
                     </p>
                   </div>

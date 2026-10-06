@@ -122,4 +122,41 @@ describe('BillingSettings', () => {
     );
     expect(location.href).toBe('/');
   });
+
+  it.each([
+    ['ACTIVE', 'status_active'],
+    ['TRIALING', 'status_trialing'],
+    ['PAST_DUE', 'status_past_due'],
+    ['INCOMPLETE', 'status_incomplete'],
+    ['CANCELLED', 'status_cancelled'],
+    ['EXPIRED', 'status_expired'],
+  ])('shows the %s status in the app language', async (status, key) => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: status === 'ACTIVE',
+      subscription: { planName: 'Premium', status },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />, { lng: 'es' });
+
+    expect(
+      await screen.findByText(i18n!.t(`settings.billing.${key}`)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(status)).not.toBeInTheDocument();
+  });
+
+  it('writes the renewal date in the app language', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-06T12:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    });
+    renderWithProviders(<BillingSettings />, { lng: 'es' });
+
+    expect(
+      await screen.findByText(/6 de noviembre de 2026/),
+    ).toBeInTheDocument();
+  });
 });

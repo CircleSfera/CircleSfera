@@ -21,6 +21,7 @@ import type {
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select, Switch, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -285,7 +286,7 @@ function UserAutocomplete({
 }
 
 export default function ExperimentsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [subTab, setSubTab] = useState<SubTab>('flags');
   const [page, setPage] = useState(1);
@@ -509,12 +510,12 @@ export default function ExperimentsTab() {
                             <span className="inline-flex items-center gap-1">
                               <Clock size={12} />
                               {t('admin.experiments.created_at')}{' '}
-                              {new Date(flag.createdAt).toLocaleDateString()}
+                              {formatDate(flag.createdAt, i18n.language)}
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <Calendar size={12} />
                               {t('admin.experiments.updated_at')}{' '}
-                              {new Date(flag.updatedAt).toLocaleDateString()}
+                              {formatDate(flag.updatedAt, i18n.language)}
                             </span>
                           </div>
 
@@ -732,7 +733,7 @@ export default function ExperimentsTab() {
                         meta={
                           <span className="inline-flex items-center gap-1">
                             <Calendar size={12} />
-                            {new Date(entry.createdAt).toLocaleDateString()}
+                            {formatDate(entry.createdAt, i18n.language)}
                           </span>
                         }
                         primaryAction={

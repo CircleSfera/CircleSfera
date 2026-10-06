@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Eye, Gift, Play, Square, TriangleAlert, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AdminLiveStream } from '../../services/admin.service';
+import { formatDateTime } from '../../utils/format';
 import HlsVideoPlayer from '../common/HlsVideoPlayer';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui/Button';
@@ -17,12 +18,12 @@ export default function LiveStreamDetailPanel({
   onClose,
   onEndStream,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isLive = stream.status === 'LIVE';
 
   const videoUrl = isLive ? stream.hlsUrl : stream.replayUrl;
 
-  const startedAtString = new Date(stream.startedAt).toLocaleString();
+  const startedAtString = formatDateTime(stream.startedAt, i18n.language);
 
   return (
     <AnimatePresence>
