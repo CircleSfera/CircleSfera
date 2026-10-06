@@ -93,7 +93,7 @@ describe('DataExportProcessor', () => {
     };
 
     emailService = {
-      sendBroadcastEmail: vi.fn().mockResolvedValue(true),
+      sendDataExportReadyEmail: vi.fn().mockResolvedValue(true),
     };
 
     dataExportService = {
@@ -223,12 +223,9 @@ describe('DataExportProcessor', () => {
 
       expect(usersService.exportUserData).toHaveBeenCalledWith('u1');
       expect(dataExportService.generateDownloadToken).toHaveBeenCalled();
-      expect(emailService.sendBroadcastEmail).toHaveBeenCalledWith(
+      expect(emailService.sendDataExportReadyEmail).toHaveBeenCalledWith(
         'user@test.com',
-        'Your Data Export is Ready',
-        'Hello Test User',
-        expect.any(String),
-        'Download My Data',
+        'Test User',
         expect.stringContaining('mock-token-123'),
       );
       expect(prisma.dataExportRequest.update).toHaveBeenCalledWith(
@@ -239,7 +236,7 @@ describe('DataExportProcessor', () => {
       );
     });
 
-    it('falls back to username or "User" when profile fullName is missing', async () => {
+    it('falls back to the username when the profile has no name', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: 'u2',
         email: 'u2@test.com',
@@ -248,17 +245,14 @@ describe('DataExportProcessor', () => {
 
       await processor.processDataExport('req2', 'u2');
 
-      expect(emailService.sendBroadcastEmail).toHaveBeenCalledWith(
+      expect(emailService.sendDataExportReadyEmail).toHaveBeenCalledWith(
         'u2@test.com',
-        'Your Data Export is Ready',
-        'Hello justuser',
-        expect.any(String),
-        'Download My Data',
+        'justuser',
         expect.any(String),
       );
     });
 
-    it('falls back to "User" when profiles array is empty', async () => {
+    it('passes no name when the account has no profile (the email greets generically)', async () => {
       prisma.user.findUnique.mockResolvedValue({
         id: 'u3',
         email: 'u3@test.com',
@@ -267,12 +261,9 @@ describe('DataExportProcessor', () => {
 
       await processor.processDataExport('req3', 'u3');
 
-      expect(emailService.sendBroadcastEmail).toHaveBeenCalledWith(
+      expect(emailService.sendDataExportReadyEmail).toHaveBeenCalledWith(
         'u3@test.com',
-        'Your Data Export is Ready',
-        'Hello User',
-        expect.any(String),
-        'Download My Data',
+        undefined,
         expect.any(String),
       );
     });
@@ -305,7 +296,7 @@ describe('DataExportProcessor', () => {
     });
 
     it('handles error in output.on close callback and rejects', async () => {
-      emailService.sendBroadcastEmail.mockRejectedValue(
+      emailService.sendDataExportReadyEmail.mockRejectedValue(
         new Error('Email server timeout'),
       );
       await expect(

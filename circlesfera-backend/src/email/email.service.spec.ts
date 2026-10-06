@@ -11,7 +11,11 @@ import {
   vi,
 } from 'vitest';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService, isTransientBrevoFailure } from './email.service.js';
+
+// No account owns these addresses, so emails use the default language.
+const mockPrisma = { user: { findUnique: vi.fn().mockResolvedValue(null) } };
 
 const mockSendTransacEmail = vi.fn();
 
@@ -65,6 +69,7 @@ describe('EmailService', () => {
       providers: [
         EmailService,
         { provide: ConfigService, useValue: mockConfigService },
+        { provide: PrismaService, useValue: mockPrisma },
         {
           provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
           useValue: mockEmailQueue,
@@ -98,6 +103,7 @@ describe('EmailService', () => {
         providers: [
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
+          { provide: PrismaService, useValue: mockPrisma },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,
@@ -213,21 +219,52 @@ describe('EmailService', () => {
       expect(mockEmailQueue.add).toHaveBeenCalledTimes(2);
     });
 
-    it('should enqueue a moderation email', async () => {
-      await service.sendModerationEmail(
-        'badactor@example.com',
-        'John',
-        'REMOVED',
-        'POST',
-        'Spam violation',
+    it('uses the language of the account that owns the address', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'en' });
+
+      await service.sendPasswordResetEmail('en@example.com', 'tok');
+
+      expect(mockPrisma.user.findUnique).toHaveBeenCalledWith({
+        where: { email: 'en@example.com' },
+        select: { locale: true },
+      });
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({ subject: 'Reset your CircleSfera password' }),
       );
+    });
+
+    it('falls back to the default language when the lookup fails', async () => {
+      mockPrisma.user.findUnique.mockRejectedValueOnce(new Error('db down'));
+
+      await service.sendPasswordResetEmail('x@example.com', 'tok');
+
       expect(mockEmailQueue.add).toHaveBeenCalledWith(
         'send-transactional-email',
         expect.objectContaining({
-          to: 'badactor@example.com',
-          subject: 'Aviso de Moderación - CircleSfera',
+          subject: 'Recupera tu contraseña en CircleSfera',
         }),
       );
+    });
+
+    it('should enqueue the moderation emails', async () => {
+      await service.sendAccountBannedEmail('banned@example.com', 'John');
+      await service.sendPostRemovedEmail('poster@example.com', 'John', 'Spam');
+      await service.sendAppealDecisionEmail('appeal@example.com', 'John', true);
+      await service.sendDataExportReadyEmail(
+        'export@example.com',
+        null,
+        'https://circlesfera.com/export?token=x',
+      );
+      const subjects = mockEmailQueue.add.mock.calls.map(
+        (call) => (call[1] as { subject: string }).subject,
+      );
+      expect(subjects).toEqual([
+        'Tu cuenta de CircleSfera ha sido suspendida',
+        'Hemos retirado una publicación tuya',
+        'Tu apelación ha sido aprobada',
+        'Tu exportación de datos está lista',
+      ]);
     });
 
     it('should enqueue a support reply email', async () => {
@@ -240,7 +277,7 @@ describe('EmailService', () => {
         'send-transactional-email',
         expect.objectContaining({
           to: 'support-asker@example.com',
-          subject: 'Re: Billing inquiry - Soporte CircleSfera',
+          subject: 'Re: Billing inquiry - Soporte de CircleSfera',
         }),
       );
     });
@@ -255,7 +292,7 @@ describe('EmailService', () => {
         'send-transactional-email',
         expect.objectContaining({
           to: 'subscriber@example.com',
-          subject: 'Recibo de Suscripción - Pro Creator',
+          subject: 'Recibo de suscripción - Pro Creator',
         }),
       );
     });
@@ -271,6 +308,7 @@ describe('EmailService', () => {
         providers: [
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
+          { provide: PrismaService, useValue: mockPrisma },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,
@@ -329,6 +367,7 @@ describe('EmailService', () => {
         providers: [
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
+          { provide: PrismaService, useValue: mockPrisma },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,

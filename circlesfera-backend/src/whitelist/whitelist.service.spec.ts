@@ -93,9 +93,10 @@ describe('WhitelistService', () => {
         email: 'fail-email@example.com',
       });
 
+      // No name: the email uses the default greeting in the account language.
       expect(mockEmailService.sendWelcomeEmail).toHaveBeenCalledWith(
         'fail-email@example.com',
-        'Amigo',
+        undefined,
       );
       expect(mockPrismaService.whitelistEntry.create).toHaveBeenCalled();
       expect(result).toHaveProperty('id', 'w-2');

@@ -42,7 +42,9 @@ function makePrisma() {
 function build() {
   const prisma = makePrisma();
   const notifications = { create: vi.fn().mockResolvedValue(undefined) };
-  const email = { sendModerationEmail: vi.fn().mockResolvedValue(undefined) };
+  const email = {
+    sendAppealDecisionEmail: vi.fn().mockResolvedValue(undefined),
+  };
   const events = { emit: vi.fn() };
   const strikes = {
     revokeForAppeal: vi.fn().mockResolvedValue(null),
@@ -613,12 +615,11 @@ describe('AppealsService.update — effects and notices', () => {
       'admin-1',
     );
 
-    expect(t.email.sendModerationEmail).toHaveBeenCalledWith(
+    expect(t.email.sendAppealDecisionEmail).toHaveBeenCalledWith(
       'a@example.com',
-      'Usuario',
-      'Rechazado (Decisión Mantenida)',
-      'BOT_LABEL',
-      'Se ha revisado tu apelación según nuestros términos de servicio.',
+      undefined,
+      false,
+      undefined,
     );
   });
 
@@ -637,11 +638,10 @@ describe('AppealsService.update — effects and notices', () => {
       'admin-1',
     );
 
-    expect(t.email.sendModerationEmail).toHaveBeenCalledWith(
+    expect(t.email.sendAppealDecisionEmail).toHaveBeenCalledWith(
       'a@example.com',
       'ana',
-      'Restaurado (Apelación Aprobada)',
-      'BOT_LABEL',
+      true,
       'Restored',
     );
   });
@@ -656,7 +656,7 @@ describe('AppealsService.update — effects and notices', () => {
       email: 'a@example.com',
       profiles: [{ username: 'ana', fullName: 'Ana' }],
     });
-    t.email.sendModerationEmail.mockRejectedValue(new Error('mail down'));
+    t.email.sendAppealDecisionEmail.mockRejectedValue(new Error('mail down'));
 
     const result = await t.service.update(
       'appeal-1',

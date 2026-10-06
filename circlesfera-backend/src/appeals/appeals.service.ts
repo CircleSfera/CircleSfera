@@ -439,20 +439,18 @@ export class AppealsService {
         profiles: { select: { username: true, fullName: true }, take: 1 },
       },
     });
-    if (appealUser?.email) {
-      const actionLabel =
-        dto.status === 'APPROVED'
-          ? 'Restaurado (Apelación Aprobada)'
-          : 'Rechazado (Decisión Mantenida)';
+    // Only a decision is emailed; moving an appeal back to pending is not.
+    if (
+      appealUser?.email &&
+      (dto.status === 'APPROVED' || dto.status === 'REJECTED')
+    ) {
       const profile = appealUser.profiles[0];
       await this.emailService
-        .sendModerationEmail(
+        .sendAppealDecisionEmail(
           appealUser.email,
-          profile?.fullName || profile?.username || 'Usuario',
-          actionLabel,
-          appeal.targetType,
-          dto.adminNotes ||
-            'Se ha revisado tu apelación según nuestros términos de servicio.',
+          profile?.fullName || profile?.username,
+          dto.status === 'APPROVED',
+          dto.adminNotes,
         )
         .catch((e) => console.error(e));
     }

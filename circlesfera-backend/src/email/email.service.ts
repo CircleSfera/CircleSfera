@@ -3,8 +3,15 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Queue } from 'bullmq';
+import { DEFAULT_LOCALE } from '../common/constants/locale.constants.js';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
-import { EmailTemplates } from './email-templates.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { EMAIL_COPY } from './email-copy.js';
+import {
+  type EmailContext,
+  EmailTemplates,
+  type RenderedEmail,
+} from './email-templates.js';
 
 export interface SendMailOptions {
   to: string;
@@ -51,6 +58,7 @@ export class EmailService {
     @Inject(ConfigService) private configService: ConfigService,
     @InjectQueue(QUEUE_NAMES.EMAIL_PROCESSING)
     private readonly emailQueue: Queue<SendMailOptions>,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
   ) {
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
     if (apiKey) {
@@ -69,63 +77,58 @@ export class EmailService {
     }
   }
 
-  // Send a welcome email to a user who just joined the whitelist.
-  // Param email: The recipient's email address
-  // Param name: The recipient's name
-  async sendWelcomeEmail(email: string, name: string) {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-
-    await this.queueMail({
-      to: email,
-      subject: '¡Bienvenido a CircleSfera!',
-      html: EmailTemplates.welcome(name, frontendUrl),
-    });
+  private frontendUrl(): string {
+    return (
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173'
+    );
   }
 
-  // Send an email verification link to a newly registered user.
-  // Param email: The recipient's email address
-  // Param token: The email verification token
-  async sendVerificationEmail(email: string, token: string) {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
+  // The language of the account that owns the address; the default for an
+  // address with no account (for example a waitlist entry).
+  private async contextFor(email: string): Promise<EmailContext> {
+    const user = await this.prisma.user
+      .findUnique({ where: { email }, select: { locale: true } })
+      .catch(() => null);
+    return {
+      locale: user?.locale ?? DEFAULT_LOCALE,
+      frontendUrl: this.frontendUrl(),
+    };
+  }
 
-    const url = `${frontendUrl}/verify-email?token=${token}`;
+  private async send(to: string, email: RenderedEmail): Promise<void> {
+    await this.queueMail({ to, subject: email.subject, html: email.html });
+  }
+
+  private nameOr(ctx: EmailContext, name: string | null | undefined): string {
+    return name?.trim() || EMAIL_COPY[ctx.locale].fallbackName;
+  }
+
+  // Welcome email for someone who joined the waitlist.
+  async sendWelcomeEmail(email: string, name?: string | null) {
+    const ctx = await this.contextFor(email);
+    await this.send(email, EmailTemplates.welcome(ctx, this.nameOr(ctx, name)));
+  }
+
+  // Email verification link for a newly registered account.
+  async sendVerificationEmail(email: string, token: string) {
+    const ctx = await this.contextFor(email);
+    const url = `${ctx.frontendUrl}/verify-email?token=${token}`;
 
     if (this.configService.get('NODE_ENV') !== 'production') {
       this.logger.debug(`[DEV ONLY] Verification link for ${email}: ${url}`);
     }
 
-    await this.queueMail({
-      to: email,
-      subject: 'Verifica tu cuenta en CircleSfera',
-      html: EmailTemplates.verification(url),
-    });
+    await this.send(email, EmailTemplates.verification(ctx, url));
   }
 
-  // Send a password-reset link to the user.
-  // Param email: The recipient's email address
-  // Param token: The password-reset token (expires in 1 hour)
+  // Password-reset link (the token expires in 1 hour).
   async sendPasswordResetEmail(email: string, token: string) {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-
-    const url = `${frontendUrl}/reset-password?token=${token}`;
-
-    await this.queueMail({
-      to: email,
-      subject: 'Recupera tu contraseña en CircleSfera',
-      html: EmailTemplates.passwordReset(url),
-    });
+    const ctx = await this.contextFor(email);
+    const url = `${ctx.frontendUrl}/reset-password?token=${token}`;
+    await this.send(email, EmailTemplates.passwordReset(ctx, url));
   }
 
-  // Send a broadcast/newsletter email to a user.
-  // Param email: The recipient's email address
-  // Param subject: The email subject line
-  // Param title: The main heading inside the email
-  // Param content: The body text (can contain basic HTML)
-  // Param buttonText: Optional button label
-  // Param buttonUrl: Optional button link
+  // Staff-written broadcast; the content may contain basic HTML.
   async sendBroadcastEmail(
     email: string,
     subject: string,
@@ -134,63 +137,98 @@ export class EmailService {
     buttonText?: string,
     buttonUrl?: string,
   ) {
-    await this.queueMail({
-      to: email,
-      subject,
-      html: EmailTemplates.broadcast(title, content, buttonText, buttonUrl),
-    });
-  }
-
-  // Send a moderation notice to a user.
-  async sendModerationEmail(
-    email: string,
-    userName: string,
-    action: string,
-    targetType: string,
-    reason: string,
-  ) {
-    await this.queueMail({
-      to: email,
-      subject: 'Aviso de Moderación - CircleSfera',
-      html: EmailTemplates.moderationAction(
-        userName,
-        action,
-        targetType,
-        reason,
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.broadcast(
+        ctx,
+        subject,
+        title,
+        content,
+        buttonText,
+        buttonUrl,
       ),
-    });
+    );
   }
 
-  // Send a support ticket reply to a user.
+  // The account was suspended by staff.
+  async sendAccountBannedEmail(email: string, name?: string | null) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.accountBanned(ctx, this.nameOr(ctx, name)),
+    );
+  }
+
+  // Staff removed one of the account's posts.
+  async sendPostRemovedEmail(
+    email: string,
+    name: string | null | undefined,
+    reason?: string,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.postRemoved(ctx, this.nameOr(ctx, name), reason),
+    );
+  }
+
+  // Outcome of an appeal, with the staff notes when there are any.
+  async sendAppealDecisionEmail(
+    email: string,
+    name: string | null | undefined,
+    approved: boolean,
+    notes?: string,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.appealDecision(
+        ctx,
+        this.nameOr(ctx, name),
+        approved,
+        notes,
+      ),
+    );
+  }
+
+  // The requested data export can be downloaded.
+  async sendDataExportReadyEmail(
+    email: string,
+    name: string | null | undefined,
+    url: string,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.dataExportReady(ctx, this.nameOr(ctx, name), url),
+    );
+  }
+
+  // Staff reply to a support request.
   async sendSupportReplyEmail(
     email: string,
     originalSubject: string,
     replyText: string,
   ) {
-    await this.queueMail({
-      to: email,
-      subject: `Re: ${originalSubject} - Soporte CircleSfera`,
-      html: EmailTemplates.broadcast(
-        'Respuesta a tu consulta',
-        replyText.replace(/\n/g, '<br/>'),
-      ),
-    });
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.supportReply(ctx, originalSubject, replyText),
+    );
   }
 
-  // Send a subscription receipt to a user.
+  // Receipt for a platform subscription.
   async sendSubscriptionReceipt(
     email: string,
     planName: string,
     amount: string,
   ) {
-    const frontendUrl =
-      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
-
-    await this.queueMail({
-      to: email,
-      subject: `Recibo de Suscripción - ${planName}`,
-      html: EmailTemplates.subscriptionReceipt(planName, amount, frontendUrl),
-    });
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.subscriptionReceipt(ctx, planName, amount),
+    );
   }
 
   // Enqueue an email for delivery. Returns as soon as the job is

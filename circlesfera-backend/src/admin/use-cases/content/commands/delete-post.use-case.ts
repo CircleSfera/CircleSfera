@@ -16,11 +16,15 @@ export class DeletePostUseCase {
   async execute(
     adminId: string,
     postId: string,
-    reason = 'Violación de políticas',
+    // Staff note for the author; without one the email uses the generic
+    // reason in the author's language.
+    reason?: string,
   ) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
-      include: { profile: { select: { userId: true, username: true } } },
+      include: {
+        profile: { select: { userId: true, username: true, fullName: true } },
+      },
     });
 
     if (!post) throw new NotFoundException('Post not found');
@@ -42,13 +46,10 @@ export class DeletePostUseCase {
     });
 
     if (user?.email) {
-      await this.emailService.sendBroadcastEmail(
+      await this.emailService.sendPostRemovedEmail(
         user.email,
-        'Your Post was Deleted',
-        'Hello',
-        `Your post was deleted by an admin for violating our community guidelines.\nReason: ${reason}`,
-        'Review Guidelines',
-        'https://circlesfera.com/guidelines',
+        post.profile?.fullName || post.profile?.username,
+        reason,
       );
     }
 
