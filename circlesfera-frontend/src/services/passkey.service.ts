@@ -1,6 +1,9 @@
 import type { AuthResponse } from '../types';
 import { apiClient } from './api';
 
+// Passkeys an account may register; the server enforces the same limit.
+export const MAX_PASSKEYS_PER_ACCOUNT = 5;
+
 export interface PasskeyInfo {
   id: string;
   credentialID: string;

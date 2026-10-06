@@ -439,7 +439,8 @@
       "register_error": "No se pudo registrar la passkey.",
       "remove_error": "No se pudo eliminar la passkey. Confírmalo con tu huella, cara o PIN e inténtalo de nuevo.",
       "biometric_available": "Biometría disponible",
-      "created_on": "Creado el {{date}}"
+      "created_on": "Creado el {{date}}",
+      "limit_reached": "Ya tienes el máximo de {{max}} passkeys. Elimina una para añadir otra."
     },
     "notifications": {
       "email_desc": "Recibe actualizaciones y alertas por correo",

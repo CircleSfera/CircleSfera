@@ -439,7 +439,8 @@
       "register_error": "Could not register the passkey.",
       "remove_error": "Could not remove the passkey. Confirm with your fingerprint, face or PIN and try again.",
       "biometric_available": "Biometrics available",
-      "created_on": "Created {{date}}"
+      "created_on": "Created {{date}}",
+      "limit_reached": "You have the maximum of {{max}} passkeys. Remove one to add another."
     },
     "notifications": {
       "email_desc": "Receive email updates and alerts",

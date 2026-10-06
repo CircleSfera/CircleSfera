@@ -180,9 +180,10 @@ describe('PasskeySettings', () => {
       new Error('The operation either timed out or was not allowed.'),
     );
     const { i18n } = renderWithProviders(<PasskeySettings />);
+    await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
 
     fireEvent.click(
-      await screen.findByRole('button', {
+      screen.getByRole('button', {
         name: i18n!.t('settings.passkey_settings.add_new'),
       }),
     );
@@ -203,5 +204,58 @@ describe('PasskeySettings', () => {
     expect(
       await screen.findByText(i18n!.t('settings.passkey_settings.empty')),
     ).toBeInTheDocument();
+  });
+
+  it('shows how many passkeys the account has out of the limit', async () => {
+    vi.mocked(passkeyApi.listPasskeys).mockResolvedValue(ONE_KEY as never);
+    renderWithProviders(<PasskeySettings />);
+
+    expect(await screen.findByText('1 / 5')).toBeInTheDocument();
+  });
+
+  it('does not offer another passkey at the limit and says why', async () => {
+    vi.mocked(passkeyApi.listPasskeys).mockResolvedValue({
+      data: Array.from({ length: 5 }, (_, i) => ({
+        ...ONE_KEY.data[0],
+        id: `pk-${i}`,
+        credentialID: `cred-${i}-abcdefghijklmnop`,
+      })),
+    } as never);
+    const { i18n } = renderWithProviders(<PasskeySettings />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.passkey_settings.limit_reached', { max: 5 }),
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.passkey_settings.add_new'),
+      }),
+    ).toBeDisabled();
+  });
+
+  it('explains the limit when the server refuses another passkey', async () => {
+    vi.mocked(passkeyApi.getRegistrationOptions).mockRejectedValue(
+      Object.assign(new Error('Passkey limit reached'), {
+        status: 409,
+        data: { errorCode: 'PASSKEY_LIMIT_REACHED', details: { max: 5 } },
+      }),
+    );
+    const { i18n } = renderWithProviders(<PasskeySettings />);
+    await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.passkey_settings.add_new'),
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.passkey_settings.limit_reached', { max: 5 }),
+      ),
+    ).toBeInTheDocument();
+    expect(startRegistration).not.toHaveBeenCalled();
   });
 });
