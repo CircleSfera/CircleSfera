@@ -242,20 +242,26 @@ export class AIProcessor extends WorkerHost {
     } = params;
     if (!authorId) return;
 
-    const statusLabel =
-      status === ModerationStatus.HIDDEN
-        ? 'hidden'
-        : status === ModerationStatus.FLAGGED
-          ? 'flagged for review'
-          : String(status).toLowerCase();
-
-    const content = `Your ${targetType.toLowerCase()} was ${statusLabel} by automated moderation. ${assessment}. Review our Community Guidelines at /guidelines. You can appeal from Settings → Appeals.`;
+    const statusLabel = (
+      {
+        [ModerationStatus.HIDDEN]: 'hidden',
+        [ModerationStatus.FLAGGED]: 'flagged',
+        [ModerationStatus.REMOVED]: 'removed',
+        [ModerationStatus.VISIBLE]: 'restored',
+      } as const
+    )[status];
 
     this.eventEmitter.emit('notification.create', {
       recipientId: authorId,
       senderId: senderProfileId,
       type: NotificationType.MODERATION,
-      content: content.slice(0, 500),
+      notice: {
+        key: 'content_moderated',
+        contentType: targetType,
+        status: statusLabel,
+        note: assessment.slice(0, 300),
+        automated: true,
+      },
       postId: targetType === 'POST' ? targetId : undefined,
     } satisfies NotificationCreateEvent['payload']);
   }

@@ -134,15 +134,15 @@ export class FollowsService {
       const notificationType: NotificationType = isPrivate
         ? NotificationType.FOLLOW_REQUEST
         : NotificationType.FOLLOW;
-      const notificationContent = isPrivate
-        ? 'requested to follow you'
-        : 'started following you';
+      const notice = {
+        key: isPrivate ? 'follow_requested' : 'followed',
+      } as const;
 
       this.eventEmitter.emit('notification.create', {
         recipientId: followingId,
         senderId: followerId,
         type: notificationType,
-        content: notificationContent,
+        notice,
       } satisfies NotificationCreateEvent['payload']);
 
       return { following: status === 'ACCEPTED', status };
@@ -524,7 +524,7 @@ export class FollowsService {
       recipientId: requesterProfile.id,
       senderId: profileId,
       type: NotificationType.FOLLOW_ACCEPTED,
-      content: 'accepted your follow request',
+      notice: { key: 'follow_accepted' },
     } satisfies NotificationCreateEvent['payload']);
 
     return { success: true };

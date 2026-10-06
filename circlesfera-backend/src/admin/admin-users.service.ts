@@ -649,8 +649,7 @@ export class AdminUsersService {
             adminId,
           ),
           type: NotificationType.MODERATION,
-          content:
-            `Your account is suspended until ${until.toISOString().slice(0, 10)}. ${reason || ''}`.trim(),
+          notice: { key: 'account_suspended', until, reason },
         })
         .catch((e) => this.logger.error(e));
     }
@@ -696,9 +695,7 @@ export class AdminUsersService {
             adminId,
           ),
           type: NotificationType.MODERATION,
-          content:
-            reason ||
-            'You received a formal warning for violating CircleSfera policies.',
+          notice: { key: 'account_warned', reason },
         })
         .catch((e) => this.logger.error(e));
     }
@@ -953,8 +950,8 @@ export class AdminUsersService {
             adminId,
           ),
           type: NotificationType.MODERATION,
-          content:
-            'Your account was labeled as possibly automated after a staff review. You can appeal in Settings.',
+          notice: { key: 'bot_labeled' },
+          targetType: 'account_bot_label',
         })
         .catch((e) => this.logger.error(e));
     }

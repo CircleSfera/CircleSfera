@@ -1598,7 +1598,8 @@
       "moderation_restriction_review": "Tras una revisión de nuestro equipo, durante 7 días este perfil podrá seguir a 20 cuentas y enviar 5 solicitudes de mensaje al día, por actividad inusual (por ejemplo, muchas acciones en poco tiempo o mensajes repetidos). No se oculta ni se elimina nada. Puedes apelar esta decisión."
     },
     "appeal_cta": "Apelar esta decisión",
-    "strike_details_cta": "Ver detalles y apelar"
+    "strike_details_cta": "Ver detalles y apelar",
+    "just_now": "ahora"
   },
   "chat": {
     "loading": "Cargando chats...",

@@ -107,7 +107,7 @@ describe('PostDistributionService', () => {
       recipientId: 'user-2',
       senderId: 'user-1',
       type: 'MENTION',
-      content: 'mentioned you in a post',
+      notice: { key: 'mentioned_in_post' },
     });
   });
 });

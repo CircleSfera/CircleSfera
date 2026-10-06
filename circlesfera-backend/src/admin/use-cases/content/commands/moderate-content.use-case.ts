@@ -101,7 +101,12 @@ export class ModerateContentUseCase {
           recipientId: authorProfileId,
           senderId,
           type: $Enums.NotificationType.MODERATION,
-          content: `Your ${targetType.toLowerCase()} was ${statusLabel} by moderation.${note ? ` Note: ${note}.` : ''} Review our Community Guidelines at /guidelines. You can appeal from Settings → Appeals.`,
+          notice: {
+            key: 'content_moderated',
+            contentType: targetType,
+            status: statusLabel,
+            note,
+          },
           postId: targetType === 'POST' ? targetId : undefined,
         })
         .catch((e) => this.logger.error(e));

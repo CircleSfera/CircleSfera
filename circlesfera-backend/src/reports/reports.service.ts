@@ -194,7 +194,11 @@ export class ReportsService {
           recipientId: existing.reporterId,
           senderId,
           type: NotificationType.MODERATION,
-          content: `Your report (${existing.targetType}) was updated to ${status}.`,
+          notice: {
+            key: 'report_updated',
+            reportType: existing.targetType,
+            status,
+          },
           postId:
             existing.targetType === 'POST' ? existing.targetId : undefined,
         } satisfies NotificationCreateEvent['payload']);

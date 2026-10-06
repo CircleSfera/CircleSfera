@@ -22,6 +22,12 @@ describe('NotificationsService', () => {
       findFirst: vi.fn().mockResolvedValue({ pushNotifications: true }),
     },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
+    // Recipient account language and the sender's username.
+    profile: {
+      findUnique: vi
+        .fn()
+        .mockResolvedValue({ username: 'Alice', user: { locale: 'es' } }),
+    },
   };
 
   const mockEventEmitter = {
@@ -49,6 +55,57 @@ describe('NotificationsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('notices in the recipient language', () => {
+    it('writes the notice and its push in the language of the recipient account', async () => {
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        user: { locale: 'en' },
+      });
+      mockPrismaService.notification.create.mockImplementationOnce(
+        async ({ data }: { data: object }) => ({ id: 'n-1', ...data }),
+      );
+
+      await service.create({
+        recipientId: 'p-1',
+        senderId: 'p-2',
+        type: 'FOLLOW' as never,
+        notice: { key: 'followed' },
+      });
+
+      expect(mockPrismaService.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ content: 'started following you' }),
+        }),
+      );
+      expect(mockPushService.sendNotification).toHaveBeenCalledWith(
+        'p-1',
+        expect.objectContaining({ body: 'started following you' }),
+      );
+    });
+
+    it('uses the default language when the recipient cannot be read', async () => {
+      mockPrismaService.notification.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.profile.findUnique.mockRejectedValueOnce(
+        new Error('db down'),
+      );
+      mockPrismaService.notification.create.mockImplementationOnce(
+        async ({ data }: { data: object }) => ({ id: 'n-2', ...data }),
+      );
+
+      await service.create({
+        recipientId: 'p-1',
+        type: 'FOLLOW' as never,
+        notice: { key: 'followed' },
+      });
+
+      expect(mockPrismaService.notification.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ content: 'ha empezado a seguirte' }),
+        }),
+      );
+    });
   });
 
   describe('findAll', () => {
@@ -178,7 +235,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.update.mockResolvedValueOnce({
         ...existingUnread,
         senderId: 'user-new',
-        content: 'A Alice y a otras personas les gustó tu publicación',
+        content: 'A Alice y a otras personas les ha gustado tu publicación',
       });
 
       const res = await service.create({
@@ -194,7 +251,7 @@ describe('NotificationsService', () => {
         expect.objectContaining({
           where: { id: 'notif-like-1' },
           data: expect.objectContaining({
-            content: 'A Alice y a otras personas les gustó tu publicación',
+            content: 'A Alice y a otras personas les ha gustado tu publicación',
           }),
         }),
       );
@@ -220,7 +277,7 @@ describe('NotificationsService', () => {
       mockPrismaService.notification.update.mockResolvedValueOnce({
         ...existingUnread,
         senderId: 'user-new',
-        content: 'A Bob y a otras personas les gustó tu comentario',
+        content: 'A Alice y a otras personas les ha gustado tu comentario',
       });
 
       const res = await service.create({
@@ -235,7 +292,7 @@ describe('NotificationsService', () => {
       expect(mockPrismaService.notification.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
-            content: 'A Bob y a otras personas les gustó tu comentario',
+            content: 'A Alice y a otras personas les ha gustado tu comentario',
           }),
         }),
       );

@@ -405,13 +405,6 @@ export class AppealsService {
     };
     this.eventEmitter.emit('moderation.report_filed', statusEvent);
 
-    const outcomeLabel =
-      dto.status === 'APPROVED'
-        ? 'approved'
-        : dto.status === 'REJECTED'
-          ? 'rejected'
-          : dto.status.toLowerCase();
-
     const senderId = await resolveAdminNotificationSenderId(
       this.prisma,
       adminId,
@@ -423,7 +416,11 @@ export class AppealsService {
           recipientId: appealProfile.id,
           senderId,
           type: NotificationType.MODERATION,
-          content: `Your appeal was ${outcomeLabel}.${dto.adminNotes ? ` Notes: ${dto.adminNotes}` : ''}`,
+          notice: {
+            key: 'appeal_decided',
+            outcome: dto.status,
+            notes: dto.adminNotes,
+          },
           postId:
             appeal.targetType === 'POST_REMOVAL'
               ? (appeal.targetId ?? undefined)

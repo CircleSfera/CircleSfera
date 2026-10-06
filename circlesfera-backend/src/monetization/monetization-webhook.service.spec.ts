@@ -249,7 +249,7 @@ describe('MonetizationWebhookService', () => {
         expect.objectContaining({
           recipientId: 'creator-prof-1',
           senderId: 'buyer-prof-1',
-          content: expect.stringContaining('unlocked your private message'),
+          notice: expect.objectContaining({ key: 'message_unlocked' }),
         }),
       );
     });

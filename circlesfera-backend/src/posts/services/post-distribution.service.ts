@@ -97,7 +97,7 @@ export class PostDistributionService {
             recipientId: profile.id,
             senderId: post.profileId,
             type: NotificationType.MENTION,
-            content: 'mentioned you in a post',
+            notice: { key: 'mentioned_in_post' },
           } satisfies NotificationCreateEvent['payload']),
         ),
       );

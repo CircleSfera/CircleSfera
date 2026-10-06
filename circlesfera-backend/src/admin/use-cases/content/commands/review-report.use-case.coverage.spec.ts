@@ -96,7 +96,11 @@ describe('ReviewReportUseCase.updateStatus', () => {
       recipientId: 'reporter-1',
       senderId: undefined,
       type: 'MODERATION',
-      content: 'Your report (COMMENT) was updated to RESOLVED.',
+      notice: {
+        key: 'report_updated',
+        reportType: 'COMMENT',
+        status: 'RESOLVED',
+      },
       postId: undefined,
     });
   });

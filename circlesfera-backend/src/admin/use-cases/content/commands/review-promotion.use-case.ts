@@ -83,12 +83,10 @@ export class ReviewPromotionUseCase {
         recipientId: recipientProfile.id,
         senderId,
         type: NotificationType.MODERATION,
-        content:
+        notice:
           status === PromotionStatus.ACTIVE
-            ? `¡Tu promoción ha sido aprobada! Tu contenido ahora llegará a más personas.`
-            : `Tu solicitud de promoción ha sido rechazada.${
-                note ? ` Motivo: ${note}` : ''
-              }`,
+            ? { key: 'promotion_approved' }
+            : { key: 'promotion_rejected', note },
         postId: promo.targetType === 'POST' ? promo.targetId : undefined,
       });
     }
