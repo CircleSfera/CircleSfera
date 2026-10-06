@@ -3,12 +3,13 @@ import { ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
+import { formatCents } from '../../utils/money';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
 export function MonetizationSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { data: status, isLoading: statusLoading } = useQuery({
     queryKey: ['monetization', 'status'],
@@ -38,7 +39,7 @@ export function MonetizationSettings() {
       return monetizationApi.getDashboardLink();
     },
     onSuccess: (data) => {
-      window.open(data.url, '_blank');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
     },
     onError: () => {
       toast.error(t('settings.monetization.error_dashboard'));
@@ -55,7 +56,6 @@ export function MonetizationSettings() {
 
   const isConnected = status?.connected;
   const isTransfersEnabled = status?.transfersEnabled;
-  const lifetimeEarnings = (monetization?.lifetimeEarningsCents || 0) / 100;
   const statusCopy = isTransfersEnabled
     ? t('settings.monetization.status.active')
     : isConnected
@@ -115,7 +115,10 @@ export function MonetizationSettings() {
               {t('settings.monetization.lifetime')}
             </p>
             <p className="text-xl font-semibold text-white mt-1 tracking-tight">
-              ${lifetimeEarnings.toFixed(2)}
+              {formatCents(
+                monetization?.lifetimeEarningsCents || 0,
+                i18n.language,
+              )}
             </p>
           </div>
         </SettingsSection>

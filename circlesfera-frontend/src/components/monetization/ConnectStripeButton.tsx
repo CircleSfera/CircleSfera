@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import axios from 'axios';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -24,11 +23,8 @@ export default function ConnectStripeButton() {
         window.location.href = data.url;
       }
     },
-    onError: (error: unknown) => {
-      const message = axios.isAxiosError(error)
-        ? error.response?.data?.message
-        : undefined;
-      toast.error(message || t('monetization.connect_stripe_error'));
+    onError: () => {
+      toast.error(t('monetization.connect_stripe_error'));
     },
   });
 

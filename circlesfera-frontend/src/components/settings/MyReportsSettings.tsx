@@ -29,7 +29,7 @@ function statusTone(status: string) {
 }
 
 export default function MyReportsSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data, isLoading } = useQuery({
     queryKey: ['my-reports'],
     queryFn: async () => {
@@ -40,6 +40,10 @@ export default function MyReportsSettings() {
 
   const statusLabel = (status: string) =>
     t(`settings.reports.status_${status.toLowerCase()}`, status);
+  const targetLabel = (targetType: string) =>
+    t(`settings.reports.target_${targetType.toLowerCase()}`, targetType);
+  const reasonLabel = (reason: string) =>
+    t(`report.reasons.${reason.toLowerCase()}`, reason);
 
   return (
     <div className="max-w-xl space-y-5">
@@ -65,7 +69,8 @@ export default function MyReportsSettings() {
               >
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-medium text-white min-w-0 truncate">
-                    {report.targetType} · {report.reason}
+                    {targetLabel(report.targetType)} ·{' '}
+                    {reasonLabel(report.reason)}
                   </p>
                   <span
                     className={`text-xs font-medium px-2.5 py-1 rounded-full border shrink-0 ${statusTone(report.status)}`}
@@ -79,7 +84,7 @@ export default function MyReportsSettings() {
                   </p>
                 ) : null}
                 <p className="text-xs text-white/40">
-                  {new Date(report.createdAt).toLocaleString()}
+                  {new Date(report.createdAt).toLocaleString(i18n.language)}
                 </p>
               </li>
             ))}
