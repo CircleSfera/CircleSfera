@@ -266,14 +266,9 @@ export class AdminUsersService {
     await this.invalidateProfileCache(userId);
 
     if (result.email) {
-      await this.emailService.sendModerationEmail(
+      await this.emailService.sendAccountBannedEmail(
         result.email,
-        result.profiles[0]?.fullName ||
-          result.profiles[0]?.username ||
-          'Usuario',
-        'suspendida',
-        'Cuenta',
-        'Violación de los Términos de Servicio',
+        result.profiles[0]?.fullName || result.profiles[0]?.username,
       );
     }
 

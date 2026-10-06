@@ -1,220 +1,318 @@
-// Email Template System for CircleSfera.
-// Implements a "Zero-UI" premium aesthetic: Pure black backgrounds,
-// Subtle borders, and high-contrast typography.
+import type { Locale } from '@prisma/client';
+import { EMAIL_COPY, type EmailCopy, escapeHtml, fill } from './email-copy.js';
 
-interface EmailLayoutOptions {
-  title: string;
-  content: string;
-  buttonText?: string;
-  buttonUrl?: string;
-  footerText?: string;
+// Transactional emails in the CircleSfera identity: dark surfaces, the coral
+// to purple brand gradient, the logo mark and the app's type scale. Built for
+// email clients: tables, inline styles, no web fonts or external CSS, and a
+// solid colour behind every gradient for clients that drop gradients.
+
+const BRAND = {
+  primary: '#8c52ff',
+  gradient: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+  surfaceBase: '#030303',
+  surfaceElevated: '#0a0a0a',
+  surfaceRaised: '#1c1c1c',
+  border: '#262626',
+  text: '#ffffff',
+  textBody: '#d4d4d8',
+  textMuted: '#a1a1aa',
+  textSubtle: '#71717a',
+  font: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+} as const;
+
+export interface EmailContext {
+  locale: Locale;
+  // Public web origin, for links and the hosted logo.
+  frontendUrl: string;
 }
 
-function getBaseLayout({
-  title,
-  content,
-  buttonText,
-  buttonUrl,
-  footerText,
-}: EmailLayoutOptions) {
-  return `
-<!DOCTYPE html>
-<html lang="es">
+export interface RenderedEmail {
+  subject: string;
+  html: string;
+}
+
+interface LayoutOptions {
+  title: string;
+  // Body HTML. Values from people must already be escaped.
+  content: string;
+  button?: { text: string; url: string };
+  // A secondary note under the body (expiry, "ignore if not you").
+  note?: string;
+}
+
+function layout(
+  ctx: EmailContext,
+  copy: EmailCopy,
+  { title, content, button, note }: LayoutOptions,
+): string {
+  const year = String(new Date().getFullYear());
+  const logoUrl = `${ctx.frontendUrl}/email/logo.png`;
+  const safeButtonUrl = button ? escapeHtml(button.url) : '';
+
+  const buttonBlock = button
+    ? `
+          <tr>
+            <td style="padding: 8px 0 0 0;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" bgcolor="${BRAND.primary}" style="border-radius: 12px; background-color: ${BRAND.primary}; background-image: ${BRAND.gradient};">
+                    <a href="${safeButtonUrl}" target="_blank" style="display: inline-block; padding: 14px 28px; font-family: ${BRAND.font}; font-size: 16px; line-height: 20px; font-weight: 600; color: ${BRAND.text}; text-decoration: none; border-radius: 12px;">${button.text}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 20px 0 0 0; font-family: ${BRAND.font}; font-size: 12px; line-height: 17px; color: ${BRAND.textSubtle};">
+              ${copy.buttonFallback}<br>
+              <a href="${safeButtonUrl}" target="_blank" style="color: ${BRAND.primary}; text-decoration: underline; word-break: break-all;">${safeButtonUrl}</a>
+            </td>
+          </tr>`
+    : '';
+
+  const noteBlock = note
+    ? `
+          <tr>
+            <td style="padding: 24px 0 0 0;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="padding: 16px; background-color: ${BRAND.surfaceRaised}; border-radius: 12px; font-family: ${BRAND.font}; font-size: 14px; line-height: 21px; color: ${BRAND.textMuted};">${note}</td>
+                </tr>
+              </table>
+            </td>
+          </tr>`
+    : '';
+
+  return `<!DOCTYPE html>
+<html lang="${copy.htmlLang}">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
   <title>${title}</title>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&display=swap');
-    
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background-color: #000000;
-      color: #FFFFFF;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: antialiased;
-    }
-    
-    .wrapper {
-      background-color: #000000;
-      padding: 60px 20px;
-      text-align: center;
-    }
-    
-    .container {
-      max-width: 520px;
-      margin: 0 auto;
-      padding: 48px 40px;
-      background-color: #0F0F13;
-      border: 1px solid rgba(140, 82, 255, 0.15);
-      border-radius: 24px;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.6), 0 0 40px rgba(140, 82, 255, 0.08);
-    }
-    
-    .logo {
-      font-size: 28px;
-      font-weight: 900;
-      letter-spacing: -1px;
-      margin-bottom: 40px;
-      // Silver metallic gradient with solid fallback
-      color: #E5E5E5;
-      background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.72) 55%, rgba(255, 255, 255, 0.42) 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    
-    .content-area {
-      text-align: center;
-    }
-    
-    h1 {
-      font-size: 28px;
-      font-weight: 800;
-      margin: 0 0 16px 0;
-      color: #FFFFFF;
-      letter-spacing: -0.5px;
-      line-height: 1.3;
-    }
-    
-    p {
-      font-size: 16px;
-      line-height: 1.6;
-      color: #A0A0AA;
-      margin: 0 0 32px 0;
-    }
-    
-    .button {
-      display: inline-block;
-      background: linear-gradient(90deg, #ff5757 0%, #8c52ff 100%);
-      background-color: #8c52ff;
-      color: #FFFFFF !important;
-      text-decoration: none;
-      padding: 16px 36px;
-      border-radius: 50px;
-      font-size: 15px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      margin-bottom: 32px;
-      border: none;
-    }
-    
-    .footer {
-      margin-top: 48px;
-      padding-top: 32px;
-      border-top: 1px solid rgba(255, 255, 255, 0.08);
-      font-size: 13px;
-      color: #707070;
-      line-height: 1.6;
-    }
-    
-    .footer a {
-      color: #8c52ff;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    @media (max-width: 600px) {
-      .container {
-        padding: 40px 24px;
-        border-radius: 20px;
-      }
-      h1 {
-        font-size: 24px;
-      }
-      p {
-        font-size: 15px;
-      }
-    }
-  </style>
 </head>
-<body>
-  <div class="wrapper">
-    <div class="container">
-      <div class="logo">CircleSfera</div>
-      <div class="content-area">
-        <h1>${title}</h1>
-        <p>${content}</p>
-        ${buttonText && buttonUrl ? `<a href="${buttonUrl}" class="button">${buttonText}</a>` : ''}
-      </div>
-      <div class="footer">
-        ${footerText || `<p>&copy; ${new Date().getFullYear()} CircleSfera. Todos los derechos reservados.</p><p>Este es un correo automático, por favor no respondas directamente.</p>`}
-      </div>
-    </div>
-  </div>
+<body style="margin: 0; padding: 0; background-color: ${BRAND.surfaceBase}; -webkit-font-smoothing: antialiased;">
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0;">${title}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" bgcolor="${BRAND.surfaceBase}" style="background-color: ${BRAND.surfaceBase};">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width: 560px;">
+          <tr>
+            <td style="padding: 0 4px 24px 4px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="vertical-align: middle;"><img src="${logoUrl}" width="40" height="40" alt="" style="display: block; border: 0;"></td>
+                  <td style="vertical-align: middle; padding-left: 12px; font-family: ${BRAND.font}; font-size: 20px; line-height: 24px; font-weight: 800; color: ${BRAND.text}; letter-spacing: -0.2px;">CircleSfera</td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td bgcolor="${BRAND.surfaceElevated}" style="background-color: ${BRAND.surfaceElevated}; border: 1px solid ${BRAND.border}; border-radius: 16px; overflow: hidden;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td height="4" bgcolor="${BRAND.primary}" style="height: 4px; line-height: 4px; font-size: 0; background-color: ${BRAND.primary}; background-image: ${BRAND.gradient};">&nbsp;</td>
+                </tr>
+                <tr>
+                  <td style="padding: 32px 28px;">
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td style="padding: 0 0 16px 0; font-family: ${BRAND.font}; font-size: 24px; line-height: 29px; font-weight: 700; color: ${BRAND.text};">${title}</td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 0 0 24px 0; font-family: ${BRAND.font}; font-size: 16px; line-height: 24px; color: ${BRAND.textBody};">${content}</td>
+                      </tr>${buttonBlock}${noteBlock}
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 24px 16px 0 16px; font-family: ${BRAND.font}; font-size: 12px; line-height: 18px; color: ${BRAND.textSubtle};">
+              ${fill(copy.footer, { year })}<br>
+              ${copy.automated}<br>
+              <a href="${ctx.frontendUrl}/privacy" target="_blank" style="color: ${BRAND.textMuted}; text-decoration: underline;">${copy.privacy}</a>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
-</html>
-  `;
+</html>`;
 }
 
+// Each builder returns the subject and HTML in the recipient's language.
+// Values from people (names, staff notes, replies) are escaped here.
 export const EmailTemplates = {
-  welcome: (name: string, frontendUrl: string) =>
-    getBaseLayout({
-      title: `¡Bienvenido, ${name}!`,
-      content:
-        'Tu acceso exclusivo a CircleSfera ha sido aprobado. Comienza a construir tus conexiones más significativas hoy mismo.',
-      buttonText: 'Explorar Círculos',
-      buttonUrl: frontendUrl,
-    }),
+  welcome: (ctx: EmailContext, name: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.welcome.subject,
+      html: layout(ctx, copy, {
+        title: fill(copy.welcome.title, { name: escapeHtml(name) }),
+        content: copy.welcome.body,
+        button: { text: copy.welcome.button, url: ctx.frontendUrl },
+      }),
+    };
+  },
 
-  verification: (url: string) =>
-    getBaseLayout({
-      title: 'Verifica tu identidad',
-      content:
-        'Para garantizar la seguridad de tu cuenta y unirte a la comunidad, necesitamos que verifiques tu dirección de correo electrónico.',
-      buttonText: 'Verificar Email',
-      buttonUrl: url,
-      footerText:
-        '<p>Si no has solicitado esta cuenta, puedes ignorar este correo de forma segura.</p>',
-    }),
+  verification: (ctx: EmailContext, url: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.verification.subject,
+      html: layout(ctx, copy, {
+        title: copy.verification.title,
+        content: copy.verification.body,
+        button: { text: copy.verification.button, url },
+        note: copy.verification.footer,
+      }),
+    };
+  },
 
-  passwordReset: (url: string) =>
-    getBaseLayout({
-      title: 'Restablecer contraseña',
-      content:
-        'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Si has sido tú, haz clic en el botón de abajo.',
-      buttonText: 'Restablecer Ahora',
-      buttonUrl: url,
-      footerText:
-        '<p>Este enlace expirará en 1 hora por motivos de seguridad. Si no has solicitado este cambio, ignora este mensaje.</p>',
-    }),
+  passwordReset: (ctx: EmailContext, url: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.passwordReset.subject,
+      html: layout(ctx, copy, {
+        title: copy.passwordReset.title,
+        content: copy.passwordReset.body,
+        button: { text: copy.passwordReset.button, url },
+        note: copy.passwordReset.footer,
+      }),
+    };
+  },
 
+  // Staff-written broadcast: subject, title and content are used as written
+  // (the content may contain basic HTML by design).
   broadcast: (
+    ctx: EmailContext,
+    subject: string,
     title: string,
     content: string,
     buttonText?: string,
     buttonUrl?: string,
-  ) =>
-    getBaseLayout({
+  ): RenderedEmail => ({
+    subject,
+    html: layout(ctx, EMAIL_COPY[ctx.locale], {
       title,
       content,
-      buttonText,
-      buttonUrl,
+      button:
+        buttonText && buttonUrl
+          ? { text: buttonText, url: buttonUrl }
+          : undefined,
     }),
+  }),
 
-  moderationAction: (
-    userName: string,
-    action: string,
-    targetType: string,
-    reason: string,
-  ) =>
-    getBaseLayout({
-      title: 'Aviso de Moderación',
-      content: `Hola ${userName},<br><br>Tu ${targetType.toLowerCase()} ha sido ${action.toLowerCase()} por nuestro equipo de moderación.<br><br><strong>Motivo:</strong> ${reason}<br><br>Por favor, respeta nuestras normas de la comunidad para evitar la suspensión de tu cuenta.`,
-      buttonText: 'Contactar Soporte',
-      buttonUrl: 'mailto:support@circlesfera.com',
-    }),
+  accountBanned: (ctx: EmailContext, name: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.accountBanned.subject,
+      html: layout(ctx, copy, {
+        title: copy.accountBanned.title,
+        content: fill(copy.accountBanned.body, { name: escapeHtml(name) }),
+        button: {
+          text: copy.contactSupport,
+          url: 'mailto:support@circlesfera.com',
+        },
+      }),
+    };
+  },
+
+  postRemoved: (
+    ctx: EmailContext,
+    name: string,
+    reason: string | undefined,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.postRemoved.subject,
+      html: layout(ctx, copy, {
+        title: copy.postRemoved.title,
+        content: fill(copy.postRemoved.body, {
+          name: escapeHtml(name),
+          reason: escapeHtml(reason?.trim() || copy.moderationReason),
+        }),
+        button: {
+          text: copy.postRemoved.button,
+          url: `${ctx.frontendUrl}/guidelines`,
+        },
+      }),
+    };
+  },
+
+  appealDecision: (
+    ctx: EmailContext,
+    name: string,
+    approved: boolean,
+    notes: string | undefined,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const text = approved ? copy.appealApproved : copy.appealRejected;
+    return {
+      subject: text.subject,
+      html: layout(ctx, copy, {
+        title: text.title,
+        content: fill(text.body, {
+          name: escapeHtml(name),
+          notes: escapeHtml(notes?.trim() || copy.appealDefaultNotes),
+        }),
+      }),
+    };
+  },
+
+  dataExportReady: (
+    ctx: EmailContext,
+    name: string,
+    url: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.dataExportReady.subject,
+      html: layout(ctx, copy, {
+        title: fill(copy.dataExportReady.title, { name: escapeHtml(name) }),
+        content: copy.dataExportReady.body,
+        button: { text: copy.dataExportReady.button, url },
+      }),
+    };
+  },
+
+  supportReply: (
+    ctx: EmailContext,
+    originalSubject: string,
+    reply: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: fill(copy.supportReply.subject, { subject: originalSubject }),
+      html: layout(ctx, copy, {
+        title: copy.supportReply.title,
+        content: escapeHtml(reply).replace(/\n/g, '<br>'),
+      }),
+    };
+  },
 
   subscriptionReceipt: (
+    ctx: EmailContext,
     planName: string,
     amount: string,
-    frontendUrl: string,
-  ) =>
-    getBaseLayout({
-      title: 'Recibo de Suscripción',
-      content: `Gracias por suscribirte a CircleSfera.<br><br>Has adquirido el plan <strong>${planName}</strong>.<br>El cargo de <strong>${amount}</strong> ha sido procesado con éxito y las funciones de tu plan ya están activas en tu cuenta.`,
-      buttonText: 'Ir a mi Panel',
-      buttonUrl: `${frontendUrl}/settings/monetization`,
-    }),
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: fill(copy.subscriptionReceipt.subject, { plan: planName }),
+      html: layout(ctx, copy, {
+        title: copy.subscriptionReceipt.title,
+        content: fill(copy.subscriptionReceipt.body, {
+          plan: escapeHtml(planName),
+          amount: escapeHtml(amount),
+        }),
+        button: {
+          text: copy.subscriptionReceipt.button,
+          url: `${ctx.frontendUrl}/accounts/billing`,
+        },
+      }),
+    };
+  },
 };

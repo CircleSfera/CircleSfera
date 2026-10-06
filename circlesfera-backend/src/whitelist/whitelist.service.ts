@@ -34,7 +34,7 @@ export class WhitelistService {
 
     // Send welcome email asynchronously
     try {
-      await this.emailService.sendWelcomeEmail(email, name || 'Amigo');
+      await this.emailService.sendWelcomeEmail(email, name);
     } catch (error) {
       this.logger.error(`Failed to send welcome email to ${email}`, error);
       // We don't throw here to avoid failing the signup if only email fails

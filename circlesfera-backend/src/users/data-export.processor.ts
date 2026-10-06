@@ -204,16 +204,9 @@ export class DataExportProcessor extends WorkerHost {
             );
             const emailDownloadUrl = `${downloadUrl}?token=${downloadToken}`;
 
-            const name =
-              user.profiles[0]?.fullName ||
-              user.profiles[0]?.username ||
-              'User';
-            await this.emailService.sendBroadcastEmail(
+            await this.emailService.sendDataExportReadyEmail(
               user.email,
-              'Your Data Export is Ready',
-              `Hello ${name}`,
-              'Your requested data export is now ready to download. For security reasons, this link will expire in 7 days.',
-              'Download My Data',
+              user.profiles[0]?.fullName || user.profiles[0]?.username,
               emailDownloadUrl,
             );
 
