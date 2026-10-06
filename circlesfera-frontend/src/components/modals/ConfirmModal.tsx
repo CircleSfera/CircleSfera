@@ -1,5 +1,6 @@
 import { AlertTriangle, X } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -28,16 +29,17 @@ export default function ConfirmModal({
   onConfirm,
   title,
   message,
-  confirmText = 'Confirm',
-  cancelText = 'Cancel',
+  confirmText,
+  cancelText,
   isDestructive = true,
   isLoading = false,
   showInput = false,
-  inputLabel = 'Motivo',
+  inputLabel,
   inputPlaceholder = '',
   inputRequired = false,
   children,
 }: ConfirmModalProps) {
+  const { t } = useTranslation();
   const inputId = useId();
   const [inputValue, setInputValue] = useState('');
 
@@ -75,7 +77,7 @@ export default function ConfirmModal({
           {showInput && (
             <label className="w-full text-left space-y-1.5 px-1">
               <span className="text-xs font-semibold text-gray-400">
-                {inputLabel}
+                {inputLabel ?? t('common.reason')}
               </span>
               <textarea
                 id={inputId}
@@ -100,7 +102,7 @@ export default function ConfirmModal({
           variant={isDestructive ? 'danger' : 'white'}
           className="w-full font-semibold text-sm tracking-wide min-h-11 py-3"
         >
-          {confirmText}
+          {confirmText ?? t('common.confirm')}
         </Button>
 
         <Button
@@ -109,7 +111,7 @@ export default function ConfirmModal({
           variant="ghost"
           className="w-full font-semibold text-sm bg-white/5 hover:bg-white/10 text-gray-300 min-h-11 py-3"
         >
-          {cancelText}
+          {cancelText ?? t('common.cancel')}
         </Button>
       </div>
     </Dialog>

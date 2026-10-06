@@ -139,7 +139,7 @@ export default function AppealsList({
                     : 'bg-red-500/10 text-red-500'
               }`}
             >
-              {appeal.status}
+              {t(`admin.appeals.status_${appeal.status.toLowerCase()}`)}
             </span>
           }
           meta={

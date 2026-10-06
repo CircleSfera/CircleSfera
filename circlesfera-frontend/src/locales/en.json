@@ -368,7 +368,12 @@
       "status_pending": "Pending",
       "status_reviewing": "In review",
       "status_resolved": "Resolved",
-      "status_rejected": "Dismissed"
+      "status_rejected": "Dismissed",
+      "target_user": "Account",
+      "target_post": "Post",
+      "target_comment": "Comment",
+      "target_story": "Story",
+      "target_message": "Message"
     },
     "monetization": {
       "title": "Monetization",
@@ -3598,7 +3603,9 @@
     "try_again": "Try Again",
     "reload_page": "Reload Page",
     "seo_default_title": "CircleSfera - Social Reimagined",
-    "seo_default_description": "CircleSfera is a refined social layer designed for visual storytelling, authentic connections, and immersive experiences."
+    "seo_default_description": "CircleSfera is a refined social layer designed for visual storytelling, authentic connections, and immersive experiences.",
+    "confirm": "Confirm",
+    "reason": "Reason"
   },
   "mute": {
     "title": "Mute {{username}}",
