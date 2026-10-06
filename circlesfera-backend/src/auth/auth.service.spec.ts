@@ -180,6 +180,23 @@ describe('AuthService', () => {
       expect(result).toHaveProperty('accessToken');
     });
 
+    it('stores the app language of the new account', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue({
+        id: '1',
+        email: dto.email,
+      });
+
+      await service.register({ ...dto, locale: 'en' });
+      await service.register(dto);
+
+      const locales = mockPrismaService.user.create.mock.calls.map(
+        (call) => (call[0] as { data: { locale: string } }).data.locale,
+      );
+      expect(locales).toEqual(['en', 'es']);
+    });
+
     it('should throw BadRequestException if under 16', async () => {
       const underage = {
         ...dto,

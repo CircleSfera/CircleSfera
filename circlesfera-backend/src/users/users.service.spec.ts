@@ -399,6 +399,21 @@ describe('UsersService', () => {
     });
   });
 
+  describe('updateLocale', () => {
+    it('stores the language and returns only it', async () => {
+      mockPrismaService.user.update.mockResolvedValue({ locale: 'en' });
+
+      await expect(service.updateLocale('u_loc', 'en')).resolves.toEqual({
+        locale: 'en',
+      });
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u_loc' },
+        data: { locale: 'en' },
+        select: { locale: true },
+      });
+    });
+  });
+
   describe('getSettings and updateSettings', () => {
     it('getSettings returns existing settings', async () => {
       mockPrismaService.userSettings.findUnique.mockResolvedValue({

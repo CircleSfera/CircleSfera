@@ -1,4 +1,10 @@
-import { AccountType, Role, User, VerificationLevel } from '@prisma/client';
+import {
+  AccountType,
+  type Locale,
+  Role,
+  User,
+  VerificationLevel,
+} from '@prisma/client';
 import { Exclude } from 'class-transformer';
 
 export class UserEntity implements User {
@@ -22,6 +28,7 @@ export class UserEntity implements User {
   inviteCode!: string | null;
   referredById!: string | null;
   role!: Role;
+  locale!: Locale;
   identityVerifiedAt!: Date | null;
   dateOfBirth!: Date | null;
 

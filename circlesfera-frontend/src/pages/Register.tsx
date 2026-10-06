@@ -8,6 +8,7 @@ import { Button } from '../components/ui';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
+import { toAppLocale } from '../utils/appLocale';
 import { logger } from '../utils/logger';
 import { getVisitorId } from '../utils/visitorId';
 
@@ -15,7 +16,7 @@ export default function Register() {
   const navigate = useNavigate();
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setProfile = useAuthStore((state) => state.setProfile);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
@@ -44,6 +45,7 @@ export default function Register() {
         inviteCode: inviteCode || undefined,
         captchaToken: captchaToken || undefined,
         visitorId,
+        locale: toAppLocale(i18n.resolvedLanguage ?? i18n.language),
       });
     },
     onSuccess: async () => {

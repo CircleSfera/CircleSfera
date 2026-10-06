@@ -4,6 +4,7 @@ import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ContentRating,
+  type Locale,
   type Prisma,
   SubscriptionStatus,
   VerificationLevel,
@@ -458,6 +459,15 @@ export class UsersService {
         isOnboarded: dto.isOnboarded ?? false,
       },
     });
+  }
+
+  async updateLocale(userId: string, locale: Locale) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { locale },
+      select: { locale: true },
+    });
+    return { locale: user.locale };
   }
 
   // Identity Verification

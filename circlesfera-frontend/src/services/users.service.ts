@@ -29,6 +29,10 @@ export const usersApi = {
 
   getSettings: () => apiClient.get('/users/me/settings'),
 
+  // Language of the account's emails and notices.
+  updateLocale: (locale: 'en' | 'es') =>
+    apiClient.put<{ locale: 'en' | 'es' }>('/users/me/locale', { locale }),
+
   updateSettings: (data: {
     pushNotifications?: boolean;
     emailNotifications?: boolean;

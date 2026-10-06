@@ -438,6 +438,7 @@ export class ProfilesService {
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
+            locale: true,
             settings: {
               select: { isOnboarded: true, privacyLevel: true },
             },
