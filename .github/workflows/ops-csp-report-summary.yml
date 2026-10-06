@@ -1,8 +1,8 @@
 name: Ops — CSP report summary
 
 # Summarises the Content-Security-Policy violation reports the backend has
-# logged (report-only mode), so the policy can be made enforcing without
-# breaking the app. Read-only: it only reads container logs.
+# counted (report-only mode), so the policy can be made enforcing without
+# breaking the app. Read-only: it only reads the daily counters in Redis.
 # Actions logs are public, so it prints only the directive, the blocked origin
 # and a count. Page paths are never printed: they can contain usernames.
 on:
@@ -47,20 +47,25 @@ jobs:
             set -euo pipefail
             cd /srv/circlesfera
             DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            # The backend counts reports per UTC day in Redis
+            # (csp:reports:YYYY-MM-DD, kept 35 days), so deploys do not reset
+            # the window the way container logs did. The password reaches
+            # redis-cli through the environment, never the command line.
+            REDISCLI_AUTH=$(grep '^REDIS_PASSWORD=' .env.production | head -n 1 | cut -d= -f2- | sed -E 's/^["'\'']|["'\'']$//g')
+            export REDISCLI_AUTH
+            RC="$DC exec -T -e REDISCLI_AUTH redis redis-cli --no-auth-warning"
             # A failed read must fail the run, not report zero violations.
-            LOGS=$(mktemp)
-            trap 'rm -f "$LOGS"' EXIT
-            if ! $DC logs --no-color --no-log-prefix --timestamps backend > "$LOGS" 2>/dev/null; then
-              echo "Could not read the backend logs."
+            if ! KEYS=$($RC --scan --pattern 'csp:reports:*' | sort); then
+              echo "Could not read the CSP counters from Redis."
               exit 1
             fi
-            LINES=$(grep -o 'CSP violation ([a-z-]*): [a-z-]* blocked [^ "]*' "$LOGS" || true)
-            TOTAL=$(printf '%s\n' "$LINES" | grep -c 'CSP violation' || true)
-            echo "Retained log window: $(head -n 1 "$LOGS" | cut -c1-19) to now"
-            echo "Total CSP violation reports: $TOTAL"
-            if [ "$TOTAL" -gt 0 ]; then
-              echo "count | disposition | directive | blocked origin"
-              printf '%s\n' "$LINES" \
-                | sed -E 's/CSP violation \(([a-z-]*)\): ([a-z-]*) blocked (.*)/\1 | \2 | \3/' \
-                | sort | uniq -c | sort -rn | head -n 60
+            if [ -z "$KEYS" ]; then
+              echo "No CSP violation reports in the last 35 days."
+              exit 0
             fi
+            echo "Days with reports: $(printf '%s\n' "$KEYS" | wc -l | tr -d ' ') ($(printf '%s\n' "$KEYS" | head -n 1 | cut -d: -f3) to $(printf '%s\n' "$KEYS" | tail -n 1 | cut -d: -f3))"
+            ROWS=$(for k in $KEYS; do $RC HGETALL "$k"; done | paste - - \
+              | awk -F'\t' '{c[$1]+=$2} END {for (f in c) print c[f] "\t" f}' | sort -rn)
+            echo "Total CSP violation reports: $(printf '%s\n' "$ROWS" | awk -F'\t' '{t+=$1} END {print t+0}')"
+            echo "count | disposition | directive | blocked origin"
+            printf '%s\n' "$ROWS" | head -n 60 | awk -F'\t' '{split($2, a, "|"); print $1 " | " a[1] " | " a[2] " | " a[3]}'
