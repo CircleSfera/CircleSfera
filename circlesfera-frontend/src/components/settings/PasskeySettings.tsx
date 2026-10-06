@@ -84,12 +84,9 @@ export const PasskeySettings: React.FC = () => {
       setSuccess(true);
       fetchPasskeys();
     } catch (err: unknown) {
+      // The browser and server texts are technical and not translated.
       logger.error('Passkey registration error:', err);
-      const errorMessage =
-        err instanceof Error
-          ? err.message
-          : t('settings.passkey_settings.register_error');
-      setError(errorMessage);
+      setError(t('settings.passkey_settings.register_error'));
     } finally {
       setLoading(false);
     }
@@ -178,7 +175,7 @@ export const PasskeySettings: React.FC = () => {
             {t('settings.passkey_settings.registered')}
           </span>
           <span className="text-xs font-bold text-gray-500">
-            {passkeys.length} / 10
+            {passkeys.length}
           </span>
         </div>
 
