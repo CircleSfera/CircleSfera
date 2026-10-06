@@ -13,6 +13,12 @@ import { authApi, passkeyApi, profileApi } from '../services';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import type { LoginDto } from '../types';
+import {
+  apiErrorBody,
+  apiErrorCode,
+  apiErrorDetails,
+  apiErrorMessage,
+} from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 import { getVisitorId } from '../utils/visitorId';
 
@@ -51,7 +57,7 @@ export default function Login() {
       setAppealReason('');
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.message || t('auth.login.appeal_error'));
+      toast.error(apiErrorMessage(err, t, 'auth.login.appeal_error'));
     },
   });
 
@@ -135,16 +141,23 @@ export default function Login() {
   };
 
   const err = loginMutation.error as any;
-  const errorMessage = err
-    ? err.response?.data?.message || err.message
+  // These sign-in outcomes arrive as the error code (or as the message, from
+  // older responses) and change the form instead of showing a message.
+  const errorCode = err
+    ? apiErrorCode(err) || apiErrorBody(err)?.message || err.message
     : undefined;
-  const is2FARequired = errorMessage === ApiErrorCode.TWO_FA_REQUIRED;
-  const isBanned = errorMessage === ApiErrorCode.ACCOUNT_BANNED;
-  const isSuspended = errorMessage === ApiErrorCode.ACCOUNT_SUSPENDED;
+  const is2FARequired = errorCode === ApiErrorCode.TWO_FA_REQUIRED;
+  const isBanned = errorCode === ApiErrorCode.ACCOUNT_BANNED;
+  const isSuspended = errorCode === ApiErrorCode.ACCOUNT_SUSPENDED;
   const isPasswordResetRequired =
-    errorMessage === ApiErrorCode.PASSWORD_RESET_REQUIRED;
+    errorCode === ApiErrorCode.PASSWORD_RESET_REQUIRED;
+  const errorMessage = err
+    ? apiErrorMessage(err, t, 'auth.login.default_error', { signIn: true })
+    : undefined;
   // Ban and suspension details arrive under `details`.
-  const errorDetails = err?.response?.data?.details ?? err?.response?.data;
+  const errorDetails = apiErrorDetails(err) as
+    | { reason?: string; suspendedUntil?: string; appealToken?: string }
+    | undefined;
   const banReason = errorDetails?.reason;
   const suspendedUntil = errorDetails?.suspendedUntil;
   const receivedAppealToken = errorDetails?.appealToken;

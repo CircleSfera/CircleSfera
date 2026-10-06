@@ -15,6 +15,7 @@ import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 
 const planVerificationMap: Record<string, string> = {
@@ -150,7 +151,7 @@ export default function Pricing() {
           { duration: 8000 },
         );
       } else {
-        toast.error(t('pricingPage.checkout_error'));
+        toast.error(apiErrorMessage(error, t, 'pricingPage.checkout_error'));
       }
     },
     onSettled: () => setLoadingPlanId(null),

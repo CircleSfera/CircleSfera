@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from '../constants/uploadLimits';
 import i18n from '../i18n';
 import { api } from '../services';
+import { apiErrorCode, apiErrorMessage } from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 
 export interface UploadResult {
@@ -73,10 +74,12 @@ export function useMediaUpload() {
               message?: string;
             };
             const httpStatus = err.response?.status ?? err.status;
-            const serverMessage = err.response?.data?.message;
-            const displayMessage = Array.isArray(serverMessage)
-              ? serverMessage[0]
-              : serverMessage;
+            // A known error code (for example a video that is too long)
+            // explains the failure; otherwise the generic upload message.
+            const code = apiErrorCode(error);
+            const displayMessage = code
+              ? i18n.t(`errors.codes.${code}`, { defaultValue: '' })
+              : '';
 
             if (httpStatus === 413 || item.file.size > MAX_UPLOAD_BYTES) {
               throw new Error(
@@ -86,9 +89,16 @@ export function useMediaUpload() {
                 }),
               );
             }
+            // Offline, too many uploads, an ended session or a server error
+            // say so; anything else is a failed upload of this file.
+            const isKnownFailure =
+              (err as { isNetworkError?: boolean }).isNetworkError === true ||
+              httpStatus === 401 ||
+              httpStatus === 429 ||
+              (httpStatus !== undefined && httpStatus >= 500);
             throw new Error(
               displayMessage ||
-                err.message ||
+                (isKnownFailure ? apiErrorMessage(error, i18n.t) : '') ||
                 i18n.t('createPost.upload.upload_failed', {
                   name: item.file.name,
                 }),

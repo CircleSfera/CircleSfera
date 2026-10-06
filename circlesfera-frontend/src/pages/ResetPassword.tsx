@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui';
 import { authApi } from '../services';
-import type { ApiError } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
@@ -37,10 +37,7 @@ export default function ResetPassword() {
       setSuccess(true);
       setTimeout(() => navigate('/accounts/login'), 3000);
     } catch (err: unknown) {
-      setError(
-        (err as ApiError).response?.data?.message ||
-          t('auth.reset_password.default_error'),
-      );
+      setError(apiErrorMessage(err, t, 'auth.reset_password.default_error'));
     } finally {
       setLoading(false);
     }

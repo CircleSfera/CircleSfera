@@ -20,6 +20,7 @@ import { authApi, profileApi, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
 import { useSecurityStore } from '../../stores/securityStore';
 import type { UpdateProfileDto } from '../../types';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
 import UserAvatar from '../UserAvatar';
@@ -118,10 +119,18 @@ export default function ProfileSettings() {
       setUsernameStatus({ checking: true, available: null, message: '' });
       try {
         const response = await profileApi.checkUsername(newUsername);
+        // The server's text is English only; the app writes its own.
         setUsernameStatus({
           checking: false,
           available: response.data.available,
-          message: response.data.message,
+          message: t(
+            response.data.available
+              ? 'settings.profiles.form.username_available'
+              : /^[a-zA-Z0-9._]{3,30}$/.test(newUsername)
+                ? 'settings.profiles.form.username_taken'
+                : 'settings.profiles.form.username_invalid',
+            { username: newUsername },
+          ),
         });
       } catch {
         setUsernameStatus({
@@ -492,8 +501,11 @@ export default function ProfileSettings() {
           >
             <X size={16} className="shrink-0" />
             <span className="font-medium text-sm">
-              {(updateProfileMutation.error as any)?.response?.data?.message ||
-                t('settings.profile.error_saving')}
+              {apiErrorMessage(
+                updateProfileMutation.error,
+                t,
+                'settings.profile.error_saving',
+              )}
             </span>
           </motion.div>
         )}

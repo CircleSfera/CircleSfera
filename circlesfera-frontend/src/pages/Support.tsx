@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -12,6 +11,7 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export const Support = () => {
   const { t } = useTranslation();
@@ -42,13 +42,8 @@ export const Support = () => {
       setMessage('');
     } catch (error: unknown) {
       setStatus('error');
-      if (axios.isAxiosError(error)) {
-        setErrorMessage(
-          error.response?.data?.message || t('supportPage.error_generic'),
-        );
-      } else {
-        setErrorMessage(t('supportPage.error_generic'));
-      }
+      // The API client rejects with { status, data }, never an Axios error.
+      setErrorMessage(apiErrorMessage(error, t, 'supportPage.error_generic'));
     }
   };
 

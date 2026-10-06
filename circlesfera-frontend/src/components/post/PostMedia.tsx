@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import type { Post } from '../../types';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import Carousel from '../Carousel';
 import PaywallOverlay from '../monetization/PaywallOverlay';
 
@@ -38,10 +39,8 @@ export default function PostMedia({
         queryClient.invalidateQueries({ queryKey: ['wallet'] });
       }
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(
-        error.response?.data?.message || t('post.media.unlock_error'),
-      );
+    onError: (error: unknown) => {
+      toast.error(apiErrorMessage(error, t, 'post.media.unlock_error'));
     },
   });
 

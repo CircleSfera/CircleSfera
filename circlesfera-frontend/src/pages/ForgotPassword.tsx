@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui';
 import { authApi } from '../services';
-import type { ApiError } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -23,10 +23,7 @@ export default function ForgotPassword() {
       await authApi.requestReset(email);
       setSubmitted(true);
     } catch (err: unknown) {
-      setError(
-        (err as ApiError).response?.data?.message ||
-          t('auth.forgot_password.default_error'),
-      );
+      setError(apiErrorMessage(err, t, 'auth.forgot_password.default_error'));
     } finally {
       setLoading(false);
     }
