@@ -10,6 +10,7 @@ import {
   createAppeal,
   getMyAppeals,
 } from '../../services/appeals.service';
+import { formatDate } from '../../utils/format';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button, Select, Textarea } from '../ui';
 import ProfileStandingSection from './ProfileStandingSection';
@@ -241,7 +242,7 @@ export default function AppealsSettings() {
 }
 
 function AppealRow({ appeal }: { appeal: Appeal }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const statusLabel =
     appeal.status === 'PENDING'
       ? t('settings.appeals.status_pending')
@@ -301,7 +302,7 @@ function AppealRow({ appeal }: { appeal: Appeal }) {
         </div>
       ) : null}
       <p className="text-xs text-white/40">
-        {new Date(appeal.createdAt).toLocaleDateString()}
+        {formatDate(appeal.createdAt, i18n.language)}
       </p>
     </li>
   );

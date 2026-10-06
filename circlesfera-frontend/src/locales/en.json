@@ -262,7 +262,13 @@
       "verified_badge": "Verified badge",
       "verified_desc": "Included in Verified",
       "pro_insights": "Pro insights",
-      "pro_desc": "Elite creator upgrade"
+      "pro_desc": "Elite creator upgrade",
+      "status_active": "Active",
+      "status_trialing": "Free trial",
+      "status_past_due": "Payment overdue",
+      "status_incomplete": "Payment pending",
+      "status_cancelled": "Cancelled",
+      "status_expired": "Expired"
     },
     "security": {
       "title": "Security",
@@ -3278,7 +3284,9 @@
     "billing_yearly": "Yearly",
     "per_month": "month",
     "per_year": "year",
-    "save_percent": "Save {{percent}}%"
+    "save_percent": "Save {{percent}}%",
+    "load_error_title": "Plans could not be loaded",
+    "load_error_message": "Check your connection and try again."
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",

@@ -1,6 +1,8 @@
 import { clsx } from 'clsx';
 import { Minus, TrendingDown, TrendingUp } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatNumber } from '../../utils/format';
 
 export interface StatCardProps {
   label: string;
@@ -92,6 +94,7 @@ export default function StatCard({
   isCounter = true,
   sparklineData,
 }: StatCardProps) {
+  const { i18n } = useTranslation();
   const displayValue = useCountUp(value);
   const formattedValue = isCounter ? displayValue : value;
 
@@ -150,7 +153,7 @@ export default function StatCard({
           </p>
           <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
             {prefix}
-            {formattedValue.toLocaleString()}
+            {formatNumber(formattedValue, i18n.language)}
             {suffix}
           </p>
           {growth !== undefined && growth !== null && (

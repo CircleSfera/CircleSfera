@@ -20,6 +20,7 @@ import type { AdminUser } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
+import { formatNumber } from '../../utils/format';
 import { UserAvatar } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -375,7 +376,7 @@ export default function Dashboard({ onToast }: Props) {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
         <AdminKpiWidget
           title={t('admin.users.kpi_registered')}
-          value={statsData?.users.toLocaleString() || '0'}
+          value={formatNumber(statsData?.users, i18n.language) || '0'}
           icon={<Users size={16} />}
           trend={{
             value: statsData?.userGrowth || 0,
@@ -384,19 +385,23 @@ export default function Dashboard({ onToast }: Props) {
         />
         <AdminKpiWidget
           title={t('admin.users.kpi_new_week')}
-          value={statsData?.newUsersThisWeek.toLocaleString() || '0'}
+          value={
+            formatNumber(statsData?.newUsersThisWeek, i18n.language) || '0'
+          }
           icon={<UserCheck size={16} />}
           iconColorClass="text-green-400 bg-green-400/10"
         />
         <AdminKpiWidget
           title={t('admin.users.kpi_active_today')}
-          value={statsData?.activeUsersToday.toLocaleString() || '0'}
+          value={
+            formatNumber(statsData?.activeUsersToday, i18n.language) || '0'
+          }
           icon={<ShieldCheck size={16} />}
           iconColorClass="text-brand-accent bg-brand-accent/10"
         />
         <AdminKpiWidget
           title={t('admin.users.kpi_pending_reports')}
-          value={statsData?.pendingReports.toLocaleString() || '0'}
+          value={formatNumber(statsData?.pendingReports, i18n.language) || '0'}
           icon={<Ban size={16} />}
           iconColorClass="text-red-400 bg-red-400/10"
         />

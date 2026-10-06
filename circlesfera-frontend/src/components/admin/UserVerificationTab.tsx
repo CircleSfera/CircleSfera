@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
+import { formatDate } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button, Select } from '../ui';
@@ -48,7 +49,7 @@ export default function UserVerificationTab({
 }: {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -389,9 +390,10 @@ export default function UserVerificationTab({
                               {t(
                                 'admin.verification.kyc_verified_description',
                                 {
-                                  date: new Date(
+                                  date: formatDate(
                                     selectedUser.identityVerifiedAt,
-                                  ).toLocaleDateString(),
+                                    i18n.language,
+                                  ),
                                 },
                               )}
                             </span>

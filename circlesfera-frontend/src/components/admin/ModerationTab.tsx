@@ -15,6 +15,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminModerationItem } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -43,7 +44,7 @@ interface Props {
 }
 
 export default function ModerationTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [viewMode, setViewMode] = useState<'queue' | 'appeals'>('queue');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -446,7 +447,10 @@ export default function ModerationTab({ onToast }: Props) {
                           </h3>
                           <p className="text-xs text-white/70">
                             {selectedItem.entityType} ·{' '}
-                            {new Date(selectedItem.createdAt).toLocaleString()}
+                            {formatDateTime(
+                              selectedItem.createdAt,
+                              i18n.language,
+                            )}
                           </p>
                         </div>
                       </div>

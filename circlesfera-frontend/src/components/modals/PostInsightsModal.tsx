@@ -21,6 +21,7 @@ import {
   YAxis,
 } from 'recharts';
 import { creatorApi } from '../../services/creator.service';
+import { formatNumber } from '../../utils/format';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import { Dialog } from '../ui/Dialog';
 
@@ -268,6 +269,7 @@ function StatCard({
   bg: string;
   formatter?: (val: number) => string;
 }) {
+  const { i18n } = useTranslation();
   return (
     <div className="glass-panel p-4 rounded-xl border border-white/5 space-y-3">
       <div
@@ -280,7 +282,7 @@ function StatCard({
           {label}
         </p>
         <p className="text-white font-black text-xl tracking-tight mt-0.5">
-          {formatter ? formatter(value) : value.toLocaleString()}
+          {formatter ? formatter(value) : formatNumber(value, i18n.language)}
         </p>
       </div>
     </div>

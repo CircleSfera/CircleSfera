@@ -15,6 +15,7 @@ import type { AdminTransaction } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { paymentsApi } from '../../services/payments.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime } from '../../utils/format';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -25,7 +26,7 @@ import { adminToast } from './adminToast';
 import StatCard from './StatCard';
 
 export default function MonetizationTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [txPage, setTxPage] = useState(1);
   const [txStatus, setTxStatus] = useState('');
   const [txSearch, setTxSearch] = useState('');
@@ -406,7 +407,7 @@ export default function MonetizationTab() {
                       : tx.sender?.email || '—'
                   }
                   badge={txStatusBadge(tx.status)}
-                  meta={new Date(tx.createdAt).toLocaleString()}
+                  meta={formatDateTime(tx.createdAt, i18n.language)}
                   primaryAction={
                     <span className="text-sm font-semibold text-white tabular-nums">
                       {formatAmount(tx)}
@@ -441,7 +442,7 @@ export default function MonetizationTab() {
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
                   <td className="px-2 py-1 text-white/40 text-sm whitespace-nowrap hidden lg:table-cell">
-                    {new Date(tx.createdAt).toLocaleString()}
+                    {formatDateTime(tx.createdAt, i18n.language)}
                   </td>
                   <td className="px-2 py-1">
                     <span className="text-xs font-semibold uppercase text-white/70">

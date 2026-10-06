@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { AdminLiveStream } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -22,7 +23,7 @@ import {
 import LiveStreamDetailPanel from './LiveStreamDetailPanel';
 
 export default function LiveStreamsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
@@ -80,7 +81,7 @@ export default function LiveStreamsTab() {
         />
         <AdminKpiWidget
           title={t('admin.lives.kpi_viewers')}
-          value={totalViewers.toLocaleString()}
+          value={formatNumber(totalViewers, i18n.language)}
           icon={<Users size={16} />}
           iconColorClass="text-brand-primary bg-brand-primary/10"
         />

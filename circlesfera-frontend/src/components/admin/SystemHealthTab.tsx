@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import type { AdminWebhookEvent } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime, formatTime } from '../../utils/format';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -55,7 +56,7 @@ function MetricCell({
 }
 
 export default function SystemHealthTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [webhookPage, setWebhookPage] = useState(1);
   const [webhookStatusFilter, setWebhookStatusFilter] = useState('FAILED');
@@ -171,7 +172,7 @@ export default function SystemHealthTab() {
       <AdminPageHeader
         title={t('admin.health.title')}
         subtitle={t('admin.health.subtitle_live', {
-          time: new Date(health.timestamp).toLocaleTimeString(),
+          time: formatTime(health.timestamp, i18n.language),
         })}
         actions={
           <div className="flex items-center gap-2">
@@ -434,7 +435,7 @@ export default function SystemHealthTab() {
                           {event.externalId}
                         </p>
                         <p className="text-xs text-white/40 mt-1">
-                          {new Date(event.createdAt).toLocaleString()}
+                          {formatDateTime(event.createdAt, i18n.language)}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -502,7 +503,7 @@ export default function SystemHealthTab() {
                         {event.processedAt && (
                           <p className="text-white/40">
                             {t('admin.health.processed_at')}:{' '}
-                            {new Date(event.processedAt).toLocaleString()}
+                            {formatDateTime(event.processedAt, i18n.language)}
                           </p>
                         )}
                       </div>

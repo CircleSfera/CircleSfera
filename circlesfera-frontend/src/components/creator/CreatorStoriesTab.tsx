@@ -10,11 +10,12 @@ import { creatorApi } from '../../services/creator.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useStoryStore } from '../../stores/storyStore';
 import type { PaginatedResponse, Story } from '../../types';
+import { formatNumber } from '../../utils/format';
 import { Button } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 
 export default function CreatorStoriesTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [now, setNow] = useState(() => Date.now());
   const [openingId, setOpeningId] = useState<string | null>(null);
@@ -146,7 +147,7 @@ export default function CreatorStoriesTab() {
                       <Eye size={12} className="text-white" />
                     </div>
                     <span className="text-white font-semibold text-xs tracking-tight">
-                      {story._count.views.toLocaleString()}
+                      {formatNumber(story._count.views, i18n.language)}
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
@@ -154,7 +155,7 @@ export default function CreatorStoriesTab() {
                       <Heart size={12} className="text-brand-secondary" />
                     </div>
                     <span className="text-white font-semibold text-xs tracking-tight">
-                      {story._count.reactions.toLocaleString()}
+                      {formatNumber(story._count.reactions, i18n.language)}
                     </span>
                   </div>
                 </div>

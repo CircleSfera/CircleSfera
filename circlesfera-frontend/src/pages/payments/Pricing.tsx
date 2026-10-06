@@ -233,8 +233,8 @@ export default function Pricing() {
           </div>
         ) : isError ? (
           <ErrorState
-            title={t('pricingPage.checkout_error')}
-            message={t('pricingPage.subtitle')}
+            title={t('pricingPage.load_error_title')}
+            message={t('pricingPage.load_error_message')}
             onRetry={() => refetch()}
           />
         ) : !plans?.length ? (

@@ -197,8 +197,14 @@ describe('Pricing', () => {
       .mockResolvedValueOnce(PLANS);
     const { i18n } = renderWithProviders(<Pricing />);
 
+    expect(
+      await screen.findByText(i18n!.t('pricingPage.load_error_title')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('pricingPage.checkout_error')),
+    ).not.toBeInTheDocument();
     fireEvent.click(
-      await screen.findByRole('button', { name: i18n!.t('common.try_again') }),
+      screen.getByRole('button', { name: i18n!.t('common.try_again') }),
     );
 
     expect(await screen.findByText('Premium')).toBeInTheDocument();

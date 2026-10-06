@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AdminPost } from '../../services/admin.service';
+import { formatDateTime } from '../../utils/format';
 import UserAvatar from '../UserAvatar';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
 
 // Compact post preview for AdminSplitView detail pane (no overlay).
 export default function PostDetailPanel({ post }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const username = post.user?.profile?.username || t('admin.shared.unknown');
 
   return (
@@ -25,7 +26,7 @@ export default function PostDetailPanel({ post }: Props) {
               @{username}
             </p>
             <p className="text-xs text-white/40">
-              {new Date(post.createdAt).toLocaleString()}
+              {formatDateTime(post.createdAt, i18n.language)}
             </p>
           </div>
           <a

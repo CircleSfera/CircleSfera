@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -58,7 +59,7 @@ interface Props {
 }
 
 export default function PromotionsTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -227,7 +228,7 @@ export default function PromotionsTab({ onToast }: Props) {
                     subtitle={t('admin.promotions.reach_estimate', {
                       budget: (promo.budgetCents / 100).toFixed(2),
                       currency: promo.currency,
-                      reach: promo.reach.toLocaleString(),
+                      reach: formatNumber(promo.reach, i18n.language),
                     })}
                     badge={<StatusBadge status={promo.status} />}
                     avatar={
@@ -354,7 +355,7 @@ export default function PromotionsTab({ onToast }: Props) {
                       </p>
                       <p className="text-base sm:text-lg font-semibold text-emerald-400 flex items-center gap-1.5 tabular-nums leading-tight">
                         <TrendingUp size={14} />
-                        {selectedPromo.reach.toLocaleString()}
+                        {formatNumber(selectedPromo.reach, i18n.language)}
                       </p>
                     </div>
                     <div className="px-3 py-2.5">
@@ -362,7 +363,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         {t('admin.promotions.start_date_label')}
                       </p>
                       <p className="text-sm font-semibold text-white">
-                        {new Date(selectedPromo.startDate).toLocaleDateString()}
+                        {formatDate(selectedPromo.startDate, i18n.language)}
                       </p>
                     </div>
                     <div className="px-3 py-2.5">

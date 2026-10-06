@@ -19,6 +19,7 @@ import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
+import { formatDate, formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -42,6 +43,7 @@ import { adminTabPath } from './adminNav';
 function timeAgo(
   date: string | Date,
   t: (key: string, opts?: Record<string, unknown>) => string,
+  language: string,
 ): string {
   const now = Date.now();
   const d = new Date(date).getTime();
@@ -53,7 +55,7 @@ function timeAgo(
   if (hrs < 24) return t('admin.shared.time_ago_hours', { count: hrs });
   const days = Math.floor(hrs / 24);
   if (days < 7) return t('admin.shared.time_ago_days', { count: days });
-  return new Date(date).toLocaleDateString();
+  return formatDate(date, language);
 }
 
 interface Props {
@@ -61,7 +63,7 @@ interface Props {
 }
 
 export default function ReportsTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
@@ -447,13 +449,16 @@ export default function ReportsTab({ onToast }: Props) {
                       }
                       meta={
                         <span className="flex flex-col items-end gap-0.5">
-                          <span>{timeAgo(report.createdAt, t)}</span>
+                          <span>
+                            {timeAgo(report.createdAt, t, i18n.language)}
+                          </span>
                           {report.resolvedAt && (
                             <span className="text-[11px] text-white/40">
                               {t('admin.reports.resolved_at', {
-                                date: new Date(
+                                date: formatDate(
                                   report.resolvedAt,
-                                ).toLocaleDateString(),
+                                  i18n.language,
+                                ),
                               })}
                             </span>
                           )}
@@ -908,9 +913,10 @@ export default function ReportsTab({ onToast }: Props) {
                             {t('admin.reports.resolved_label')}
                           </dt>
                           <dd className="text-white/70 text-right">
-                            {new Date(
+                            {formatDateTime(
                               selectedReport.resolvedAt,
-                            ).toLocaleString()}
+                              i18n.language,
+                            )}
                           </dd>
                         </div>
                       )}
