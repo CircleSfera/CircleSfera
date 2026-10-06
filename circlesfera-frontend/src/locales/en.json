@@ -111,6 +111,10 @@
       "feed_prefs": {
         "label": "Feed Preferences",
         "desc": "Customize your content"
+      },
+      "profiles": {
+        "label": "Profiles",
+        "desc": "Switch & create"
       }
     },
     "profile": {
@@ -439,6 +443,41 @@
       "push_notifications": "Push notifications",
       "update_error": "Failed to update settings",
       "updated": "Settings updated"
+    },
+    "profiles": {
+      "title": "Your profiles",
+      "description": "One account can have up to {{max}} profiles, each with its own posts, followers and messages. Your login, security and plan are shared.",
+      "current": "Current",
+      "suspended": "Suspended",
+      "banned": "Banned",
+      "switch_a11y": "Switch to @{{username}}",
+      "switching": "Switching profile…",
+      "switch_failed": "Could not switch to this profile. Try again.",
+      "load_failed": "Could not load your profiles.",
+      "retry": "Retry",
+      "create": "Create a new profile",
+      "limit_reached": "You have reached the limit of {{max}} profiles.",
+      "manage": "Manage profiles",
+      "switcher_title": "Switch profile",
+      "switcher_open_a11y": "Switch profile, current @{{username}}",
+      "form": {
+        "title": "New profile",
+        "description": "It starts empty: no posts and no followers. You can switch back at any time.",
+        "username": "Username",
+        "username_placeholder": "new.username",
+        "username_hint": "3–30 characters: letters, numbers, dots and underscores.",
+        "username_invalid": "Use 3–30 letters, numbers, dots or underscores.",
+        "username_checking": "Checking availability…",
+        "username_available": "@{{username}} is available.",
+        "username_taken": "@{{username}} is already taken.",
+        "full_name": "Name (optional)",
+        "full_name_placeholder": "How others will see this profile",
+        "type": "Profile type",
+        "submit": "Create and switch",
+        "submitting": "Creating profile…",
+        "cancel": "Cancel",
+        "failed": "Could not create the profile. Try again."
+      }
     }
   },
   "auth": {

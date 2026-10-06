@@ -10,6 +10,7 @@ import MyReportsSettings from '../components/settings/MyReportsSettings';
 import NotificationsSettings from '../components/settings/NotificationsSettings';
 import PrivacySettings from '../components/settings/PrivacySettings';
 import ProfileSettings from '../components/settings/ProfileSettings';
+import ProfilesSettings from '../components/settings/ProfilesSettings';
 import ReferralsSettings from '../components/settings/ReferralsSettings';
 import RequestsSettings from '../components/settings/RequestsSettings';
 import SecuritySettings from '../components/settings/SecuritySettings';
@@ -24,6 +25,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
   switch (section) {
     case 'profile':
       return <ProfileSettings />;
+    case 'profiles':
+      return <ProfilesSettings />;
     case 'privacy':
       return <PrivacySettings />;
     case 'notifications':

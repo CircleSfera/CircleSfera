@@ -31,6 +31,17 @@ interface AuthState {
   checkSession: () => Promise<void>;
 }
 
+// Drops the Service Worker cache of API responses, which belong to whoever
+// was signed in when they were fetched.
+async function clearApiCache() {
+  if (typeof window === 'undefined' || !('caches' in window)) return;
+  try {
+    await caches.delete('api-cache');
+  } catch (e) {
+    console.error('Failed to clear api-cache', e);
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -44,10 +55,14 @@ export const useAuthStore = create<AuthState>()(
       setProfile: (profile) => set({ profile }),
       switchProfile: async (profileId: string) => {
         await profileApi.switchProfile(profileId);
+        // Responses cached for the previous Profile must not be served to the
+        // new one (same reason as on logout).
+        await clearApiCache();
         const { data } = await profileApi.getMyProfile();
         set({
           profile: data,
           isAuthenticated: true,
+          isCreatorModeActive: false,
         });
       },
       checkSession: async () => {
@@ -101,13 +116,7 @@ export const useAuthStore = create<AuthState>()(
         }
 
         // 3. Clear Service Worker API cache to prevent cross-account data bleed
-        if ('caches' in window) {
-          try {
-            await caches.delete('api-cache');
-          } catch (e) {
-            console.error('Failed to clear api-cache', e);
-          }
-        }
+        await clearApiCache();
       },
     }),
     {

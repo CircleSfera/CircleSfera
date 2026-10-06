@@ -25,6 +25,7 @@ import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import type { ProfileWithUser } from '../../types';
 import FollowButton from '../FollowButton';
 import MuteDurationModal from '../modals/MuteDurationModal';
+import ProfileSwitcher from '../profiles/ProfileSwitcher';
 import UserAvatar from '../UserAvatar';
 import VerificationBadge, {
   type VerificationLevel,
@@ -311,7 +312,14 @@ export default function ProfileHeader({
                   )}
                 </div>
                 <div className="flex items-center justify-start gap-2 text-zinc-400 font-semibold text-sm">
-                  <span className="truncate">@{profile.data.username}</span>
+                  {isMe ? (
+                    <ProfileSwitcher
+                      username={profile.data.username}
+                      className="min-w-0"
+                    />
+                  ) : (
+                    <span className="truncate">@{profile.data.username}</span>
+                  )}
                   {profile.data.isPrivate && (
                     <span
                       className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm shrink-0"
@@ -489,7 +497,11 @@ export default function ProfileHeader({
             )}
           </div>
           <div className="flex items-center justify-start gap-1.5 text-zinc-400 font-semibold text-[13px]">
-            <span>@{profile.data.username}</span>
+            {isMe ? (
+              <ProfileSwitcher username={profile.data.username} />
+            ) : (
+              <span>@{profile.data.username}</span>
+            )}
             {profile.data.isPrivate && (
               <Lock size={10} className="text-brand-primary" />
             )}
