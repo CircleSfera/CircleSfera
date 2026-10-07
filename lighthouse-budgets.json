@@ -9,7 +9,7 @@
     },
     {
       "name": "sign-up",
-      "path": "/accounts/emailsignup",
+      "path": "/accounts/signup",
       "budgets": { "lcpMs": 9400, "cls": 0.05, "tbtMs": 200, "scriptKb": 830 }
     },
     {
