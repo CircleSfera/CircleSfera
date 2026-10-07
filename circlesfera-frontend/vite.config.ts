@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import { defineConfig } from 'vitest/config';
-import { copyStudioMediaAssets } from './vite.studio-assets';
+import { copyStudioMediaAssets } from './vite.studio-assets.ts';
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -75,13 +75,29 @@ export default defineConfig({
     },
   },
   build: {
-    rollupOptions: {
+    // Vite 8 bundles with Rolldown: the same vendor chunks as before, as
+    // code splitting groups (manualChunks objects are no longer accepted).
+    rolldownOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-ui': ['framer-motion', 'lucide-react'],
-          'vendor-viz': ['recharts', 'html-to-image'],
-          'vendor-utils': ['axios', '@tanstack/react-query', 'zustand', 'clsx'],
+        codeSplitting: {
+          groups: [
+            {
+              name: 'vendor-react',
+              test: /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-router|scheduler)[\\/]/,
+            },
+            {
+              name: 'vendor-ui',
+              test: /[\\/]node_modules[\\/](framer-motion|motion-dom|motion-utils|lucide-react)[\\/]/,
+            },
+            {
+              name: 'vendor-viz',
+              test: /[\\/]node_modules[\\/](recharts|html-to-image)[\\/]/,
+            },
+            {
+              name: 'vendor-utils',
+              test: /[\\/]node_modules[\\/](axios|@tanstack[\\/]react-query|@tanstack[\\/]query-core|zustand|clsx)[\\/]/,
+            },
+          ],
         },
       },
     },
