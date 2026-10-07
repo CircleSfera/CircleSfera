@@ -52,6 +52,18 @@ export function isIdentityVerificationRequired(error: unknown): boolean {
   return !!text?.includes('verificar');
 }
 
+// The message for a failed purchase or payout action: the identity notice
+// when that is the reason, otherwise the usual message.
+export function paymentErrorMessage(
+  error: unknown,
+  t: TFunction,
+  fallbackKey: string,
+): string {
+  return isIdentityVerificationRequired(error)
+    ? t('pricingPage.verification_required_desc')
+    : apiErrorMessage(error, t, fallbackKey);
+}
+
 // The message to show for a failed API call, in the reader's language. The
 // server's own text is never shown: it is in one language and can be
 // technical. Order: the error code's text, then the kind of failure

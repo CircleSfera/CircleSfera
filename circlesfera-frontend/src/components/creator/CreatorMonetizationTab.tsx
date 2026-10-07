@@ -23,6 +23,7 @@ import type { PlatformPlanDto } from '../../types';
 import {
   apiErrorMessage,
   isIdentityVerificationRequired,
+  paymentErrorMessage,
 } from '../../utils/apiErrorMessage';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
@@ -115,7 +116,7 @@ export default function CreatorMonetizationTab({
     // The server text is in one language and can be technical.
     onError: (err: unknown) => {
       onToast(
-        apiErrorMessage(err, t, 'creator.monetization.error_connect'),
+        paymentErrorMessage(err, t, 'creator.monetization.error_connect'),
         'error',
       );
     },

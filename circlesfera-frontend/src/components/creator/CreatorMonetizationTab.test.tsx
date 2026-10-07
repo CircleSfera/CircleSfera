@@ -278,6 +278,29 @@ describe('CreatorMonetizationTab', () => {
       expect(location.href).toBe('/');
     });
 
+    it('says the identity must be verified when Stripe cannot be connected for it', async () => {
+      vi.mocked(monetizationApi.connectAccount).mockRejectedValue(
+        serverError(
+          'Debes verificar tu identidad primero para poder comprar o cobrar.',
+          403,
+        ),
+      );
+      const { i18n } = renderWithProviders(
+        <CreatorMonetizationTab onToast={onToast} section="income" />,
+      );
+
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'connect stripe' }),
+      );
+
+      await waitFor(() =>
+        expect(onToast).toHaveBeenCalledWith(
+          i18n!.t('pricingPage.verification_required_desc'),
+          'error',
+        ),
+      );
+    });
+
     it('stays on the page when Stripe answers with no address', async () => {
       vi.mocked(monetizationApi.connectAccount).mockResolvedValue({});
       renderWithProviders(

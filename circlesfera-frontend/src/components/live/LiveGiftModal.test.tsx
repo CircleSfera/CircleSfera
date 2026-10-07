@@ -180,6 +180,32 @@ describe('LiveGiftModal', () => {
     await waitFor(() => expect(send).toBeEnabled());
   });
 
+  it('says the identity must be verified when the gift is refused for it', async () => {
+    vi.mocked(liveApi.sendGift).mockRejectedValue(
+      Object.assign(
+        new Error(
+          'Debes verificar tu identidad primero para poder comprar o cobrar.',
+        ),
+        { status: 403, data: {} },
+      ),
+    );
+    const { i18n } = renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n!.t('live.confirm_send_gift')),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('pricingPage.verification_required_desc'),
+      ),
+    );
+  });
+
   it('writes the gift prices as currency in Spanish', () => {
     renderWithProviders(
       <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,

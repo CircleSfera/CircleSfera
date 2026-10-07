@@ -197,6 +197,36 @@ describe('TipModal', () => {
     expect(screen.queryByText('€50')).not.toBeInTheDocument();
   });
 
+  it('says the identity must be verified when the tip is refused for it', async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(
+      Object.assign(
+        new Error(
+          'Debes verificar tu identidad primero para poder comprar o cobrar.',
+        ),
+        { status: 403, data: {} },
+      ),
+    );
+    const { i18n } = renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={onClose}
+        receiverId="creator-1"
+        receiverName="alice"
+      />,
+    );
+
+    fireEvent.click(screen.getByText(`€${TIP_AMOUNTS[0]}`));
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('pricingPage.verification_required_desc'),
+      ),
+    );
+  });
+
   it('clears the selected amount when the dialog reopens', () => {
     const ten = TIP_AMOUNTS[2];
     const props = {
