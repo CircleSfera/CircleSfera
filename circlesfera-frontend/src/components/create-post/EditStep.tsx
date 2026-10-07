@@ -192,12 +192,27 @@ export default function EditStep({
               </span>
             </button>
 
+            {/* Removes the item on show. One button of the common size, instead
+                of a small badge on each thumbnail. Top right: a video keeps
+                its sound button at the bottom right. */}
+            <button
+              type="button"
+              className="absolute top-2.5 right-2.5 z-10 w-11 h-11 flex items-center justify-center
+                       bg-black/60 border border-white/15 rounded-full
+                       text-white shadow-lg active:scale-95 transition-transform
+                       outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              onClick={() => handleRemoveFile(selectedIndex)}
+              aria-label={t('createPost.edit.remove_media')}
+            >
+              <Trash2 size={16} strokeWidth={2} />
+            </button>
+
             <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-wider pointer-events-none">
               {config.badge}
             </div>
 
             {mediaFiles.length > 1 && (
-              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
+              <div className="absolute top-2.5 left-16 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
                 {t('createPost.edit.n_files', { count: mediaFiles.length })}
               </div>
             )}
@@ -314,22 +329,6 @@ export default function EditStep({
                       alt=""
                     />
                   )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveFile(idx);
-                  }}
-                  className="absolute -top-1 -right-1 w-7 h-7 min-w-7 min-h-7 bg-brand-secondary/90 rounded-full
-                             flex items-center justify-center text-white
-                             hover:bg-brand-secondary active:scale-95 z-10
-                             shadow-md border border-white/20
-                             outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  aria-label={t('createPost.edit.remove_media')}
-                >
-                  <Trash2 size={11} strokeWidth={2.5} />
                 </button>
               </motion.div>
             );

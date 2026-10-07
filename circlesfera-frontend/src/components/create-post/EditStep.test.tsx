@@ -89,12 +89,18 @@ describe('EditStep', () => {
     fireEvent.click(editButtons[0]);
     expect(setCurrentEditIndex).toHaveBeenCalledWith(0);
 
-    const removeButtons = screen.getAllByRole('button', {
-      name: 'Eliminar medio',
-    });
-    expect(removeButtons).toHaveLength(2);
-    fireEvent.click(removeButtons[1]);
-    expect(handleRemoveFile).toHaveBeenCalledWith(1);
+    // One delete button, for the item on show.
+    const remove = screen.getByRole('button', { name: 'Eliminar medio' });
+    fireEvent.click(remove);
+    expect(handleRemoveFile).toHaveBeenLastCalledWith(0);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Elemento 2 de ${mediaFiles.length}`,
+      }),
+    );
+    fireEvent.click(remove);
+    expect(handleRemoveFile).toHaveBeenLastCalledWith(1);
   });
 
   it('names each thumbnail by its position, leaving one edit button', () => {

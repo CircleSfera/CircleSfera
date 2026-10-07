@@ -70,13 +70,6 @@ export default function InteractiveMediaPreview({
     setCurrentTime(newTime);
   };
 
-  const formatTime = (seconds: number) => {
-    if (Number.isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   // Post = vertical 4:5. Frame/Story = 9:16. Compact for caption density.
   const aspectClass =
     mode === 'FRAME' || mode === 'STORY'
@@ -119,9 +112,6 @@ export default function InteractiveMediaPreview({
                     <Play size={12} fill="currentColor" />
                   )}
                 </button>
-                <span className="font-mono text-[8px] text-white/70 tabular-nums shrink-0">
-                  {formatTime(currentTime)}
-                </span>
               </div>
 
               <button
