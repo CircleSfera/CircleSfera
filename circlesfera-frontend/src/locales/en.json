@@ -312,7 +312,8 @@
       "device_mac": "Mac desktop",
       "device_windows": "Windows desktop",
       "device_linux": "Linux desktop",
-      "device_browser": "Web browser"
+      "device_browser": "Web browser",
+      "revoke_session": "Log out this session"
     },
     "appeals": {
       "title": "Appeals",
