@@ -27,6 +27,7 @@ import type {
   TopUser,
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { formatDateTime } from '../../utils/format';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import UserAvatar from '../UserAvatar';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -35,7 +36,7 @@ import { AdminPageHeader } from './AdminPageHeader';
 import StatCard from './StatCard';
 
 export default function StatsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { data: stats, isLoading } = useQuery<EnhancedStats>({
     queryKey: ['admin', 'stats', 'enhanced'],
@@ -320,7 +321,7 @@ export default function StatsTab() {
                   </div>
                 </div>
                 <span className="text-white/30 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
-                  {new Date(log.createdAt).toLocaleString()}
+                  {formatDateTime(log.createdAt, i18n.language)}
                 </span>
               </div>
             ))}

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { editsService } from '../../../services/edits.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { StudioProject } from '../../../types/studio';
+import { formatDate } from '../../../utils/format';
 import { Dialog } from '../../ui/Dialog';
 
 interface DraftsModalProps {
@@ -26,7 +27,7 @@ function isValidStudioDraft(state: unknown): state is {
 }
 
 export default function DraftsModal({ onClose }: DraftsModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { setProject, setCloudProjectId, cloudProjectId } = useStudioStore();
 
@@ -117,7 +118,7 @@ export default function DraftsModal({ onClose }: DraftsModalProps) {
                     </h3>
                     <p className="text-xs text-white/50 mt-0.5">
                       {t('studio.drafts.updated', {
-                        date: new Date(draft.updatedAt).toLocaleDateString(),
+                        date: formatDate(draft.updatedAt, i18n.language),
                       })}
                     </p>
                   </div>

@@ -17,6 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { platformOrigin } from '../../utils/adminPanel';
+import { formatDate } from '../../utils/format';
 import { UserAvatar } from '../index';
 import { Button } from '../ui';
 import VerificationBadge, {
@@ -542,9 +543,9 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                 </span>
               </div>
               <p className="text-white/40">
-                {new Date(strike.createdAt).toLocaleDateString()}
+                {formatDate(strike.createdAt, i18n.language)}
                 {' → '}
-                {new Date(strike.expiresAt).toLocaleDateString()}
+                {formatDate(strike.expiresAt, i18n.language)}
                 {strike.consequence === 'SUSPENDED'
                   ? ` · ${t('settings.appeals.strike_consequence_suspended')}`
                   : strike.consequence === 'BANNED'

@@ -15,6 +15,7 @@ import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
+import { formatNumber } from '../../utils/format';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
@@ -24,7 +25,7 @@ interface Props {
 }
 
 export default function CreatorPostsTab({ onPromote }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
   const verificationLevel =
     profile?.verificationLevel || profile?.verificationLevel;
@@ -136,14 +137,14 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   <div className="flex items-center gap-4 text-xs text-white/40">
                     <span className="flex items-center gap-1">
                       <Heart size={12} className="text-brand-secondary" />{' '}
-                      {post._count.likes.toLocaleString()}
+                      {formatNumber(post._count.likes, i18n.language)}
                     </span>
                     <span className="flex items-center gap-1">
                       <MessageCircle size={12} className="text-brand-primary" />{' '}
-                      {post._count.comments.toLocaleString()}
+                      {formatNumber(post._count.comments, i18n.language)}
                     </span>
                     <span className="ml-auto">
-                      {post.views.toLocaleString()}
+                      {formatNumber(post.views, i18n.language)}
                     </span>
                   </div>
                 </div>

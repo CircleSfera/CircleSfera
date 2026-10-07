@@ -10,7 +10,7 @@ import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
 
 export default function BillingSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [isProcessingPortal, setIsProcessingPortal] = useState(false);
 
@@ -63,14 +63,22 @@ export default function BillingSettings() {
               {subscription?.planName || t('settings.billing.free')}
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              {subscription?.status || t('settings.billing.no_subscription')}
+              {subscription?.status
+                ? t(
+                    `settings.billing.status_${subscription.status.toLowerCase()}`,
+                    { defaultValue: subscription.status },
+                  )
+                : t('settings.billing.no_subscription')}
             </p>
             {subscription?.currentPeriodEnd && (
               <p className="text-xs text-white/40 mt-1">
                 {subscription.cancelAtPeriodEnd
                   ? t('settings.billing.cancels_on')
                   : t('settings.billing.renews_on')}{' '}
-                {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                {new Date(subscription.currentPeriodEnd).toLocaleDateString(
+                  i18n.language,
+                  { dateStyle: 'long' },
+                )}
               </p>
             )}
           </div>

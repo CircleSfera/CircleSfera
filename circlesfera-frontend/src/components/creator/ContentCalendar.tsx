@@ -1,6 +1,8 @@
 import { Calendar, Clock, Sparkles } from 'lucide-react';
 import type React from 'react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatDateTime } from '../../utils/format';
 
 interface ScheduledPostItem {
   id: string;
@@ -11,6 +13,7 @@ interface ScheduledPostItem {
 
 // Deprecated: Mock-only calendar. Not wired to Creator Studio — do not mount in production flows.
 export const ContentCalendar: React.FC = () => {
+  const { i18n } = useTranslation();
   const [scheduledPosts] = useState<ScheduledPostItem[]>([
     {
       id: 'sch-1',
@@ -59,7 +62,7 @@ export const ContentCalendar: React.FC = () => {
                 </p>
                 <div className="flex items-center space-x-2 text-[11px] text-gray-400">
                   <Clock className="w-3.5 h-3.5 text-accent-blue" />
-                  <span>{new Date(post.scheduledAt).toLocaleString()}</span>
+                  <span>{formatDateTime(post.scheduledAt, i18n.language)}</span>
                   {post.peakHourSuggested && (
                     <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-[10px] font-bold rounded-full">
                       Hora Pico Optimizada

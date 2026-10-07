@@ -6,6 +6,7 @@ import type {
   CreatorChartDay,
   CreatorStats,
 } from '../../services/creator.service';
+import { formatNumber } from '../../utils/format';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import { Card } from '../ui';
 
@@ -24,14 +25,14 @@ interface Props {
   chartData?: CreatorChartDay[];
 }
 
-function formatReach(value?: number) {
+function formatReach(language: string, value?: number) {
   if (!value) return '0';
   if (value > 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  return value.toLocaleString();
+  return formatNumber(value, language);
 }
 
 export default function CreatorHeroCard({ stats, chartData }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isPositiveGrowth = (stats?.followerGrowth ?? 0) >= 0;
 
   return (
@@ -78,7 +79,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
             </p>
             <div className="flex items-baseline gap-2">
               <h2 className="text-3xl font-semibold tracking-tight text-white tabular-nums">
-                {stats?.followerCount.toLocaleString() || '0'}
+                {formatNumber(stats?.followerCount, i18n.language) || '0'}
               </h2>
               <span className="text-sm text-white/50">
                 {t('creator.dashboard.total_followers')}
@@ -118,7 +119,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
           <MetricTile
             icon={Users}
             label={t('creator.dashboard.total_reach')}
-            value={formatReach(stats?.totalReach)}
+            value={formatReach(i18n.language, stats?.totalReach)}
           />
           <MetricTile
             icon={DollarSign}

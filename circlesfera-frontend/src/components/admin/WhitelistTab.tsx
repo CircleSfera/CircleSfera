@@ -6,6 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -22,7 +23,7 @@ import {
 } from './AdminTable';
 
 export default function WhitelistTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -142,7 +143,7 @@ export default function WhitelistTab() {
                     title={entry.name || t('admin.whitelist.no_name')}
                     subtitle={entry.email}
                     badge={<StatusBadge status={entry.status} />}
-                    meta={new Date(entry.createdAt).toLocaleDateString()}
+                    meta={formatDate(entry.createdAt, i18n.language)}
                     primaryAction={
                       <ActionButton
                         variant="ghost"

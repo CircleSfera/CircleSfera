@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { formatDate } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -36,7 +37,7 @@ const EMPTY_FORM: AudioForm = {
 };
 
 export default function AudioTab({ onToast }: AudioTabProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -234,7 +235,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                           {formatDuration(track.duration)}
                         </span>
                         <span>
-                          {new Date(track.createdAt).toLocaleDateString()}
+                          {formatDate(track.createdAt, i18n.language)}
                         </span>
                       </>
                     }

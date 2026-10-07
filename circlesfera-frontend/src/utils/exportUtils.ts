@@ -14,7 +14,7 @@ export function exportToCSV(filename: string, rows: Record<string, any>[]) {
             let cell = row[k] === null || row[k] === undefined ? '' : row[k];
             cell =
               cell instanceof Date
-                ? cell.toLocaleString()
+                ? cell.toISOString()
                 : cell.toString().replace(/"/g, '""');
             if (cell.search(/("|,|\n)/g) >= 0) {
               cell = `"${cell}"`;

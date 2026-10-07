@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
+import { formatNumber } from '../../utils/format';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -24,7 +25,7 @@ export default function NewPromoModal({
   onClose,
   onToast,
 }: NewPromoModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const [step, setStep] = useState<'select' | 'configure'>('select');
   const [selectedPost, setSelectedPost] = useState<CreatorPost | null>(null);
@@ -258,7 +259,8 @@ export default function NewPromoModal({
               {t('creator.promotions.estimated_reach')}
             </span>
             <span className="text-white font-bold text-sm">
-              {minReach.toLocaleString()} - {maxReach.toLocaleString()}
+              {formatNumber(minReach, i18n.language)} -{' '}
+              {formatNumber(maxReach, i18n.language)}
             </span>
           </div>
 

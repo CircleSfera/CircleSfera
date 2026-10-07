@@ -12,6 +12,7 @@ import type React from 'react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '../../services/auth.service';
+import { formatDate } from '../../utils/format';
 import { logger } from '../../utils/logger';
 
 interface ActiveSession {
@@ -23,7 +24,7 @@ interface ActiveSession {
 }
 
 export const ActiveSessionsSettings: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [sessions, setSessions] = useState<ActiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
@@ -176,7 +177,7 @@ export const ActiveSessionsSettings: React.FC = () => {
                       <span>IP: {session.ipAddress || '127.0.0.1'}</span>
                       <span>•</span>
                       <span>
-                        {new Date(session.createdAt).toLocaleDateString()}
+                        {formatDate(session.createdAt, i18n.language)}
                       </span>
                     </div>
                   </div>

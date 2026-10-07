@@ -6,13 +6,14 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminHashtag } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDate } from '../../utils/format';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { Pagination, SearchInput, Table } from './AdminTable';
 
 export default function HashtagsTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -66,7 +67,7 @@ export default function HashtagsTab() {
                     {t('admin.hashtags.posts_count', { count: tag.postCount })}
                   </span>
                 }
-                meta={new Date(tag.createdAt).toLocaleDateString()}
+                meta={formatDate(tag.createdAt, i18n.language)}
               />
             ))}
           </div>
@@ -113,7 +114,7 @@ export default function HashtagsTab() {
                   </span>
                 </td>
                 <td className="px-2 py-1 text-white/40 text-sm whitespace-nowrap hidden lg:table-cell">
-                  {new Date(tag.createdAt).toLocaleDateString()}
+                  {formatDate(tag.createdAt, i18n.language)}
                 </td>
               </tr>
             ))}

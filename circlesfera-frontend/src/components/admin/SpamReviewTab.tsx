@@ -9,6 +9,7 @@ import {
   type RiskCaseDecision,
   type RiskCaseStatus,
 } from '../../services/admin.service';
+import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -34,7 +35,7 @@ const DECISIONS: Array<{
 // Review queue for Profiles the spam and bot detector flagged. The detector
 // only proposes; the decision is made here.
 export default function SpamReviewTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<RiskCaseStatus>('OPEN');
@@ -139,9 +140,10 @@ export default function SpamReviewTab() {
                   {riskCase.restrictedUntil ? (
                     <span className="block text-xs text-brand-accent mt-1">
                       {t('admin.spam_review.restricted_until', {
-                        date: new Date(
+                        date: formatDateTime(
                           riskCase.restrictedUntil,
-                        ).toLocaleString(),
+                          i18n.language,
+                        ),
                       })}
                     </span>
                   ) : null}
