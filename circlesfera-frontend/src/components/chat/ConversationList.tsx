@@ -163,6 +163,7 @@ export default function ConversationList() {
         <div className="flex justify-between items-center">
           <Link
             to="/"
+            aria-label={t('common.back')}
             className="w-11 h-11 -ml-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
           >
             <ChevronLeft size={28} />
@@ -173,6 +174,7 @@ export default function ConversationList() {
           <button
             type="button"
             onClick={() => setIsNewChatOpen(true)}
+            aria-label={t('chat.new_message')}
             className="w-11 h-11 -mr-2 text-white hover:bg-white/10 rounded-full transition-colors flex items-center justify-center"
           >
             <Edit size={24} />

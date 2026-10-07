@@ -312,7 +312,8 @@
       "device_mac": "Escritorio Mac",
       "device_windows": "Escritorio Windows",
       "device_linux": "Escritorio Linux",
-      "device_browser": "Navegador web"
+      "device_browser": "Navegador web",
+      "revoke_session": "Cerrar esta sesión"
     },
     "appeals": {
       "title": "Apelaciones",

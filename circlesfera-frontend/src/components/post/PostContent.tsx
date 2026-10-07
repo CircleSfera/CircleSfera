@@ -53,8 +53,8 @@ export default function PostContent({
       )}
 
       {(post.place?.name || post.location) && (
-        <p className="text-xs text-gray-500 mb-1.5 flex items-center gap-1 min-w-0">
-          <MapPin size={12} className="shrink-0 text-gray-500" aria-hidden />
+        <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1 min-w-0">
+          <MapPin size={12} className="shrink-0 text-gray-400" aria-hidden />
           <span className="truncate">
             {post.place?.fullName || post.place?.name || post.location}
           </span>
@@ -64,17 +64,14 @@ export default function PostContent({
       {!hideStats && !isDetailMode && (post._count?.comments ?? 0) > 0 && (
         <Link
           to={`/p/${post.id}`}
-          className="block text-xs font-medium text-gray-500 hover:text-gray-300 transition-colors mb-1.5"
+          className="block text-xs font-medium text-gray-400 hover:text-gray-300 transition-colors mb-1.5"
         >
           {t('post.content.view_all_comments', { count: post._count.comments })}
         </Link>
       )}
 
       {!hideStats && (
-        <div
-          className="text-[10px] font-semibold uppercase tracking-widest mt-0.5"
-          style={{ color: 'rgba(255,255,255,0.22)' }}
-        >
+        <div className="text-[10px] font-semibold uppercase tracking-widest mt-0.5 text-white/60">
           {new Date(post.createdAt).toLocaleDateString(i18n.language, {
             day: 'numeric',
             month: 'long',

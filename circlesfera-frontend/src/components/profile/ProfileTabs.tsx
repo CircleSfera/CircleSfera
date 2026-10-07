@@ -26,6 +26,8 @@ export default function ProfileTabs({
       <button
         type="button"
         onClick={() => setActiveTab('posts')}
+        aria-label={t('profile.tabs.posts')}
+        aria-pressed={activeTab === 'posts'}
         className={`flex items-center gap-2.5 px-3 md:px-5 py-1.5 md:py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'posts'
             ? 'text-white'
@@ -46,6 +48,8 @@ export default function ProfileTabs({
       <button
         type="button"
         onClick={() => setActiveTab('frames')}
+        aria-label={t('profile.tabs.frames')}
+        aria-pressed={activeTab === 'frames'}
         className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'frames'
             ? 'text-white'
@@ -67,6 +71,8 @@ export default function ProfileTabs({
         <button
           type="button"
           onClick={() => setActiveTab('saved')}
+          aria-label={t('profile.tabs.saved')}
+          aria-pressed={activeTab === 'saved'}
           className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
             activeTab === 'saved'
               ? 'text-white'
@@ -88,6 +94,8 @@ export default function ProfileTabs({
       <button
         type="button"
         onClick={() => setActiveTab('tagged')}
+        aria-label={t('profile.tabs.tagged')}
+        aria-pressed={activeTab === 'tagged'}
         className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
           activeTab === 'tagged'
             ? 'text-white'
