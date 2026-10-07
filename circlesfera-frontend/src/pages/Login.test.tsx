@@ -101,9 +101,13 @@ describe('Login Page Integration', () => {
   });
 
   it('displays error on failed login', async () => {
-    vi.mocked(authApi.login).mockRejectedValueOnce({
-      response: { data: { message: 'Invalid credentials' } },
-    });
+    // The shape the API client rejects with (see handleApiError).
+    vi.mocked(authApi.login).mockRejectedValueOnce(
+      Object.assign(new Error('Invalid credentials'), {
+        status: 401,
+        data: { message: 'Invalid credentials', errorCode: 'HTTP_EXCEPTION' },
+      }),
+    );
 
     const { i18n } = renderWithProviders(<Login />);
 
@@ -121,8 +125,11 @@ describe('Login Page Integration', () => {
     );
     fireEvent.click(screen.getByTestId('login-submit-button'));
 
+    // The reader's language, never the server's English text.
     await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(i18n!.t('auth.login.default_error')),
+      ).toBeInTheDocument();
     });
   });
 
@@ -226,6 +233,35 @@ describe('Login Page Integration', () => {
     expect(
       screen.queryByText('Motivo de la apelación'),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the appeal form for a banned profile with the real API client error', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce(
+      Object.assign(new Error('ACCOUNT_BANNED'), {
+        status: 403,
+        data: {
+          message: 'ACCOUNT_BANNED',
+          errorCode: 'ACCOUNT_BANNED',
+          details: { appealToken: 'appeal-token-real', reason: 'Spam' },
+        },
+      }),
+    );
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'banned@example.com' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    expect(
+      await screen.findByLabelText(i18n!.t('auth.login.appeal_reason_label')),
+    ).toBeInTheDocument();
   });
 
   it('shows ban reason when provided in error response', async () => {

@@ -21,6 +21,7 @@ import { apiClient } from '../services/api';
 import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
@@ -161,8 +162,8 @@ export default function StoryViewer({
       toast.success(t('story.unlock_success'));
       queryClient.invalidateQueries({ queryKey: ['stories'] });
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(error.response?.data?.message || t('story.unlock_error'));
+    onError: (error: unknown) => {
+      toast.error(apiErrorMessage(error, t, 'story.unlock_error'));
     },
   });
 

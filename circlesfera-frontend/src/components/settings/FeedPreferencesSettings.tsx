@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
 import { usersApi } from '../../services/users.service';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { Button, Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
@@ -62,8 +63,8 @@ export default function FeedPreferencesSettings() {
       invalidate();
       toast.success(t('feedPrefs.keyword_muted'));
     },
-    onError: (err: { response?: { data?: { message?: string } } }) => {
-      toast.error(err.response?.data?.message || t('feedPrefs.error'));
+    onError: (err: unknown) => {
+      toast.error(apiErrorMessage(err, t, 'feedPrefs.error'));
     },
   });
 

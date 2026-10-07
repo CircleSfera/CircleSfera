@@ -12,6 +12,7 @@ import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 import { logger } from '../utils/logger';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
@@ -87,10 +88,8 @@ export default function FrameItem({
         queryClient.invalidateQueries({ queryKey: ['feed'] });
       }
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(
-        error.response?.data?.message || t('post.media.unlock_error'),
-      );
+    onError: (error: unknown) => {
+      toast.error(apiErrorMessage(error, t, 'post.media.unlock_error'));
     },
   });
 

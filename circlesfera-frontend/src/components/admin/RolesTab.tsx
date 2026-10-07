@@ -17,6 +17,11 @@ import {
 } from '../../services/admin.service';
 import { adminAuthApi } from '../../services/admin-auth.service';
 import type { PaginatedResponse } from '../../types';
+import {
+  apiErrorBody,
+  apiErrorMessage,
+  apiErrorStatus,
+} from '../../utils/apiErrorMessage';
 import { Button, Input } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -31,13 +36,14 @@ interface Props {
 }
 
 function isStepUpRequired(err: unknown): boolean {
-  const e = err as {
-    response?: { status?: number; data?: { message?: string; code?: string } };
-  };
+  const body = apiErrorBody(err) as
+    | { message?: string; code?: string; errorCode?: string }
+    | undefined;
   return (
-    e?.response?.status === 401 &&
-    (e.response.data?.code === 'ADMIN_STEP_UP_REQUIRED' ||
-      e.response.data?.message === 'ADMIN_STEP_UP_REQUIRED')
+    apiErrorStatus(err) === 401 &&
+    [body?.code, body?.errorCode, body?.message].includes(
+      'ADMIN_STEP_UP_REQUIRED',
+    )
   );
 }
 
@@ -144,7 +150,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message || t('admin.operators.create_error'),
+          apiErrorMessage(err, t, 'admin.operators.create_error'),
           'error',
         );
       }
@@ -167,7 +173,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message || t('admin.operators.status_error'),
+          apiErrorMessage(err, t, 'admin.operators.status_error'),
           'error',
         );
       }
@@ -185,7 +191,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message || t('admin.operators.roles_error'),
+          apiErrorMessage(err, t, 'admin.operators.roles_error'),
           'error',
         );
       }
@@ -202,10 +208,7 @@ export default function RolesTab({ onToast }: Props) {
       }),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
-        onToast(
-          err?.response?.data?.message || t('admin.operators.mfa_error'),
-          'error',
-        );
+        onToast(apiErrorMessage(err, t, 'admin.operators.mfa_error'), 'error');
       }
     },
   });
@@ -222,7 +225,7 @@ export default function RolesTab({ onToast }: Props) {
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          err?.response?.data?.message || t('admin.operators.password_error'),
+          apiErrorMessage(err, t, 'admin.operators.password_error'),
           'error',
         );
       }

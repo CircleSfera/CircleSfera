@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi } from '../services';
-import type { ApiError } from '../types';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 export default function VerifyEmail() {
   const [searchParams] = useSearchParams();
@@ -30,9 +30,7 @@ export default function VerifyEmail() {
         setTimeout(() => navigate('/'), 3000);
       } catch (err: unknown) {
         setStatus('error');
-        const errorMessage =
-          (err as ApiError).response?.data?.message || t('auth.verify.error');
-        setMessage(errorMessage);
+        setMessage(apiErrorMessage(err, t, 'auth.verify.error'));
       }
     };
 

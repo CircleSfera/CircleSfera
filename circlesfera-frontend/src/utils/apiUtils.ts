@@ -17,9 +17,12 @@ export function handleApiError(error: unknown): never {
     const customError = new Error(message) as Error & {
       status?: number;
       data?: unknown;
+      isNetworkError?: boolean;
     };
     customError.status = error.response?.status;
     customError.data = error.response?.data;
+    // No response at all: offline, DNS, CORS or a dropped connection.
+    customError.isNetworkError = !error.response;
     throw customError;
   }
 

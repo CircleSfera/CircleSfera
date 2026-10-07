@@ -15,6 +15,7 @@ import { profileApi } from '../../services';
 import * as dataExportApi from '../../services/data-export.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import AboutAccountDialog, {
   aboutAccountFromProfile,
@@ -92,10 +93,8 @@ export default function AccountSettings() {
       toast.success(t('settings.privacy.export_requested'));
       refetchExport();
     },
-    onError: (error: { response?: { data?: { message?: string } } }) => {
-      toast.error(
-        error.response?.data?.message || t('settings.account.export_error'),
-      );
+    onError: (error: unknown) => {
+      toast.error(apiErrorMessage(error, t, 'settings.account.export_error'));
     },
   });
 

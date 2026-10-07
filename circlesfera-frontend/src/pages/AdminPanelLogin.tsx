@@ -9,6 +9,7 @@ import { adminTabPath, getAdminHomeTab } from '../components/admin/adminNav';
 import { Button } from '../components/ui';
 import { adminAuthApi } from '../services/admin-auth.service';
 import { useAdminAuthStore } from '../stores/adminAuthStore';
+import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 type Step = 'credentials' | 'mfa' | 'mfa-setup';
 
@@ -82,14 +83,10 @@ export default function AdminPanelLogin() {
         setStep('mfa-setup');
       }
     },
-    onError: (err: any) => {
-      const status = err?.response?.status;
-      const apiMessage = err?.response?.data?.message;
-      if (status >= 500) {
-        setError(t('adminPanel.login.server_error'));
-        return;
-      }
-      setError(apiMessage || t('adminPanel.login.invalid'));
+    onError: (err: unknown) => {
+      setError(
+        apiErrorMessage(err, t, 'adminPanel.login.invalid', { signIn: true }),
+      );
     },
   });
 
@@ -99,14 +96,12 @@ export default function AdminPanelLogin() {
       setError(null);
       await finishLogin();
     },
-    onError: (err: any) => {
-      const status = err?.response?.status;
-      const apiMessage = err?.response?.data?.message;
-      if (status >= 500) {
-        setError(t('adminPanel.login.server_error'));
-        return;
-      }
-      setError(apiMessage || t('adminPanel.login.invalid_mfa'));
+    onError: (err: unknown) => {
+      setError(
+        apiErrorMessage(err, t, 'adminPanel.login.invalid_mfa', {
+          signIn: true,
+        }),
+      );
     },
   });
 
