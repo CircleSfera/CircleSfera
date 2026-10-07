@@ -169,6 +169,7 @@ export default defineConfig({
           statements: 85,
           lines: 85,
         },
+        'src/components/chat/ChatWindow.tsx': { statements: 94, lines: 98 },
       },
     },
   },
