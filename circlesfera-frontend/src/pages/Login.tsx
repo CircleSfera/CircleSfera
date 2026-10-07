@@ -55,6 +55,9 @@ export default function Login() {
       toast.success(t('auth.login.appeal_success'));
       setAppealToken(null);
       setAppealReason('');
+      // The refused sign-in still carries the appeal token; clearing it keeps
+      // the appeal form from opening again.
+      loginMutation.reset();
     },
     onError: (err: any) => {
       toast.error(apiErrorMessage(err, t, 'auth.login.appeal_error'));
@@ -117,10 +120,11 @@ export default function Login() {
       // If we reach here without an error, authentication was successful
       handleLoginSuccess();
     } catch (err: unknown) {
+      // The browser and server texts are technical and not translated.
       logger.error('Passkey authentication error:', err);
-      const errorMessage =
-        err instanceof Error ? err.message : t('auth.login.passkey_error');
-      setError(errorMessage);
+      setError(
+        apiErrorMessage(err, t, 'auth.login.passkey_error', { signIn: true }),
+      );
     } finally {
       setPasskeyLoading(false);
     }
