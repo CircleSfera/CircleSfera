@@ -7,12 +7,50 @@ import {
 
 const isProd = process.env.NODE_ENV === 'production';
 
+// Header and query-string names (matched as substrings) never sent to Sentry.
+const SENTRY_DENIED_FIELDS = [
+  'forwarded',
+  '-ip',
+  'remote-',
+  'via',
+  '-user',
+  'authorization',
+  'cookie',
+  'csrf',
+  'token',
+  'session',
+  'password',
+  'secret',
+  'key',
+  'code',
+];
+
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
   integrations: [nodeProfilingIntegration()],
   environment: process.env.NODE_ENV || 'development',
   tracesSampleRate: isProd ? 0.1 : 1.0,
-  profilesSampleRate: isProd ? 0.1 : 1.0,
+  // Profiles follow sampled traces (Sentry 11 replaced profilesSampleRate).
+  profileSessionSampleRate: isProd ? 0.1 : 1.0,
+  profileLifecycle: 'trace',
+  // Sentry 11 collects personal data unless told otherwise. Keep the v10
+  // behaviour (no user info, cookies, bodies, queries or queue payloads)
+  // and also drop credentials from headers and query strings; the scrub
+  // hooks below stay as a second layer.
+  dataCollection: {
+    userInfo: false,
+    cookies: false,
+    httpHeaders: {
+      request: { deny: SENTRY_DENIED_FIELDS },
+      response: { deny: SENTRY_DENIED_FIELDS },
+    },
+    httpBodies: [],
+    urlQueryParams: { deny: SENTRY_DENIED_FIELDS },
+    genAI: { inputs: false, outputs: false },
+    databaseQueryData: false,
+    queues: false,
+    graphQL: { document: false, variables: false },
+  },
   beforeSend(event) {
     return scrubSentryEvent(event);
   },
