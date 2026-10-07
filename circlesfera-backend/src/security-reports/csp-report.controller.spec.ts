@@ -4,14 +4,16 @@ import request from 'supertest';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { createControllerApp } from '../common/testing/http-controller.js';
 import { CspReportController } from './csp-report.controller.js';
+import { CspReportStore } from './csp-report.store.js';
 
 describe('CspReportController', () => {
   let app: INestApplication;
+  const store = { record: vi.fn().mockResolvedValue(undefined) };
 
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [CspReportController],
-      providers: [],
+      providers: [{ provide: CspReportStore, useValue: store }],
     });
   });
 
