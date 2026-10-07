@@ -76,6 +76,11 @@ export enum ErrorCode {
   CANNOT_RECONNECT_GUEST = 'CANNOT_RECONNECT_GUEST',
   LIVE_STREAMS_DISABLED = 'LIVE_STREAMS_DISABLED',
 
+  // Sign-in
+  // The account already has as many passkeys as it may register; details
+  // carry the limit.
+  PASSKEY_LIMIT_REACHED = 'PASSKEY_LIMIT_REACHED',
+
   // System
   MAINTENANCE_MODE = 'MAINTENANCE_MODE',
   REGISTRATION_CLOSED = 'REGISTRATION_CLOSED',
