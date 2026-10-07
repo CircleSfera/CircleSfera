@@ -125,11 +125,12 @@ export default defineConfig({
       // lowered, until the 80% global target is met.
       thresholds: {
         statements: 27,
-        lines: 27,
-        branches: 26,
+        lines: 28,
+        branches: 27,
         functions: 24,
         // Critical paths: the API client (session renewal, CSRF), the
-        // account recovery pages, creator payouts and appeal review.
+        // session guards and passkeys, the account recovery pages, creator
+        // payouts and appeal review.
         'src/services/api.ts': { statements: 100, lines: 100 },
         'src/pages/ForgotPassword.tsx': { statements: 100, lines: 100 },
         'src/pages/ResetPassword.tsx': { statements: 100, lines: 100 },
@@ -143,6 +144,11 @@ export default defineConfig({
         },
         'src/components/admin/AppealsTab.tsx': { statements: 100, lines: 100 },
         'src/utils/money.ts': { statements: 100, lines: 100 },
+        'src/components/auth/AuthGuard.tsx': { statements: 100, lines: 100 },
+        'src/components/auth/GuestGuard.tsx': { statements: 100, lines: 100 },
+        'src/services/passkey.service.ts': { statements: 100, lines: 100 },
+        'src/stores/authStore.ts': { statements: 95, lines: 95 },
+        'src/stores/adminAuthStore.ts': { statements: 95, lines: 95 },
       },
     },
   },

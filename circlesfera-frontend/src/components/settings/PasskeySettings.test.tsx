@@ -18,7 +18,10 @@ vi.mock('@simplewebauthn/browser', () => ({
   startRegistration: vi.fn(),
 }));
 
-import { startAuthentication } from '@simplewebauthn/browser';
+import {
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser';
 import { passkeyApi } from '../../services';
 
 const ONE_KEY = {
@@ -135,5 +138,70 @@ describe('PasskeySettings', () => {
       ),
     ).toBeInTheDocument();
     expect(passkeyApi.deletePasskey).not.toHaveBeenCalled();
+  });
+
+  it('adds a passkey after the browser creates it and lists it', async () => {
+    vi.mocked(passkeyApi.getRegistrationOptions).mockResolvedValue({
+      data: { challenge: 'r' },
+    } as never);
+    vi.mocked(startRegistration).mockResolvedValue({ id: 'new' } as never);
+    vi.mocked(passkeyApi.verifyRegistration).mockResolvedValue({
+      data: { verified: true },
+    } as never);
+    const { i18n } = renderWithProviders(<PasskeySettings />);
+    await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
+    vi.mocked(passkeyApi.listPasskeys).mockResolvedValue(ONE_KEY as never);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('settings.passkey_settings.add_new'),
+      }),
+    );
+
+    expect(
+      await screen.findByText(i18n!.t('settings.passkey_settings.success')),
+    ).toBeInTheDocument();
+    expect(startRegistration).toHaveBeenCalledWith({
+      optionsJSON: { challenge: 'r' },
+    });
+    expect(passkeyApi.verifyRegistration).toHaveBeenCalledWith({ id: 'new' });
+    expect(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.passkey_settings.remove'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('explains a failed registration in the app language, not the browser text', async () => {
+    vi.mocked(passkeyApi.getRegistrationOptions).mockResolvedValue({
+      data: { challenge: 'r' },
+    } as never);
+    vi.mocked(startRegistration).mockRejectedValue(
+      new Error('The operation either timed out or was not allowed.'),
+    );
+    const { i18n } = renderWithProviders(<PasskeySettings />);
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.passkey_settings.add_new'),
+      }),
+    );
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.passkey_settings.register_error'),
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/timed out/)).not.toBeInTheDocument();
+    expect(passkeyApi.verifyRegistration).not.toHaveBeenCalled();
+  });
+
+  it('still shows the screen when the passkeys cannot be listed', async () => {
+    vi.mocked(passkeyApi.listPasskeys).mockRejectedValue(new Error('down'));
+    const { i18n } = renderWithProviders(<PasskeySettings />);
+
+    expect(
+      await screen.findByText(i18n!.t('settings.passkey_settings.empty')),
+    ).toBeInTheDocument();
   });
 });
