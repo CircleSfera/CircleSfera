@@ -8,10 +8,10 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { PushModule } from '../push/push.module.js';
-
 import { TrustModule } from '../trust/trust.module.js';
 import { ChatController } from './chat.controller.js';
 import { ChatProcessor } from './processors/chat.processor.js';
@@ -35,7 +35,6 @@ import { GetUnreadCountQuery } from './use-cases/queries/get-unread-count.query.
 // Request Commands
 import { AcceptMessageRequestUseCase } from './use-cases/requests/accept-message-request.use-case.js';
 import { DeclineMessageRequestUseCase } from './use-cases/requests/decline-message-request.use-case.js';
-
 // System Commands
 import { CleanupExpiredMessagesUseCase } from './use-cases/system/cleanup-expired-messages.use-case.js';
 import { HandleUserDeletedUseCase } from './use-cases/system/handle-user-deleted.use-case.js';
@@ -95,13 +94,11 @@ export class ChatModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.chatQueue.add(
+    await registerRecurringJob(
+      this.chatQueue,
+      'chat_cleanup_cron',
       'cleanup-expired-messages',
-      {},
-      {
-        repeat: { pattern: '0 * * * *' }, // EVERY_HOUR
-        jobId: 'chat_cleanup_cron',
-      },
+      '0 * * * *',
     );
     this.logger.log(
       'Registered repeatable job: cleanup-expired-messages (0 * * * *)',

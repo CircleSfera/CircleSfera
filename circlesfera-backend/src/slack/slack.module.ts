@@ -6,6 +6,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { EmailModule } from '../email/email.module.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SlackProcessor } from './processors/slack.processor.js';
@@ -34,13 +35,11 @@ export class SlackModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.slackQueue.add(
+    await registerRecurringJob(
+      this.slackQueue,
+      'slack_briefing_cron',
       'send-daily-morning-briefing',
-      {},
-      {
-        repeat: { pattern: '0 8 * * *' }, // 08:00 AM UTC
-        jobId: 'slack_briefing_cron',
-      },
+      '0 8 * * *',
     );
     this.logger.log(
       'Registered repeatable job: send-daily-morning-briefing (0 8 * * *)',
