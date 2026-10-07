@@ -1263,6 +1263,7 @@
       "placeholder": "Escribe el texto alternativo...",
       "placeholder_video": "Describe este video…",
       "generating": "Generando...",
+      "generate_failed": "No se pudo generar la descripción. Escríbela o inténtalo de nuevo.",
       "magic_ai": "Generar"
     },
     "preview": {
@@ -1410,6 +1411,8 @@
       "geo_loading": "Buscando lugar…",
       "suggested": "Ubicación Sugerida",
       "not_found": "No se encontraron ubicaciones",
+      "search_error": "No se pudieron buscar lugares.",
+      "clear_search": "Borrar búsqueda",
       "try_different": "Intenta buscar una ciudad o región diferente.",
       "token_missing": "La búsqueda de lugares no está disponible ahora.",
       "retrieve_failed": "No se pudo resolver ese lugar. Prueba otro resultado.",
@@ -1546,6 +1549,7 @@
       "search_user": "Buscar usuario...",
       "searching": "Buscando...",
       "no_users": "No se encontraron usuarios",
+      "search_error": "No se pudo buscar personas.",
       "type_to_search": "Escribe para buscar",
       "unsupported": "El etiquetado solo es compatible con imágenes.",
       "done": "Listo",
@@ -3774,6 +3778,7 @@
       "clear_selection": "Quitar música seleccionada",
       "loading": "Cargando pistas de audio…",
       "no_results": "No se encontraron resultados.",
+      "load_error": "No se pudo cargar la música.",
       "empty": "No hay audios disponibles.",
       "unknown_artist": "Artista desconocido",
       "selected": "Seleccionado",
