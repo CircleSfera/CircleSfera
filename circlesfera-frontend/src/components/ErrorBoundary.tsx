@@ -52,7 +52,8 @@ export default class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-white/60">
               {i18n.t('common.error_message_refresh')}
             </p>
-            {this.state.error && (
+            {/* The error text is technical and in English: developers only. */}
+            {import.meta.env.DEV && this.state.error && (
               <pre className="text-left text-xs text-red-400 bg-white/5 p-3 rounded-lg overflow-auto max-h-40">
                 {this.state.error.message}
               </pre>

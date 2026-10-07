@@ -287,13 +287,10 @@ export default function EditStep({
                     else setSelectedIndex(idx);
                   }}
                   onDoubleClick={() => openEditor(idx)}
-                  aria-label={
-                    isSelected
-                      ? onEditMedia
-                        ? t('createPost.edit.edit_story')
-                        : t('createPost.edit.edit_media')
-                      : t('createPost.edit.select_media')
-                  }
+                  aria-label={t('createPost.edit.media_item', {
+                    index: idx + 1,
+                    total: mediaFiles.length,
+                  })}
                   aria-current={isSelected ? 'true' : undefined}
                 >
                   {item.type === 'video' ? (

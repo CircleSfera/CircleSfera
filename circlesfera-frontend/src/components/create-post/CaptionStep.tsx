@@ -1,7 +1,7 @@
 import {
   BarChart2,
   ChevronRight,
-  DollarSign,
+  Euro,
   Eye,
   MapPin,
   Music as MusicIcon,
@@ -159,7 +159,7 @@ export default function CaptionStep({
       : []),
     {
       key: 'monetization',
-      icon: DollarSign,
+      icon: Euro,
       label: isPremium
         ? t('createPost.caption.monetization_active')
         : t('createPost.caption.monetization'),
