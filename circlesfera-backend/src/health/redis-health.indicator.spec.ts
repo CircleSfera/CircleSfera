@@ -1,5 +1,5 @@
 import type { ConfigService } from '@nestjs/config';
-import { HealthCheckError } from '@nestjs/terminus';
+import { HealthIndicatorService } from '@nestjs/terminus';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RedisHealthIndicator } from './redis-health.indicator.js';
 
@@ -41,6 +41,7 @@ describe('RedisHealthIndicator', () => {
     mockConfigService.get.mockImplementation(defaultConfigImpl);
     indicator = new RedisHealthIndicator(
       mockConfigService as unknown as ConfigService,
+      new HealthIndicatorService(),
     );
     mockConnect.mockResolvedValue(undefined);
     mockPing.mockResolvedValue('PONG');
@@ -82,12 +83,20 @@ describe('RedisHealthIndicator', () => {
     expect(mockDisconnect).toHaveBeenCalled();
   });
 
-  it('throws HealthCheckError with status down and disconnects on failure', async () => {
+  it('reports down with the error message and disconnects on failure', async () => {
     mockConnect.mockRejectedValue(new Error('ECONNREFUSED'));
 
-    await expect(indicator.pingCheck('redis')).rejects.toThrow(
-      HealthCheckError,
-    );
+    await expect(indicator.pingCheck('redis')).resolves.toEqual({
+      redis: { status: 'down', message: 'ECONNREFUSED' },
+    });
     expect(mockDisconnect).toHaveBeenCalled();
+  });
+
+  it('reports a non-Error failure as text', async () => {
+    mockPing.mockRejectedValue('timeout');
+
+    await expect(indicator.pingCheck('redis')).resolves.toEqual({
+      redis: { status: 'down', message: 'timeout' },
+    });
   });
 });
