@@ -1242,7 +1242,8 @@
     "error": "Algo salió mal.",
     "reload_error": "No se pudo recargar el perfil",
     "follow_error": "No se pudo seguir esta cuenta.",
-    "followed": "Seguido correctamente"
+    "followed": "Seguido correctamente",
+    "avatar_error": "No hemos podido guardar tu foto. Puedes añadirla más tarde en Ajustes."
   },
   "createPost": {
     "accessibility": {
