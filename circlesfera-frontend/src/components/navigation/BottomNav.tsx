@@ -119,8 +119,8 @@ export default function BottomNav() {
                     exit={{ opacity: 0, scaleX: 0 }}
                     transition={{ type: 'spring', stiffness: 500, damping: 32 }}
                     style={{
-                      background: 'linear-gradient(90deg, #ff5757, #8c52ff)',
-                      boxShadow: '0 0 8px rgba(140,82,255,0.6)',
+                      background: 'linear-gradient(90deg, #ff5757, #884cff)',
+                      boxShadow: '0 0 8px rgba(136,76,255,0.6)',
                     }}
                   />
                 )}
@@ -131,7 +131,7 @@ export default function BottomNav() {
                 size={22}
                 strokeWidth={isActive ? 2.5 : 1.8}
                 className={`relative z-10 transition-all duration-150 ${
-                  isActive ? 'drop-shadow-[0_0_6px_rgba(140,82,255,0.7)]' : ''
+                  isActive ? 'drop-shadow-[0_0_6px_rgba(136,76,255,0.7)]' : ''
                 }`}
               />
 

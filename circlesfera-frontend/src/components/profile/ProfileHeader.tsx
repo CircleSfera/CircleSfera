@@ -58,7 +58,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
 
   return (
     <div className="text-center md:text-left group cursor-pointer min-w-0 flex-1">
-      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#8c52ff]">
+      <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#884cff]">
         {count}
       </span>
       <span className="text-zinc-400 text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-normal md:tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80 truncate">
@@ -257,7 +257,7 @@ export default function ProfileHeader({
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.5, ease: 'easeOut' }}
-          className="absolute -top-8 -right-8 md:-top-12 md:-right-12 w-32 md:w-56 h-32 md:h-56 bg-linear-to-br from-[#ff5757]/15 to-[#8c52ff]/15 blur-[48px] md:blur-[72px] rounded-full"
+          className="absolute -top-8 -right-8 md:-top-12 md:-right-12 w-32 md:w-56 h-32 md:h-56 bg-linear-to-br from-[#ff5757]/15 to-[#884cff]/15 blur-[48px] md:blur-[72px] rounded-full"
         />
       </div>
 

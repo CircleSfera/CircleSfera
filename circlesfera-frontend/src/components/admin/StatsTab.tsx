@@ -173,8 +173,8 @@ export default function StatsTab() {
                 <AreaChart data={chartData}>
                   <defs>
                     <linearGradient id="gradPosts" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#8c52ff" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#8c52ff" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#884cff" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#884cff" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#5271ff" stopOpacity={0.3} />
@@ -208,7 +208,7 @@ export default function StatsTab() {
                     type="monotone"
                     dataKey="posts"
                     name={t('admin.stats.chart_posts')}
-                    stroke="#8c52ff"
+                    stroke="#884cff"
                     fill="url(#gradPosts)"
                     strokeWidth={2}
                   />

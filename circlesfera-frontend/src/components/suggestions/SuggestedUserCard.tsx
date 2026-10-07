@@ -101,7 +101,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
   return (
     <div className="flex flex-col items-center min-w-35 p-5 glass-panel rounded-lg group/card hover:bg-white/5 transition-all duration-300">
       <Link to={`/${user.username}`} className="flex flex-col items-center">
-        <div className="w-14 h-14 rounded-full p-0.5 bg-linear-to-r from-[#ff5757] to-[#8c52ff] mb-2.5 group-hover/card:shadow-[0_0_15px_rgba(140,82,255,0.3)] transition-all duration-300">
+        <div className="w-14 h-14 rounded-full p-0.5 bg-linear-to-r from-[#ff5757] to-[#884cff] mb-2.5 group-hover/card:shadow-[0_0_15px_rgba(136,76,255,0.3)] transition-all duration-300">
           <div className="w-full h-full rounded-full border-2 border-black overflow-hidden bg-zinc-900">
             {user.avatar ? (
               <img

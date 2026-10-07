@@ -229,8 +229,8 @@
   --surface-high: #262626; /* Level 3 — floating surfaces */
 
   /* Brand palette — CircleSfera official */
-  --brand-primary: #8c52ff; /* Vivid purple — canonical; never #833ab4 */
-  --brand-primary-rgb: 140, 82, 255; /* For rgba(var(--brand-primary-rgb), a) */
+  --brand-primary: #884cff; /* Vivid purple — canonical; never #833ab4 */
+  --brand-primary-rgb: 136, 76, 255; /* For rgba(var(--brand-primary-rgb), a) */
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */
   --brand-blue: #5271ff; /* Electric Blue */

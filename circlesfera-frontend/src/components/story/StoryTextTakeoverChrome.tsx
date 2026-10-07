@@ -8,7 +8,7 @@ import type { StoryFontOption } from './storyComposer.types';
 const STYLE_COLORS = [
   '#FFFFFF',
   '#000000',
-  '#8c52ff',
+  '#884cff',
   '#ff5757',
   '#5271ff',
 ] as const;
