@@ -4,8 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter } from 'react-router-dom';
+import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
-import './i18n';
 import './index.css';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -42,25 +42,30 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter useTransitions={false}>
-            <App />
-            <Toaster
-              position="bottom-center"
-              containerStyle={{
-                bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-              }}
-            />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-);
+// The first screen waits for the catalog of the person's language. If it
+// cannot be loaded the app still starts.
+const root = createRoot(document.getElementById('root')!);
+const renderApp = () =>
+  root.render(
+    <StrictMode>
+      <ErrorBoundary>
+        <HelmetProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter useTransitions={false}>
+              <App />
+              <Toaster
+                position="bottom-center"
+                containerStyle={{
+                  bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+                }}
+              />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </HelmetProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+i18nReady.then(renderApp, renderApp);
 
 // Register Service Worker for PWA & Push Notifications auto-initiation
 if ('serviceWorker' in navigator && import.meta.env.PROD) {

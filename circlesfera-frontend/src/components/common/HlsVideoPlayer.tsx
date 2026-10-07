@@ -1,4 +1,4 @@
-import Hls from 'hls.js';
+import type Hls from 'hls.js';
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { sanitizeUrl } from '../../utils/apiUtils';
 import { logger } from '../../utils/logger';
@@ -25,7 +25,9 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
       const video = videoRef.current;
       if (!video) return;
 
+      type HlsVideo = HTMLVideoElement & { __hls?: Hls | null };
       let hls: Hls | null = null;
+      let cancelled = false;
       const directSrc = resolveMediaUrl(src) || src;
       const streamUrl = hlsUrl?.endsWith('.m3u8')
         ? resolveMediaUrl(hlsUrl) || hlsUrl
@@ -39,53 +41,65 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(
       };
 
       if (streamUrl) {
-        if (Hls.isSupported()) {
-          hls = new Hls({
-            enableWorker: true,
-            lowLatencyMode: true,
-            autoStartLoad: !isNext,
-          });
+        // The streaming library is large and only streams need it, so it is
+        // downloaded the first time one is played instead of at startup.
+        import('hls.js')
+          .then(({ default: HlsLibrary }) => {
+            if (cancelled) return;
+            if (HlsLibrary.isSupported()) {
+              const stream = new HlsLibrary({
+                enableWorker: true,
+                lowLatencyMode: true,
+                autoStartLoad: !isNext,
+              });
+              hls = stream;
+              (video as HlsVideo).__hls = stream;
 
-          hls.loadSource(streamUrl);
-          hls.attachMedia(video);
+              stream.loadSource(streamUrl);
+              stream.attachMedia(video);
 
-          hls.on(Hls.Events.ERROR, (_event, data) => {
-            if (!data.fatal) return;
+              stream.on(HlsLibrary.Events.ERROR, (_event, data) => {
+                if (!data.fatal) return;
 
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                logger.error('HLS network error, trying to recover', data);
-                hls?.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                logger.error('HLS media error, trying to recover', data);
-                hls?.recoverMediaError();
-                break;
-              default:
-                logger.error(
-                  'HLS fatal error, falling back to direct source',
-                  data,
-                );
-                hls?.destroy();
-                hls = null;
-                loadDirectSource();
-                break;
+                switch (data.type) {
+                  case HlsLibrary.ErrorTypes.NETWORK_ERROR:
+                    logger.error('HLS network error, trying to recover', data);
+                    stream.startLoad();
+                    break;
+                  case HlsLibrary.ErrorTypes.MEDIA_ERROR:
+                    logger.error('HLS media error, trying to recover', data);
+                    stream.recoverMediaError();
+                    break;
+                  default:
+                    logger.error(
+                      'HLS fatal error, falling back to direct source',
+                      data,
+                    );
+                    stream.destroy();
+                    hls = null;
+                    (video as HlsVideo).__hls = null;
+                    loadDirectSource();
+                    break;
+                }
+              });
+            } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+              video.src = streamUrl;
+            } else {
+              loadDirectSource();
             }
+          })
+          .catch((error: unknown) => {
+            logger.error('Streaming library failed to load', error);
+            if (!cancelled) loadDirectSource();
           });
-        } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-          video.src = streamUrl;
-        } else {
-          loadDirectSource();
-        }
       } else {
         loadDirectSource();
       }
 
-      (video as HTMLVideoElement & { __hls?: Hls | null }).__hls = hls;
-
       return () => {
+        cancelled = true;
         hls?.destroy();
-        (video as HTMLVideoElement & { __hls?: Hls | null }).__hls = null;
+        (video as HlsVideo).__hls = null;
       };
     }, [src, hlsUrl, isNext]);
 
