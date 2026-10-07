@@ -1,9 +1,11 @@
+import { ErrorCode } from '@circlesfera/shared';
 import {
   CanActivate,
   ExecutionContext,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
+import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
 @Injectable()
@@ -34,7 +36,10 @@ export class IdentityVerifiedGuard implements CanActivate {
     }
 
     if (!dbUser.identityVerifiedAt) {
-      throw new ForbiddenException(
+      // The code lets the app offer the verification. The sentence is kept
+      // as it was: app versions still open in a browser recognise it.
+      throw AppException.Forbidden(
+        ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
         'Debes verificar tu identidad primero para poder comprar o cobrar.',
       );
     }

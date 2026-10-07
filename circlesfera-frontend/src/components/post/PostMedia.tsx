@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import type { Post } from '../../types';
-import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { reportPaymentError } from '../../utils/identityVerification';
 import Carousel from '../Carousel';
 import PaywallOverlay from '../monetization/PaywallOverlay';
 
@@ -40,7 +40,7 @@ export default function PostMedia({
       }
     },
     onError: (error: unknown) => {
-      toast.error(apiErrorMessage(error, t, 'post.media.unlock_error'));
+      reportPaymentError(error, t, 'post.media.unlock_error');
     },
   });
 

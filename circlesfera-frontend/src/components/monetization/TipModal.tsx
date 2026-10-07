@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
-import { paymentErrorMessage } from '../../utils/apiErrorMessage';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
@@ -55,7 +55,7 @@ export default function TipModal({
       setIsSubmitting(false);
     } catch (error: unknown) {
       // The server text is in one language and can be technical.
-      toast.error(paymentErrorMessage(error, t, 'wallet.error_send_tip'));
+      reportPaymentError(error, t, 'wallet.error_send_tip');
       setIsSubmitting(false);
     }
   };

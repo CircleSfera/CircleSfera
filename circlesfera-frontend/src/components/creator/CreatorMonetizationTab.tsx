@@ -23,8 +23,8 @@ import type { PlatformPlanDto } from '../../types';
 import {
   apiErrorMessage,
   isIdentityVerificationRequired,
-  paymentErrorMessage,
 } from '../../utils/apiErrorMessage';
+import { promptIdentityVerification } from '../../utils/identityVerification';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
@@ -115,8 +115,12 @@ export default function CreatorMonetizationTab({
     },
     // The server text is in one language and can be technical.
     onError: (err: unknown) => {
+      if (isIdentityVerificationRequired(err)) {
+        promptIdentityVerification(t);
+        return;
+      }
       onToast(
-        paymentErrorMessage(err, t, 'creator.monetization.error_connect'),
+        apiErrorMessage(err, t, 'creator.monetization.error_connect'),
         'error',
       );
     },
@@ -143,7 +147,7 @@ export default function CreatorMonetizationTab({
     },
     onError: (err: unknown) => {
       if (isIdentityVerificationRequired(err)) {
-        onToast(t('pricingPage.verification_required_desc'), 'info');
+        promptIdentityVerification(t);
         return;
       }
       onToast(

@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
-import { paymentErrorMessage } from '../../utils/apiErrorMessage';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { formatWholeEuros } from '../../utils/money';
 import { Dialog } from '../ui/Dialog';
 
@@ -85,7 +85,7 @@ export default function LiveGiftModal({
       toast.error(t('live.gift_checkout_missing'));
     } catch (err: unknown) {
       // The server text is in one language and can be technical.
-      toast.error(paymentErrorMessage(err, t, 'live.gift_error'));
+      reportPaymentError(err, t, 'live.gift_error');
     } finally {
       setIsSending(false);
     }

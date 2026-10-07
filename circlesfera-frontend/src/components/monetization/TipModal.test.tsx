@@ -11,9 +11,14 @@ vi.mock('../../services', () => ({
   },
 }));
 
-vi.mock('react-hot-toast', () => ({
-  toast: { error: vi.fn(), success: vi.fn() },
-}));
+vi.mock('react-hot-toast', () => {
+  const t = Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  });
+  return { toast: t, default: t };
+});
 
 const checkoutUrl = 'https://checkout.stripe.com/c/pay/cs_test_tip';
 
@@ -197,7 +202,7 @@ describe('TipModal', () => {
     expect(screen.queryByText('€50')).not.toBeInTheDocument();
   });
 
-  it('says the identity must be verified when the tip is refused for it', async () => {
+  it('offers to verify the identity when the tip is refused for it', async () => {
     vi.mocked(api.post).mockRejectedValueOnce(
       Object.assign(
         new Error(
@@ -220,11 +225,15 @@ describe('TipModal', () => {
       screen.getByRole('button', { name: i18n!.t('wallet.send_tip') }),
     );
 
+    // The notice with the button that opens the verification.
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('pricingPage.verification_required_desc'),
+      expect(toast).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.anything(),
       ),
     );
+    expect(toast.error).not.toHaveBeenCalled();
+    expect(i18n!.t('pricingPage.verify_button')).toBeTruthy();
   });
 
   it('clears the selected amount when the dialog reopens', () => {

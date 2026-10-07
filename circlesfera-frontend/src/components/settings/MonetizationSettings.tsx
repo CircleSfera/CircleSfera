@@ -3,6 +3,7 @@ import { ExternalLink } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { formatCents } from '../../utils/money';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
@@ -29,8 +30,8 @@ export function MonetizationSettings() {
     onSuccess: (data) => {
       window.location.href = data.url;
     },
-    onError: () => {
-      toast.error(t('settings.monetization.error_connect'));
+    onError: (error: unknown) => {
+      reportPaymentError(error, t, 'settings.monetization.error_connect');
     },
   });
 

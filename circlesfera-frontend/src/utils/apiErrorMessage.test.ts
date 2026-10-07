@@ -122,6 +122,15 @@ describe('apiErrorMessage', () => {
         response: { status: 403, data: { message: refusal } },
       }),
     ).toBe(true);
+    // The code the server sends now, whatever the sentence says.
+    expect(
+      isIdentityVerificationRequired(
+        clientError(403, {
+          errorCode: 'IDENTITY_VERIFICATION_REQUIRED',
+          message: 'Verify your identity first.',
+        }),
+      ),
+    ).toBe(true);
     // Another refusal, another status, or nothing to read.
     expect(
       isIdentityVerificationRequired(

@@ -15,10 +15,7 @@ import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
-import {
-  apiErrorMessage,
-  isIdentityVerificationRequired,
-} from '../../utils/apiErrorMessage';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
@@ -117,44 +114,8 @@ export default function Pricing() {
         window.location.href = res.url;
       }
     },
-    onError: async (error: unknown) => {
-      if (isIdentityVerificationRequired(error)) {
-        toast(
-          (toastItem) => (
-            <div className="flex flex-col gap-2 p-1 text-left">
-              <span className="font-bold text-sm text-zinc-900">
-                {t('pricingPage.verification_required_title')}
-              </span>
-              <span className="text-xs text-zinc-600">
-                {t('pricingPage.verification_required_desc')}
-              </span>
-              <button
-                type="button"
-                className="bg-brand-primary text-white text-xs font-bold py-2.5 min-h-11 px-3 rounded-lg mt-1 hover:bg-brand-primary/95 transition-all"
-                onClick={async () => {
-                  toast.dismiss(toastItem.id);
-                  try {
-                    const res = await usersApi.createIdentitySession(
-                      window.location.href,
-                    );
-                    if (res.url) {
-                      window.location.href = res.url;
-                    }
-                  } catch {
-                    toast.error(t('pricingPage.verify_error'));
-                  }
-                }}
-              >
-                {t('pricingPage.verify_button')}
-              </button>
-            </div>
-          ),
-          { duration: 8000 },
-        );
-      } else {
-        toast.error(apiErrorMessage(error, t, 'pricingPage.checkout_error'));
-      }
-    },
+    onError: (error: unknown) =>
+      reportPaymentError(error, t, 'pricingPage.checkout_error'),
     onSettled: () => setLoadingPlanId(null),
   });
 

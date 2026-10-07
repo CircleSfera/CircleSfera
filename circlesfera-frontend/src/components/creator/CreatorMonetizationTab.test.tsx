@@ -30,9 +30,14 @@ vi.mock('../../services/payments.service', () => ({
   },
 }));
 
-vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
+vi.mock('react-hot-toast', () => {
+  const t = Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  });
+  return { toast: t, default: t };
+});
 
 vi.mock('../monetization/MonetizationDashboard', () => ({
   default: () => <div data-testid="monetization-dashboard" />,
@@ -278,7 +283,7 @@ describe('CreatorMonetizationTab', () => {
       expect(location.href).toBe('/');
     });
 
-    it('says the identity must be verified when Stripe cannot be connected for it', async () => {
+    it('offers to verify the identity when Stripe cannot be connected for it', async () => {
       vi.mocked(monetizationApi.connectAccount).mockRejectedValue(
         serverError(
           'Debes verificar tu identidad primero para poder comprar o cobrar.',
@@ -294,11 +299,13 @@ describe('CreatorMonetizationTab', () => {
       );
 
       await waitFor(() =>
-        expect(onToast).toHaveBeenCalledWith(
-          i18n!.t('pricingPage.verification_required_desc'),
-          'error',
+        expect(toast).toHaveBeenCalledWith(
+          expect.any(Function),
+          expect.anything(),
         ),
       );
+      expect(onToast).not.toHaveBeenCalled();
+      expect(i18n!.t('pricingPage.verify_button')).toBeTruthy();
     });
 
     it('stays on the page when Stripe answers with no address', async () => {
@@ -416,7 +423,7 @@ describe('CreatorMonetizationTab', () => {
       );
     });
 
-    it('says the identity must be verified when the checkout is refused for it', async () => {
+    it('offers to verify the identity when the checkout is refused for it', async () => {
       vi.mocked(paymentsApi.createSubscriptionCheckout).mockRejectedValue(
         serverError(
           'Debes verificar tu identidad primero para poder comprar o cobrar.',
@@ -432,11 +439,13 @@ describe('CreatorMonetizationTab', () => {
       );
 
       await waitFor(() =>
-        expect(onToast).toHaveBeenCalledWith(
-          i18n!.t('pricingPage.verification_required_desc'),
-          'info',
+        expect(toast).toHaveBeenCalledWith(
+          expect.any(Function),
+          expect.anything(),
         ),
       );
+      expect(onToast).not.toHaveBeenCalled();
+      expect(i18n!.t('pricingPage.verify_button')).toBeTruthy();
     });
 
     it('asks a free account to pick a plan instead of opening the billing portal', async () => {
