@@ -2309,7 +2309,8 @@
       "take_over": "Take over",
       "toast_reassigned": "Report reassigned",
       "toast_reassign_error": "Could not reassign report",
-      "open_user": "Open in Users"
+      "open_user": "Open in Users",
+      "select_report": "Select the report about @{{author}}"
     },
     "monetization": {
       "title": "Monetization",

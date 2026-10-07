@@ -108,10 +108,10 @@ export default defineConfig({
       // Ratchet: set to the measured coverage and only ever raised, never
       // lowered, until the 80% global target is met.
       thresholds: {
-        statements: 28,
-        lines: 29,
-        branches: 27,
-        functions: 25,
+        statements: 29,
+        lines: 30,
+        branches: 28,
+        functions: 26,
         // Critical paths: the API client (session renewal, CSRF), the
         // session guards and passkeys, the account recovery pages, creator
         // payouts and appeal review.
@@ -145,6 +145,7 @@ export default defineConfig({
         },
         'src/utils/format.ts': { statements: 100, lines: 100 },
         'src/hooks/useCreatePostMutation.ts': { statements: 85, lines: 85 },
+        'src/components/admin/ReportsTab.tsx': { statements: 55, lines: 55 },
       },
     },
   },

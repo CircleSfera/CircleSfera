@@ -155,15 +155,9 @@ export default function ReportsTab({ onToast }: Props) {
       onToast(t('admin.reports.toast_claimed'), 'success');
     },
     onError: (err: unknown) => {
-      const data = (err as { response?: { data?: Record<string, unknown> } })
-        ?.response?.data;
-      const nested = data?.message;
-      const code =
-        (typeof nested === 'object' &&
-          nested &&
-          'code' in nested &&
-          (nested as { code?: string }).code) ||
-        (typeof data?.code === 'string' ? data.code : undefined);
+      // The API client rejects with { status, data }, data being the error body.
+      const code = (err as { data?: { errorCode?: string } } | null)?.data
+        ?.errorCode;
       onToast(
         code === 'REPORT_ALREADY_CLAIMED'
           ? t('admin.reports.toast_claim_conflict')
@@ -378,6 +372,7 @@ export default function ReportsTab({ onToast }: Props) {
                   selectedIds.size === reports.length && reports.length > 0
                 }
                 onChange={toggleSelectAll}
+                aria-label={t('admin.shared.select_all')}
               />
               <h3 className="font-semibold text-white text-sm">
                 {t('admin.shared.select_all')}
@@ -472,6 +467,11 @@ export default function ReportsTab({ onToast }: Props) {
                             checked={selectedIds.has(report.id)}
                             onChange={(e) => toggleSelect(report.id, e)}
                             onClick={(e) => e.stopPropagation()}
+                            aria-label={t('admin.reports.select_report', {
+                              author:
+                                report.targetContent?.author ||
+                                t('admin.shared.unknown'),
+                            })}
                           />
                           <div className="w-10 h-10 rounded-lg bg-white/5 overflow-hidden shrink-0">
                             {report.targetContent?.thumbnail ? (
@@ -928,6 +928,7 @@ export default function ReportsTab({ onToast }: Props) {
                           <textarea
                             value={internalNotes}
                             onChange={(e) => setInternalNotes(e.target.value)}
+                            aria-label={t('admin.reports.internal_notes_label')}
                             rows={4}
                             placeholder={t(
                               'admin.reports.internal_notes_placeholder',
