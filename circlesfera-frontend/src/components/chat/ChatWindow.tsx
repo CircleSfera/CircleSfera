@@ -549,12 +549,10 @@ export default function ChatWindow() {
       await chatApi.markAsRead(id);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       queryClient.invalidateQueries({ queryKey: ['unreadMessages'] });
-      toast.success(t('chat.request_accepted', 'Solicitud aceptada'));
+      toast.success(t('chat.request_accepted'));
     } catch (err) {
       logger.error('Failed to accept message request', err);
-      toast.error(
-        t('chat.request_accept_error', 'Error al aceptar la solicitud'),
-      );
+      toast.error(t('chat.request_accept_error'));
     }
   };
 
@@ -563,13 +561,11 @@ export default function ChatWindow() {
     try {
       await chatApi.declineRequest(id);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
-      toast.success(t('chat.request_declined', 'Solicitud rechazada'));
+      toast.success(t('chat.request_declined'));
       navigate('/direct/inbox');
     } catch (err) {
       logger.error('Failed to decline message request', err);
-      toast.error(
-        t('chat.request_decline_error', 'Error al rechazar la solicitud'),
-      );
+      toast.error(t('chat.request_decline_error'));
     }
   };
 
@@ -1286,13 +1282,10 @@ export default function ChatWindow() {
             <div className="flex flex-col items-center gap-3 p-4 glass-panel border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
               <div className="text-center">
                 <p className="text-sm font-semibold text-white">
-                  {t('chat.request_title', '¿Aceptar solicitud de mensaje?')}
+                  {t('chat.request_title')}
                 </p>
                 <p className="text-xs text-white/60 mt-1 max-w-md">
-                  {t(
-                    'chat.request_description',
-                    'Si aceptas, podrán ver cuándo estás conectado y si has leído sus mensajes. No sabrán que lo has leído hasta que aceptes.',
-                  )}
+                  {t('chat.request_description')}
                 </p>
               </div>
               <div className="flex items-center gap-3 w-full max-w-xs justify-center">

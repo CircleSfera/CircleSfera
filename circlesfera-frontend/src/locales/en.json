@@ -1714,7 +1714,17 @@
     "lock_message_hint": "Only Creator/Business accounts can send paid messages.",
     "lock_message_confirm": "Lock message",
     "lock_message_cancel": "Remove lock",
-    "locked_chip_label": "Paid message · {{price}}"
+    "locked_chip_label": "Paid message · {{price}}",
+    "inbox": "Inbox",
+    "requests": "Requests",
+    "no_requests": "No message requests",
+    "no_requests_desc": "Message requests from people you don't follow will appear here.",
+    "request_accepted": "Request accepted",
+    "request_accept_error": "Could not accept the request",
+    "request_declined": "Request declined",
+    "request_decline_error": "Could not decline the request",
+    "request_title": "Accept this message request?",
+    "request_description": "If you accept, they will see when you are online and whether you have read their messages. They won't know you have read them until you accept."
   },
   "creator": {
     "title": "Creator Studio",

@@ -57,35 +57,53 @@ export default function ConversationList() {
   useEffect(() => {
     if (!socket) return;
 
+    // The list is cached per folder (['conversations', 'inbox' | 'requests']),
+    // so the updates go to every conversations cache, never mutating it.
     const handleNewMessage = (msg: Message) => {
-      queryClient.setQueryData<Conversation[]>(['conversations'], (prev) => {
-        if (!prev) return prev;
-        const existingIdx = prev.findIndex((c) => c.id === msg.conversationId);
-        if (existingIdx !== -1) {
-          // Move to top and update message
-          const updated = [...prev];
-          const [conv] = updated.splice(existingIdx, 1);
-
-          // Check for duplication/tempId
-          const processedMessages = (conv.messages as Message[]) || [];
-          // If we have a temp message with this ID, replace it
-          const tempIdx = processedMessages.findIndex(
-            (m) => m.tempId === msg.tempId,
-          );
-          if (tempIdx !== -1) {
-            processedMessages[tempIdx] = msg;
-          } else if (!processedMessages.some((m) => m.id === msg.id)) {
-            processedMessages.unshift(msg);
+      let found = false;
+      queryClient.setQueriesData<Conversation[]>(
+        { queryKey: ['conversations'] },
+        (prev) => {
+          if (!Array.isArray(prev)) return prev;
+          const idx = prev.findIndex((c) => c.id === msg.conversationId);
+          if (idx === -1) return prev;
+          found = true;
+          const conv = prev[idx];
+          const current = (conv.messages as Message[]) || [];
+          // A message sent from this device replaces its optimistic copy.
+          const tempIdx = msg.tempId
+            ? current.findIndex((m) => m.tempId === msg.tempId)
+            : -1;
+          if (tempIdx === -1 && current.some((m) => m.id === msg.id)) {
+            // A repeated event for a message already shown changes nothing.
+            return prev;
           }
-
-          conv.messages = processedMessages;
-          return [conv, ...updated];
-        } else {
-          // New conversation - fetch to get full details including participants
-          queryClient.invalidateQueries({ queryKey: ['conversations'] });
-          return prev;
-        }
-      });
+          // Only a message newer than the latest one moves the conversation
+          // to the top; a late event for an older message keeps its place
+          // and lands in time order, so the preview stays the latest one.
+          const time = (m: Message) => new Date(m.createdAt).getTime();
+          const latest = current[0];
+          const isNewest =
+            tempIdx !== -1 || !latest || time(msg) >= time(latest);
+          const messages = [...current];
+          if (tempIdx !== -1) {
+            messages[tempIdx] = msg;
+          } else if (isNewest) {
+            messages.unshift(msg);
+          } else {
+            const at = messages.findIndex((m) => time(m) < time(msg));
+            messages.splice(at === -1 ? messages.length : at, 0, msg);
+          }
+          const updated = { ...conv, messages };
+          return isNewest
+            ? [updated, ...prev.slice(0, idx), ...prev.slice(idx + 1)]
+            : prev.map((c, i) => (i === idx ? updated : c));
+        },
+      );
+      // A conversation not in any list yet: load it with its participants.
+      if (!found) {
+        queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      }
     };
 
     const handleConversationDeleted = ({
@@ -93,10 +111,13 @@ export default function ConversationList() {
     }: {
       conversationId: string;
     }) => {
-      queryClient.setQueryData<Conversation[]>(['conversations'], (prev) => {
-        if (!prev) return prev;
-        return prev.filter((c) => c.id !== conversationId);
-      });
+      queryClient.setQueriesData<Conversation[]>(
+        { queryKey: ['conversations'] },
+        (prev) =>
+          Array.isArray(prev)
+            ? prev.filter((c) => c.id !== conversationId)
+            : prev,
+      );
     };
 
     socket.on('receiveMessage', handleNewMessage);
@@ -186,7 +207,7 @@ export default function ConversationList() {
                 : 'text-white/50 hover:text-white/80'
             }`}
           >
-            <span>{t('chat.inbox', 'Bandeja')}</span>
+            <span>{t('chat.inbox')}</span>
             {unreadCount > 0 && (
               <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
                 {unreadCount}
@@ -205,7 +226,7 @@ export default function ConversationList() {
                 : 'text-white/50 hover:text-white/80'
             }`}
           >
-            <span>{t('chat.requests', 'Solicitudes')}</span>
+            <span>{t('chat.requests')}</span>
             {requestsCount > 0 && (
               <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
                 {requestsCount}
@@ -233,11 +254,8 @@ export default function ConversationList() {
           folder === 'requests' ? (
             <EmptyState
               icon="comments"
-              title={t('chat.no_requests', 'No tienes solicitudes')}
-              message={t(
-                'chat.no_requests_desc',
-                'Las solicitudes de mensajes de personas a las que no sigues aparecerán aquí.',
-              )}
+              title={t('chat.no_requests')}
+              message={t('chat.no_requests_desc')}
             />
           ) : (
             <EmptyState
