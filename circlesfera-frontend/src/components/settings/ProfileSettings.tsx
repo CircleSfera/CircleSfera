@@ -511,17 +511,15 @@ export default function ProfileSettings() {
         )}
       </AnimatePresence>
 
-      <div className="sticky bottom-0 md:static -mx-4 md:mx-0 px-4 md:px-0 py-3 md:py-0 z-30 bg-surface-elevated/90 md:bg-transparent backdrop-blur-xl md:backdrop-blur-none border-t border-white/5 md:border-none mt-6">
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={!canSubmit}
-          isLoading={updateProfileMutation.isPending}
-          className="w-full min-h-11 text-sm font-semibold"
-        >
-          {t('settings.profile.save')}
-        </Button>
-      </div>
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={!canSubmit}
+        isLoading={updateProfileMutation.isPending}
+        className="w-full min-h-11 text-sm font-semibold"
+      >
+        {t('settings.profile.save')}
+      </Button>
     </form>
   );
 }

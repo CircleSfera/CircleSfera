@@ -11,7 +11,6 @@ import AdminGuard from './components/auth/AdminGuard';
 import AuthGuard from './components/auth/AuthGuard';
 import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
-import ContentComposerPage from './components/ContentComposerPage';
 import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
 import { useAccountLocaleSync } from './hooks/useAccountLocaleSync';
@@ -19,51 +18,55 @@ import { useNativeApp } from './hooks/useNativeApp';
 import { usePushNotifications } from './hooks/usePushNotifications';
 import AppShell from './layouts/AppShell';
 // Page routes
-import CommunityGuidelines from './pages/CommunityGuidelines';
-import Explore from './pages/Explore';
 import ExploreLanding from './pages/ExploreLanding';
-import ExploreMapPage from './pages/explore-map/ExploreMapPage';
-import FaqPage from './pages/FaqPage';
 import FeatureDetailPage, {
   ExploreFeatureRedirect,
 } from './pages/FeatureDetailPage';
-import FeaturesPage from './pages/FeaturesPage';
-import ForgotPassword from './pages/ForgotPassword';
-import Frames from './pages/Frames';
-import HighlightViewerPage from './pages/HighlightViewerPage';
 import Home from './pages/Home';
 import LandingPage from './pages/LandingPage';
-import LiveBroadcaster from './pages/Live/LiveBroadcaster';
-import LiveViewer from './pages/Live/LiveViewer';
 import Login from './pages/Login';
-import Messages from './pages/Messages';
-import Notifications from './pages/Notifications';
-import PostDetail from './pages/PostDetail';
-import PrinciplesPage from './pages/PrinciplesPage';
-import PrivacyPolicy from './pages/PrivacyPolicy';
 import Register from './pages/Register';
-import ResetPassword from './pages/ResetPassword';
-import Saved from './pages/Saved';
 import { Support } from './pages/Support';
-import TagFeed from './pages/TagFeed';
-import TermsOfService from './pages/TermsOfService';
-import VerifyEmail from './pages/VerifyEmail';
 import { useAdminAuthStore } from './stores/adminAuthStore';
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
 import { adminPanelOrigin, isAdminPanelHost } from './utils/adminPanel';
 
+// Loaded on demand, so the first visit downloads only the entry pages.
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminPanelLogin = lazy(() => import('./pages/AdminPanelLogin'));
 const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
+const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'));
+const ContentComposerPage = lazy(
+  () => import('./components/ContentComposerPage'),
+);
 const Creator = lazy(() => import('./pages/Creator'));
 const EditsStudio = lazy(() => import('./pages/EditsStudio'));
+const Explore = lazy(() => import('./pages/Explore'));
+const ExploreMapPage = lazy(() => import('./pages/explore-map/ExploreMapPage'));
+const FaqPage = lazy(() => import('./pages/FaqPage'));
+const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const Frames = lazy(() => import('./pages/Frames'));
+const HighlightViewerPage = lazy(() => import('./pages/HighlightViewerPage'));
+const LiveBroadcaster = lazy(() => import('./pages/Live/LiveBroadcaster'));
+const LiveViewer = lazy(() => import('./pages/Live/LiveViewer'));
+const Messages = lazy(() => import('./pages/Messages'));
 const NotFound = lazy(() => import('./pages/NotFound'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const PostDetail = lazy(() => import('./pages/PostDetail'));
 const Pricing = lazy(() => import('./pages/payments/Pricing'));
+const PrinciplesPage = lazy(() => import('./pages/PrinciplesPage'));
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const Profile = lazy(() => import('./pages/Profile'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Saved = lazy(() => import('./pages/Saved'));
 const SelectChat = lazy(() => import('./components/chat/SelectChat'));
 const Settings = lazy(() => import('./pages/Settings'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
+const TagFeed = lazy(() => import('./pages/TagFeed'));
+const TermsOfService = lazy(() => import('./pages/TermsOfService'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 // Helper to redirect /profile to current user's profile
 
 // Component to redirect /profile to current user's profile
