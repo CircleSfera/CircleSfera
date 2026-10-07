@@ -134,7 +134,7 @@ export default function StoryList() {
               ? 'rgba(60,60,70,1)'
               : closeFriend
                 ? '#22c55e'
-                : 'linear-gradient(135deg, #ff5757, #8c52ff)',
+                : 'linear-gradient(135deg, #ff5757, #884cff)',
             border: viewed ? '1px solid rgba(255,255,255,0.12)' : 'none',
           });
 
@@ -273,7 +273,7 @@ export default function StoryList() {
                       ? 'rgba(60,60,70,1)'
                       : hasCloseFriendStory
                         ? '#22c55e'
-                        : 'linear-gradient(135deg, #ff5757, #8c52ff)',
+                        : 'linear-gradient(135deg, #ff5757, #884cff)',
                     border: allViewed
                       ? '1px solid rgba(255,255,255,0.1)'
                       : 'none',

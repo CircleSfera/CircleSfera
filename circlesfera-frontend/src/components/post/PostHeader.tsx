@@ -105,7 +105,7 @@ export default function PostHeader({
         <div
           className="absolute -inset-0.5 rounded-full opacity-55"
           style={{
-            background: 'linear-gradient(135deg, #ff5757, #8c52ff)',
+            background: 'linear-gradient(135deg, #ff5757, #884cff)',
             filter: 'blur(1.5px)',
           }}
         />

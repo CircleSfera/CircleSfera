@@ -39,9 +39,9 @@ export function LoadingSpinner({
           borderStyle: 'solid',
           borderColor: 'transparent',
           borderTopColor: '#ff5757',
-          borderRightColor: '#8c52ff',
+          borderRightColor: '#884cff',
           borderBottomColor: 'transparent',
-          borderLeftColor: '#8c52ff',
+          borderLeftColor: '#884cff',
           boxShadow: '0 0 10px rgba(var(--brand-primary-rgb),0.4)',
         }}
         className="rounded-full box-border"
@@ -60,7 +60,7 @@ export function LoadingSpinner({
           style={{
             width: sizePx[size] * 0.2,
             height: sizePx[size] * 0.2,
-            background: 'linear-gradient(90deg, #ff5757, #8c52ff)',
+            background: 'linear-gradient(90deg, #ff5757, #884cff)',
             boxShadow: '0 0 8px rgba(var(--brand-primary-rgb),0.7)',
             animation: 'pulse-slow 1.5s ease-in-out infinite',
           }}

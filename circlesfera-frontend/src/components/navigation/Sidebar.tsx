@@ -174,7 +174,7 @@ export default function Sidebar() {
                   size={20}
                   strokeWidth={isActive ? 2.5 : 1.8}
                   className={
-                    isActive ? 'drop-shadow-[0_0_6px_rgba(140,82,255,0.7)]' : ''
+                    isActive ? 'drop-shadow-[0_0_6px_rgba(136,76,255,0.7)]' : ''
                   }
                 />
 

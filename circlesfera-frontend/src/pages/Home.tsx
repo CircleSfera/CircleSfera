@@ -118,7 +118,7 @@ export default function Home() {
                 <img
                   src={logoSrc}
                   alt="CircleSfera"
-                  className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_0_12px_rgba(140,82,255,0.4)]"
+                  className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-[0_0_12px_rgba(136,76,255,0.4)]"
                 />
                 <span className="brand-wordmark text-2xl sm:text-3xl font-black tracking-tight">
                   CircleSfera

@@ -86,7 +86,7 @@ export default memo(function UserAvatar({
             className="absolute rounded-full animate-spin-slow"
             style={{
               inset: '-2px',
-              background: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+              background: 'linear-gradient(90deg, #ff5757 0%, #884cff 100%)',
               borderRadius: '9999px',
               padding: '2px',
             }}
