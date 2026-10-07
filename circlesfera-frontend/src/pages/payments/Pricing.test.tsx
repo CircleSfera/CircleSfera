@@ -299,7 +299,7 @@ describe('Pricing', () => {
     vi.mocked(paymentsApi.getPlans).mockResolvedValue([
       {
         ...plan('Studio', 'p-studio', 2999),
-        features: ['priority_support', 'analytics'],
+        features: ['priority_support', 'early_access'],
       },
       {
         ...plan('Team', 'p-team', 5999),
@@ -318,9 +318,41 @@ describe('Pricing', () => {
         name: i18n!.t('pricingPage.default_button', { plan: 'Studio' }),
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText('priority support')).toBeInTheDocument();
+    // A feature the app has a text for, and one it does not have yet.
+    expect(
+      screen.getByText(i18n!.t('pricingPage.features.priority_support')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('early access')).toBeInTheDocument();
     expect(screen.getByText('For teams')).toBeInTheDocument();
     expect(screen.getByText('/quarter')).toBeInTheDocument();
+  });
+
+  it('describes a known plan and its features in the app language, not in the stored one', async () => {
+    // The live plans store their description in Spanish.
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      {
+        ...plan('Premium', 'p-premium', 999),
+        description:
+          'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
+        features: ['verified_badge', 'basic_analytics'],
+      },
+    ]);
+    const english = renderWithProviders(<Pricing />);
+
+    expect(
+      await screen.findByText(english.i18n!.t('pricingPage.desc_premium')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Verification badge')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Insignia de verificación/),
+    ).not.toBeInTheDocument();
+    english.unmount();
+
+    renderWithProviders(<Pricing />, { lng: 'es' });
+    expect(
+      await screen.findByText('Insignia de verificación'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Analíticas básicas')).toBeInTheDocument();
   });
 
   it('says so when there are no plans', async () => {

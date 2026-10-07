@@ -144,6 +144,24 @@ describe('CreatorMonetizationTab', () => {
     expect(await screen.findByText(/^9,99\s€$/)).toBeInTheDocument();
   });
 
+  it('names the plan features in the app language', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      {
+        ...plan('Premium', 'plan-1', 999),
+        features: ['verified_badge', 'priority_support'],
+      },
+    ] as never);
+    renderWithProviders(
+      <CreatorMonetizationTab onToast={onToast} section="plans" />,
+      { lng: 'es' },
+    );
+
+    expect(
+      await screen.findByText('Insignia de verificación'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Soporte prioritario')).toBeInTheDocument();
+  });
+
   it('shows only income or only plans when asked', async () => {
     const income = renderWithProviders(
       <CreatorMonetizationTab onToast={onToast} section="income" />,

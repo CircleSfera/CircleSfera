@@ -185,6 +185,7 @@ export default defineConfig({
         },
         'src/pages/payments/Pricing.tsx': { statements: 100, lines: 100 },
         'src/utils/apiErrorMessage.ts': { statements: 100, lines: 100 },
+        'src/utils/planFeatures.ts': { statements: 100, lines: 100 },
         'src/utils/format.ts': { statements: 100, lines: 100 },
         'src/hooks/useCreatePostMutation.ts': { statements: 85, lines: 85 },
         'src/components/admin/ReportsTab.tsx': { statements: 55, lines: 55 },

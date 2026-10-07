@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { ArrowDownLeft, ArrowUpRight, Coins, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
@@ -15,11 +16,23 @@ interface Transaction {
   createdAt: string;
   description?: string;
   amount?: number;
+  currency?: string;
 }
 
 interface MonetizationData {
   userId: string;
   lifetimeEarningsCents: number;
+}
+
+// What a transaction was, in the reader's language. The stored description
+// is technical (it carries payment ids) and in English, so it is only used
+// for a type the app has no text for.
+function transactionLabel(tx: Transaction, t: TFunction): string {
+  return (
+    t(`creator.income.tx_types.${tx.type}`, { defaultValue: '' }) ||
+    tx.description ||
+    tx.type.replace(/_/g, ' ')
+  );
 }
 
 // Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet.
@@ -172,7 +185,7 @@ export default function MonetizationDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {tx.description || tx.type.replace(/_/g, ' ')}
+                      {transactionLabel(tx, t)}
                     </p>
                     <p className="text-[11px] text-white/40">
                       {formatDate(tx.createdAt, i18n.language)}
@@ -185,7 +198,7 @@ export default function MonetizationDashboard() {
                   }`}
                 >
                   {isIncoming ? '+' : '-'}
-                  {formatCents(cents, i18n.language)}
+                  {formatCents(cents, i18n.language, tx.currency || 'EUR')}
                 </span>
               </div>
             );

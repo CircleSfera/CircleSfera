@@ -200,6 +200,39 @@ describe('MonetizationDashboard', () => {
     expect(screen.getAllByText('€0.00')).toHaveLength(2);
   });
 
+  it('names each kind of transaction in the app language, not with the stored technical text', async () => {
+    const tx = (id: string, type: string, description: string) => ({
+      id,
+      type,
+      description,
+      amountCents: 300,
+      currency: 'EUR',
+      receiverId: 'user-1',
+      createdAt: new Date('2026-01-01').toISOString(),
+    });
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        tx('t1', 'DIRECT_POST_UNLOCK', 'Direct Post Unlock (Intent: pi_123)'),
+        tx('t2', 'DIRECT_TIP', 'Creator Tip (Intent: pi_456)'),
+        tx('t3', 'STRIPE_SUBSCRIPTION', 'User u1 subscribed to plan p1'),
+      ],
+    });
+
+    const english = renderDashboard();
+    expect(await screen.findByText('Post unlock')).toBeInTheDocument();
+    expect(screen.getByText('Tip')).toBeInTheDocument();
+    expect(screen.getByText('Subscription')).toBeInTheDocument();
+    expect(screen.queryByText(/Intent|pi_|subscribed/)).not.toBeInTheDocument();
+    english.unmount();
+
+    renderWithProviders(<MonetizationDashboard />, { lng: 'es' });
+    expect(
+      await screen.findByText('Desbloqueo de publicación'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Propina')).toBeInTheDocument();
+    expect(screen.getByText('Suscripción')).toBeInTheDocument();
+  });
+
   it('shows an empty state when there are no transactions', async () => {
     const { i18n } = renderDashboard();
 

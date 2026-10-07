@@ -25,6 +25,7 @@ import {
   isIdentityVerificationRequired,
 } from '../../utils/apiErrorMessage';
 import { formatCents } from '../../utils/money';
+import { planFeatureLabel } from '../../utils/planFeatures';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import { Button } from '../ui';
 import CreatorPpvIncome from './CreatorPpvIncome';
@@ -374,7 +375,7 @@ export default function CreatorMonetizationTab({
                             size={14}
                             className="text-brand-primary shrink-0"
                           />
-                          <span>{feature.replace(/_/g, ' ')}</span>
+                          <span>{planFeatureLabel(feature, t)}</span>
                         </li>
                       ))}
                     </ul>
