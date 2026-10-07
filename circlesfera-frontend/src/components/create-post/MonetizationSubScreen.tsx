@@ -73,7 +73,7 @@ export default function MonetizationSubScreen({
                   setPrice(Number.parseFloat(e.target.value) || 0)
                 }
                 placeholder="5.00"
-                className="w-full min-h-10 h-10 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
+                className="w-full min-h-12 h-12 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
               />
             </div>
 

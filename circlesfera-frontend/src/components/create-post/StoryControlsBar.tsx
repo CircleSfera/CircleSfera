@@ -15,7 +15,7 @@ interface StoryControlsBarProps {
 }
 
 const pill =
-  'flex items-center gap-1.5 h-9 px-3.5 rounded-full text-[13px] font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50';
+  'flex items-center gap-1.5 h-11 px-3.5 rounded-full text-[13px] font-semibold transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50';
 
 export default function StoryControlsBar({
   onOpenMusic,
@@ -124,7 +124,7 @@ export default function StoryControlsBar({
           onClick={onManageCloseFriends}
           aria-label={t('createPost.story.manage_close_friends')}
           title={t('createPost.story.manage_close_friends')}
-          className="flex items-center justify-center min-w-9 w-9 h-9 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+          className="flex items-center justify-center min-w-11 w-11 h-11 rounded-full bg-white/10 text-white hover:bg-white/20 border border-white/10 transition-all shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
         >
           <UserPlus size={15} />
         </button>

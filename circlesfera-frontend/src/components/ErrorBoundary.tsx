@@ -62,14 +62,14 @@ export default class ErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleReset}
-                className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium"
+                className="px-4 py-2 min-h-11 rounded-lg bg-white/10 hover:bg-white/20 transition-colors text-sm font-medium"
               >
                 {i18n.t('common.try_again')}
               </button>
               <button
                 type="button"
                 onClick={() => window.location.reload()}
-                className="px-4 py-2 rounded-lg bg-brand-primary hover:bg-brand-primary/80 transition-colors text-sm font-medium"
+                className="px-4 py-2 min-h-11 rounded-lg bg-brand-primary hover:bg-brand-primary/80 transition-colors text-sm font-medium"
               >
                 {i18n.t('common.reload_page')}
               </button>

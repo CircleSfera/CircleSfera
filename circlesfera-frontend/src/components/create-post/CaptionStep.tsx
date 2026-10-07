@@ -124,7 +124,7 @@ export default function CaptionStep({
             e.stopPropagation();
             onClearAudio();
           }}
-          className="p-1.5 min-h-9 min-w-9 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
+          className="p-1.5 min-h-11 min-w-11 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('createPost.caption.clear_music')}
         >
           <X size={14} className="text-white/40 hover:text-white/70" />

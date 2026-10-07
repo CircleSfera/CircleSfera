@@ -83,7 +83,7 @@ export default function InteractiveSubScreen({
               key={item.id}
               type="button"
               onClick={() => setKind(item.id)}
-              className={`flex-1 min-h-9 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+              className={`flex-1 min-h-11 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 kind === item.id
                   ? 'bg-white/12 text-white'
                   : 'text-white/45 hover:text-white/70'
@@ -100,19 +100,19 @@ export default function InteractiveSubScreen({
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('createPost.interactive.poll_question')}
-              className="!h-10 !rounded-lg !px-3"
+              className="!h-12 !rounded-lg !px-3"
             />
             <Input
               value={option1}
               onChange={(e) => setOption1(e.target.value)}
               placeholder={t('createPost.interactive.option_a')}
-              className="!h-10 !rounded-lg !px-3"
+              className="!h-12 !rounded-lg !px-3"
             />
             <Input
               value={option2}
               onChange={(e) => setOption2(e.target.value)}
               placeholder={t('createPost.interactive.option_b')}
-              className="!h-10 !rounded-lg !px-3"
+              className="!h-12 !rounded-lg !px-3"
             />
           </div>
         )}
@@ -122,14 +122,14 @@ export default function InteractiveSubScreen({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('createPost.interactive.qna_prompt')}
-            className="!h-10 !rounded-lg !px-3"
+            className="!h-12 !rounded-lg !px-3"
           />
         )}
 
         <button
           type="button"
           onClick={save}
-          className="w-full h-10 rounded-lg bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-sm shadow-md shadow-brand-primary/20 hover:opacity-95 active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+          className="w-full h-11 rounded-lg bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-sm shadow-md shadow-brand-primary/20 hover:opacity-95 active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
         >
           {t('createPost.interactive.save')}
         </button>

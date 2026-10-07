@@ -242,7 +242,6 @@ export default function MusicSubScreen({
             trimTrack ? t('modals.audio.trim_title') : t('modals.audio.title')
           }
           onClose={trimTrack ? handleBackFromTrim : onClose}
-          closeIcon={trimTrack ? 'back' : 'close'}
         />
         <div className="flex flex-col flex-1 min-h-0 relative">
           {trimTrack ? (
@@ -347,7 +346,7 @@ export default function MusicSubScreen({
                     <button
                       type="button"
                       onClick={handleClearSelection}
-                      className="w-full px-4 py-2 min-h-10 text-[13px] font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center transition shrink-0"
+                      className="w-full px-4 py-2 min-h-11 text-[13px] font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center transition shrink-0"
                     >
                       {t('modals.audio.clear_selection')}
                     </button>
@@ -433,7 +432,7 @@ export default function MusicSubScreen({
                             e.stopPropagation();
                             openTrim(audio);
                           }}
-                          className={`px-3.5 py-1.5 min-h-8 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
+                          className={`px-3.5 py-1.5 min-h-11 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
                             isSelected
                               ? 'bg-white text-black'
                               : 'bg-white/10 hover:bg-white/20 text-white'

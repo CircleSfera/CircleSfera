@@ -173,7 +173,7 @@ export default function EditStep({
 
             <button
               type="button"
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 h-10 min-h-10
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 h-11 min-h-11
                        bg-black/60 border border-white/15 rounded-full
                        text-white shadow-lg active:scale-95 transition-transform
                        outline-none focus-visible:ring-2 focus-visible:ring-white/30"
@@ -223,7 +223,7 @@ export default function EditStep({
                   aria-selected={isActive}
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative flex-1 min-h-10 px-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="relative flex-1 min-h-11 px-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
                   {isActive && (
                     <motion.div
@@ -257,7 +257,7 @@ export default function EditStep({
 
       <div
         ref={thumbnailContainerRef}
-        className="min-h-16 bg-surface-elevated border-t border-white/8 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
+        className="min-h-18 bg-surface-elevated border-t border-white/8 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
       >
         <AnimatePresence>
           {mediaFiles.map((item, idx) => {
@@ -276,7 +276,7 @@ export default function EditStep({
               >
                 <button
                   type="button"
-                  className={`h-12 w-auto rounded overflow-hidden border-2 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                  className={`h-14 w-auto min-w-11 rounded overflow-hidden border-2 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                     isSelected
                       ? 'border-brand-primary shadow-[0_0_0_1px_rgba(136,76,255,0.35)]'
                       : 'border-white/10 hover:border-white/25'
@@ -340,7 +340,7 @@ export default function EditStep({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-12 w-auto rounded border-2 border-dashed border-white/10
+            className="h-14 w-auto min-w-11 rounded border-2 border-dashed border-white/10
                      flex items-center justify-center text-white/35 hover:text-white/55
                      hover:border-white/20 hover:bg-white/4 transition-all shrink-0
                      outline-none focus-visible:ring-2 focus-visible:ring-white/20"
