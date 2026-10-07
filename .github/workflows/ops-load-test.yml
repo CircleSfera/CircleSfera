@@ -1,0 +1,155 @@
+name: Ops — backend load test
+
+# Runs the k6 load test (login, feed, post and chat) against a backend started
+# inside this job, on its own empty Postgres and Redis. It never touches
+# production or real users' data. Run it by hand before a major launch and
+# link the result in Notion → Quality; it also runs, with a short profile, on
+# pull requests that change the load test itself.
+on:
+  workflow_dispatch:
+    inputs:
+      vus:
+        description: Peak virtual users
+        default: '20'
+      duration:
+        description: Time held at the peak (for example 2m)
+        default: '2m'
+  pull_request:
+    branches: [main]
+    paths:
+      - load-tests/**
+      - .github/workflows/ops-load-test.yml
+
+concurrency:
+  group: load-test-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: "--no-deprecation"
+  K6_VERSION: v2.3.0
+  K6_SHA256: 39c3117b6af817592dcd0ce4242105c0a7af10948c2a425306f0be8f7a8a8ab1
+
+permissions:
+  contents: read
+
+jobs:
+  load-test:
+    name: Backend load test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
+        env:
+          POSTGRES_USER: prisma
+          POSTGRES_PASSWORD: prisma
+          POSTGRES_DB: circlesfera_load
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U prisma -d circlesfera_load"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://prisma:prisma@localhost:5432/circlesfera_load
+      REDIS_HOST: localhost
+      REDIS_PORT: 6379
+      NODE_ENV: test
+      PORT: 3005
+      JWT_SECRET: ci-load-jwt-secret-not-for-production-use-only-testing-1234567890
+      JWT_REFRESH_SECRET: ci-load-refresh-secret-not-for-production-use-only-testing-0987654321
+      CSRF_SECRET: ci-load-csrf-secret-not-for-production-use-only-testing-abcdefghijklmno
+      ENCRYPTION_KEY: test-encryption-key-32-characters!!
+      ABUSE_HASH_PEPPER: ci-load-abuse-hash-pepper-not-for-production-use!!
+      STRIPE_SECRET_KEY: sk_test_dummy
+      STRIPE_WEBHOOK_SECRET: whsec_dummy
+      CORS_ORIGIN: http://localhost:5173
+      # Every virtual user shares the runner's address, so the per-address
+      # request limits are raised for this disposable backend only.
+      THROTTLE_SHORT_LIMIT: 100000
+      THROTTLE_MEDIUM_LIMIT: 1000000
+      THROTTLE_LONG_LIMIT: 10000000
+      THROTTLE_AUTH_LIMIT: 100000
+      API_URL: http://localhost:3005/api/v1
+      LOAD_TEST_PASSWORD: ci-load-test-password-not-a-real-account-1A!
+      LOAD_TEST_ACCOUNTS: 10
+      LOAD_TEST_VUS: ${{ inputs.vus || '5' }}
+      LOAD_TEST_DURATION: ${{ inputs.duration || '30s' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: "Shared: Install and Build"
+        run: |
+          cd circlesfera-shared
+          npm ci
+          npm run build
+
+      - name: "Backend: Install, Migrate and Build"
+        run: |
+          cd circlesfera-backend
+          npm ci
+          npx prisma generate
+          npx prisma migrate deploy
+          npm run build
+
+      - name: Start backend in background
+        run: |
+          cd circlesfera-backend
+          nohup node dist/main.js > /tmp/backend.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl -sf "http://localhost:3005/api/v1/health" >/dev/null; then
+              echo "Backend is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend failed to start in time."
+          cat /tmp/backend.log
+          exit 1
+
+      - name: Install k6
+        run: |
+          archive="k6-${K6_VERSION}-linux-amd64.tar.gz"
+          curl -sSfL -o "/tmp/$archive" \
+            "https://github.com/grafana/k6/releases/download/${K6_VERSION}/$archive"
+          echo "${K6_SHA256}  /tmp/$archive" | sha256sum --check
+          tar -xzf "/tmp/$archive" -C /tmp
+          sudo install "/tmp/k6-${K6_VERSION}-linux-amd64/k6" /usr/local/bin/k6
+          k6 version
+
+      - name: Create the load-test accounts
+        run: load-tests/create-accounts.sh
+
+      - name: Run the load test
+        run: k6 run --summary-export=/tmp/k6-summary.json load-tests/api-load.js
+
+      - name: Dump backend log on failure
+        if: failure()
+        run: tail -n 200 /tmp/backend.log || true
+
+      - name: Upload the k6 summary
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: k6-summary
+          path: /tmp/k6-summary.json
+          retention-days: 30
+          if-no-files-found: ignore
