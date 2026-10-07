@@ -15,6 +15,8 @@ export enum ErrorCode {
   CANNOT_BLOCK_SELF = 'CANNOT_BLOCK_SELF',
   CANNOT_MUTE_SELF = 'CANNOT_MUTE_SELF',
   FOLLOW_REQUEST_NOT_FOUND = 'FOLLOW_REQUEST_NOT_FOUND',
+  // Staff: another admin already claimed the report; details carry who.
+  REPORT_ALREADY_CLAIMED = 'REPORT_ALREADY_CLAIMED',
   // A per-Profile cap on follows, message requests or comments was reached;
   // details carry the action and when it can be retried.
   ACTION_LIMIT_REACHED = 'ACTION_LIMIT_REACHED',

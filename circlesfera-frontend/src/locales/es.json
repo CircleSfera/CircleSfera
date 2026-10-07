@@ -2309,7 +2309,8 @@
       "take_over": "Tomar",
       "toast_reassigned": "Reporte reasignado",
       "toast_reassign_error": "No se pudo reasignar",
-      "open_user": "Abrir en Usuarios"
+      "open_user": "Abrir en Usuarios",
+      "select_report": "Seleccionar la denuncia sobre @{{author}}"
     },
     "monetization": {
       "title": "Monetización",
