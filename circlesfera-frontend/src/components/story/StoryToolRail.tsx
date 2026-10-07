@@ -64,7 +64,7 @@ export default function StoryToolRail({
 
   return (
     <div
-      className="shrink-0 z-40 px-1.5 pt-1 pb-1"
+      className="shrink-0 z-40 px-4 pt-1 pb-1"
       role="toolbar"
       aria-label={t('createPost.storyComposer.tools')}
     >

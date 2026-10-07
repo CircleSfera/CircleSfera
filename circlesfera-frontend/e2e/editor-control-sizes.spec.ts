@@ -125,7 +125,7 @@ test.describe('Post composer', () => {
     'Añadir Ubicación',
     'Etiquetar Personas',
     'Añadir Música',
-    'Añadir encuesta o Q&A',
+    'Añadir encuesta o preguntas',
     'Monetización',
     'Accesibilidad',
     'Ajustes Avanzados',

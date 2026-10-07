@@ -1256,14 +1256,14 @@
   "createPost": {
     "accessibility": {
       "title": "Accessibility",
-      "subtitle": "Optimize for screen readers",
+      "subtitle": "For people who use a screen reader",
       "done": "Done",
-      "info": "Alt text describes your photos for people with visual impairments. CircleSfera can help you generate them using our proprietary AI.",
-      "info_video": "Describe this video for people who cannot see or hear it. CircleSfera does not auto-generate video descriptions yet.",
+      "info": "Alt text describes your photos to people who cannot see them. Write it yourself or generate it.",
+      "info_video": "Describe this video for people who cannot see or hear it. Video descriptions are written by hand for now.",
       "placeholder": "Write alt text...",
       "placeholder_video": "Describe this video…",
       "generating": "Generating...",
-      "magic_ai": "Magic AI"
+      "magic_ai": "Generate"
     },
     "preview": {
       "play": "Play",
@@ -1297,7 +1297,7 @@
       "hide_like_view": "Hide like and view counts",
       "hide_like_view_desc": "Only you will see the total number of likes and views on this post.",
       "turn_off_comments": "Turn off commenting",
-      "turn_off_comments_desc": "You can change this later by going to the ... menu at the top of your post.",
+      "turn_off_comments_desc": "You can change this later from the post's menu.",
       "mark_sensitive": "Mark as sensitive content",
       "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
       "price_eur": "Price (EUR)"
@@ -1372,7 +1372,7 @@
       "back": "Back"
     },
     "interactive": {
-      "title": "Interactive",
+      "title": "Poll or Q&A",
       "none": "None",
       "poll": "Poll",
       "qna": "Q&A",
@@ -1411,10 +1411,10 @@
       "suggested": "Suggested Location",
       "not_found": "No locations found",
       "try_different": "Try searching for a different city or region.",
-      "token_missing": "Mapbox token missing. Set VITE_MAPBOX_ACCESS_TOKEN to search places.",
+      "token_missing": "Place search is not available right now.",
       "retrieve_failed": "Could not resolve that place. Try another result.",
       "clear": "Clear",
-      "mapbox_hint": "Search powered by Mapbox. Pick a place to attach coordinates to your post."
+      "mapbox_hint": "Pick a place to add it to your post. Places by Mapbox."
     },
     "upload": {
       "post": "Post",

@@ -49,7 +49,7 @@ export default function StudioPlaybackControls() {
   };
 
   return (
-    <div className="min-h-14 bg-surface-base/80 border-t border-white/5 shrink-0 flex items-center justify-between px-2 sm:px-6 z-20">
+    <div className="min-h-14 bg-surface-base/80 border-t border-white/5 shrink-0 flex items-center justify-between px-4 sm:px-6 z-20">
       <div className="w-16 sm:w-32 shrink-0">
         <span className="font-mono text-xs sm:text-sm text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
           {formatTimecode(playhead)}

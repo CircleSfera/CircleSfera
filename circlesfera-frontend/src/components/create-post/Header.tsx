@@ -1,5 +1,5 @@
-import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import EditorHeader, { EditorHeaderAction } from './EditorHeader';
 
 interface HeaderProps {
   onBack: () => void;
@@ -10,6 +10,7 @@ interface HeaderProps {
   canNext: boolean;
 }
 
+/** Top bar of the composer steps: back, the step title and next or share. */
 export default function Header({
   onBack,
   onNext,
@@ -22,40 +23,23 @@ export default function Header({
   const isShare = nextLabel === t('createPost.header.share');
 
   return (
-    <header className="px-3 min-h-13 py-1 z-30 shrink-0 flex justify-between items-center gap-2.5 bg-linear-to-b from-black/60 via-surface-elevated/95 to-transparent border-b border-white/8">
-      <button
-        type="button"
-        onClick={onBack}
-        className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 shrink-0"
-        aria-label={t('createPost.header.back')}
-      >
-        <ChevronLeft size={16} strokeWidth={2} />
-      </button>
-
-      <h1
-        className="font-semibold text-sm tracking-tight text-white truncate max-w-full flex-1 text-center px-1"
-        id="create-composer-title"
-      >
-        {title}
-      </h1>
-
-      <button
-        type="button"
-        onClick={onNext}
-        disabled={isPending || !canNext || !nextLabel}
-        className={`
-          min-w-14 min-h-11 px-3 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-200 shrink-0
-          disabled:opacity-30 disabled:cursor-not-allowed active:scale-95
-          outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50
-          ${
-            isShare
-              ? 'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-md shadow-brand-primary/20'
-              : 'text-brand-primary hover:text-white hover:bg-brand-primary/15 border border-brand-primary/35'
-          }
-        `}
-      >
-        {isPending ? <Loader2 size={14} className="animate-spin" /> : nextLabel}
-      </button>
-    </header>
+    <EditorHeader
+      leading="back"
+      leadingLabel={t('createPost.header.back')}
+      onLeading={onBack}
+      title={title}
+      titleId="create-composer-title"
+      trailing={
+        nextLabel ? (
+          <EditorHeaderAction
+            label={nextLabel}
+            onClick={onNext}
+            kind={isShare ? 'final' : 'step'}
+            disabled={!canNext}
+            isPending={isPending}
+          />
+        ) : null
+      }
+    />
   );
 }
