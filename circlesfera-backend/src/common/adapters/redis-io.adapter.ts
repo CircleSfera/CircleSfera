@@ -99,7 +99,12 @@ export class RedisIoAdapter extends IoAdapter {
         credentials: true,
       },
     };
-    const server = super.createIOServer(port, mergedOptions) as Server;
+    // Partial options are what socket.io expects: it fills in the rest
+    // (path, transports...) with its defaults.
+    const server = super.createIOServer(
+      port,
+      mergedOptions as ServerOptions,
+    ) as Server;
     if (this.adapterConstructor) {
       server.adapter(this.adapterConstructor);
       this.logger.debug('Redis adapter attached to IO server.');
