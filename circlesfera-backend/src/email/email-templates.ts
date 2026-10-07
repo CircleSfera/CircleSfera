@@ -7,8 +7,8 @@ import { EMAIL_COPY, type EmailCopy, escapeHtml, fill } from './email-copy.js';
 // solid colour behind every gradient for clients that drop gradients.
 
 const BRAND = {
-  primary: '#8c52ff',
-  gradient: 'linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)',
+  primary: '#884cff',
+  gradient: 'linear-gradient(90deg, #ff5757 0%, #884cff 100%)',
   surfaceBase: '#030303',
   surfaceElevated: '#0a0a0a',
   surfaceRaised: '#1c1c1c',
