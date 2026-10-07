@@ -47,6 +47,40 @@ import {
   upsertSentMessage,
 } from './mergeChatMessages';
 
+// Frequent emojis for the message box; phones already have their own keyboard.
+const MESSAGE_EMOJIS = [
+  '😀',
+  '😂',
+  '🥰',
+  '😍',
+  '😘',
+  '😎',
+  '🤔',
+  '😅',
+  '😢',
+  '😭',
+  '😡',
+  '😮',
+  '👍',
+  '👎',
+  '👏',
+  '🙏',
+  '💪',
+  '🙌',
+  '❤️',
+  '🔥',
+  '✨',
+  '🎉',
+  '💯',
+  '👀',
+  '😴',
+  '🤗',
+  '😉',
+  '🤣',
+  '💔',
+  '✅',
+];
+
 export default function ChatWindow() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
@@ -79,6 +113,8 @@ export default function ChatWindow() {
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
+  const [lockPriceInvalid, setLockPriceInvalid] = useState(false);
+  const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -528,6 +564,18 @@ export default function ChatWindow() {
     };
   }, [id, chatInfo.otherProfileId, chatInfo.isGroup, isTyping, stopTyping]);
 
+  // Puts the emoji where the cursor is and leaves the cursor after it.
+  const insertEmoji = (emoji: string) => {
+    const box = inputRef.current;
+    const start = box?.selectionStart ?? input.length;
+    const end = box?.selectionEnd ?? input.length;
+    setInput(input.slice(0, start) + emoji + input.slice(end));
+    requestAnimationFrame(() => {
+      box?.focus();
+      box?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
+
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
@@ -733,7 +781,15 @@ export default function ChatWindow() {
     const doSend = async () => {
       try {
         if (editingMessage) {
-          await chatApi.editMessage(editingMessage.id, plaintext);
+          // The live event brings the same message; applying the answer
+          // keeps the text right when the live connection is down.
+          const res = await chatApi.editMessage(editingMessage.id, plaintext);
+          const edited = res.data;
+          if (edited?.id) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === edited.id ? edited : m)),
+            );
+          }
         } else {
           const res = await chatApi.sendMessage({
             conversationId: id,
@@ -770,6 +826,7 @@ export default function ChatWindow() {
     setEditingMessage(null);
     setLockedPrice(null);
     setLockPriceDraft('5.00');
+    setIsEmojiPanelOpen(false);
     setIsTyping(false);
     if (!chatInfo.isGroup && chatInfo.otherProfileId) {
       stopTyping(id, chatInfo.otherProfileId);
@@ -1391,11 +1448,38 @@ export default function ChatWindow() {
                           max={MAX_PPV_PRICE_EUR}
                           step="0.50"
                           value={lockPriceDraft}
-                          onChange={(e) => setLockPriceDraft(e.target.value)}
+                          onChange={(e) => {
+                            setLockPriceDraft(e.target.value);
+                            setLockPriceInvalid(false);
+                          }}
+                          aria-invalid={lockPriceInvalid}
+                          aria-describedby={
+                            lockPriceInvalid
+                              ? 'lock-message-price-error'
+                              : undefined
+                          }
                           placeholder="5.00"
                           className="w-full min-h-11 h-11 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
                         />
                       </div>
+                      {lockPriceInvalid && (
+                        <p
+                          id="lock-message-price-error"
+                          role="alert"
+                          className="text-xs text-red-400"
+                        >
+                          {t('chat.lock_message_range_error', {
+                            min: formatCents(
+                              MIN_PPV_PRICE_EUR * 100,
+                              i18n.language,
+                            ),
+                            max: formatCents(
+                              MAX_PPV_PRICE_EUR * 100,
+                              i18n.language,
+                            ),
+                          })}
+                        </p>
+                      )}
                       <p className="text-[11px] text-white/40">
                         {t('chat.lock_message_hint')}
                       </p>
@@ -1404,6 +1488,7 @@ export default function ChatWindow() {
                           type="button"
                           onClick={() => {
                             setLockedPrice(null);
+                            setLockPriceInvalid(false);
                             setIsLockPopoverOpen(false);
                           }}
                           className="flex-1 min-h-10 h-10 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -1419,8 +1504,10 @@ export default function ChatWindow() {
                               euros < MIN_PPV_PRICE_EUR ||
                               euros > MAX_PPV_PRICE_EUR
                             ) {
+                              setLockPriceInvalid(true);
                               return;
                             }
+                            setLockPriceInvalid(false);
                             setLockedPrice(Math.round(euros * 100));
                             setIsLockPopoverOpen(false);
                           }}
@@ -1454,6 +1541,37 @@ export default function ChatWindow() {
                 placeholder={t('chat.type_message')}
               />
 
+              <div className="relative shrink-0 mb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEmojiPanelOpen((open) => !open)}
+                  aria-label={t('chat.add_emoji')}
+                  aria-expanded={isEmojiPanelOpen}
+                  className={`p-3 rounded-full transition-colors ${
+                    isEmojiPanelOpen
+                      ? 'text-brand-primary bg-brand-primary/15'
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <Smile size={22} strokeWidth={1.5} />
+                </button>
+                {isEmojiPanelOpen && (
+                  <fieldset className="absolute bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-2 grid grid-cols-6 z-20">
+                    <legend className="sr-only">{t('chat.emoji_panel')}</legend>
+                    {MESSAGE_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => insertEmoji(emoji)}
+                        className="h-11 w-11 flex items-center justify-center rounded-lg text-xl hover:bg-white/10 transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </fieldset>
+                )}
+              </div>
+
               {input.trim() || isUploading ? (
                 <motion.button
                   type="submit"
@@ -1474,12 +1592,6 @@ export default function ChatWindow() {
                     aria-label={t('chat.record_voice')}
                   >
                     <Mic size={22} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Smile size={22} strokeWidth={1.5} />
                   </button>
                 </div>
               )}

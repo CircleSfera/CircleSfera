@@ -597,8 +597,10 @@ describe('ChatWindow', () => {
       ).toBeInTheDocument();
     });
 
-    it('edits a message instead of sending a new one', async () => {
-      vi.mocked(chatApi.editMessage).mockResolvedValue({} as never);
+    it('edits a message instead of sending a new one, without waiting for the live event', async () => {
+      vi.mocked(chatApi.editMessage).mockResolvedValue({
+        data: { ...message('m2', 'me', 'qué tal estás'), isEdited: true },
+      } as never);
       const i18n = await renderLoadedChat();
 
       fireEvent.click(screen.getByRole('button', { name: 'edit m2' }));
@@ -612,16 +614,36 @@ describe('ChatWindow', () => {
       typeMessage(i18n, 'qué tal estás');
       send(i18n);
 
-      await waitFor(() =>
-        expect(chatApi.editMessage).toHaveBeenCalledWith('m2', 'qué tal estás'),
-      );
+      expect(await screen.findByText('qué tal estás')).toBeInTheDocument();
+      expect(chatApi.editMessage).toHaveBeenCalledWith('m2', 'qué tal estás');
       expect(chatApi.sendMessage).not.toHaveBeenCalled();
       expect(screen.getAllByTestId(/^message-/)).toHaveLength(2);
+    });
 
+    it('keeps the old text when the edit is refused', async () => {
+      vi.mocked(chatApi.editMessage).mockRejectedValue(new Error('down'));
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(screen.getByRole('button', { name: 'edit m2' }));
+      typeMessage(i18n, 'no se guarda');
+      send(i18n);
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(i18n.t('chat.send_error')),
+      );
+      expect(screen.getByText('qué tal')).toBeInTheDocument();
+    });
+
+    it('shows a message edited by the other person as it arrives', async () => {
+      await renderLoadedChat();
+
+      emit('message_edited', message('m1', 'p2', 'hola a todos'));
       emit('message_edited', {
-        ...message('m2', 'me', 'qué tal estás'),
+        ...message('m1', 'p2', 'otra conversación'),
+        conversationId: 'c2',
       });
-      expect(screen.getByText('qué tal estás')).toBeInTheDocument();
+
+      expect(screen.getByText('hola a todos')).toBeInTheDocument();
     });
 
     it('leaves editing without changing the message', async () => {
@@ -960,6 +982,12 @@ describe('ChatWindow', () => {
 
         await lockAt(i18n, price);
 
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          i18n.t('chat.lock_message_range_error', {
+            min: '€3.00',
+            max: '€500.00',
+          }),
+        );
         const chipStart = i18n
           .t('chat.locked_chip_label', { price: '' })
           .trim();
@@ -973,6 +1001,19 @@ describe('ChatWindow', () => {
         ).toBeInTheDocument();
       },
     );
+
+    it('clears the price warning once the price is changed', async () => {
+      const i18n = await renderLoadedChat();
+      await lockAt(i18n, '1');
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+
+      fireEvent.change(
+        screen.getByLabelText(i18n.t('chat.lock_message_price_label')),
+        { target: { value: '10' } },
+      );
+
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
 
     it('removes the lock from the chip or from the price box', async () => {
       const i18n = await renderLoadedChat();
@@ -1049,6 +1090,61 @@ describe('ChatWindow', () => {
         ),
       );
       expect(chatApi.getMessages).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('emojis', () => {
+    it('puts the chosen emoji where the cursor is and keeps the panel open', async () => {
+      const i18n = await renderLoadedChat();
+      const box = screen.getByPlaceholderText(
+        i18n.t('chat.type_message'),
+      ) as HTMLTextAreaElement;
+      typeMessage(i18n, 'hola');
+      box.setSelectionRange(2, 2);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('chat.add_emoji') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '🎉' }));
+
+      expect(box).toHaveValue('ho🎉la');
+      expect(
+        screen.getByRole('group', { name: i18n.t('chat.emoji_panel') }),
+      ).toBeInTheDocument();
+    });
+
+    it('adds an emoji to an empty message and sends it', async () => {
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('chat.add_emoji') }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: '❤️' }));
+      send(i18n);
+
+      await waitFor(() =>
+        expect(chatApi.sendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({ content: '❤️' }),
+        ),
+      );
+      expect(
+        screen.queryByRole('group', { name: i18n.t('chat.emoji_panel') }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('closes the panel from its button', async () => {
+      const i18n = await renderLoadedChat();
+      const toggle = screen.getByRole('button', {
+        name: i18n.t('chat.add_emoji'),
+      });
+
+      fireEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      fireEvent.click(toggle);
+
+      expect(
+        screen.queryByRole('group', { name: i18n.t('chat.emoji_panel') }),
+      ).not.toBeInTheDocument();
     });
   });
 
