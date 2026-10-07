@@ -125,9 +125,9 @@ export default defineConfig({
       // lowered, until the 80% global target is met.
       thresholds: {
         statements: 28,
-        lines: 28,
+        lines: 29,
         branches: 27,
-        functions: 24,
+        functions: 25,
         // Critical paths: the API client (session renewal, CSRF), the
         // session guards and passkeys, the account recovery pages, creator
         // payouts and appeal review.
@@ -160,6 +160,7 @@ export default defineConfig({
           lines: 100,
         },
         'src/utils/format.ts': { statements: 100, lines: 100 },
+        'src/hooks/useCreatePostMutation.ts': { statements: 85, lines: 85 },
       },
     },
   },

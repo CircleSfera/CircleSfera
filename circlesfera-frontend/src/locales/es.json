@@ -1438,7 +1438,9 @@
       "take_photo": "Tomar una foto",
       "create_text_story": "Crear Historia de Texto",
       "create_text_story_desc": "Fondos, texto y stickers",
-      "mode_switcher": "Tipo de contenido"
+      "mode_switcher": "Tipo de contenido",
+      "edit_export_error": "No se pudo aplicar la edición al archivo. Inténtalo de nuevo.",
+      "publish_failed": "No se pudo publicar. Inténtalo de nuevo."
     },
     "storyComposer": {
       "close": "Cerrar",

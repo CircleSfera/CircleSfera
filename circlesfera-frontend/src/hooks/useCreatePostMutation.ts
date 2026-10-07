@@ -52,6 +52,9 @@ interface MutationDeps {
   setShowFrameTrim: (val: boolean) => void;
 }
 
+// A media edit (filter, crop, trim, overlay) that could not be applied.
+class EditExportError extends Error {}
+
 export function useCreatePostMutation(deps: MutationDeps) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -153,9 +156,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
           };
         } catch (e) {
           logger.error('Error exporting file, failing submission', e);
-          throw new Error(
-            'No se pudo procesar la edición del archivo. Por favor, inténtalo de nuevo.',
-          );
+          throw new EditExportError('edit export failed');
         }
       });
 
@@ -236,12 +237,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
             }
           } catch (qnaError) {
             logger.error('Failed to create story QnA:', qnaError);
-            toast.error(
-              t(
-                'createPost.story.qna_create_error',
-                'Story published, but Q&A could not be created.',
-              ),
-            );
+            toast.error(t('createPost.story.qna_create_error'));
           }
         }
       } else {
@@ -297,12 +293,16 @@ export function useCreatePostMutation(deps: MutationDeps) {
         navigate('/');
       }
     } catch (error: unknown) {
+      // Upload and server errors carry technical, untranslated text: show
+      // the app's own message instead.
       logger.error('Error creating content:', error);
-      const message =
-        error instanceof Error
-          ? error.message
-          : 'Failed to create content. Please try again.';
-      toast.error(message);
+      toast.error(
+        t(
+          error instanceof EditExportError
+            ? 'createPost.upload.edit_export_error'
+            : 'createPost.upload.publish_failed',
+        ),
+      );
     } finally {
       deps.setIsProcessingEdit(false);
     }
