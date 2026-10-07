@@ -94,7 +94,7 @@ export class CreatePromotionUseCase {
     const session = await this.stripeService.createCheckoutSession({
       customer: user.stripeCustomerId || undefined,
       customer_email: user.stripeCustomerId ? undefined : user.email,
-      payment_method_types: ['card'],
+      ...this.stripeService.cardOnlyPaymentMethods(),
       line_items: [
         {
           price_data: {

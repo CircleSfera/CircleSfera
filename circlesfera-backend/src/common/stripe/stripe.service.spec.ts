@@ -132,3 +132,47 @@ describe('StripeService.listSubscriptionsForCustomer', () => {
     ).resolves.toEqual([]);
   });
 });
+
+describe('StripeService card-only payment methods', () => {
+  const serviceWith = (env: Record<string, string | undefined>) =>
+    new StripeService({
+      get: vi.fn(
+        (key: string) => ({ STRIPE_SECRET_KEY: 'sk_test_dummy', ...env })[key],
+      ),
+    } as unknown as ConfigService);
+  const prod = {
+    NODE_ENV: 'production',
+    STRIPE_SECRET_KEY: 'sk_live_fake',
+    STRIPE_WEBHOOK_SECRET: 'whsec_fake',
+  };
+
+  it('limits one-off checkouts to the card-only configuration', () => {
+    const service = serviceWith({
+      STRIPE_PAYMENT_METHOD_CONFIGURATION: ' pmc_1AbC2dEf ',
+    });
+    expect(service.cardOnlyPaymentMethods()).toEqual({
+      payment_method_configuration: 'pmc_1AbC2dEf',
+    });
+  });
+
+  it('ignores a missing or malformed id outside production', () => {
+    expect(serviceWith({}).cardOnlyPaymentMethods()).toEqual({});
+    expect(
+      serviceWith({
+        STRIPE_PAYMENT_METHOD_CONFIGURATION: 'card',
+      }).cardOnlyPaymentMethods(),
+    ).toEqual({});
+  });
+
+  it('refuses to start in production without a valid configuration', () => {
+    expect(() => serviceWith(prod).onModuleInit()).toThrow(
+      /STRIPE_PAYMENT_METHOD_CONFIGURATION/,
+    );
+    expect(() =>
+      serviceWith({
+        ...prod,
+        STRIPE_PAYMENT_METHOD_CONFIGURATION: 'pmc_1AbC2dEf',
+      }).onModuleInit(),
+    ).not.toThrow();
+  });
+});

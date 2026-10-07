@@ -174,7 +174,7 @@ export class LiveGiftService {
 
         const session = await this.stripeService.createCheckoutSession(
           {
-            payment_method_types: ['card'],
+            ...this.stripeService.cardOnlyPaymentMethods(),
             mode: 'payment',
             customer_email: sender.email,
             client_reference_id: senderId,

@@ -46,6 +46,9 @@ describe('MonetizationService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
+    cardOnlyPaymentMethods: vi.fn(() => ({
+      payment_method_configuration: 'pmc_cardonly',
+    })),
     createExpressAccount: vi.fn(),
     createAccountLink: vi.fn(),
     getAccount: vi.fn(),
@@ -691,6 +694,8 @@ describe('MonetizationService', () => {
       expect(result.url).toBe('https://checkout.stripe.test/tip');
       expect(mockStripeService.createCheckoutSession).toHaveBeenCalledWith(
         expect.objectContaining({
+          // One-off payments use the card-only Payment Method Configuration.
+          payment_method_configuration: 'pmc_cardonly',
           line_items: [
             expect.objectContaining({
               price_data: expect.objectContaining({ unit_amount: tipCents }),
