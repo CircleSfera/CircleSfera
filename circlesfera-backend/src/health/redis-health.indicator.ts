@@ -1,16 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HealthCheckError, type HealthIndicatorResult } from '@nestjs/terminus';
+import {
+  type HealthIndicatorResult,
+  HealthIndicatorService,
+} from '@nestjs/terminus';
 import { Redis } from 'ioredis';
 
 // Pings Redis directly with ioredis (already a dependency for BullMQ and the
 // Socket.IO adapter) rather than through @nestjs/terminus's
 // MicroserviceHealthIndicator, which exists to verify an actual NestJS
 // microservice transport endpoint is reachable — this app has none; it was
-// only ever used to open a raw Redis connection.
+// only ever used to open a raw Redis connection. A failed ping is reported
+// as `down` (HealthCheckService then answers 503), not thrown.
 @Injectable()
 export class RedisHealthIndicator {
-  constructor(@Inject(ConfigService) private configService: ConfigService) {}
+  constructor(
+    @Inject(ConfigService) private configService: ConfigService,
+    @Inject(HealthIndicatorService)
+    private readonly healthIndicator: HealthIndicatorService,
+  ) {}
 
   async pingCheck(key: string): Promise<HealthIndicatorResult> {
     const redisHost =
@@ -33,16 +41,14 @@ export class RedisHealthIndicator {
       commandTimeout: 3000,
     });
 
+    const indicator = this.healthIndicator.check(key);
     try {
       await client.connect();
       await client.ping();
-      return { [key]: { status: 'up' } };
+      return indicator.up();
     } catch (error) {
-      throw new HealthCheckError(`${key} check failed`, {
-        [key]: {
-          status: 'down',
-          message: error instanceof Error ? error.message : String(error),
-        },
+      return indicator.down({
+        message: error instanceof Error ? error.message : String(error),
       });
     } finally {
       client.disconnect();
