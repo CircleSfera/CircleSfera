@@ -208,9 +208,10 @@ describe('ReviewReportUseCase claim, unclaim and reassign', () => {
 
     const error = await t.useCase.claim(adminId, reportId).catch((e) => e);
     expect(error).toBeInstanceOf(ConflictException);
+    // The global filter only passes errorCode, message and details on.
     expect(error.getResponse()).toMatchObject({
-      code: 'REPORT_ALREADY_CLAIMED',
-      assignedAdminId: 'admin-2',
+      errorCode: 'REPORT_ALREADY_CLAIMED',
+      details: { assignedAdminId: 'admin-2' },
     });
   });
 

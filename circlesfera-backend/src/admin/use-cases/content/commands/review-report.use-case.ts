@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import {
   BadRequestException,
   ConflictException,
@@ -123,10 +124,11 @@ export class ReviewReportUseCase {
       report.assignedAdminId &&
       report.assignedAdminId !== adminId
     ) {
+      // errorCode and details are the fields the global filter passes on.
       throw new ConflictException({
-        code: 'REPORT_ALREADY_CLAIMED',
+        errorCode: ErrorCode.REPORT_ALREADY_CLAIMED,
         message: 'Report is already claimed by another admin',
-        assignedAdminId: report.assignedAdminId,
+        details: { assignedAdminId: report.assignedAdminId },
       });
     }
 

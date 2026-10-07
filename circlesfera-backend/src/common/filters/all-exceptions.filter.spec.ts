@@ -1,4 +1,9 @@
-import { type ArgumentsHost, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  type ArgumentsHost,
+  ConflictException,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CorrelationContext } from '../correlation/correlation.context.js';
@@ -65,6 +70,27 @@ describe('AllExceptionsFilter', () => {
         method: 'POST',
       }),
     );
+  });
+
+  it('passes errorCode, message and details on, and drops other fields', () => {
+    filter.catch(
+      new ConflictException({
+        errorCode: 'REPORT_ALREADY_CLAIMED',
+        message: 'Report is already claimed by another admin',
+        details: { assignedAdminId: 'admin-2' },
+        code: 'IGNORED',
+      }),
+      host,
+    );
+
+    const body = reply.mock.calls[0][1];
+    expect(body).toMatchObject({
+      statusCode: HttpStatus.CONFLICT,
+      errorCode: 'REPORT_ALREADY_CLAIMED',
+      message: 'Report is already claimed by another admin',
+      details: { assignedAdminId: 'admin-2' },
+    });
+    expect(body).not.toHaveProperty('code');
   });
 
   it('does not emit system.incident event for HttpException 4xx', () => {
