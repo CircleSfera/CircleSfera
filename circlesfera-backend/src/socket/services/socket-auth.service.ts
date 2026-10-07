@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import * as cookie from 'cookie';
+import { parseCookie } from 'cookie';
 import type { Socket } from 'socket.io';
 import { AccountStateService } from '../../auth/services/account-state.service.js';
 import {
@@ -53,7 +53,7 @@ export class SocketAuthService {
 
     if (cookieHeader) {
       try {
-        const cookies = cookie.parse(cookieHeader);
+        const cookies = parseCookie(cookieHeader);
         if (cookies[ACCESS_TOKEN_COOKIE]) {
           return cookies[ACCESS_TOKEN_COOKIE];
         }
