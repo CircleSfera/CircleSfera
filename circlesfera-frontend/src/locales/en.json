@@ -477,7 +477,7 @@
         "title": "New profile",
         "description": "It starts empty: no posts and no followers. You can switch back at any time.",
         "username": "Username",
-        "username_placeholder": "new.username",
+        "username_placeholder": "username",
         "username_hint": "3–30 characters: letters, numbers, dots and underscores.",
         "username_invalid": "Use 3–30 letters, numbers, dots or underscores.",
         "username_checking": "Checking availability…",

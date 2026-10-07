@@ -133,13 +133,14 @@ export default function EditStep({
     else setCurrentEditIndex(index);
   };
 
-  // Maintain rounded corners everywhere for consistency with composer
+  // On phones the preview is a card with a side gutter, like the Frames
+  // card; the larger radius is kept from md up.
   const frameChrome =
-    'rounded-[32px] border-0 shadow-none md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]';
+    'rounded-[20px] md:rounded-[32px] border-0 shadow-none md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]';
 
   return (
     <div className="flex-1 bg-surface-elevated flex flex-col h-full w-full overflow-hidden min-h-0">
-      <div className="flex-1 relative bg-zinc-950/40 flex items-center justify-center overflow-hidden min-h-0 w-full px-0 py-0 md:px-8 md:py-4">
+      <div className="flex-1 relative bg-zinc-950/40 flex items-center justify-center overflow-hidden min-h-0 w-full px-4 py-0 md:px-8 md:py-4">
         <div
           ref={hostRef}
           className="relative h-full w-full max-w-full flex items-center justify-center min-h-0"

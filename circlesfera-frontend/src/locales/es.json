@@ -477,7 +477,7 @@
         "title": "Perfil nuevo",
         "description": "Empieza vacío: sin publicaciones ni seguidores. Puedes volver a tu otro perfil cuando quieras.",
         "username": "Nombre de usuario",
-        "username_placeholder": "nuevo.usuario",
+        "username_placeholder": "username",
         "username_hint": "De 3 a 30 caracteres: letras, números, puntos y guiones bajos.",
         "username_invalid": "Usa de 3 a 30 letras, números, puntos o guiones bajos.",
         "username_checking": "Comprobando disponibilidad…",
