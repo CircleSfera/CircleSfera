@@ -63,7 +63,7 @@
     "axios": "1.20.0",
     "clsx": "2.1.1",
     "fabric": "7.4.0",
-    "framer-motion": "13.5.1",
+    "framer-motion": "14.0.0",
     "hls.js": "1.7.3",
     "html-to-image": "1.11.13",
     "i18next": "26.4.2",
