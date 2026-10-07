@@ -1,11 +1,18 @@
 import { UnauthorizedException } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import type { JwtService } from '@nestjs/jwt';
+import { parseCookie } from 'cookie';
 import type { Socket } from 'socket.io';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountStateService } from '../../auth/services/account-state.service.js';
 import type { PrismaService } from '../../prisma/prisma.service.js';
 import { SocketAuthService } from './socket-auth.service.js';
+
+// The real parser, wrapped so one test can make it throw.
+vi.mock('cookie', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('cookie')>();
+  return { ...actual, parseCookie: vi.fn(actual.parseCookie) };
+});
 
 describe('SocketAuthService', () => {
   let service: SocketAuthService;
@@ -69,9 +76,8 @@ describe('SocketAuthService', () => {
       expect(service.extractToken(mockClient)).toBeUndefined();
     });
 
-    it('handles cookie parsing error gracefully and falls back to Bearer header', async () => {
-      const cookie = await import('cookie');
-      vi.spyOn(cookie, 'parse').mockImplementationOnce(() => {
+    it('handles cookie parsing error gracefully and falls back to Bearer header', () => {
+      vi.mocked(parseCookie).mockImplementationOnce(() => {
         throw new Error('Malformed cookie string');
       });
 
