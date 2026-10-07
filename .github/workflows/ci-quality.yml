@@ -54,6 +54,9 @@ jobs:
       - name: "Dependencies: Verify Lockfile Integrity & Provenance"
         run: npm run verify:lockfiles:fast
 
+      - name: "Dependencies: Production Code Imports Only Production Packages"
+        run: npm run verify:runtime-deps
+
       - name: Install Monorepo Dependencies
         run: npm ci
 

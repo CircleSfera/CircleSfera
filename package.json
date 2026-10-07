@@ -26,6 +26,7 @@
     "audit:deps:all": "node scripts/audit-dependencies.mjs --all",
     "verify:lockfiles": "node scripts/verify-lockfile-integrity.mjs",
     "verify:lockfiles:fast": "node scripts/verify-lockfile-integrity.mjs --skip-signatures",
+    "verify:runtime-deps": "node scripts/check-runtime-dependencies.mjs",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
     "perf:budgets": "node scripts/lighthouse-budgets.mjs",
