@@ -328,9 +328,6 @@ export default function StudioPlayer() {
             <p className="text-sm font-semibold text-white/80">
               {t('studio.timeline.empty')}
             </p>
-            <p className="text-xs text-white/40 mt-1">
-              {t('studio.select_clip_hint')}
-            </p>
           </div>
         )}
         <canvas

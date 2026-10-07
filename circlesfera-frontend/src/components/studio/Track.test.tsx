@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useStudioStore } from '../../stores/studioStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -93,5 +93,48 @@ describe('TrackItem clip trim handles', () => {
     expect(
       screen.queryByRole('button', { name: i18n!.t('studio.trim_end') }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('TrackItem controls', () => {
+  beforeEach(() => {
+    useStudioStore.setState({
+      project,
+      selectedClipId: null,
+      zoom: 40,
+      playhead: 0,
+    });
+  });
+
+  it('opens and closes the track controls from the track icon', () => {
+    const { i18n } = renderWithProviders(<TrackItem track={track} />);
+    const options = screen.getByRole('button', {
+      name: i18n!.t('studio.tracks.options'),
+    });
+    const controls = screen.getByRole('button', {
+      name: i18n!.t('studio.mute'),
+    }).parentElement as HTMLElement;
+
+    // Folded on phones until the icon is pressed; always shown from md up.
+    expect(options).toHaveAttribute('aria-expanded', 'false');
+    expect(controls.className).toMatch(/\bhidden\b/);
+    expect(controls.className).toMatch(/md:flex/);
+
+    fireEvent.click(options);
+    expect(options).toHaveAttribute('aria-expanded', 'true');
+    expect(controls.className).not.toMatch(/(^|\s)hidden(\s|$)/);
+
+    fireEvent.click(options);
+    expect(options).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('mutes the track from its controls', () => {
+    const { i18n } = renderWithProviders(<TrackItem track={track} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('studio.mute') }),
+    );
+
+    expect(useStudioStore.getState().project?.tracks[0].muted).toBe(true);
   });
 });

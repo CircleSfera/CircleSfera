@@ -80,7 +80,7 @@ export default function SliderControl({
           aria-valuemax={max}
           aria-valuenow={value}
           aria-valuetext={display}
-          className="story-slider-overlay relative z-10 w-full h-7 cursor-pointer"
+          className="story-slider-overlay relative z-10 w-full h-11 cursor-pointer"
         />
       </div>
 

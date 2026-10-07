@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import { STICKER_CATEGORIES } from '../storyComposer.constants';
 
 export interface StoryStickersPanelProps {
@@ -12,6 +13,7 @@ export default function StoryStickersPanel({
   onActiveStickerCategoryChange,
   onAddSticker,
 }: StoryStickersPanelProps) {
+  const { t } = useTranslation();
   return (
     <motion.div
       key="stickers-tab"
@@ -27,13 +29,18 @@ export default function StoryStickersPanel({
             type="button"
             key={cat.label}
             onClick={() => onActiveStickerCategoryChange(idx)}
-            className={`min-h-9 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+            className={`min-h-11 px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
               activeStickerCategory === idx
                 ? 'bg-white text-black'
                 : 'text-white/45 hover:text-white/75 bg-white/5 border border-white/8'
             }`}
           >
-            {cat.label}
+            {t(
+              `createPost.storyComposer.sticker_categories.${cat.label.toLowerCase()}`,
+              {
+                defaultValue: cat.label,
+              },
+            )}
           </button>
         ))}
       </div>

@@ -1466,6 +1466,13 @@
       "tool_poll": "Encuesta",
       "tool_qna": "Q&A",
       "tool_more": "Más",
+      "sticker_categories": {
+        "popular": "Populares",
+        "faces": "Caras",
+        "reactions": "Reacciones",
+        "objects": "Objetos",
+        "nature": "Naturaleza"
+      },
       "layers_empty": "Sin capas aún",
       "more_section": "Interactivo",
       "backgrounds": "Fondos",
@@ -3394,6 +3401,7 @@
       "video": "Vídeo",
       "text": "Texto",
       "audio": "Audio",
+      "options": "Opciones de la pista",
       "add_video": "Añadir pista de vídeo",
       "add_audio": "Añadir pista de audio",
       "add_text": "Añadir pista de texto",

@@ -403,7 +403,7 @@ export default function PropertiesPanel() {
                         style: { ...currentStyle, color: e.target.value },
                       } as Partial<TextClip>);
                     }}
-                    className="w-full h-9 rounded-xl cursor-pointer bg-white/5 border border-white/10 p-1"
+                    className="w-full h-11 rounded-xl cursor-pointer bg-white/5 border border-white/10 p-1"
                   />
                 </div>
                 <div className="flex flex-col gap-1">
