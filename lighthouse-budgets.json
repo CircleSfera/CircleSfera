@@ -1,9 +1,25 @@
 {
   "runs": 3,
   "pages": [
-    { "name": "login", "path": "/accounts/login" },
-    { "name": "sign-up", "path": "/accounts/emailsignup" },
-    { "name": "features", "path": "/features" },
-    { "name": "pricing", "path": "/pricing" }
+    {
+      "name": "login",
+      "path": "/accounts/login",
+      "budgets": { "lcpMs": 13000, "cls": 0.05, "tbtMs": 200, "scriptKb": 1550 }
+    },
+    {
+      "name": "sign-up",
+      "path": "/accounts/emailsignup",
+      "budgets": { "lcpMs": 13500, "cls": 0.05, "tbtMs": 200, "scriptKb": 1550 }
+    },
+    {
+      "name": "features",
+      "path": "/features",
+      "budgets": { "lcpMs": 11500, "cls": 0.05, "tbtMs": 200, "scriptKb": 1550 }
+    },
+    {
+      "name": "pricing",
+      "path": "/pricing",
+      "budgets": { "lcpMs": 12000, "cls": 0.1, "tbtMs": 200, "scriptKb": 1550 }
+    }
   ]
 }
