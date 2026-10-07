@@ -159,6 +159,26 @@ export default defineConfig({
           statements: 100,
           lines: 100,
         },
+        'src/components/monetization/MonetizationDashboard.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/monetization/TipModal.tsx': {
+          statements: 95,
+          lines: 100,
+        },
+        'src/components/live/LiveGiftModal.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/create-post/MonetizationSubScreen.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/creator/CreatorMoneyTab.tsx': {
+          statements: 100,
+          lines: 100,
+        },
         'src/utils/format.ts': { statements: 100, lines: 100 },
         'src/hooks/useCreatePostMutation.ts': { statements: 85, lines: 85 },
         'src/components/admin/ReportsTab.tsx': { statements: 55, lines: 55 },

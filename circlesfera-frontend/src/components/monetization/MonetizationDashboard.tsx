@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import { formatDate } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import { Card } from '../ui';
 
 interface Transaction {
@@ -91,7 +92,7 @@ export default function MonetizationDashboard() {
               >
                 <p className="text-[11px] text-white/50">{t(key, fallback)}</p>
                 <p className="text-base font-semibold text-white tabular-nums mt-0.5">
-                  €{((cents || 0) / 100).toFixed(2)}
+                  {formatCents(cents || 0, i18n.language)}
                 </p>
               </div>
             ))}
@@ -114,12 +115,11 @@ export default function MonetizationDashboard() {
                 {t('creator.income.available')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
-                {(
-                  (payoutsSummary.available?.[0]?.amountCents || 0) / 100
-                ).toFixed(2)}{' '}
-                <span className="text-xs font-normal text-white/40">
-                  {payoutsSummary.available?.[0]?.currency || 'EUR'}
-                </span>
+                {formatCents(
+                  payoutsSummary.available?.[0]?.amountCents || 0,
+                  i18n.language,
+                  payoutsSummary.available?.[0]?.currency || 'EUR',
+                )}
               </p>
             </div>
             <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
@@ -127,12 +127,11 @@ export default function MonetizationDashboard() {
                 {t('creator.income.pending')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
-                {(
-                  (payoutsSummary.pending?.[0]?.amountCents || 0) / 100
-                ).toFixed(2)}{' '}
-                <span className="text-xs font-normal text-white/40">
-                  {payoutsSummary.pending?.[0]?.currency || 'EUR'}
-                </span>
+                {formatCents(
+                  payoutsSummary.pending?.[0]?.amountCents || 0,
+                  i18n.language,
+                  payoutsSummary.pending?.[0]?.currency || 'EUR',
+                )}
               </p>
             </div>
           </div>
@@ -185,7 +184,8 @@ export default function MonetizationDashboard() {
                     isIncoming ? 'text-white' : 'text-brand-secondary'
                   }`}
                 >
-                  {isIncoming ? '+' : '-'}€{(cents / 100).toFixed(2)}
+                  {isIncoming ? '+' : '-'}
+                  {formatCents(cents, i18n.language)}
                 </span>
               </div>
             );

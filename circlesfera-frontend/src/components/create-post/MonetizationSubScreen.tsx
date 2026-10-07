@@ -1,9 +1,11 @@
 import { Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
+  CREATOR_SHARE,
   MAX_PPV_PRICE_EUR,
   MIN_PPV_PRICE_EUR,
 } from '../../constants/monetization';
+import { formatCents } from '../../utils/money';
 import { Switch } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
 import SubScreenHeader from './SubScreenHeader';
@@ -23,7 +25,10 @@ export default function MonetizationSubScreen({
   setPrice,
   onClose,
 }: MonetizationSubScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Whole cents, so the two amounts always add up to the price.
+  const priceCents = Math.round(price * 100);
+  const creatorCents = Math.round(priceCents * CREATOR_SHARE);
 
   return (
     <div className={SUBSCREEN_SHELL}>
@@ -92,11 +97,13 @@ export default function MonetizationSubScreen({
               <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-[11px] text-white/80 space-y-0.5">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>
-                  <span>€{(price * 0.8).toFixed(2)}</span>
+                  <span>{formatCents(creatorCents, i18n.language)}</span>
                 </div>
                 <div className="flex justify-between text-white/40">
                   <span>{t('createPost.caption.platform_fee')}</span>
-                  <span>€{(price * 0.2).toFixed(2)}</span>
+                  <span>
+                    {formatCents(priceCents - creatorCents, i18n.language)}
+                  </span>
                 </div>
               </div>
             )}

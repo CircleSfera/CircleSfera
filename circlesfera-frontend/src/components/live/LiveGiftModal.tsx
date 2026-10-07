@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { liveApi } from '../../services/live';
+import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { formatWholeEuros } from '../../utils/money';
 import { Dialog } from '../ui/Dialog';
 
 export interface VirtualGift {
@@ -62,7 +64,7 @@ export default function LiveGiftModal({
   onClose,
   streamId,
 }: LiveGiftModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedGift, setSelectedGift] = useState<VirtualGift>(
     VIRTUAL_GIFTS[0],
   );
@@ -82,10 +84,8 @@ export default function LiveGiftModal({
       }
       toast.error(t('live.gift_checkout_missing'));
     } catch (err: unknown) {
-      const message =
-        (err as { response?: { data?: { message?: string } } })?.response?.data
-          ?.message || t('live.gift_error');
-      toast.error(message);
+      // The server text is in one language and can be technical.
+      toast.error(apiErrorMessage(err, t, 'live.gift_error'));
     } finally {
       setIsSending(false);
     }
@@ -127,7 +127,7 @@ export default function LiveGiftModal({
                 {t(gift.nameKey)}
               </span>
               <span className="text-[11px] font-extrabold text-brand-primary mt-1">
-                €{gift.price}
+                {formatWholeEuros(gift.price, i18n.language)}
               </span>
             </button>
           );
@@ -141,8 +141,8 @@ export default function LiveGiftModal({
         className="w-full py-3 min-h-11 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-sm uppercase tracking-wider rounded-xl transition-all shadow-lg shadow-brand-primary/30 disabled:opacity-50 flex items-center justify-center gap-2"
       >
         <Sparkles size={18} aria-hidden />
-        {t('live.confirm_send_gift')} (€
-        {selectedGift.price})
+        {t('live.confirm_send_gift')} (
+        {formatWholeEuros(selectedGift.price, i18n.language)})
       </button>
     </Dialog>
   );

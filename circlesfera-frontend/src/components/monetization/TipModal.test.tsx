@@ -119,9 +119,13 @@ describe('TipModal', () => {
   });
 
   it('omits a post when tipping a profile and toasts a failed send', async () => {
-    vi.mocked(api.post).mockRejectedValueOnce({
-      message: 'Insufficient funds',
-    });
+    // The shape the API client rejects with: server text in English.
+    vi.mocked(api.post).mockRejectedValueOnce(
+      Object.assign(new Error('Insufficient funds'), {
+        status: 400,
+        data: { message: 'Insufficient funds' },
+      }),
+    );
 
     const one = TIP_AMOUNTS[0];
     const { i18n } = renderWithProviders(
@@ -146,8 +150,51 @@ describe('TipModal', () => {
         returnUrl: 'http://localhost/p/post-1',
       });
     });
-    expect(toast.error).toHaveBeenCalledWith('Insufficient funds');
+    // The reader's language, never the server's English text.
+    expect(toast.error).toHaveBeenCalledWith(i18n!.t('wallet.error_send_tip'));
+    expect(toast.error).not.toHaveBeenCalledWith('Insufficient funds');
     expect(window.location.href).toBe('http://localhost/p/post-1');
+  });
+
+  it('says so and lets the person try again when no checkout comes back', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ data: {} } as never);
+    const { i18n } = renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={onClose}
+        receiverId="creator-1"
+        receiverName="alice"
+      />,
+    );
+    const send = screen.getByRole('button', {
+      name: i18n!.t('wallet.send_tip'),
+    });
+
+    fireEvent.click(screen.getByText(`€${TIP_AMOUNTS[0]}`));
+    fireEvent.click(send);
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('wallet.error_send_tip'),
+      ),
+    );
+    await waitFor(() => expect(send).toBeEnabled());
+    expect(window.location.href).toBe('http://localhost/p/post-1');
+  });
+
+  it('writes the amounts as currency in Spanish', () => {
+    renderWithProviders(
+      <TipModal
+        isOpen
+        onClose={onClose}
+        receiverId="creator-1"
+        receiverName="alice"
+      />,
+      { lng: 'es' },
+    );
+
+    expect(screen.getByText(/^50\s€$/)).toBeInTheDocument();
+    expect(screen.queryByText('€50')).not.toBeInTheDocument();
   });
 
   it('clears the selected amount when the dialog reopens', () => {
