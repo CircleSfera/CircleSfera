@@ -5,6 +5,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { AnalyticsController } from './analytics.controller.js';
 import { AnalyticsService } from './analytics.service.js';
@@ -29,13 +30,11 @@ export class AnalyticsModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.analyticsQueue.add(
+    await registerRecurringJob(
+      this.analyticsQueue,
+      'daily_aggregation_cron',
       'daily-aggregation',
-      {},
-      {
-        repeat: { pattern: '0 0 * * *' }, // EVERY_DAY_AT_MIDNIGHT
-        jobId: 'daily_aggregation_cron',
-      },
+      '0 0 * * *',
     );
     this.logger.log('Registered repeatable job: daily-aggregation (0 0 * * *)');
   }

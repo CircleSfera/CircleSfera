@@ -5,6 +5,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { PushModule } from '../push/push.module.js';
 import { NotificationsController } from './notifications.controller.js';
 import { NotificationsService } from './notifications.service.js';
@@ -30,21 +31,17 @@ export class NotificationsModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.notificationsQueue.add(
+    await registerRecurringJob(
+      this.notificationsQueue,
+      'notifications_digest_cron',
       'send-digest-push',
-      {},
-      {
-        repeat: { pattern: '*/15 * * * *' },
-        jobId: 'notifications_digest_cron',
-      },
+      '*/15 * * * *',
     );
-    await this.notificationsQueue.add(
+    await registerRecurringJob(
+      this.notificationsQueue,
+      'notifications_cleanup_cron',
       'cleanup-old-notifications',
-      {},
-      {
-        repeat: { pattern: '0 0 * * *' },
-        jobId: 'notifications_cleanup_cron',
-      },
+      '0 0 * * *',
     );
     this.logger.log('Registered repeatable jobs for Notifications.');
   }
