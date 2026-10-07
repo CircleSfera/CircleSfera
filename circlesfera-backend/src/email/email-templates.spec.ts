@@ -31,8 +31,8 @@ describe('EmailTemplates', () => {
 
     expect(html).toContain('src="https://circlesfera.com/email/logo.png"');
     expect(html).toContain('>CircleSfera</td>');
-    expect(html).toContain('linear-gradient(90deg, #ff5757 0%, #8c52ff 100%)');
-    expect(html).toContain('bgcolor="#8c52ff"');
+    expect(html).toContain('linear-gradient(90deg, #ff5757 0%, #884cff 100%)');
+    expect(html).toContain('bgcolor="#884cff"');
     expect(html).toContain('href="https://circlesfera.com/privacy"');
   });
 
