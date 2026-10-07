@@ -175,6 +175,25 @@ describe('Admin Panel sign-in', () => {
     expect(useAdminAuthStore.getState().isAuthenticated).toBe(false);
   });
 
+  it('does not count as signed in when the staff profile cannot be loaded', async () => {
+    vi.mocked(adminAuthApi.login).mockResolvedValue({
+      data: { status: 'OK' },
+    } as never);
+    vi.mocked(adminAuthApi.me).mockRejectedValue(
+      Object.assign(new Error('boom'), { status: 500 }),
+    );
+    const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+    submitCredentials(i18n!);
+
+    expect(
+      await screen.findByText(i18n!.t('errors.generic.server')),
+    ).toBeInTheDocument();
+    expect(useAdminAuthStore.getState().isAuthenticated).toBe(false);
+    expect(useAdminAuthStore.getState().admin).toBeNull();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('asks for the code and signs in once it is verified', async () => {
     vi.mocked(adminAuthApi.verifyMfa).mockResolvedValue({
       data: { status: 'OK' },
