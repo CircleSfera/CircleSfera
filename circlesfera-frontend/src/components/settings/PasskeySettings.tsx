@@ -206,7 +206,7 @@ export const PasskeySettings: React.FC = () => {
             <Loader2 size={24} className="animate-spin text-gray-500" />
           </div>
         ) : passkeys.length === 0 ? (
-          <div className="p-8 text-center text-gray-500 text-sm font-medium">
+          <div className="p-8 text-center text-gray-400 text-sm font-medium">
             <Key size={32} className="mx-auto mb-2 opacity-30" />
             {t('settings.passkey_settings.empty')}
           </div>

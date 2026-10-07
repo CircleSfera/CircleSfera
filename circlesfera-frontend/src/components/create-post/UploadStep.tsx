@@ -254,7 +254,7 @@ export default function UploadStep({
                 : translatedConfig.description}
             </p>
             {!isDragging ? (
-              <p className="text-[11px] text-white/35 font-medium">
+              <p className="text-[11px] text-white/60 font-medium">
                 <span className="hidden md:inline">
                   {t('createPost.upload.drag_files')}
                   {' · '}
@@ -314,7 +314,7 @@ export default function UploadStep({
                   <p className="text-[13px] font-bold text-white/90 truncate">
                     {t('createPost.upload.create_text_story')}
                   </p>
-                  <p className="text-[11px] text-white/30 font-medium truncate">
+                  <p className="text-[11px] text-white/60 font-medium truncate">
                     {t('createPost.upload.create_text_story_desc')}
                   </p>
                 </div>

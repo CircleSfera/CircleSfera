@@ -179,7 +179,7 @@ export default function SettingsHubIndex() {
       <div className="space-y-5">
         {filteredGroups.map((group) => (
           <section key={group.id}>
-            <h2 className="text-xs font-semibold text-white/40 uppercase tracking-wide mb-2 px-1">
+            <h2 className="text-xs font-semibold text-white/60 uppercase tracking-wide mb-2 px-1">
               {t(group.labelKey)}
             </h2>
             <ul className="glass-panel rounded-xl border border-white/5 divide-y divide-white/5 overflow-hidden">

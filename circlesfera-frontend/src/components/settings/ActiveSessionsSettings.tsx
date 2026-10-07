@@ -188,6 +188,7 @@ export const ActiveSessionsSettings: React.FC = () => {
                     type="button"
                     onClick={() => handleRevokeSingle(session.id)}
                     disabled={revokingId === session.id}
+                    aria-label={t('settings.security.revoke_session')}
                     className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
                   >
                     {revokingId === session.id ? (

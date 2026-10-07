@@ -134,7 +134,9 @@ export default function PostHeader({
           />
           {post.isPromoted && (
             <>
-              <span className="text-gray-700 text-xs">·</span>
+              <span className="text-gray-400 text-xs" aria-hidden>
+                ·
+              </span>
               <span
                 className="text-brand-primary font-black uppercase shrink-0"
                 style={{
@@ -151,18 +153,22 @@ export default function PostHeader({
         {/* Username + timestamp + visibility */}
         <div className="flex items-center gap-1 mt-0.5">
           <span
-            className="font-medium text-gray-500 truncate leading-tight"
+            className="font-medium text-gray-400 truncate leading-tight"
             style={{ fontSize: 'var(--text-badge, 11px)' }}
           >
             @{post.profile.username}
           </span>
           {timeAgo && (
             <>
-              <span className="text-gray-700" style={{ fontSize: 9 }}>
+              <span
+                className="text-gray-400"
+                style={{ fontSize: 9 }}
+                aria-hidden
+              >
                 ·
               </span>
               <span
-                className="text-gray-600 shrink-0"
+                className="text-gray-400 shrink-0"
                 style={{ fontSize: 'var(--text-badge, 11px)' }}
               >
                 {timeAgo}

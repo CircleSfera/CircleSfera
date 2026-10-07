@@ -110,11 +110,11 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
             </div>
             {post.recommendationSignals &&
               post.recommendationSignals.length > 0 && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-gray-400">
                   <button
                     type="button"
                     onClick={() => setShowWhy(!showWhy)}
-                    className="cursor-pointer hover:text-gray-400 font-medium flex items-center gap-1 focus:outline-none"
+                    className="cursor-pointer hover:text-gray-300 font-medium flex items-center gap-1 focus:outline-none"
                   >
                     <span className="text-[10px] opacity-70">
                       {showWhy ? '▼' : '▶'}
@@ -158,7 +158,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                         return (
                           <p
                             key={signal}
-                            className="text-[11px] text-gray-500 leading-relaxed"
+                            className="text-[11px] text-gray-400 leading-relaxed"
                           >
                             {explanation}
                           </p>
