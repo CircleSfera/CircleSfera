@@ -3,6 +3,9 @@ import { ConfigService } from '@nestjs/config';
 import Stripe from 'stripe';
 import { stripeWebhookSecrets } from './stripe-webhook-secrets.js';
 
+// A Stripe Payment Method Configuration id (pmc_...).
+const PAYMENT_METHOD_CONFIGURATION = /^pmc_[A-Za-z0-9]+$/;
+
 // Keep in sync with the installed `stripe` package's LatestApiVersion.
 const STRIPE_API_VERSION: Stripe.LatestApiVersion = '2026-08-26.dahlia';
 
@@ -49,11 +52,37 @@ export class StripeService implements OnModuleInit {
       }
     }
 
+    if (isProd && !this.cardOnlyConfigurationId()) {
+      throw new Error(
+        'STRIPE_PAYMENT_METHOD_CONFIGURATION (pmc_...) is missing or invalid in production.',
+      );
+    }
+
     if (!secretKey || secretKey.includes('dummy')) {
       this.logger.warn(
         'Stripe is running in SIMULATOR mode — no real charges will be processed.',
       );
     }
+  }
+
+  // Checkout parameters that limit a one-off payment (tips, unlocks, live
+  // gifts, promotions) to the payment methods of the card-only Payment Method
+  // Configuration set in the Stripe Dashboard (owner decision). Production
+  // refuses to start without it; elsewhere Checkout falls back to the
+  // methods enabled in the Dashboard.
+  cardOnlyPaymentMethods(): Pick<
+    Stripe.Checkout.SessionCreateParams,
+    'payment_method_configuration'
+  > {
+    const id = this.cardOnlyConfigurationId();
+    return id ? { payment_method_configuration: id } : {};
+  }
+
+  private cardOnlyConfigurationId(): string | undefined {
+    const id = this.configService
+      .get<string>('STRIPE_PAYMENT_METHOD_CONFIGURATION')
+      ?.trim();
+    return id && PAYMENT_METHOD_CONFIGURATION.test(id) ? id : undefined;
   }
 
   async createCheckoutSession(

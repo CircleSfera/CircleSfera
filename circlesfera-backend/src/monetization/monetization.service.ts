@@ -127,7 +127,7 @@ export class MonetizationService {
 
     const session = await this.stripeService.createCheckoutSession(
       {
-        payment_method_types: ['card'],
+        ...this.stripeService.cardOnlyPaymentMethods(),
         mode: 'payment',
         customer_email: params.buyerEmail,
         client_reference_id: params.buyerId,

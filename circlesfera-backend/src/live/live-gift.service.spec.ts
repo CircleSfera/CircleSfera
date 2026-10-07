@@ -42,6 +42,9 @@ describe('LiveGiftService', () => {
 
   const mockStripeService = {
     createCheckoutSession: vi.fn(),
+    cardOnlyPaymentMethods: vi.fn(() => ({
+      payment_method_configuration: 'pmc_cardonly',
+    })),
   };
 
   beforeEach(() => {

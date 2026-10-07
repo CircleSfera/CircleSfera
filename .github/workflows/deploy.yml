@@ -195,6 +195,7 @@ jobs:
           ENV_PRODUCTION_B64: ${{ secrets.ENV_PRODUCTION_B64 }}
           ABUSE_HASH_PEPPER: ${{ secrets.ABUSE_HASH_PEPPER }}
           TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+          STRIPE_PAYMENT_METHOD_CONFIGURATION: ${{ secrets.STRIPE_PAYMENT_METHOD_CONFIGURATION }}
           VITE_TURNSTILE_SITE_KEY: ${{ secrets.VITE_TURNSTILE_SITE_KEY }}
           # Authenticated post-deploy smoke. Reuses VITE_API_URL (the
           # same public HTTPS origin the frontend calls, e.g.
@@ -212,7 +213,7 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -255,6 +256,14 @@ jobs:
               fi
             fi
 
+            # Card-only Payment Method Configuration for one-off payments
+            # (Stripe Dashboard, pmc_...). The secret wins over the file.
+            if [ -n "${STRIPE_PAYMENT_METHOD_CONFIGURATION:-}" ]; then
+              sed -i '/^STRIPE_PAYMENT_METHOD_CONFIGURATION=/d' .env.production
+              printf 'STRIPE_PAYMENT_METHOD_CONFIGURATION=%s\n' "$STRIPE_PAYMENT_METHOD_CONFIGURATION" >> .env.production
+              echo "✅ STRIPE_PAYMENT_METHOD_CONFIGURATION merged from GitHub secret."
+            fi
+
             if ! grep -qE '^TURNSTILE_SECRET_KEY=.' .env.production; then
               if [ -n "${TURNSTILE_SECRET_KEY:-}" ]; then
                 printf 'TURNSTILE_SECRET_KEY=%s\n' "$TURNSTILE_SECRET_KEY" >> .env.production
@@ -279,6 +288,11 @@ jobs:
 
             if ! grep -q '^REDIS_PASSWORD=.\+' .env.production; then
               echo "❌ REDIS_PASSWORD is missing/empty in .env.production (required for compose interpolation)."
+              exit 1
+            fi
+            if ! grep -qE '^STRIPE_PAYMENT_METHOD_CONFIGURATION=pmc_[A-Za-z0-9]+$' .env.production; then
+              echo "❌ STRIPE_PAYMENT_METHOD_CONFIGURATION (card-only, pmc_...) is missing or invalid."
+              echo "   Create it in the Stripe Dashboard, then: gh secret set STRIPE_PAYMENT_METHOD_CONFIGURATION"
               exit 1
             fi
             if ! grep -qE '^ABUSE_HASH_PEPPER=.{32,}' .env.production; then

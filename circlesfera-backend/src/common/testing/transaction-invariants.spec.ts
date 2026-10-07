@@ -42,6 +42,9 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
 
       mockStripeService = {
         createCheckoutSession: vi.fn(),
+        cardOnlyPaymentMethods: vi.fn(() => ({
+          payment_method_configuration: 'pmc_cardonly',
+        })),
         createAccountLink: vi.fn(),
         getAccountStatus: vi.fn(),
         createLoginLink: vi.fn(),
