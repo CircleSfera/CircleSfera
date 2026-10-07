@@ -27,7 +27,9 @@ vi.mock('hls.js', () => {
     on = vi.fn((event: string, handler: (e: string, d: unknown) => void) => {
       this.handlers.set(event, handler);
     });
-    constructor(public options: unknown) {
+    options: unknown;
+    constructor(options: unknown) {
+      this.options = options;
       hls.instances.push(this as never);
     }
   }

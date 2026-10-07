@@ -33,28 +33,24 @@ const lazyCatalogs: BackendModule = {
 // Starts an instance with the app's language rules. The app uses the shared
 // instance below with the browser's language; tests start their own and say
 // which language the browser reports.
-export function startI18n(
-  instance: I18n,
-  detector: LanguageDetectorModule | typeof LanguageDetector = LanguageDetector,
-) {
-  return instance
-    .use(lazyCatalogs)
-    .use(detector)
-    .use(initReactI18next)
-    .init({
-      supportedLngs: ['en', 'es'],
-      nonExplicitSupportedLngs: true,
-      // `es-MX` reads the `es` catalog; no regional catalogs exist.
-      load: 'languageOnly',
-      // Every key exists in both languages, so a second catalog is never
-      // needed: Spanish for any Spanish tag, English for everything else.
-      fallbackLng: (code) => [toAppLocale(code)],
-      interpolation: {
-        escapeValue: false, // React already safes from xss
-      },
-      // Switching language keeps the current text until the new catalog is in.
-      react: { useSuspense: false },
-    });
+export function startI18n(instance: I18n, detector?: LanguageDetectorModule) {
+  instance.use(lazyCatalogs);
+  if (detector) instance.use(detector);
+  else instance.use(LanguageDetector);
+  return instance.use(initReactI18next).init({
+    supportedLngs: ['en', 'es'],
+    nonExplicitSupportedLngs: true,
+    // `es-MX` reads the `es` catalog; no regional catalogs exist.
+    load: 'languageOnly',
+    // Every key exists in both languages, so a second catalog is never
+    // needed: Spanish for any Spanish tag, English for everything else.
+    fallbackLng: (code) => [toAppLocale(code)],
+    interpolation: {
+      escapeValue: false, // React already safes from xss
+    },
+    // Switching language keeps the current text until the new catalog is in.
+    react: { useSuspense: false },
+  });
 }
 
 // Resolves once the catalog of the detected language is loaded; the app
