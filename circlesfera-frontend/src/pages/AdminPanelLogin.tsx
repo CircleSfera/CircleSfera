@@ -53,8 +53,8 @@ export default function AdminPanelLogin() {
     navigate(adminTabPath(homeTab), { replace: true });
   };
 
+  // Only reachable from the copy button, which is shown with a secret.
   const copySecret = async () => {
-    if (!secret) return;
     try {
       await navigator.clipboard.writeText(secret);
       toast.success(t('adminPanel.login.secret_copied'));
