@@ -1,0 +1,9 @@
+{
+  "runs": 3,
+  "pages": [
+    { "name": "login", "path": "/accounts/login" },
+    { "name": "sign-up", "path": "/accounts/emailsignup" },
+    { "name": "features", "path": "/features" },
+    { "name": "pricing", "path": "/pricing" }
+  ]
+}

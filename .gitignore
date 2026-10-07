@@ -46,6 +46,7 @@ postgres_data/
 redis_data/
 coverage/
 playwright-report/
+lighthouse-report/
 test-results/
 
 # Secrets / local artifacts (must never be committed)
