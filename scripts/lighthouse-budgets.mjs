@@ -12,9 +12,14 @@
  *   - Total Blocking Time (ms)
  *   - JavaScript transferred (KiB)
  *
- * A page over any budget fails the run. Budgets start at the measured
- * baseline and only tighten. A page with no budgets is measured and reported
- * but cannot fail.
+ * A page over any budget is measured again before it fails the run: a shared
+ * CI runner sometimes slows down for a while, which raises one page's times
+ * with no change in the code. The second round runs after every other page,
+ * and the median is taken over all the runs of that page. A real regression
+ * is still over the budget; a slow moment of the runner is not.
+ *
+ * Budgets start at the measured baseline and only tighten. A page with no
+ * budgets is measured and reported but cannot fail.
  *
  * Usage:
  *   npm run build --prefix circlesfera-frontend
@@ -147,7 +152,7 @@ function summaryTable(results) {
     `| Page | ${METRICS.map((metric) => metric.label).join(' | ')} |`,
     `| --- | ${METRICS.map(() => '---').join(' | ')} |`,
   ];
-  for (const { page, medians } of results) {
+  for (const { page, medians, runs } of results) {
     const cells = METRICS.map(({ key, digits }) => {
       const value = medians[key].toFixed(digits);
       const budget = page.budgets?.[key];
@@ -155,7 +160,9 @@ function summaryTable(results) {
       const mark = medians[key] > budget ? '❌' : '✅';
       return `${mark} ${value} / ${budget}`;
     });
-    lines.push(`| ${page.name} \`${page.path}\` | ${cells.join(' | ')} |`);
+    lines.push(
+      `| ${page.name} \`${page.path}\` (${runs.length} runs) | ${cells.join(' | ')} |`,
+    );
   }
   return lines.join('\n');
 }
@@ -171,25 +178,42 @@ async function main() {
   const origin = `http://127.0.0.1:${server.address().port}`;
   const results = [];
   const failures = [];
+  const confirmRuns = config.confirmRuns ?? 0;
+
+  const measure = async (page, runs, count) => {
+    for (let n = 0; n < count; n++) {
+      const output = join(REPORT_DIR, `${page.name}-${runs.length + 1}.json`);
+      runs.push(await measureOnce(`${origin}${page.path}`, output));
+    }
+    return Object.fromEntries(
+      METRICS.map(({ key }) => [key, median(runs.map((r) => r[key]))]),
+    );
+  };
+  const overBudget = (page, medians) =>
+    METRICS.filter(({ key }) => {
+      const budget = page.budgets?.[key];
+      return budget !== undefined && medians[key] > budget;
+    });
 
   try {
     for (const page of config.pages) {
       const runs = [];
-      for (let attempt = 1; attempt <= config.runs; attempt++) {
-        const output = join(REPORT_DIR, `${page.name}-${attempt}.json`);
-        runs.push(await measureOnce(`${origin}${page.path}`, output));
+      const medians = await measure(page, runs, config.runs);
+      results.push({ page, medians, runs });
+    }
+    // Second round, only for the pages that came out over a budget.
+    for (const result of results) {
+      const { page, runs } = result;
+      if (overBudget(page, result.medians).length > 0 && confirmRuns > 0) {
+        console.log(
+          `${page.name} is over a budget after ${runs.length} runs; measuring ${confirmRuns} more.`,
+        );
+        result.medians = await measure(page, runs, confirmRuns);
       }
-      const medians = Object.fromEntries(
-        METRICS.map(({ key }) => [key, median(runs.map((r) => r[key]))]),
-      );
-      results.push({ page, medians });
-      for (const { key, label, digits } of METRICS) {
-        const budget = page.budgets?.[key];
-        if (budget !== undefined && medians[key] > budget) {
-          failures.push(
-            `${page.name}: ${label} ${medians[key].toFixed(digits)} is over the budget of ${budget}`,
-          );
-        }
+      for (const { key, label, digits } of overBudget(page, result.medians)) {
+        failures.push(
+          `${page.name}: ${label} ${result.medians[key].toFixed(digits)} is over the budget of ${page.budgets[key]} (median of ${runs.length} runs)`,
+        );
       }
     }
   } finally {
@@ -197,13 +221,11 @@ async function main() {
   }
 
   const table = summaryTable(results);
-  console.log(
-    `\nMedian of ${config.runs} runs, measured / budget:\n\n${table}\n`,
-  );
+  console.log(`\nMedian of the runs, measured / budget:\n\n${table}\n`);
   if (process.env.GITHUB_STEP_SUMMARY) {
     appendFileSync(
       process.env.GITHUB_STEP_SUMMARY,
-      `## Performance budgets\n\nMedian of ${config.runs} runs, measured / budget.\n\n${table}\n`,
+      `## Performance budgets\n\nMedian of the runs, measured / budget.\n\n${table}\n`,
     );
   }
 

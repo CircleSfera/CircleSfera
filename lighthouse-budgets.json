@@ -1,5 +1,6 @@
 {
   "runs": 3,
+  "confirmRuns": 4,
   "pages": [
     {
       "name": "login",
