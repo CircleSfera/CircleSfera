@@ -368,7 +368,12 @@
       "status_pending": "Pendiente",
       "status_reviewing": "En revisión",
       "status_resolved": "Resuelto",
-      "status_rejected": "Descartado"
+      "status_rejected": "Descartado",
+      "target_user": "Cuenta",
+      "target_post": "Publicación",
+      "target_comment": "Comentario",
+      "target_story": "Historia",
+      "target_message": "Mensaje"
     },
     "monetization": {
       "title": "Monetización",
@@ -3598,7 +3603,9 @@
     "try_again": "Reintentar",
     "reload_page": "Recargar página",
     "seo_default_title": "CircleSfera - Social reinventada",
-    "seo_default_description": "CircleSfera es una capa social refinada pensada para storytelling visual, conexiones auténticas y experiencias inmersivas."
+    "seo_default_description": "CircleSfera es una capa social refinada pensada para storytelling visual, conexiones auténticas y experiencias inmersivas.",
+    "confirm": "Confirmar",
+    "reason": "Motivo"
   },
   "mute": {
     "title": "Silenciar a {{username}}",

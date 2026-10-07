@@ -20,6 +20,7 @@ import { monetizationApi } from '../../services/monetization.service';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import { formatCents } from '../../utils/money';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import { Button } from '../ui';
 import CreatorPpvIncome from './CreatorPpvIncome';
@@ -55,7 +56,7 @@ export default function CreatorMonetizationTab({
 }: Props) {
   const showIncome = section === 'all' || section === 'income';
   const showPlans = section === 'all' || section === 'plans';
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const profile = useAuthStore((state) => state.profile);
 
@@ -220,9 +221,9 @@ export default function CreatorMonetizationTab({
                     {t('creator.monetization.lifetime')}
                   </span>
                   <p className="text-2xl font-semibold text-white tabular-nums mt-0.5">
-                    €
-                    {((monetization?.lifetimeEarningsCents || 0) / 100).toFixed(
-                      2,
+                    {formatCents(
+                      monetization?.lifetimeEarningsCents || 0,
+                      i18n.language,
                     )}
                   </p>
                   {connectStatus && (
