@@ -34,6 +34,7 @@ import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { logger } from '../../utils/logger';
+import { formatCents } from '../../utils/money';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
@@ -47,7 +48,7 @@ import {
 } from './mergeChatMessages';
 
 export default function ChatWindow() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,6 +146,7 @@ export default function ChatWindow() {
     } catch (err) {
       logger.error('Failed to send voice message:', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+      toast.error(t('chat.send_error'));
     }
   };
 
@@ -184,21 +186,25 @@ export default function ChatWindow() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
-  const handleDelete = useCallback(async (messageId: string) => {
-    try {
-      await chatApi.deleteMessage(messageId);
-      // Optimistic update
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
-            : m,
-        ),
-      );
-    } catch (err) {
-      logger.error('Failed to delete message', err);
-    }
-  }, []);
+  const handleDelete = useCallback(
+    async (messageId: string) => {
+      try {
+        await chatApi.deleteMessage(messageId);
+        // Optimistic update
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
+              : m,
+          ),
+        );
+      } catch (err) {
+        logger.error('Failed to delete message', err);
+        toast.error(t('chat.delete_message_error'));
+      }
+    },
+    [t],
+  );
 
   const handleUnlockMessage = useCallback(
     async (messageId: string) => {
@@ -620,7 +626,7 @@ export default function ChatWindow() {
       navigate('/direct/inbox');
     } catch (error) {
       logger.error('Failed to delete conversation', error);
-      // Could show a toast here
+      toast.error(t('chat.delete_chat_error'));
     }
   };
 
@@ -688,6 +694,7 @@ export default function ChatWindow() {
     } catch (err) {
       logger.error('Upload failed', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+      toast.error(t('chat.send_error'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -750,6 +757,9 @@ export default function ChatWindow() {
       } catch (err) {
         logger.error('Failed to send E2E message', err);
         setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+        // Give the text back so it is not lost, unless something new was typed.
+        setInput((current) => current || plaintext);
+        toast.error(t('chat.send_error'));
       }
     };
 
@@ -881,6 +891,7 @@ export default function ChatWindow() {
           <Link
             to="/direct/inbox"
             className="md:hidden text-white/70 hover:text-white transition-all p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
+            aria-label={t('chat.back_to_inbox')}
           >
             <ArrowLeft size={24} strokeWidth={2} />
           </Link>
@@ -1001,6 +1012,7 @@ export default function ChatWindow() {
                     );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                aria-label={t('chat.audio_call')}
               >
                 <Phone size={20} strokeWidth={2} />
               </button>
@@ -1024,6 +1036,7 @@ export default function ChatWindow() {
                     );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                aria-label={t('chat.video_call')}
               >
                 <Video size={24} strokeWidth={2} />
               </button>
@@ -1045,6 +1058,7 @@ export default function ChatWindow() {
                 setShowMenu(!showMenu);
               }}
               className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
+              aria-label={t('chat.more_options')}
             >
               <MoreVertical size={22} strokeWidth={2} />
             </button>
@@ -1211,6 +1225,7 @@ export default function ChatWindow() {
                 type="button"
                 onClick={cancelReply}
                 className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                aria-label={t('chat.cancel_reply')}
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -1240,6 +1255,7 @@ export default function ChatWindow() {
                   setInput('');
                 }}
                 className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                aria-label={t('chat.cancel_edit')}
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -1256,7 +1272,7 @@ export default function ChatWindow() {
                 <Lock size={14} className="text-brand-primary shrink-0" />
                 <span className="text-brand-primary font-semibold text-xs">
                   {t('chat.locked_chip_label', {
-                    price: `€${(lockedPrice / 100).toFixed(2)}`,
+                    price: formatCents(lockedPrice, i18n.language),
                   })}
                 </span>
               </div>
@@ -1328,6 +1344,7 @@ export default function ChatWindow() {
                   }
                 }}
                 className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5 ml-0.5"
+                aria-label={t('chat.attach_image')}
               >
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
@@ -1444,6 +1461,7 @@ export default function ChatWindow() {
                   animate={{ scale: 1 }}
                   disabled={!input.trim() && !isUploading}
                   className="p-3 rounded-full bg-linear-to-tr from-brand-primary to-brand-secondary text-white font-semibold hover:opacity-90 disabled:opacity-50 transition-colors shrink-0 shadow-lg shadow-brand-primary/30 mb-0.5 mr-0.5"
+                  aria-label={t('chat.send')}
                 >
                   <Send size={18} fill="currentColor" className="ml-0.5" />
                 </motion.button>
@@ -1453,6 +1471,7 @@ export default function ChatWindow() {
                     type="button"
                     onClick={() => setIsRecording(true)}
                     className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                    aria-label={t('chat.record_voice')}
                   >
                     <Mic size={22} strokeWidth={1.5} />
                   </button>
