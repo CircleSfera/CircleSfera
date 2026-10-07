@@ -38,6 +38,8 @@ const PRODUCTION_HOSTS = /(^|\.)circlesfera\.com$/i;
 const LOCAL_HOSTS = /^(localhost|127\.0\.0\.1|\[::1\])$/i;
 
 export const options = {
+  // Each virtual user signs in once and keeps its session between iterations.
+  noCookiesReset: true,
   scenarios: {
     journey: {
       executor: 'ramping-vus',
