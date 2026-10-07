@@ -124,10 +124,15 @@ export default defineConfig({
       // Ratchet: set to the measured coverage and only ever raised, never
       // lowered, until the 80% global target is met.
       thresholds: {
-        statements: 23,
-        lines: 24,
-        branches: 23,
-        functions: 20,
+        statements: 26,
+        lines: 27,
+        branches: 26,
+        functions: 23,
+        // Critical paths: the API client (session renewal, CSRF) and the
+        // account recovery pages.
+        'src/services/api.ts': { statements: 100, lines: 100 },
+        'src/pages/ForgotPassword.tsx': { statements: 100, lines: 100 },
+        'src/pages/ResetPassword.tsx': { statements: 100, lines: 100 },
       },
     },
   },

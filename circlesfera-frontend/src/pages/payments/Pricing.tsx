@@ -18,7 +18,10 @@ import type { PlatformPlanDto } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 
+// Plan name → verification level it grants. "Verified" is the old name of
+// the €9.99 plan, now "Premium".
 const planVerificationMap: Record<string, string> = {
+  Premium: 'VERIFIED',
   Verified: 'VERIFIED',
   'Elite Creator': 'ELITE',
   Elite: 'ELITE',
@@ -37,6 +40,7 @@ export default function Pricing() {
   );
 
   const planDescriptions: Record<string, string> = {
+    Premium: t('pricingPage.desc_premium'),
     Verified: t('pricingPage.desc_premium'),
     'Elite Creator': t('pricingPage.desc_elite'),
     Elite: t('pricingPage.desc_elite'),
@@ -44,6 +48,7 @@ export default function Pricing() {
   };
 
   const planButtonText: Record<string, string> = {
+    Premium: t('pricingPage.button_premium'),
     Verified: t('pricingPage.button_premium'),
     'Elite Creator': t('pricingPage.button_elite'),
     Elite: t('pricingPage.button_elite'),
