@@ -43,12 +43,23 @@ export function initSentry() {
       }),
     ],
     environment: import.meta.env.MODE,
-    sendDefaultPii: false,
+    // Sentry 11 collects personal data unless told otherwise: no user info,
+    // cookies, headers or bodies, and no credential-like query parameters.
+    dataCollection: {
+      userInfo: false,
+      cookies: false,
+      httpHeaders: false,
+      httpBodies: [],
+      urlQueryParams: {
+        deny: ['token', 'secret', 'password', 'code', 'session', 'key', 'auth'],
+      },
+    },
 
     // Reset and verification links carry tokens in the URL: strip them from
-    // everything sent to Sentry.
+    // everything sent to Sentry. Spans are streamed in Sentry 11, so
+    // beforeSendSpan (not beforeSendTransaction) cleans trace data.
     beforeSend: (event) => scrubSentryPayload(event),
-    beforeSendTransaction: (event) => scrubSentryPayload(event),
+    beforeSendSpan: (span) => scrubSentryPayload(span),
     beforeBreadcrumb: (breadcrumb) => scrubSentryPayload(breadcrumb),
 
     // Performance Monitoring
