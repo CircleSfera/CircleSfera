@@ -25,8 +25,36 @@ import { join, resolve } from 'node:path';
 
 const BACKEND = resolve(process.cwd(), 'circlesfera-backend');
 const TEST_FILE = /\.(spec|test|e2e-spec)\.ts$|\/(testing|test|__mocks__)\//;
-const IMPORT =
-  /(?:^|\n)\s*(?:import|export)\s+(?!type\s)(?:[^'"\n;]*?\sfrom\s+)?['"]([^'"]+)['"]|(?:import|require)\(\s*['"]([^'"]+)['"]\s*\)/g;
+// `import ... from 'x'` and `export ... from 'x'`, over one or several lines.
+const FROM =
+  /(?:^|\n)\s*(?:import|export)\s+([^'";=()]*?)\s*\bfrom\s+['"]([^'"]+)['"]/g;
+// `import 'x'`, `import('x')` and `require('x')`.
+const BARE =
+  /(?:^|\n)\s*import\s+['"]([^'"]+)['"]|(?:import|require)\(\s*['"]([^'"]+)['"]\s*\)/g;
+
+// A declaration that only brings types is erased at build time:
+// `import type ...` or braces where every name is marked `type`.
+function typeOnly(clause) {
+  if (/^type\s/.test(clause)) return true;
+  const named = clause.match(/^\{([^}]*)\}$/);
+  if (!named) return false;
+  const names = named[1]
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  return names.length > 0 && names.every((name) => /^type\s/.test(name));
+}
+
+function importedSpecifiers(source) {
+  const specifiers = [];
+  for (const [, clause, specifier] of source.matchAll(FROM)) {
+    if (!typeOnly(clause.trim())) specifiers.push(specifier);
+  }
+  for (const match of source.matchAll(BARE)) {
+    specifiers.push(match[1] ?? match[2]);
+  }
+  return specifiers;
+}
 
 const lock = JSON.parse(
   readFileSync(join(BACKEND, 'package-lock.json'), 'utf8'),
@@ -56,8 +84,8 @@ const files = execFileSync('git', ['ls-files', 'src', 'prisma.config.ts'], {
 const missing = new Map();
 for (const file of files) {
   const source = readFileSync(join(BACKEND, file), 'utf8');
-  for (const match of source.matchAll(IMPORT)) {
-    const name = packageName(match[1] ?? match[2]);
+  for (const specifier of importedSpecifiers(source)) {
+    const name = packageName(specifier);
     if (name && !installedInProduction(name)) {
       if (!missing.has(name)) missing.set(name, []);
       missing.get(name).push(file);
