@@ -6,6 +6,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { EditsController } from './edits.controller.js';
 import { EditsService } from './edits.service.js';
@@ -31,13 +32,11 @@ export class EditsModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.editsQueue.add(
+    await registerRecurringJob(
+      this.editsQueue,
+      'edits_cleanup_cron',
       'cleanup-abandoned-drafts',
-      {},
-      {
-        repeat: { pattern: '0 0 * * *' },
-        jobId: 'edits_cleanup_cron',
-      },
+      '0 0 * * *',
     );
     this.logger.log(
       'Registered repeatable job: cleanup-abandoned-drafts (0 0 * * *)',

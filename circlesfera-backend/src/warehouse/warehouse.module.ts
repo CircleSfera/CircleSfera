@@ -5,6 +5,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ClickHouseLoadService } from './clickhouse-load.service.js';
 import { WarehouseExportProcessor } from './processors/warehouse-export.processor.js';
@@ -32,13 +33,11 @@ export class WarehouseModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.warehouseQueue.add(
+    await registerRecurringJob(
+      this.warehouseQueue,
+      'warehouse_analytics_export_cron',
       'nightly-analytics-export',
-      {},
-      {
-        repeat: { pattern: '30 3 * * *' },
-        jobId: 'warehouse_analytics_export_cron',
-      },
+      '30 3 * * *',
     );
     this.logger.log(
       'Registered repeatable job: nightly-analytics-export (30 3 * * *)',

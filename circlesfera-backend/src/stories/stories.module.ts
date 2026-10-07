@@ -5,6 +5,7 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { StoriesProcessor } from './processors/stories.processor.js';
 import { StoriesController } from './stories.controller.js';
@@ -29,13 +30,11 @@ export class StoriesModule implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.storiesQueue.add(
+    await registerRecurringJob(
+      this.storiesQueue,
+      'cleanup_stories_cron',
       'cleanup-expired',
-      {},
-      {
-        repeat: { pattern: '0 * * * *' }, // EVERY_HOUR
-        jobId: 'cleanup_stories_cron',
-      },
+      '0 * * * *',
     );
     this.logger.log('Registered repeatable job: cleanup-expired (0 * * * *)');
   }
