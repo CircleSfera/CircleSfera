@@ -1714,7 +1714,17 @@
     "lock_message_hint": "Solo las cuentas Creator o Business pueden enviar mensajes de pago.",
     "lock_message_confirm": "Bloquear mensaje",
     "lock_message_cancel": "Quitar bloqueo",
-    "locked_chip_label": "Mensaje de pago · {{price}}"
+    "locked_chip_label": "Mensaje de pago · {{price}}",
+    "inbox": "Bandeja",
+    "requests": "Solicitudes",
+    "no_requests": "No tienes solicitudes",
+    "no_requests_desc": "Las solicitudes de mensajes de personas a las que no sigues aparecerán aquí.",
+    "request_accepted": "Solicitud aceptada",
+    "request_accept_error": "Error al aceptar la solicitud",
+    "request_declined": "Solicitud rechazada",
+    "request_decline_error": "Error al rechazar la solicitud",
+    "request_title": "¿Aceptar solicitud de mensaje?",
+    "request_description": "Si aceptas, podrán ver cuándo estás conectado y si has leído sus mensajes. No sabrán que lo has leído hasta que aceptes."
   },
   "creator": {
     "title": "Creator Studio",

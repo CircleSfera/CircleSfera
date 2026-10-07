@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "biome lint .",
+    "lint": "biome lint . && node scripts/check-i18n-keys.mjs",
     "format": "biome format --write .",
     "check": "biome check --write .",
     "check:deps": "depcruise src",
@@ -20,7 +20,8 @@
     "test:e2e:composer:update": "env -u NO_COLOR FORCE_COLOR=0 playwright test e2e/composer-visual.spec.ts --update-snapshots",
     "cap:sync": "vite build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
-    "cap:open:android": "npx cap open android"
+    "cap:open:android": "npx cap open android",
+    "lint:i18n": "node scripts/check-i18n-keys.mjs"
   },
   "overrides": {
     "esbuild": "0.28.2",
