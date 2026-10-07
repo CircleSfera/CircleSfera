@@ -5,6 +5,10 @@ import {
   getRegisterQueueOptions,
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
+import {
+  registerRecurringJob,
+  removeRecurringJob,
+} from '../common/queues/recurring-jobs.js';
 import { StripeModule } from '../common/stripe/stripe.module.js';
 import { EmailModule } from '../email/email.module.js';
 import { OutboxModule } from '../outbox/outbox.module.js';
@@ -51,20 +55,18 @@ export class UsersModule implements OnApplicationBootstrap {
     // ever actually matched rows, since expiresAt was never populated here).
     // Remove any pre-existing repeatable registration from before this change
     // so it doesn't keep firing against a handler that no longer exists.
-    await this.usersQueue.removeRepeatable(
-      'clean-expired-search-history',
-      { pattern: '0 2 * * *' },
-      'gdpr_search_cron',
-    );
-    await this.usersQueue.add(
+    await removeRecurringJob(this.usersQueue, 'clean-expired-search-history');
+    await registerRecurringJob(
+      this.usersQueue,
+      'gdpr_exports_cron',
       'clean-expired-data-exports',
-      {},
-      { repeat: { pattern: '0 3 * * *' }, jobId: 'gdpr_exports_cron' },
+      '0 3 * * *',
     );
-    await this.usersQueue.add(
+    await registerRecurringJob(
+      this.usersQueue,
+      'gdpr_accounts_cron',
       'clean-expired-accounts',
-      {},
-      { repeat: { pattern: '0 4 * * *' }, jobId: 'gdpr_accounts_cron' },
+      '0 4 * * *',
     );
 
     this.logger.log('Registered repeatable GDPR jobs.');
