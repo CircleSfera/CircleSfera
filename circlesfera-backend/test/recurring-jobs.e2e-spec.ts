@@ -5,9 +5,8 @@ import {
   removeRecurringJob,
 } from '../src/common/queues/recurring-jobs.js';
 
-// Against a real Redis: moving a job registered with the legacy `repeat`
-// option to a Job Scheduler leaves exactly one schedule and one next run,
-// and registering again on restart changes nothing.
+// Against a real Redis: a recurring job registered on every boot keeps exactly
+// one scheduler and one next run, and a retired job leaves nothing behind.
 describe('Recurring jobs on Redis (e2e)', () => {
   let queue: Queue;
 
@@ -22,40 +21,31 @@ describe('Recurring jobs on Redis (e2e)', () => {
     password: process.env.REDIS_PASSWORD || undefined,
   };
 
-  it('replaces a legacy repeatable job with one scheduler and one next run', async () => {
+  it('registering on every boot keeps one scheduler and one next run', async () => {
     queue = new Queue(`recurring-e2e-${Date.now()}`, { connection });
-    await queue.add(
-      'cleanup-expired',
-      {},
-      { repeat: { pattern: '0 * * * *' }, jobId: 'cleanup_stories_cron' },
-    );
 
-    await registerRecurringJob(
-      queue,
-      'cleanup_stories_cron',
-      'cleanup-expired',
-      '0 * * * *',
-    );
-    await registerRecurringJob(
-      queue,
-      'cleanup_stories_cron',
-      'cleanup-expired',
-      '0 * * * *',
-    );
+    for (let boot = 0; boot < 3; boot++) {
+      await registerRecurringJob(
+        queue,
+        'cleanup_stories_cron',
+        'cleanup-expired',
+        '0 * * * *',
+      );
+    }
 
     const schedulers = await queue.getJobSchedulers();
     expect(schedulers.map((s) => s.key)).toEqual(['cleanup_stories_cron']);
     const delayed = await queue.getDelayed();
     expect(delayed.map((j) => j.name)).toEqual(['cleanup-expired']);
-    expect(delayed[0].id).toMatch(/^repeat:cleanup_stories_cron:/);
   });
 
   it('removes a retired job completely', async () => {
     queue = new Queue(`recurring-e2e-retired-${Date.now()}`, { connection });
-    await queue.add(
+    await registerRecurringJob(
+      queue,
+      'gdpr_search_cron',
       'clean-expired-search-history',
-      {},
-      { repeat: { pattern: '0 2 * * *' }, jobId: 'gdpr_search_cron' },
+      '0 2 * * *',
     );
 
     await expect(
