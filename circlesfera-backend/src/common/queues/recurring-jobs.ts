@@ -4,8 +4,11 @@ import type { Queue } from 'bullmq';
 // option on Queue#add is removed in BullMQ 6, and its entries in Redis would
 // keep firing next to a scheduler, running the job twice. Registration
 // therefore removes any other scheduler entry for the same job name (the
-// legacy ones are keyed by a hash) before upserting the scheduler, which is
-// idempotent across restarts.
+// legacy ones are keyed by a hash) before upserting the scheduler.
+//
+// An unchanged scheduler is left alone: upserting replaces its pending next
+// run with the following occurrence, so a restart at the scheduled time
+// would skip that run.
 export async function registerRecurringJob(
   queue: Queue,
   schedulerId: string,
@@ -13,6 +16,8 @@ export async function registerRecurringJob(
   pattern: string,
 ): Promise<void> {
   await removeRecurringJob(queue, name, schedulerId);
+  const current = await queue.getJobScheduler(schedulerId);
+  if (current?.name === name && current.pattern === pattern) return;
   await queue.upsertJobScheduler(schedulerId, { pattern }, { name, data: {} });
 }
 

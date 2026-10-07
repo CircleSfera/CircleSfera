@@ -1,8 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { registerRecurringJob, removeRecurringJob } from './recurring-jobs.js';
 
-const queueWith = (schedulers: { key: string; name: string }[]) => ({
+const queueWith = (
+  schedulers: { key: string; name: string; pattern?: string }[],
+) => ({
   getJobSchedulers: vi.fn().mockResolvedValue(schedulers),
+  getJobScheduler: vi
+    .fn()
+    .mockImplementation(async (id: string) =>
+      schedulers.find((scheduler) => scheduler.key === id),
+    ),
   removeJobScheduler: vi.fn().mockResolvedValue(true),
   upsertJobScheduler: vi.fn().mockResolvedValue({}),
 });
@@ -32,9 +39,13 @@ describe('recurring jobs', () => {
     );
   });
 
-  it('keeps the existing scheduler on a restart', async () => {
+  it('leaves an unchanged scheduler and its pending run alone on a restart', async () => {
     const queue = queueWith([
-      { key: 'cleanup_stories_cron', name: 'cleanup-expired' },
+      {
+        key: 'cleanup_stories_cron',
+        name: 'cleanup-expired',
+        pattern: '0 * * * *',
+      },
     ]);
 
     await registerRecurringJob(
@@ -45,7 +56,31 @@ describe('recurring jobs', () => {
     );
 
     expect(queue.removeJobScheduler).not.toHaveBeenCalled();
-    expect(queue.upsertJobScheduler).toHaveBeenCalledTimes(1);
+    expect(queue.upsertJobScheduler).not.toHaveBeenCalled();
+  });
+
+  it('updates a scheduler whose pattern changed', async () => {
+    const queue = queueWith([
+      {
+        key: 'cleanup_stories_cron',
+        name: 'cleanup-expired',
+        pattern: '0 * * * *',
+      },
+    ]);
+
+    await registerRecurringJob(
+      queue as never,
+      'cleanup_stories_cron',
+      'cleanup-expired',
+      '*/30 * * * *',
+    );
+
+    expect(queue.removeJobScheduler).not.toHaveBeenCalled();
+    expect(queue.upsertJobScheduler).toHaveBeenCalledWith(
+      'cleanup_stories_cron',
+      { pattern: '*/30 * * * *' },
+      { name: 'cleanup-expired', data: {} },
+    );
   });
 
   it('removes every entry of a retired job', async () => {
