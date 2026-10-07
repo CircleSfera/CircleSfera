@@ -211,7 +211,7 @@ export function AdminListRow({
                         'border border-white/10 shadow-2xl',
                         'bg-linear-to-br from-[rgba(18,12,32,0.96)] to-[rgba(10,8,20,0.98)]',
                         'backdrop-blur-xl saturate-150',
-                        'shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(140,82,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]',
+                        'shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(136,76,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]',
                       )}
                     >
                       {secondaryActions.map((action) => {

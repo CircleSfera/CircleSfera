@@ -169,8 +169,8 @@ export default function Notifications() {
         };
       case 'COMMENT':
         return {
-          background: 'linear-gradient(135deg, #8c52ff, #a855f7)',
-          boxShadow: '0 2px 8px rgba(140,82,255,0.5)',
+          background: 'linear-gradient(135deg, #884cff, #a855f7)',
+          boxShadow: '0 2px 8px rgba(136,76,255,0.5)',
         };
       case 'MENTION':
         return {
@@ -280,8 +280,8 @@ export default function Notifications() {
                 !notif.read
                   ? {
                       background:
-                        'linear-gradient(135deg, rgba(140,82,255,0.08) 0%, rgba(255,87,87,0.05) 100%)',
-                      border: '1px solid rgba(140,82,255,0.15)',
+                        'linear-gradient(135deg, rgba(136,76,255,0.08) 0%, rgba(255,87,87,0.05) 100%)',
+                      border: '1px solid rgba(136,76,255,0.15)',
                     }
                   : {
                       border: '1px solid transparent',
@@ -293,8 +293,8 @@ export default function Notifications() {
                 <div
                   className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full"
                   style={{
-                    background: 'linear-gradient(180deg, #ff5757, #8c52ff)',
-                    boxShadow: '0 0 6px rgba(140,82,255,0.6)',
+                    background: 'linear-gradient(180deg, #ff5757, #884cff)',
+                    boxShadow: '0 0 6px rgba(136,76,255,0.6)',
                   }}
                 />
               )}
@@ -392,7 +392,7 @@ export default function Notifications() {
                     className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
                     style={{
                       background:
-                        'linear-gradient(135deg, rgba(140, 82, 255,0.15), rgba(64,93,230,0.1))',
+                        'linear-gradient(135deg, rgba(136, 76, 255,0.15), rgba(64,93,230,0.1))',
                       border: '1px solid rgba(255,255,255,0.08)',
                     }}
                   >

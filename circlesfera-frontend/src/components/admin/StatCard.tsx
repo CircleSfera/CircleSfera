@@ -28,7 +28,7 @@ const colorMap: Record<string, string> = {
 
 const strokeMap: Record<string, string> = {
   blue: '#5271ff',
-  purple: '#8c52ff',
+  purple: '#884cff',
   pink: '#ff7657',
   red: '#ff5757',
   green: '#34d399',

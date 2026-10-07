@@ -26,8 +26,8 @@ const PRESETS = [
   {
     key: 'badge',
     size: 28,
-    color: '#8c52ff',
-    bg: 'rgba(140, 82, 255, 0.25)',
+    color: '#884cff',
+    bg: 'rgba(136, 76, 255, 0.25)',
   },
   {
     key: 'story',

@@ -7,7 +7,7 @@ type PlaceMapMarkerProps = {
   onSelect: (placeId: string) => void;
 };
 
-const BRAND = '#8c52ff';
+const BRAND = '#884cff';
 
 export function buildPlaceMarkerElement({
   place,
@@ -45,7 +45,7 @@ export function buildPlaceMarkerElement({
       ? `border:3px solid ${BRAND}; outline:2px solid rgba(255,255,255,0.92); outline-offset:1px`
       : 'border:2px solid rgba(255,255,255,0.88)',
     selected
-      ? `box-shadow:0 6px 20px rgba(140,82,255,0.55), 0 2px 8px rgba(0,0,0,0.5)`
+      ? `box-shadow:0 6px 20px rgba(136,76,255,0.55), 0 2px 8px rgba(0,0,0,0.5)`
       : 'box-shadow:0 4px 14px rgba(0,0,0,0.5)',
     'background:#141414',
   ].join(';');
@@ -65,7 +65,7 @@ export function buildPlaceMarkerElement({
     'padding:3px 9px',
     'border-radius:9999px',
     selected
-      ? 'background:rgba(140,82,255,0.92)'
+      ? 'background:rgba(136,76,255,0.92)'
       : 'background:rgba(0,0,0,0.78)',
     'color:#fff',
     'font-family:Inter,system-ui,sans-serif',
@@ -79,7 +79,7 @@ export function buildPlaceMarkerElement({
     'text-overflow:ellipsis',
     'pointer-events:none',
     selected
-      ? 'box-shadow:0 4px 12px rgba(140,82,255,0.4)'
+      ? 'box-shadow:0 4px 12px rgba(136,76,255,0.4)'
       : 'box-shadow:0 2px 8px rgba(0,0,0,0.35)',
   ].join(';');
 
