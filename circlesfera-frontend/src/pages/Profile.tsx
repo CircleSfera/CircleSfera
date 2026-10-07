@@ -83,7 +83,7 @@ export default function Profile() {
     enabled: !!username,
   });
 
-  const { data: myProfile } = useQuery({
+  const { data: myProfile, isFetched: isMyProfileFetched } = useQuery({
     queryKey: ['myProfile'],
     queryFn: () =>
       profileApi.getMyProfile() as Promise<{ data: ProfileWithUser }>,
@@ -156,10 +156,11 @@ export default function Profile() {
     username,
   ]);
 
-  const { data: followStatus } = useQuery({
+  const { data: followStatus, isFetched: isFollowStatusFetched } = useQuery({
     queryKey: ['follow', username],
     queryFn: () => followsApi.check(username!),
-    enabled: !!username && !isMe,
+    // Wait to know whose profile this is: never check following oneself.
+    enabled: !!username && isMyProfileFetched && !isMe,
   });
 
   const isFollowing = followStatus?.data.following;
@@ -193,7 +194,13 @@ export default function Profile() {
     profile?.data?.isPrivate ||
     profile?.data?.user?.settings?.privacyLevel === 'PRIVATE'
   );
-  const canView = isMe || !isPrivateAccount || isFollowing;
+  // Nothing is shown or requested until the profile says whether it is
+  // private and the follow check says whether there is a block (the
+  // server enforces the same rules). For a guest the check fails, which
+  // still counts as known.
+  const isRelationKnown = isMe || isFollowStatusFetched;
+  const canView =
+    !!profile && isRelationKnown && (isMe || !isPrivateAccount || isFollowing);
 
   const {
     data: postsPages,
@@ -279,7 +286,9 @@ export default function Profile() {
   const { data: highlights } = useQuery({
     queryKey: ['userHighlights', profile?.data.id],
     queryFn: () => highlightsApi.getProfileHighlights(profile!.data.id),
-    enabled: !!profile?.data,
+    // The server also hides them; this only skips a request that would
+    // come back empty.
+    enabled: !!profile?.data && !!canView && !isBlocked,
   });
 
   const {
@@ -683,6 +692,14 @@ export default function Profile() {
                 />
               )}
             </>
+          ) : !isRelationKnown ? (
+            // Still checking follow and block status: never flash the
+            // private notice on a public account.
+            <div className="grid grid-cols-3 gap-1" aria-busy="true">
+              {['r1', 'r2', 'r3', 'r4', 'r5', 'r6'].map((id) => (
+                <Skeleton key={id} className="aspect-4/5" />
+              ))}
+            </div>
           ) : (
             // Private Account View
             <EmptyState
