@@ -1,4 +1,5 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactElement } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { paymentsApi } from '../../services/payments.service';
@@ -208,5 +209,267 @@ describe('Pricing', () => {
     );
 
     expect(await screen.findByText('Premium')).toBeInTheDocument();
+  });
+
+  it('writes the prices as currency in the app language and in the plan currency', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      plan('Premium', 'p-premium', 999),
+      { ...plan('Business', 'p-business', 4999), currency: 'USD' },
+    ]);
+    renderWithProviders(<Pricing />, { lng: 'es' });
+
+    expect(await screen.findByText(/^9,99\s€$/)).toBeInTheDocument();
+    expect(screen.getByText(/^49,99\sUS\$$/)).toBeInTheDocument();
+  });
+
+  it('shows the yearly price with its saving and keeps a plan without yearly price from being bought yearly', async () => {
+    const { i18n } = renderWithProviders(<Pricing />);
+    await screen.findByText('Premium');
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.billing_yearly'),
+      }),
+    );
+
+    expect(screen.getByText('€99.90')).toBeInTheDocument();
+    // 99.90 a year against 9.99 a month is 17 % less.
+    expect(
+      screen.getAllByText(i18n!.t('pricingPage.save_percent', { percent: 17 }))
+        .length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.button_business'),
+      }),
+    ).toBeDisabled();
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.billing_monthly'),
+      }),
+    );
+    expect(screen.getByText('€9.99')).toBeInTheDocument();
+  });
+
+  it('hides the billing cycle choice when no plan has a yearly price', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      plan('Premium', 'p-premium', 999),
+    ]);
+    const { i18n } = renderWithProviders(<Pricing />);
+    await screen.findByText('Premium');
+
+    expect(
+      screen.queryByRole('button', {
+        name: i18n!.t('pricingPage.billing_yearly'),
+      }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('marks the plan that matches the verification level as the current one', async () => {
+    useAuthStore.setState({
+      isAuthenticated: true,
+      profile: {
+        id: 'p1',
+        identityVerifiedAt: '2026-01-01',
+        verificationLevel: 'ELITE',
+      } as never,
+    });
+    vi.mocked(paymentsApi.getBillingPortalUrl).mockResolvedValue({
+      url: 'https://billing.stripe.com/portal',
+    });
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    expect(
+      await screen.findByText(i18n!.t('pricingPage.current_plan')),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.manage_subscription'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(location.href).toBe('https://billing.stripe.com/portal'),
+    );
+    expect(paymentsApi.createSubscriptionCheckout).not.toHaveBeenCalled();
+  });
+
+  it('gives an unknown plan a generic text and button, and lists its features', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([
+      {
+        ...plan('Studio', 'p-studio', 2999),
+        features: ['priority_support', 'analytics'],
+      },
+      {
+        ...plan('Team', 'p-team', 5999),
+        description: 'For teams',
+        interval: 'quarter',
+      },
+    ]);
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    expect(await screen.findByText('Studio')).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n!.t('pricingPage.default_description')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('pricingPage.default_button', { plan: 'Studio' }),
+      }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('priority support')).toBeInTheDocument();
+    expect(screen.getByText('For teams')).toBeInTheDocument();
+    expect(screen.getByText('/quarter')).toBeInTheDocument();
+  });
+
+  it('says so when there are no plans', async () => {
+    vi.mocked(paymentsApi.getPlans).mockResolvedValue([]);
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    await waitFor(() =>
+      expect(screen.getAllByText(i18n!.t('pricingPage.subtitle')).length).toBe(
+        2,
+      ),
+    );
+    expect(screen.queryByRole('article')).not.toBeInTheDocument();
+  });
+
+  it('stays on the page when the checkout answers with no address', async () => {
+    vi.mocked(paymentsApi.createSubscriptionCheckout).mockResolvedValue({});
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('pricingPage.button_business'),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(paymentsApi.createSubscriptionCheckout).toHaveBeenCalled(),
+    );
+    expect(location.href).toBe('/');
+  });
+
+  describe('identity verification', () => {
+    const unverified = () =>
+      useAuthStore.setState({
+        isAuthenticated: true,
+        profile: { id: 'p1', verificationLevel: 'NONE' } as never,
+      });
+
+    it('checks a pending verification on arrival and says when it went through', async () => {
+      unverified();
+      vi.mocked(usersApi.syncIdentitySession).mockResolvedValue({
+        status: 'verified',
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          i18n!.t('pricingPage.identity_verified'),
+        ),
+      );
+    });
+
+    it('does not check again for a verified account, and tolerates a failed check', async () => {
+      const first = renderWithProviders(<Pricing />);
+      await screen.findByText('Premium');
+      expect(usersApi.syncIdentitySession).not.toHaveBeenCalled();
+      first.unmount();
+
+      unverified();
+      vi.mocked(usersApi.syncIdentitySession).mockRejectedValue(
+        new Error('down'),
+      );
+      renderWithProviders(<Pricing />);
+
+      expect(await screen.findByText('Premium')).toBeInTheDocument();
+      expect(usersApi.syncIdentitySession).toHaveBeenCalledTimes(1);
+      expect(toast.success).not.toHaveBeenCalled();
+    });
+
+    // The server refuses the checkout with this text until the identity is
+    // verified (IdentityVerifiedGuard).
+    const refuseForIdentity = () =>
+      vi
+        .mocked(paymentsApi.createSubscriptionCheckout)
+        .mockRejectedValue(
+          Object.assign(
+            new Error(
+              'Debes verificar tu identidad primero para poder comprar o cobrar.',
+            ),
+            { status: 403, data: {} },
+          ),
+        );
+
+    async function openVerificationNotice(i18n: {
+      t: (key: string) => string;
+    }) {
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: i18n.t('pricingPage.button_premium'),
+        }),
+      );
+      await waitFor(() => expect(toast).toHaveBeenCalled());
+      const renderNotice = vi.mocked(toast).mock
+        .calls[0][0] as unknown as (item: { id: string }) => ReactElement;
+      render(renderNotice({ id: 'toast-1' }));
+      return screen.getByRole('button', {
+        name: i18n.t('pricingPage.verify_button'),
+      });
+    }
+
+    it('offers to verify the identity when the checkout needs it, and opens the verification', async () => {
+      refuseForIdentity();
+      vi.mocked(usersApi.createIdentitySession).mockResolvedValue({
+        url: 'https://verify.stripe.com/start',
+      });
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      const verify = await openVerificationNotice(i18n!);
+      expect(
+        screen.getByText(i18n!.t('pricingPage.verification_required_title')),
+      ).toBeInTheDocument();
+      expect(toast.error).not.toHaveBeenCalled();
+      fireEvent.click(verify);
+
+      await waitFor(() =>
+        expect(location.href).toBe('https://verify.stripe.com/start'),
+      );
+      expect(toast.dismiss).toHaveBeenCalledWith('toast-1');
+      expect(usersApi.createIdentitySession).toHaveBeenCalledWith('/');
+    });
+
+    it('says so when the verification cannot be started', async () => {
+      refuseForIdentity();
+      vi.mocked(usersApi.createIdentitySession).mockRejectedValue(
+        new Error('down'),
+      );
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      fireEvent.click(await openVerificationNotice(i18n!));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          i18n!.t('pricingPage.verify_error'),
+        ),
+      );
+      expect(location.href).toBe('/');
+    });
+
+    it('stays on the page when the verification answers with no address', async () => {
+      refuseForIdentity();
+      vi.mocked(usersApi.createIdentitySession).mockResolvedValue({});
+      const { i18n } = renderWithProviders(<Pricing />);
+
+      fireEvent.click(await openVerificationNotice(i18n!));
+
+      await waitFor(() =>
+        expect(usersApi.createIdentitySession).toHaveBeenCalled(),
+      );
+      expect(location.href).toBe('/');
+      expect(toast.error).not.toHaveBeenCalled();
+    });
   });
 });

@@ -20,6 +20,10 @@ import { monetizationApi } from '../../services/monetization.service';
 import { paymentsApi } from '../../services/payments.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
+import {
+  apiErrorMessage,
+  isIdentityVerificationRequired,
+} from '../../utils/apiErrorMessage';
 import { formatCents } from '../../utils/money';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import { Button } from '../ui';
@@ -107,8 +111,12 @@ export default function CreatorMonetizationTab({
     onSuccess: (data: { url?: string }) => {
       if (data.url) window.location.href = data.url;
     },
-    onError: (err: Error) => {
-      onToast(err.message || t('creator.monetization.error_connect'), 'error');
+    // The server text is in one language and can be technical.
+    onError: (err: unknown) => {
+      onToast(
+        apiErrorMessage(err, t, 'creator.monetization.error_connect'),
+        'error',
+      );
     },
   });
 
@@ -117,9 +125,9 @@ export default function CreatorMonetizationTab({
     onSuccess: (data) => {
       window.open(data.url, '_blank');
     },
-    onError: (err: Error) => {
+    onError: (err: unknown) => {
       onToast(
-        err.message || t('creator.monetization.error_dashboard'),
+        apiErrorMessage(err, t, 'creator.monetization.error_dashboard'),
         'error',
       );
     },
@@ -131,8 +139,15 @@ export default function CreatorMonetizationTab({
     onSuccess: (data) => {
       if (data?.url) window.location.href = data.url;
     },
-    onError: (err: Error) => {
-      onToast(err.message || t('creator.monetization.error_checkout'), 'error');
+    onError: (err: unknown) => {
+      if (isIdentityVerificationRequired(err)) {
+        onToast(t('pricingPage.verification_required_desc'), 'info');
+        return;
+      }
+      onToast(
+        apiErrorMessage(err, t, 'creator.monetization.error_checkout'),
+        'error',
+      );
     },
   });
 
@@ -141,8 +156,11 @@ export default function CreatorMonetizationTab({
     onSuccess: (data) => {
       if (data?.url) window.location.href = data.url;
     },
-    onError: (err: Error) => {
-      onToast(err.message || t('creator.monetization.error_portal'), 'error');
+    onError: (err: unknown) => {
+      onToast(
+        apiErrorMessage(err, t, 'creator.monetization.error_portal'),
+        'error',
+      );
     },
   });
 
@@ -333,8 +351,11 @@ export default function CreatorMonetizationTab({
 
                     <div className="flex items-baseline gap-1 mb-4">
                       <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
-                        {((plan.priceCents ?? 0) / 100).toFixed(2)}
-                        {plan.currency === 'EUR' ? '€' : plan.currency}
+                        {formatCents(
+                          plan.priceCents ?? 0,
+                          i18n.language,
+                          plan.currency || 'EUR',
+                        )}
                       </span>
                       <span className="text-xs text-white/50">
                         {plan.interval === 'month'
