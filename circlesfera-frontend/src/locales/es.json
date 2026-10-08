@@ -3414,7 +3414,7 @@
       "video": "Vídeo",
       "text": "Texto",
       "audio": "Audio",
-      "options": "Opciones de la pista",
+      "options": "Opciones de la pista {{name}}",
       "add_video": "Añadir pista de vídeo",
       "add_audio": "Añadir pista de audio",
       "add_text": "Añadir pista de texto",

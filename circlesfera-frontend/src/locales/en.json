@@ -3414,7 +3414,7 @@
       "video": "Video",
       "text": "Text",
       "audio": "Audio",
-      "options": "Track options",
+      "options": "Options for track {{name}}",
       "add_video": "Add video track",
       "add_audio": "Add audio track",
       "add_text": "Add text track",

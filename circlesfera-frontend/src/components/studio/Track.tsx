@@ -101,7 +101,7 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
             setControlsOpen((open) => !open);
           }}
           className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10"
-          aria-label={t('studio.tracks.options')}
+          aria-label={t('studio.tracks.options', { name: track.name })}
           aria-expanded={controlsOpen}
         >
           {getTrackIcon()}
