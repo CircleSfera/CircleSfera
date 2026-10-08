@@ -828,6 +828,14 @@ export class FeedService {
       const viewer = await this.prisma.profile.findUnique({
         where: { id: profileId },
       });
+      // A Profile on the Elite Creator or Business plan sees no promoted
+      // posts: it is one of the things those plans include.
+      if (
+        viewer?.verificationLevel === 'ELITE' ||
+        viewer?.verificationLevel === 'BUSINESS'
+      ) {
+        return posts;
+      }
       viewerLocation = viewer?.location?.toLowerCase();
       viewerUserId = viewer?.userId;
     }

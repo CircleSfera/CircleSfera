@@ -870,3 +870,16 @@ input[type="range"]::-moz-range-progress {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* A full-window layer that leaves the sidebar in view: on the screens that
+   have a sidebar it starts where the sidebar ends. */
+@media (min-width: 48rem) {
+  body:has(.sidebar-root) .beside-sidebar {
+    left: var(--nav-sidebar-collapsed);
+  }
+}
+@media (min-width: 80rem) {
+  body:has(.sidebar-root) .beside-sidebar {
+    left: var(--nav-sidebar-width);
+  }
+}

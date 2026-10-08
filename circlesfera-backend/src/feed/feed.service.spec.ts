@@ -631,6 +631,65 @@ describe('FeedService', () => {
       expect(res.data[0].id).toBe('trending-cached');
     });
 
+    // A feed of five posts, seen by a Profile on the given plan level.
+    // Answers are queued only for the queries that level makes, so nothing
+    // is left over for the next test.
+    async function feedSeenBy(verificationLevel: string, promoted: boolean) {
+      mockCache.get.mockResolvedValue(null);
+      mockPrismaService.like.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.$queryRaw.mockResolvedValueOnce(
+        Array.from({ length: 5 }, (_, i) => ({ id: `post-${i + 1}` })),
+      );
+      mockPrismaService.post.findMany.mockResolvedValueOnce(
+        Array.from({ length: 5 }, (_, i) => ({
+          id: `post-${i + 1}`,
+          type: 'POST',
+          likes: [],
+          media: [],
+          contentRating: 'GENERAL',
+        })),
+      );
+      mockPrismaService.post.count.mockResolvedValueOnce(5);
+      mockPrismaService.profile.findUnique
+        .mockResolvedValueOnce({ userId: 'viewer-user' })
+        .mockResolvedValueOnce({ userId: 'viewer-user' })
+        .mockResolvedValueOnce({ userId: 'viewer-user', verificationLevel });
+      mockPrismaService.promotion.findMany.mockClear();
+      if (promoted) {
+        mockPrismaService.post.findMany.mockResolvedValueOnce([
+          { id: 'promoted-p1', caption: 'Buy now', likes: [], media: [] },
+        ]);
+        mockPrismaService.promotion.findMany.mockResolvedValueOnce([
+          { id: 'promo-1', targetId: 'promoted-p1', countries: null },
+        ]);
+      }
+
+      return (await service.getHybridFeed('viewer-prof', {
+        page: 1,
+        limit: 10,
+      })) as any;
+    }
+
+    it.each(['ELITE', 'BUSINESS'])(
+      'shows no promoted posts to a Profile on the %s plan',
+      async (level) => {
+        const res = await feedSeenBy(level, false);
+
+        expect(res.data).toHaveLength(5);
+        expect(res.data.some((p: any) => p.isPromoted)).toBe(false);
+        expect(mockPrismaService.promotion.findMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(['BASIC', 'VERIFIED'])(
+      'still shows promoted posts to a Profile on the %s level',
+      async (level) => {
+        const res = await feedSeenBy(level, true);
+
+        expect(res.data.some((p: any) => p.isPromoted)).toBe(true);
+      },
+    );
+
     it('injects promotions matching viewer location into feed with >= 5 posts', async () => {
       mockCache.get.mockResolvedValue(null);
       mockPrismaService.like.findMany.mockResolvedValueOnce([]);

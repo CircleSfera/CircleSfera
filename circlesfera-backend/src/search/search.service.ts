@@ -210,7 +210,12 @@ export class SearchService {
   // Perform a combined search for users and hashtags. Saves search history if authenticated.
   // Param query: The search query (min 2 chars)
   // Param profileId: Optional authenticated user ID for history tracking
-  async search(query: string, profileId?: string): Promise<SearchResponse> {
+  // Param verifiedOnly: people results limited to Profiles with a plan badge
+  async search(
+    query: string,
+    profileId?: string,
+    verifiedOnly = false,
+  ): Promise<SearchResponse> {
     if (!query || query.length < 2) {
       return {
         users: [],
@@ -221,7 +226,7 @@ export class SearchService {
     }
 
     const sanitizedQuery = query.toLowerCase();
-    const cacheKey = `search:combined:v2:${sanitizedQuery.replace(/\s/g, '_')}:${profileId || 'guest'}`;
+    const cacheKey = `search:combined:v3:${sanitizedQuery.replace(/\s/g, '_')}:${profileId || 'guest'}:${verifiedOnly ? 'verified' : 'all'}`;
     const cached = await this.cacheManager.get<SearchResponse>(cacheKey);
     if (cached) return cached;
 
@@ -246,7 +251,7 @@ export class SearchService {
 
     const [users, hashtags, semanticPosts, semanticProfiles] =
       await Promise.all([
-        this.searchUsers(sanitizedQuery, profileId),
+        this.searchUsers(sanitizedQuery, profileId, verifiedOnly),
         this.prisma.hashtag.findMany({
           where: {
             tag: {
@@ -324,11 +329,18 @@ export class SearchService {
   }
 
   // Search for users with Social Discovery ranking.
-  // Priority: Mutual Connections (People you follow who follow them) > Verification Level > Followers Count.
+  // Priority: Mutual Connections (People you follow who follow them) > Followers Count.
+  // A plan does not move a Profile up. The person searching can ask for
+  // verified Profiles only, which is a filter and not an order.
   // Param query: The search query
   // Param viewerId: Optional ID of the user performing the search
 
-  async searchUsers(query: string, viewerId?: string): Promise<any[]> {
+  // Param verifiedOnly: only Profiles with a plan badge
+  async searchUsers(
+    query: string,
+    viewerId?: string,
+    verifiedOnly = false,
+  ): Promise<any[]> {
     if (!query || query.length < 2) return [];
 
     const sanitizedQuery = query.toLowerCase();
@@ -343,6 +355,7 @@ export class SearchService {
         user: {
           deactivatedAt: null,
         },
+        ...(verifiedOnly ? { verificationLevel: { not: 'BASIC' } } : {}),
         // Blocked Profiles and other audiences are not findable.
         AND: [await visibleToViewerWhere(this.prisma, viewerId)],
       },
@@ -399,11 +412,7 @@ export class SearchService {
       const followedByFriendNames = mutualsByCandidate.get(profile.id) ?? [];
       const mutualCount = followedByFriendNames.length;
 
-      const authoritySignal = profile.verificationLevel !== 'BASIC' ? 20 : 0;
-      const score =
-        Math.log10(profile._count.followers + 1) +
-        mutualCount * 5 +
-        authoritySignal;
+      const score = Math.log10(profile._count.followers + 1) + mutualCount * 5;
 
       return {
         ...profile,
@@ -509,16 +518,11 @@ export class SearchService {
       take: 50,
     });
 
-    // Rank by Authority Signal + Simple engagement
+    // Rank by engagement alone: a plan does not move a post up.
     return posts
       .sort((a, b) => {
-        const authorityA = a.profile.verificationLevel !== 'BASIC' ? 100 : 0;
-        const authorityB = b.profile.verificationLevel !== 'BASIC' ? 100 : 0;
-
-        const scoreA =
-          a._count.likes * 1.2 + a._count.comments * 2.5 + authorityA;
-        const scoreB =
-          b._count.likes * 1.2 + b._count.comments * 2.5 + authorityB;
+        const scoreA = a._count.likes * 1.2 + a._count.comments * 2.5;
+        const scoreB = b._count.likes * 1.2 + b._count.comments * 2.5;
 
         return scoreB - scoreA;
       })
