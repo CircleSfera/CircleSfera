@@ -282,6 +282,21 @@ describe('EmailService', () => {
       );
     });
 
+    it('links a support reply to the page of its request', async () => {
+      await service.sendSupportReplyEmail(
+        'support-asker@example.com',
+        'Billing inquiry',
+        'Here is the response',
+        't-1',
+      );
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { html: string },
+      ];
+      expect(job.html).toContain('/support/requests/t-1');
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

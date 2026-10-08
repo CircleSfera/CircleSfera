@@ -38,7 +38,7 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
-  supportReply: { subject: string; title: string };
+  supportReply: { subject: string; title: string; button: string };
   subscriptionReceipt: {
     subject: string;
     title: string;
@@ -111,6 +111,7 @@ const en: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - CircleSfera Support',
     title: 'Reply to your request',
+    button: 'See your request',
   },
   subscriptionReceipt: {
     subject: 'Subscription receipt - {plan}',
@@ -186,6 +187,7 @@ const es: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - Soporte de CircleSfera',
     title: 'Respuesta a tu consulta',
+    button: 'Ver tu solicitud',
   },
   subscriptionReceipt: {
     subject: 'Recibo de suscripción - {plan}',

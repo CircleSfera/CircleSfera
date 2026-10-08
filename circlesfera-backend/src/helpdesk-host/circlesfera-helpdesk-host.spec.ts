@@ -5,8 +5,8 @@ import {
   CircleSferaAccountCard,
   CircleSferaOrganizationScope,
   CircleSferaRequesterDirectory,
-  EmailRequesterNotifier,
-  EventTeamChannel,
+  CircleSferaRequesterNotifier,
+  CircleSferaTeamChannel,
   ModerationHandover,
 } from './circlesfera-helpdesk-host.js';
 
@@ -179,31 +179,96 @@ describe('CircleSfera as the host of the Help Desk', () => {
     });
   });
 
-  it('sends the answer of the team by email', async () => {
+  describe('telling the requester', () => {
     const email = { sendSupportReplyEmail: vi.fn() };
-
-    await new EmailRequesterNotifier(email as never).answer(
-      { email: 'ana@example.com', subject: 'Help' },
-      'Fixed.',
+    const eventEmitter = { emit: vi.fn() };
+    const notifier = new CircleSferaRequesterNotifier(
+      email as never,
+      prisma as never,
+      eventEmitter as never,
     );
+    const ticket = {
+      id: 't-1',
+      reference: 42,
+      subject: 'Help',
+      email: 'ana@example.com',
+      requesterRef: 'u-1',
+    };
 
-    expect(email.sendSupportReplyEmail).toHaveBeenCalledWith(
-      'ana@example.com',
-      'Help',
-      'Fixed.',
-    );
+    it('sends the answer by email with the request it belongs to, and a notice in the app on their main Profile', async () => {
+      prisma.profile.findFirst.mockResolvedValue({ id: 'p-1' });
+
+      await notifier.answer(ticket, 'Fixed.');
+
+      expect(email.sendSupportReplyEmail).toHaveBeenCalledWith(
+        'ana@example.com',
+        'Help',
+        'Fixed.',
+        't-1',
+      );
+      expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+        recipientId: 'p-1',
+        type: 'SYSTEM',
+        notice: { key: 'support_answered', subject: 'Help' },
+        targetType: 'support_ticket',
+        targetId: 't-1',
+      });
+    });
+
+    it('sends only the email when the account no longer exists', async () => {
+      eventEmitter.emit.mockClear();
+      email.sendSupportReplyEmail.mockClear();
+
+      await notifier.answer({ ...ticket, requesterRef: null }, 'Fixed.');
+
+      expect(email.sendSupportReplyEmail).toHaveBeenCalled();
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
+    it('never puts the text of the answer in the notice', async () => {
+      eventEmitter.emit.mockClear();
+      prisma.profile.findFirst.mockResolvedValue({ id: 'p-1' });
+
+      await notifier.answer(ticket, 'A private detail.');
+
+      expect(JSON.stringify(eventEmitter.emit.mock.calls)).not.toContain(
+        'A private detail.',
+      );
+    });
   });
 
-  it('tells the team about a new ticket with the event the channel listens to', () => {
+  describe('telling the team', () => {
     const eventEmitter = { emit: vi.fn() };
-    const ticket = { id: 't-1' };
-
-    new EventTeamChannel(eventEmitter as never).ticketOpened(ticket);
-
-    expect(eventEmitter.emit).toHaveBeenCalledWith(
-      'support.ticket_created',
-      ticket,
+    const slack = { sendSupportReplyAlert: vi.fn() };
+    const channel = new CircleSferaTeamChannel(
+      eventEmitter as never,
+      slack as never,
     );
+
+    it('announces a new ticket with the event the channel listens to', () => {
+      const ticket = { id: 't-1' };
+
+      channel.ticketOpened(ticket);
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'support.ticket_created',
+        ticket,
+      );
+    });
+
+    it('announces a reply of the requester in the same channel', async () => {
+      const ticket = {
+        id: 't-1',
+        reference: 42,
+        subject: 'Help',
+        email: 'ana@example.com',
+        requesterRef: 'u-1',
+      };
+
+      await channel.requesterReplied(ticket);
+
+      expect(slack.sendSupportReplyAlert).toHaveBeenCalledWith(ticket);
+    });
   });
 
   it('records what an agent did in the staff audit log', async () => {

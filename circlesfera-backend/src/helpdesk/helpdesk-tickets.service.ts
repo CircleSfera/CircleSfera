@@ -84,6 +84,22 @@ export class HelpdeskTicketsService {
     };
   }
 
+  private noticeOf(ticket: {
+    id: string;
+    reference: number;
+    subject: string;
+    email: string;
+    userId: string | null;
+  }) {
+    return {
+      id: ticket.id,
+      reference: ticket.reference,
+      subject: ticket.subject,
+      email: ticket.email,
+      requesterRef: ticket.userId,
+    };
+  }
+
   private async requesterTicketOrFail(id: string, requesterRef: string) {
     const ticket = await this.store.findRequesterTicket(id, requesterRef);
     // A ticket of someone else does not exist for this requester.
@@ -153,6 +169,10 @@ export class HelpdeskTicketsService {
         body,
       },
     );
+    // The team hears of it; a failure to tell them does not undo the reply.
+    await this.teamChannel
+      .requesterReplied(this.noticeOf(ticket))
+      .catch(() => undefined);
     return this.getMyTicket(requesterRef, id);
   }
 
@@ -299,7 +319,7 @@ export class HelpdeskTicketsService {
       { authorKind: 'AGENT', authorRef: agentRef, visibility: 'PUBLIC', body },
     );
 
-    await this.notifier.answer(updated, body);
+    await this.notifier.answer(this.noticeOf(updated), body);
     await this.staffLog.record(
       agentRef,
       id,
@@ -358,7 +378,7 @@ export class HelpdeskTicketsService {
     );
 
     if (answer) {
-      await this.notifier.answer(ticket, answer);
+      await this.notifier.answer(this.noticeOf(ticket), answer);
     }
 
     await this.staffLog.record(
