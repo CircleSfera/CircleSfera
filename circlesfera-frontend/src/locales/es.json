@@ -993,9 +993,9 @@
       "unlock_success": "¡Publicación desbloqueada con éxito!",
       "unlock_error": "Error al desbloquear la publicación",
       "carousel": "Carrusel de medios",
-      "previous_slide": "Diapositiva anterior",
-      "next_slide": "Diapositiva siguiente",
-      "go_to_slide": "Ir a la diapositiva {{n}}",
+      "previous_slide": "Foto o vídeo anterior",
+      "next_slide": "Foto o vídeo siguiente",
+      "position": "{{n}} de {{total}}",
       "sensitive": "Contenido sensible difuminado"
     },
     "menu": {
