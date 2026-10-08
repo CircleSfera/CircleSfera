@@ -308,6 +308,53 @@ describe('PhotoEditor', () => {
     });
   });
 
+  describe('the size of the drawing layer', () => {
+    const layerSize = () => {
+      const box = screen.getByTestId('overlay-layer').parentElement;
+      return `${box?.style.width} x ${box?.style.height}`;
+    };
+    const sizeOnScreen = (width: number, height: number) => {
+      vi.spyOn(
+        HTMLImageElement.prototype,
+        'clientWidth',
+        'get',
+      ).mockReturnValue(width);
+      vi.spyOn(
+        HTMLImageElement.prototype,
+        'clientHeight',
+        'get',
+      ).mockReturnValue(height);
+    };
+
+    afterEach(() => {
+      vi.restoreAllMocks();
+    });
+
+    it('follows the photo once it has loaded', () => {
+      renderEditor();
+      // Nothing to measure until the photo is there.
+      expect(layerSize()).toBe('0px x 0px');
+
+      sizeOnScreen(300, 375);
+      fireEvent.load(
+        screen.getByRole('img', { name: 'Vista previa de la subida' }),
+      );
+
+      expect(layerSize()).toBe('300px x 375px');
+    });
+
+    it('is measured again when coming back from the crop tab', async () => {
+      renderEditor();
+      await openTab('Recorte', () => screen.findByText('crop'));
+
+      // The photo is mounted again on leaving the crop, at another size.
+      sizeOnScreen(240, 300);
+      await openTab('Filtros', () => screen.findByTestId('overlay-layer'));
+
+      expect(layerSize()).toBe('240px x 300px');
+    });
+  });
+
   it('names its sliders, so a screen reader says what each one changes', async () => {
     renderEditor();
 

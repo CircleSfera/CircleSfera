@@ -993,9 +993,9 @@
       "unlock_success": "¡Publicación desbloqueada con éxito!",
       "unlock_error": "Error al desbloquear la publicación",
       "carousel": "Carrusel de medios",
-      "previous_slide": "Diapositiva anterior",
-      "next_slide": "Diapositiva siguiente",
-      "go_to_slide": "Ir a la diapositiva {{n}}",
+      "previous_slide": "Foto o vídeo anterior",
+      "next_slide": "Foto o vídeo siguiente",
+      "position": "{{n}} de {{total}}",
       "sensitive": "Contenido sensible difuminado"
     },
     "menu": {
@@ -1091,14 +1091,15 @@
     "delete_title": "Eliminar Comentario",
     "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.",
     "add_media": "Añadir media",
+    "remove_media": "Quitar el archivo",
     "voice_note": "🎤 Nota de voz"
   },
   "profile": {
     "tabs": {
-      "posts": "PUBLICACIONES",
-      "frames": "FRAMES",
-      "saved": "GUARDADO",
-      "tagged": "ETIQUETADO"
+      "posts": "Publicaciones",
+      "frames": "Frames",
+      "saved": "Guardado",
+      "tagged": "Etiquetado"
     },
     "stats": {
       "posts": "Publicaciones",
@@ -1128,10 +1129,7 @@
       "create_post": "Crear publicación"
     },
     "creator_mode": {
-      "creator": "Creador",
-      "consumer": "Consumidor",
-      "enter": "Activar modo creador",
-      "exit": "Salir del modo creador"
+      "label": "Modo creador"
     },
     "highlights": {
       "new": "Nuevo"

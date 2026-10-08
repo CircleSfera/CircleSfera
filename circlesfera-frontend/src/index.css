@@ -281,7 +281,7 @@
   --text-body: 16px; /* Body */
   --text-body-sm: 14px; /* Body Small */
   --text-caption: 12px; /* Caption */
-  --text-badge: 11px; /* Badge */
+  --text-badge: 12px; /* Badge */
 
   /* Line heights */
   --lh-display: 1.1; /* 110% */
@@ -879,7 +879,7 @@ input[type="range"]::-moz-range-progress {
   }
 }
 @media (min-width: 80rem) {
-  body:has(.sidebar-root) .beside-sidebar {
+  body:has(.sidebar-root:not(.sidebar-compact)) .beside-sidebar {
     left: var(--nav-sidebar-width);
   }
 }

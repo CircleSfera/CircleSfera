@@ -158,7 +158,7 @@ jobs:
       - name: Check control sizes of the editor and the live, and undo
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts --project=chromium
+          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts --project=chromium
 
       - name: Dump server logs on failure
         if: failure()

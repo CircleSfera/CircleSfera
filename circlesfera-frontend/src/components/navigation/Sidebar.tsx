@@ -29,7 +29,13 @@ import { useUIStore } from '../../stores/uiStore';
 // Icon size nav: 24px (--icon-nav)
 // Label: text-sm (14px, --text-body-sm)
 // Glass panel treatment on the rail surface
-export default function Sidebar() {
+/**
+ * `compact`: keep the narrow rail of icons at every width, for the screens
+ * that need the room (the edits studio). Otherwise the sidebar is wide from
+ * the `xl` breakpoint up.
+ */
+export default function Sidebar({ compact = false }: { compact?: boolean }) {
+  const wide = (className: string) => (compact ? '' : className);
   const location = useLocation();
   const path = location.pathname;
   const profile = useAuthStore((state) => state.profile);
@@ -117,7 +123,7 @@ export default function Sidebar() {
 
   return (
     <div
-      className="sidebar-root hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 w-17 xl:w-65"
+      className={`sidebar-root ${compact ? 'sidebar-compact' : ''} hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-50 transition-all duration-300 w-17 ${wide('xl:w-65')}`}
       style={{
         background: 'rgba(8, 6, 15, 0.92)',
         backdropFilter: 'blur(32px) saturate(200%)',
@@ -127,17 +133,13 @@ export default function Sidebar() {
           '4px 0 24px rgba(0,0,0,0.4), inset -1px 0 0 rgba(255,255,255,0.04)',
       }}
     >
-      <style>{`
-        @media (min-width: 1280px) {
-          .sidebar-root { width: var(--nav-sidebar-width, 260px) !important; }
-        }
-      `}</style>
-
       {/* Logo Area */}
-      <div className="px-3 py-4 flex justify-center xl:justify-start shrink-0">
+      <div
+        className={`px-3 py-4 flex justify-center ${wide('xl:justify-start')} shrink-0`}
+      >
         <Link
           to="/"
-          className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+          className="-m-2 min-h-11 min-w-11 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
         >
           <img
             src={logoSrc}
@@ -181,7 +183,7 @@ export default function Sidebar() {
                 {/* Badge — collapsed mode */}
                 {item.badge > 0 && (
                   <span
-                    className="xl:hidden absolute -top-1.5 -right-1.5 min-w-4 h-4 flex items-center justify-center font-bold text-white rounded-full px-1"
+                    className={`${wide('xl:hidden')} absolute -top-1.5 -right-1.5 min-w-4 h-4 flex items-center justify-center font-bold text-white rounded-full px-1`}
                     style={{
                       fontSize: '9px',
                       background: 'linear-gradient(135deg, #ef4444, #dc2626)',
@@ -195,7 +197,7 @@ export default function Sidebar() {
 
               {/* Label — font-medium (500) for nav labels */}
               <span
-                className="hidden xl:block text-sm font-medium transition-all duration-200 truncate"
+                className={`hidden ${wide('xl:block')} text-sm font-medium transition-all duration-200 truncate`}
                 style={{ fontWeight: isActive ? 700 : 500 }}
               >
                 {item.label}
@@ -204,7 +206,7 @@ export default function Sidebar() {
               {/* Badge — expanded mode */}
               {item.badge > 0 && (
                 <span
-                  className="hidden xl:flex ml-auto min-w-4 h-4 items-center justify-center font-bold text-white rounded-full px-1"
+                  className={`hidden ${wide('xl:flex')} ml-auto min-w-4 h-4 items-center justify-center font-bold text-white rounded-full px-1`}
                   style={{
                     fontSize: '9px',
                     background: 'linear-gradient(135deg, #ef4444, #dc2626)',
@@ -290,7 +292,9 @@ export default function Sidebar() {
             size={20}
             className="drop-shadow-[0_0_8px_rgba(251,191,36,0.6)] shrink-0"
           />
-          <span className="hidden xl:block text-sm font-bold tracking-wide">
+          <span
+            className={`hidden ${wide('xl:block')} text-sm font-bold tracking-wide`}
+          >
             {t('nav.premium')}
           </span>
         </Link>
@@ -302,7 +306,7 @@ export default function Sidebar() {
           style={{ minHeight: 44 }}
         >
           <Settings size={20} className="shrink-0" />
-          <span className="hidden xl:block text-sm font-medium">
+          <span className={`hidden ${wide('xl:block')} text-sm font-medium`}>
             {t('nav.settings')}
           </span>
         </Link>
@@ -315,7 +319,7 @@ export default function Sidebar() {
           style={{ minHeight: 44 }}
         >
           <LogOut size={20} className="shrink-0" />
-          <span className="hidden xl:block text-sm font-medium">
+          <span className={`hidden ${wide('xl:block')} text-sm font-medium`}>
             {t('nav.log_out')}
           </span>
         </button>

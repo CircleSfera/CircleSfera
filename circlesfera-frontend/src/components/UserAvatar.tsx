@@ -26,7 +26,8 @@ const sizeClasses: Record<NonNullable<UserAvatarProps['size']>, string> = {
   md: 'w-10 h-10', // 40px
   lg: 'w-14 h-14', // 56px — --avatar-lg
   xl: 'w-20 h-20', // 80px
-  profile: 'w-24 h-24', // 96px — --avatar-profile
+  // 80 px on phones, so the figures beside it fit; 96 px from tablet width.
+  profile: 'w-20 h-20 md:w-24 md:h-24',
   full: 'w-full h-full',
 };
 

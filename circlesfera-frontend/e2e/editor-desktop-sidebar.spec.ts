@@ -93,3 +93,24 @@ test('the story viewer leaves the sidebar in view', async ({ page }) => {
   await expect(viewer).toBeVisible();
   await expectSidebarInView(page, viewer);
 });
+
+test('the edits studio keeps the sidebar as a narrow rail of icons', async ({
+  page,
+}) => {
+  await prepareComposerSession(page);
+  await page.goto('/edits');
+  const exportButton = page.getByRole('button', { name: 'Exportar' });
+  await expect(exportButton).toBeVisible();
+  const sidebarBox = await page.locator('.sidebar-root').boundingBox();
+  // Narrow even on a wide window, where other screens show it with labels.
+  expect(sidebarBox?.width).toBe(68);
+  await expectSidebarInView(page, page.locator('main button').first());
+});
+
+test('the explore map leaves the sidebar in view', async ({ page }) => {
+  await prepareComposerSession(page);
+  await page.goto('/explore/map');
+  const back = page.locator('main button').first();
+  await expect(back).toBeVisible();
+  await expectSidebarInView(page, back);
+});

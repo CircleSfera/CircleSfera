@@ -993,9 +993,9 @@
       "unlock_success": "Post successfully unlocked!",
       "unlock_error": "Error unlocking post",
       "carousel": "Media carousel",
-      "previous_slide": "Previous slide",
-      "next_slide": "Next slide",
-      "go_to_slide": "Go to slide {{n}}",
+      "previous_slide": "Previous photo or video",
+      "next_slide": "Next photo or video",
+      "position": "{{n}} of {{total}}",
       "sensitive": "Sensitive content blurred"
     },
     "menu": {
@@ -1091,14 +1091,15 @@
     "delete_title": "Delete Comment",
     "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone.",
     "add_media": "Add media",
+    "remove_media": "Remove the file",
     "voice_note": "🎤 Voice note"
   },
   "profile": {
     "tabs": {
-      "posts": "POSTS",
-      "frames": "FRAMES",
-      "saved": "SAVED",
-      "tagged": "TAGGED"
+      "posts": "Posts",
+      "frames": "Frames",
+      "saved": "Saved",
+      "tagged": "Tagged"
     },
     "stats": {
       "posts": "Posts",
@@ -1128,10 +1129,7 @@
       "create_post": "Create new post"
     },
     "creator_mode": {
-      "creator": "Creator",
-      "consumer": "Consumer",
-      "enter": "Enter Creator Mode",
-      "exit": "Exit Creator Mode"
+      "label": "Creator mode"
     },
     "highlights": {
       "new": "New"
