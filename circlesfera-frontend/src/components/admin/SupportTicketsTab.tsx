@@ -45,6 +45,8 @@ function statusBadgeClass(status: ShownStatus) {
   }
 }
 
+const TICKET_CATEGORIES = ['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'] as const;
+
 const HOUR_MS = 60 * 60 * 1000;
 
 /** How long an open ticket has waited for an answer; marked after two days. */
@@ -70,16 +72,22 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const queryClient = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmEscalate, setConfirmEscalate] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminSupportTicket>>({
-    queryKey: ['admin', 'support-tickets', page, statusFilter],
+    queryKey: ['admin', 'support-tickets', page, statusFilter, categoryFilter],
     queryFn: () =>
       adminApi
-        .getSupportTickets(page, 20, statusFilter || undefined)
+        .getSupportTickets(
+          page,
+          20,
+          statusFilter || undefined,
+          categoryFilter || undefined,
+        )
         .then((res) => res.data as PaginatedResponse<AdminSupportTicket>),
   });
 
@@ -162,7 +170,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
     });
   };
 
-  const isFiltered = statusFilter !== '';
+  const isFiltered = statusFilter !== '' || categoryFilter !== '';
 
   return (
     <div className="flex flex-col min-h-0 gap-4">
@@ -189,6 +197,22 @@ export default function SupportTicketsTab({ onToast }: Props) {
               value: 'ESCALATED',
               label: t('admin.support.status_escalated'),
             },
+          ]}
+        />
+        <FilterDropdown
+          label={t('admin.support.filter_category')}
+          value={categoryFilter}
+          onChange={(v) => {
+            setCategoryFilter(v);
+            setPage(1);
+            setSelectedTicketId(null);
+          }}
+          options={[
+            { value: '', label: t('admin.support.category_all') },
+            ...TICKET_CATEGORIES.map((value) => ({
+              value,
+              label: t(`supportPage.category.${value}`),
+            })),
           ]}
         />
       </AdminFilterBar>
@@ -240,11 +264,18 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </span>
                     }
                     meta={
-                      ticket.status === 'OPEN' ? (
-                        <WaitingTime since={ticket.createdAt} />
-                      ) : (
-                        formatDate(ticket.createdAt, i18n.language)
-                      )
+                      <>
+                        <span className="text-white/70">
+                          {t(`supportPage.category.${ticket.category}`)}
+                        </span>
+                        {ticket.status === 'OPEN' ? (
+                          <WaitingTime since={ticket.createdAt} />
+                        ) : (
+                          <span>
+                            {formatDate(ticket.createdAt, i18n.language)}
+                          </span>
+                        )}
+                      </>
                     }
                   />
                 ))
