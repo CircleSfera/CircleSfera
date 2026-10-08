@@ -78,18 +78,20 @@ const COMPRESSED = new Set(['.html', '.js', '.css', '.json', '.svg']);
 function serveBuild() {
   const gzipped = new Map();
   const server = createServer(async (req, res) => {
-    const path = normalize(
-      decodeURIComponent(new URL(req.url, 'http://x').pathname),
-    );
-    let file = join(DIST, path);
-    if (!file.startsWith(DIST) || !extname(file) || !existsSync(file)) {
-      file = join(DIST, 'index.html');
-    }
-    const type = extname(file);
-    const headers = {
-      'content-type': CONTENT_TYPES[type] ?? 'application/octet-stream',
-    };
+    // A request target that cannot be decoded must answer 404, not stop the
+    // server, so the path is worked out inside the try.
     try {
+      const path = normalize(
+        decodeURIComponent(new URL(req.url, 'http://x').pathname),
+      );
+      let file = join(DIST, path);
+      if (!file.startsWith(DIST) || !extname(file) || !existsSync(file)) {
+        file = join(DIST, 'index.html');
+      }
+      const type = extname(file);
+      const headers = {
+        'content-type': CONTENT_TYPES[type] ?? 'application/octet-stream',
+      };
       let body = await readFile(file);
       if (
         COMPRESSED.has(type) &&
