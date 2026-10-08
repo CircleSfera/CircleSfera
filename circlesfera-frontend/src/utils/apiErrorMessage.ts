@@ -40,6 +40,30 @@ export function apiErrorDetails(
   return apiErrorBody(error)?.details;
 }
 
+// A purchase refused because the account's identity is not verified yet. The
+// server has no error code for it: it answers 403 with a Spanish sentence,
+// which is the only thing that tells it apart from other refusals.
+export function isIdentityVerificationRequired(error: unknown): boolean {
+  if (apiErrorStatus(error) !== 403) return false;
+  const body = apiErrorBody(error)?.message;
+  const text =
+    (error as { message?: string } | null)?.message ??
+    (Array.isArray(body) ? body.join(' ') : body);
+  return !!text?.includes('verificar');
+}
+
+// The message for a failed purchase or payout action: the identity notice
+// when that is the reason, otherwise the usual message.
+export function paymentErrorMessage(
+  error: unknown,
+  t: TFunction,
+  fallbackKey: string,
+): string {
+  return isIdentityVerificationRequired(error)
+    ? t('pricingPage.verification_required_desc')
+    : apiErrorMessage(error, t, fallbackKey);
+}
+
 // The message to show for a failed API call, in the reader's language. The
 // server's own text is never shown: it is in one language and can be
 // technical. Order: the error code's text, then the kind of failure

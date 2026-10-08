@@ -1807,6 +1807,15 @@
       "available": "Disponible",
       "pending": "Pendiente",
       "transactions": "Movimientos recientes",
+      "tx_types": {
+        "DIRECT_POST_UNLOCK": "Desbloqueo de publicación",
+        "DIRECT_STORY_UNLOCK": "Desbloqueo de historia",
+        "DIRECT_MESSAGE_UNLOCK": "Desbloqueo de mensaje",
+        "DIRECT_TIP": "Propina",
+        "DIRECT_LIVE_GIFT": "Regalo en directo",
+        "STRIPE_SUBSCRIPTION": "Suscripción",
+        "PROMOTION_PAYMENT": "Promoción"
+      },
       "no_transactions": "Aún no hay transacciones."
     },
     "dashboard": {
@@ -3296,6 +3305,18 @@
     "manage_subscription": "Gestionar Suscripción",
     "default_description": "Desbloquea más de CircleSfera.",
     "default_button": "Mejorar a {{plan}}",
+    "features": {
+      "verified_badge": "Insignia de verificación",
+      "basic_analytics": "Analíticas básicas",
+      "priority_support": "Soporte prioritario",
+      "pro_growth_tools": "Herramientas pro de crecimiento",
+      "audience_insights": "Información de audiencia",
+      "profile_spotlight": "Perfil destacado",
+      "business_verification": "Verificación de negocio",
+      "multi_account": "Varias cuentas",
+      "dedicated_support": "Soporte dedicado",
+      "api_access_beta": "Acceso a la API (beta)"
+    },
     "desc_premium": "Eleva tu identidad y presencia.",
     "desc_elite": "Herramientas profesionales para creadores en crecimiento.",
     "desc_business": "Máximo impacto para marcas y equipos.",

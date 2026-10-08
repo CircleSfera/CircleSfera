@@ -1807,6 +1807,15 @@
       "available": "Available",
       "pending": "Pending",
       "transactions": "Recent transactions",
+      "tx_types": {
+        "DIRECT_POST_UNLOCK": "Post unlock",
+        "DIRECT_STORY_UNLOCK": "Story unlock",
+        "DIRECT_MESSAGE_UNLOCK": "Message unlock",
+        "DIRECT_TIP": "Tip",
+        "DIRECT_LIVE_GIFT": "Live gift",
+        "STRIPE_SUBSCRIPTION": "Subscription",
+        "PROMOTION_PAYMENT": "Promotion"
+      },
       "no_transactions": "No transactions yet."
     },
     "dashboard": {
@@ -3296,6 +3305,18 @@
     "manage_subscription": "Manage Subscription",
     "default_description": "Unlock more of CircleSfera.",
     "default_button": "Upgrade to {{plan}}",
+    "features": {
+      "verified_badge": "Verification badge",
+      "basic_analytics": "Basic analytics",
+      "priority_support": "Priority support",
+      "pro_growth_tools": "Pro growth tools",
+      "audience_insights": "Audience insights",
+      "profile_spotlight": "Profile spotlight",
+      "business_verification": "Business verification",
+      "multi_account": "Multiple accounts",
+      "dedicated_support": "Dedicated support",
+      "api_access_beta": "API access (beta)"
+    },
     "desc_premium": "Elevate your identity and presence.",
     "desc_elite": "Professional tools for growing creators.",
     "desc_business": "Maximum impact for brands and teams.",

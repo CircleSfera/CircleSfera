@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
+import { paymentErrorMessage } from '../../utils/apiErrorMessage';
+import { formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
@@ -23,7 +25,7 @@ export default function TipModal({
   postId,
   receiverName,
 }: TipModalProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,13 +48,14 @@ export default function TipModal({
       });
       if (response.data?.url) {
         window.location.href = response.data.url;
+        return;
       }
-    } catch (error: any) {
-      if (error?.message) {
-        toast.error(error.message);
-      } else {
-        toast.error(t('wallet.error_send_tip'));
-      }
+      // No checkout to open: say so and let the person try again.
+      toast.error(t('wallet.error_send_tip'));
+      setIsSubmitting(false);
+    } catch (error: unknown) {
+      // The server text is in one language and can be technical.
+      toast.error(paymentErrorMessage(error, t, 'wallet.error_send_tip'));
       setIsSubmitting(false);
     }
   };
@@ -88,7 +91,7 @@ export default function TipModal({
             <span
               className={`font-bold text-xl ${selectedAmount === amount ? 'text-brand-primary' : 'text-white'}`}
             >
-              €{amount}
+              {formatWholeEuros(amount, i18n.language)}
             </span>
           </button>
         ))}

@@ -15,8 +15,13 @@ import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 import type { PlatformPlanDto } from '../../types';
-import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import {
+  apiErrorMessage,
+  isIdentityVerificationRequired,
+} from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
+import { formatCents } from '../../utils/money';
+import { planFeatureLabel } from '../../utils/planFeatures';
 
 // Plan name → verification level it grants. "Verified" is the old name of
 // the €9.99 plan, now "Premium".
@@ -29,7 +34,7 @@ const planVerificationMap: Record<string, string> = {
 };
 
 export default function Pricing() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const currentUser = useAuthStore((state) => state.profile);
   const navigate = useNavigate();
@@ -113,16 +118,7 @@ export default function Pricing() {
       }
     },
     onError: async (error: unknown) => {
-      const apiError = error as {
-        status?: number;
-        message?: string;
-        response?: { status?: number; data?: { message?: string } };
-      };
-      const status = apiError?.status || apiError?.response?.status;
-      const serverMessage =
-        apiError?.message || apiError?.response?.data?.message;
-
-      if (status === 403 && serverMessage?.includes('verificar')) {
+      if (isIdentityVerificationRequired(error)) {
         toast(
           (toastItem) => (
             <div className="flex flex-col gap-2 p-1 text-left">
@@ -258,7 +254,6 @@ export default function Pricing() {
               const isActive =
                 isActiveByBilling ||
                 (!!mappedLevel && verificationLevel === mappedLevel);
-              const currencySymbol = plan.currency === 'EUR' ? '€' : '$';
               const monthlyCents = plan.priceCents ?? 0;
               const yearlyCents = plan.yearlyPriceCents ?? 0;
               const showYearly = billingCycle === 'YEARLY' && yearlyCents > 0;
@@ -270,9 +265,11 @@ export default function Pricing() {
                 showYearly && monthlyCents > 0
                   ? Math.round((1 - yearlyCents / (monthlyCents * 12)) * 100)
                   : 0;
+              // The plan's own description is stored in one language; a
+              // known plan uses the text of the catalog.
               const description =
-                plan.description ||
                 planDescriptions[plan.name] ||
+                plan.description ||
                 t('pricingPage.default_description');
               const buttonText =
                 planButtonText[plan.name] ||
@@ -306,8 +303,11 @@ export default function Pricing() {
                     </div>
                     <p className="flex items-baseline gap-1 flex-wrap">
                       <span className="text-2xl sm:text-3xl font-black text-white">
-                        {currencySymbol}
-                        {(displayCents / 100).toFixed(2)}
+                        {formatCents(
+                          displayCents,
+                          i18n.language,
+                          plan.currency || 'EUR',
+                        )}
                       </span>
                       <span className="text-white/35 text-sm">
                         /{intervalLabel}
@@ -332,7 +332,7 @@ export default function Pricing() {
                           <Check className="w-3 h-3 text-brand-primary" />
                         </span>
                         <span className="text-sm text-white/60">
-                          {feature.replace(/_/g, ' ')}
+                          {planFeatureLabel(feature, t)}
                         </span>
                       </li>
                     ))}
