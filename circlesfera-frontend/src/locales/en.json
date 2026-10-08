@@ -1129,10 +1129,7 @@
       "create_post": "Create new post"
     },
     "creator_mode": {
-      "creator": "Creator",
-      "consumer": "Consumer",
-      "enter": "Enter Creator Mode",
-      "exit": "Exit Creator Mode"
+      "label": "Creator mode"
     },
     "highlights": {
       "new": "New"
