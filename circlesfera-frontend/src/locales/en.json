@@ -1467,6 +1467,13 @@
       "tool_poll": "Poll",
       "tool_qna": "Q&A",
       "tool_more": "More",
+      "sticker_categories": {
+        "popular": "Popular",
+        "faces": "Faces",
+        "reactions": "Reactions",
+        "objects": "Objects",
+        "nature": "Nature"
+      },
       "layers_empty": "No layers yet",
       "more_section": "Interactive",
       "backgrounds": "Backgrounds",
@@ -3395,6 +3402,7 @@
       "video": "Video",
       "text": "Text",
       "audio": "Audio",
+      "options": "Track options",
       "add_video": "Add video track",
       "add_audio": "Add audio track",
       "add_text": "Add text track",

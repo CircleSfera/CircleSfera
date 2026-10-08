@@ -54,8 +54,10 @@ export default function StudioTopbar({
 
   return (
     <div className="pt-safe bg-surface-elevated border-b border-white/10 z-30 shrink-0">
-      <div className="min-h-14 py-1 flex items-center justify-between px-2 sm:px-3">
-        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+      {/* Phones: name and export on the first row, undo and redo on the
+          second. From md up everything fits on one row. */}
+      <div className="min-h-14 py-1 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 px-2 sm:px-3">
+        <div className="order-1 flex-1 md:flex-none flex items-center gap-1 sm:gap-2 min-w-0">
           <button
             type="button"
             onClick={() => navigate(-1)}
@@ -65,21 +67,21 @@ export default function StudioTopbar({
             <X size={18} />
           </button>
 
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-7 h-7 rounded-lg bg-brand-primary flex items-center justify-center shadow-lg shadow-brand-primary/30 shrink-0">
+          <div className="flex flex-1 md:flex-none items-center gap-2 min-w-0">
+            <div className="hidden sm:flex w-7 h-7 rounded-lg bg-brand-primary items-center justify-center shadow-lg shadow-brand-primary/30 shrink-0">
               <Scissors size={14} className="text-white" aria-hidden />
             </div>
             <input
               type="text"
               value={project?.name || t('studio.default_project_name')}
               onChange={(e) => setProjectName(e.target.value)}
-              className="bg-transparent border-none text-xs sm:text-sm font-bold text-white w-20 sm:w-36 focus:w-44 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1.5 py-0.5 placeholder:text-white/30 truncate"
+              className="bg-transparent border-none text-xs sm:text-sm font-bold text-white h-12 min-w-0 w-full md:w-36 md:focus:w-44 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1.5 py-0.5 placeholder:text-white/30 truncate"
               aria-label={t('studio.project_name')}
             />
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="order-3 md:order-2 w-full md:w-auto flex items-center gap-1">
           <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
             <button
               type="button"
@@ -133,11 +135,11 @@ export default function StudioTopbar({
           </div>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="order-2 md:order-3 flex items-center gap-1 shrink-0">
           <button
             type="button"
             onClick={onOpenDrafts}
-            className="flex items-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-xl text-xs font-semibold transition-colors"
             aria-label={t('studio.open_drafts')}
           >
             <FolderOpen size={15} />
@@ -147,7 +149,7 @@ export default function StudioTopbar({
           <button
             type="button"
             onClick={onSave}
-            className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-xl text-xs font-semibold transition-colors"
             aria-label={saveLabel}
           >
             <Cloud
@@ -165,7 +167,7 @@ export default function StudioTopbar({
             type="button"
             onClick={onExport}
             disabled={isExporting}
-            className="ml-1 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 md:h-9 px-3 rounded-xl text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5"
+            className="ml-1 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 md:h-11 px-3 rounded-xl text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5"
           >
             <Download size={14} />
             <span>{t('studio.export')}</span>

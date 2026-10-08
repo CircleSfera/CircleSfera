@@ -44,7 +44,7 @@ export default function StoryBackgroundPanel({
         <button
           type="button"
           onClick={onUploadBackground}
-          className="min-h-10 text-xs bg-white/8 hover:bg-white/12 px-3 rounded-xl border border-white/10 flex items-center gap-1.5 transition-all font-semibold text-white/70 hover:text-white"
+          className="min-h-11 text-xs bg-white/8 hover:bg-white/12 px-3 rounded-xl border border-white/10 flex items-center gap-1.5 transition-all font-semibold text-white/70 hover:text-white"
         >
           <ImageIcon size={14} /> {t('createPost.storyComposer.upload')}
         </button>

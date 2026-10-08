@@ -43,7 +43,7 @@ export default function StoryTextTypePanel({
             type="button"
             key={font.name}
             onClick={() => onFontChange(font.name)}
-            className={`min-h-9 px-3 rounded-full text-xs font-medium whitespace-nowrap shrink-0 border transition-colors ${
+            className={`min-h-11 px-3 rounded-full text-xs font-medium whitespace-nowrap shrink-0 border transition-colors ${
               fontFamily === font.name
                 ? 'bg-white text-black border-white'
                 : 'text-white/55 border-white/10 bg-white/5'
@@ -62,7 +62,7 @@ export default function StoryTextTypePanel({
         <button
           type="button"
           onClick={() => onGradientChange(undefined)}
-          className={`w-7 h-7 rounded-full border-2 shrink-0 flex items-center justify-center ${
+          className={`w-11 h-11 rounded-full border-2 shrink-0 flex items-center justify-center ${
             !gradientColors
               ? 'border-white bg-white/10 text-white'
               : 'border-white/15 text-white/40'
@@ -76,7 +76,7 @@ export default function StoryTextTypePanel({
             type="button"
             key={g[0]}
             onClick={() => onGradientChange(g)}
-            className={`w-7 h-7 rounded-full shrink-0 border-2 transition-transform ${
+            className={`w-11 h-11 rounded-full shrink-0 border-2 transition-transform ${
               gradientColors?.[0] === g[0]
                 ? 'border-white scale-110'
                 : 'border-transparent'

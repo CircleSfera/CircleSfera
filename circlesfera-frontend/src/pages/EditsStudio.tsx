@@ -493,13 +493,15 @@ export default function Studio() {
 
       {/* Timeline strip */}
       <div className="flex-1 min-h-0 md:h-[35vh] md:max-h-[40vh] md:flex-none flex flex-col bg-surface-elevated relative shrink-0 border-b border-white/10">
-        <div className="min-h-11 py-1 flex items-center justify-between px-2 sm:px-3 border-b border-white/10 shrink-0 gap-2">
+        {/* Phones: the tools on one row and the zoom on the next, so no tool
+            is cut. One row from md up. */}
+        <div className="min-h-11 py-1 flex flex-wrap md:flex-nowrap items-center justify-between px-2 sm:px-3 border-b border-white/10 shrink-0 gap-x-2 gap-y-1">
           <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-scrollbar">
             <button
               type="button"
               onClick={splitClip}
               disabled={!selectedClipId}
-              className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-2.5 min-h-11 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 shrink-0"
+              className="flex items-center gap-1.5 text-white/80 hover:text-white hover:bg-white/10 px-2.5 min-w-11 justify-center min-h-11 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 shrink-0"
               title={t('studio.split_title')}
             >
               <Scissors size={15} />
@@ -509,7 +511,7 @@ export default function Studio() {
               type="button"
               onClick={() => selectedClipId && removeClip(selectedClipId)}
               disabled={!selectedClipId}
-              className="flex items-center gap-1.5 text-brand-secondary hover:bg-brand-secondary/10 px-2.5 min-h-11 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 shrink-0"
+              className="flex items-center gap-1.5 text-brand-secondary hover:bg-brand-secondary/10 px-2.5 min-w-11 justify-center min-h-11 rounded-lg text-xs font-semibold transition-colors disabled:opacity-30 shrink-0"
               title={t('studio.delete')}
             >
               <Trash2 size={15} />
@@ -547,7 +549,7 @@ export default function Studio() {
               <Type size={14} />
             </button>
           </div>
-          <div className="flex items-center gap-2 shrink-0 bg-surface-base px-3 py-1 rounded-lg border border-white/10">
+          <div className="flex items-center gap-2 w-full md:w-auto shrink-0 bg-surface-base px-3 py-1 rounded-lg border border-white/10">
             <ZoomOut size={13} className="text-white/40" aria-hidden />
             <input
               type="range"
@@ -556,7 +558,7 @@ export default function Studio() {
               value={zoom}
               onChange={(e) => setZoom(Number(e.target.value))}
               aria-label={t('studio.zoom')}
-              className="w-16 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1"
+              className="flex-1 md:flex-none md:w-16 appearance-none bg-transparent cursor-pointer outline-none [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/20 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1"
             />
             <ZoomIn size={13} className="text-white/40" aria-hidden />
           </div>
