@@ -154,7 +154,7 @@ export default function ResetPassword() {
         <div className="mt-8 text-center">
           <Link
             to="/accounts/login"
-            className="text-gray-300 hover:text-white inline-flex items-center gap-2 text-sm transition-colors"
+            className="text-gray-300 hover:text-white inline-flex min-h-11 items-center gap-2 text-sm transition-colors"
           >
             <ArrowLeft size={16} /> {t('auth.reset_password.cancel')}
           </Link>

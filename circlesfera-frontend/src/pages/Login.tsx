@@ -235,7 +235,7 @@ export default function Login() {
               <Link
                 to="/forgot-password"
                 title={t('auth.login.forgot_password')}
-                className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
+                className="inline-flex min-h-11 items-center -my-3.5 text-xs font-semibold text-gray-400 hover:text-white transition-colors"
               >
                 {t('auth.login.forgot_password')}
               </Link>
@@ -432,7 +432,7 @@ export default function Login() {
             {t('auth.login.no_account')}{' '}
             <Link
               to="/accounts/signup"
-              className="text-white hover:text-brand-primary font-bold transition-colors ml-1"
+              className="inline-flex min-h-11 items-center -my-3 text-white hover:text-brand-primary font-bold transition-colors ml-1"
             >
               {t('auth.login.sign_up_link')}
             </Link>

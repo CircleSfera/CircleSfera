@@ -22,7 +22,7 @@ export function LandingHero() {
         >
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,0.05)]">
             <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse-slow" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">
+            <span className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">
               {t('landing.hero.badge')}
             </span>
           </div>
@@ -83,7 +83,7 @@ export function LandingHero() {
           {t('landing.hero.already')}{' '}
           <Link
             to="/accounts/login"
-            className="text-white hover:text-brand-primary underline-offset-4 hover:underline transition-colors font-bold"
+            className="inline-flex min-h-11 items-center -my-3 text-white hover:text-brand-primary underline-offset-4 hover:underline transition-colors font-bold"
           >
             {t('landing.hero.log_in')}
           </Link>
