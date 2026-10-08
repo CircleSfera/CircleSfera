@@ -37,7 +37,11 @@ vi.mock('../../services/index', () => ({
 }));
 
 vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  }),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -1066,6 +1070,22 @@ describe('ChatWindow', () => {
         ),
       );
       window.location.hash = '';
+    });
+
+    it('offers the identity verification when unlocking needs it, instead of a plain failure', async () => {
+      vi.mocked(apiClient.post).mockRejectedValueOnce(
+        Object.assign(new Error('forbidden'), {
+          status: 403,
+          data: { errorCode: 'IDENTITY_VERIFICATION_REQUIRED' },
+        }),
+      );
+      await renderLoadedChat();
+
+      fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
+
+      // The verification notice is a custom toast with its own button.
+      await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+      expect(toast.error).not.toHaveBeenCalled();
     });
 
     it('thanks and reloads the messages after a paid unlock', async () => {

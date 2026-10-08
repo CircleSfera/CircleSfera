@@ -33,6 +33,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
@@ -254,7 +255,7 @@ export default function ChatWindow() {
         }
       } catch (err) {
         logger.error('Failed to unlock message', err);
-        toast.error(t('monetization.failed_to_unlock'));
+        reportPaymentError(err, t, 'monetization.failed_to_unlock');
       }
     },
     [t],
