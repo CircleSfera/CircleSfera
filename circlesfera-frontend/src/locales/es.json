@@ -1709,6 +1709,12 @@
     "accept": "Aceptar",
     "in_call": "En Llamada...",
     "remote_user": "Usuario remoto",
+    "delete_confirm": {
+      "me_title": "¿Eliminar la conversación para ti?",
+      "me_message": "Desaparecerá de tu bandeja. Las demás personas la seguirán viendo.",
+      "everyone_title": "¿Eliminar la conversación para todos?",
+      "everyone_message": "Se borrará para todas las personas de la conversación. No se puede deshacer."
+    },
     "details": {
       "title": "Detalles",
       "view_profile": "Ver perfil",

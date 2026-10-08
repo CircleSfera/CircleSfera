@@ -1709,6 +1709,12 @@
     "accept": "Accept",
     "in_call": "In Call...",
     "remote_user": "Remote user",
+    "delete_confirm": {
+      "me_title": "Delete the conversation for you?",
+      "me_message": "It will leave your inbox. The other people will still see it.",
+      "everyone_title": "Delete the conversation for everyone?",
+      "everyone_message": "It will be removed for everyone in the conversation. This cannot be undone."
+    },
     "details": {
       "title": "Details",
       "view_profile": "View profile",
