@@ -9,6 +9,10 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
+import {
+  PROFILE_ACCENT_COLORS,
+  type ProfileAccentColor,
+} from '../../common/constants/profile-personalization.constants.js';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -46,4 +50,11 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(['PERSONAL', 'CREATOR', 'BUSINESS'])
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+
+  // Colour of the Profile page, from the closed list; null goes back to the
+  // colour of the app. Choosing one needs the Elite Creator or Business plan.
+  @IsOptional()
+  @ValidateIf((o: UpdateProfileDto) => o.accentColor !== null)
+  @IsIn(PROFILE_ACCENT_COLORS)
+  accentColor?: ProfileAccentColor | null;
 }
