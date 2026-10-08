@@ -4170,7 +4170,23 @@
   "backoffice": {
     "title": "Backoffice",
     "nav": {
-      "business": "Negocio"
+      "business": "Negocio",
+      "overview": "Resumen"
+    },
+    "overview": {
+      "title": "Resumen",
+      "subtitle": "Lo que conviene mirar cada día. Cada cifra abre su sección.",
+      "subscriptions": "Suscripciones activas",
+      "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
+      "recurring_revenue": "Ingresos recurrentes al mes",
+      "recurring_revenue_hint": "Suma del precio mensual de las suscripciones activas",
+      "failed_payouts": "Retiros fallidos",
+      "pending_payouts_one": "{{count}} pendiente",
+      "pending_payouts_other": "{{count}} pendientes",
+      "open_tickets": "Tickets abiertos",
+      "tickets_with_moderation_one": "{{count}} en moderación",
+      "tickets_with_moderation_other": "{{count}} en moderación",
+      "pending_promotions": "Promociones por revisar"
     },
     "home": {
       "title": "El negocio de CircleSfera",

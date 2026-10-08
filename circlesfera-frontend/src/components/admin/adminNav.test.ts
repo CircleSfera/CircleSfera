@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ADMIN_TAB_PERMISSIONS,
   canOpenSite,
+  canOpenTab,
   getAdminHomeTab,
   isAdminTab,
   navItemsFor,
@@ -33,6 +34,7 @@ describe('the two staff sites', () => {
 
   it('puts the business sections in the Backoffice', () => {
     expect(backoffice).toEqual([
+      'overview',
       'support',
       'plans',
       'subscriptions',
@@ -52,11 +54,23 @@ describe('the two staff sites', () => {
     for (const tab of admin) expect(tabSite(tab)).toBe('admin');
   });
 
-  it('opens the Backoffice on the first section the operator may see', () => {
+  it('opens the Backoffice on its home for whoever can open a section', () => {
     expect(getAdminHomeTab((key) => key === 'payments', 'backoffice')).toBe(
-      'subscriptions',
+      'overview',
     );
-    expect(getAdminHomeTab(() => true, 'backoffice')).toBe('support');
+    expect(getAdminHomeTab(() => true, 'backoffice')).toBe('overview');
+  });
+
+  it('opens the home with any Backoffice permission and no other', () => {
+    expect(canOpenTab((key) => key === 'support', 'overview')).toBe(true);
+    expect(canOpenTab((key) => key === 'plans', 'overview')).toBe(true);
+    expect(canOpenTab((key) => key === 'moderation', 'overview')).toBe(false);
+    expect(canOpenTab(() => false, 'overview')).toBe(false);
+  });
+
+  it('opens any other section only with its own permission', () => {
+    expect(canOpenTab((key) => key === 'payments', 'subscriptions')).toBe(true);
+    expect(canOpenTab((key) => key === 'support', 'subscriptions')).toBe(false);
   });
 
   it('knows when an operator has nothing to open in a site', () => {
