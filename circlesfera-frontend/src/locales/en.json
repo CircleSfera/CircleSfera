@@ -2029,6 +2029,8 @@
       "transfers_pending": "Transfers pending setup"
     },
     "advanced": {
+      "plan_desc": "Detailed revenue, audience retention, your top posts and data export come with the Elite Creator and Business plans.",
+      "plan_cta": "See plans",
       "title": "Revenue and retention",
       "subtitle": "Paid audience, income mix and when people stay.",
       "error": "Could not load advanced analytics.",
@@ -4223,6 +4225,7 @@
       "CONTENT_POSTING_DISABLED": "Posting is turned off right now.",
       "EMAIL_NOT_VERIFIED": "Verify your email to do this.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verify your identity to buy or get paid.",
+      "PLAN_REQUIRED": "This comes with the Elite Creator and Business plans.",
       "CAPTCHA_FAILED": "We couldn't verify you're a person. Try again.",
       "CAPTCHA_REQUIRED": "Complete the security check to continue.",
       "ACCOUNT_BANNED": "This profile is banned.",

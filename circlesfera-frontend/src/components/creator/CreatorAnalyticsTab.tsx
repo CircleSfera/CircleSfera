@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Clock, DollarSign, Download, MapPin, Users } from 'lucide-react';
+import { Clock, DollarSign, Download, Lock, MapPin, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import {
   Area,
   AreaChart,
@@ -22,13 +23,18 @@ import type {
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import { monetizationApi } from '../../services/monetization.service';
+import { useAuthStore } from '../../stores/authStore';
 import { exportToCSV } from '../../utils/exportUtils';
+import { hasElitePlan } from '../../utils/plans';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import { Card } from '../ui';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
 
 export default function CreatorAnalyticsTab() {
   const { t, i18n } = useTranslation();
+  const verificationLevel = useAuthStore(
+    (state) => state.profile?.verificationLevel,
+  );
 
   const { data: chartData, isLoading: isChartLoading } = useQuery<
     CreatorChartDay[]
@@ -521,7 +527,28 @@ export default function CreatorAnalyticsTab() {
         </Card>
       </div>
 
-      <CreatorAnalyticsDashboard />
+      {/* Advanced analytics come with the Elite Creator and Business plans */}
+      {hasElitePlan(verificationLevel) ? (
+        <CreatorAnalyticsDashboard />
+      ) : (
+        <Card className="rounded-3xl p-6 sm:p-8">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+            <Lock size={22} strokeWidth={1.75} aria-hidden />
+          </span>
+          <h2 className="mt-4 text-lg font-semibold tracking-tight text-white">
+            {t('creator.advanced.title')}
+          </h2>
+          <p className="mt-1 max-w-prose text-sm leading-relaxed text-white/60">
+            {t('creator.advanced.plan_desc')}
+          </p>
+          <Link
+            to="/pricing"
+            className="mt-5 inline-flex h-12 items-center justify-center rounded-xl border border-brand-primary/30 px-6 text-sm font-bold text-white btn-gradient-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+          >
+            {t('creator.advanced.plan_cta')}
+          </Link>
+        </Card>
+      )}
     </div>
   );
 }

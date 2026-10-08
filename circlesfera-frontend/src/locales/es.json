@@ -2029,6 +2029,8 @@
       "transfers_pending": "Transferencias en configuración"
     },
     "advanced": {
+      "plan_desc": "Los ingresos detallados, la retención de tu audiencia, tus mejores publicaciones y la exportación de datos vienen con los planes Elite Creator y Business.",
+      "plan_cta": "Ver planes",
       "title": "Ingresos y retención",
       "subtitle": "Audiencia de pago, mix de ingresos y cuándo se quedan.",
       "error": "No se pudieron cargar las analíticas avanzadas.",
@@ -4223,6 +4225,7 @@
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para poder comprar o cobrar.",
+      "PLAN_REQUIRED": "Esto viene con los planes Elite Creator y Business.",
       "CAPTCHA_FAILED": "No hemos podido comprobar que eres una persona. Inténtalo de nuevo.",
       "CAPTCHA_REQUIRED": "Completa la comprobación de seguridad para continuar.",
       "ACCOUNT_BANNED": "Este perfil está bloqueado.",
