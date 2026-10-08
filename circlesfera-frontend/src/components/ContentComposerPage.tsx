@@ -244,7 +244,6 @@ export default function ContentComposerPage() {
             mediaFiles={mediaFiles}
             altTextMap={altTextMap}
             setAltTextMap={setAltTextMap}
-            handleRemoveFile={handleRemoveFile}
             hideLikes={hideLikes}
             setHideLikes={setHideLikes}
             turnOffComments={turnOffComments}

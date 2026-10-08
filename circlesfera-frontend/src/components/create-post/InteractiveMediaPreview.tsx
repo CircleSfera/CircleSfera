@@ -70,13 +70,6 @@ export default function InteractiveMediaPreview({
     setCurrentTime(newTime);
   };
 
-  const formatTime = (seconds: number) => {
-    if (Number.isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
-
   // Post = vertical 4:5. Frame/Story = 9:16. Compact for caption density.
   const aspectClass =
     mode === 'FRAME' || mode === 'STORY'
@@ -106,7 +99,7 @@ export default function InteractiveMediaPreview({
                 <button
                   type="button"
                   onClick={togglePlay}
-                  className="min-w-7 min-h-7 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded-full transition-all text-white outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                  className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded-full transition-all text-white outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                   aria-label={
                     isPlaying
                       ? t('createPost.preview.pause')
@@ -119,15 +112,12 @@ export default function InteractiveMediaPreview({
                     <Play size={12} fill="currentColor" />
                   )}
                 </button>
-                <span className="font-mono text-[8px] text-white/70 tabular-nums shrink-0">
-                  {formatTime(currentTime)}
-                </span>
               </div>
 
               <button
                 type="button"
                 onClick={toggleMute}
-                className="min-w-7 min-h-7 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded-full transition-all text-white outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/20 active:scale-90 rounded-full transition-all text-white outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 aria-label={isMuted ? t('common.unmute') : t('common.mute')}
               >
                 {isMuted ? <VolumeX size={12} /> : <Volume2 size={12} />}

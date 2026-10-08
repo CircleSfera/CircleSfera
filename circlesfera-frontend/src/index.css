@@ -658,7 +658,8 @@ input[type="range"] {
   appearance: none;
   background: transparent;
   cursor: pointer;
-  height: 28px;
+  /* The area that answers a touch; the track and the thumb keep their size. */
+  height: 44px;
 }
 
 input[type="range"]::-webkit-slider-track {

@@ -89,12 +89,46 @@ describe('EditStep', () => {
     fireEvent.click(editButtons[0]);
     expect(setCurrentEditIndex).toHaveBeenCalledWith(0);
 
-    const removeButtons = screen.getAllByRole('button', {
-      name: 'Eliminar medio',
-    });
-    expect(removeButtons).toHaveLength(2);
-    fireEvent.click(removeButtons[1]);
-    expect(handleRemoveFile).toHaveBeenCalledWith(1);
+    // One delete button, for the item on show.
+    const remove = screen.getByRole('button', { name: 'Eliminar medio' });
+    fireEvent.click(remove);
+    expect(handleRemoveFile).toHaveBeenLastCalledWith(0);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Elemento 2 de ${mediaFiles.length}`,
+      }),
+    );
+    fireEvent.click(remove);
+    expect(handleRemoveFile).toHaveBeenLastCalledWith(1);
+  });
+
+  it('names each thumbnail by its position, leaving one edit button', () => {
+    renderWithProviders(
+      <EditStep
+        mediaFiles={mediaFiles}
+        mode="POST"
+        setMode={vi.fn()}
+        setCurrentEditIndex={vi.fn()}
+        handleRemoveFile={vi.fn()}
+        fileInputRef={{ current: null }}
+      />,
+      { lng: 'es' },
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: `Elemento 1 de ${mediaFiles.length}`,
+      }),
+    ).toHaveAttribute('aria-current', 'true');
+    expect(
+      screen.getByRole('button', {
+        name: `Elemento 2 de ${mediaFiles.length}`,
+      }),
+    ).not.toHaveAttribute('aria-current');
+    expect(
+      screen.getAllByRole('button', { name: 'Editar Medio' }),
+    ).toHaveLength(1);
   });
 
   it('sizes the Frame preview to a measured 9:16 box', () => {

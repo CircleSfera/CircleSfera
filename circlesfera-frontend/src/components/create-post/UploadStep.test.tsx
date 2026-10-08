@@ -14,7 +14,7 @@ vi.mock('@capacitor/camera', () => ({
 }));
 
 describe('UploadStep density', () => {
-  it('uses h-10 primary CTA and compact mode tabs', () => {
+  it('uses 44 px for the primary button and the mode tabs', () => {
     const fileInputRef = { current: null };
     renderWithProviders(
       <UploadStep
@@ -30,11 +30,11 @@ describe('UploadStep density', () => {
     const selectVideo = screen.getByRole('button', {
       name: 'Seleccionar video',
     });
-    expect(selectVideo.className).toMatch(/\bh-10\b/);
-    expect(selectVideo.className).toMatch(/min-h-10/);
+    expect(selectVideo.className).toMatch(/\bh-11\b/);
+    expect(selectVideo.className).toMatch(/min-h-11/);
     expect(selectVideo.className).not.toMatch(/\bh-12\b/);
 
     const frameTab = screen.getByRole('tab', { name: /Frame/i });
-    expect(frameTab.className).toMatch(/min-h-10/);
+    expect(frameTab.className).toMatch(/min-h-11/);
   });
 });

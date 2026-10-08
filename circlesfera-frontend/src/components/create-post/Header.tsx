@@ -22,11 +22,11 @@ export default function Header({
   const isShare = nextLabel === t('createPost.header.share');
 
   return (
-    <header className="px-3 min-h-11 py-1.5 z-30 shrink-0 flex justify-between items-center gap-2.5 bg-linear-to-b from-black/60 via-surface-elevated/95 to-transparent border-b border-white/8">
+    <header className="px-3 min-h-13 py-1 z-30 shrink-0 flex justify-between items-center gap-2.5 bg-linear-to-b from-black/60 via-surface-elevated/95 to-transparent border-b border-white/8">
       <button
         type="button"
         onClick={onBack}
-        className="min-w-9 min-h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 shrink-0"
+        className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 shrink-0"
         aria-label={t('createPost.header.back')}
       >
         <ChevronLeft size={16} strokeWidth={2} />
@@ -44,7 +44,7 @@ export default function Header({
         onClick={onNext}
         disabled={isPending || !canNext || !nextLabel}
         className={`
-          min-w-14 min-h-9 px-3 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-200 shrink-0
+          min-w-14 min-h-11 px-3 flex items-center justify-center rounded-full font-bold text-xs transition-all duration-200 shrink-0
           disabled:opacity-30 disabled:cursor-not-allowed active:scale-95
           outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50
           ${

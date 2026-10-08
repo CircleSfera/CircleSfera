@@ -242,7 +242,6 @@ export default function MusicSubScreen({
             trimTrack ? t('modals.audio.trim_title') : t('modals.audio.title')
           }
           onClose={trimTrack ? handleBackFromTrim : onClose}
-          closeIcon={trimTrack ? 'back' : 'close'}
         />
         <div className="flex flex-col flex-1 min-h-0 relative">
           {trimTrack ? (
@@ -337,7 +336,7 @@ export default function MusicSubScreen({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('modals.audio.search_placeholder')}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2 min-h-11 h-11 text-[14px] font-medium text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all shadow-inner"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2 min-h-12 h-12 text-[14px] font-medium text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all shadow-inner"
                 />
               </div>
 
@@ -347,7 +346,7 @@ export default function MusicSubScreen({
                     <button
                       type="button"
                       onClick={handleClearSelection}
-                      className="w-full px-4 py-2 min-h-10 text-[13px] font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center transition shrink-0"
+                      className="w-full px-4 py-2 min-h-11 text-[13px] font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center transition shrink-0"
                     >
                       {t('modals.audio.clear_selection')}
                     </button>
@@ -386,7 +385,7 @@ export default function MusicSubScreen({
                       >
                         <div className="flex items-center gap-4 min-w-0 flex-1">
                           <div
-                            className="relative w-10 h-10 rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-md"
+                            className="relative w-11 h-11 rounded-lg overflow-hidden shrink-0 flex items-center justify-center shadow-md"
                             style={{ background: generateGradient(audio.id) }}
                           >
                             <Music className="w-4 h-4 text-white/30 absolute" />
@@ -433,7 +432,7 @@ export default function MusicSubScreen({
                             e.stopPropagation();
                             openTrim(audio);
                           }}
-                          className={`px-3.5 py-1.5 min-h-8 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
+                          className={`px-3.5 py-1.5 min-h-11 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
                             isSelected
                               ? 'bg-white text-black'
                               : 'bg-white/10 hover:bg-white/20 text-white'
