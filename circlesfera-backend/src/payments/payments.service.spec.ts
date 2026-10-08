@@ -248,6 +248,22 @@ describe('PaymentsService', () => {
       ).rejects.toThrow('Plan not found');
     });
 
+    it('only looks for the plan among the ones on sale', async () => {
+      prisma.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u_1',
+        platformSubscriptions: [],
+      });
+      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue(null);
+
+      await expect(
+        service.createCheckout('u_1', 'plan_off_sale', 'MONTHLY'),
+      ).rejects.toThrow('Plan not found');
+
+      expect(prisma.platformPlan.findFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({ isActive: true }),
+      });
+    });
+
     it('throws BadRequest ACTIVE_SUBSCRIPTION_EXISTS when already subscribed to the same plan', async () => {
       prisma.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u_1',
