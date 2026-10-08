@@ -1709,6 +1709,13 @@
     "accept": "Accept",
     "in_call": "In Call...",
     "remote_user": "Remote user",
+    "details": {
+      "title": "Details",
+      "view_profile": "View profile",
+      "encrypted": "End-to-end encrypted",
+      "delete_for_me_hint": "Removed from your inbox only.",
+      "delete_for_everyone_hint": "Removed for both of you."
+    },
     "group_details": {
       "title": "Group details",
       "default_name": "Group chat",
