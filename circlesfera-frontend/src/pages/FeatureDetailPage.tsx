@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Link, Navigate, useParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import {
-  chapterToSurface,
-  GuestSurfaceMedia,
+  FeatureVisual,
+  LandingCta,
   MarketingCTA,
   MarketingPage,
   MarketingPageHeader,
 } from '../components/marketing';
+import { BRAND_SMALL_TEXT, EYEBROW } from '../components/marketing/eyebrow';
 import { useAuthStore } from '../stores/authStore';
 
 export const FEATURE_SLUGS = [
@@ -59,77 +60,79 @@ export default function FeatureDetailPage() {
         description={t(`explore.features.${slug}.seo_desc`)}
       />
 
-      <div className="mx-auto w-full max-w-6xl px-4 sm:px-5 pb-10 sm:pb-12">
+      <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 pb-14 sm:pb-20">
         <Link
           to="/features"
-          className="inline-flex items-center gap-2 min-h-11 text-sm font-semibold text-white/55 hover:text-white mt-5 sm:mt-6 mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 rounded-lg"
+          className="inline-flex items-center gap-2 min-h-11 text-sm font-semibold text-white/55 hover:text-white mt-5 sm:mt-6 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 rounded-full"
         >
           <ArrowLeft className="w-4 h-4" aria-hidden />
           {t('explore.features.common.back')}
         </Link>
 
-        <MarketingPageHeader
-          className="mb-6 sm:mb-8"
-          eyebrow={t('landing.features.badge')}
-          title={t(`explore.features.${slug}.title`)}
-          description={t(`explore.features.${slug}.lead`)}
-          actions={
-            <MarketingCTA to="/accounts/signup" variant="primary">
-              {t('landing.hero.get_started')}
-            </MarketingCTA>
-          }
-        />
+        <div className="grid items-center gap-10 pt-6 sm:pt-10 md:grid-cols-2 md:gap-16">
+          <MarketingPageHeader
+            className="text-center md:text-left"
+            eyebrow={t(`explore.features.${slug}.title`)}
+            title={t(`landing.chapters.items.${slug}.headline`)}
+            description={t(`landing.chapters.items.${slug}.desc`)}
+            actions={
+              <MarketingCTA
+                to="/accounts/signup"
+                variant="primary"
+                className="px-8"
+              >
+                {t('landing.hero.get_started')}
+              </MarketingCTA>
+            }
+          />
+          <FeatureVisual feature={slug} />
+        </div>
 
-        <ol className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <ol className="mt-14 grid grid-cols-1 gap-4 sm:mt-20 md:grid-cols-3">
           {POINT_KEYS.map((point, index) => (
-            <li
-              key={point}
-              className="rounded-2xl border border-white/10 bg-white/5 p-4"
-            >
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-primary mb-2 tabular-nums">
+            <li key={point} className="rounded-3xl glass-panel p-6">
+              <p
+                className={`mb-3 text-xs font-bold tabular-nums ${BRAND_SMALL_TEXT}`}
+              >
                 {String(index + 1).padStart(2, '0')}
               </p>
-              <h2 className="text-base font-bold text-white tracking-tight mb-1.5">
+              <h2 className="mb-2 text-lg font-bold tracking-tight text-white sm:text-xl">
                 {t(`explore.features.${slug}.points.${point}.title`)}
               </h2>
-              <p className="text-sm text-white/55 leading-relaxed">
+              <p className="text-sm leading-relaxed text-white/60 sm:text-base">
                 {t(`explore.features.${slug}.points.${point}.body`)}
               </p>
             </li>
           ))}
         </ol>
 
-        <div className="relative mx-auto flex justify-center mt-32 sm:mt-48 lg:mt-64 pb-16 sm:pb-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 bg-brand-primary/20 blur-[100px] rounded-full pointer-events-none" />
-          <GuestSurfaceMedia
-            surface={chapterToSurface(slug)}
-            className="relative z-10 w-full shadow-[0_-20px_80px_rgba(var(--brand-primary-rgb),0.15)] ring-4 ring-white/5"
-          />
-        </div>
-
-        <p className="text-sm text-white/55 leading-relaxed mb-8 max-w-2xl">
-          {t(`explore.features.${slug}.closing`)}
-        </p>
-
-        <section aria-labelledby="features-more-heading">
+        <section
+          aria-labelledby="features-more-heading"
+          className="mt-14 sm:mt-20"
+        >
           <h2
             id="features-more-heading"
-            className="text-base font-bold text-white mb-3"
+            className="mb-4 text-2xl font-black tracking-tight text-white sm:text-3xl"
           >
             {t('explore.features.common.more_title')}
           </h2>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {others.map((key) => (
               <li key={key}>
                 <Link
                   to={`/features/${key}`}
-                  className="group rounded-xl border border-white/10 bg-white/5 flex items-center justify-between gap-4 px-4 py-3.5 min-h-12 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 hover:border-white/20 transition-colors"
+                  className="group flex min-h-16 items-center justify-between gap-4 rounded-3xl glass-panel px-6 py-4 transition-colors hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
                 >
-                  <span className="text-sm font-semibold text-white/80 group-hover:text-white">
-                    {t(`landing.chapters.items.${key}.title`)}
+                  <span>
+                    <span className={`block ${EYEBROW}`}>
+                      {t(`landing.chapters.items.${key}.title`)}
+                    </span>
+                    <span className="mt-1 block text-base font-semibold text-white/85 group-hover:text-white">
+                      {t(`landing.chapters.items.${key}.headline`)}
+                    </span>
                   </span>
                   <ArrowRight
-                    className="w-4 h-4 text-white/30 group-hover:text-brand-primary shrink-0 transition-colors"
+                    className="h-5 w-5 shrink-0 text-white/30 transition-colors group-hover:text-brand-primary"
                     aria-hidden
                   />
                 </Link>
@@ -138,6 +141,7 @@ export default function FeatureDetailPage() {
           </ul>
         </section>
       </div>
+      <LandingCta />
     </MarketingPage>
   );
 }

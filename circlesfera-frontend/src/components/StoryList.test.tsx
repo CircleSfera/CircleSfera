@@ -51,6 +51,6 @@ describe('StoryList', () => {
     await waitFor(() => {
       expect(screen.getByText(i18n!.t('story.yours'))).toBeInTheDocument();
     });
-    expect(i18n!.t('story.yours')).toBe('Tu story');
+    expect(i18n!.t('story.yours')).toBe('Tu historia');
   });
 });

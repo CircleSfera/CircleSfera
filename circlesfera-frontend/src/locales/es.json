@@ -509,12 +509,12 @@
       "no_identifier": "Por favor, introduce tu email o usuario primero.",
       "passkey_error": "Fallo en la autenticación",
       "sign_in_loading": "Iniciando sesión...",
-      "sign_in": "Iniciar Sesión",
+      "sign_in": "Entrar",
       "or": "o",
       "passkey_loading": "Verificando Identidad...",
-      "passkey_btn": "Iniciar sesión con Passkey",
+      "passkey_btn": "Entrar con Passkey",
       "no_account": "¿No tienes una cuenta?",
-      "sign_up_link": "Regístrate",
+      "sign_up_link": "Crear cuenta",
       "banned_message": "Tu cuenta ha sido desactivada. Puedes enviar una apelación abajo.",
       "banned_reason_label": "Motivo de la infracción",
       "suspended_message": "Tu cuenta está suspendida temporalmente hasta el {{date}}. Podrás volver a iniciar sesión después de este período.",
@@ -555,9 +555,9 @@
         "CAPTCHA_REQUIRED": "Se requiere verificación de seguridad."
       },
       "sign_up_loading": "Creando cuenta...",
-      "sign_up": "Regístrate",
+      "sign_up": "Crear cuenta",
       "has_account": "¿Ya tienes una cuenta?",
-      "sign_in_link": "Iniciar sesión",
+      "sign_in_link": "Entrar",
       "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta.",
       "age_error": "Debes tener al menos 16 años para registrarte.",
       "dob_required": "La fecha de nacimiento es obligatoria"
@@ -611,26 +611,31 @@
   },
   "legal": {
     "nav": {
-      "log_in": "Iniciar Sesión",
-      "sign_up": "Regístrate"
+      "log_in": "Entrar",
+      "sign_up": "Crear cuenta"
     },
     "community": {
-      "title": "Directrices de la Comunidad - CircleSfera",
-      "header_title": "Directrices de la Comunidad",
-      "header_subtitle": "Las reglas de convivencia en el universo de CircleSfera.",
-      "last_updated": "Última actualización: Octubre 2023",
-      "quick_nav": "Navegación Rápida",
+      "title": "Normas de la Comunidad - CircleSfera",
+      "header_title": "Normas de la Comunidad",
       "sections": {
-        "s1_title": "1. Ecosistema Premium",
-        "s1_content": "CircleSfera es una red social premium basada en niveles, diseñada para conexiones auténticas, narrativa visual de alta calidad y monetización profesional de creadores. Priorizamos la calidad sobre el ruido. Se espera que todos los miembros contribuyan a un entorno de respeto, creatividad y valor.",
-        "s2_title": "2. Respeto Absoluto",
-        "s2_content": "El acoso, el discurso de odio, el bullying o la discriminación de cualquier tipo están estrictamente prohibidos. Tenemos una política de tolerancia cero frente al abuso. Participa en debates constructivos y trata a los demás miembros del universo CircleSfera con dignidad.",
-        "s3_title": "3. Contenido Auténtico",
-        "s3_content": "Comparte contenido del cual seas propietario o tengas el derecho a distribuir. No publiques material ilegal, explícito o que infrinja derechos de autor. Como plataforma que empodera a los creadores, protegemos ferozmente los derechos de propiedad intelectual.",
-        "s4_title": "4. No Spam ni Manipulación",
-        "s4_content": "La interacción artificial, el uso de bots, el spam y las prácticas engañosas degradan la experiencia premium. No utilices herramientas automatizadas para inflar métricas. La interacción auténtica es la métrica principal de influencia en CircleSfera.",
-        "s5_title": "5. Integridad del Creador",
-        "s5_content": "Los creadores que utilicen nuestras herramientas de monetización (suscripciones, propinas, destacados) deben ofrecer el valor prometido a sus suscriptores. Las ofertas de suscripción fraudulentas o las campañas promocionales engañosas resultarán en la cancelación inmediata de la cuenta."
+        "s1_title": "1. Para qué sirven estas normas",
+        "s1_content": "Estas normas dicen qué se puede publicar y hacer en CircleSfera. Valen para todo: publicaciones, historias, Frames, comentarios, mensajes y directos.",
+        "s2_title": "2. Respeto",
+        "s2_content": "No se permite el acoso, el discurso de odio, las amenazas ni la discriminación. Puedes discrepar con alguien; no puedes atacarle.",
+        "s3_title": "3. Contenido que no se permite",
+        "s3_content": "No publiques contenido ilegal ni explícito. El material de abuso sexual infantil, las amenazas creíbles de violencia y el terrorismo suponen el bloqueo inmediato del perfil.",
+        "s4_title": "4. Sé quien dices ser",
+        "s4_content": "No suplantes a otras personas ni uses cuentas falsas. No envíes spam ni uses herramientas para inflar seguidores, me gusta o visualizaciones. Una cuenta automatizada tiene que estar etiquetada como tal.",
+        "s5_title": "5. Derechos de autor",
+        "s5_content": "Publica contenido que sea tuyo o que tengas derecho a compartir.",
+        "s6_title": "6. Creadores y contenido de pago",
+        "s6_content": "Si cobras por tu contenido, da lo que prometes. No se permiten las ofertas engañosas. El contenido de pago y las promociones cumplen las mismas normas que el resto.",
+        "s7_title": "7. Cómo denunciar",
+        "s7_content": "Puedes denunciar una publicación, un comentario, una historia, un mensaje o un perfil desde su menú. Una persona de nuestro equipo revisa cada denuncia.",
+        "s8_title": "8. Qué pasa si incumples",
+        "s8_content": "• Una primera infracción leve recibe un aviso sin consecuencias; las siguientes reciben strikes.\n• Con 2 strikes activos el perfil queda suspendido 7 días. Con 3, queda bloqueado.\n• Cada aviso y cada strike caduca a los 90 días.\n• Las infracciones graves pueden suponer un bloqueo inmediato.\n• La sanción se aplica al perfil que incumplió, no a tus otros perfiles, salvo en casos graves.\n• Te decimos siempre qué norma se aplicó y por qué.",
+        "s9_title": "9. Apelaciones",
+        "s9_content": "Si crees que nos hemos equivocado, puedes apelar cualquier decisión desde Ajustes → Apelaciones. La revisa una persona, y si tienes razón se retira la sanción y se restaura lo que se quitó."
       }
     },
     "privacy": {
@@ -663,39 +668,47 @@
     "terms": {
       "title": "Términos de Servicio - CircleSfera",
       "header_title": "Términos de Servicio",
-      "header_subtitle": "El acuerdo entre tú y CircleSfera.",
-      "last_updated": "Última actualización: Octubre 2023",
-      "quick_nav": "Navegación Rápida",
       "sections": {
-        "s1_title": "1. Uso Aceptable",
-        "s1_content": "CircleSfera es una red social diseñada para la expresión auténtica y creativa. Al utilizar nuestro servicio, aceptas interactuar de manera respetuosa con la comunidad. Cualquier intento de utilizar la plataforma para transacciones financieras no autorizadas o transmisión de dinero entre pares está estrictamente prohibido.",
-        "s2_title": "2. Suscripciones a la Plataforma",
-        "s2_content": "Los niveles de suscripción (Verificado, Creador Élite, Business) brindan acceso a características sociales especializadas, herramientas de crecimiento y mejoras en el perfil. Todos los pagos son procesados exclusivamente por CircleSfera como proveedor del servicio. No admitimos pagos a terceros, liquidaciones de mercado, ni monetización directa de creador a usuario.",
-        "s3_title": "3. Propiedad del Contenido",
-        "s3_content": "Mantienes la propiedad del contenido que compartes en tu universo. Sin embargo, otorgas a CircleSfera una licencia mundial no exclusiva para alojar y mostrar este contenido como parte del servicio.",
-        "s4_title": "4. Terminación",
-        "s4_content": "Nos reservamos el derecho de suspender o cancelar las cuentas que infrinjan estos términos o participen en actividades que comprometan la seguridad o el cumplimiento normativo de la plataforma.",
-        "s5_title": "5. Limitación de Responsabilidad",
-        "s5_content": "CircleSfera se proporciona \"tal cual\" sin garantías de ningún tipo. No somos responsables por daños indirectos, incidentales o consecuentes derivados de tu uso de la plataforma."
+        "s1_title": "1. Quiénes somos y aceptación",
+        "s1_content": "CircleSfera es una red social. Al crear una cuenta aceptas estos términos, la Política de Privacidad y las Normas de la Comunidad. Contacto: legal@circlesfera.com.",
+        "s2_title": "2. Quién puede usar CircleSfera",
+        "s2_content": "Debes tener al menos 16 años. Eres responsable de la seguridad de tu cuenta y de lo que se haga con ella. Una cuenta puede tener varios perfiles; cada perfil debe cumplir estos términos.",
+        "s3_title": "3. Tu contenido",
+        "s3_content": "El contenido que publicas es tuyo. Nos concedes una licencia no exclusiva, gratuita y mundial para alojarlo, mostrarlo, adaptarlo a distintos formatos y distribuirlo dentro del servicio mientras lo mantengas publicado. Confirmas que tienes derecho a publicarlo.",
+        "s4_title": "4. Normas de uso",
+        "s4_content": "No puedes publicar contenido ilegal, acosar a otras personas, suplantar a nadie, enviar spam, usar cuentas falsas o cuentas automatizadas sin etiquetarlas, ni intentar saltarte las medidas de seguridad. Las Normas de la Comunidad explican qué no está permitido.",
+        "s5_title": "5. Moderación, sanciones y apelaciones",
+        "s5_content": "• Puedes denunciar contenido o perfiles. Una persona de nuestro equipo revisa las denuncias.\n• Una primera infracción leve recibe un aviso sin consecuencias; las siguientes reciben strikes. Con 2 strikes activos el perfil queda suspendido 7 días, y con 3 queda bloqueado. Cada aviso y cada strike caduca a los 90 días. Las infracciones graves pueden suponer un bloqueo inmediato.\n• Las sanciones se aplican al perfil que incumplió las normas, no a tus otros perfiles, salvo en casos graves (contenido ilegal, eludir un bloqueo anterior o una orden de una autoridad).\n• Un sistema automático detecta actividad de spam y puede limitar temporalmente, durante un máximo de 72 horas, a cuántas cuentas puedes seguir y a cuántas personas puedes escribir mientras una persona lo revisa.\n• Siempre explicamos el motivo de cada decisión, y puedes apelarla desde Ajustes → Apelaciones.",
+        "s6_title": "6. Planes de pago",
+        "s6_content": "Ofrecemos planes mensuales (Premium, Elite Creator y Business) con las funciones y los precios que se muestran en la app. Se cobran por adelantado a través de Stripe y se renuevan cada mes hasta que canceles. Si cancelas, el plan sigue activo hasta el final del periodo pagado.",
+        "s7_title": "7. Monetización de creadores",
+        "s7_content": "• Las cuentas de creador y de empresa con la identidad verificada pueden recibir propinas (desde 2 €), vender publicaciones, historias y mensajes de pago (de 3 € a 500 €) y recibir regalos en directo.\n• CircleSfera se queda con el 20 % de cada pago y el creador recibe el 80 % a través de Stripe Connect, con sujeción a las condiciones de Stripe.\n• Cada creador es responsable de los impuestos de lo que gana.\n• El contenido de pago debe cumplir estas normas.",
+        "s8_title": "8. Promociones",
+        "s8_content": "Puedes promocionar contenido con un presupuesto. La promoción debe cumplir estas normas; si la rechazamos, te devolvemos el importe.",
+        "s9_title": "9. Suspensión y cierre de la cuenta",
+        "s9_content": "Puedes desactivar o eliminar tu cuenta en cualquier momento desde Ajustes; la borramos definitivamente a los 30 días. Podemos suspender o cerrar perfiles o cuentas que incumplan estos términos, como se describe en el apartado 5.",
+        "s10_title": "10. Responsabilidad",
+        "s10_content": "Prestamos el servicio con la diligencia debida, pero no podemos garantizar que funcione siempre sin interrupciones. No somos responsables del contenido que publican otras personas, salvo en los casos en que la ley disponga lo contrario.",
+        "s11_title": "11. Cambios",
+        "s11_content": "Si cambiamos estos términos de forma relevante, te lo avisaremos en la app con antelación.",
+        "s12_title": "12. Ley aplicable",
+        "s12_content": "Estos términos se rigen por la ley española. Si eres consumidor, puedes acudir a los tribunales de tu lugar de residencia."
       }
     },
-    "toc_label": "Ir a la sección",
+    "toc_label": "En esta página",
     "badges": {
-      "privacy_hub": "Centro de Privacidad",
-      "legal_center": "Centro Legal",
-      "terms_hub": "Centro de Términos",
-      "community_hub": "Centro de Comunidad"
+      "privacy_hub": "Legal",
+      "legal_center": "Legal",
+      "terms_hub": "Legal",
+      "community_hub": "Legal"
     },
     "quotes": {
-      "privacy": "Tu privacidad es la piedra angular de nuestro ecosistema social. Implementamos arquitectura de seguridad de grado militar para proteger cada bit.",
-      "terms": "Estos términos están diseñados para garantizar una relación justa, transparente y mutuamente beneficiosa entre tú y CircleSfera.",
-      "community": "Nuestra comunidad se basa en el respeto mutuo y la libertad creativa. Estas pautas ayudan a mantener un entorno positivo para todos."
+      "privacy": "Qué datos guardamos, para qué los usamos y cómo puedes controlarlos.",
+      "terms": "Las condiciones para usar CircleSfera, escritas para que se entiendan.",
+      "community": "Lo que se puede publicar en CircleSfera y cómo se aplican las normas."
     },
-    "last_updated": {
-      "privacy": "Última Actualización: Abril 2026 • Protección de Datos por Niveles • CircleSfera Security Hub",
-      "terms": "Última Actualización: Abril 2026 • Jurisdicción Global • CircleSfera Legal Ops",
-      "community": "Última Actualización: Abril 2026 • Estándares Globales • CircleSfera Trust & Safety"
-    }
+    "help_title": "¿Tienes dudas sobre este documento?",
+    "help_desc": "Escríbenos desde Soporte y una persona te responde."
   },
   "feed": {
     "home_title": "Inicio",
@@ -812,29 +825,29 @@
       "the_platform": "Explorar",
       "discover_new": "Encuentra personas",
       "dimension": "y etiquetas",
-      "intro_text": "Tras registrarte, Explorar es búsqueda, cuentas, tags y posts recomendados. Feed, Frames y Direct están en Funciones.",
+      "intro_text": "Busca cuentas, etiquetas y publicaciones, y descubre contenido nuevo con tu cuenta.",
       "create_account": "Crear cuenta",
       "see_features": "Ver funciones",
-      "join_title": "Abre Explorar con una cuenta",
-      "join_desc": "Búsqueda, personas y tags se abren en la app real tras registrarte.",
+      "join_title": "Abre Explorar con tu cuenta",
+      "join_desc": "La búsqueda, las personas y las etiquetas están disponibles al registrarte.",
       "discovery_title": "Cómo funciona el discovery",
       "discovery_subtitle": "Estas herramientas se abren en Explorar cuando tienes cuenta.",
       "blocks": {
         "search": {
           "title": "Buscar",
-          "desc": "Encuentra personas y posts por nombre o palabra clave. La búsqueda está disponible tras crear una cuenta."
+          "desc": "Encuentra personas y publicaciones por nombre o palabra clave."
         },
         "people": {
           "title": "Personas",
-          "desc": "Sigue perfiles reales del grafo. Las sugerencias y el contexto mutuo aparecen cuando inicias sesión."
+          "desc": "Sigue a quien te interese. Las sugerencias aparecen cuando inicias sesión."
         },
         "tags": {
-          "title": "Tags y temas",
-          "desc": "Abre feeds por etiqueta dentro de la app. El marketing guest no inventa rejillas de tendencias."
+          "title": "Etiquetas y temas",
+          "desc": "Abre todas las publicaciones de una etiqueta."
         },
         "feeds": {
           "title": "Para ti y Siguiendo",
-          "desc": "Modos de ranking en Inicio que definen qué ves — explicados en Funciones bajo Feed y Stories."
+          "desc": "Dos formas de ver Inicio: lo que te recomendamos y lo de la gente que sigues."
         }
       },
       "outbound_title": "Páginas relacionadas",
@@ -849,7 +862,7 @@
       "common": {
         "back": "Volver a Funciones",
         "secondary_cta": "Todas las superficies",
-        "more_title": "Más superficies"
+        "more_title": "Más funciones"
       },
       "feed": {
         "seo_title": "Feed y Stories — CircleSfera",
@@ -859,15 +872,15 @@
         "points": {
           "p1": {
             "title": "Para ti y Siguiendo",
-            "body": "Dos modos de lectura en el mismo Inicio. Siguiendo prioriza a quien tú elegiste. Para ti ordena discovery con señales que puedes cambiar."
+            "body": "Dos formas de ver Inicio. Siguiendo muestra a la gente que tú elegiste. Para ti te propone contenido nuevo, y puedes ajustar lo que te recomienda."
           },
           "p2": {
-            "title": "Stories y highlights",
-            "body": "Las stories son efímeras por diseño. Los highlights guardan momentos elegidos en tu perfil para que decidas qué se queda a la vista."
+            "title": "Historias y destacadas",
+            "body": "Las historias desaparecen. Las destacadas guardan en tu perfil los momentos que quieres conservar."
           },
           "p3": {
             "title": "El control es tuyo",
-            "body": "Silenciar, ocultar, preferencias del feed y apelaciones están en Ajustes. Tú decides qué se queda en tu feed."
+            "body": "Silenciar, ocultar y las preferencias del feed están en Ajustes. Tú decides qué se queda en tu feed."
           }
         },
         "closing": "Crea una cuenta para abrir Inicio con las mismas superficies descritas aquí."
@@ -879,16 +892,16 @@
         "lead": "Frames es la superficie de vídeo corto de CircleSfera: visionado vertical con la misma identidad, follows y reglas de moderación que el resto del producto.",
         "points": {
           "p1": {
-            "title": "Una cuenta, un grafo",
-            "body": "No reconstruyes seguidores para el vídeo. Frames convive con Feed y Stories bajo el mismo perfil y las mismas relaciones."
+            "title": "Una sola cuenta",
+            "body": "No empiezas de cero para el vídeo. Frames usa tu mismo perfil y tus mismos seguidores."
           },
           "p2": {
-            "title": "Hecho para densidad",
-            "body": "La superficie está pensada para clips verticales cortos — pantalla concentrada, siguiente/anterior ágil y el mismo aspecto que Inicio."
+            "title": "Pensado para vídeo corto",
+            "body": "Vídeo vertical a pantalla completa. Pasa al siguiente o al anterior con un gesto."
           },
           "p3": {
-            "title": "Las mismas reglas de confianza",
-            "body": "Reportes, apelaciones y límites de visibilidad también aplican aquí. Los caminos de monetización de creador siguen siendo explícitos cuando tocan Frames."
+            "title": "Las mismas normas",
+            "body": "Denunciar y apelar funciona igual en Frames que en el resto de CircleSfera."
           }
         },
         "closing": "Regístrate para abrir Frames en la app. Como invitado puedes seguir leyendo el resto de superficies en Explorar."
@@ -900,16 +913,16 @@
         "lead": "Direct es la mensajería privada de CircleSfera: las conversaciones quedan con quien tú eliges, bajo la misma cuenta y el mismo modelo de seguridad.",
         "points": {
           "p1": {
-            "title": "Personas que tú eliges",
-            "body": "Los hilos están ligados a tus relaciones y a tu privacidad — no es un muro de comentarios disfrazado de chat."
+            "title": "Con quien tú eliges",
+            "body": "Las conversaciones dependen de tus relaciones y de tu privacidad."
           },
           "p2": {
-            "title": "Parte del producto, no un añadido",
-            "body": "Bandeja e hilos usan el mismo aspecto y la misma navegación que el resto de CircleSfera, también en móvil."
+            "title": "Dentro de CircleSfera",
+            "body": "La bandeja y las conversaciones tienen el mismo aspecto que el resto de la app, también en el móvil."
           },
           "p3": {
-            "title": "Seguridad explícita",
-            "body": "Bloqueos, reportes y límites de cuenta también aplican al mensajería. La aplicación de normas se comunica — no se oculta como un mute silencioso de tu alcance."
+            "title": "Seguridad a la vista",
+            "body": "Puedes bloquear y denunciar desde una conversación. Si se aplica una norma, se te comunica."
           }
         },
         "closing": "Crea una cuenta para abrir Direct. Hasta entonces, Explorar describe todas las superficies que ya existen."
@@ -921,37 +934,37 @@
         "lead": "Live permite emitir y unirse en tiempo real — chat, presencia y apoyo a creadores con la misma identidad de CircleSfera.",
         "points": {
           "p1": {
-            "title": "Emitir y ver",
-            "body": "Los creadores salen en directo desde el producto; la audiencia entra en una sesión dedicada con actualizaciones en tiempo real — no un embed de terceros pegado encima."
+            "title": "Emite y mira",
+            "body": "Empieza un directo desde CircleSfera. Tu público entra y lo ve en tiempo real."
           },
           "p2": {
             "title": "Chat en el momento",
-            "body": "El chat vive junto al stream para que las reacciones tengan contexto. Moderación y reportes siguen disponibles durante la sesión."
+            "body": "El chat va junto al directo. Se puede moderar y denunciar mientras dura."
           },
           "p3": {
-            "title": "Apoyo abierto a creadores",
-            "body": "Los regalos y caminos de monetización relacionados son features de producto con reglas de precio visibles — no boosts opacos."
+            "title": "Apoyo a creadores",
+            "body": "Los regalos tienen un precio visible antes de enviarlos."
           }
         },
         "closing": "Regístrate para emitir o unirte a un Live. Precios explica los planes de plataforma cuando necesites capacidades de pago."
       },
       "creator": {
         "seo_title": "Herramientas de creador — CircleSfera",
-        "seo_desc": "Suscripciones, unlocks y monetización con Stripe con una comisión de plataforma explícita del 20%.",
+        "seo_desc": "Propinas, contenido de pago y regalos en directo con Stripe, con una comisión de plataforma del 20 %.",
         "title": "Herramientas de creador",
         "lead": "Creator Studio y la monetización te ayudan a cobrar en CircleSfera con precios y comisiones que puedes ver antes de pagar o cobrar.",
         "points": {
           "p1": {
-            "title": "Suscripciones y unlocks",
-            "body": "Ofrece acceso de pago y unlocks con flujos respaldados por Stripe. Los entitlements viven en servidor — el cliente no inventa precios."
+            "title": "Propinas y contenido de pago",
+            "body": "Recibe propinas y vende publicaciones, historias y mensajes de pago. Los cobros van por Stripe."
           },
           "p2": {
-            "title": "Comisión transparente",
-            "body": "La comisión de plataforma de CircleSfera es explícita (20%). Las páginas de precios muestran el coste antes del checkout; sin extras silenciosos en el copy."
+            "title": "Comisión clara",
+            "body": "La comisión de CircleSfera es del 20 %. El precio se ve antes de pagar, sin extras."
           },
           "p3": {
-            "title": "Confianza y verificación",
-            "body": "Algunos caminos de monetización requieren verificación de identidad. Los requisitos se dicen por delante — no se descubren tras un cobro fallido."
+            "title": "Verificación de identidad",
+            "body": "Para ganar dinero necesitas una cuenta de creador o de empresa y verificar tu identidad. Te lo decimos antes de empezar."
           }
         },
         "closing": "Lee Precios para el detalle de planes y luego crea una cuenta para abrir Creator Studio cuando seas elegible."
@@ -1051,7 +1064,7 @@
     "close_viewer": "Cerrar visor de historia",
     "delete_this": "Eliminar esta historia",
     "you": "Tú",
-    "yours": "Tu story",
+    "yours": "Tu historia",
     "view_of": "Ver historias de {{username}}",
     "delete_title": "¿Eliminar historia?",
     "delete_warning": "Esta acción no se puede deshacer.",
@@ -1398,7 +1411,7 @@
     "seo": {
       "post": "CircleSfera — Nueva publicación",
       "frame": "CircleSfera — Nuevo Frame",
-      "story": "CircleSfera — Añadir a Story"
+      "story": "CircleSfera — Añadir a historia"
     },
     "stepper": {
       "upload": "Subir",
@@ -1438,7 +1451,7 @@
       "frame_duration": "Los videos de Frame deben durar entre {{min}} y {{max}} segundos.",
       "frame_too_short": "Los videos de Frame deben durar al menos {{min}} segundos. Elige un clip más largo.",
       "frame_duration_probe_failed": "No se pudo leer la duración de este video. Prueba con otro archivo.",
-      "story_duration": "Los videos de Story deben durar {{max}} segundos o menos.",
+      "story_duration": "Los vídeos de una historia deben durar {{max}} segundos o menos.",
       "post_duration": "Los videos de Post deben durar {{max}} segundos o menos.",
       "file_too_large": "{{name}} supera el límite de {{maxMb}} MB.",
       "upload_failed": "No se pudo subir {{name}}",
@@ -2745,7 +2758,7 @@
     },
     "audio": {
       "title": "Biblioteca de Música",
-      "subtitle": "Gestiona las pistas de audio disponibles para stories y posts",
+      "subtitle": "Gestiona las pistas de audio disponibles para historias y posts",
       "add_track": "Añadir pista",
       "search_placeholder": "Buscar por título o artista...",
       "empty_title": "No hay pistas",
@@ -3321,31 +3334,48 @@
     "badge": "Soporte",
     "seo_title": "Soporte — CircleSfera",
     "seo_desc": "Asistencia directa y soporte especializado para usuarios de CircleSfera. Nuestro equipo está listo para ayudarte.",
-    "title": "Asistencia técnica directa.",
-    "description": "Nuestro equipo especializado está aquí para ayudarte. Inicia sesión, describe tu problema y te responderemos directamente al correo electrónico de tu cuenta.",
+    "title": "¿Necesitas ayuda?",
+    "description": "Entra en tu cuenta, cuéntanos qué pasa y una persona te responde al correo de tu cuenta.",
     "write_title": "Escríbenos",
-    "write_desc": "Un fallo, un pago, tu cuenta. Una persona lo revisa y te responde por correo.",
+    "write_desc": "Un fallo, un pago, tu cuenta. Cuéntanoslo con tus palabras.",
     "success_title": "Mensaje enviado",
     "success_body": "Lo revisaremos y te responderemos a {{email}}.",
-    "login_required": "Inicia sesión para que podamos responder al correo de tu cuenta.",
+    "login_required": "Entra en tu cuenta para que podamos responder a tu correo.",
     "subject_label": "Asunto",
     "subject_placeholder": "Por ejemplo: un problema con una suscripción",
     "message_label": "Mensaje",
     "message_placeholder": "Qué pasó, en qué pantalla, y qué has intentado ya.",
     "submit": "Enviar mensaje",
     "submitting": "Enviando…",
-    "error_generic": "No se pudo enviar el mensaje. Inténtalo de nuevo."
+    "error_generic": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
+    "steps_title": "Así te ayudamos",
+    "help": {
+      "faq_title": "Preguntas frecuentes",
+      "faq_desc": "Planes, verificación, el feed y el móvil.",
+      "rules_title": "Normas de la comunidad",
+      "rules_desc": "Qué se puede publicar y cómo se modera.",
+      "privacy_title": "Privacidad y datos",
+      "privacy_desc": "Qué guardamos y cómo exportarlo o borrarlo."
+    },
+    "steps": {
+      "s1_title": "Cuéntanos qué pasa",
+      "s1_desc": "Di en qué pantalla estabas y qué intentaste.",
+      "s2_title": "Una persona lo revisa",
+      "s2_desc": "Lee tu mensaje alguien del equipo, no una respuesta automática.",
+      "s3_title": "Te respondemos por correo",
+      "s3_desc": "Al correo de tu cuenta."
+    }
   },
   "pricingPage": {
     "badge": "Precios",
-    "heading": "Elige tu",
-    "heading_highlight": "plan",
-    "subtitle": "Planes opcionales de plataforma vía Stripe. Las funciones sociales principales siguen gratis. Precios y funciones se muestran antes de pagar.",
-    "most_popular": "Más Popular",
-    "current_plan": "Plan Actual",
-    "manage_subscription": "Gestionar Suscripción",
+    "heading": "Empieza gratis.",
+    "heading_highlight": "Mejora cuando quieras.",
+    "subtitle": "Todo lo social es gratis, y el soporte es el mismo para todos. Los planes son opcionales.",
+    "most_popular": "Más popular",
+    "current_plan": "Tu plan",
+    "manage_subscription": "Gestionar suscripción",
     "default_description": "Desbloquea más de CircleSfera.",
-    "default_button": "Mejorar a {{plan}}",
+    "default_button": "Elegir {{plan}}",
     "features": {
       "verified_badge": "Insignia de verificación",
       "basic_analytics": "Analíticas básicas",
@@ -3356,14 +3386,20 @@
       "business_verification": "Verificación de negocio",
       "multi_account": "Varias cuentas",
       "dedicated_support": "Soporte dedicado",
-      "api_access_beta": "Acceso a la API (beta)"
+      "api_access_beta": "Acceso a la API (beta)",
+      "verified_filter": "Apareces en el filtro de verificados",
+      "no_promoted_content": "Sin contenido promocionado",
+      "personalization": "Personalización del perfil",
+      "elite_badge": "Insignia élite",
+      "business_badge": "Insignia de empresa",
+      "advanced_analytics": "Analíticas avanzadas"
     },
-    "desc_premium": "Eleva tu identidad y presencia.",
-    "desc_elite": "Herramientas profesionales para creadores en crecimiento.",
-    "desc_business": "Máximo impacto para marcas y equipos.",
-    "button_premium": "Mejorar Experiencia",
-    "button_elite": "Hazte Elite",
-    "button_business": "Iniciar Business",
+    "desc_premium": "Tu perfil con la insignia de verificado.",
+    "desc_elite": "Para perfiles de creador.",
+    "desc_business": "Para perfiles de empresa.",
+    "button_premium": "Elegir Premium",
+    "button_elite": "Elegir Elite Creator",
+    "button_business": "Elegir Business",
     "identity_verified": "¡Tu identidad ha sido verificada!",
     "verification_required_title": "Verificación Requerida",
     "verification_required_desc": "Debes verificar tu identidad antes de realizar compras.",
@@ -3377,7 +3413,18 @@
     "per_year": "año",
     "save_percent": "Ahorra {{percent}}%",
     "load_error_title": "No se han podido cargar los planes",
-    "load_error_message": "Revisa tu conexión e inténtalo de nuevo."
+    "load_error_message": "Revisa tu conexión e inténtalo de nuevo.",
+    "assurances": {
+      "secure_title": "Pago con Stripe",
+      "secure_desc": "Los pagos se hacen con Stripe. CircleSfera no guarda los datos de tu tarjeta.",
+      "upfront_title": "El precio, antes de pagar",
+      "upfront_desc": "Ves qué incluye cada plan y cuánto cuesta antes de confirmar.",
+      "manage_title": "Lo gestionas tú",
+      "manage_desc": "Cambia o gestiona tu suscripción desde Ajustes.",
+      "support_title": "Soporte para todos",
+      "support_desc": "Cualquier cuenta puede escribir a Soporte, tenga o no un plan."
+    },
+    "all_questions": "Ver todas las preguntas"
   },
   "studio": {
     "seo_title": "Studio | CircleSfera",
@@ -3499,7 +3546,7 @@
       "preset_title": "Título principal bold",
       "preset_subtitle": "Subtítulo destacado",
       "preset_badge": "Etiqueta neón",
-      "preset_story": "Caja estilo story",
+      "preset_story": "Caja estilo historia",
       "preset_title_content": "TÍTULO IMPACTO",
       "preset_subtitle_content": "Suscripciones & Tiers Pro",
       "preset_badge_content": "★ CIRCLE STUDIO",
@@ -3703,14 +3750,14 @@
       "desc": "Una capa social refinada construida para quienes valoran la profundidad visual y la conexión auténtica.",
       "platform": "Plataforma",
       "explore": "Explorar",
-      "login": "Iniciar Sesión",
-      "signup": "Registrarse",
-      "pricing": "Suscripciones",
+      "login": "Entrar",
+      "signup": "Crear cuenta",
+      "pricing": "Precios",
       "support": "Soporte",
       "legal": "Legal",
       "privacy": "Privacidad",
       "terms": "Términos",
-      "guidelines": "Directrices",
+      "guidelines": "Normas",
       "copyright": "© 2026 CircleSfera Social. Todos los derechos reservados.",
       "designed_for": "Diseñado para la próxima generación de creadores."
     },
@@ -3875,26 +3922,26 @@
       "description": "CircleSfera es una red social para posts, stories, Frames, Direct y Live. Tú eliges qué ves y quién puede interactuar contigo."
     },
     "nav": {
-      "log_in": "Iniciar sesión",
-      "sign_up": "Regístrate",
+      "log_in": "Entrar",
+      "sign_up": "Crear cuenta",
       "primary": "Principal",
       "open_menu": "Abrir menú",
       "close_menu": "Cerrar menú"
     },
     "hero": {
-      "badge": "Feed · Frames · Direct · Live",
       "title_part1": "Your World,",
       "title_part2": "Connected.",
-      "subtitle": "Posts, stories, Frames, Direct y Live. Tú eliges qué ves y quién puede interactuar contigo.",
+      "lead": "Una red social hecha para que tú tengas el control.",
+      "subtitle": "Comparte, descubre contenido, conecta con otras personas y crea tu comunidad, sabiendo cómo funciona la plataforma. Tú decides qué ves, con quién conectas y cómo lo vives.",
       "get_started": "Crear cuenta",
-      "log_in": "Iniciar sesión",
+      "log_in": "Entrar",
       "already": "¿Ya tienes cuenta?",
-      "explore_demo": "Explorar CircleSfera"
+      "explore_demo": "Explorar"
     },
     "features": {
       "badge": "Funciones",
-      "title": "Una cuenta. Todos los formatos.",
-      "subtitle": "Posts, stories, vídeo corto, mensajes, directo y herramientas de creador. El mismo aspecto y las mismas relaciones."
+      "title": "Todo lo que compartes, en un mismo lugar.",
+      "subtitle": "Posts, historias, vídeo corto, mensajes y directos, con una sola cuenta."
     },
     "preview": {
       "home": "Inicio",
@@ -3910,69 +3957,74 @@
       "items": {
         "feed": {
           "title": "Feed y Stories",
-          "desc": "Para ti y Siguiendo con posts densos. Stories efímeras y highlights que permanecen en tu perfil — tú decides qué se queda a la vista."
+          "headline": "Comparte tu día en posts e historias",
+          "desc": "Publica fotos y vídeos, sube historias que desaparecen y guarda en tu perfil las que quieras conservar."
         },
         "frames": {
           "title": "Frames",
-          "desc": "Vídeo corto en una superficie vertical dentro de CircleSfera — la misma cuenta, las mismas relaciones, no otra app."
+          "headline": "Descubre vídeos cortos en Frames",
+          "desc": "Vídeo vertical a pantalla completa, con tu misma cuenta y tu misma gente."
         },
         "direct": {
           "title": "Direct",
-          "desc": "Mensajería privada con el mismo aspecto que el resto del producto. Las conversaciones quedan con quien tú eliges."
+          "headline": "Habla en privado con Direct",
+          "desc": "Mensajes con quien tú eliges, sin salir de CircleSfera."
         },
         "live": {
           "title": "Live",
-          "desc": "Emite en directo, chatea en tiempo real y apoya a creadores con regalos. Emisión y audiencia viven en la misma superficie."
+          "headline": "Emite en directo y habla con tu público",
+          "desc": "Chat en tiempo real y regalos para apoyar a quien emite."
         },
         "creator": {
           "title": "Herramientas de creador",
-          "desc": "Suscripciones, unlocks y monetización con Stripe. La comisión de plataforma es explícita (20%). Los precios se ven antes de pagar."
+          "headline": "Gana dinero con lo que creas",
+          "desc": "Propinas, contenido de pago y regalos en directo, con Stripe. La comisión de la plataforma es del 20 % y los precios se ven antes de pagar."
         }
       }
     },
     "principles": {
       "badge": "Principios",
-      "title": "Control que puedes usar.",
-      "subtitle": "Cinco reglas sobre qué ves, quién puede hablarte y cómo se usan tus datos.",
+      "title": "Tu experiencia, tus reglas.",
+      "subtitle": "Cinco principios guían cómo se diseña CircleSfera.",
       "items": {
         "control": {
-          "title": "El control del usuario primero",
-          "desc": "Tú decides qué consumes, quién puede interactuar y qué recomendaciones recibes. La automatización ayuda — no anula tus elecciones."
+          "title": "Control del usuario",
+          "desc": "Tú decides qué ves, quién puede interactuar contigo y qué recomendaciones recibes. La automatización ayuda, no anula tus elecciones."
         },
         "transparency": {
-          "title": "Por qué ves esto",
-          "desc": "Lo que aparece en Para ti y Explorar tiene que tener sentido: este post, este perfil, y qué hiciste tú para cambiarlo."
+          "title": "Transparencia algorítmica",
+          "desc": "Lo que aparece en Para ti y en Explorar tiene que poder explicarse: por qué lo ves y cómo cambiarlo."
         },
         "no_suppression": {
-          "title": "Visibilidad que controlas",
-          "desc": "Silenciar, ocultar y las preferencias del feed cambian lo que ves. Siguiendo son las personas que elegiste. Para ti es una mezcla que puedes ajustar en Ajustes."
+          "title": "Sin supresión oculta",
+          "desc": "No limitamos el alcance de tu contenido a escondidas. Cuando una norma limita su visibilidad, tiene que poder entenderse."
         },
         "moderation": {
-          "title": "Moderación estricta y explícita",
+          "title": "Moderación explicable",
           "desc": "Las normas son públicas. Puedes denunciar contenido y apelar una decisión desde Ajustes."
         },
         "data": {
-          "title": "Datos responsables",
-          "desc": "Guardamos lo que el producto necesita, y hay que poder decir por qué. Exportar y borrar está en Ajustes."
+          "title": "Datos tratados con responsabilidad",
+          "desc": "Guardamos lo que el producto necesita, y hay que poder decir por qué. Exportar y borrar tus datos está en Ajustes."
         }
       }
     },
     "faq": {
-      "badge": "FAQ",
-      "title": "Respuestas claras",
-      "subtitle": "Lo que CircleSfera es hoy — planes, el feed y cómo usarlo en el móvil.",
+      "badge": "Preguntas frecuentes",
+      "title": "Preguntas frecuentes",
+      "subtitle": "Planes, el feed, la verificación y cómo usar CircleSfera en el móvil.",
       "items": {
         "free": {
           "q": "¿CircleSfera es gratis?",
-          "a": "Sí. Las funciones sociales principales son gratis. Los planes opcionales (Premium, Elite Creator, Business) y la monetización de creadores van por Stripe — los precios están en Precios antes de pagar."
+          "a": "Sí. Las funciones sociales principales son gratis. Hay planes opcionales (Premium, Elite Creator y Business) y herramientas para que los creadores ganen dinero. Los pagos van por Stripe y el precio se ve antes de pagar."
         },
         "verify": {
           "q": "¿Cómo funciona la verificación de identidad?",
-          "a": "La verificación de identidad está en Ajustes, con Stripe Identity, cuando la necesitas para monetización o confianza. Las insignias de plan (Verified / Elite / Business) vienen de una suscripción activa."
+          "a": "Se hace desde Ajustes con Stripe Identity, cuando la necesitas para ganar dinero o para dar más confianza. Las insignias de plan (Verified, Elite y Business) dependen de tener una suscripción activa."
         },
         "control": {
           "q": "¿Controlo lo que veo?",
-          "a": "Sí. Preferencias del feed, silenciar, ocultar y apelaciones están en Ajustes. Tú eliges qué ves y quién puede interactuar contigo."
+          "a": "Sí. En Ajustes puedes cambiar las preferencias del feed, silenciar y ocultar, y apelar decisiones. Tú eliges qué ves y quién puede interactuar contigo."
         },
         "mobile": {
           "q": "¿Hay app móvil?",
@@ -3980,17 +4032,17 @@
         },
         "plans": {
           "q": "¿Qué desbloquean los planes?",
-          "a": "Premium, Elite Creator y Business son suscripciones opcionales cobradas con Stripe. Qué incluyen y cuánto cuestan está en Precios, antes de pagar."
+          "a": "Premium, Elite Creator y Business son suscripciones opcionales que se cobran con Stripe. Dan una insignia, que exige verificar tu identidad. En Precios ves qué incluye cada una y cuánto cuesta antes de pagar."
         },
         "support": {
-          "q": "¿Hay soporte técnico de verdad?",
-          "a": "Sí. Inicia sesión, escribe desde Soporte y una persona te responde al correo de tu cuenta. No es un centro de ayuda vacío."
+          "q": "¿Cómo contacto con soporte?",
+          "a": "Entra en tu cuenta, escribe desde Soporte y una persona te responde al correo de tu cuenta. El soporte es el mismo para todos, tengas o no un plan."
         }
       }
     },
     "cta": {
-      "title": "Empieza en CircleSfera",
-      "subtitle": "Crea tu cuenta y aterriza en Inicio — Para ti, Siguiendo, stories y el resto del producto.",
+      "title": "Empieza hoy en CircleSfera",
+      "subtitle": "Crea tu cuenta gratis y comparte con la gente que te importa.",
       "button": "Crear cuenta"
     },
     "pages": {
@@ -4008,7 +4060,7 @@
       }
     },
     "footer": {
-      "desc": "Una red social para posts, Frames, Direct, Live y herramientas de creador.",
+      "desc": "Una red social hecha para que tú tengas el control.",
       "platform": "Plataforma",
       "product": "Producto",
       "features": "Funciones",

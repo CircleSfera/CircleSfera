@@ -1,8 +1,13 @@
 import type { LucideIcon } from 'lucide-react';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import SEO from '../common/SEO';
+import { SegmentedControl } from '../ui/SegmentedControl';
+import { BRAND_SMALL_TEXT } from './eyebrow';
+import { MarketingCTA } from './MarketingCTA';
 import { MarketingPage } from './MarketingPage';
+import { MarketingPageHeader } from './MarketingPageHeader';
 
 export interface LegalSection {
   id: string;
@@ -19,6 +24,26 @@ interface LegalDocumentLayoutProps {
   sections: LegalSection[];
 }
 
+const DOCUMENTS = [
+  { to: '/privacy', label: 'common.footer.privacy' },
+  { to: '/terms', label: 'common.footer.terms' },
+  { to: '/guidelines', label: 'common.footer.guidelines' },
+] as const;
+
+// Section titles carry their own number ("1. Acceptable use"); the page
+// shows the number on its own.
+function plainTitle(title: string) {
+  const parts = title.split('. ');
+  return parts.length > 1 ? parts.slice(1).join('. ') : title;
+}
+
+const number = (index: number) => String(index + 1).padStart(2, '0');
+
+/**
+ * A policy page: which document this is and the way to the other two, its
+ * sections listed beside the text on desktop and in a picker on a phone,
+ * and where to ask about it.
+ */
 export function LegalDocumentLayout({
   seoTitle,
   headerTitle,
@@ -27,122 +52,129 @@ export function LegalDocumentLayout({
   sections,
 }: LegalDocumentLayoutProps) {
   const { t } = useTranslation();
-
-  const scrollTo = (id: string) => {
-    document
-      .getElementById(id)
-      ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  };
-
-  const tocLabel = (title: string) => {
-    const parts = title.split('. ');
-    return parts.length > 1 ? parts.slice(1).join('. ') : title;
-  };
+  const { pathname } = useLocation();
 
   return (
     <MarketingPage>
       <SEO title={seoTitle} />
-      <div className="mx-auto max-w-6xl px-4 sm:px-5 py-16 sm:py-24 w-full">
-        <div className="flex flex-col lg:flex-row gap-12 lg:gap-20">
-          <aside className="lg:w-72 shrink-0">
-            <div className="lg:sticky lg:top-24 space-y-8">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary mb-4 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse" />
-                  {t(badgeKey)}
-                </p>
-                <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-transparent bg-clip-text bg-linear-to-br from-white via-white to-white/50 leading-[1.05]">
-                  {headerTitle}
-                </h1>
-              </div>
+      <div className="mx-auto w-full max-w-6xl px-4 pb-14 sm:px-6 sm:pb-20">
+        <MarketingPageHeader
+          className="pt-12 pb-8 sm:pt-20 sm:pb-10"
+          align="center"
+          eyebrow={t(badgeKey)}
+          title={headerTitle}
+          description={t(quoteKey)}
+        />
 
-              <label className="block lg:hidden">
-                <span className="sr-only">{t('legal.toc_label')}</span>
-                <select
-                  className="w-full h-14 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 text-sm text-white px-4 focus:outline-none focus-visible:border-white/30 appearance-none"
-                  defaultValue=""
-                  onChange={(e) => {
-                    if (e.target.value) scrollTo(e.target.value);
-                  }}
-                >
-                  <option value="" disabled>
-                    {t('legal.toc_label')}
-                  </option>
-                  {sections.map((s) => (
-                    <option
-                      key={s.id}
-                      value={s.id}
-                      className="bg-surface-elevated text-white"
-                    >
-                      {tocLabel(s.title)}
-                    </option>
-                  ))}
-                </select>
-              </label>
+        <div className="flex justify-center">
+          <SegmentedControl
+            id="legalDocumentPill"
+            label={t('landing.footer.legal')}
+            value={pathname}
+            items={DOCUMENTS.map(({ to, label }) => ({
+              value: to,
+              to,
+              label: t(label),
+            }))}
+            className="[&_a]:px-4 sm:[&_a]:px-6"
+          />
+        </div>
 
-              <nav
-                className="hidden lg:block space-y-1 bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-3 shadow-2xl shadow-black/20"
-                aria-label={t('legal.toc_label')}
+        <div className="mt-10 grid gap-8 sm:mt-14 lg:grid-cols-[18rem_1fr] lg:gap-12">
+          <aside>
+            <label className="relative block lg:hidden">
+              <span className="sr-only">{t('legal.toc_label')}</span>
+              <select
+                className="h-12 w-full appearance-none rounded-full border border-white/10 bg-surface-elevated pl-5 pr-12 text-sm font-semibold text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+                defaultValue=""
+                onChange={(event) => {
+                  if (event.target.value) {
+                    window.location.hash = event.target.value;
+                  }
+                }}
               >
-                {sections.map((section) => (
-                  <button
-                    type="button"
-                    key={section.id}
-                    onClick={() => scrollTo(section.id)}
-                    className="flex items-center gap-3 w-full min-h-12 px-4 rounded-2xl hover:bg-white/10 transition-all text-left group focus:outline-none"
-                  >
-                    <section.icon
-                      size={16}
-                      className="text-white/40 group-hover:text-brand-primary shrink-0 transition-colors"
-                    />
-                    <span className="text-sm font-bold text-white/50 group-hover:text-white truncate transition-colors">
-                      {tocLabel(section.title)}
-                    </span>
-                    <ChevronRight
-                      size={14}
-                      className="ml-auto opacity-0 group-hover:opacity-100 text-white shrink-0 transition-opacity -translate-x-1 group-hover:translate-x-0"
-                    />
-                  </button>
+                <option value="" disabled>
+                  {t('legal.toc_label')}
+                </option>
+                {sections.map((section, index) => (
+                  <option key={section.id} value={section.id}>
+                    {number(index)} · {plainTitle(section.title)}
+                  </option>
                 ))}
-              </nav>
+              </select>
+              <ChevronDown
+                size={18}
+                className="pointer-events-none absolute right-5 top-1/2 -translate-y-1/2 text-white/50"
+                aria-hidden
+              />
+            </label>
 
-              <div className="hidden lg:block p-5 rounded-3xl bg-linear-to-br from-white/5 to-transparent border border-white/5">
-                <p className="text-sm text-white/50 leading-relaxed font-medium">
-                  {t(quoteKey)}
-                </p>
-              </div>
-            </div>
+            <nav
+              aria-label={t('legal.toc_label')}
+              className="hidden rounded-3xl glass-panel p-3 lg:block"
+            >
+              <p className="px-3 pb-2 pt-1 text-xs font-bold uppercase tracking-[0.14em] text-white/60">
+                {t('legal.toc_label')}
+              </p>
+              {sections.map((section, index) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  className="group flex min-h-11 items-center gap-3 rounded-2xl px-3 text-sm font-semibold text-white/60 transition-colors hover:bg-white/8 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+                >
+                  <span
+                    className={`text-xs font-bold tabular-nums ${BRAND_SMALL_TEXT}`}
+                  >
+                    {number(index)}
+                  </span>
+                  <span className="truncate">{plainTitle(section.title)}</span>
+                </a>
+              ))}
+            </nav>
           </aside>
 
-          <div className="flex-1 min-w-0 pb-10 pt-4">
+          <div className="min-w-0 space-y-4">
             {sections.map((section, index) => (
               <section
                 id={section.id}
                 key={section.id}
-                className={`scroll-mt-32 py-10 ${
-                  index > 0 ? 'border-t border-white/10' : ''
-                }`}
+                className="scroll-mt-24 rounded-3xl glass-panel p-6 sm:p-8"
               >
-                <div className="flex items-center gap-4 mb-8">
-                  <div className="w-12 h-12 rounded-2xl bg-linear-to-br from-white/10 to-white/5 border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
-                    <section.icon
-                      size={20}
-                      className="text-white drop-shadow-md"
-                      strokeWidth={1.5}
-                      aria-hidden
-                    />
+                <div className="flex items-center gap-4">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+                    <section.icon size={22} strokeWidth={1.75} aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold tabular-nums text-white/60">
+                      {number(index)}
+                    </p>
+                    <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+                      {plainTitle(section.title)}
+                    </h2>
                   </div>
-                  <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-linear-to-r from-white to-white/70 tracking-tight pt-1">
-                    {section.title}
-                  </h2>
                 </div>
-                <div className="prose prose-invert max-w-none">
-                  <p className="text-sm text-white/60 leading-relaxed font-medium whitespace-pre-line">
-                    {section.content}
-                  </p>
-                </div>
+                <p className="mt-5 max-w-prose whitespace-pre-line text-base leading-relaxed text-white/70">
+                  {section.content}
+                </p>
               </section>
             ))}
+
+            <section className="rounded-3xl border border-brand-primary/25 bg-brand-primary/8 p-6 sm:p-8">
+              <h2 className="text-xl font-black tracking-tight text-white sm:text-2xl">
+                {t('legal.help_title')}
+              </h2>
+              <p className="mt-2 max-w-prose text-base leading-relaxed text-white/70">
+                {t('legal.help_desc')}
+              </p>
+              <MarketingCTA
+                to="/support"
+                variant="secondary"
+                size="lg"
+                className="mt-5 px-8"
+              >
+                {t('common.footer.support')}
+              </MarketingCTA>
+            </section>
           </div>
         </div>
       </div>
