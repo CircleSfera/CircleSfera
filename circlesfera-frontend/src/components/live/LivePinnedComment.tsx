@@ -39,11 +39,11 @@ export const LivePinnedComment: React.FC<LivePinnedCommentProps> = ({
             <span className="font-bold text-blue-300 truncate">
               {pinnedComment.username}
             </span>
-            <span className="text-xs text-gray-400 font-semibold uppercase tracking-wider">
+            <span className="text-xs text-white/60 font-semibold uppercase tracking-wider">
               • {t('live.pinned')}
             </span>
           </div>
-          <p className="text-gray-100 font-medium wrap-break-word mt-0.5">
+          <p className="text-white/90 font-medium wrap-break-word mt-0.5">
             {pinnedComment.message}
           </p>
         </div>
@@ -53,7 +53,7 @@ export const LivePinnedComment: React.FC<LivePinnedCommentProps> = ({
         <button
           type="button"
           onClick={onUnpin}
-          className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-400 hover:text-white transition-colors shrink-0 ml-2"
+          className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/60 hover:text-white transition-colors shrink-0 ml-2"
           title={t('live.unpin')}
           aria-label={t('live.unpin')}
         >
