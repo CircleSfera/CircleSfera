@@ -128,13 +128,30 @@ describe('TrackItem controls', () => {
     expect(options).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('mutes the track from its controls', () => {
-    const { i18n } = renderWithProviders(<TrackItem track={track} />);
+  it('mutes the track from its controls, opened first as on a phone', () => {
+    const { i18n, rerender } = renderWithProviders(<TrackItem track={track} />);
 
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('studio.tracks.options') }),
+    );
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('studio.mute') }),
     );
 
-    expect(useStudioStore.getState().project?.tracks[0].muted).toBe(true);
+    const muted = useStudioStore.getState().project?.tracks[0];
+    rerender(<TrackItem track={muted ?? track} />);
+    expect(
+      screen.getByRole('button', { name: i18n!.t('studio.unmute') }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers the options button only where the controls fold', () => {
+    const { i18n } = renderWithProviders(<TrackItem track={track} />);
+
+    // From md up the controls are always shown, so nothing claims to expand.
+    expect(
+      screen.getByRole('button', { name: i18n!.t('studio.tracks.options') })
+        .className,
+    ).toMatch(/md:hidden/);
   });
 });

@@ -77,14 +77,21 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
         }`}
       >
         {/* On phones the four controls would cover most of the track, so
-            they open from the track icon. From md up they are always shown. */}
+            they open from the track icon. From md up they are always shown
+            and the icon is only a label. */}
+        <span
+          className="hidden md:flex min-h-11 min-w-11 items-center justify-center"
+          aria-hidden
+        >
+          {getTrackIcon()}
+        </span>
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
             setControlsOpen((open) => !open);
           }}
-          className="min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10"
+          className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10"
           aria-label={t('studio.tracks.options')}
           aria-expanded={controlsOpen}
         >
