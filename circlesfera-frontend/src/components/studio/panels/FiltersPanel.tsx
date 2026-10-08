@@ -46,7 +46,7 @@ export default function FiltersPanel() {
                 }),
               );
             }}
-            className="bg-white/5 hover:bg-brand-primary/20 border border-white/10 hover:border-brand-primary/50 rounded-xl p-3 text-center transition-all min-h-11"
+            className="bg-white/5 hover:bg-brand-primary/20 border border-white/10 hover:border-brand-primary/50 rounded-full px-3 text-center text-sm transition-all min-h-11"
           >
             <span className="text-xs font-semibold text-white block">
               {t(`studio.filters.${f.key}`)}

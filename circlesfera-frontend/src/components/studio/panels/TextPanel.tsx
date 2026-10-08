@@ -91,7 +91,7 @@ export default function TextPanel() {
               preset.bg,
             )
           }
-          className="bg-white/5 hover:bg-brand-primary/20 border border-white/10 hover:border-brand-primary/50 rounded-xl p-3 text-left transition-all min-h-11"
+          className="bg-white/5 hover:bg-brand-primary/20 border border-white/10 hover:border-brand-primary/50 rounded-2xl p-3 text-left transition-all min-h-11"
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs font-semibold text-white">
@@ -99,7 +99,7 @@ export default function TextPanel() {
             </span>
             <Plus size={14} className="text-white/40 shrink-0" aria-hidden />
           </div>
-          <span className="text-[10px] text-white/40 mt-1 block truncate">
+          <span className="text-xs text-white/40 mt-1 block truncate">
             “{t(`studio.text.preset_${preset.key}_content`)}”
           </span>
         </button>

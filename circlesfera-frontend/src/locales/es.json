@@ -3404,6 +3404,7 @@
     "save_error_short": "Error al guardar",
     "zoom": "Zoom de timeline",
     "playhead": "Cabezal de reproducción",
+    "clip_types": { "video": "Vídeo", "image": "Imagen", "audio": "Audio" },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
     "mute": "Silenciar pista",

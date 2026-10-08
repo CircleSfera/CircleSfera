@@ -18,7 +18,7 @@ export default function AudioPanel({ onAddAudioFile }: AudioPanelProps) {
       <button
         type="button"
         onClick={() => audioInputRef.current?.click()}
-        className="w-full border border-brand-primary/30 hover:border-brand-primary/60 bg-brand-primary/10 hover:bg-brand-primary/20 rounded-xl p-3 flex items-center justify-center gap-2 transition-all text-brand-primary text-xs font-bold min-h-11"
+        className="w-full border border-brand-primary/30 hover:border-brand-primary/60 bg-brand-primary/10 hover:bg-brand-primary/20 rounded-full px-4 min-h-12 flex items-center justify-center gap-2 transition-all text-brand-primary text-xs font-bold min-h-11"
       >
         <Music size={16} />
         <span>{t('studio.audio.upload')}</span>

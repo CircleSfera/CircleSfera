@@ -524,7 +524,7 @@ export default function Studio() {
             <button
               type="button"
               onClick={() => handleAddTrack('video')}
-              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-[11px] font-semibold transition-colors shrink-0"
+              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-xs font-semibold transition-colors shrink-0"
               aria-label={t('studio.tracks.add_video')}
             >
               <Plus size={12} />
@@ -533,7 +533,7 @@ export default function Studio() {
             <button
               type="button"
               onClick={() => handleAddTrack('audio')}
-              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-[11px] font-semibold transition-colors shrink-0"
+              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-xs font-semibold transition-colors shrink-0"
               aria-label={t('studio.tracks.add_audio')}
             >
               <Plus size={12} />
@@ -542,7 +542,7 @@ export default function Studio() {
             <button
               type="button"
               onClick={() => handleAddTrack('text')}
-              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-[11px] font-semibold transition-colors shrink-0"
+              className="flex items-center gap-1 text-white/60 hover:text-white hover:bg-white/10 px-2 min-h-11 rounded-lg text-xs font-semibold transition-colors shrink-0"
               aria-label={t('studio.tracks.add_text')}
             >
               <Plus size={12} />

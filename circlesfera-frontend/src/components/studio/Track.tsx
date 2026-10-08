@@ -81,7 +81,9 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
       }`}
     >
       <div
-        className={`sticky left-1 z-20 flex items-center gap-0.5 bg-black/85 backdrop-blur-md rounded-lg border border-white/10 shadow-lg ${
+        // Sits in the room left of time zero (see timeline.constants) and stays
+        // pinned there while the timeline scrolls, so it never covers a clip.
+        className={`sticky left-1 ml-[calc(4px-var(--timeline-offset))] shrink-0 z-20 flex items-center gap-0.5 bg-black/85 backdrop-blur-md rounded-full border border-white/10 shadow-lg ${
           compact ? 'px-1 py-0.5' : 'px-2 py-1'
         }`}
       >
@@ -315,10 +317,10 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
     >
       <div className="flex items-center gap-1.5 px-3 w-full h-full text-white pointer-events-none">
         {icon}
-        <span className="text-[11px] font-bold truncate select-none drop-shadow-md">
+        <span className="text-xs font-bold truncate select-none drop-shadow-md">
           {clip.type === 'text'
             ? (clip as { content: string }).content
-            : clip.type.charAt(0).toUpperCase() + clip.type.slice(1)}
+            : t(`studio.clip_types.${clip.type}`)}
         </span>
       </div>
 
