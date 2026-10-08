@@ -8,6 +8,8 @@ describe('HelpdeskTicketsService', () => {
   const store = {
     openTicket: vi.fn(),
     findTicket: vi.fn(),
+    findRequesterTicket: vi.fn(),
+    listRequesterTickets: vi.fn(),
     listTickets: vi.fn(),
     updateTicket: vi.fn(),
     messages: vi.fn(),
@@ -50,6 +52,7 @@ describe('HelpdeskTicketsService', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     store.listTickets.mockResolvedValue({ tickets: [], total: 0 });
+    store.listRequesterTickets.mockResolvedValue({ tickets: [], total: 0 });
     store.messages.mockResolvedValue([]);
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
@@ -343,6 +346,157 @@ describe('HelpdeskTicketsService', () => {
       await expect(
         service.addMessage('admin-1', 'missing', answer),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('the requester and their own tickets', () => {
+    const stored = {
+      ...ticket,
+      reference: 42,
+      category: 'PAYMENTS',
+      organizationId: 'org-1',
+      escalatedReportId: 'r-1',
+      createdAt: new Date('2026-09-01'),
+      updatedAt: new Date('2026-09-02'),
+    };
+    const shown = {
+      id: 't-1',
+      reference: 42,
+      subject: ticket.subject,
+      category: 'PAYMENTS',
+      status: 'OPEN',
+      createdAt: stored.createdAt,
+      updatedAt: stored.updatedAt,
+    };
+
+    it('lists what they opened, without anything internal', async () => {
+      store.listRequesterTickets.mockResolvedValue({
+        tickets: [stored],
+        total: 1,
+      });
+
+      const result = await service.listMyTickets('u-1');
+
+      expect(store.listRequesterTickets).toHaveBeenCalledWith('u-1', 1, 20);
+      // No organization, no case with another team, no email, no old fields.
+      expect(result.data).toEqual([shown]);
+      expect(result.meta.total).toBe(1);
+    });
+
+    it('shows a ticket with its public messages only, and not who of the team wrote', async () => {
+      store.findRequesterTicket.mockResolvedValue(stored);
+      store.messages.mockResolvedValue([
+        {
+          id: 'm-1',
+          authorKind: 'AGENT',
+          authorRef: 'admin-1',
+          visibility: 'PUBLIC',
+          body: 'We are on it.',
+          channel: 'PRODUCT',
+          createdAt: new Date('2026-09-02'),
+        },
+      ]);
+
+      const result = await service.getMyTicket('u-1', 't-1');
+
+      expect(store.findRequesterTicket).toHaveBeenCalledWith('t-1', 'u-1');
+      // Internal notes are left out by the query, not by this code.
+      expect(store.messages).toHaveBeenCalledWith('t-1', 'PUBLIC');
+      expect(result).toEqual({
+        ...shown,
+        messages: [
+          {
+            id: 'm-1',
+            authorKind: 'AGENT',
+            body: 'We are on it.',
+            createdAt: new Date('2026-09-02'),
+          },
+        ],
+      });
+    });
+
+    it('treats a ticket of someone else as one that does not exist', async () => {
+      store.findRequesterTicket.mockResolvedValue(null);
+
+      await expect(service.getMyTicket('u-2', 't-1')).rejects.toMatchObject({
+        status: 404,
+      });
+      await expect(
+        service.replyToMyTicket('u-2', 't-1', { body: 'Hello' }),
+      ).rejects.toMatchObject({ status: 404 });
+      expect(store.messages).not.toHaveBeenCalled();
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('adds their reply to an open ticket without touching its state', async () => {
+      store.findRequesterTicket.mockResolvedValue(stored);
+
+      await service.replyToMyTicket('u-1', 't-1', { body: '  On the 2nd.  ' });
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        {},
+        {
+          authorKind: 'REQUESTER',
+          authorRef: 'u-1',
+          visibility: 'PUBLIC',
+          body: 'On the 2nd.',
+        },
+      );
+    });
+
+    it('opens a solved ticket again when they reply', async () => {
+      store.findRequesterTicket.mockResolvedValue({
+        ...stored,
+        status: 'RESOLVED',
+        resolvedAt: new Date('2026-09-03'),
+      });
+
+      await service.replyToMyTicket('u-1', 't-1', { body: 'Still happening' });
+
+      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+        status: 'OPEN',
+        resolvedAt: null,
+      });
+    });
+
+    it('keeps a ticket that is with another team where it is', async () => {
+      store.findRequesterTicket.mockResolvedValue({
+        ...stored,
+        status: 'ESCALATED',
+      });
+
+      await service.replyToMyTicket('u-1', 't-1', { body: 'More detail' });
+
+      expect(store.updateTicket.mock.calls[0][1]).toEqual({});
+    });
+
+    it('refuses a reply to a closed ticket', async () => {
+      store.findRequesterTicket.mockResolvedValue({
+        ...stored,
+        status: 'CLOSED',
+      });
+
+      await expect(
+        service.replyToMyTicket('u-1', 't-1', { body: 'Hello' }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('refuses a reply that is only spaces', async () => {
+      await expect(
+        service.replyToMyTicket('u-1', 't-1', { body: '   ' }),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(store.findRequesterTicket).not.toHaveBeenCalled();
+    });
+
+    it('tells the requester nothing through email or the staff log for their own reply', async () => {
+      store.findRequesterTicket.mockResolvedValue(stored);
+
+      await service.replyToMyTicket('u-1', 't-1', { body: 'Hello' });
+
+      expect(notifier.answer).not.toHaveBeenCalled();
+      expect(staffLog.record).not.toHaveBeenCalled();
     });
   });
 

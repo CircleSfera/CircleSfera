@@ -59,6 +59,35 @@ export class HelpdeskStore {
     });
   }
 
+  /** A ticket of the organization that this requester opened, or nothing. */
+  findRequesterTicket(id: string, requesterRef: string) {
+    return this.prisma.supportTicket.findFirst({
+      where: { id, organizationId: this.organizationId, userId: requesterRef },
+    });
+  }
+
+  /** The tickets a requester opened, the one with the latest change first. */
+  async listRequesterTickets(
+    requesterRef: string,
+    page: number,
+    limit: number,
+  ) {
+    const where: Prisma.SupportTicketWhereInput = {
+      organizationId: this.organizationId,
+      userId: requesterRef,
+    };
+    const [tickets, total] = await Promise.all([
+      this.prisma.supportTicket.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { updatedAt: 'desc' },
+      }),
+      this.prisma.supportTicket.count({ where }),
+    ]);
+    return { tickets, total };
+  }
+
   findTicket(id: string) {
     return this.prisma.supportTicket.findFirst({
       where: { id, organizationId: this.organizationId },
@@ -95,7 +124,7 @@ export class HelpdeskStore {
     id: string,
     changes: TicketChanges,
     message?: {
-      authorKind: 'AGENT' | 'SYSTEM';
+      authorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
       authorRef: string | null;
       visibility: HelpdeskMessageVisibility;
       body: string;

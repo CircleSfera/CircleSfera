@@ -5,7 +5,12 @@ import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
 import { Support } from './Support';
 
-vi.mock('../services/api', () => ({ apiClient: { post: vi.fn() } }));
+vi.mock('../services/api', () => ({
+  apiClient: {
+    post: vi.fn(),
+    get: vi.fn().mockResolvedValue({ data: { data: [], meta: {} } }),
+  },
+}));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 
 const clientError = (status: number | undefined, extra: object = {}) =>

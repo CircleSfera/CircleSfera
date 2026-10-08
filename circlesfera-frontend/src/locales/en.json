@@ -3483,6 +3483,27 @@
     "renamed": "Collection renamed"
   },
   "supportPage": {
+    "requests": {
+      "title": "Your requests",
+      "seo_title": "Your request to support",
+      "back": "Support",
+      "conversation": "Conversation",
+      "you": "You",
+      "team": "CircleSfera Support",
+      "reply_label": "Reply",
+      "reply_placeholder": "Write your reply...",
+      "send": "Send",
+      "reopen_hint": "If you reply, the request opens again.",
+      "closed_notice": "This request is closed.",
+      "write_again": "Write a new one",
+      "not_found": "We could not find this request.",
+      "status": {
+        "OPEN": "Open",
+        "ESCALATED": "Under review",
+        "RESOLVED": "Solved",
+        "CLOSED": "Closed"
+      }
+    },
     "category_label": "What is it about?",
     "category_placeholder": "Choose a topic",
     "category": {

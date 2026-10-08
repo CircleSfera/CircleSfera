@@ -8,6 +8,7 @@ import {
   MarketingPage,
   MarketingPageHeader,
 } from '../components/marketing';
+import { MyRequests } from '../components/support/MyRequests';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
@@ -104,6 +105,9 @@ export const Support = () => {
             </li>
           ))}
         </ul>
+
+        {/* What they already wrote, before the form to write again */}
+        {userEmail && <MyRequests />}
 
         <div className="mt-10 grid gap-8 sm:mt-14 lg:grid-cols-[1fr_1.2fr] lg:gap-12">
           <section>
