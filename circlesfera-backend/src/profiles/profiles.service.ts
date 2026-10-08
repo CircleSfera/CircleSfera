@@ -13,6 +13,7 @@ import {
   accountStanding,
   lastActiveBucket,
 } from '../common/abuse/trust-score.js';
+import { canPersonalizeProfile } from '../common/constants/profile-personalization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -160,6 +161,11 @@ export class ProfilesService {
       privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
       isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
+      // The chosen colour shows only while the plan that includes it is
+      // active; the choice itself stays stored.
+      accentColor: canPersonalizeProfile(profile.verificationLevel)
+        ? profile.accentColor
+        : null,
       identityVerified: !!user?.identityVerifiedAt,
       emailConfirmed: !!user?.emailVerified,
       joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
@@ -263,6 +269,13 @@ export class ProfilesService {
       throw AppException.NotFound(
         ErrorCode.PROFILE_NOT_FOUND,
         'Profile not found',
+      );
+    }
+
+    if (dto.accentColor && !canPersonalizeProfile(profile.verificationLevel)) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Choosing a Profile colour needs the Elite Creator or Business plan',
       );
     }
 
