@@ -46,7 +46,7 @@ export default function StoryElementLayersTab({
           // biome-ignore lint/a11y/useSemanticElements: Layer item is not a button to avoid nested interactive elements
           <div
             key={el.id}
-            className={`flex items-center gap-3 p-3 rounded-lg transition-all group ${
+            className={`flex items-center gap-3 pl-3 pr-1 py-1 rounded-lg transition-all group ${
               selectedElementId === el.id
                 ? 'bg-white/8 border border-white/15'
                 : 'hover:bg-white/4 border border-transparent'
@@ -76,9 +76,10 @@ export default function StoryElementLayersTab({
                   e.stopPropagation();
                   onMoveElementLayer(el.id, 'up');
                 }}
-                className="p-1 hover:bg-white/10 rounded text-white/30 hover:text-white/60 transition-all"
+                aria-label={t('createPost.storyComposer.bring_forward')}
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
               >
-                <ChevronUp size={12} />
+                <ChevronUp size={16} aria-hidden />
               </button>
               <button
                 type="button"
@@ -86,9 +87,10 @@ export default function StoryElementLayersTab({
                   e.stopPropagation();
                   onMoveElementLayer(el.id, 'down');
                 }}
-                className="p-1 hover:bg-white/10 rounded text-white/30 hover:text-white/60 transition-all"
+                aria-label={t('createPost.storyComposer.send_backward')}
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
               >
-                <ChevronDown size={12} />
+                <ChevronDown size={16} aria-hidden />
               </button>
               <button
                 type="button"
@@ -96,9 +98,10 @@ export default function StoryElementLayersTab({
                   e.stopPropagation();
                   onDuplicateElement(el.id);
                 }}
-                className="p-1 hover:bg-white/10 rounded text-white/30 hover:text-white/60 transition-all"
+                aria-label={t('createPost.storyComposer.duplicate')}
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
               >
-                <Copy size={12} />
+                <Copy size={16} aria-hidden />
               </button>
               <button
                 type="button"
@@ -106,9 +109,10 @@ export default function StoryElementLayersTab({
                   e.stopPropagation();
                   onRemoveElement(el.id);
                 }}
-                className="p-1 hover:bg-red-500/20 rounded text-red-400/40 hover:text-red-400 transition-all"
+                aria-label={t('createPost.storyComposer.delete')}
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-red-500/20 rounded-lg text-red-400/40 hover:text-red-400 transition-all"
               >
-                <Trash2 size={12} />
+                <Trash2 size={16} aria-hidden />
               </button>
             </div>
           </div>

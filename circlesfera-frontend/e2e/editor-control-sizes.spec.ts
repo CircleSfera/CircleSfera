@@ -252,6 +252,41 @@ test.describe('Story composer', () => {
   }
 });
 
+test.describe('Story composer, editing an element', () => {
+  async function withSticker(page: Page) {
+    await openStoryComposer(page);
+    await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+    await page.getByRole('button', { name: '🔥', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Estilo', exact: true }),
+    ).toBeVisible();
+  }
+
+  for (const section of ['Estilo', 'Transformar', 'Capas']) {
+    test(`section: ${section}`, async ({ page }) => {
+      await withSticker(page);
+      await page.getByRole('button', { name: section, exact: true }).click();
+      await expectControlsAtSize(page);
+    });
+  }
+
+  for (const item of ['Encuesta', 'Preguntas']) {
+    test(`more: ${item}`, async ({ page }) => {
+      await openStoryComposer(page);
+      await page.getByRole('button', { name: 'Más', exact: true }).click();
+      await page.getByRole('menuitem', { name: item }).click();
+      await expectControlsAtSize(page);
+    });
+  }
+
+  test('text mode, with the type options open', async ({ page }) => {
+    await openStoryComposer(page);
+    await page.getByRole('button', { name: 'Texto', exact: true }).click();
+    await page.getByRole('button', { name: 'Opciones de tipo' }).click();
+    await expectControlsAtSize(page);
+  });
+});
+
 test.describe('Edits studio', () => {
   test('main screen, with track controls folded and open', async ({ page }) => {
     await prepare(page);
