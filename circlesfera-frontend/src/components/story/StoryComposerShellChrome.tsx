@@ -40,6 +40,7 @@ interface StoryComposerShellChromeProps {
   duplicateElement: (id: string) => void;
   moveElementLayer: (id: string, direction: 'up' | 'down') => void;
   updateElement: (id: string, updates: Partial<StoryElement>) => void;
+  commitElements: () => void;
   removeElement: (id: string) => void;
   setSelectedElementId: (id: string | null) => void;
   setBrushWidth: (n: number) => void;
@@ -110,6 +111,7 @@ export default function StoryComposerShellChrome(
               onDuplicateElement={p.duplicateElement}
               onMoveElementLayer={p.moveElementLayer}
               onUpdateElement={p.updateElement}
+              onCommitElements={p.commitElements}
               onRemoveElement={p.removeElement}
               onSelectedElementIdChange={p.setSelectedElementId}
               onBrushWidthChange={p.setBrushWidth}

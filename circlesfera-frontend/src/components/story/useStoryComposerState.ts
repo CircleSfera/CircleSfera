@@ -77,8 +77,7 @@ export function useStoryComposerState(props: {
 
   const {
     elements,
-    setInternalElements,
-    pushHistory,
+    changeElements,
     undo,
     redo,
     canUndo,
@@ -86,6 +85,7 @@ export function useStoryComposerState(props: {
     selectedElementId,
     setSelectedElementId,
     updateElement,
+    commitElements,
     removeElement: removeElementBase,
     duplicateElement,
     moveElementLayer,
@@ -114,8 +114,7 @@ export function useStoryComposerState(props: {
     textTakeover,
     ...textPublic
   } = useStoryTextTakeover({
-    pushHistory,
-    setInternalElements,
+    changeElements,
     selectedElementId,
     setSelectedElementId,
     setActiveTab,
@@ -130,11 +129,7 @@ export function useStoryComposerState(props: {
   };
 
   const appendElement = (newElement: StoryElement) => {
-    setInternalElements((prev) => {
-      const next = [...prev, newElement];
-      pushHistory(next);
-      return next;
-    });
+    changeElements((current) => [...current, newElement]);
     setSelectedElementId(newElement.id);
   };
 
@@ -193,8 +188,7 @@ export function useStoryComposerState(props: {
       ...el,
       id: crypto.randomUUID(),
     }));
-    setInternalElements(newElements);
-    pushHistory(newElements);
+    changeElements(() => newElements);
     setActiveTab('none');
   };
 
@@ -284,6 +278,7 @@ export function useStoryComposerState(props: {
     handlePost,
     handleSelectTab,
     updateElement,
+    commitElements,
     addSticker,
     addPoll,
     addQna,

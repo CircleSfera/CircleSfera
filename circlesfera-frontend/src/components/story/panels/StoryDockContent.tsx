@@ -34,6 +34,7 @@ export interface StoryDockContentProps {
   onDuplicateElement: (id: string) => void;
   onMoveElementLayer: (id: string, direction: 'up' | 'down') => void;
   onUpdateElement: (id: string, updates: Partial<StoryElement>) => void;
+  onCommitElements: () => void;
   onRemoveElement: (id: string) => void;
   onSelectedElementIdChange: (id: string | null) => void;
   onBrushWidthChange: (width: number) => void;
@@ -75,6 +76,7 @@ export default function StoryDockContent({
   onDuplicateElement,
   onMoveElementLayer,
   onUpdateElement,
+  onCommitElements,
   onRemoveElement,
   onSelectedElementIdChange,
   onBrushWidthChange,
@@ -107,6 +109,7 @@ export default function StoryDockContent({
             onDuplicateElement={onDuplicateElement}
             onMoveElementLayer={onMoveElementLayer}
             onUpdateElement={onUpdateElement}
+            onCommitElements={onCommitElements}
             onRemoveElement={onRemoveElement}
             onSelectedElementIdChange={onSelectedElementIdChange}
           />

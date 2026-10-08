@@ -22,6 +22,8 @@ export interface DraggableStoryElementProps {
   hidden?: boolean;
   dimmed?: boolean;
   onUpdate: (id: string, updates: Partial<StoryElement>) => void;
+  /** The drag has ended: what it changed becomes one undo step. */
+  onCommit: () => void;
   onSelect: (id: string) => void;
   onDragActiveChange: (active: boolean) => void;
   setShowVGuide: (show: boolean) => void;
@@ -36,6 +38,7 @@ export default function DraggableStoryElement({
   hidden,
   dimmed,
   onUpdate,
+  onCommit,
   onSelect,
   onDragActiveChange,
   setShowVGuide,
@@ -100,6 +103,7 @@ export default function DraggableStoryElement({
         setShowVGuide(false);
         setShowHGuide(false);
         onUpdate(el.id, { x: x.get(), y: y.get() });
+        onCommit();
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             dragMovedRef.current = false;
@@ -132,6 +136,7 @@ export default function DraggableStoryElement({
           onTextEdit(el);
         }
       }}
+      data-testid="story-element"
       className={`absolute cursor-move touch-none border-2 rounded-2xl p-0.5 transition-colors ${
         isSelected ? 'border-white/55' : 'border-transparent'
       }`}

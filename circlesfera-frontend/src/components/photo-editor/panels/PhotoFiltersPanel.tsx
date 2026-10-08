@@ -33,7 +33,7 @@ export default function PhotoFiltersPanel({
             }`}
           >
             <img
-              src={thumbnailUrl}
+              src={thumbnailUrl || undefined}
               alt=""
               className={`w-full h-full object-cover ${filter.class}`}
             />
