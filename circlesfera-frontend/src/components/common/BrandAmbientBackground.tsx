@@ -1,8 +1,24 @@
 // Global CircleSfera brand wash — same layers as the main app shell.
 // Keep Admin Panel / auth surfaces in sync with LayoutWrapper.
-export default function BrandAmbientBackground() {
+//
+// `editor`: the same wash behind a full-window editor that starts where the
+// sidebar ends. It is placed as if it started at the window edge, so the
+// colours continue the ones of the page; phones keep the editor in black.
+const PLACEMENT = {
+  page: 'fixed inset-0 z-[-1]',
+  editor:
+    'hidden md:block absolute inset-y-0 right-0 -left-17 xl:-left-65 -z-10',
+} as const;
+
+export default function BrandAmbientBackground({
+  placement = 'page',
+}: {
+  placement?: keyof typeof PLACEMENT;
+}) {
   return (
-    <div className="fixed inset-0 z-[-1] overflow-hidden bg-[var(--surface-base)] pointer-events-none">
+    <div
+      className={`${PLACEMENT[placement]} overflow-hidden bg-[var(--surface-base)] pointer-events-none`}
+    >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
