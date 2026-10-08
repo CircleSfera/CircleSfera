@@ -8,6 +8,7 @@ import type {
   AccountCardProvider,
   HandoverCase,
   HandoverGateway,
+  OrganizationScope,
   RequesterDirectory,
   RequesterNotifier,
   RequesterSummary,
@@ -19,6 +20,19 @@ import { PrismaService } from '../prisma/prisma.service.js';
 // CircleSfera as the host of the Help Desk: how each thing the Help Desk
 // asks for is answered from CircleSfera's own records. A requester is a
 // User; an agent is an AdminIdentity; the other team is moderation.
+
+/** The one Help Desk organization of today, created by its migration. */
+export const CIRCLESFERA_HELPDESK_ORGANIZATION_ID =
+  '7c1a4f0e-5b1d-4c7e-9a44-c1dc1e5fe7a0';
+
+// Every requester and every agent of CircleSfera belongs to CircleSfera's
+// own Help Desk organization.
+@Injectable()
+export class CircleSferaOrganizationScope implements OrganizationScope {
+  current() {
+    return CIRCLESFERA_HELPDESK_ORGANIZATION_ID;
+  }
+}
 
 @Injectable()
 export class CircleSferaRequesterDirectory implements RequesterDirectory {
