@@ -1,5 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Crop,
   Film,
@@ -37,6 +39,8 @@ interface EditStepProps {
   /** When set (composed story), pencil reopens StoryComposer instead of PhotoEditor. */
   onEditMedia?: () => void;
   handleRemoveFile: (index: number) => void;
+  /** Moves a file to another place in the carousel. */
+  onMoveFile?: (from: number, to: number) => void;
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
   allowModeSwitch?: boolean;
 }
@@ -99,6 +103,7 @@ export default function EditStep({
   onChooseEditorTab,
   onEditMedia,
   handleRemoveFile,
+  onMoveFile,
   fileInputRef,
   allowModeSwitch = true,
 }: EditStepProps) {
@@ -158,6 +163,14 @@ export default function EditStep({
     }
     onChooseEditorTab?.(tab);
     setCurrentEditIndex(index);
+  };
+
+  // The item on show keeps being the one on show after it moves.
+  const moveSelected = (by: -1 | 1) => {
+    const to = selectedIndex + by;
+    if (!onMoveFile || to < 0 || to >= mediaFiles.length) return;
+    onMoveFile(selectedIndex, to);
+    setSelectedIndex(to);
   };
 
   // The tools of the item on show. Each opens the editor on its own tab, so
@@ -428,6 +441,30 @@ export default function EditStep({
           >
             <Plus size={18} strokeWidth={2} />
           </button>
+        ) : null}
+
+        {/* The order of a carousel: the item on show moves one place. */}
+        {onMoveFile && mediaFiles.length > 1 ? (
+          <div className="ml-auto flex items-center gap-1 shrink-0 sticky right-0 pl-2">
+            <button
+              type="button"
+              disabled={selectedIndex === 0}
+              onClick={() => moveSelected(-1)}
+              className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+              aria-label={t('createPost.edit.move_earlier')}
+            >
+              <ChevronLeft size={18} aria-hidden />
+            </button>
+            <button
+              type="button"
+              disabled={selectedIndex === mediaFiles.length - 1}
+              onClick={() => moveSelected(1)}
+              className={`${CREATE_GLASS_ICON} disabled:opacity-30`}
+              aria-label={t('createPost.edit.move_later')}
+            >
+              <ChevronRight size={18} aria-hidden />
+            </button>
+          </div>
         ) : null}
       </div>
     </div>

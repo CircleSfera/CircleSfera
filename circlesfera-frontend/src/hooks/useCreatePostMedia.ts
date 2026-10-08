@@ -11,6 +11,10 @@ import {
   STORY_MAX_DURATION_SEC,
 } from '../constants/uploadLimits';
 import { aiApi } from '../services';
+import {
+  carouselOrderAfterMove,
+  remapByCarouselOrder,
+} from '../utils/carouselOrder';
 import { defaultFrameWindow } from '../utils/frameClip';
 import { logger } from '../utils/logger';
 import type {
@@ -221,6 +225,16 @@ export function useCreatePostMedia({
     }
   };
 
+  // Moves one file to another place in the carousel. Alt texts and tags are
+  // kept by position, so they move with their file.
+  const handleMoveFile = (from: number, to: number) => {
+    const order = carouselOrderAfterMove(mediaFiles.length, from, to);
+    if (!order) return;
+    setMediaFiles((prev) => order.map((oldIndex) => prev[oldIndex]));
+    setAltTextMap((prev) => remapByCarouselOrder(prev, order));
+    setTagsMap((prev) => remapByCarouselOrder(prev, order));
+  };
+
   const handleRemoveFile = (index: number) => {
     setMediaFiles((prev) => prev.filter((_, i) => i !== index));
     setAltTextMap((prev) => {
@@ -296,6 +310,7 @@ export function useCreatePostMedia({
     handleFrameTrimCancel,
     handleFilterSave,
     handleRemoveFile,
+    handleMoveFile,
     generateAltTextForIndex,
   };
 }
