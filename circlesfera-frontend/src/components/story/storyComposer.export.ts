@@ -43,9 +43,8 @@ export async function exportStoryCanvas(options: {
 }
 
 export function reportStoryExportError(err: unknown): void {
+  // The cause is technical and untranslated: it goes to the log, and the
+  // person gets the app's own message.
   logger.error('Story export failed:', err);
-  const detail = err instanceof Error ? err.message : String(err);
-  toast.error(
-    `${i18n.t('createPost.storyComposer.export_error')}${detail ? `: ${detail}` : ''}`,
-  );
+  toast.error(i18n.t('createPost.storyComposer.export_error'));
 }

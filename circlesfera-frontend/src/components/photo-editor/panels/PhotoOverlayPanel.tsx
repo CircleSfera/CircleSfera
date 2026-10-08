@@ -50,7 +50,7 @@ export default function PhotoOverlayPanel({
           type="button"
           onClick={() => {
             setDrawMode(false);
-            const newId = Math.random().toString(36).substr(2, 9);
+            const newId = crypto.randomUUID();
             setOverlays([
               ...overlays,
               {
@@ -88,7 +88,7 @@ export default function PhotoOverlayPanel({
             type="button"
             onClick={() => {
               setDrawMode(false);
-              const newId = Math.random().toString(36).substr(2, 9);
+              const newId = crypto.randomUUID();
               setOverlays([
                 ...overlays,
                 {

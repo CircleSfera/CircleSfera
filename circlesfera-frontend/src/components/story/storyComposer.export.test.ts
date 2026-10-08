@@ -1,6 +1,7 @@
 import { toBlob } from 'html-to-image';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../../i18n';
 import {
   exportStoryCanvas,
   reportStoryExportError,
@@ -75,12 +76,12 @@ describe('story export', () => {
     expect(onPost).not.toHaveBeenCalled();
   });
 
-  it('tells the user that the story could not be exported', () => {
-    reportStoryExportError(new Error('boom'));
+  it('tells the user the story could not be exported, without the technical cause', () => {
+    reportStoryExportError(new Error('SecurityError: tainted canvas'));
 
     expect(toast.error).toHaveBeenCalledTimes(1);
-    expect(vi.mocked(toast.error).mock.calls[0][0]).toEqual(
-      expect.stringContaining('story'),
-    );
+    const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+    expect(message).toBe(i18n.t('createPost.storyComposer.export_error'));
+    expect(message).not.toContain('tainted');
   });
 });

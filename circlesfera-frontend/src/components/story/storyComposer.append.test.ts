@@ -38,6 +38,7 @@ describe('story elements built from the panels', () => {
       question: '  ¿Playa o montaña?  ',
       option1: ' Playa ',
       option2: ' Montaña ',
+      defaultOptions: ['Sí', 'No'],
     });
 
     expect(poll).not.toBeNull();
@@ -51,9 +52,28 @@ describe('story elements built from the panels', () => {
     });
   });
 
+  it('fills an answer left empty with the default in the app language', () => {
+    const poll = buildPollElement({
+      question: '¿Vienes?',
+      option1: '   ',
+      option2: '',
+      defaultOptions: ['Sí', 'No'],
+    });
+
+    expect(parsePollPayload(poll?.content ?? '')?.options).toEqual([
+      'Sí',
+      'No',
+    ]);
+  });
+
   it('does not build a poll without a question', () => {
     expect(
-      buildPollElement({ question: '   ', option1: 'a', option2: 'b' }),
+      buildPollElement({
+        question: '   ',
+        option1: 'a',
+        option2: 'b',
+        defaultOptions: ['Sí', 'No'],
+      }),
     ).toBeNull();
   });
 
@@ -62,6 +82,7 @@ describe('story elements built from the panels', () => {
       question: 'q'.repeat(POLL_QUESTION_MAX + 20),
       option1: 'a'.repeat(POLL_OPTION_MAX + 5),
       option2: 'b'.repeat(POLL_OPTION_MAX + 5),
+      defaultOptions: ['Sí', 'No'],
     });
 
     const payload = parsePollPayload(poll?.content ?? '');
