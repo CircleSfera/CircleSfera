@@ -109,7 +109,7 @@ describe('TrackItem controls', () => {
   it('opens and closes the track controls from the track icon', () => {
     const { i18n } = renderWithProviders(<TrackItem track={track} />);
     const options = screen.getByRole('button', {
-      name: i18n!.t('studio.tracks.options'),
+      name: i18n!.t('studio.tracks.options', { name: 'V1' }),
     });
     const controls = screen.getByRole('button', {
       name: i18n!.t('studio.mute'),
@@ -157,7 +157,9 @@ describe('TrackItem controls', () => {
     const { i18n, rerender } = renderWithProviders(<TrackItem track={track} />);
 
     fireEvent.click(
-      screen.getByRole('button', { name: i18n!.t('studio.tracks.options') }),
+      screen.getByRole('button', {
+        name: i18n!.t('studio.tracks.options', { name: 'V1' }),
+      }),
     );
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('studio.mute') }),
@@ -175,8 +177,30 @@ describe('TrackItem controls', () => {
 
     // From md up the controls are always shown, so nothing claims to expand.
     expect(
-      screen.getByRole('button', { name: i18n!.t('studio.tracks.options') })
-        .className,
+      screen.getByRole('button', {
+        name: i18n!.t('studio.tracks.options', { name: 'V1' }),
+      }).className,
     ).toMatch(/md:hidden/);
+  });
+
+  it('names the track in its options button, so two tracks can be told apart', () => {
+    const second: Track = { ...track, id: 'track-2', name: 'V2' };
+    const { i18n } = renderWithProviders(
+      <>
+        <TrackItem track={track} />
+        <TrackItem track={second} />
+      </>,
+    );
+
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('studio.tracks.options', { name: 'V1' }),
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {
+        name: i18n!.t('studio.tracks.options', { name: 'V2' }),
+      }),
+    ).toBeInTheDocument();
   });
 });
