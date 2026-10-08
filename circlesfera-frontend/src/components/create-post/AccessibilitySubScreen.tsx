@@ -49,8 +49,8 @@ export default function AccessibilitySubScreen({
       />
 
       <div className={SUBSCREEN_BODY}>
-        <div className="px-2.5 py-2 rounded-lg bg-brand-primary/5 border border-brand-primary/10">
-          <p className="text-white/50 text-[11px] font-medium leading-snug">
+        <div className="px-4 py-3 rounded-2xl bg-brand-primary/5 border border-brand-primary/10">
+          <p className="text-white/50 text-xs font-medium leading-snug">
             {mediaFiles.every((m) => m.type === 'video')
               ? t('createPost.accessibility.info_video')
               : t('createPost.accessibility.info')}
@@ -66,7 +66,7 @@ export default function AccessibilitySubScreen({
             return (
               <div
                 key={item.url}
-                className="flex gap-2.5 p-2.5 rounded-xl bg-white/5 border border-white/8"
+                className="flex gap-2.5 p-2.5 rounded-3xl bg-white/5 border border-white/8"
               >
                 <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
                   {isVideo ? (
@@ -112,18 +112,22 @@ export default function AccessibilitySubScreen({
                       type="button"
                       disabled={isGenerating}
                       onClick={() => handleAiGenerate(idx)}
-                      className={`inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-lg border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+                      className={`inline-flex items-center gap-1.5 min-h-11 px-4 rounded-full border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                         isGenerating
                           ? 'bg-surface-raised border-white/10 text-white/40'
                           : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
                       }`}
                     >
                       {isGenerating ? (
-                        <Loader2 size={12} className="animate-spin" />
+                        <Loader2
+                          size={16}
+                          className="animate-spin"
+                          aria-hidden
+                        />
                       ) : (
-                        <Sparkles size={12} />
+                        <Sparkles size={16} aria-hidden />
                       )}
-                      <span className="text-[10px] font-semibold uppercase tracking-wide">
+                      <span className="text-sm font-semibold">
                         {isGenerating
                           ? t('createPost.accessibility.generating')
                           : t('createPost.accessibility.magic_ai')}

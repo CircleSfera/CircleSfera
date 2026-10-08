@@ -38,7 +38,7 @@ export default function MonetizationSubScreen({
       />
 
       <div className={SUBSCREEN_BODY}>
-        <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 flex items-start gap-2.5">
+        <div className="rounded-3xl border border-white/8 bg-white/2 px-3 py-2.5 flex items-start gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
             <Euro size={14} className="text-brand-primary" />
           </div>
@@ -56,10 +56,10 @@ export default function MonetizationSubScreen({
         </div>
 
         {isPremium && (
-          <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 space-y-2">
+          <div className="rounded-3xl border border-white/8 bg-white/2 px-3 py-2.5 space-y-2">
             <label
               htmlFor="premium-price"
-              className="block text-[13px] font-medium text-white"
+              className="block text-sm font-medium text-white"
             >
               {t('createPost.caption.price_eur')}
             </label>
@@ -83,18 +83,18 @@ export default function MonetizationSubScreen({
             </div>
 
             {price > 0 && price < MIN_PPV_PRICE_EUR && (
-              <p className="text-[11px] text-brand-accent font-medium">
+              <p className="text-xs text-brand-accent font-medium">
                 {t('createPost.caption.min_price_warning')}
               </p>
             )}
             {price > MAX_PPV_PRICE_EUR && (
-              <p className="text-[11px] text-brand-accent font-medium">
+              <p className="text-xs text-brand-accent font-medium">
                 {t('createPost.caption.max_price_warning')}
               </p>
             )}
 
             {price >= MIN_PPV_PRICE_EUR && price <= MAX_PPV_PRICE_EUR && (
-              <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-[11px] text-white/80 space-y-0.5">
+              <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-xs text-white/80 space-y-0.5">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>
                   <span>{formatCents(creatorCents, i18n.language)}</span>
