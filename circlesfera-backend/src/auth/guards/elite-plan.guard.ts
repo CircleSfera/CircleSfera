@@ -5,16 +5,15 @@ import {
   Inject,
   Injectable,
 } from '@nestjs/common';
-import { canMonetize } from '../../common/constants/monetization.constants.js';
 import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-// The core creator tools (dashboard summary, content lists, promotions) are
-// available to any Creator or Business Profile and never depend on a paid
-// platform plan. What a plan adds on top, such as the advanced analytics,
-// has its own guard.
+// What the Elite Creator and Business plans add to the creator tools, for
+// example the advanced analytics. The plan is read from the Profile that
+// makes the request. The core creator tools never use this guard: they
+// follow the kind of account alone.
 @Injectable()
-export class CreatorAccountGuard implements CanActivate {
+export class ElitePlanGuard implements CanActivate {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -24,14 +23,18 @@ export class CreatorAccountGuard implements CanActivate {
     const profile = profileId
       ? await this.prisma.profile.findUnique({
           where: { id: profileId },
-          select: { accountType: true },
+          select: { verificationLevel: true },
         })
       : null;
 
-    if (!canMonetize(profile?.accountType)) {
+    if (
+      profile?.verificationLevel !== 'ELITE' &&
+      profile?.verificationLevel !== 'BUSINESS'
+    ) {
+      // The code lets the app offer the plan instead of a bare refusal.
       throw AppException.Forbidden(
-        ErrorCode.ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION,
-        'Creator tools are available to Creator and Business accounts.',
+        ErrorCode.PLAN_REQUIRED,
+        'This is part of the Elite Creator and Business plans.',
       );
     }
     return true;
