@@ -864,75 +864,57 @@ describe('SlackService', () => {
       expect(res).toEqual({ response_action: 'clear' });
     });
 
-    it('processes support_reply_modal and sends email to user', async () => {
-      const ticket = {
-        id: 'tick-77',
-        email: 'customer@domain.com',
-        subject: 'Invoice request',
-        status: 'PENDING',
-        resolvedAt: null,
-      };
-      mockPrismaService.supportTicket.findUnique.mockResolvedValue(ticket);
-
-      const payload = {
-        view: {
-          callback_id: 'support_reply_modal_tick-77',
-          state: {
-            values: {
-              reply_input_block: {
-                reply_text: { value: 'Here is your invoice link.' },
-              },
-            },
-          },
+    const replyPayload = (ticketId: string, value: string) => ({
+      view: {
+        callback_id: `support_reply_modal_${ticketId}`,
+        state: {
+          values: { reply_input_block: { reply_text: { value } } },
         },
+      },
+    });
+
+    it('hands an answer written in the channel to the Help Desk, which owns the ticket', async () => {
+      const helpdeskData = {
+        answerFromTeamChannel: vi.fn().mockResolvedValue(true),
       };
+      Object.assign(service, { helpdeskData });
 
-      const res = await service.handleViewSubmission(payload);
+      const res = await service.handleViewSubmission(
+        replyPayload('tick-77', 'Here is your invoice link.'),
+      );
 
-      expect(mockEmailService.sendSupportReplyEmail).toHaveBeenCalledWith(
-        'customer@domain.com',
-        'Invoice request',
+      expect(helpdeskData.answerFromTeamChannel).toHaveBeenCalledWith(
+        'tick-77',
         'Here is your invoice link.',
       );
-      expect(mockPrismaService.supportTicket.update).toHaveBeenCalledWith({
-        where: { id: 'tick-77' },
-        data: {
-          status: 'RESOLVED',
-          reply: 'Here is your invoice link.',
-          resolvedAt: expect.any(Date),
-        },
-      });
+      // The channel no longer writes the ticket or sends the email itself.
+      expect(mockPrismaService.supportTicket.update).not.toHaveBeenCalled();
+      expect(mockEmailService.sendSupportReplyEmail).not.toHaveBeenCalled();
       expect(res).toEqual({ response_action: 'clear' });
     });
 
-    it('skips email if ticket is already RESOLVED', async () => {
-      mockPrismaService.supportTicket.findUnique.mockResolvedValue({
-        id: 'tick-resolved',
-        status: 'RESOLVED',
-      });
-
-      const payload = {
-        view: {
-          callback_id: 'support_reply_modal_tick-resolved',
-          state: {
-            values: {
-              reply_input_block: {
-                reply_text: { value: 'Duplicate reply' },
-              },
-            },
-          },
-        },
+    it('does nothing more when the Help Desk refuses the answer', async () => {
+      const helpdeskData = {
+        answerFromTeamChannel: vi.fn().mockResolvedValue(false),
       };
+      Object.assign(service, { helpdeskData });
 
-      await service.handleViewSubmission(payload);
+      const res = await service.handleViewSubmission(
+        replyPayload('tick-resolved', 'Duplicate reply'),
+      );
 
       expect(mockEmailService.sendSupportReplyEmail).not.toHaveBeenCalled();
+      expect(res).toEqual({ response_action: 'clear' });
     });
 
     it('catches and handles exceptions gracefully during view submission', async () => {
-      mockPrismaService.supportTicket.findUnique.mockRejectedValue(
-        new Error('DB crash'),
-      );
+      Object.assign(service, {
+        helpdeskData: {
+          answerFromTeamChannel: vi
+            .fn()
+            .mockRejectedValue(new Error('DB crash')),
+        },
+      });
 
       const payload = {
         view: {
