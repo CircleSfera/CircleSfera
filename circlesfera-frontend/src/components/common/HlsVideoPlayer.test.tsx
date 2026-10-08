@@ -4,13 +4,12 @@ import HlsVideoPlayer from './HlsVideoPlayer';
 
 const hls = vi.hoisted(() => {
   const instances: Array<Record<string, ReturnType<typeof vi.fn>>> = [];
-  const state = { supported: true, loads: 0, fail: false };
+  const state = { supported: true, loads: 0 };
   return { instances, state };
 });
 
 vi.mock('hls.js', () => {
   hls.state.loads += 1;
-  if (hls.state.fail) throw new Error('chunk failed to load');
   class FakeHls {
     static isSupported = () => hls.state.supported;
     static Events = { ERROR: 'hlsError' };
@@ -47,7 +46,6 @@ describe('HlsVideoPlayer', () => {
   beforeEach(() => {
     hls.instances.length = 0;
     hls.state.supported = true;
-    hls.state.fail = false;
     HTMLMediaElement.prototype.load = vi.fn();
   });
 
@@ -59,6 +57,9 @@ describe('HlsVideoPlayer', () => {
     expect(video(container).src).toBe('https://cdn.test/clip.mp4');
     await Promise.resolve();
     expect(hls.instances).toHaveLength(0);
+    // The streaming library is not even downloaded for a plain video. The
+    // count is never reset, so loading it with the component would show here.
+    expect(hls.state.loads).toBe(0);
   });
 
   it('plays a stream through the streaming library and frees it when removed', async () => {
@@ -70,6 +71,7 @@ describe('HlsVideoPlayer', () => {
     );
 
     await waitFor(() => expect(hls.instances).toHaveLength(1));
+    expect(hls.state.loads).toBe(1);
     const stream = hls.instances[0];
     expect(stream.loadSource).toHaveBeenCalledWith(
       'https://cdn.test/clip/master.m3u8',
@@ -174,6 +176,27 @@ describe('HlsVideoPlayer', () => {
 
     expect(video(container).src).toBe('https://cdn.test/clip.mp4');
     await Promise.resolve();
+    expect(hls.instances).toHaveLength(0);
+  });
+
+  it('plays the plain video when the streaming library cannot be downloaded', async () => {
+    // A fresh copy of the component, so the library is requested again and
+    // this time the download fails.
+    vi.resetModules();
+    vi.doMock('hls.js', () => {
+      throw new Error('chunk failed to load');
+    });
+    const { default: FreshPlayer } = await import('./HlsVideoPlayer');
+    const { container } = render(
+      <FreshPlayer
+        src="https://cdn.test/clip.mp4"
+        hlsUrl="https://cdn.test/clip/master.m3u8"
+      />,
+    );
+
+    await waitFor(() =>
+      expect(video(container).src).toBe('https://cdn.test/clip.mp4'),
+    );
     expect(hls.instances).toHaveLength(0);
   });
 });
