@@ -74,6 +74,8 @@ export default function PhotoCropPanel({
           min={-180}
           max={180}
           value={rotation}
+          aria-label={t('createPost.edit.crop_rotation')}
+          aria-valuetext={`${rotation}°`}
           onChange={(e) => setRotation(Number(e.target.value))}
           className={`flex-1 ${PHOTO_RANGE_CLASS}`}
         />
