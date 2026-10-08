@@ -57,11 +57,11 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
   }, [value]);
 
   return (
-    <div className="text-center md:text-left group cursor-pointer min-w-0 flex-1">
+    <div className="text-center md:text-left group shrink-0">
       <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#884cff]">
         {count}
       </span>
-      <span className="text-zinc-400 text-[9px] sm:text-[10px] md:text-xs font-bold uppercase tracking-normal md:tracking-wide mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80 truncate">
+      <span className="text-zinc-400 text-xs font-medium mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
         {label}
       </span>
     </div>
@@ -91,7 +91,7 @@ function ProfileOtherUserMenu({
   onBlock,
   onMute,
   align = 'right',
-  buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
+  buttonClassName = 'p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center',
 }: ProfileOtherUserMenuProps) {
   const { t } = useTranslation();
 
@@ -117,7 +117,7 @@ function ProfileOtherUserMenu({
               onClose();
               onAbout();
             }}
-            className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider"
+            className="w-full text-left min-h-11 px-4 text-gray-200 hover:bg-white/5 flex items-center justify-between font-medium text-sm"
           >
             {t('profile.about.title')}
             <Info size={14} aria-hidden="true" />
@@ -128,7 +128,7 @@ function ProfileOtherUserMenu({
               onClose();
               onMute();
             }}
-            className="w-full text-left px-2 py-1 text-gray-300 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+            className="w-full text-left min-h-11 px-4 text-gray-200 hover:bg-white/5 flex items-center justify-between font-medium text-sm border-t border-white/5"
           >
             {t('profile.actions.mute')}
             <VolumeX size={14} aria-hidden="true" />
@@ -139,14 +139,14 @@ function ProfileOtherUserMenu({
               onClose();
               onReport();
             }}
-            className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+            className="w-full text-left min-h-11 px-4 text-brand-secondary hover:bg-white/5 flex items-center justify-between font-medium text-sm border-t border-white/5"
           >
             {t('profile.actions.report_profile')}
             <Flag size={14} aria-hidden="true" />
           </button>
           <button
             type="button"
-            className="w-full text-left px-2 py-1 text-red-400 hover:bg-white/5 flex items-center justify-between font-bold text-xs uppercase tracking-wider border-t border-white/5"
+            className="w-full text-left min-h-11 px-4 text-brand-secondary hover:bg-white/5 flex items-center justify-between font-medium text-sm border-t border-white/5"
             onClick={() => {
               onClose();
               onBlock();
@@ -263,7 +263,7 @@ export default function ProfileHeader({
 
       <div className="flex flex-col gap-3 md:gap-4">
         <div className="flex flex-row md:flex-row items-center md:items-start gap-3 md:gap-4 w-full">
-          {/* Profile avatar — 96px */}
+          {/* Profile avatar: 80 px on phones, 96 px from tablet width */}
           <div className="relative shrink-0">
             <UserAvatar
               src={profile.data.avatar}
@@ -333,7 +333,7 @@ export default function ProfileHeader({
               </div>
 
               {/* Stats */}
-              <div className="flex items-center justify-between md:justify-start gap-2 md:gap-6 w-full md:w-auto mt-2 md:mt-0">
+              <div className="flex items-center justify-between md:justify-start gap-1 md:gap-6 w-full md:w-auto mt-2 md:mt-0">
                 <AnimatedCounter
                   value={profile.data._count?.posts || 0}
                   label={t('profile.stats.posts')}
@@ -342,6 +342,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={() => setShowFollowsModal('followers')}
                   aria-label={t('profile.stats.followers')}
+                  className="min-h-11 min-w-11 shrink-0 flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
                   <AnimatedCounter
                     value={profile.data._count?.followers || 0}
@@ -352,6 +353,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={() => setShowFollowsModal('following')}
                   aria-label={t('profile.stats.following')}
+                  className="min-h-11 min-w-11 shrink-0 flex items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                 >
                   <AnimatedCounter
                     value={profile.data._count?.following || 0}
@@ -369,14 +371,14 @@ export default function ProfileHeader({
                     type="button"
                     onClick={openCreateMenu}
                     aria-label={t('profile.actions.create_post')}
-                    className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-white rounded-lg border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
+                    className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-white rounded-full border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                   </button>
                   <button
                     type="button"
                     onClick={() => setCreatorMode(!isCreatorModeActive)}
-                    className={`px-3 h-11 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-xs uppercase font-black tracking-wide
+                    className={`px-3 h-11 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-sm font-semibold
                       ${
                         isCreatorModeActive
                           ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
@@ -396,7 +398,7 @@ export default function ProfileHeader({
                   <Link
                     to="/accounts"
                     aria-label={t('profile.actions.settings')}
-                    className="p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center"
+                    className="p-2 h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center justify-center"
                   >
                     <Settings size={18} aria-hidden="true" />
                   </Link>
@@ -406,7 +408,7 @@ export default function ProfileHeader({
                       onClick={onOpenCloseFriends}
                       aria-label={t('profile.actions.close_friends')}
                       title={t('profile.actions.close_friends')}
-                      className={`relative p-2 h-11 w-11 rounded-lg border transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center ${
+                      className={`relative p-2 h-11 w-11 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center ${
                         closeFriendsCount > 0
                           ? 'bg-green-500/15 hover:bg-green-500/25 text-green-400 border-green-500/30'
                           : 'bg-white/5 hover:bg-white/10 text-white border-white/5'
@@ -418,7 +420,7 @@ export default function ProfileHeader({
                         aria-hidden="true"
                       />
                       {closeFriendsCount > 0 && (
-                        <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-green-500 text-[10px] font-black text-white flex items-center justify-center">
+                        <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-green-500 text-xs font-bold text-white flex items-center justify-center">
                           {closeFriendsCount > 99 ? '99+' : closeFriendsCount}
                         </span>
                       )}
@@ -428,7 +430,7 @@ export default function ProfileHeader({
                     type="button"
                     onClick={() => setShowAbout(true)}
                     aria-label={t('profile.about.title')}
-                    className="p-2 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="h-11 w-11 flex items-center justify-center bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all duration-300 hover:scale-105 active:scale-95"
                   >
                     <Info size={18} aria-hidden="true" />
                   </button>
@@ -440,7 +442,7 @@ export default function ProfileHeader({
                   <button
                     type="button"
                     onClick={() => setShowTipModal(true)}
-                    className="p-2 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-lg border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
+                    className="h-11 w-11 flex items-center justify-center bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all duration-300 hover:scale-105 active:scale-95"
                     title={t('profile.actions.send_tip')}
                     aria-label={t('profile.actions.send_tip')}
                   >
@@ -451,7 +453,7 @@ export default function ProfileHeader({
                     type="button"
                     onClick={handleMessageClick}
                     disabled={isCreatingChat}
-                    className="px-6 h-11 bg-white/5 hover:bg-white/10 text-white rounded-lg border border-white/5 font-black text-xs uppercase tracking-wide transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center"
+                    className="px-6 h-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 text-sm font-semibold transition-all duration-300 hover:scale-105 active:scale-95 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] disabled:opacity-50 flex items-center justify-center"
                   >
                     {isCreatingChat
                       ? t('profile.actions.opening')
@@ -503,7 +505,7 @@ export default function ProfileHeader({
               <span>@{profile.data.username}</span>
             )}
             {profile.data.isPrivate && (
-              <Lock size={10} className="text-brand-primary" />
+              <Lock size={12} className="text-brand-primary" />
             )}
           </div>
         </div>
@@ -538,7 +540,7 @@ export default function ProfileHeader({
                     }
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-brand-blue hover:text-blue-300 transition-colors"
+                    className="min-h-11 flex items-center gap-2 text-brand-blue hover:text-blue-300 transition-colors"
                   >
                     <LinkIcon size={16} aria-hidden="true" />
                     <span className="underline decoration-white/10 underline-offset-4">
@@ -574,7 +576,7 @@ export default function ProfileHeader({
                       );
                       toast.success(t('profile.invite.copied'));
                     }}
-                    className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
+                    className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg min-h-11 text-sm font-semibold transition-all"
                   >
                     {t('profile.actions.copy_link')}
                   </button>
@@ -583,36 +585,42 @@ export default function ProfileHeader({
           </div>
 
           {/* Mobile Only Action Buttons */}
-          <div className="flex md:hidden items-center gap-2 pt-1">
+          <div className="flex md:hidden items-center gap-1.5 pt-1">
             {isMe ? (
               <>
                 <button
                   type="button"
                   onClick={openCreateMenu}
                   aria-label={t('profile.actions.create_post')}
-                  className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-white rounded-xl border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
+                  className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-white rounded-full border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
                 >
                   <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setCreatorMode(!isCreatorModeActive)}
-                  className={`flex-1 px-2 h-11 rounded-xl border transition-all flex items-center justify-center gap-1 text-xs uppercase font-black tracking-wide shadow-lg
+                  className={`flex-1 min-w-0 px-2 h-11 rounded-full border transition-all flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold shadow-lg
                     ${
                       isCreatorModeActive
                         ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
                         : 'bg-white/5 text-gray-300 border-white/5'
                     }`}
                 >
-                  <Wand2 size={14} aria-hidden="true" />
-                  {isCreatorModeActive
-                    ? t('profile.creator_mode.creator')
-                    : t('profile.creator_mode.consumer')}
+                  <Wand2
+                    size={14}
+                    className="hidden sm:block shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span className="truncate">
+                    {isCreatorModeActive
+                      ? t('profile.creator_mode.creator')
+                      : t('profile.creator_mode.consumer')}
+                  </span>
                 </button>
                 <Link
                   to="/accounts"
                   aria-label={t('profile.actions.settings')}
-                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all flex items-center justify-center"
                 >
                   <Settings size={18} aria-hidden="true" />
                 </Link>
@@ -622,7 +630,7 @@ export default function ProfileHeader({
                     onClick={onOpenCloseFriends}
                     aria-label={t('profile.actions.close_friends')}
                     title={t('profile.actions.close_friends')}
-                    className={`relative h-11 w-11 shrink-0 rounded-xl border transition-all flex items-center justify-center ${
+                    className={`relative h-11 w-11 shrink-0 rounded-full border transition-all flex items-center justify-center ${
                       closeFriendsCount > 0
                         ? 'bg-green-500/15 text-green-400 border-green-500/30'
                         : 'bg-white/5 text-white border-white/5'
@@ -634,7 +642,7 @@ export default function ProfileHeader({
                       aria-hidden="true"
                     />
                     {closeFriendsCount > 0 && (
-                      <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-green-500 text-[10px] font-black text-white flex items-center justify-center">
+                      <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-green-500 text-xs font-bold text-white flex items-center justify-center">
                         {closeFriendsCount > 99 ? '99+' : closeFriendsCount}
                       </span>
                     )}
@@ -644,7 +652,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={() => setShowAbout(true)}
                   aria-label={t('profile.about.title')}
-                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                  className="h-11 w-11 shrink-0 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all flex items-center justify-center"
                 >
                   <Info size={18} aria-hidden="true" />
                 </button>
@@ -658,7 +666,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={handleMessageClick}
                   disabled={isCreatingChat}
-                  className="flex-1 min-w-0 px-3 h-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 font-black text-xs uppercase tracking-wide transition-all flex items-center justify-center disabled:opacity-50"
+                  className="flex-1 min-w-0 px-3 h-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 text-sm font-semibold transition-all flex items-center justify-center disabled:opacity-50"
                 >
                   {isCreatingChat
                     ? t('profile.actions.opening')
@@ -667,7 +675,7 @@ export default function ProfileHeader({
                 <button
                   type="button"
                   onClick={() => setShowTipModal(true)}
-                  className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-xl border border-yellow-500/20 transition-all flex items-center justify-center"
+                  className="h-11 w-11 shrink-0 bg-yellow-500/10 hover:bg-yellow-500/20 text-yellow-500 rounded-full border border-yellow-500/20 transition-all flex items-center justify-center"
                   title={t('profile.actions.send_tip')}
                   aria-label={t('profile.actions.send_tip')}
                 >
@@ -682,7 +690,7 @@ export default function ProfileHeader({
                   onReport={() => setShowReportModal(true)}
                   onBlock={() => setShowBlockModal(true)}
                   onMute={() => setShowMuteModal(true)}
-                  buttonClassName="h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all flex items-center justify-center"
+                  buttonClassName="h-11 w-11 bg-white/5 hover:bg-white/10 text-white rounded-full border border-white/5 transition-all flex items-center justify-center"
                 />
               </div>
             )}

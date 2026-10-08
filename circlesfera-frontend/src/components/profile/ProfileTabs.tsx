@@ -11,6 +11,13 @@ interface ProfileTabsProps {
   canView: boolean;
 }
 
+const TABS = [
+  { id: 'posts', icon: Grid, onlyMine: false },
+  { id: 'frames', icon: Clapperboard, onlyMine: false },
+  { id: 'saved', icon: Bookmark, onlyMine: true },
+  { id: 'tagged', icon: UserSquare2, onlyMine: false },
+] as const;
+
 export default function ProfileTabs({
   activeTab,
   setActiveTab,
@@ -22,96 +29,32 @@ export default function ProfileTabs({
   if (!canView) return null;
 
   return (
-    <div className="flex justify-center gap-1.5 md:gap-4 mb-3 md:mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-lg border border-white/5 w-fit mx-auto">
-      <button
-        type="button"
-        onClick={() => setActiveTab('posts')}
-        aria-label={t('profile.tabs.posts')}
-        aria-pressed={activeTab === 'posts'}
-        className={`flex items-center gap-2.5 px-3 md:px-5 py-1.5 md:py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
-          activeTab === 'posts'
-            ? 'text-white'
-            : 'text-zinc-400 hover:text-zinc-300'
-        }`}
-      >
-        {activeTab === 'posts' && (
-          <motion.div
-            layoutId="activeTabProfileGlass"
-            className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-          />
-        )}
-        <Grid size={14} />
-        <span className="hidden sm:inline">{t('profile.tabs.posts')}</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => setActiveTab('frames')}
-        aria-label={t('profile.tabs.frames')}
-        aria-pressed={activeTab === 'frames'}
-        className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
-          activeTab === 'frames'
-            ? 'text-white'
-            : 'text-zinc-400 hover:text-zinc-300'
-        }`}
-      >
-        {activeTab === 'frames' && (
-          <motion.div
-            layoutId="activeTabProfileGlass"
-            className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-          />
-        )}
-        <Clapperboard size={14} />
-        <span className="hidden sm:inline">{t('profile.tabs.frames')}</span>
-      </button>
-
-      {isMe && (
-        <button
-          type="button"
-          onClick={() => setActiveTab('saved')}
-          aria-label={t('profile.tabs.saved')}
-          aria-pressed={activeTab === 'saved'}
-          className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
-            activeTab === 'saved'
-              ? 'text-white'
-              : 'text-zinc-400 hover:text-zinc-300'
-          }`}
-        >
-          {activeTab === 'saved' && (
-            <motion.div
-              layoutId="activeTabProfileGlass"
-              className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-              transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-            />
-          )}
-          <Bookmark size={14} />
-          <span className="hidden sm:inline">{t('profile.tabs.saved')}</span>
-        </button>
-      )}
-
-      <button
-        type="button"
-        onClick={() => setActiveTab('tagged')}
-        aria-label={t('profile.tabs.tagged')}
-        aria-pressed={activeTab === 'tagged'}
-        className={`flex items-center gap-2.5 px-5 py-2 rounded-xl text-xs font-black tracking-wide transition-all relative z-10 ${
-          activeTab === 'tagged'
-            ? 'text-white'
-            : 'text-zinc-400 hover:text-zinc-300'
-        }`}
-      >
-        {activeTab === 'tagged' && (
-          <motion.div
-            layoutId="activeTabProfileGlass"
-            className="absolute inset-0 bg-white/10 backdrop-blur-md rounded-xl -z-10 border border-white/10 shadow-[0_0_20px_rgba(255,255,255,0.05)]"
-            transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-          />
-        )}
-        <UserSquare2 size={14} />
-        <span className="hidden sm:inline">{t('profile.tabs.tagged')}</span>
-      </button>
+    <div className="flex justify-center gap-1 mb-3 md:mb-6 p-1 bg-black/40 backdrop-blur-xl rounded-full border border-white/8 w-fit max-w-full mx-auto">
+      {TABS.filter((tab) => isMe || !tab.onlyMine).map(({ id, icon: Icon }) => {
+        const isActive = activeTab === id;
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setActiveTab(id)}
+            aria-label={t(`profile.tabs.${id}`)}
+            aria-pressed={isActive}
+            className={`relative z-10 min-h-11 min-w-14 px-4 md:px-5 flex items-center justify-center gap-2 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+              isActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            {isActive && (
+              <motion.div
+                layoutId="activeTabProfileGlass"
+                className="absolute inset-0 bg-white/12 rounded-full -z-10 border border-white/12"
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+              />
+            )}
+            <Icon size={18} aria-hidden="true" />
+            <span className="hidden sm:inline">{t(`profile.tabs.${id}`)}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }
