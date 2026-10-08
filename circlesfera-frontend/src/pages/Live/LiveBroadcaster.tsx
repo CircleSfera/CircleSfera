@@ -12,22 +12,29 @@ import {
   X,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import CinematicStage from '../../components/live/CinematicStage';
 import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
+import LiveGoalDialog from '../../components/live/LiveGoalDialog';
 import LivePinnedComment, {
   type PinnedCommentData,
 } from '../../components/live/LivePinnedComment';
 import LiveQnAPanel, {
   type LiveQuestion,
 } from '../../components/live/LiveQnAPanel';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
 import { useSocketStore } from '../../stores/socketStore';
+
+/** A neutral picture with the person's initials, for someone without one. */
+const fallbackAvatar = (username: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
 
 export default function LiveBroadcaster() {
   const { t } = useTranslation();
@@ -43,6 +50,13 @@ export default function LiveBroadcaster() {
   const [hasStarted, setHasStarted] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [isEnded, setIsEnded] = useState(false);
+  const [isEnding, setIsEnding] = useState(false);
+  const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const [coHostFormOpen, setCoHostFormOpen] = useState(false);
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  // Read when the video connection closes, which also happens on purpose
+  // when the live ends.
+  const endedRef = useRef(false);
   const [viewerCount, setViewerCount] = useState(0);
   const [likesCount, setLikesCount] = useState(0);
   const [pinnedComment, setPinnedComment] = useState<PinnedCommentData | null>(
@@ -70,17 +84,24 @@ export default function LiveBroadcaster() {
     };
   }, [hasStarted, isEnded]);
 
+  // The live is only shown as ended once the server has ended it: saying so
+  // while it is still on air would leave the camera broadcasting unnoticed.
   const handleEndLive = async () => {
+    setIsEnding(true);
     try {
       await api.post('/live/end');
     } catch {
-      // Silently fail
-    } finally {
-      setIsEnded(true);
-      const socket = useSocketStore.getState().socket;
-      if (socket && streamId) {
-        socket.emit('live:leave', { streamId });
-      }
+      toast.error(t('live.end_failed'));
+      setIsEnding(false);
+      return;
+    }
+    endedRef.current = true;
+    setConfirmEndOpen(false);
+    setIsEnding(false);
+    setIsEnded(true);
+    const socket = useSocketStore.getState().socket;
+    if (socket && streamId) {
+      socket.emit('live:leave', { streamId });
     }
   };
 
@@ -94,6 +115,7 @@ export default function LiveBroadcaster() {
       setStreamId(res.data.stream.id);
       setHasStarted(true);
     } catch {
+      toast.error(t('live.start_failed'));
       setIsStarting(false);
     }
   };
@@ -192,18 +214,26 @@ export default function LiveBroadcaster() {
   const handleInviteCoHost = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!streamId || !coHostUsernameInput.trim()) return;
+    const username = coHostUsernameInput.trim().replace(/^@/, '');
     setIsInviting(true);
     try {
-      const profileRes = await profileApi.getProfile(
-        coHostUsernameInput.trim(),
-      );
-      const coHostUserId = profileRes.data?.user?.id;
-      if (!coHostUserId) throw new Error('User not found');
+      let coHostUserId: string | undefined;
+      try {
+        const profileRes = await profileApi.getProfile(username);
+        coHostUserId = profileRes.data?.user?.id;
+      } catch {
+        coHostUserId = undefined;
+      }
+      if (!coHostUserId) {
+        toast.error(t('live.cohost_not_found', { username }));
+        return;
+      }
       await liveApi.inviteCoHost(streamId, coHostUserId);
-      setCoHostUsername(coHostUsernameInput.trim());
+      setCoHostUsername(username);
       setCoHostUsernameInput('');
+      setCoHostFormOpen(false);
     } catch {
-      // Silent — socket will handle the real error path
+      toast.error(t('live.cohost_invite_failed'));
     } finally {
       setIsInviting(false);
     }
@@ -215,7 +245,7 @@ export default function LiveBroadcaster() {
       await liveApi.removeCoHost(streamId);
       setCoHostUsername(null);
     } catch {
-      // Silent
+      toast.error(t('live.cohost_remove_failed'));
     }
   };
 
@@ -255,21 +285,11 @@ export default function LiveBroadcaster() {
     setSelectedMessage(null);
   };
 
-  const handleSetGoal = () => {
-    const target = prompt(t('live.goal.target_prompt'), '1000');
-    const title = prompt(
-      t('live.goal.title_prompt'),
-      t('live.goal.title_default'),
-    );
-    if (!target || !title || !streamId) return;
-
+  const handleSetGoal = (goal: { title: string; target: number }) => {
+    setGoalDialogOpen(false);
     const socket = useSocketStore.getState().socket;
-    if (socket) {
-      socket.emit('live:set_goal', {
-        streamId,
-        title,
-        target: parseInt(target, 10),
-      });
+    if (socket && streamId) {
+      socket.emit('live:set_goal', { streamId, ...goal });
     }
   };
 
@@ -301,10 +321,10 @@ export default function LiveBroadcaster() {
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 p-2 bg-black/50 rounded-full text-white"
+          className="absolute left-4 top-[max(1rem,env(safe-area-inset-top,0px))] w-11 h-11 flex items-center justify-center bg-black/50 rounded-full text-white"
           aria-label={t('common.close')}
         >
-          <X className="w-6 h-6" />
+          <X className="w-6 h-6" aria-hidden />
         </button>
         <h1 className="text-2xl font-semibold text-white">
           {t('live.setup_title')}
@@ -323,13 +343,13 @@ export default function LiveBroadcaster() {
               onChange={(e) => setTitleInput(e.target.value)}
               placeholder={t('live.title_placeholder')}
               maxLength={100}
-              className="rounded-full bg-white/10 border border-white/10 px-4 py-2.5 text-white placeholder-white/40 outline-none focus:border-brand-primary"
+              className="min-h-12 rounded-full bg-white/10 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
             />
           </label>
           <button
             type="submit"
             disabled={isStarting}
-            className="rounded-full bg-brand-primary px-6 py-2.5 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className="min-h-12 rounded-full bg-brand-primary px-6 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
             {isStarting ? t('live.starting') : t('live.start_button')}
           </button>
@@ -370,7 +390,7 @@ export default function LiveBroadcaster() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-full mt-4 rounded-full bg-white/10 hover:bg-white/20 px-6 py-3 font-semibold transition-all"
+            className="w-full mt-4 min-h-12 rounded-full bg-white/10 hover:bg-white/20 px-6 font-semibold transition-all"
           >
             {t('live.close_summary')}
           </button>
@@ -385,82 +405,100 @@ export default function LiveBroadcaster() {
 
   return (
     <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
-      {/* biome-ignore lint/a11y/useSemanticElements: Double-tap on screen area */}
+      {/* A double tap anywhere sends a heart. It is not a button: it holds
+          every control of the screen, and the reactions have their own. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
       <div
-        role="button"
-        tabIndex={0}
         className="w-full h-full md:max-w-105 md:h-[88vh] md:rounded-3xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.9)] relative flex flex-col overflow-hidden bg-black select-none"
         onDoubleClick={handleDoubleTap}
-        onKeyDown={(e) => e.key === 'Enter' && handleDoubleTap()}
       >
         {/* Top controls */}
-        <div className="absolute top-3 left-3 z-50 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleEndLive}
-            className="p-1.5 bg-black/60 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
-            title={t('live.end_stream')}
-            aria-label={t('live.end_stream')}
-          >
-            <X className="w-5 h-5" />
-          </button>
+        <div className="absolute left-4 right-4 top-[max(0.75rem,env(safe-area-inset-top,0px))] z-50 flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmEndOpen(true)}
+              className="w-11 h-11 flex items-center justify-center bg-black/60 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
+              aria-label={t('live.end_stream')}
+            >
+              <X className="w-5 h-5" aria-hidden />
+            </button>
 
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
-            <Eye className="w-4 h-4 text-pink-400" />
-            <span>{viewerCount}</span>
+            <div className="flex items-center gap-1.5 px-3 min-h-9 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
+              <Eye className="w-4 h-4 text-pink-400" aria-hidden />
+              <span>{viewerCount}</span>
+              <span className="sr-only">{t('live.viewers')}</span>
+            </div>
           </div>
-        </div>
 
-        {/* Co-Host panel — top right */}
-        <div className="absolute top-3 right-3 z-50 flex flex-col items-end gap-2">
           {coHostUsername ? (
-            // Co-host active indicator
-            <div className="flex items-center gap-1.5 bg-purple-900/80 backdrop-blur-md px-2.5 py-1 rounded-full text-white text-xs border border-purple-500/30 shadow-lg">
-              <span className="relative flex h-2 w-2">
+            <div className="flex items-center gap-1.5 bg-purple-900/80 backdrop-blur-md pl-3 rounded-full text-white text-xs border border-purple-500/30 shadow-lg min-w-0">
+              <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
               </span>
-              <span>
+              <span className="truncate">
                 {t('live.cohost_label')} <strong>@{coHostUsername}</strong>
               </span>
               <button
                 type="button"
                 onClick={handleRemoveCoHost}
-                className="ml-1 text-red-300 hover:text-red-100 transition-colors"
-                title={t('live.cohost_remove')}
+                className="w-11 h-11 shrink-0 flex items-center justify-center text-red-300 hover:text-red-100 transition-colors"
+                aria-label={t('live.cohost_remove')}
               >
-                <UserMinus size={13} />
+                <UserMinus size={18} aria-hidden />
               </button>
             </div>
           ) : (
-            // Invite form
-            <form
-              onSubmit={handleInviteCoHost}
-              className="flex items-center gap-1.5 bg-black/60 backdrop-blur-md border border-white/20 rounded-full px-2.5 py-1 shadow-lg"
+            <button
+              type="button"
+              onClick={() => setCoHostFormOpen((open) => !open)}
+              className="w-11 h-11 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-purple-200 shadow-lg"
+              aria-label={t('live.cohost_invite_button')}
+              aria-expanded={coHostFormOpen}
             >
-              <UserPlus size={13} className="text-purple-300 shrink-0" />
-              <input
-                type="text"
-                placeholder={t('live.cohost_input_placeholder')}
-                value={coHostUsernameInput}
-                onChange={(e) => setCoHostUsernameInput(e.target.value)}
-                className="bg-transparent text-white text-xs placeholder-white/40 outline-none w-24"
-              />
-              <button
-                type="submit"
-                disabled={isInviting || !coHostUsernameInput.trim()}
-                className="text-purple-300 hover:text-purple-100 transition-colors disabled:opacity-40"
-              >
-                <Send size={12} />
-              </button>
-            </form>
+              <UserPlus size={18} aria-hidden />
+            </button>
           )}
         </div>
 
+        {/* Invite a co-host: opens under the top controls */}
+        {coHostFormOpen && !coHostUsername && (
+          <form
+            onSubmit={handleInviteCoHost}
+            className="absolute left-4 right-4 top-[calc(max(0.75rem,env(safe-area-inset-top,0px))+3.25rem)] z-50 flex items-center gap-2"
+          >
+            <input
+              type="text"
+              aria-label={t('live.cohost_input_placeholder')}
+              placeholder={t('live.cohost_input_placeholder')}
+              value={coHostUsernameInput}
+              onChange={(e) => setCoHostUsernameInput(e.target.value)}
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="flex-1 min-w-0 min-h-12 rounded-full bg-black/70 border border-white/20 px-4 text-base text-white placeholder-white/50 outline-none backdrop-blur-md focus:border-brand-primary"
+            />
+            <button
+              type="submit"
+              disabled={isInviting || !coHostUsernameInput.trim()}
+              className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-brand-primary text-white disabled:opacity-40"
+              aria-label={t('live.cohost_invite_send')}
+            >
+              <Send size={18} aria-hidden />
+            </button>
+          </form>
+        )}
+
         {/* Live Goal Bar (Top Center/Left below header) */}
-        <div className="absolute top-16 left-3 z-50 pointer-events-auto">
-          <LiveGoalBar goal={liveGoal} isHost={true} onClick={handleSetGoal} />
-        </div>
+        {!coHostFormOpen && (
+          <div className="absolute left-4 top-[calc(max(0.75rem,env(safe-area-inset-top,0px))+3.25rem)] z-50 pointer-events-auto">
+            <LiveGoalBar
+              goal={liveGoal}
+              isHost={true}
+              onClick={() => setGoalDialogOpen(true)}
+            />
+          </div>
+        )}
 
         <div className="flex-1 overflow-hidden relative">
           <LiveKitRoom
@@ -470,7 +508,12 @@ export default function LiveBroadcaster() {
             serverUrl={serverUrl}
             data-lk-theme="default"
             className="h-full w-full"
-            onDisconnected={() => navigate(-1)}
+            onDisconnected={() => {
+              // Ending the live closes the connection on purpose.
+              if (endedRef.current) return;
+              toast.error(t('live.connection_lost'));
+              navigate(-1);
+            }}
           >
             <CinematicStage isBroadcaster={true} />
             <RoomAudioRenderer />
@@ -484,7 +527,7 @@ export default function LiveBroadcaster() {
                   <img
                     src={
                       highlightedQuestion.avatar ||
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50'
+                      fallbackAvatar(highlightedQuestion.username)
                     }
                     alt={highlightedQuestion.username}
                     className="w-8 h-8 rounded-full"
@@ -493,7 +536,7 @@ export default function LiveBroadcaster() {
                     <span className="block text-xs font-bold text-neutral-800">
                       {highlightedQuestion.username}
                     </span>
-                    <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
+                    <span className="block text-xs text-pink-500 font-bold uppercase tracking-widest">
                       {t('live.qna.question')}
                     </span>
                   </div>
@@ -520,7 +563,7 @@ export default function LiveBroadcaster() {
         </div>
 
         {/* Chat & Bottom Controls */}
-        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/50 to-transparent p-3 flex flex-col justify-end z-40 pointer-events-auto">
+        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-black/50 to-transparent px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-end z-40 pointer-events-auto">
           <LivePinnedComment
             pinnedComment={pinnedComment}
             onUnpin={handleUnpinMessage}
@@ -528,6 +571,7 @@ export default function LiveBroadcaster() {
 
           <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
             {chatMessages.map((msg) => (
+              // The whole row answers the tap; the bubble inside keeps its size.
               <button
                 type="button"
                 key={msg.id}
@@ -536,12 +580,21 @@ export default function LiveBroadcaster() {
                     selectedMessage?.id === msg.id ? null : msg,
                   )
                 }
-                className={`text-left text-white text-xs bg-black/40 border border-white/10 backdrop-blur-md px-2.5 py-1 rounded-full w-fit max-w-[85%] shadow-sm flex items-center gap-1 hover:bg-black/60 transition-colors ${selectedMessage?.id === msg.id ? 'border-pink-500/50 bg-black/80' : ''}`}
+                aria-pressed={selectedMessage?.id === msg.id}
+                className="min-h-11 flex items-center text-left max-w-[85%]"
               >
-                <span className="font-extrabold text-purple-300">
-                  {msg.user.username}:{' '}
+                <span
+                  className={`text-white text-xs bg-black/40 border backdrop-blur-md px-2.5 py-1 rounded-2xl shadow-sm ${
+                    selectedMessage?.id === msg.id
+                      ? 'border-brand-primary'
+                      : 'border-white/10'
+                  }`}
+                >
+                  <span className="font-extrabold text-purple-300">
+                    {msg.user.username}:{' '}
+                  </span>
+                  <span className="text-neutral-100">{msg.message}</span>
                 </span>
-                <span className="text-neutral-100">{msg.message}</span>
               </button>
             ))}
             <div ref={chatEndRef} />
@@ -553,24 +606,24 @@ export default function LiveBroadcaster() {
               <button
                 type="button"
                 onClick={handlePinMessage}
-                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
+                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
               >
                 <Pin size={14} /> {t('live.pin')}
               </button>
               <button
                 type="button"
                 onClick={handleDeleteMessage}
-                className="flex-1 flex items-center justify-center gap-2 py-2 px-3 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-xl text-xs font-semibold transition-colors"
+                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-xl text-xs font-semibold transition-colors"
               >
                 <Trash2 size={14} /> {t('live.delete_comment')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedMessage(null)}
-                className="p-2 bg-white/5 hover:bg-white/10 rounded-xl text-neutral-400 transition-colors"
+                className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-neutral-400 transition-colors"
                 aria-label={t('common.close')}
               >
-                <X size={14} />
+                <X size={16} aria-hidden />
               </button>
             </div>
           )}
@@ -579,31 +632,57 @@ export default function LiveBroadcaster() {
             <button
               type="button"
               onClick={() => setIsQnAOpen(true)}
-              className="p-2 bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
+              className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
+              aria-label={
+                questions.length > 0
+                  ? t('live.qna.open_with_count', { count: questions.length })
+                  : t('live.qna.title')
+              }
             >
-              <HelpCircle size={18} />
+              <HelpCircle size={20} aria-hidden />
               {questions.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-pink-500 text-[10px] w-4 h-4 flex items-center justify-center rounded-full font-bold">
+                <span
+                  className="absolute -top-1 -right-1 bg-pink-500 text-xs min-w-5 h-5 px-1 flex items-center justify-center rounded-full font-bold"
+                  aria-hidden
+                >
                   {questions.length}
                 </span>
               )}
             </button>
             <input
               type="text"
+              aria-label={t('live.chat_placeholder')}
               placeholder={t('live.chat_placeholder')}
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              className="flex-1 rounded-full bg-white/15 border border-white/20 px-3.5 py-2 text-xs text-white placeholder-white/50 outline-none backdrop-blur-md focus:bg-white/25 transition-all"
+              className="flex-1 min-w-0 min-h-12 rounded-full bg-white/15 border border-white/20 px-4 text-base text-white placeholder-white/50 outline-none backdrop-blur-md focus:bg-white/25 transition-colors"
             />
             <button
               type="submit"
-              className="rounded-full bg-brand-primary p-2 text-white hover:opacity-90 active:scale-95 transition-all shadow-md shrink-0"
+              disabled={!messageInput.trim()}
+              className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-brand-primary text-white hover:opacity-90 active:scale-95 transition-all shadow-md disabled:opacity-40"
+              aria-label={t('live.send_comment')}
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send className="h-4 w-4" aria-hidden />
             </button>
           </form>
         </div>
 
+        <ConfirmModal
+          isOpen={confirmEndOpen}
+          onClose={() => setConfirmEndOpen(false)}
+          onConfirm={handleEndLive}
+          title={t('live.end_confirm_title')}
+          message={t('live.end_confirm_message')}
+          confirmText={t('live.end_stream')}
+          cancelText={t('live.end_confirm_keep')}
+          isLoading={isEnding}
+        />
+        <LiveGoalDialog
+          isOpen={goalDialogOpen}
+          onClose={() => setGoalDialogOpen(false)}
+          onSave={handleSetGoal}
+        />
         <LiveQnAPanel
           isOpen={isQnAOpen}
           onClose={() => setIsQnAOpen(false)}

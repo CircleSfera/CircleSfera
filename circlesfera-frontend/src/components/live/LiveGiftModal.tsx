@@ -126,7 +126,7 @@ export default function LiveGiftModal({
               <span className="text-xs font-bold truncate max-w-full">
                 {t(gift.nameKey)}
               </span>
-              <span className="text-[11px] font-extrabold text-brand-primary mt-1">
+              <span className="text-xs font-extrabold text-brand-primary mt-1">
                 {formatWholeEuros(gift.price, i18n.language)}
               </span>
             </button>

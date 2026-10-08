@@ -151,14 +151,14 @@ jobs:
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: npm run test:e2e -- --project=chromium
 
-      # Opens every screen of the content editor at 390×844 and measures its
-      # controls, then drags a sticker and a slider in the story composer and
-      # undoes them. The API is replaced inside the browser, so it only needs
+      # Opens every screen of the content editor and of the live at 390×844
+      # and measures its controls, then drags a sticker and a slider in the
+      # story composer and undoes them. The API is replaced inside the browser, so it only needs
       # the frontend that is already running.
-      - name: Check control sizes and undo in the content editor
+      - name: Check control sizes of the editor and the live, and undo
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/editor-control-sizes.spec.ts e2e/story-undo.spec.ts --project=chromium
+          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts --project=chromium
 
       - name: Dump server logs on failure
         if: failure()
