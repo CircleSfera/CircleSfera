@@ -1,7 +1,8 @@
-import { ApiErrorCode } from '@circlesfera/shared';
+import { ApiErrorCode, ErrorCode } from '@circlesfera/shared';
 import { type ExecutionContext, ForbiddenException } from '@nestjs/common';
 import type { Reflector } from '@nestjs/core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AppException } from '../../common/errors/app.exception.js';
 import { EmailVerifiedGuard } from './email-verified.guard.js';
 import { IdentityVerifiedGuard } from './identity-verified.guard.js';
 import { JwtOptionalGuard } from './jwt-optional.guard.js';
@@ -107,14 +108,25 @@ describe('IdentityVerifiedGuard', () => {
     ).rejects.toThrow(ForbiddenException);
   });
 
-  it('refuses an account without a verified identity', async () => {
+  it('refuses an account without a verified identity with its own error code', async () => {
     prisma.user.findUnique.mockResolvedValue({
       isActive: true,
       identityVerifiedAt: null,
     });
-    await expect(
-      guard.canActivate(contextFor({ userId: 'u-1' })),
-    ).rejects.toThrow(ForbiddenException);
+
+    const refusal = await guard
+      .canActivate(contextFor({ userId: 'u-1' }))
+      .catch((error: unknown) => error);
+
+    expect(refusal).toBeInstanceOf(AppException);
+    expect((refusal as AppException).getStatus()).toBe(403);
+    // The code is what the app reads; the sentence is kept for app versions
+    // from before the code existed.
+    expect((refusal as AppException).getResponse()).toMatchObject({
+      errorCode: ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
+      message:
+        'Debes verificar tu identidad primero para poder comprar o cobrar.',
+    });
   });
 
   it('lets an active, verified account through', async () => {

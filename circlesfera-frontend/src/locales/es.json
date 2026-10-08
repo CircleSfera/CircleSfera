@@ -4106,6 +4106,7 @@
       "INVITE_CODE_REQUIRED": "Necesitas un código de invitación para registrarte.",
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
+      "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para poder comprar o cobrar.",
       "CAPTCHA_FAILED": "No hemos podido comprobar que eres una persona. Inténtalo de nuevo.",
       "CAPTCHA_REQUIRED": "Completa la comprobación de seguridad para continuar.",
       "ACCOUNT_BANNED": "Este perfil está bloqueado.",

@@ -11,9 +11,14 @@ vi.mock('../../services/live', () => ({
   },
 }));
 
-vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
+vi.mock('react-hot-toast', () => {
+  const t = Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  });
+  return { toast: t, default: t };
+});
 
 describe('LiveGiftModal', () => {
   const onClose = vi.fn();
@@ -180,7 +185,7 @@ describe('LiveGiftModal', () => {
     await waitFor(() => expect(send).toBeEnabled());
   });
 
-  it('says the identity must be verified when the gift is refused for it', async () => {
+  it('offers to verify the identity when the gift is refused for it', async () => {
     vi.mocked(liveApi.sendGift).mockRejectedValue(
       Object.assign(
         new Error(
@@ -200,10 +205,12 @@ describe('LiveGiftModal', () => {
     );
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('pricingPage.verification_required_desc'),
+      expect(toast).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.anything(),
       ),
     );
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   it('writes the gift prices as currency in Spanish', () => {
