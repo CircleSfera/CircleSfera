@@ -97,7 +97,7 @@ export function TwoFactorSettings() {
           type="button"
           onClick={() => generateMutation.mutate()}
           disabled={generateMutation.isPending}
-          className="px-5 py-2.5 bg-blue-500/10 text-blue-400 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-blue-500/20 transition-colors flex items-center gap-2"
+          className="min-h-11 px-5 bg-brand-blue/10 text-brand-blue rounded-full font-semibold text-sm hover:bg-brand-blue/20 transition-colors flex items-center gap-2"
         >
           {generateMutation.isPending ? (
             <Loader2 size={16} className="animate-spin" />

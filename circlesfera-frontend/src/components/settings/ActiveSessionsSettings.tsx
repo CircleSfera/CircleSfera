@@ -36,7 +36,8 @@ export const ActiveSessionsSettings: React.FC = () => {
       setLoading(true);
       setError(null);
       const res = await authApi.getSessions();
-      setSessions(res.data);
+      // Anything but a list is treated as none: the page must not fall over.
+      setSessions(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       logger.error('Failed to load active sessions:', err);
       setError(t('settings.security.sessions_subtitle'));
@@ -119,7 +120,7 @@ export const ActiveSessionsSettings: React.FC = () => {
             type="button"
             onClick={handleRevokeOthers}
             disabled={revokingOthers}
-            className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider rounded-lg transition-colors disabled:opacity-50 shrink-0"
+            className="flex items-center justify-center space-x-2 px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 min-h-11 text-xs font-semibold rounded-full transition-colors disabled:opacity-50 shrink-0"
           >
             {revokingOthers ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -168,12 +169,12 @@ export const ActiveSessionsSettings: React.FC = () => {
                         {getDeviceName(session.userAgent)}
                       </span>
                       {isCurrent && (
-                        <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold rounded-full">
+                        <span className="px-2 py-0.5 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-semibold rounded-full">
                           {t('settings.security.current_device')}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center space-x-2 text-[11px] text-gray-400 mt-0.5">
+                    <div className="flex items-center space-x-2 text-xs text-gray-400 mt-0.5">
                       <span>IP: {session.ipAddress || '127.0.0.1'}</span>
                       <span>•</span>
                       <span>
@@ -189,7 +190,7 @@ export const ActiveSessionsSettings: React.FC = () => {
                     onClick={() => handleRevokeSingle(session.id)}
                     disabled={revokingId === session.id}
                     aria-label={t('settings.security.revoke_session')}
-                    className="p-2 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                    className="w-11 h-11 flex items-center justify-center text-gray-400 hover:text-brand-secondary hover:bg-brand-secondary/10 rounded-full transition-colors"
                   >
                     {revokingId === session.id ? (
                       <Loader2 className="w-4 h-4 animate-spin text-red-400" />

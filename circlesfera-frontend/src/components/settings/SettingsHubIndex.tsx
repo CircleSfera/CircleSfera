@@ -127,7 +127,7 @@ export default function SettingsHubIndex() {
         </div>
         <Link
           to="/accounts/profile"
-          className="text-sm font-medium text-brand-primary hover:underline shrink-0 min-h-11 inline-flex items-center"
+          className="text-sm font-medium text-brand-primary hover:underline shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
         >
           {t('settings.hub.edit_profile')}
         </Link>
@@ -172,7 +172,7 @@ export default function SettingsHubIndex() {
           onChange={(e) => setFilter(e.target.value)}
           placeholder={t('settings.hub.filter')}
           aria-label={t('settings.hub.filter')}
-          className="w-full min-h-11 bg-white/5 border border-white/10 rounded-xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+          className="w-full min-h-12 bg-white/5 border border-white/10 rounded-2xl py-2.5 pl-9 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
         />
       </div>
 
@@ -228,7 +228,7 @@ function Chip({
   icon?: React.ReactNode;
 }) {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-white/70">
+    <span className="inline-flex items-center gap-1 px-2.5 min-h-7 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70">
       {icon}
       {children}
     </span>
@@ -247,10 +247,13 @@ function ChipLink({
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium text-white/70 hover:bg-white/10 hover:text-white"
+      className="group/chip inline-flex items-center min-h-11 -my-2"
     >
-      {icon}
-      {label}
+      {/* A chip to look at, 44 px to touch. */}
+      <span className="inline-flex items-center gap-1 px-2.5 min-h-7 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-white/70 group-hover/chip:bg-white/10 group-hover/chip:text-white">
+        {icon}
+        {label}
+      </span>
     </Link>
   );
 }

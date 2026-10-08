@@ -39,7 +39,8 @@ export const PasskeySettings: React.FC = () => {
     try {
       setLoadingPasskeys(true);
       const response = await passkeyApi.listPasskeys();
-      setPasskeys(response.data);
+      // Anything but a list is treated as none: the page must not fall over.
+      setPasskeys(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       logger.error('Failed to fetch passkeys:', err);
     } finally {
@@ -142,7 +143,7 @@ export const PasskeySettings: React.FC = () => {
                 {t('settings.passkey_settings.title')}
               </h3>
               {isBiometricSupported === true && (
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 rounded-full">
+                <span className="px-2 py-0.5 text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 rounded-full">
                   {t('settings.passkey_settings.biometric_available')}
                 </span>
               )}
@@ -157,7 +158,7 @@ export const PasskeySettings: React.FC = () => {
           type="button"
           onClick={handleRegister}
           disabled={loading || loadingPasskeys || atLimit}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-[11px] uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white min-h-11 text-xs font-semibold rounded-full transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />

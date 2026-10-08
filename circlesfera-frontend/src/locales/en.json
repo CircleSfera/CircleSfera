@@ -408,10 +408,15 @@
       "blocked": "Notifications are blocked in your browser settings.",
       "browser_capability": "Browser Capability",
       "status": "Status",
+      "permission": {
+        "default": "Not decided",
+        "granted": "Allowed",
+        "denied": "Blocked"
+      },
       "pwa_support": "PWA Support",
-      "enabled": "ENABLED",
-      "not_supported": "NOT SUPPORTED",
-      "not_registered": "NOT REGISTERED",
+      "enabled": "Enabled",
+      "not_supported": "Not supported",
+      "not_registered": "Not registered",
       "enabling": "Enabling native alerts…",
       "disabling": "Disabling native alerts…",
       "subscribe_success": "Native alerts enabled",
