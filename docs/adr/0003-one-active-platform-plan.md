@@ -1,6 +1,7 @@
 # ADR-0003: One active platform subscription plan per user
 
 - **Status:** Accepted (current behavior, documented 2026-07-23)
+- **To be superseded in part by:** [ADR-0025](./0025-sign-in-per-profile-one-identity.md), when its step 6 is on `main`: the rule becomes one active plan per Profile. Until then this record describes the code.
 - **Date:** 2026-07-23
 - **Deciders:** CircleSfera engineering (remediation pass)
 
