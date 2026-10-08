@@ -27,8 +27,13 @@ export class SearchController {
   async search(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
+    @Query('verified') verified?: string,
   ): Promise<any> {
-    const results = await this.searchService.search(query, user.profileId);
+    const results = await this.searchService.search(
+      query,
+      user.profileId,
+      verified === 'true',
+    );
     return results;
   }
 
@@ -81,8 +86,13 @@ export class SearchController {
   async searchUsers(
     @Query('q') query: string,
     @CurrentUser() user: CurrentUserData,
+    @Query('verified') verified?: string,
   ): Promise<any[]> {
-    return this.searchService.searchUsers(query, user.profileId);
+    return this.searchService.searchUsers(
+      query,
+      user.profileId,
+      verified === 'true',
+    );
   }
 
   // Get the user's recent search history.
