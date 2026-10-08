@@ -4100,10 +4100,13 @@
   },
   "backoffice": {
     "title": "Backoffice",
+    "nav": {
+      "business": "Business"
+    },
     "home": {
       "title": "The business of CircleSfera",
-      "description": "Plans, creator payouts, promotions, the newsletter and support are run here. Moderation and the platform stay in the Admin Panel.",
-      "sections_note": "The sections are moving from the Admin Panel. Until then, they are used there."
+      "description": "Support, promotions, creator payouts, monetization and the newsletter are run here. Moderation and the platform stay in the Admin Panel.",
+      "sections_note": "Your account has no permission for any section of the Backoffice. Ask whoever manages the roles."
     }
   },
   "adminPanel": {

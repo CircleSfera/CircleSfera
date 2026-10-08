@@ -4100,10 +4100,13 @@
   },
   "backoffice": {
     "title": "Backoffice",
+    "nav": {
+      "business": "Negocio"
+    },
     "home": {
       "title": "El negocio de CircleSfera",
-      "description": "Aquí se llevan los planes, los pagos a creadores, las promociones, el boletín y el soporte. La moderación y la plataforma siguen en el Admin Panel.",
-      "sections_note": "Las secciones se están trasladando desde el Admin Panel. Hasta entonces, se usan allí."
+      "description": "Aquí se llevan el soporte, las promociones, los pagos a creadores, la monetización y el boletín. La moderación y la plataforma siguen en el Admin Panel.",
+      "sections_note": "Tu cuenta no tiene permiso para ninguna sección del Backoffice. Pídeselo a quien administra los roles."
     }
   },
   "adminPanel": {

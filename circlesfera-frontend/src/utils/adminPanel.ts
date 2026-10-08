@@ -90,6 +90,34 @@ export function adminPanelOrigin(): string {
   return 'https://admin.circlesfera.com';
 }
 
+export function backofficeOrigin(): string {
+  if (typeof window !== 'undefined' && isBackofficeHost()) {
+    return window.location.origin;
+  }
+
+  const configured = import.meta.env.VITE_BACKOFFICE_HOST as string | undefined;
+  if (configured) {
+    if (isLocalHostname(configured)) {
+      const port =
+        typeof window !== 'undefined' && window.location.port
+          ? window.location.port
+          : '5173';
+      return `http://${configured}${port ? `:${port}` : ''}`;
+    }
+    return `https://${configured}`;
+  }
+
+  if (
+    typeof window !== 'undefined' &&
+    isLocalHostname(window.location.hostname)
+  ) {
+    const { protocol, port } = window.location;
+    return `${protocol}//backoffice.localhost${port ? `:${port}` : ''}`;
+  }
+
+  return 'https://backoffice.circlesfera.com';
+}
+
 export function platformOrigin(): string {
   if (typeof window === 'undefined') return 'https://circlesfera.com';
   if (!isStaffHost()) return window.location.origin;
