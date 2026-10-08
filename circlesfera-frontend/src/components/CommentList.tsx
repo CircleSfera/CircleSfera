@@ -1,12 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Heart,
-  Image as ImageIcon,
-  MessageCircle,
-  Send,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { Heart, Image as ImageIcon, Send, Trash2, X } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -127,22 +120,11 @@ const CommentItem = ({
                 onClick={() => onLike(comment.id, isLiked)}
                 variant="ghost"
                 size="icon"
-                className={`w-8 h-8 p-0 transition-colors ${isLiked ? 'text-red-500' : 'text-gray-300 hover:text-red-400'}`}
+                className={`w-11 h-11 p-0 transition-colors ${isLiked ? 'text-brand-secondary' : 'text-gray-300 hover:text-brand-secondary'}`}
                 title={isLiked ? t('comments.unlike') : t('comments.like')}
                 aria-label={isLiked ? t('comments.unlike') : t('comments.like')}
               >
-                <Heart size={14} fill={isLiked ? 'currentColor' : 'none'} />
-              </Button>
-
-              <Button
-                onClick={() => onReply(comment)}
-                variant="ghost"
-                size="icon"
-                className="w-8 h-8 p-0 text-gray-300 hover:text-purple-400 transition-colors"
-                title={t('comments.reply')}
-                aria-label={t('comments.reply')}
-              >
-                <MessageCircle size={14} />
+                <Heart size={16} fill={isLiked ? 'currentColor' : 'none'} />
               </Button>
 
               {isOwner && (
@@ -151,22 +133,22 @@ const CommentItem = ({
                   disabled={isDeleting}
                   variant="ghost"
                   size="icon"
-                  className="w-8 h-8 p-0 text-gray-300 hover:text-red-400 transition-colors"
+                  className="w-11 h-11 p-0 text-gray-300 hover:text-brand-secondary transition-colors"
                   title={t('comments.delete')}
                   aria-label={t('comments.delete')}
                 >
-                  <Trash2 size={14} />
+                  <Trash2 size={16} />
                 </Button>
               )}
             </div>
           </div>
 
-          <div className="flex items-center gap-4 mt-1.5">
-            <span className="text-xs text-gray-500">
+          <div className="flex items-center gap-4 -mt-2">
+            <span className="text-xs text-gray-400">
               {formatDate(comment.createdAt, i18n.language)}
             </span>
             {likesCount > 0 && (
-              <span className="text-xs font-semibold text-gray-500">
+              <span className="text-xs font-semibold text-gray-400">
                 {t(
                   likesCount === 1
                     ? 'comments.likes_count'
@@ -178,7 +160,7 @@ const CommentItem = ({
             <Button
               onClick={() => onReply(comment)}
               variant="ghost"
-              className="h-auto p-0 text-xs font-semibold text-gray-500 hover:text-white hover:bg-transparent transition-colors"
+              className="min-h-11 h-auto px-2 -mx-2 text-xs font-semibold text-gray-400 hover:text-white hover:bg-transparent transition-colors"
             >
               {t('comments.reply')}
             </Button>
@@ -328,6 +310,10 @@ export default function CommentList({
     inputRef.current?.focus();
   };
 
+  // In the narrow columns (frame comments, post detail) the send action is an
+  // icon, so the field keeps its width.
+  const iconOnlySend = compactComposer || isDetailMode;
+
   const composerForm = (
     <form
       onSubmit={handleSubmit}
@@ -345,7 +331,8 @@ export default function CommentList({
             onClick={() => setReplyingTo(null)}
             variant="ghost"
             size="icon"
-            className="w-7 h-7 text-gray-300 hover:text-white rounded-full shrink-0"
+            className="w-11 h-11 -my-1.5 -mr-1.5 text-gray-300 hover:text-white rounded-full shrink-0"
+            aria-label={t('common.cancel')}
           >
             <X size={14} />
           </Button>
@@ -363,9 +350,10 @@ export default function CommentList({
             onClick={() => setMedia(null)}
             variant="danger"
             size="icon"
-            className="absolute -top-2 -right-2 w-6 h-6 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
+            className="absolute -top-3 -right-3 w-11 h-11 rounded-full shadow-lg"
+            aria-label={t('comments.remove_media')}
           >
-            <X size={12} />
+            <X size={16} />
           </Button>
         </div>
       )}
@@ -421,11 +409,11 @@ export default function CommentList({
               ? t('comments.reply_to_user', {
                   username: replyingTo.profile.username,
                 })
-              : compactComposer
+              : iconOnlySend
                 ? t('comments.add_comment_short')
                 : t('comments.add_comment')
           }
-          className={`flex-1 min-w-0 ${compactComposer ? 'px-3 py-2.5' : 'px-4 py-2.5'} bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-purple-500/50 focus:border-transparent text-sm text-white placeholder-gray-500 outline-none transition-all`}
+          className={`flex-1 min-w-0 min-h-12 ${compactComposer ? 'px-3' : 'px-4'} bg-white/5 border border-white/10 rounded-full focus:ring-2 focus:ring-brand-primary/50 focus:border-transparent text-sm text-white placeholder-gray-400 outline-none transition-all`}
         />
         <Button
           type="submit"
@@ -434,17 +422,14 @@ export default function CommentList({
           variant="primary"
           size="icon"
           className={
-            compactComposer
-              ? 'rounded-full border-transparent shadow-lg shadow-purple-500/20'
-              : 'rounded-full border-transparent shadow-lg shadow-purple-500/20 sm:w-auto sm:min-h-11 sm:h-11 sm:px-5 sm:gap-2'
+            iconOnlySend
+              ? 'rounded-full border-transparent shadow-lg shadow-brand-primary/20'
+              : 'rounded-full border-transparent shadow-lg shadow-brand-primary/20 sm:w-auto sm:min-h-11 sm:h-11 sm:px-5 sm:gap-2'
           }
           aria-label={t('comments.post')}
         >
-          <Send
-            size={18}
-            className={compactComposer ? undefined : 'sm:hidden'}
-          />
-          {!compactComposer && (
+          <Send size={18} className={iconOnlySend ? undefined : 'sm:hidden'} />
+          {!iconOnlySend && (
             <span className="hidden sm:inline text-sm font-semibold">
               {t('comments.post')}
             </span>

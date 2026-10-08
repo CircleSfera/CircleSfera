@@ -49,11 +49,11 @@ const VisibilityIcon = ({ post }: { post: Post }) => {
   // Visibility may be on the base Post from shared; access safely
   const v = (post as any).visibility as string | undefined;
   if (!v || v === 'PUBLIC')
-    return <Globe size={11} className="text-gray-400" aria-hidden="true" />;
+    return <Globe size={12} className="text-gray-400" aria-hidden="true" />;
   if (v === 'FOLLOWERS')
-    return <Users size={11} className="text-gray-400" aria-hidden="true" />;
+    return <Users size={12} className="text-gray-400" aria-hidden="true" />;
   if (v === 'PRIVATE')
-    return <Lock size={11} className="text-gray-400" aria-hidden="true" />;
+    return <Lock size={12} className="text-gray-400" aria-hidden="true" />;
   return null;
 };
 
@@ -87,7 +87,7 @@ export default function PostHeader({
         <button
           type="button"
           onClick={() => navigate(-1)}
-          className="p-1.5 -ml-1 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all shrink-0 active:scale-95 cursor-pointer"
+          className="w-11 h-11 -ml-2 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all shrink-0 active:scale-95 cursor-pointer"
           aria-label={t('common.back')}
         >
           <ArrowLeft size={20} />
@@ -121,7 +121,7 @@ export default function PostHeader({
       {/* Author info */}
       <Link
         to={`/${post.profile.username}`}
-        className="flex-1 min-w-0 hover:opacity-80 transition-opacity"
+        className="flex-1 min-w-0 min-h-11 flex flex-col justify-center hover:opacity-80 transition-opacity"
         onClick={handleProfileClick}
       >
         {/* Display name + verification */}
@@ -152,27 +152,15 @@ export default function PostHeader({
 
         {/* Username + timestamp + visibility */}
         <div className="flex items-center gap-1 mt-0.5">
-          <span
-            className="font-medium text-gray-400 truncate leading-tight"
-            style={{ fontSize: 'var(--text-badge, 11px)' }}
-          >
+          <span className="text-xs font-medium text-gray-400 truncate leading-tight">
             @{post.profile.username}
           </span>
           {timeAgo && (
             <>
-              <span
-                className="text-gray-400"
-                style={{ fontSize: 9 }}
-                aria-hidden
-              >
+              <span className="text-xs text-gray-400" aria-hidden>
                 ·
               </span>
-              <span
-                className="text-gray-400 shrink-0"
-                style={{ fontSize: 'var(--text-badge, 11px)' }}
-              >
-                {timeAgo}
-              </span>
+              <span className="text-xs text-gray-400 shrink-0">{timeAgo}</span>
             </>
           )}
           <VisibilityIcon post={post} />
