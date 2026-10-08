@@ -16,13 +16,15 @@ const PLANS = [
   },
   {
     match: ['elite'],
-    description: 'Elite badge and a feed without promoted posts.',
-    features: ['verified_badge', 'no_promoted_content'],
+    description:
+      'Elite badge, a feed without promoted posts and advanced analytics.',
+    features: ['verified_badge', 'no_promoted_content', 'advanced_analytics'],
   },
   {
     match: ['business'],
-    description: 'Business badge and a feed without promoted posts.',
-    features: ['verified_badge', 'no_promoted_content'],
+    description:
+      'Business badge, a feed without promoted posts and advanced analytics.',
+    features: ['verified_badge', 'no_promoted_content', 'advanced_analytics'],
   },
 ] as const;
 

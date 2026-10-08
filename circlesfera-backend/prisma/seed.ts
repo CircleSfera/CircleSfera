@@ -182,13 +182,18 @@ async function main() {
       update: {},
       create: {
         name: 'Elite Creator',
-        description: 'Elite badge and a feed without promoted posts.',
+        description:
+          'Elite badge, a feed without promoted posts and advanced analytics.',
         priceCents: 1999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQG21Jd98Vidi',
         stripePriceId: 'price_1TtdPZIEniBX3suAnR6uNNsN',
-        features: ['verified_badge', 'no_promoted_content'],
+        features: [
+          'verified_badge',
+          'no_promoted_content',
+          'advanced_analytics',
+        ],
       },
     });
 
@@ -197,13 +202,18 @@ async function main() {
       update: {},
       create: {
         name: 'Business',
-        description: 'Business badge and a feed without promoted posts.',
+        description:
+          'Business badge, a feed without promoted posts and advanced analytics.',
         priceCents: 4999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQGy36G3SscjF',
         stripePriceId: 'price_1TtdPaIEniBX3suAm9IfVW1o',
-        features: ['verified_badge', 'no_promoted_content'],
+        features: [
+          'verified_badge',
+          'no_promoted_content',
+          'advanced_analytics',
+        ],
       },
     });
 
