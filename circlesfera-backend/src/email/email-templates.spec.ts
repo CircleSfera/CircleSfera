@@ -127,4 +127,18 @@ describe('fill and escapeHtml', () => {
       '&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;',
     );
   });
+
+  it('links the support reply to the request when it is given one', () => {
+    const withLink = EmailTemplates.supportReply(
+      en,
+      'Help',
+      'Fixed.',
+      'https://circlesfera.com/support/requests/t-1',
+    ).html;
+    const without = EmailTemplates.supportReply(en, 'Help', 'Fixed.').html;
+
+    expect(withLink).toContain('https://circlesfera.com/support/requests/t-1');
+    expect(withLink).toContain('See your request');
+    expect(without).not.toContain('See your request');
+  });
 });

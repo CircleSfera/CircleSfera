@@ -314,6 +314,29 @@ describe('SlackService', () => {
     });
   });
 
+  describe('sendSupportReplyAlert', () => {
+    it('tells the support channel the number and subject of the ticket, and not what was written', async () => {
+      await service.sendSupportReplyAlert({
+        id: 'tick-1',
+        reference: 42,
+        subject: 'Cannot login',
+        // Fields a caller may hold; none of them belongs in the alert.
+        email: 'user@example.com',
+        requesterRef: 'u-1',
+      } as never);
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/support',
+        expect.anything(),
+        { timeout: 5_000 },
+      );
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain('#42');
+      expect(sent).toContain('Cannot login');
+      expect(sent).not.toContain('user@example.com');
+    });
+  });
+
   describe('sendSupportAlert', () => {
     it('sends support alert with ticket details and reply button', async () => {
       const ticket: any = {

@@ -283,6 +283,8 @@ export const EmailTemplates = {
     ctx: EmailContext,
     originalSubject: string,
     reply: string,
+    // Where the requester reads the conversation and answers.
+    requestUrl?: string,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {
@@ -290,6 +292,9 @@ export const EmailTemplates = {
       html: layout(ctx, copy, {
         title: copy.supportReply.title,
         content: escapeHtml(reply).replace(/\n/g, '<br>'),
+        ...(requestUrl && {
+          button: { text: copy.supportReply.button, url: requestUrl },
+        }),
       }),
     };
   },

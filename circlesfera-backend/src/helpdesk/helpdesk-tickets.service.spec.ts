@@ -18,7 +18,7 @@ describe('HelpdeskTicketsService', () => {
   const accountCards = { accountCard: vi.fn() };
   const handover = { open: vi.fn(), withdraw: vi.fn(), cases: vi.fn() };
   const notifier = { answer: vi.fn() };
-  const teamChannel = { ticketOpened: vi.fn() };
+  const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
   const staffLog = { record: vi.fn() };
   let service: HelpdeskTicketsService;
 
@@ -56,6 +56,7 @@ describe('HelpdeskTicketsService', () => {
     store.messages.mockResolvedValue([]);
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
+    teamChannel.requesterReplied.mockResolvedValue(undefined);
     service = new HelpdeskTicketsService(
       store as never,
       requesters,
@@ -215,7 +216,11 @@ describe('HelpdeskTicketsService', () => {
 
     it('sends an answer: the message, the ticket solved, the requester told, the action recorded', async () => {
       store.findTicket.mockResolvedValue(ticket);
-      store.updateTicket.mockResolvedValue({ ...ticket, status: 'RESOLVED' });
+      store.updateTicket.mockResolvedValue({
+        ...ticket,
+        reference: 42,
+        status: 'RESOLVED',
+      });
 
       await service.addMessage('admin-1', 't-1', answer);
 
@@ -229,8 +234,15 @@ describe('HelpdeskTicketsService', () => {
           body: 'Fixed.',
         },
       );
+      // What the notice needs, and nothing else of the ticket.
       expect(notifier.answer).toHaveBeenCalledWith(
-        expect.objectContaining({ email: 'ana@example.com' }),
+        {
+          id: 't-1',
+          reference: 42,
+          subject: ticket.subject,
+          email: 'ana@example.com',
+          requesterRef: 'u-1',
+        },
         'Fixed.',
       );
       expect(staffLog.record).toHaveBeenCalledWith(
@@ -490,13 +502,30 @@ describe('HelpdeskTicketsService', () => {
       expect(store.findRequesterTicket).not.toHaveBeenCalled();
     });
 
-    it('tells the requester nothing through email or the staff log for their own reply', async () => {
+    it('tells the team about their reply, and not the requester or the staff log', async () => {
       store.findRequesterTicket.mockResolvedValue(stored);
 
       await service.replyToMyTicket('u-1', 't-1', { body: 'Hello' });
 
+      expect(teamChannel.requesterReplied).toHaveBeenCalledWith({
+        id: 't-1',
+        reference: 42,
+        subject: ticket.subject,
+        email: 'ana@example.com',
+        requesterRef: 'u-1',
+      });
       expect(notifier.answer).not.toHaveBeenCalled();
       expect(staffLog.record).not.toHaveBeenCalled();
+    });
+
+    it('keeps the reply when the team could not be told', async () => {
+      store.findRequesterTicket.mockResolvedValue(stored);
+      teamChannel.requesterReplied.mockRejectedValue(new Error('channel down'));
+
+      await expect(
+        service.replyToMyTicket('u-1', 't-1', { body: 'Hello' }),
+      ).resolves.toBeDefined();
+      expect(store.updateTicket).toHaveBeenCalledTimes(1);
     });
   });
 

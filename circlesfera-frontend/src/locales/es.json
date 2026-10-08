@@ -1657,6 +1657,8 @@
     "title": "Actividad",
     "no_activity": "No hay actividad aún",
     "view_post": "Ver la publicación",
+    "from_support": "Soporte",
+    "view_request": "Ver la solicitud",
     "unknown_user": "Desconocido",
     "error_title": "No se pudieron cargar las notificaciones",
     "error_message": "Algo salió mal. Inténtalo de nuevo.",

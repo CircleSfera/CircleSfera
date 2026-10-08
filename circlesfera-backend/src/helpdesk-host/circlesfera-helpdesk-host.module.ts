@@ -10,13 +10,14 @@ import {
   TEAM_CHANNEL,
 } from '../helpdesk/helpdesk-host.contracts.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { SlackModule } from '../slack/slack.module.js';
 import {
   AdminAuditStaffActionLog,
   CircleSferaAccountCard,
   CircleSferaOrganizationScope,
   CircleSferaRequesterDirectory,
-  EmailRequesterNotifier,
-  EventTeamChannel,
+  CircleSferaRequesterNotifier,
+  CircleSferaTeamChannel,
   ModerationHandover,
 } from './circlesfera-helpdesk-host.js';
 
@@ -25,14 +26,14 @@ const contracts = [
   { provide: REQUESTER_DIRECTORY, useClass: CircleSferaRequesterDirectory },
   { provide: ACCOUNT_CARD_PROVIDER, useClass: CircleSferaAccountCard },
   { provide: HANDOVER_GATEWAY, useClass: ModerationHandover },
-  { provide: REQUESTER_NOTIFIER, useClass: EmailRequesterNotifier },
-  { provide: TEAM_CHANNEL, useClass: EventTeamChannel },
+  { provide: REQUESTER_NOTIFIER, useClass: CircleSferaRequesterNotifier },
+  { provide: TEAM_CHANNEL, useClass: CircleSferaTeamChannel },
   { provide: STAFF_ACTION_LOG, useClass: AdminAuditStaffActionLog },
 ];
 
 /** CircleSfera's side of the Help Desk contracts. */
 @Module({
-  imports: [PrismaModule, EmailModule],
+  imports: [PrismaModule, EmailModule, SlackModule],
   providers: contracts,
   exports: contracts.map((contract) => contract.provide),
 })

@@ -210,11 +210,20 @@ export class EmailService {
     email: string,
     originalSubject: string,
     replyText: string,
+    // The request the reply belongs to: the email links to its page.
+    ticketId?: string,
   ) {
     const ctx = await this.contextFor(email);
     await this.send(
       email,
-      EmailTemplates.supportReply(ctx, originalSubject, replyText),
+      EmailTemplates.supportReply(
+        ctx,
+        originalSubject,
+        replyText,
+        ticketId
+          ? `${ctx.frontendUrl}/support/requests/${encodeURIComponent(ticketId)}`
+          : undefined,
+      ),
     );
   }
 

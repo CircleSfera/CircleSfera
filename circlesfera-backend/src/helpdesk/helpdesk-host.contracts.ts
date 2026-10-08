@@ -53,17 +53,28 @@ export interface HandoverGateway {
   cases(caseRefs: string[]): Promise<Map<string, HandoverCase>>;
 }
 
+/** What a notice about a ticket needs to know of it. */
+export interface TicketNotice {
+  id: string;
+  reference: number;
+  subject: string;
+  email: string;
+  requesterRef: string | null;
+}
+
 export interface RequesterNotifier {
-  /** Sends the team's answer to the requester. */
-  answer(
-    ticket: { email: string; subject: string },
-    body: string,
-  ): Promise<void>;
+  /**
+   * Tells the requester the team answered: by email, and inside the host
+   * product when the requester still exists there.
+   */
+  answer(ticket: TicketNotice, body: string): Promise<void>;
 }
 
 export interface TeamChannel {
   /** Tells the team a ticket was opened. */
   ticketOpened(ticket: object): void;
+  /** Tells the team the requester answered in a ticket. */
+  requesterReplied(ticket: TicketNotice): Promise<void>;
 }
 
 export interface StaffActionLog {
