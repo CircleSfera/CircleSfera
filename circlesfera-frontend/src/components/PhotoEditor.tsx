@@ -1,13 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  Check,
   Crop,
   RotateCcw,
   Scissors,
   SlidersHorizontal,
   Sparkles,
   Trash2,
-  X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
@@ -15,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import type { OverlayElement } from '../services/edits.service';
 import { clampFrameWindow } from '../utils/frameClip';
 import CanvasOverlay from './CanvasOverlay';
+import EditorHeader, { EditorHeaderAction } from './create-post/EditorHeader';
 import FrameClipControls from './create-post/FrameClipControls';
 import {
   DEFAULT_PHOTO_ADJUSTMENTS,
@@ -326,42 +325,32 @@ export default function PhotoEditor({
 
   return (
     <div className="flex flex-col h-full bg-black text-white">
-      {/* Header — same glass icon language as StoryComposerChrome */}
-      <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent min-h-11">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
-          aria-label={t('createPost.edit.cancel')}
-        >
-          <X size={16} strokeWidth={2} />
-        </button>
-        <h1 className="text-sm font-semibold tracking-tight text-white truncate flex-1 text-center px-1">
-          {t('createPost.edit.edit_media')}
-        </h1>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {onApplyToAll && (
-            <button
-              type="button"
-              onClick={() => {
-                const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}__temp:${adjustments.temperature}__vignette:${adjustments.vignette}__noise:${adjustments.noise}`;
-                onApplyToAll(filterString);
-              }}
-              className="min-h-11 px-2.5 text-[11px] font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
-            >
-              {t('createPost.edit.apply_to_all')}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleSave}
-            className="min-h-11 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
-            aria-label={t('createPost.edit.done')}
-          >
-            {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />
-          </button>
-        </div>
-      </header>
+      <EditorHeader
+        surface="overlay"
+        leading="close"
+        leadingLabel={t('createPost.edit.cancel')}
+        onLeading={onCancel}
+        title={t('createPost.edit.edit_media')}
+        trailing={
+          <>
+            {onApplyToAll && (
+              <EditorHeaderAction
+                kind="plain"
+                label={t('createPost.edit.apply_to_all')}
+                onClick={() => {
+                  const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}__temp:${adjustments.temperature}__vignette:${adjustments.vignette}__noise:${adjustments.noise}`;
+                  onApplyToAll(filterString);
+                }}
+              />
+            )}
+            <EditorHeaderAction
+              label={t('createPost.edit.done')}
+              onClick={handleSave}
+              withCheck
+            />
+          </>
+        }
+      />
 
       {/* Preview Area */}
       <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 min-h-0">
@@ -478,7 +467,7 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
-                className="flex overflow-x-auto items-center gap-2 px-3 no-scrollbar snap-x touch-pan-x"
+                className="flex overflow-x-auto items-start gap-3 px-4 scroll-px-4 no-scrollbar snap-x touch-pan-x"
               >
                 {FILTERS.map((filter) => (
                   <button
@@ -488,7 +477,7 @@ export default function PhotoEditor({
                     className="flex flex-col items-center gap-1 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
                   >
                     <div
-                      className={`w-11 h-11 rounded-lg overflow-hidden border transition-colors ${
+                      className={`w-14 h-14 rounded-xl overflow-hidden border transition-colors ${
                         selectedFilter.name === filter.name
                           ? 'border-brand-primary'
                           : 'border-white/10'
@@ -501,7 +490,7 @@ export default function PhotoEditor({
                       />
                     </div>
                     <span
-                      className={`text-[9px] font-semibold uppercase tracking-wide leading-none ${
+                      className={`text-xs font-medium leading-none ${
                         selectedFilter.name === filter.name
                           ? 'text-white'
                           : 'text-white/40'
@@ -519,7 +508,7 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
-                className="w-full max-w-sm mx-auto px-3"
+                className="w-full sm:max-w-sm mx-auto px-4"
               >
                 {ADJUSTMENT_CONFIG.map((adj) =>
                   activeAdjustment === adj.key ? (
@@ -651,7 +640,7 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
-                className="w-full max-w-sm mx-auto flex flex-col gap-2.5 px-3 py-1"
+                className="w-full sm:max-w-sm mx-auto flex flex-col gap-2.5 px-4 py-1"
               >
                 <div className="flex justify-between gap-1.5">
                   {(
@@ -722,7 +711,7 @@ export default function PhotoEditor({
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.12 }}
-                className="w-full max-w-sm mx-auto flex flex-col gap-2.5 px-3 py-1"
+                className="w-full sm:max-w-sm mx-auto flex flex-col gap-2.5 px-4 py-1"
               >
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <button
@@ -840,7 +829,7 @@ export default function PhotoEditor({
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="flex overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-2 gap-0.5">
+                <div className="flex overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-4 scroll-px-4 gap-0.5">
                   {ADJUSTMENT_CONFIG.map((adj) => {
                     const isActive = activeAdjustment === adj.key;
                     const isModified =

@@ -128,6 +128,31 @@ describe('TrackItem controls', () => {
     expect(options).toHaveAttribute('aria-expanded', 'false');
   });
 
+  it('asks in the app dialog before removing a track that has clips', () => {
+    const second: Track = { ...track, id: 'track-2', name: 'V2' };
+    useStudioStore.setState({
+      project: { ...project, tracks: [track, second] },
+    });
+    const { i18n } = renderWithProviders(<TrackItem track={track} />);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('studio.tracks.remove') }),
+    );
+
+    expect(
+      screen.getByText(i18n!.t('studio.tracks.remove_confirm')),
+    ).toBeInTheDocument();
+    expect(useStudioStore.getState().project?.tracks).toHaveLength(2);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.confirm') }),
+    );
+
+    expect(useStudioStore.getState().project?.tracks.map((t) => t.id)).toEqual([
+      'track-2',
+    ]);
+  });
+
   it('mutes the track from its controls, opened first as on a phone', () => {
     const { i18n, rerender } = renderWithProviders(<TrackItem track={track} />);
 

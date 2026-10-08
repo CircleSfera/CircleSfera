@@ -56,7 +56,7 @@ export default function StoryElementEditPanel({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.25 }}
-      className="px-4 pb-4 space-y-3"
+      className="px-3 pb-4 space-y-3"
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">

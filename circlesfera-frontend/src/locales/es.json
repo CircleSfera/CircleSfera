@@ -1256,14 +1256,14 @@
   "createPost": {
     "accessibility": {
       "title": "Accesibilidad",
-      "subtitle": "Optimiza para lectores de pantalla",
+      "subtitle": "Para quienes usan lector de pantalla",
       "done": "Listo",
-      "info": "El texto alternativo describe tus fotos para personas con discapacidad visual. CircleSfera puede ayudarte a generarlos usando nuestra IA propietaria.",
+      "info": "El texto alternativo describe tus fotos a quienes no pueden verlas. Escríbelo o genéralo.",
       "info_video": "Describe este video para quien no pueda verlo o escucharlo. CircleSfera aún no genera descripciones de video automáticamente.",
       "placeholder": "Escribe el texto alternativo...",
       "placeholder_video": "Describe este video…",
       "generating": "Generando...",
-      "magic_ai": "IA Mágica"
+      "magic_ai": "Generar"
     },
     "preview": {
       "play": "Reproducir",
@@ -1297,7 +1297,7 @@
       "hide_like_view": "Ocultar recuento de me gusta y visualizaciones",
       "hide_like_view_desc": "Solo tú verás el número total de me gusta y visualizaciones en esta publicación.",
       "turn_off_comments": "Desactivar comentarios",
-      "turn_off_comments_desc": "Puedes cambiar esto más tarde en el menú ... en la parte superior de tu publicación.",
+      "turn_off_comments_desc": "Puedes cambiarlo después desde el menú de la publicación.",
       "mark_sensitive": "Marcar como contenido sensible",
       "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra.",
       "price_eur": "Precio (EUR)"
@@ -1372,13 +1372,13 @@
       "back": "Volver"
     },
     "interactive": {
-      "title": "Interactivo",
+      "title": "Encuesta o preguntas",
       "none": "Ninguno",
       "poll": "Encuesta",
       "qna": "Preguntas",
-      "add": "Añadir encuesta o Q&A",
+      "add": "Añadir encuesta o preguntas",
       "poll_attached": "Encuesta adjunta",
-      "qna_attached": "Q&A adjunto",
+      "qna_attached": "Preguntas adjuntas",
       "poll_question": "Haz una pregunta…",
       "option_a": "Opción A",
       "option_b": "Opción B",
@@ -1411,10 +1411,10 @@
       "suggested": "Ubicación Sugerida",
       "not_found": "No se encontraron ubicaciones",
       "try_different": "Intenta buscar una ciudad o región diferente.",
-      "token_missing": "Falta el token de Mapbox. Define VITE_MAPBOX_ACCESS_TOKEN para buscar lugares.",
+      "token_missing": "La búsqueda de lugares no está disponible ahora.",
       "retrieve_failed": "No se pudo resolver ese lugar. Prueba otro resultado.",
       "clear": "Quitar",
-      "mapbox_hint": "Búsqueda con Mapbox. Elige un lugar para adjuntar coordenadas a tu publicación."
+      "mapbox_hint": "Elige un lugar para añadirlo a tu publicación. Lugares de Mapbox."
     },
     "upload": {
       "post": "Post",
@@ -1465,7 +1465,7 @@
       "tool_templates": "Plantillas",
       "tool_draw": "Dibujar",
       "tool_poll": "Encuesta",
-      "tool_qna": "Q&A",
+      "tool_qna": "Preguntas",
       "tool_more": "Más",
       "sticker_categories": {
         "popular": "Populares",

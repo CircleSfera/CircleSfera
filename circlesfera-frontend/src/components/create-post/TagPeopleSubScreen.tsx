@@ -6,6 +6,7 @@ import type { MediaFile, PostTagData } from '../../hooks/useCreatePost';
 import { searchApi } from '../../services/search.service';
 import type { Profile } from '../../types';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
+import { EditorHeaderAction } from './EditorHeader';
 import SubScreenHeader from './SubScreenHeader';
 
 interface TagPeopleSubScreenProps {
@@ -120,19 +121,16 @@ export default function TagPeopleSubScreen({
         title={t('createPost.tags.title')}
         onClose={onClose}
         trailing={
-          <button
-            type="button"
+          <EditorHeaderAction
+            label={t('createPost.tags.done')}
             onClick={onClose}
-            className="px-3.5 h-11 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
-          >
-            {t('createPost.tags.done')}
-          </button>
+          />
         }
       />
 
       <div className="flex flex-col min-h-0 max-md:flex-1">
-        <div className="relative bg-black flex items-center justify-center px-3 pt-2 pb-2 shrink-0">
-          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center pointer-events-none px-3">
+        <div className="relative bg-black flex items-center justify-center px-4 pt-2 pb-2 shrink-0">
+          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center pointer-events-none px-4">
             <span className="bg-black/55 backdrop-blur-md px-3 py-1 rounded-full text-white/85 text-[11px] font-medium">
               {t('createPost.tags.tap_photo')}
             </span>
@@ -202,7 +200,7 @@ export default function TagPeopleSubScreen({
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="border-t border-white/8 bg-surface-elevated px-3 py-2.5 space-y-2 shrink-0"
+              className="border-t border-white/8 bg-surface-elevated px-4 py-2.5 space-y-2 shrink-0"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-white/50">
@@ -283,7 +281,7 @@ export default function TagPeopleSubScreen({
         </AnimatePresence>
 
         {mediaFiles.length > 1 && (
-          <div className="px-3 py-2 flex gap-2 overflow-x-auto border-t border-white/8 no-scrollbar shrink-0">
+          <div className="px-4 py-2 flex gap-2 overflow-x-auto border-t border-white/8 no-scrollbar shrink-0">
             {mediaFiles.map((file, idx) => (
               <button
                 type="button"
@@ -317,7 +315,7 @@ export default function TagPeopleSubScreen({
           </div>
         )}
 
-        <div className="border-t border-white/8 px-3 py-2.5 space-y-2 max-md:flex-1 max-md:overflow-y-auto pb-3">
+        <div className="border-t border-white/8 px-4 py-2.5 space-y-2 max-md:flex-1 max-md:overflow-y-auto pb-3">
           <h3 className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
             {t('createPost.tags.tags_on_photo')}
           </h3>

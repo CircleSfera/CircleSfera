@@ -27,7 +27,7 @@ export default function StudioToolDock() {
       aria-label={t('studio.tools.dock_label')}
       className="shrink-0 border-t border-white/10 bg-surface-elevated safe-area-bottom"
     >
-      <div className="flex items-stretch justify-around px-1 pt-1 pb-1">
+      <div className="flex items-stretch justify-around px-4 pt-1 pb-1">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           const isActive = openSheet === tool.id || activeTab === tool.id;

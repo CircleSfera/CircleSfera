@@ -145,7 +145,7 @@ export default function StoryTextTakeoverChrome({
             />
           )}
 
-          <div className="px-3 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="px-4 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
             {STYLE_COLORS.map((c) => (
               <button
                 type="button"

@@ -495,7 +495,7 @@ export default function Studio() {
       <div className="flex-1 min-h-0 md:h-[35vh] md:max-h-[40vh] md:flex-none flex flex-col bg-surface-elevated relative shrink-0 border-b border-white/10">
         {/* Phones: the tools on one row and the zoom on the next, so no tool
             is cut. One row from md up. */}
-        <div className="min-h-11 py-1 flex flex-wrap md:flex-nowrap items-center justify-between px-2 sm:px-3 border-b border-white/10 shrink-0 gap-x-2 gap-y-1">
+        <div className="min-h-11 py-1 flex flex-wrap md:flex-nowrap items-center justify-between px-4 border-b border-white/10 shrink-0 gap-x-2 gap-y-1">
           <div className="flex items-center gap-1 min-w-0 overflow-x-auto no-scrollbar">
             <button
               type="button"

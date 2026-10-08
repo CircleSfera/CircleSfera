@@ -16,6 +16,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import type { Clip, MediaClip, Track } from '../../types/studio';
+import ConfirmModal from '../modals/ConfirmModal';
 
 interface TrackItemProps {
   track: Track;
@@ -24,6 +25,7 @@ interface TrackItemProps {
 
 export default function TrackItem({ track, compact = true }: TrackItemProps) {
   const [controlsOpen, setControlsOpen] = useState(false);
+  const [confirmingRemove, setConfirmingRemove] = useState(false);
   const { t } = useTranslation();
   const {
     project,
@@ -43,9 +45,16 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
       toast.error(t('studio.tracks.keep_one_video'));
       return;
     }
+    // A track with clips asks first, in the app's own dialog.
     if (track.clips.length > 0) {
-      if (!window.confirm(t('studio.tracks.remove_confirm'))) return;
+      setConfirmingRemove(true);
+      return;
     }
+    confirmRemove();
+  };
+
+  const confirmRemove = () => {
+    setConfirmingRemove(false);
     removeTrack(track.id);
     toast.success(t('studio.tracks.removed'));
   };
@@ -158,6 +167,15 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
           <ClipItem key={clip.id} clip={clip} zoom={zoom} />
         ))}
       </div>
+
+      <ConfirmModal
+        isOpen={confirmingRemove}
+        onClose={() => setConfirmingRemove(false)}
+        onConfirm={confirmRemove}
+        title={t('studio.tracks.remove')}
+        message={t('studio.tracks.remove_confirm')}
+        isDestructive
+      />
     </div>
   );
 }

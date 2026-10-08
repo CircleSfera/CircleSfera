@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
 import { Textarea } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import { EditorHeaderAction } from './EditorHeader';
 import SubScreenHeader from './SubScreenHeader';
 
 interface AccessibilitySubScreenProps {
@@ -40,13 +41,10 @@ export default function AccessibilitySubScreen({
         subtitle={t('createPost.accessibility.subtitle')}
         onClose={onClose}
         trailing={
-          <button
-            type="button"
+          <EditorHeaderAction
+            label={t('createPost.accessibility.done')}
             onClick={onClose}
-            className="px-3.5 h-11 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
-          >
-            {t('createPost.accessibility.done')}
-          </button>
+          />
         }
       />
 

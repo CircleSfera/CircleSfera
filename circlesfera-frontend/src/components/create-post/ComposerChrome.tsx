@@ -24,7 +24,7 @@ export const SUBSCREEN_SHELL =
 
 /** Scroll body: grows only on mobile so desktop cards hug content. */
 export const SUBSCREEN_BODY =
-  'overflow-y-auto p-3 space-y-3 max-md:flex-1 pb-3';
+  'overflow-y-auto px-4 py-3 space-y-3 max-md:flex-1';
 
 export type ComposerChromeSize = 'default' | 'wide' | 'fit';
 

@@ -273,7 +273,7 @@ export default function EditStep({
 
       <div
         ref={thumbnailContainerRef}
-        className="min-h-18 bg-surface-elevated border-t border-white/8 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
+        className="min-h-18 bg-surface-elevated border-t border-white/8 flex items-center px-4 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
       >
         <AnimatePresence>
           {mediaFiles.map((item, idx) => {

@@ -326,7 +326,7 @@ export default function MusicSubScreen({
             </div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
-              <div className="relative shrink-0 px-6 pt-4 pb-4 bg-surface-elevated/95 backdrop-blur-xl border-b border-white/4 z-10">
+              <div className="relative shrink-0 px-4 pt-4 pb-4 bg-surface-elevated/95 backdrop-blur-xl border-b border-white/4 z-10">
                 <Search
                   className="absolute left-9 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
                   aria-hidden
@@ -372,7 +372,7 @@ export default function MusicSubScreen({
                       <motion.div
                         whileTap={{ scale: 0.98 }}
                         key={audio.id}
-                        className={`group flex items-center justify-between gap-4 px-3 py-2.5 rounded-2xl transition-all cursor-pointer mx-3 ${
+                        className={`group flex items-center justify-between gap-4 px-3 py-2.5 rounded-2xl transition-all cursor-pointer mx-4 ${
                           isSelected
                             ? 'bg-brand-primary/10'
                             : 'hover:bg-white/3'
