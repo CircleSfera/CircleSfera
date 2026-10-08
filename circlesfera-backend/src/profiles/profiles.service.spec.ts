@@ -829,8 +829,48 @@ describe('ProfilesService', () => {
         expect(res.accountType).toBe('BUSINESS');
       });
 
+      it('lets an identity with a Profile on the Business plan have up to 10', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(5);
+        mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+          id: 'p-business',
+        });
+        mockPrismaService.profile.findUnique.mockResolvedValue(null);
+        mockPrismaService.profile.create.mockResolvedValue({
+          id: 'p-6',
+          username: 'profile_six',
+        });
+
+        await service.createProfile('u-1', { username: 'profile_six' });
+
+        expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { userId: 'u-1', verificationLevel: 'BUSINESS' },
+          }),
+        );
+        expect(mockPrismaService.profile.create).toHaveBeenCalled();
+      });
+
+      it('stops an identity on the Business plan at 10 profiles', async () => {
+        mockPrismaService.profile.count.mockResolvedValue(10);
+        mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+          id: 'p-business',
+        });
+        mockPrismaService.profile.create.mockClear();
+
+        await expect(
+          service.createProfile('u-1', { username: 'profile_eleven' }),
+        ).rejects.toThrow(
+          expect.objectContaining({
+            message: expect.stringContaining('Maximum limit of 10 profiles'),
+          }),
+        );
+        expect(mockPrismaService.profile.create).not.toHaveBeenCalled();
+      });
+
       it('rejects creation when user has already reached 5 profiles', async () => {
         mockPrismaService.profile.count.mockResolvedValue(5);
+        mockPrismaService.profile.findFirst.mockResolvedValueOnce(null);
+        mockPrismaService.profile.create.mockClear();
 
         await expect(
           service.createProfile('u-1', { username: 'profile_six' }),
