@@ -4101,6 +4101,14 @@
       "tagline": "One product. Every screen."
     }
   },
+  "backoffice": {
+    "title": "Backoffice",
+    "home": {
+      "title": "The business of CircleSfera",
+      "description": "Plans, creator payouts, promotions, the newsletter and support are run here. Moderation and the platform stay in the Admin Panel.",
+      "sections_note": "The sections are moving from the Admin Panel. Until then, they are used there."
+    }
+  },
   "adminPanel": {
     "title": "Admin Panel",
     "staff": "Staff",
