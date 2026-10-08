@@ -13,6 +13,8 @@ import {
   type AccountCardProvider,
   HANDOVER_GATEWAY,
   type HandoverGateway,
+  ORGANIZATION_SCOPE,
+  type OrganizationScope,
   REQUESTER_DIRECTORY,
   REQUESTER_NOTIFIER,
   type RequesterDirectory,
@@ -38,11 +40,14 @@ export class HelpdeskTicketsService {
     @Inject(REQUESTER_NOTIFIER) private readonly notifier: RequesterNotifier,
     @Inject(TEAM_CHANNEL) private readonly teamChannel: TeamChannel,
     @Inject(STAFF_ACTION_LOG) private readonly staffLog: StaffActionLog,
+    @Inject(ORGANIZATION_SCOPE)
+    private readonly organization: OrganizationScope,
   ) {}
 
   async createTicket(dto: CreateTicketDto & { email: string; userId: string }) {
     const ticket = await this.prisma.supportTicket.create({
       data: {
+        organizationId: this.organization.current(),
         email: dto.email,
         subject: dto.subject,
         message: dto.message,

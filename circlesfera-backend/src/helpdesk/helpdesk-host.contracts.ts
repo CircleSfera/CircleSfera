@@ -71,6 +71,15 @@ export interface StaffActionLog {
   record(agentRef: string, ticketId: string, details: string): Promise<void>;
 }
 
+export interface OrganizationScope {
+  /**
+   * The Help Desk organization the current request belongs to. The host
+   * decides it from who is signed in; it never comes from the request.
+   */
+  current(): string;
+}
+
+export const ORGANIZATION_SCOPE = Symbol('helpdesk.organizationScope');
 export const REQUESTER_DIRECTORY = Symbol('helpdesk.requesterDirectory');
 export const ACCOUNT_CARD_PROVIDER = Symbol('helpdesk.accountCardProvider');
 export const HANDOVER_GATEWAY = Symbol('helpdesk.handoverGateway');

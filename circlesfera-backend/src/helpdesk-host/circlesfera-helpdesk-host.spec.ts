@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   AdminAuditStaffActionLog,
+  CIRCLESFERA_HELPDESK_ORGANIZATION_ID,
   CircleSferaAccountCard,
+  CircleSferaOrganizationScope,
   CircleSferaRequesterDirectory,
   EmailRequesterNotifier,
   EventTeamChannel,
@@ -19,6 +21,23 @@ describe('CircleSfera as the host of the Help Desk', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+  });
+
+  it('puts every request in the one organization its migration created', async () => {
+    const { readFileSync } = await import('node:fs');
+    const migration = readFileSync(
+      new URL(
+        '../../prisma/migrations/20261008220000_helpdesk_organization_and_messages/migration.sql',
+        import.meta.url,
+      ),
+      'utf8',
+    );
+
+    expect(new CircleSferaOrganizationScope().current()).toBe(
+      CIRCLESFERA_HELPDESK_ORGANIZATION_ID,
+    );
+    // The id in the code is the id the migration inserts.
+    expect(migration).toContain(CIRCLESFERA_HELPDESK_ORGANIZATION_ID);
   });
 
   describe('requester directory', () => {

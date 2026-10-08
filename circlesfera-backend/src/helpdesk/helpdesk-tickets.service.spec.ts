@@ -19,6 +19,7 @@ describe('HelpdeskTicketsService', () => {
   const notifier = { answer: vi.fn() };
   const teamChannel = { ticketOpened: vi.fn() };
   const staffLog = { record: vi.fn() };
+  const organization = { current: vi.fn() };
   let service: HelpdeskTicketsService;
 
   const ticket = {
@@ -49,6 +50,7 @@ describe('HelpdeskTicketsService', () => {
     prisma.supportTicket.count.mockResolvedValue(0);
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
+    organization.current.mockReturnValue('org-1');
     service = new HelpdeskTicketsService(
       prisma as never,
       requesters,
@@ -57,6 +59,7 @@ describe('HelpdeskTicketsService', () => {
       notifier,
       teamChannel,
       staffLog,
+      organization,
     );
   });
 
@@ -76,6 +79,7 @@ describe('HelpdeskTicketsService', () => {
 
       expect(prisma.supportTicket.create).toHaveBeenCalledWith({
         data: {
+          organizationId: 'org-1',
           email: dto.email,
           subject: dto.subject,
           message: dto.message,

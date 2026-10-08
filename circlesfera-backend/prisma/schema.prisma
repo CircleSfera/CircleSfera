@@ -1675,15 +1675,74 @@ model SupportTicket {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  user              User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // The Help Desk organization the ticket belongs to. Filled for every
+  // ticket; not null in a later change.
+  organizationId String?
+  // Short number shown to requester and agent
+  reference      Int     @unique @default(autoincrement())
+
+  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
-  escalatedReportId String? @unique
-  escalatedReport   Report? @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  escalatedReportId String?               @unique
+  escalatedReport   Report?               @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  organization      HelpdeskOrganization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  messages          HelpdeskMessage[]
 
   @@index([userId])
   @@index([status])
   @@index([resolvedAt])
+  @@index([organizationId, status, createdAt])
   @@map("support_tickets")
+}
+
+// The company that runs a Help Desk. One row today: CircleSfera.
+model HelpdeskOrganization {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  locales   String[]
+  timeZone  String   @default("Europe/Madrid")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets SupportTicket[]
+
+  @@map("helpdesk_organizations")
+}
+
+enum HelpdeskAuthorKind {
+  REQUESTER
+  AGENT
+  SYSTEM
+}
+
+enum HelpdeskMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum HelpdeskMessageChannel {
+  PRODUCT
+  EMAIL
+}
+
+// One thing said in a ticket. Append-only.
+model HelpdeskMessage {
+  id         String                    @id @default(uuid())
+  ticketId   String
+  authorKind HelpdeskAuthorKind
+  // Who wrote it, as the host names them. Empty for the system and for
+  // answers from before authors were stored.
+  authorRef  String?
+  visibility HelpdeskMessageVisibility @default(PUBLIC)
+  body       String
+  channel    HelpdeskMessageChannel    @default(PRODUCT)
+  createdAt  DateTime                  @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("helpdesk_messages")
 }
 
 // =============================================================================
