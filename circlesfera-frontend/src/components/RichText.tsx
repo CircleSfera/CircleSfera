@@ -15,7 +15,7 @@ export default function RichText({ text, className = '' }: RichTextProps) {
   const parts = text.split(regex);
 
   return (
-    <span className={`whitespace-pre-wrap break-all ${className}`}>
+    <span className={`whitespace-pre-wrap wrap-break-word ${className}`}>
       {parts.map((part, index) => {
         const key = `rt-${index}-${part.length}`;
         if (part.startsWith('#')) {

@@ -52,7 +52,9 @@ export default function PostContent({
         </div>
       )}
 
-      {(post.place?.name || post.location) && (
+      {/* With the caption: the detail view on desktop renders this component
+          twice, once for the caption and once for the figures. */}
+      {!hideCaption && (post.place?.name || post.location) && (
         <p className="text-xs text-gray-400 mb-1.5 flex items-center gap-1 min-w-0">
           <MapPin size={12} className="shrink-0 text-gray-400" aria-hidden />
           <span className="truncate">
@@ -71,7 +73,7 @@ export default function PostContent({
       )}
 
       {!hideStats && (
-        <div className="text-[10px] font-semibold uppercase tracking-widest mt-0.5 text-white/60">
+        <div className="text-xs mt-0.5 text-white/55">
           {new Date(post.createdAt).toLocaleDateString(i18n.language, {
             day: 'numeric',
             month: 'long',
