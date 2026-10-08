@@ -829,7 +829,7 @@ export default function PhotoEditor({
                 transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
-                <div className="flex overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-4 scroll-px-4 gap-0.5">
+                <div className="flex lg:justify-center overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-4 scroll-px-4 gap-0.5">
                   {ADJUSTMENT_CONFIG.map((adj) => {
                     const isActive = activeAdjustment === adj.key;
                     const isModified =

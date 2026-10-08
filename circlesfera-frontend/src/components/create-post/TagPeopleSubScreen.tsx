@@ -118,12 +118,11 @@ export default function TagPeopleSubScreen({
       />
 
       <div className="flex flex-col min-h-0 max-md:flex-1">
-        <div className="relative bg-black flex items-center justify-center px-4 pt-2 pb-2 shrink-0">
-          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center pointer-events-none px-4">
-            <span className="bg-black/55 backdrop-blur-md px-3 py-1 rounded-full text-white/85 text-[11px] font-medium">
-              {t('createPost.tags.tap_photo')}
-            </span>
-          </div>
+        <div className="bg-black flex flex-col items-center justify-center gap-2 px-4 pt-2 pb-2 shrink-0">
+          {/* Above the photo, never over it: the hint must not hide what is being tagged. */}
+          <p className="text-white/70 text-xs font-medium text-center">
+            {t('createPost.tags.tap_photo')}
+          </p>
 
           {currentMedia && currentMedia.type === 'image' ? (
             <div className="relative inline-block max-w-full">

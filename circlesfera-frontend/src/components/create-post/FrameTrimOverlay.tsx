@@ -103,13 +103,15 @@ export default function FrameTrimOverlay({
       </div>
 
       <div className="shrink-0 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface-elevated border-t border-white/8">
-        <FrameClipControls
-          sourceDurationSec={sourceDurationSec}
-          window={windowState}
-          onChange={setWindowState}
-          showPresets
-          compact
-        />
+        <div className="mx-auto w-full md:max-w-xl">
+          <FrameClipControls
+            sourceDurationSec={sourceDurationSec}
+            window={windowState}
+            onChange={setWindowState}
+            showPresets
+            compact
+          />
+        </div>
       </div>
     </div>
   );
