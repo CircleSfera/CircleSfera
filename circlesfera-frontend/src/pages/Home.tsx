@@ -113,7 +113,7 @@ export default function Home() {
             <div className="pt-6 pb-3 hidden md:flex justify-center items-center">
               <Link
                 to="/"
-                className="flex items-center gap-2.5 group focus:outline-none"
+                className="min-h-11 flex items-center gap-2.5 group focus:outline-none"
               >
                 <img
                   src={logoSrc}
