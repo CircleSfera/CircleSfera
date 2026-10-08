@@ -2160,6 +2160,7 @@
       "audit": "Audit Log",
       "appeals": "Apelaciones",
       "support": "Soporte",
+      "plans": "Planes",
       "trust": "Cola de confianza",
       "live": "Directos",
       "roles": "Roles",
@@ -2550,6 +2551,22 @@
       "status_live_now": "En vivo ahora",
       "gifts": "Regalos",
       "viewers": "Espectadores"
+    },
+    "plans": {
+      "title": "Planes",
+      "subtitle": "Qué incluye cada plan y si está a la venta. Los cambios se aplican a todos los suscriptores del plan.",
+      "price_month": "{{price}} al mes",
+      "price_year": "{{price}} al año",
+      "price_note": "El precio lo cobra Stripe y no se cambia desde aquí.",
+      "on_sale": "A la venta",
+      "on_sale_hint": "Si lo desactivas, deja de mostrarse en Precios. Quien ya lo tiene lo conserva.",
+      "includes": "Incluye",
+      "description": "Descripción",
+      "save": "Guardar cambios",
+      "toast_saved": "Plan guardado",
+      "toast_failed": "No se pudo guardar el plan",
+      "load_failed": "No se pudo cargar el catálogo de planes",
+      "empty": "No hay planes en el catálogo"
     },
     "support": {
       "title": "Tickets de Soporte",
