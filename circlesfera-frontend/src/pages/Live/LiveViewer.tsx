@@ -246,7 +246,7 @@ export default function LiveViewer() {
 
   if (activeToken === '') {
     return (
-      <div className="flex h-dvh items-center justify-center bg-black text-white font-bold">
+      <div className="flex h-dvh items-center justify-center bg-black md:bg-transparent text-white font-bold">
         {t('live.connecting')}
       </div>
     );
@@ -257,7 +257,7 @@ export default function LiveViewer() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-dvh bg-surface-base flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-surface-base md:bg-transparent flex items-center justify-center overflow-hidden">
       {/* A double tap anywhere sends a heart. It is not a button: it holds
           every control of the screen, and the reactions have their own. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}

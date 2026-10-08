@@ -45,3 +45,12 @@ export const CREATE_THUMB =
 /** The shape of a small preview for what is being created. */
 export const createThumbRatio = (mode: 'POST' | 'FRAME' | 'STORY') =>
   mode === 'POST' ? '4 / 5' : '9 / 16';
+
+/**
+ * A full-window editor (photo editor, frame trim, story composer). On a phone
+ * it takes the whole screen in black. From tablet width it starts where the
+ * sidebar ends, so the navigation stays in view, and it shows the app
+ * background (see `BrandAmbientBackground` with `placement="editor"`).
+ */
+export const CREATE_FULL_SCREEN =
+  'beside-sidebar fixed inset-0 z-50 overflow-hidden bg-black';

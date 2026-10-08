@@ -7,9 +7,10 @@ import {
 } from '../../constants/uploadLimits';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
+import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { CropData, VideoData } from '../PhotoEditor';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
-import { createThumbRatio } from './createStyles';
+import { CREATE_FULL_SCREEN, createThumbRatio } from './createStyles';
 import FrameTrimOverlay from './FrameTrimOverlay';
 
 const PhotoEditor = lazy(() => import('../PhotoEditor'));
@@ -121,7 +122,10 @@ export default function EditorOverlayManager({
     return (
       <Suspense
         fallback={
-          <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
+          <div
+            className={`${CREATE_FULL_SCREEN} flex items-center justify-center text-white font-medium`}
+          >
+            <BrandAmbientBackground placement="editor" />
             {t('createPost.edit.loading_story_editor')}
           </div>
         }
@@ -153,12 +157,16 @@ export default function EditorOverlayManager({
     return (
       <Suspense
         fallback={
-          <div className="fixed inset-0 z-50 bg-black flex items-center justify-center text-white font-medium">
+          <div
+            className={`${CREATE_FULL_SCREEN} flex items-center justify-center text-white font-medium`}
+          >
+            <BrandAmbientBackground placement="editor" />
             {t('createPost.edit.loading_media_editor')}
           </div>
         }
       >
-        <div className="fixed inset-0 z-50 bg-black">
+        <div className={CREATE_FULL_SCREEN}>
+          <BrandAmbientBackground placement="editor" />
           {isProcessingEdit && (
             <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="text-white font-bold animate-pulse">

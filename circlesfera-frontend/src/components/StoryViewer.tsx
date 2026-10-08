@@ -24,6 +24,7 @@ import type { Story, UserWithProfile } from '../types';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import { parseFilter } from '../utils/styleUtils';
+import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
@@ -323,15 +324,16 @@ export default function StoryViewer({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
+      className="beside-sidebar fixed inset-0 z-50 bg-black flex items-center justify-center overflow-hidden"
       data-content-shell="playback"
     >
       {' '}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.profile?.username}`}
       </div>
-      {/* Blurred Background Layer */}
-      <div className="absolute inset-0 z-0">
+      {/* Desktop: the app background. Phones: the story itself, blurred. */}
+      <BrandAmbientBackground placement="editor" />
+      <div className="absolute inset-0 z-0 md:hidden">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentStory.id}
@@ -367,7 +369,7 @@ export default function StoryViewer({
             })()}
           </motion.div>
         </AnimatePresence>
-        <div className="absolute inset-0 bg-black/60 md:bg-black/40" />
+        <div className="absolute inset-0 bg-black/60" />
         <div className="absolute inset-0 opacity-20 pointer-events-none mix-blend-overlay bg-linear-to-tr from-brand-primary/20 via-transparent to-brand-secondary/20" />
       </div>
       {/* Center content */}
@@ -379,7 +381,7 @@ export default function StoryViewer({
             animate={{ opacity: 1, scale: 1, x: 0 }}
             exit={{ opacity: 0, scale: 0.95, x: -100 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="relative w-full h-full md:w-auto md:h-[92vh] md:max-h-[92vh] md:aspect-9/16 flex items-center justify-center md:rounded-xl overflow-hidden md:ring-1 md:ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
+            className="relative w-full h-full md:w-auto md:h-[88vh] md:max-h-187 md:aspect-9/16 flex items-center justify-center md:rounded-xl overflow-hidden bg-black md:ring-1 md:ring-white/10 md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:mx-auto"
           >
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
@@ -388,7 +390,7 @@ export default function StoryViewer({
                 <HlsVideoPlayer
                   src={currentStory.url}
                   hlsUrl={currentStory.standardUrl || undefined}
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
+                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
                   autoPlay={!isLocked}
                   muted
@@ -404,7 +406,7 @@ export default function StoryViewer({
                   }
                   sizes="(max-width: 768px) 100vw, 500px"
                   alt={t('common.alt.story')}
-                  className={`absolute inset-0 w-full h-full md:rounded-lg shadow-2xl object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
+                  className={`absolute inset-0 w-full h-full object-cover pointer-events-auto z-10 ${className} ${lockClass}`}
                   style={style}
                   loading="eager"
                 />
@@ -423,8 +425,8 @@ export default function StoryViewer({
               </div>
             )}
 
-            <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20 md:rounded-t-2xl" />
-            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20 md:rounded-b-2xl" />
+            <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20" />
+            <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20" />
 
             {currentStory.poll?.id && !isLocked && (
               <div
