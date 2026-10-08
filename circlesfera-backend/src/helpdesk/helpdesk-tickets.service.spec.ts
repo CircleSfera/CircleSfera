@@ -1,17 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
-// Tickets of the Help Desk. The host is replaced by its contracts: what is
-// proven here is what the Help Desk asks of them and what it does itself.
+// Tickets of the Help Desk. The database is behind the store and the host
+// behind its contracts: what is proven here is what the service asks of
+// them and the rules it applies itself.
 describe('HelpdeskTicketsService', () => {
-  const prisma = {
-    supportTicket: {
-      create: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
-      findMany: vi.fn(),
-      count: vi.fn(),
-    },
+  const store = {
+    openTicket: vi.fn(),
+    findTicket: vi.fn(),
+    listTickets: vi.fn(),
+    updateTicket: vi.fn(),
+    messages: vi.fn(),
   };
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
@@ -19,7 +18,6 @@ describe('HelpdeskTicketsService', () => {
   const notifier = { answer: vi.fn() };
   const teamChannel = { ticketOpened: vi.fn() };
   const staffLog = { record: vi.fn() };
-  const organization = { current: vi.fn() };
   let service: HelpdeskTicketsService;
 
   const ticket = {
@@ -43,23 +41,26 @@ describe('HelpdeskTicketsService', () => {
         },
       ],
     ]);
+  const ana = {
+    id: 'u-1',
+    email: 'ana@example.com',
+    profile: { username: 'ana', avatar: null },
+  };
 
   beforeEach(() => {
     vi.resetAllMocks();
-    prisma.supportTicket.findMany.mockResolvedValue([]);
-    prisma.supportTicket.count.mockResolvedValue(0);
+    store.listTickets.mockResolvedValue({ tickets: [], total: 0 });
+    store.messages.mockResolvedValue([]);
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
-    organization.current.mockReturnValue('org-1');
     service = new HelpdeskTicketsService(
-      prisma as never,
+      store as never,
       requesters,
       accountCards,
       handover,
       notifier,
       teamChannel,
       staffLog,
-      organization,
     );
   });
 
@@ -73,26 +74,16 @@ describe('HelpdeskTicketsService', () => {
 
     it('stores the ticket and tells the team', async () => {
       const created = { id: 'ticket-1', ...dto };
-      prisma.supportTicket.create.mockResolvedValue(created);
+      store.openTicket.mockResolvedValue(created);
 
       const result = await service.createTicket(dto);
 
-      expect(prisma.supportTicket.create).toHaveBeenCalledWith({
-        data: {
-          organizationId: 'org-1',
-          email: dto.email,
-          subject: dto.subject,
-          message: dto.message,
-          category: undefined,
-          userId: dto.userId,
-          messages: {
-            create: {
-              authorKind: 'REQUESTER',
-              authorRef: dto.userId,
-              body: dto.message,
-            },
-          },
-        },
+      expect(store.openTicket).toHaveBeenCalledWith({
+        requesterRef: 'user-1',
+        email: dto.email,
+        subject: dto.subject,
+        message: dto.message,
+        category: undefined,
       });
       expect(teamChannel.ticketOpened).toHaveBeenCalledWith(created);
       expect(result).toEqual({
@@ -103,62 +94,70 @@ describe('HelpdeskTicketsService', () => {
     });
 
     it('stores the topic the requester chose', async () => {
-      prisma.supportTicket.create.mockResolvedValue({ id: 't-2' });
+      store.openTicket.mockResolvedValue({ id: 't-2' });
 
       await service.createTicket({ ...dto, category: 'PAYMENTS' });
 
-      expect(prisma.supportTicket.create).toHaveBeenCalledWith({
-        data: expect.objectContaining({ category: 'PAYMENTS' }),
-      });
+      expect(store.openTicket).toHaveBeenCalledWith(
+        expect.objectContaining({ category: 'PAYMENTS' }),
+      );
     });
   });
 
   describe('listing tickets', () => {
-    const query = () => prisma.supportTicket.findMany.mock.calls[0][0];
-
-    it('puts the open ticket waiting longest first', async () => {
+    it('puts the open ticket waiting longest first, and the newest first in any other list', async () => {
       await service.listTickets(1, 20, 'OPEN');
+      expect(store.listTickets).toHaveBeenLastCalledWith(
+        { status: 'OPEN' },
+        1,
+        20,
+        true,
+      );
 
-      expect(query().orderBy).toEqual({ createdAt: 'asc' });
-    });
-
-    it('puts the newest first in any other list', async () => {
       await service.listTickets(1, 20, 'RESOLVED');
-      expect(query().orderBy).toEqual({ createdAt: 'desc' });
+      expect(store.listTickets).toHaveBeenLastCalledWith(
+        { status: 'RESOLVED' },
+        1,
+        20,
+        false,
+      );
 
-      prisma.supportTicket.findMany.mockClear();
       await service.listTickets();
-      expect(query().orderBy).toEqual({ createdAt: 'desc' });
+      expect(store.listTickets).toHaveBeenLastCalledWith({}, 1, 20, false);
     });
 
-    it('filters by what the ticket is about', async () => {
+    it('filters by what the ticket is about and ignores values that do not exist', async () => {
       await service.listTickets(1, 20, undefined, 'PAYMENTS');
-      expect(query().where).toEqual({ category: 'PAYMENTS' });
+      expect(store.listTickets).toHaveBeenLastCalledWith(
+        { category: 'PAYMENTS' },
+        1,
+        20,
+        false,
+      );
 
-      prisma.supportTicket.findMany.mockClear();
-      await service.listTickets(1, 20, 'OPEN', 'nonsense');
-      expect(query().where).toEqual({ status: 'OPEN' });
+      await service.listTickets(1, 20, 'nonsense', 'nonsense');
+      expect(store.listTickets).toHaveBeenLastCalledWith({}, 1, 20, false);
     });
 
-    it('reads tickets alone and asks the host who wrote them and where each handed case stands', async () => {
-      prisma.supportTicket.findMany.mockResolvedValue([
-        ticket,
-        { ...ticket, id: 't-2', status: 'ESCALATED', escalatedReportId: 'r-1' },
-        { ...ticket, id: 't-3', userId: null },
-      ]);
-      prisma.supportTicket.count.mockResolvedValue(3);
-      const ana = {
-        id: 'u-1',
-        email: 'ana@example.com',
-        profile: { username: 'ana', avatar: null },
-      };
+    it('asks the host who wrote the tickets and where each handed case stands', async () => {
+      store.listTickets.mockResolvedValue({
+        tickets: [
+          ticket,
+          {
+            ...ticket,
+            id: 't-2',
+            status: 'ESCALATED',
+            escalatedReportId: 'r-1',
+          },
+          { ...ticket, id: 't-3', userId: null },
+        ],
+        total: 3,
+      });
       requesters.describe.mockResolvedValue(new Map([['u-1', ana]]));
       handover.cases.mockResolvedValue(caseOf('PENDING'));
 
       const result = await service.listTickets();
 
-      // No relation to the host's tables is read from the Help Desk.
-      expect(query()).not.toHaveProperty('include');
       expect(requesters.describe).toHaveBeenCalledWith(['u-1']);
       expect(handover.cases).toHaveBeenCalledWith(['r-1']);
       expect(result.data.map((t) => t.user)).toEqual([ana, ana, null]);
@@ -176,12 +175,183 @@ describe('HelpdeskTicketsService', () => {
     });
   });
 
+  describe('reading one ticket', () => {
+    it('gives the agent the whole conversation, internal notes included', async () => {
+      const messages = [
+        { id: 'm-1', authorKind: 'REQUESTER', visibility: 'PUBLIC' },
+        { id: 'm-2', authorKind: 'AGENT', visibility: 'INTERNAL' },
+      ];
+      store.findTicket.mockResolvedValue(ticket);
+      store.messages.mockResolvedValue(messages);
+      requesters.describe.mockResolvedValue(new Map([['u-1', ana]]));
+
+      const result = await service.getTicket('t-1');
+
+      // No visibility filter: this is the agent's view.
+      expect(store.messages).toHaveBeenCalledWith('t-1');
+      expect(result.messages).toEqual(messages);
+      expect(result.user).toEqual(ana);
+      expect(result.escalatedReport).toBeNull();
+    });
+
+    it('says so when the ticket does not exist', async () => {
+      store.findTicket.mockResolvedValue(null);
+
+      await expect(service.getTicket('missing')).rejects.toMatchObject({
+        status: 404,
+      });
+    });
+  });
+
+  describe('adding to the conversation', () => {
+    const answer = { body: '  Fixed.  ', visibility: 'PUBLIC' as const };
+    const note = {
+      body: 'Checked the payment.',
+      visibility: 'INTERNAL' as const,
+    };
+
+    it('sends an answer: the message, the ticket solved, the requester told, the action recorded', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({ ...ticket, status: 'RESOLVED' });
+
+      await service.addMessage('admin-1', 't-1', answer);
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        { status: 'RESOLVED', resolvedAt: expect.any(Date) },
+        {
+          authorKind: 'AGENT',
+          authorRef: 'admin-1',
+          visibility: 'PUBLIC',
+          body: 'Fixed.',
+        },
+      );
+      expect(notifier.answer).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'ana@example.com' }),
+        'Fixed.',
+      );
+      expect(staffLog.record).toHaveBeenCalledWith(
+        'admin-1',
+        't-1',
+        expect.stringContaining('RESOLVED'),
+      );
+    });
+
+    it('leaves the ticket open when the agent asks for it', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.addMessage('admin-1', 't-1', { ...answer, status: 'OPEN' });
+
+      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+        status: 'OPEN',
+        resolvedAt: null,
+      });
+    });
+
+    it('reopens a solved ticket that is answered and left open', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        status: 'RESOLVED',
+        resolvedAt: new Date('2026-01-01'),
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.addMessage('admin-1', 't-1', { ...answer, status: 'OPEN' });
+
+      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+        status: 'OPEN',
+        resolvedAt: null,
+      });
+    });
+
+    it('adds an internal note: no email, no change of state', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+
+      await service.addMessage('admin-1', 't-1', {
+        ...note,
+        // A state sent with a note is ignored.
+        status: 'RESOLVED',
+      });
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        {},
+        {
+          authorKind: 'AGENT',
+          authorRef: 'admin-1',
+          visibility: 'INTERNAL',
+          body: 'Checked the payment.',
+        },
+      );
+      expect(notifier.answer).not.toHaveBeenCalled();
+    });
+
+    it('accepts a note on a closed ticket and on one that is with another team', async () => {
+      store.findTicket.mockResolvedValue({ ...ticket, status: 'CLOSED' });
+      await service.addMessage('admin-1', 't-1', note);
+
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        status: 'ESCALATED',
+        escalatedReportId: 'r-1',
+      });
+      handover.cases.mockResolvedValue(caseOf('PENDING'));
+      await service.addMessage('admin-1', 't-1', note);
+
+      expect(store.updateTicket).toHaveBeenCalledTimes(2);
+      expect(notifier.answer).not.toHaveBeenCalled();
+    });
+
+    it('refuses an answer to a closed ticket', async () => {
+      store.findTicket.mockResolvedValue({ ...ticket, status: 'CLOSED' });
+
+      await expect(
+        service.addMessage('admin-1', 't-1', answer),
+      ).rejects.toMatchObject({ status: 409 });
+      expect(store.updateTicket).not.toHaveBeenCalled();
+      expect(notifier.answer).not.toHaveBeenCalled();
+    });
+
+    it.each(['PENDING', 'REVIEWING'])(
+      'refuses an answer while the ticket is with another team and its case is %s',
+      async (status) => {
+        store.findTicket.mockResolvedValue({
+          ...ticket,
+          status: 'ESCALATED',
+          escalatedReportId: 'r-1',
+        });
+        handover.cases.mockResolvedValue(caseOf(status));
+
+        await expect(
+          service.addMessage('admin-1', 't-1', answer),
+        ).rejects.toMatchObject({ status: 409 });
+        expect(store.updateTicket).not.toHaveBeenCalled();
+      },
+    );
+
+    it('refuses a message that is only spaces', async () => {
+      await expect(
+        service.addMessage('admin-1', 't-1', { ...answer, body: '   ' }),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(store.findTicket).not.toHaveBeenCalled();
+    });
+
+    it('says so when the ticket does not exist', async () => {
+      store.findTicket.mockResolvedValue(null);
+
+      await expect(
+        service.addMessage('admin-1', 'missing', answer),
+      ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
   describe('handing a ticket to another team', () => {
     it('opens a case for the ticket, links it and records who did it', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
+      store.findTicket.mockResolvedValue(ticket);
       handover.open.mockResolvedValue({ caseRef: 'r-1' });
       handover.cases.mockResolvedValue(caseOf('PENDING'));
-      prisma.supportTicket.update.mockResolvedValue({
+      store.updateTicket.mockResolvedValue({
         ...ticket,
         status: 'ESCALATED',
         escalatedReportId: 'r-1',
@@ -195,9 +365,9 @@ describe('HelpdeskTicketsService', () => {
         subject: ticket.subject,
         message: ticket.message,
       });
-      expect(prisma.supportTicket.update).toHaveBeenCalledWith({
-        where: { id: 't-1' },
-        data: { status: 'ESCALATED', escalatedReportId: 'r-1' },
+      expect(store.updateTicket).toHaveBeenCalledWith('t-1', {
+        status: 'ESCALATED',
+        escalatedReportId: 'r-1',
       });
       expect(result.status).toBe('ESCALATED');
       expect(result.escalatedReport).toEqual({ id: 'r-1', status: 'PENDING' });
@@ -209,9 +379,9 @@ describe('HelpdeskTicketsService', () => {
     });
 
     it('takes the case back when the ticket could not be linked to it', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
+      store.findTicket.mockResolvedValue(ticket);
       handover.open.mockResolvedValue({ caseRef: 'r-1' });
-      prisma.supportTicket.update.mockRejectedValue(new Error('db down'));
+      store.updateTicket.mockRejectedValue(new Error('db down'));
 
       await expect(service.handOver('admin-1', 't-1')).rejects.toThrow(
         'db down',
@@ -223,10 +393,7 @@ describe('HelpdeskTicketsService', () => {
     it.each(['RESOLVED', 'CLOSED', 'ESCALATED'])(
       'refuses a ticket that is %s',
       async (status) => {
-        prisma.supportTicket.findUnique.mockResolvedValue({
-          ...ticket,
-          status,
-        });
+        store.findTicket.mockResolvedValue({ ...ticket, status });
 
         await expect(service.handOver('admin-1', 't-1')).rejects.toMatchObject({
           status: 409,
@@ -236,17 +403,17 @@ describe('HelpdeskTicketsService', () => {
     );
 
     it('refuses a ticket whose requester no longer exists for the host', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
+      store.findTicket.mockResolvedValue(ticket);
       handover.open.mockResolvedValue(null);
 
       await expect(service.handOver('admin-1', 't-1')).rejects.toMatchObject({
         status: 409,
       });
-      expect(prisma.supportTicket.update).not.toHaveBeenCalled();
+      expect(store.updateTicket).not.toHaveBeenCalled();
     });
 
     it('says so when the ticket does not exist', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(null);
+      store.findTicket.mockResolvedValue(null);
 
       await expect(
         service.handOver('admin-1', 'missing'),
@@ -254,7 +421,7 @@ describe('HelpdeskTicketsService', () => {
     });
   });
 
-  describe('a ticket that is with another team', () => {
+  describe('changing a ticket', () => {
     const escalated = {
       ...ticket,
       status: 'ESCALATED',
@@ -262,15 +429,15 @@ describe('HelpdeskTicketsService', () => {
     };
 
     it.each(['PENDING', 'REVIEWING'])(
-      'cannot be answered or closed while its case is %s',
+      'cannot close a ticket while its case with another team is %s',
       async (status) => {
-        prisma.supportTicket.findUnique.mockResolvedValue(escalated);
+        store.findTicket.mockResolvedValue(escalated);
         handover.cases.mockResolvedValue(caseOf(status));
 
         await expect(
           service.updateTicket('admin-1', 't-1', { status: 'CLOSED' }),
         ).rejects.toMatchObject({ status: 409 });
-        expect(prisma.supportTicket.update).not.toHaveBeenCalled();
+        expect(store.updateTicket).not.toHaveBeenCalled();
         expect(notifier.answer).not.toHaveBeenCalled();
       },
     );
@@ -278,9 +445,9 @@ describe('HelpdeskTicketsService', () => {
     it.each(['RESOLVED', 'REJECTED'])(
       'goes back to support once its case is %s',
       async (status) => {
-        prisma.supportTicket.findUnique.mockResolvedValue(escalated);
+        store.findTicket.mockResolvedValue(escalated);
         handover.cases.mockResolvedValue(caseOf(status));
-        prisma.supportTicket.update.mockResolvedValue({
+        store.updateTicket.mockResolvedValue({
           ...escalated,
           status: 'RESOLVED',
         });
@@ -290,44 +457,31 @@ describe('HelpdeskTicketsService', () => {
           reply: 'Moderation has acted on it.',
         });
 
-        expect(prisma.supportTicket.update).toHaveBeenCalled();
+        expect(store.updateTicket).toHaveBeenCalled();
         expect(notifier.answer).toHaveBeenCalled();
       },
     );
-  });
 
-  describe('answering a ticket', () => {
-    it('stores the reply, solves an open ticket, tells the requester and records it', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
-      prisma.supportTicket.update.mockResolvedValue({
-        ...ticket,
-        status: 'RESOLVED',
-        reply: 'Fixed.',
-      });
+    it('an answer sent with the change becomes a message, and the old reply field is not written', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({ ...ticket, status: 'RESOLVED' });
 
       await service.updateTicket('admin-1', 't-1', { reply: '  Fixed.  ' });
 
-      expect(prisma.supportTicket.update).toHaveBeenCalledWith({
-        where: { id: 't-1' },
-        data: expect.objectContaining({
-          reply: '  Fixed.  ',
-          status: 'RESOLVED',
-          resolvedAt: expect.any(Date),
-          // The same answer the requester receives, as a message of the agent
-          messages: {
-            create: {
-              authorKind: 'AGENT',
-              authorRef: 'admin-1',
-              body: 'Fixed.',
-            },
-          },
-        }),
+      const [, changes, message] = store.updateTicket.mock.calls[0];
+      expect(changes).toEqual({
+        status: 'RESOLVED',
+        resolvedAt: expect.any(Date),
+      });
+      expect(changes).not.toHaveProperty('reply');
+      expect(message).toEqual({
+        authorKind: 'AGENT',
+        authorRef: 'admin-1',
+        visibility: 'PUBLIC',
+        body: 'Fixed.',
       });
       expect(notifier.answer).toHaveBeenCalledWith(
-        expect.objectContaining({
-          email: 'ana@example.com',
-          subject: ticket.subject,
-        }),
+        expect.objectContaining({ email: 'ana@example.com' }),
         'Fixed.',
       );
       expect(staffLog.record).toHaveBeenCalledWith(
@@ -337,36 +491,29 @@ describe('HelpdeskTicketsService', () => {
       );
     });
 
-    it('changes the state without telling the requester when there is no reply', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
-      prisma.supportTicket.update.mockResolvedValue({
-        ...ticket,
-        status: 'CLOSED',
-      });
+    it('changes the state without telling the requester when there is no answer', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({ ...ticket, status: 'CLOSED' });
 
       await service.updateTicket('admin-1', 't-1', { status: 'CLOSED' });
 
+      expect(store.updateTicket.mock.calls[0][2]).toBeUndefined();
       expect(notifier.answer).not.toHaveBeenCalled();
       expect(staffLog.record).toHaveBeenCalled();
-      expect(
-        prisma.supportTicket.update.mock.calls[0][0].data,
-      ).not.toHaveProperty('messages');
     });
 
-    it('adds no message for a reply that is only spaces', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
-      prisma.supportTicket.update.mockResolvedValue(ticket);
+    it('adds no message for an answer that is only spaces', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue(ticket);
 
       await service.updateTicket('admin-1', 't-1', { reply: '   ' });
 
-      expect(
-        prisma.supportTicket.update.mock.calls[0][0].data,
-      ).not.toHaveProperty('messages');
+      expect(store.updateTicket.mock.calls[0]).toEqual(['t-1', {}, undefined]);
       expect(notifier.answer).not.toHaveBeenCalled();
     });
 
     it('says so when the ticket does not exist', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(null);
+      store.findTicket.mockResolvedValue(null);
 
       await expect(
         service.updateTicket('admin-1', 'missing', { status: 'CLOSED' }),
@@ -376,24 +523,24 @@ describe('HelpdeskTicketsService', () => {
 
   describe('the account card', () => {
     it('is whatever the host says about who wrote the ticket, and writes nothing', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue({ userId: 'u-1' });
+      store.findTicket.mockResolvedValue(ticket);
       accountCards.accountCard.mockResolvedValue({ userId: 'u-1' });
 
       expect(await service.accountCard('t-1')).toEqual({ userId: 'u-1' });
       expect(accountCards.accountCard).toHaveBeenCalledWith('u-1');
-      expect(prisma.supportTicket.update).not.toHaveBeenCalled();
+      expect(store.updateTicket).not.toHaveBeenCalled();
       expect(staffLog.record).not.toHaveBeenCalled();
     });
 
     it('is empty for a ticket whose account no longer exists', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue({ userId: null });
+      store.findTicket.mockResolvedValue({ ...ticket, userId: null });
 
       expect(await service.accountCard('t-1')).toBeNull();
       expect(accountCards.accountCard).not.toHaveBeenCalled();
     });
 
     it('says so when the ticket does not exist', async () => {
-      prisma.supportTicket.findUnique.mockResolvedValue(null);
+      store.findTicket.mockResolvedValue(null);
 
       await expect(service.accountCard('missing')).rejects.toMatchObject({
         status: 404,
