@@ -27,6 +27,8 @@ import { AdminRiskCasesController } from './admin-risk-cases.controller.js';
 import { AdminRiskCasesService } from './admin-risk-cases.service.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
+import { AdminSubscriptionsController } from './admin-subscriptions.controller.js';
+import { AdminSubscriptionsService } from './admin-subscriptions.service.js';
 import { AdminSystemController } from './admin-system.controller.js';
 import { AdminUsersController } from './admin-users.controller.js';
 import { AdminUsersService } from './admin-users.service.js';
@@ -67,6 +69,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminMediaController,
     AdminOpsController,
     AdminPlansController,
+    AdminSubscriptionsController,
     AdminOperatorsController,
     AdminStatsController,
     AdminSystemController,
@@ -77,6 +80,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminService,
     AdminOpsService,
     AdminPlansService,
+    AdminSubscriptionsService,
     AdminOperatorsService,
     AdminUsersService,
     AdminRiskCasesService,
