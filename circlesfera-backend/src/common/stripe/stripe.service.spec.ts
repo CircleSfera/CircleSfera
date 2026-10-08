@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   classifyStripeError,
   deriveConnectAccountFlags,
+  isVerifiedCompanyAccount,
   StripeService,
 } from './stripe.service.js';
 
@@ -63,6 +64,33 @@ describe('classifyStripeError', () => {
     expect(
       classifyStripeError(new Stripe.errors.StripeAuthenticationError()),
     ).toBe('permanent');
+  });
+});
+
+describe('isVerifiedCompanyAccount', () => {
+  const company = {
+    business_type: 'company',
+    details_submitted: true,
+    capabilities: { transfers: 'active' },
+    requirements: { currently_due: [], disabled_reason: null },
+  };
+
+  it('accepts a company the provider has nothing left to ask', () => {
+    expect(isVerifiedCompanyAccount(company)).toBe(true);
+  });
+
+  it.each([
+    ['a person', { business_type: 'individual' }],
+    ['details not submitted', { details_submitted: false }],
+    ['transfers not active', { capabilities: { transfers: 'pending' } }],
+    ['something still due', { requirements: { currently_due: ['tax_id'] } }],
+    ['a disabled account', { requirements: { disabled_reason: 'rejected' } }],
+  ])('refuses %s', (_case, change) => {
+    expect(isVerifiedCompanyAccount({ ...company, ...change })).toBe(false);
+  });
+
+  it('refuses an account it knows nothing about', () => {
+    expect(isVerifiedCompanyAccount({})).toBe(false);
   });
 });
 
