@@ -15,6 +15,10 @@ export const PROFILE_ACCENT_COLORS = [
 
 export type ProfileAccentColor = (typeof PROFILE_ACCENT_COLORS)[number];
 
+// How many Profiles one person can have. The Business plan raises it.
+export const PROFILE_LIMIT = 5;
+export const BUSINESS_PROFILE_LIMIT = 10;
+
 // Personalization of the Profile page comes with the Elite Creator and
 // Business plans.
 export function canPersonalizeProfile(
