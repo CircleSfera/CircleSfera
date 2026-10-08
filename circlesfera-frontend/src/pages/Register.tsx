@@ -205,7 +205,7 @@ export default function Register() {
                 style={{ height: 'var(--input-height-standard, 48px)' }}
                 autoComplete="bday"
               />
-              <p className="mt-1 px-1 text-[10px] text-gray-500 font-medium">
+              <p className="mt-1 px-1 text-xs text-gray-400 font-medium">
                 {t('auth.register.dob_hint')}
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function Register() {
               {t('auth.register.has_account')}{' '}
               <Link
                 to="/accounts/login"
-                className="text-brand-primary font-bold hover:underline"
+                className="inline-flex min-h-11 min-w-11 items-center -my-3 text-brand-primary font-bold hover:underline"
               >
                 {t('auth.register.sign_in_link')}
               </Link>

@@ -131,11 +131,11 @@ function MockFeedTabs() {
   return (
     <div className="flex justify-center py-2.5 px-4">
       <div className="inline-flex items-center gap-1.5 rounded-full bg-black/75 border border-white/12 p-1.5">
-        <span className="relative px-5 py-1.5 text-[11px] font-bold text-white">
+        <span className="relative px-5 py-1.5 text-xs font-bold text-white">
           <span className="absolute inset-0 rounded-full bg-white/15 border border-white/20" />
           <span className="relative z-10">{t('feed.for_you')}</span>
         </span>
-        <span className="px-5 py-1.5 text-[11px] font-bold text-white/40">
+        <span className="px-5 py-1.5 text-xs font-bold text-white/40">
           {t('feed.following')}
         </span>
       </div>
@@ -167,11 +167,11 @@ function MockExplore() {
       </div>
       <div className="flex justify-center py-2 px-4">
         <div className="inline-flex items-center gap-1.5 rounded-full bg-black/75 border border-white/12 p-1.5">
-          <span className="relative px-5 py-1.5 text-[11px] font-bold text-white">
+          <span className="relative px-5 py-1.5 text-xs font-bold text-white">
             <span className="absolute inset-0 rounded-full bg-white/15 border border-white/20" />
             <span className="relative z-10">{t('explore.for_you')}</span>
           </span>
-          <span className="px-5 py-1.5 text-[11px] font-bold text-white/40">
+          <span className="px-5 py-1.5 text-xs font-bold text-white/40">
             {t('explore.trending')}
           </span>
         </div>

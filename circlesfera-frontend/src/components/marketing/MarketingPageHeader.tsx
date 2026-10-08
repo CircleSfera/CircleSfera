@@ -31,7 +31,7 @@ export function MarketingPageHeader({
       className={clsx(align === 'center' && 'text-center mx-auto', className)}
     >
       {eyebrow && (
-        <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-brand-primary mb-2">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-brand-primary mb-2">
           {eyebrow}
         </p>
       )}
