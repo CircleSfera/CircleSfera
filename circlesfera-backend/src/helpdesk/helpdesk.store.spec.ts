@@ -150,4 +150,15 @@ describe('HelpdeskStore', () => {
     });
     expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
   });
+
+  it('finds the tickets that are with another team, inside the organization', async () => {
+    await store.ticketsWithOtherTeam(50);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', status: 'ESCALATED' },
+      orderBy: { updatedAt: 'asc' },
+      take: 50,
+      select: { id: true, escalatedReportId: true },
+    });
+  });
 });

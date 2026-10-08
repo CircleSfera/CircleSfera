@@ -10,6 +10,7 @@ describe('HelpdeskTicketsService', () => {
     findTicket: vi.fn(),
     findRequesterTicket: vi.fn(),
     listRequesterTickets: vi.fn(),
+    ticketsWithOtherTeam: vi.fn(),
     listTickets: vi.fn(),
     updateTicket: vi.fn(),
     messages: vi.fn(),
@@ -601,6 +602,76 @@ describe('HelpdeskTicketsService', () => {
       await expect(
         service.handOver('admin-1', 'missing'),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('tickets coming back from another team', () => {
+    const held = (id: string, caseRef: string | null) => ({
+      id,
+      escalatedReportId: caseRef,
+    });
+    const cases = (entries: [string, string][]) =>
+      new Map(
+        entries.map(([ref, status]) => [
+          ref,
+          {
+            id: ref,
+            status,
+            pending: ['PENDING', 'REVIEWING'].includes(status),
+          },
+        ]),
+      );
+
+    it('reopens the decided ones with a note for agents, and leaves the pending ones', async () => {
+      store.ticketsWithOtherTeam.mockResolvedValue([
+        held('t-1', 'r-1'),
+        held('t-2', 'r-2'),
+        held('t-3', 'r-3'),
+      ]);
+      handover.cases.mockResolvedValue(
+        cases([
+          ['r-1', 'RESOLVED'],
+          ['r-2', 'PENDING'],
+          ['r-3', 'REVIEWING'],
+        ]),
+      );
+
+      expect(await service.returnDecidedHandovers()).toBe(1);
+
+      expect(store.updateTicket).toHaveBeenCalledTimes(1);
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        { status: 'OPEN', resolvedAt: null },
+        {
+          authorKind: 'SYSTEM',
+          authorRef: null,
+          // Agents only: the requester is not told how moderation decided.
+          visibility: 'INTERNAL',
+          body: 'handover.decided:RESOLVED',
+        },
+      );
+      expect(notifier.answer).not.toHaveBeenCalled();
+    });
+
+    it('brings back a ticket whose case no longer exists, so that it is never stuck', async () => {
+      store.ticketsWithOtherTeam.mockResolvedValue([
+        held('t-1', 'r-deleted'),
+        held('t-2', null),
+      ]);
+
+      expect(await service.returnDecidedHandovers()).toBe(2);
+
+      expect(store.updateTicket.mock.calls.map((call) => call[2].body)).toEqual(
+        ['handover.decided:GONE', 'handover.decided:GONE'],
+      );
+    });
+
+    it('does nothing, and asks the host nothing, when no ticket is with another team', async () => {
+      store.ticketsWithOtherTeam.mockResolvedValue([]);
+
+      expect(await service.returnDecidedHandovers()).toBe(0);
+      expect(handover.cases).not.toHaveBeenCalled();
+      expect(store.updateTicket).not.toHaveBeenCalled();
     });
   });
 

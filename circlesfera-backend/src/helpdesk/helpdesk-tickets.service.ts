@@ -436,6 +436,43 @@ export class HelpdeskTicketsService {
     };
   }
 
+  // Brings back to support the tickets whose case with another team is
+  // decided: the ticket is open again and a note for agents says how it
+  // ended. A ticket whose case no longer exists comes back too, so that it
+  // is never stuck. Safe to run again: a ticket that came back is no longer
+  // with the other team.
+  async returnDecidedHandovers(limit = 200): Promise<number> {
+    const held = await this.store.ticketsWithOtherTeam(limit);
+    if (held.length === 0) return 0;
+
+    const cases = await this.handover.cases(
+      held
+        .map((ticket) => ticket.escalatedReportId)
+        .filter((ref): ref is string => !!ref),
+    );
+
+    let returned = 0;
+    for (const ticket of held) {
+      const handed = ticket.escalatedReportId
+        ? cases.get(ticket.escalatedReportId)
+        : undefined;
+      if (handed?.pending) continue;
+      await this.store.updateTicket(
+        ticket.id,
+        { status: 'OPEN', resolvedAt: null },
+        {
+          authorKind: 'SYSTEM',
+          authorRef: null,
+          visibility: 'INTERNAL',
+          // A key the agent's screen writes in its own language.
+          body: `handover.decided:${handed?.status ?? 'GONE'}`,
+        },
+      );
+      returned += 1;
+    }
+    return returned;
+  }
+
   // What support needs to know about who wrote a ticket. It reads; it
   // changes nothing.
   async accountCard(id: string) {

@@ -88,6 +88,16 @@ export class HelpdeskStore {
     return { tickets, total };
   }
 
+  /** Tickets that are with another team, the one handed over first on top. */
+  ticketsWithOtherTeam(limit: number) {
+    return this.prisma.supportTicket.findMany({
+      where: { organizationId: this.organizationId, status: 'ESCALATED' },
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
+      select: { id: true, escalatedReportId: true },
+    });
+  }
+
   findTicket(id: string) {
     return this.prisma.supportTicket.findFirst({
       where: { id, organizationId: this.organizationId },

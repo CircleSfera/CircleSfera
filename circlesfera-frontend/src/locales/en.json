@@ -2635,6 +2635,11 @@
       "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
+      "system": {
+        "handover_RESOLVED": "Moderation resolved the report. The ticket is back with support.",
+        "handover_REJECTED": "Moderation dismissed the report. The ticket is back with support.",
+        "handover_GONE": "The report no longer exists. The ticket is back with support."
+      },
       "conversation": "Conversation",
       "kind_answer": "Answer",
       "kind_note": "Internal note",

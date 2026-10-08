@@ -321,4 +321,30 @@ describe('SupportTicketsTab', () => {
       screen.getByRole('button', { name: i18n.t('admin.support.send_answer') }),
     ).toBeDisabled();
   });
+
+  it('writes what the system noted in the agent language', async () => {
+    vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
+      data: {
+        ...ticket(),
+        messages: [
+          message({
+            id: 'm-9',
+            authorKind: 'SYSTEM',
+            authorRef: null,
+            visibility: 'INTERNAL',
+            body: 'handover.decided:REJECTED',
+          }),
+        ],
+      },
+    } as never);
+    const i18n = await open([ticket()]);
+
+    expect(
+      await screen.findByText(i18n.t('admin.support.system.handover_REJECTED')),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('handover.decided:REJECTED')).toBeNull();
+    expect(
+      screen.getByText(i18n.t('admin.support.author_system')),
+    ).toBeInTheDocument();
+  });
 });
