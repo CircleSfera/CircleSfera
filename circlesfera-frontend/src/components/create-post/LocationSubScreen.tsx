@@ -181,7 +181,7 @@ export default function LocationSubScreen({
 
         <div className="p-4 relative z-10 flex flex-col flex-1 min-h-0">
           {!MAPBOX_TOKEN ? (
-            <p className="text-[13px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5 mb-4">
+            <p className="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2.5 mb-4">
               {t('createPost.location.token_missing')}
             </p>
           ) : (
@@ -193,7 +193,7 @@ export default function LocationSubScreen({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t('createPost.location.search')}
-                  className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-white/20 rounded-xl pl-10 pr-12 min-h-12 h-12 text-[14px] font-medium text-white placeholder-white/30 transition-all outline-none shadow-inner"
+                  className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-white/20 rounded-2xl pl-10 pr-12 min-h-12 h-12 text-base text-white placeholder-white/30 transition-all outline-none shadow-inner"
                 />
                 {query && (
                   <button
@@ -217,10 +217,10 @@ export default function LocationSubScreen({
                       disabled={isRetrieving}
                       className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex flex-col gap-0.5 disabled:opacity-50"
                     >
-                      <span className="text-[14px] font-semibold text-white">
+                      <span className="text-sm font-semibold text-white">
                         {suggestion.name}
                       </span>
-                      <span className="text-[12px] text-white/50 truncate">
+                      <span className="text-xs text-white/50 truncate">
                         {suggestion.place_formatted}
                       </span>
                     </button>
@@ -261,14 +261,14 @@ export default function LocationSubScreen({
                     type="button"
                     disabled={isGeoLoading}
                     onClick={handleUseCurrent}
-                    className="w-full min-h-12 h-12 flex items-center justify-center gap-2 px-4 rounded-xl bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:opacity-50 shadow-sm shrink-0"
+                    className="w-full min-h-12 h-12 flex items-center justify-center gap-2 px-4 rounded-full bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:opacity-50 shadow-sm shrink-0"
                   >
                     {isGeoLoading ? (
                       <Loader2 size={16} className="animate-spin" />
                     ) : (
                       <Navigation size={16} />
                     )}
-                    <span className="text-[14px] font-bold">
+                    <span className="text-sm font-bold">
                       {isGeoLoading
                         ? t('createPost.location.geo_loading')
                         : t('createPost.location.use_current')}
@@ -279,10 +279,10 @@ export default function LocationSubScreen({
                     <button
                       type="button"
                       onClick={onClear}
-                      className="w-full min-h-12 h-12 flex items-center justify-between gap-3 px-4 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-[14px] font-semibold transition-all shrink-0"
+                      className="w-full min-h-12 h-12 flex items-center justify-between gap-3 px-4 rounded-full bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary border border-brand-secondary/20 text-sm font-semibold transition-all shrink-0"
                     >
                       <span className="truncate">{currentLocation}</span>
-                      <span className="inline-flex items-center gap-1.5 shrink-0 bg-red-500/10 px-2 py-1 rounded-md text-[12px]">
+                      <span className="inline-flex items-center gap-1.5 shrink-0 bg-brand-secondary/10 px-2 py-1 rounded-full text-xs">
                         <X size={14} aria-hidden />
                         {t('createPost.location.clear')}
                       </span>
@@ -294,7 +294,7 @@ export default function LocationSubScreen({
           )}
         </div>
 
-        <div className="px-4 pb-4 mt-auto text-[12px] font-medium text-white/40 flex items-start gap-2 shrink-0">
+        <div className="px-4 pb-4 mt-auto text-xs font-medium text-white/40 flex items-start gap-2 shrink-0">
           <MapPin size={14} className="mt-0.5 shrink-0" />
           <p>{t('createPost.location.mapbox_hint')}</p>
         </div>

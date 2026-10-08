@@ -275,7 +275,7 @@ export default function MusicSubScreen({
                 </div>
               </div>
 
-              <p className="text-[13px] font-medium text-white/40">
+              <p className="text-sm font-medium text-white/40">
                 {t('modals.audio.trim_hint', {
                   seconds: Math.round(effectiveWindowMs / 1000),
                 })}
@@ -310,7 +310,7 @@ export default function MusicSubScreen({
                   <button
                     type="button"
                     onClick={handleTrimPreview}
-                    className="min-h-12 h-12 px-5 rounded-full bg-white/10 hover:bg-white/20 text-white text-[13px] font-bold inline-flex items-center justify-center gap-2 transition-all shadow-sm"
+                    className="min-h-12 h-12 px-5 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm font-bold inline-flex items-center justify-center gap-2 transition-all shadow-sm"
                   >
                     {isTrimPreviewPlaying ? (
                       <>
@@ -330,7 +330,7 @@ export default function MusicSubScreen({
                   <button
                     type="button"
                     onClick={handleConfirmTrim}
-                    className="min-h-12 h-12 flex-1 px-5 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-[14px] font-bold inline-flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/25 transition-transform active:scale-95"
+                    className="min-h-12 h-12 flex-1 px-5 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-sm font-bold inline-flex items-center justify-center gap-1.5 shadow-lg shadow-brand-primary/25 transition-transform active:scale-95"
                   >
                     <Check className="w-4 h-4" strokeWidth={2.5} aria-hidden />
                     {t('modals.audio.confirm_clip')}
@@ -350,7 +350,7 @@ export default function MusicSubScreen({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('modals.audio.search_placeholder')}
-                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2 min-h-12 h-12 text-[14px] font-medium text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all shadow-inner"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl pl-11 pr-4 py-2 min-h-12 h-12 text-base text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all shadow-inner"
                 />
               </div>
 
@@ -360,7 +360,7 @@ export default function MusicSubScreen({
                     <button
                       type="button"
                       onClick={handleClearSelection}
-                      className="w-full px-4 py-2 min-h-11 text-[13px] font-semibold text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl flex items-center justify-center transition shrink-0"
+                      className="w-full px-4 py-2 min-h-11 text-sm font-semibold text-brand-secondary bg-brand-secondary/10 hover:bg-brand-secondary/20 border border-brand-secondary/20 rounded-full flex items-center justify-center transition shrink-0"
                     >
                       {t('modals.audio.clear_selection')}
                     </button>
@@ -437,11 +437,11 @@ export default function MusicSubScreen({
 
                           <div className="min-w-0 flex-1">
                             <p
-                              className={`text-[14px] font-semibold truncate transition-colors ${isSelected ? 'text-brand-primary' : 'text-white'}`}
+                              className={`text-sm font-semibold truncate transition-colors ${isSelected ? 'text-brand-primary' : 'text-white'}`}
                             >
                               {audio.title}
                             </p>
-                            <p className="text-[12px] text-white/50 font-medium truncate mt-0.5">
+                            <p className="text-xs text-white/50 font-medium truncate mt-0.5">
                               {audio.artist || t('modals.audio.unknown_artist')}
                             </p>
                           </div>
@@ -453,7 +453,7 @@ export default function MusicSubScreen({
                             e.stopPropagation();
                             openTrim(audio);
                           }}
-                          className={`px-3.5 py-1.5 min-h-11 rounded-full text-[12px] font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
+                          className={`px-3.5 py-1.5 min-h-11 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all shrink-0 shadow-sm ${
                             isSelected
                               ? 'bg-white text-black'
                               : 'bg-white/10 hover:bg-white/20 text-white'

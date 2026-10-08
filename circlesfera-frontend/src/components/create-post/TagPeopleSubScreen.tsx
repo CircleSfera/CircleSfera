@@ -152,24 +152,13 @@ export default function TagPeopleSubScreen({
                 />
               )}
 
-              {currentTags.map((tag, idx) => (
+              {currentTags.map((tag) => (
                 <div
                   key={`${tag.username}-${tag.x}-${tag.y}`}
-                  className="absolute flex items-center gap-1.5 bg-black/80 backdrop-blur-md text-white text-[11px] font-bold px-2 py-1 rounded-md shadow-lg -translate-x-1/2 -translate-y-full -mt-1.5 cursor-pointer group border border-white/10"
+                  className="absolute flex items-center gap-1.5 bg-black/80 backdrop-blur-md text-white text-xs font-bold px-2 py-1 rounded-md shadow-lg -translate-x-1/2 -translate-y-full -mt-1.5 cursor-pointer group border border-white/10"
                   style={{ left: `${tag.x * 100}%`, top: `${tag.y * 100}%` }}
                 >
                   {tag.username}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      removeTag(idx);
-                    }}
-                    className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    aria-label={t('createPost.tags.remove')}
-                  >
-                    <X size={10} />
-                  </button>
                   <div className="absolute left-1/2 -bottom-1.25 -translate-x-1/2 w-0 h-0 border-l-[5px] border-l-transparent border-r-[5px] border-r-transparent border-t-[6px] border-t-black/80" />
                 </div>
               ))}
@@ -191,7 +180,7 @@ export default function TagPeopleSubScreen({
               className="border-t border-white/8 bg-surface-elevated px-4 py-2.5 space-y-2 shrink-0"
             >
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[11px] text-white/50">
+                <p className="text-xs text-white/50">
                   {t('createPost.tags.search_user')}
                 </p>
                 <button
@@ -200,7 +189,7 @@ export default function TagPeopleSubScreen({
                     setActiveTap(null);
                     setSearchQuery('');
                   }}
-                  className="text-[11px] text-white/40 hover:text-white min-h-11 px-2"
+                  className="text-xs text-white/40 hover:text-white min-h-11 px-2"
                 >
                   {t('common.cancel')}
                 </button>
@@ -216,7 +205,7 @@ export default function TagPeopleSubScreen({
                   placeholder={t('createPost.tags.search_user')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-12 py-2 pl-8 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl h-12 py-2 pl-9 pr-3 text-base text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
                   autoComplete="off"
                 />
               </div>
@@ -247,11 +236,11 @@ export default function TagPeopleSubScreen({
                         alt=""
                       />
                       <div className="min-w-0">
-                        <span className="block text-[13px] text-white/90 font-medium truncate">
+                        <span className="block text-sm text-white/90 font-medium truncate">
                           {user.username}
                         </span>
                         {user.fullName ? (
-                          <span className="block text-[11px] text-white/40 truncate">
+                          <span className="block text-xs text-white/40 truncate">
                             {user.fullName}
                           </span>
                         ) : null}
@@ -305,11 +294,11 @@ export default function TagPeopleSubScreen({
         )}
 
         <div className="border-t border-white/8 px-4 py-2.5 space-y-2 max-md:flex-1 max-md:overflow-y-auto pb-3">
-          <h3 className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+          <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider">
             {t('createPost.tags.tags_on_photo')}
           </h3>
           {currentTags.length === 0 ? (
-            <p className="text-[12px] text-white/35 leading-snug">
+            <p className="text-xs text-white/35 leading-snug">
               {t('createPost.tags.no_tags_yet')}
             </p>
           ) : (
@@ -319,7 +308,7 @@ export default function TagPeopleSubScreen({
                   key={`${tag.username}-${tag.x}-${tag.y}`}
                   className="flex items-center justify-between bg-white/5 rounded-lg px-2.5 py-2 border border-white/6"
                 >
-                  <span className="text-[13px] font-semibold text-white/90">
+                  <span className="text-sm font-semibold text-white/90">
                     @{tag.username}
                   </span>
                   <button

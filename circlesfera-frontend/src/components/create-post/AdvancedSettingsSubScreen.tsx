@@ -41,7 +41,7 @@ export default function AdvancedSettingsSubScreen({
       />
 
       <div className={SUBSCREEN_BODY}>
-        <div className="rounded-xl border border-white/8 bg-white/2 divide-y divide-white/6 overflow-hidden">
+        <div className="rounded-3xl border border-white/8 bg-white/2 divide-y divide-white/6 overflow-hidden">
           <div className="px-3 py-2.5">
             <Switch
               compact
@@ -81,12 +81,12 @@ export default function AdvancedSettingsSubScreen({
           ) : null}
         </div>
 
-        <div className="rounded-xl border border-white/8 bg-white/2 px-3 py-2.5 space-y-2">
+        <div className="rounded-3xl border border-white/8 bg-white/2 px-3 py-2.5 space-y-2">
           <div>
-            <div className="font-medium text-white text-[13px] leading-snug">
+            <div className="font-medium text-white text-sm leading-snug">
               {t('createPost.caption.schedule')}
             </div>
-            <div className="text-[11px] text-white/45 leading-snug">
+            <div className="text-xs text-white/45 leading-snug">
               {t('createPost.caption.schedule_desc')}
             </div>
           </div>
@@ -95,7 +95,7 @@ export default function AdvancedSettingsSubScreen({
             min={minSchedule}
             value={scheduledAt}
             onChange={(e) => setScheduledAt(e.target.value)}
-            className="w-full min-h-12 h-12 rounded-lg bg-surface-raised border border-white/10 px-2.5 text-white text-sm outline-none focus:ring-2 focus:ring-brand-primary/40"
+            className="w-full min-h-12 h-12 rounded-2xl bg-white/5 border border-white/10 px-4 text-white text-base outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
           {scheduledAt ? (
             <button
