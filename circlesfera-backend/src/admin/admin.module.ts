@@ -16,6 +16,8 @@ import { TrustModule } from '../trust/trust.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminService } from './admin.service.js';
 import { AdminContentController } from './admin-content.controller.js';
+import { AdminDisputesController } from './admin-disputes.controller.js';
+import { AdminDisputesService } from './admin-disputes.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
 import { AdminOperatorsController } from './admin-operators.controller.js';
 import { AdminOperatorsService } from './admin-operators.service.js';
@@ -69,6 +71,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminMediaController,
     AdminOpsController,
     AdminPlansController,
+    AdminDisputesController,
     AdminSubscriptionsController,
     AdminOperatorsController,
     AdminStatsController,
@@ -80,6 +83,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminService,
     AdminOpsService,
     AdminPlansService,
+    AdminDisputesService,
     AdminSubscriptionsService,
     AdminOperatorsService,
     AdminUsersService,

@@ -2161,6 +2161,7 @@
       "support": "Support",
       "plans": "Plans",
       "subscriptions": "Subscriptions",
+      "disputes": "Disputes",
       "trust": "Trust Queue",
       "live": "Live Streams",
       "roles": "Roles",
@@ -2567,6 +2568,43 @@
       "toast_failed": "The plan could not be saved",
       "load_failed": "The plan catalogue could not be loaded",
       "empty": "There are no plans in the catalogue"
+    },
+    "disputes": {
+      "title": "Disputes",
+      "subtitle": "Payments a customer has disputed with their bank. They are answered in Stripe, within the deadline.",
+      "filter_open": "Open",
+      "filter_closed": "Closed",
+      "filter_all": "All",
+      "status": {
+        "needs_response": "Needs response",
+        "under_review": "Under review",
+        "won": "Won",
+        "lost": "Lost",
+        "warning_needs_response": "Warning: needs response",
+        "warning_under_review": "Warning under review",
+        "warning_closed": "Warning closed"
+      },
+      "reason": {
+        "fraudulent": "Payment not recognised (fraud)",
+        "duplicate": "Duplicate charge",
+        "product_not_received": "Product not received",
+        "product_unacceptable": "Product not as described",
+        "subscription_canceled": "Subscription cancelled",
+        "credit_not_processed": "Refund not received",
+        "unrecognized": "Charge not recognised",
+        "general": "General reason"
+      },
+      "opened_on": "Opened on {{date}}",
+      "due_in_one": "Answer before {{date}} ({{count}} day left)",
+      "due_in_other": "Answer before {{date}} ({{count}} days left)",
+      "due_passed": "The deadline ended on {{date}}",
+      "answer_in_stripe": "Answer in Stripe",
+      "open_in_stripe": "Open in Stripe",
+      "no_transaction": "Payment of a plan",
+      "empty_open_title": "No open disputes",
+      "empty_title": "No disputes",
+      "empty_description": "When a customer disputes a payment with their bank, it shows here with its deadline.",
+      "load_failed": "The disputes could not be loaded"
     },
     "subscriptions": {
       "title": "Subscriptions",
@@ -4174,6 +4212,8 @@
     },
     "overview": {
       "title": "Overview",
+      "open_disputes": "Open disputes",
+      "open_disputes_hint": "They have a deadline to answer in Stripe",
       "subtitle": "What is worth a look every day. Each figure opens its section.",
       "subscriptions": "Active subscriptions",
       "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",

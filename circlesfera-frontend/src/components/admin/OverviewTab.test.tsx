@@ -11,6 +11,7 @@ vi.mock('../../services/admin.service', () => ({
     getPayoutStats: vi.fn(),
     getSupportTickets: vi.fn(),
     getPromotions: vi.fn(),
+    getDisputes: vi.fn(),
   },
 }));
 
@@ -40,6 +41,9 @@ describe('OverviewTab', () => {
       status: string,
     ) => Promise.resolve(total(status === 'OPEN' ? 4 : 1))) as never);
     vi.mocked(adminApi.getPromotions).mockResolvedValue(total(6) as never);
+    vi.mocked(adminApi.getDisputes).mockResolvedValue({
+      data: { data: [], meta: { total: 2, openCount: 2 } },
+    } as never);
   });
 
   it('shows every figure to an operator with every permission, each linked to its section', async () => {
@@ -59,6 +63,10 @@ describe('OverviewTab', () => {
     const payouts = screen.getByRole('link', { name: /Failed payouts/ });
     expect(payouts).toHaveAttribute('href', '/payouts');
     await waitFor(() => expect(payouts).toHaveTextContent('2 pending'));
+
+    const disputes = screen.getByRole('link', { name: /Open disputes/ });
+    await waitFor(() => expect(disputes).toHaveTextContent('2'));
+    expect(disputes).toHaveAttribute('href', '/disputes');
 
     const tickets = screen.getByRole('link', { name: /Open tickets/ });
     await waitFor(() => expect(tickets).toHaveTextContent('4'));
@@ -85,5 +93,6 @@ describe('OverviewTab', () => {
     expect(adminApi.getMonetizationAnalytics).not.toHaveBeenCalled();
     expect(adminApi.getPayoutStats).not.toHaveBeenCalled();
     expect(adminApi.getPromotions).not.toHaveBeenCalled();
+    expect(adminApi.getDisputes).not.toHaveBeenCalled();
   });
 });

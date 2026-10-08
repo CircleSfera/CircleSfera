@@ -17,6 +17,7 @@ import { EmailService } from '../email/email.service.js';
 import {
   isMonetizationCheckoutType,
   MonetizationWebhookService,
+  type StripeDisputePayload,
 } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -777,6 +778,19 @@ export class PaymentsService {
           data.object as {
             payment_intent?: string | { id: string } | null;
           },
+        );
+        if (type === 'charge.dispute.created') {
+          await this.monetizationWebhookService.syncDispute(
+            data.object as StripeDisputePayload,
+          );
+        }
+        break;
+      }
+
+      case 'charge.dispute.updated':
+      case 'charge.dispute.closed': {
+        await this.monetizationWebhookService.syncDispute(
+          data.object as StripeDisputePayload,
         );
         break;
       }
