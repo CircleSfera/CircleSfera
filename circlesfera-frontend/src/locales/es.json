@@ -2575,7 +2575,30 @@
       "confirm_close_title": "¿Cerrar sin respuesta?",
       "confirm_close_message": "Este ticket se cerrará sin respuesta. ¿Continuar?",
       "toast_updated": "Ticket actualizado",
-      "toast_error": "Error al actualizar ticket"
+      "toast_error": "Error al actualizar ticket",
+      "status_escalated": "En moderación",
+      "hand_to_moderation": "Pasar a moderación",
+      "confirm_escalate_title": "¿Pasar este ticket a moderación?",
+      "confirm_escalate_message": "Se creará una denuncia en las colas de confianza con el contenido del ticket. No podrás responderlo ni cerrarlo hasta que moderación decida.",
+      "toast_escalated": "Ticket pasado a moderación",
+      "with_moderation_notice": "Este ticket está en moderación. No se puede responder ni cerrar hasta que decidan su denuncia.",
+      "view_reports": "Ver denuncias",
+      "moderation_decided": "Moderación ya ha decidido la denuncia de este ticket. Puedes responder y cerrarlo.",
+      "account": {
+        "title": "Cuenta",
+        "plan": "Plan",
+        "no_plan": "Sin plan",
+        "identity": "Identidad verificada",
+        "yes": "Sí",
+        "no": "No",
+        "payouts": "Cobros",
+        "payouts_enabled": "Activos",
+        "payouts_pending": "Alta sin terminar",
+        "payouts_none": "Sin cuenta de cobros",
+        "banned": "Bloqueado",
+        "suspended": "Suspendido",
+        "in_good_standing": "En regla"
+      }
     },
     "audit": {
       "title": "Registro de Auditoría",
