@@ -23,7 +23,7 @@ export default function StoryElementTransformTab({
     <div className="space-y-3 animate-slide-up pb-2">
       {isInteractive && (
         <>
-          <p className="text-[11px] text-white/40 leading-relaxed px-0.5">
+          <p className="text-xs text-white/40 leading-relaxed px-0.5">
             {t('createPost.storyComposer.interactive_size_hint')}
           </p>
           <div className="pb-2 border-b border-white/5">

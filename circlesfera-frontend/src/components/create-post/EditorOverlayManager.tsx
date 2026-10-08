@@ -9,6 +9,7 @@ import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
 import type { CropData, VideoData } from '../PhotoEditor';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
+import { createThumbRatio } from './createStyles';
 import FrameTrimOverlay from './FrameTrimOverlay';
 
 const PhotoEditor = lazy(() => import('../PhotoEditor'));
@@ -20,6 +21,8 @@ interface EditorOverlayManagerProps {
   setCurrentEditIndex: (val: number | null) => void;
   /** The tab the photo editor opens on; filters when not given. */
   initialEditorTab?: PhotoEditorTab;
+  /** What is being created; small previews take its shape. */
+  mode?: 'POST' | 'FRAME' | 'STORY';
   showFrameTrim?: boolean;
   frameSourceDurationSec?: number;
   onFrameTrimConfirm?: (videoData: VideoData) => void;
@@ -58,6 +61,7 @@ export default function EditorOverlayManager({
   currentEditIndex,
   setCurrentEditIndex,
   initialEditorTab,
+  mode = 'POST',
   showFrameTrim = false,
   frameSourceDurationSec = 0,
   onFrameTrimConfirm,
@@ -166,6 +170,7 @@ export default function EditorOverlayManager({
             image={mediaFiles[currentEditIndex].file}
             onSave={handleFilterSave}
             onCancel={() => setCurrentEditIndex(null)}
+            thumbnailRatio={createThumbRatio(mode)}
             initialState={{
               videoData: mediaFiles[currentEditIndex].videoData,
               filter: mediaFiles[currentEditIndex].filter,

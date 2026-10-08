@@ -152,7 +152,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             <button
               type="button"
               onClick={() => p.setActiveTab('background')}
-              className="min-h-12 px-5 rounded-xl bg-white/10 border border-white/12 text-sm font-bold text-white"
+              className="min-h-12 px-6 rounded-full bg-white/10 border border-white/12 text-sm font-semibold text-white"
             >
               {t('createPost.storyComposer.open_backgrounds')}
             </button>
