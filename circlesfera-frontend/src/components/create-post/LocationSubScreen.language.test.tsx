@@ -9,24 +9,43 @@ const suggestion = {
   name: 'España',
   place_formatted: 'Europa',
 };
-const feature = {
-  properties: {
-    mapbox_id: 'place-1',
-    name: 'España',
-    place_formatted: 'Europa',
-    coordinates: { latitude: 40.4, longitude: -3.7 },
-    context: { country: { name: 'España' } },
-  },
-};
+const featureIn = (language: string | null, mapboxId = 'place-1') => ({
+  properties:
+    language === 'es'
+      ? {
+          mapbox_id: mapboxId,
+          name: 'España',
+          place_formatted: 'Europa',
+          coordinates: { latitude: 40.4, longitude: -3.7 },
+          context: { country: { name: 'España' } },
+        }
+      : {
+          mapbox_id: mapboxId,
+          name: 'Spain',
+          place_formatted: 'Europe',
+          coordinates: { latitude: 40.4, longitude: -3.7 },
+          context: { country: { name: 'Spain' } },
+        },
+});
 
-function answerPlaces() {
-  fetchMock.mockImplementation(async (url: string) => ({
-    ok: true,
-    json: async () =>
-      url.includes('/suggest')
-        ? { suggestions: [suggestion] }
-        : { features: [feature] },
-  }));
+/** Answers the map provider; `english` changes what the English request gets. */
+function answerPlaces(english: 'ok' | 'down' | 'other place' = 'ok') {
+  fetchMock.mockImplementation(async (address: string) => {
+    const url = new URL(address);
+    if (url.pathname.includes('/suggest')) {
+      return { ok: true, json: async () => ({ suggestions: [suggestion] }) };
+    }
+    const language = url.searchParams.get('language');
+    if (language === 'en' && english === 'down') {
+      return { ok: false, status: 500 };
+    }
+    const id =
+      language === 'en' && english === 'other place' ? 'place-2' : 'place-1';
+    return {
+      ok: true,
+      json: async () => ({ features: [featureIn(language, id)] }),
+    };
+  });
 }
 
 const requested = (part: string) =>
@@ -107,5 +126,72 @@ describe('language of places', () => {
 
     await waitFor(() => expect(requested('/suggest')).toHaveLength(1));
     expect(requested('/suggest')[0].searchParams.get('language')).toBe('es');
+  });
+
+  describe('the names sent with the place', () => {
+    async function choosePlace() {
+      const { onSelect } = await renderLocation({
+        profileLanguage: 'es',
+        appLanguage: 'es',
+      });
+      fireEvent.change(screen.getByPlaceholderText('Buscar ubicación...'), {
+        target: { value: 'Esp' },
+      });
+      fireEvent.click(await screen.findByRole('button', { name: /España/ }));
+      await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
+      return onSelect.mock.calls[0][0];
+    }
+
+    it('sends the place in both languages, with the profile language as the main one', async () => {
+      const selection = await choosePlace();
+
+      expect(selection.location).toBe('España, Europa');
+      expect(selection.place).toMatchObject({
+        name: 'España',
+        country: 'España',
+      });
+      expect(selection.place.translations).toEqual([
+        {
+          locale: 'es',
+          name: 'España',
+          fullName: 'España, Europa',
+          country: 'España',
+          region: undefined,
+          locality: undefined,
+        },
+        {
+          locale: 'en',
+          name: 'Spain',
+          fullName: 'Spain, Europe',
+          country: 'Spain',
+          region: undefined,
+          locality: undefined,
+        },
+      ]);
+    });
+
+    it('still lets the place be chosen, in one language, when the other cannot be loaded', async () => {
+      answerPlaces('down');
+
+      const selection = await choosePlace();
+
+      expect(
+        selection.place.translations.map(
+          (item: { locale: string }) => item.locale,
+        ),
+      ).toEqual(['es']);
+    });
+
+    it('does not take a different place as the translation', async () => {
+      answerPlaces('other place');
+
+      const selection = await choosePlace();
+
+      expect(
+        selection.place.translations.map(
+          (item: { locale: string }) => item.locale,
+        ),
+      ).toEqual(['es']);
+    });
   });
 });

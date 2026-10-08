@@ -1,4 +1,3 @@
-import type { PlaceInput } from '@circlesfera/shared';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
@@ -9,13 +8,16 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { useAuthStore } from '../../stores/authStore';
 import { toAppLocale } from '../../utils/appLocale';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
+import {
+  loadPlaceSelection,
+  type PlaceSelection,
+  retrievePlace,
+  reversePlace,
+} from './mapboxPlaces';
 import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
 
-export type PlaceSelection = {
-  location: string;
-  place: PlaceInput;
-};
+export type { PlaceSelection } from './mapboxPlaces';
 
 interface LocationSubScreenProps {
   onClose: () => void;
@@ -95,49 +97,23 @@ export default function LocationSubScreen({
   const suggestions = trimmedQuery ? (foundPlaces ?? []) : [];
 
   const handleSelectSuggestion = async (suggestion: any) => {
-    if (!MAPBOX_TOKEN) return;
+    const token = MAPBOX_TOKEN;
+    if (!token) return;
 
     setIsRetrieving(true);
     try {
-      const url = new URL(
-        `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}`,
+      const selection = await loadPlaceSelection(placeLanguage, (language) =>
+        retrievePlace({
+          mapboxId: suggestion.mapbox_id,
+          language,
+          token,
+          sessionToken,
+        }),
       );
-      url.searchParams.set('access_token', MAPBOX_TOKEN);
-      url.searchParams.set('session_token', sessionToken);
-      url.searchParams.set('language', placeLanguage);
-
-      const res = await fetch(url.toString());
-      if (res.ok) {
-        const data = await res.json();
-        const feature = data.features?.[0];
-
-        if (feature) {
-          const props = feature.properties;
-          const coords = props.coordinates;
-          const name = props.name_preferred || props.name;
-          const fullName =
-            props.full_address ||
-            [props.name, props.place_formatted].filter(Boolean).join(', ') ||
-            name;
-
-          onSelect({
-            location: fullName || name,
-            place: {
-              mapboxId: props.mapbox_id,
-              name,
-              fullName: fullName || undefined,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-              country: props.context?.country?.name,
-              region: props.context?.region?.name,
-              locality:
-                props.context?.locality?.name || props.context?.place?.name,
-            },
-          });
-
-          // Reset session token after a successful retrieval
-          setSessionToken(generateSessionToken());
-        }
+      if (selection) {
+        onSelect(selection);
+        // Reset session token after a successful retrieval
+        setSessionToken(generateSessionToken());
       }
     } catch {
       toast.error(t('createPost.location.retrieve_failed'));
@@ -147,7 +123,8 @@ export default function LocationSubScreen({
   };
 
   const handleUseCurrent = () => {
-    if (!MAPBOX_TOKEN) {
+    const token = MAPBOX_TOKEN;
+    if (!token) {
       toast.error(t('createPost.location.token_missing'));
       return;
     }
@@ -159,48 +136,21 @@ export default function LocationSubScreen({
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
-          const url = new URL(
-            `https://api.mapbox.com/search/searchbox/v1/reverse`,
+          const selection = await loadPlaceSelection(
+            placeLanguage,
+            (language) =>
+              reversePlace({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                language,
+                token,
+              }),
           );
-          url.searchParams.set('longitude', String(pos.coords.longitude));
-          url.searchParams.set('latitude', String(pos.coords.latitude));
-          url.searchParams.set('access_token', MAPBOX_TOKEN);
-          url.searchParams.set('limit', '1');
-          url.searchParams.set('language', placeLanguage);
-
-          const res = await fetch(url.toString());
-          if (!res.ok) throw new Error('Reverse geocode failed');
-
-          const data = await res.json();
-          const feature = data.features?.[0];
-
-          if (!feature) {
+          if (!selection) {
             toast.error(t('createPost.location.retrieve_failed'));
             return;
           }
-
-          const props = feature.properties;
-          const coords = props.coordinates;
-          const name = props.name_preferred || props.name;
-          const fullName =
-            props.full_address ||
-            [props.name, props.place_formatted].filter(Boolean).join(', ') ||
-            name;
-
-          onSelect({
-            location: fullName || name,
-            place: {
-              mapboxId: props.mapbox_id,
-              name,
-              fullName: fullName || undefined,
-              latitude: coords.latitude,
-              longitude: coords.longitude,
-              country: props.context?.country?.name,
-              region: props.context?.region?.name,
-              locality:
-                props.context?.locality?.name || props.context?.place?.name,
-            },
-          });
+          onSelect(selection);
         } catch {
           toast.error(t('createPost.location.retrieve_failed'));
         } finally {

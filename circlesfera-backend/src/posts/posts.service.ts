@@ -146,12 +146,6 @@ export class PostsService {
       });
     }
 
-    const placeAttachment = await resolvePlaceAttachment(this.prisma, {
-      placeId: dto.placeId,
-      place: dto.place,
-      location: dto.location,
-    });
-
     const postType = dto.type || 'POST';
     const mediaItems = dto.media ?? [];
 
@@ -188,6 +182,13 @@ export class PostsService {
 
     const createdPost = await this.prisma.$transaction(
       async (tx: Prisma.TransactionClient) => {
+        // The place and its names are saved with the post or not at all.
+        const placeAttachment = await resolvePlaceAttachment(tx, {
+          placeId: dto.placeId,
+          place: dto.place,
+          location: dto.location,
+        });
+
         const post = await tx.post.create({
           data: {
             profileId,

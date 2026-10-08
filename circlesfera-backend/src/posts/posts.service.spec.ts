@@ -219,6 +219,58 @@ describe('PostsService', () => {
       );
     });
 
+    it('saves the place and its names inside the post transaction', async () => {
+      const mockTx = {
+        post: { create: vi.fn().mockResolvedValue({ id: 'post-place' }) },
+        postMedia: { createMany: vi.fn(), create: vi.fn() },
+        media: { create: vi.fn(), createMany: vi.fn() },
+        hashtag: {
+          createMany: vi.fn(),
+          updateMany: vi.fn(),
+          findMany: vi.fn().mockResolvedValue([]),
+        },
+        postHashtag: { create: vi.fn(), createMany: vi.fn() },
+        place: {
+          findUnique: vi.fn(),
+          upsert: vi.fn().mockResolvedValue({
+            id: 'place-1',
+            name: 'Cádiz',
+            fullName: 'Cádiz, España',
+          }),
+        },
+        placeTranslation: { upsert: vi.fn() },
+      };
+      mockPrismaService.place.upsert.mockClear();
+      mockPrismaService.$transaction.mockImplementation(async (cb) =>
+        cb(mockTx),
+      );
+      mockPrismaService.post.findUniqueOrThrow.mockResolvedValueOnce({
+        id: 'post-place',
+        media: [],
+      });
+
+      await service.create('user-1', {
+        place: {
+          mapboxId: 'mapbox-1',
+          name: 'Cádiz',
+          fullName: 'Cádiz, España',
+          latitude: 36.5,
+          longitude: -6.3,
+          translations: [{ locale: 'en', name: 'Cadiz' }],
+        },
+      });
+
+      // Written through the transaction, so a failure leaves nothing behind.
+      expect(mockTx.place.upsert).toHaveBeenCalledTimes(1);
+      expect(mockTx.placeTranslation.upsert).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.place.upsert).not.toHaveBeenCalled();
+      expect(mockTx.post.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ placeId: 'place-1' }),
+        }),
+      );
+    });
+
     it('rejects FRAME when no media items provided', async () => {
       await expect(
         service.create('user-1', {
