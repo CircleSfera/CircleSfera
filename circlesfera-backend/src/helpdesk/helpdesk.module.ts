@@ -1,5 +1,6 @@
 import { type DynamicModule, Module, type Type } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module.js';
+import { HelpdeskScheduler } from './helpdesk.scheduler.js';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { HelpdeskAgentController } from './helpdesk-agent.controller.js';
 import { HelpdeskRequesterController } from './helpdesk-requester.controller.js';
@@ -18,6 +19,6 @@ export function helpdeskFor(host: Type<unknown>): DynamicModule {
     module: HelpdeskModule,
     imports: [PrismaModule, host],
     controllers: [HelpdeskRequesterController, HelpdeskAgentController],
-    providers: [HelpdeskStore, HelpdeskTicketsService],
+    providers: [HelpdeskStore, HelpdeskTicketsService, HelpdeskScheduler],
   };
 }

@@ -81,6 +81,15 @@ function ConversationMessage({
 }) {
   const { t, i18n } = useTranslation();
   const internal = message.visibility === 'INTERNAL';
+  // What the system notes is stored as a key and written here in the
+  // agent's language.
+  const decided =
+    message.authorKind === 'SYSTEM'
+      ? /^handover\.decided:(RESOLVED|REJECTED|GONE)$/.exec(message.body)
+      : null;
+  const systemText = decided
+    ? t(`admin.support.system.handover_${decided[1]}`)
+    : null;
   const author =
     message.authorKind === 'REQUESTER'
       ? requester
@@ -107,7 +116,7 @@ function ConversationMessage({
         <span>{formatDateTime(message.createdAt, i18n.language)}</span>
       </p>
       <p className="text-sm text-white/85 whitespace-pre-wrap wrap-break-word leading-relaxed">
-        {message.body}
+        {systemText ?? message.body}
       </p>
     </li>
   );
