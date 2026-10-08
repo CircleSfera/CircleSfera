@@ -9,7 +9,12 @@ describe('AdminOpsService: support tickets', () => {
     supportTicket: { update: vi.fn() },
   };
   const prisma = {
-    supportTicket: { findUnique: vi.fn(), update: vi.fn() },
+    supportTicket: {
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+    },
     report: { findUnique: vi.fn() },
     profile: { findFirst: vi.fn() },
     user: { findUnique: vi.fn() },
@@ -39,6 +44,25 @@ describe('AdminOpsService: support tickets', () => {
       {} as never,
       {} as never,
     );
+  });
+
+  describe('listing tickets', () => {
+    const order = () => prisma.supportTicket.findMany.mock.calls[0][0].orderBy;
+
+    it('puts the open ticket waiting longest first', async () => {
+      await service.getSupportTickets(1, 20, 'OPEN');
+
+      expect(order()).toEqual({ createdAt: 'asc' });
+    });
+
+    it('puts the newest first in any other list', async () => {
+      await service.getSupportTickets(1, 20, 'RESOLVED');
+      expect(order()).toEqual({ createdAt: 'desc' });
+
+      prisma.supportTicket.findMany.mockClear();
+      await service.getSupportTickets();
+      expect(order()).toEqual({ createdAt: 'desc' });
+    });
   });
 
   describe('handing a ticket to moderation', () => {

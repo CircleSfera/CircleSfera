@@ -2632,6 +2632,11 @@
       "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
+      "waiting_under_hour": "Waiting under 1 hour",
+      "waiting_hours_one": "Waiting {{count}} hour",
+      "waiting_hours_other": "Waiting {{count}} hours",
+      "waiting_days_one": "Waiting {{count}} day",
+      "waiting_days_other": "Waiting {{count}} days",
       "title": "Support Tickets",
       "subtitle": "Manage user support requests and replies",
       "filter_status": "Status",

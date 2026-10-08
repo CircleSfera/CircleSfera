@@ -45,6 +45,26 @@ function statusBadgeClass(status: ShownStatus) {
   }
 }
 
+const HOUR_MS = 60 * 60 * 1000;
+
+/** How long an open ticket has waited for an answer; marked after two days. */
+function WaitingTime({ since }: { since: string }) {
+  const { t } = useTranslation();
+  const hours = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(since).getTime()) / HOUR_MS),
+  );
+  return (
+    <span className={hours >= 48 ? 'font-semibold text-yellow-400' : undefined}>
+      {hours < 1
+        ? t('admin.support.waiting_under_hour')
+        : hours < 24
+          ? t('admin.support.waiting_hours', { count: hours })
+          : t('admin.support.waiting_days', { count: Math.floor(hours / 24) })}
+    </span>
+  );
+}
+
 export default function SupportTicketsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -219,7 +239,13 @@ export default function SupportTicketsTab({ onToast }: Props) {
                           : ticket.status}
                       </span>
                     }
-                    meta={formatDate(ticket.createdAt, i18n.language)}
+                    meta={
+                      ticket.status === 'OPEN' ? (
+                        <WaitingTime since={ticket.createdAt} />
+                      ) : (
+                        formatDate(ticket.createdAt, i18n.language)
+                      )
+                    }
                   />
                 ))
               )}
