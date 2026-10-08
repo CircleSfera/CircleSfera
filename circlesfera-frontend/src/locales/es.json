@@ -2256,6 +2256,7 @@
       "kpi_pending_reports": "Reportes pendientes",
       "segment_banned": "Baneados",
       "segment_admins": "Operadores",
+      "segment_plan_no_identity": "Plan sin identidad",
       "suspend_form_title": "Suspender usuario",
       "suspend_form_message": "Indica duración y motivo para @{{username}}."
     },

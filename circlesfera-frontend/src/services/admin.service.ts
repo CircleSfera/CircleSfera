@@ -635,9 +635,19 @@ export const adminApi = {
     status?: string,
     role?: string,
     kycStatus?: string,
+    // Only holders of a plan in force who have not verified their identity.
+    planWithoutIdentity?: boolean,
   ) =>
     apiClient.get<PaginatedResponse<AdminUser>>('/admin/users', {
-      params: { page, limit, search, status, role, kycStatus },
+      params: {
+        page,
+        limit,
+        search,
+        status,
+        role,
+        kycStatus,
+        planWithoutIdentity: planWithoutIdentity ? 'true' : undefined,
+      },
     }),
 
   getKycStats: () =>

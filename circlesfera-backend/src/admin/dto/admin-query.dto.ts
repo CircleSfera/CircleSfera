@@ -29,6 +29,13 @@ export class AdminQueryDto extends PaginationDto {
   @IsIn(['verified', 'pending', 'not_started'])
   kycStatus?: string;
 
+  // Users: only holders of a platform plan in force who have not verified
+  // their identity.
+  @IsOptional()
+  @IsString()
+  @IsIn(['true'])
+  planWithoutIdentity?: string;
+
   @IsOptional()
   @IsString()
   @IsIn(['POST', 'FRAME', 'STORY', 'COMMENT'])

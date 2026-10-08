@@ -118,6 +118,7 @@ export class AdminUsersService {
     status?: string,
     role?: string,
     kycStatus?: string,
+    planWithoutIdentity = false,
   ) {
     const skip = (page - 1) * limit;
     const where: Prisma.UserWhereInput = {
@@ -167,6 +168,13 @@ export class AdminUsersService {
         where.identityVerifiedAt = null;
         where.stripeIdentitySessionId = { not: null };
       }
+    }
+
+    if (planWithoutIdentity) {
+      where.identityVerifiedAt = null;
+      where.platformSubscriptions = {
+        some: { status: { in: ['ACTIVE', 'TRIALING'] } },
+      };
     }
 
     if (status === 'active') where.isActive = true;

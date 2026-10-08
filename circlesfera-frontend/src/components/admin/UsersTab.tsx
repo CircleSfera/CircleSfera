@@ -112,6 +112,7 @@ export default function Dashboard({ onToast }: Props) {
 
   const statusFilter = segment === 'BANNED' ? 'banned' : undefined;
   const roleFilter = segment === 'ADMINS' ? 'ADMIN' : undefined;
+  const planWithoutIdentity = segment === 'PLAN_NO_IDENTITY';
 
   const { data: statsData } = useQuery<EnhancedStats>({
     queryKey: ['admin', 'stats', 'enhanced'],
@@ -126,6 +127,7 @@ export default function Dashboard({ onToast }: Props) {
       debouncedSearch,
       statusFilter,
       roleFilter,
+      planWithoutIdentity,
     ],
     queryFn: () =>
       adminApi
@@ -135,6 +137,8 @@ export default function Dashboard({ onToast }: Props) {
           debouncedSearch || undefined,
           statusFilter,
           roleFilter,
+          undefined,
+          planWithoutIdentity,
         )
         .then((res) => res.data as PaginatedResponse<AdminUser>),
   });
@@ -418,6 +422,10 @@ export default function Dashboard({ onToast }: Props) {
             { value: 'ALL', label: t('admin.shared.filter_all_recent') },
             { value: 'BANNED', label: t('admin.users.segment_banned') },
             { value: 'ADMINS', label: t('admin.users.segment_admins') },
+            {
+              value: 'PLAN_NO_IDENTITY',
+              label: t('admin.users.segment_plan_no_identity'),
+            },
           ]}
         />
         <div className="flex-1 min-w-0 md:max-w-xs">

@@ -68,6 +68,7 @@ export class AdminUsersController {
       query.status,
       query.role,
       query.kycStatus,
+      query.planWithoutIdentity === 'true',
     );
   }
 

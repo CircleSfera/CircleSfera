@@ -84,6 +84,24 @@ describe('AdminUsersController', () => {
     expect(mockService.getUsers).not.toHaveBeenCalled();
   });
 
+  it('asks the list for plan holders without verified identity', async () => {
+    mockService.getUsers.mockResolvedValue({ data: [], meta: {} });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users?planWithoutIdentity=true')
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(mockService.getUsers.mock.calls[0][6]).toBe(true);
+  });
+
+  it('rejects any other value for that filter', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users?planWithoutIdentity=yes')
+      .set(ADMIN_BEARER)
+      .expect(400);
+  });
+
   it('rejects broadcast with a non-whitelisted body field', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/broadcast')
@@ -153,6 +171,7 @@ describe('AdminUsersController', () => {
       'ACTIVE',
       'USER',
       'verified',
+      false,
     );
   });
 
