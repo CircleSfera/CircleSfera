@@ -184,6 +184,64 @@ describe('ProfilesService', () => {
   });
 
   describe('updateProfile', () => {
+    describe('profile colour', () => {
+      const stored = (verificationLevel: string) => ({
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+        verificationLevel,
+      });
+      const saved = {
+        id: 'p-1',
+        userId: 'u-1',
+        username: 'testuser',
+        user: { settings: { privacyLevel: 'PUBLIC' } },
+        _count: { followers: 0, following: 0 },
+      };
+
+      it.each(['BASIC', 'VERIFIED'])(
+        'refuses a colour for a Profile on the %s level',
+        async (level) => {
+          mockPrismaService.profile.findUnique.mockResolvedValue(stored(level));
+          mockPrismaService.profile.update.mockClear();
+
+          await expect(
+            service.updateProfile('p-1', { accentColor: 'teal' }),
+          ).rejects.toMatchObject({ status: 403 });
+          expect(mockPrismaService.profile.update).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each(['ELITE', 'BUSINESS'])(
+        'saves the colour of a Profile on the %s plan',
+        async (level) => {
+          mockPrismaService.profile.findUnique.mockResolvedValue(stored(level));
+          mockPrismaService.profile.update.mockResolvedValue(saved);
+
+          await service.updateProfile('p-1', { accentColor: 'teal' });
+
+          expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+              data: expect.objectContaining({ accentColor: 'teal' }),
+            }),
+          );
+        },
+      );
+
+      it('lets any Profile go back to the colour of the app', async () => {
+        mockPrismaService.profile.findUnique.mockResolvedValue(stored('BASIC'));
+        mockPrismaService.profile.update.mockResolvedValue(saved);
+
+        await service.updateProfile('p-1', { accentColor: null });
+
+        expect(mockPrismaService.profile.update).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ accentColor: null }),
+          }),
+        );
+      });
+    });
+
     it('should update accountType on Profile and not call user.update when isPrivate is undefined', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         id: 'p-1',
@@ -445,6 +503,35 @@ describe('ProfilesService', () => {
         600000,
       );
     });
+
+    it.each([
+      ['ELITE', 'teal'],
+      ['BUSINESS', 'teal'],
+      ['VERIFIED', null],
+      ['BASIC', null],
+    ])(
+      'a Profile on the %s level shows the colour %s',
+      async (level, shown) => {
+        mockCacheManager.get.mockResolvedValue(null);
+        mockPrismaService.profile.findFirst.mockResolvedValue({
+          id: 'p-colour',
+          userId: 'u-colour',
+          username: 'colouruser',
+          verificationLevel: level,
+          accountType: 'CREATOR',
+          // The choice stays stored when the plan that includes it ends.
+          accentColor: 'teal',
+          user: null,
+          _count: { posts: 0, followers: 0, following: 0 },
+        });
+        mockPrismaService.platformSubscription = {
+          findFirst: vi.fn().mockResolvedValue(null),
+        };
+
+        const res: any = await service.getProfile('colouruser');
+        expect(res.accentColor).toBe(shown);
+      },
+    );
 
     it('handles ELITE verificationLevel without platformSubscription', async () => {
       mockCacheManager.get.mockResolvedValue(null);
