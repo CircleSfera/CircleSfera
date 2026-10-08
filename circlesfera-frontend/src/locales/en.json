@@ -2632,6 +2632,8 @@
       "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
+      "filter_category": "Topic",
+      "category_all": "All topics",
       "waiting_under_hour": "Waiting under 1 hour",
       "waiting_hours_one": "Waiting {{count}} hour",
       "waiting_hours_other": "Waiting {{count}} hours",
@@ -3465,6 +3467,14 @@
     "renamed": "Collection renamed"
   },
   "supportPage": {
+    "category_label": "What is it about?",
+    "category_placeholder": "Choose a topic",
+    "category": {
+      "ACCOUNT": "My account",
+      "PAYMENTS": "Payments and plans",
+      "CONTENT": "Content or reports",
+      "OTHER": "Something else"
+    },
     "badge": "Support",
     "seo_title": "Support — CircleSfera",
     "seo_desc": "Direct assistance and specialized support for CircleSfera users. Our team is ready to help.",

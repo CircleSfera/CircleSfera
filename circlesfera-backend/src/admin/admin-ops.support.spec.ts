@@ -55,6 +55,19 @@ describe('AdminOpsService: support tickets', () => {
       expect(order()).toEqual({ createdAt: 'asc' });
     });
 
+    it('filters by what the ticket is about', async () => {
+      await service.getSupportTickets(1, 20, undefined, 'PAYMENTS');
+      expect(prisma.supportTicket.findMany.mock.calls[0][0].where).toEqual({
+        category: 'PAYMENTS',
+      });
+
+      prisma.supportTicket.findMany.mockClear();
+      await service.getSupportTickets(1, 20, 'OPEN', 'nonsense');
+      expect(prisma.supportTicket.findMany.mock.calls[0][0].where).toEqual({
+        status: 'OPEN',
+      });
+    });
+
     it('puts the newest first in any other list', async () => {
       await service.getSupportTickets(1, 20, 'RESOLVED');
       expect(order()).toEqual({ createdAt: 'desc' });

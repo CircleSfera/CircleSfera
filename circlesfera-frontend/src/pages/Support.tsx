@@ -9,6 +9,7 @@ import {
   MarketingPageHeader,
 } from '../components/marketing';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
@@ -29,6 +30,7 @@ export const Support = () => {
   const userId = profile?.userId || profile?.user?.id;
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [category, setCategory] = useState('');
   const [status, setStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle');
@@ -44,11 +46,13 @@ export const Support = () => {
         email: userEmail,
         subject,
         message,
+        category: category || undefined,
         userId: userId,
       });
       setStatus('success');
       setSubject('');
       setMessage('');
+      setCategory('');
     } catch (error: unknown) {
       setStatus('error');
       // The API client rejects with { status, data }, never an Axios error.
@@ -168,6 +172,30 @@ export const Support = () => {
                     </div>
                   </div>
                 )}
+
+                <Select
+                  id="category"
+                  label={t('supportPage.category_label')}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  disabled={!userEmail || status === 'loading'}
+                >
+                  <option value="" disabled className="bg-surface-raised">
+                    {t('supportPage.category_placeholder')}
+                  </option>
+                  {(['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'] as const).map(
+                    (value) => (
+                      <option
+                        key={value}
+                        value={value}
+                        className="bg-surface-raised"
+                      >
+                        {t(`supportPage.category.${value}`)}
+                      </option>
+                    ),
+                  )}
+                </Select>
 
                 <Input
                   id="subject"

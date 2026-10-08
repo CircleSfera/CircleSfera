@@ -19,6 +19,7 @@ const ticket = (overrides: Record<string, unknown> = {}) => ({
   subject: 'Someone is harassing me',
   message: 'It keeps happening in my comments.',
   status: 'OPEN',
+  category: 'PAYMENTS',
   reply: null,
   createdAt: '2026-09-01T10:00:00.000Z',
   updatedAt: '2026-09-01T10:00:00.000Z',
@@ -172,5 +173,27 @@ describe('SupportTicketsTab', () => {
     renderWithProviders(<SupportTicketsTab onToast={onToast} />);
 
     expect(await screen.findAllByText('Waiting 3 days')).toHaveLength(1);
+  });
+
+  it('shows what each ticket is about and filters by it', async () => {
+    vi.mocked(adminApi.getSupportTickets).mockResolvedValue(
+      page([ticket()]) as never,
+    );
+    renderWithProviders(<SupportTicketsTab onToast={onToast} />);
+
+    expect(await screen.findByText('Payments and plans')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Topic' }), {
+      target: { value: 'ACCOUNT' },
+    });
+
+    await waitFor(() =>
+      expect(adminApi.getSupportTickets).toHaveBeenLastCalledWith(
+        1,
+        20,
+        undefined,
+        'ACCOUNT',
+      ),
+    );
   });
 });

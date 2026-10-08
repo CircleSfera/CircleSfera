@@ -35,6 +35,22 @@ describe('SupportService', () => {
   });
 
   describe('createTicket', () => {
+    it('stores the category the participant chose', async () => {
+      mockPrismaService.supportTicket.create.mockResolvedValue({ id: 't-2' });
+
+      await service.createTicket({
+        email: 'user@example.com',
+        subject: 'Charged twice',
+        message: 'I was charged twice',
+        userId: 'user-1',
+        category: 'PAYMENTS',
+      });
+
+      expect(mockPrismaService.supportTicket.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ category: 'PAYMENTS' }),
+      });
+    });
+
     it('should create a support ticket and emit a support.ticket_created event', async () => {
       const dto = {
         email: 'user@example.com',
@@ -53,6 +69,7 @@ describe('SupportService', () => {
           email: dto.email,
           subject: dto.subject,
           message: dto.message,
+          category: undefined,
           userId: dto.userId,
         },
       });

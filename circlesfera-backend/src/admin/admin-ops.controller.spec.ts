@@ -183,7 +183,12 @@ describe('AdminOpsController', () => {
       .send(body)
       .expect(200);
 
-    expect(mockService.getSupportTickets).toHaveBeenCalledWith(1, 10, 'OPEN');
+    expect(mockService.getSupportTickets).toHaveBeenCalledWith(
+      1,
+      10,
+      'OPEN',
+      undefined,
+    );
     expect(mockService.updateSupportTicket).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       't-1',
