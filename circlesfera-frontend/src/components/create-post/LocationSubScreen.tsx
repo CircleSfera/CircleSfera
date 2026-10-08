@@ -6,6 +6,8 @@ import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
+import { useAuthStore } from '../../stores/authStore';
+import { toAppLocale } from '../../utils/appLocale';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
 import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
@@ -35,7 +37,14 @@ export default function LocationSubScreen({
   onClear,
   currentLocation = '',
 }: LocationSubScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Places are searched and saved in the language of the profile: the name
+  // chosen here is stored with the post and shown to everyone. The account
+  // language is the profile's; the app language stands in until it is known.
+  const accountLocale = useAuthStore((state) => state.profile?.user?.locale);
+  const placeLanguage = toAppLocale(
+    accountLocale ?? i18n.resolvedLanguage ?? i18n.language,
+  );
   const [query, setQuery] = useState('');
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [isGeoLoading, setIsGeoLoading] = useState(false);
@@ -52,13 +61,19 @@ export default function LocationSubScreen({
     isError: searchFailed,
     refetch: retrySearch,
   } = useQuery({
-    queryKey: ['composer', 'places', debouncedQuery, sessionToken],
+    queryKey: [
+      'composer',
+      'places',
+      debouncedQuery,
+      sessionToken,
+      placeLanguage,
+    ],
     queryFn: async (): Promise<any[]> => {
       const url = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
       url.searchParams.set('q', debouncedQuery);
       url.searchParams.set('access_token', MAPBOX_TOKEN ?? '');
       url.searchParams.set('session_token', sessionToken);
-      url.searchParams.set('language', 'en');
+      url.searchParams.set('language', placeLanguage);
       url.searchParams.set(
         'types',
         'country,region,postcode,district,place,locality,neighborhood,address,poi',
@@ -89,6 +104,7 @@ export default function LocationSubScreen({
       );
       url.searchParams.set('access_token', MAPBOX_TOKEN);
       url.searchParams.set('session_token', sessionToken);
+      url.searchParams.set('language', placeLanguage);
 
       const res = await fetch(url.toString());
       if (res.ok) {
@@ -150,7 +166,7 @@ export default function LocationSubScreen({
           url.searchParams.set('latitude', String(pos.coords.latitude));
           url.searchParams.set('access_token', MAPBOX_TOKEN);
           url.searchParams.set('limit', '1');
-          url.searchParams.set('language', 'en');
+          url.searchParams.set('language', placeLanguage);
 
           const res = await fetch(url.toString());
           if (!res.ok) throw new Error('Reverse geocode failed');
