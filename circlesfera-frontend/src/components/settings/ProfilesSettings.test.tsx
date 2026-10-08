@@ -166,6 +166,31 @@ describe('ProfilesSettings', () => {
     ).toBeVisible();
   });
 
+  it('allows a sixth profile, up to ten, when one is on the Business plan', async () => {
+    vi.mocked(profileApi.getMyProfiles).mockResolvedValue({
+      data: [
+        ...profiles,
+        owned({
+          id: 'p-5',
+          username: 'ana.business',
+          verificationLevel: 'BUSINESS',
+        }),
+      ],
+    } as never);
+    const { i18n } = renderWithProviders(<ProfilesSettings />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.profiles.create'),
+      }),
+    ).toBeEnabled();
+    expect(
+      screen.queryByText(
+        i18n!.t('settings.profiles.limit_reached', { max: 5 }),
+      ),
+    ).not.toBeInTheDocument();
+  });
+
   describe('creating a profile', () => {
     const openForm = async () => {
       const user = userEvent.setup();
