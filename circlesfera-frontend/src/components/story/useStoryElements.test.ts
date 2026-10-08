@@ -152,4 +152,96 @@ describe('useStoryElements', () => {
     });
     expect(result.current.elements[1]).toMatchObject({ scale: 1, rotation: 0 });
   });
+
+  describe('undo steps for changes to the look of an element', () => {
+    it('does not make a step while an element is being adjusted', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.updateElement('a', { scale: 1.1 }));
+      act(() => result.current.updateElement('a', { scale: 1.2 }));
+
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it('makes one step of a whole gesture, and undo and redo move through it', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.updateElement('a', { scale: 1.1 }));
+      act(() => result.current.updateElement('a', { scale: 1.2 }));
+      act(() => result.current.updateElement('a', { scale: 1.3 }));
+      act(() => result.current.commitElements());
+
+      expect(result.current.canUndo).toBe(true);
+
+      act(() => result.current.undo());
+      expect(result.current.elements[0].scale).toBe(1);
+      expect(result.current.canUndo).toBe(false);
+
+      act(() => result.current.redo());
+      expect(result.current.elements[0].scale).toBe(1.3);
+    });
+
+    it('makes a step per gesture, undone one at a time', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.updateElement('a', { scale: 2 }));
+      act(() => result.current.commitElements());
+      act(() => result.current.updateElement('a', { rotation: 45 }));
+      act(() => result.current.commitElements());
+
+      act(() => result.current.undo());
+      expect(result.current.elements[0]).toMatchObject({
+        scale: 2,
+        rotation: 0,
+      });
+
+      act(() => result.current.undo());
+      expect(result.current.elements[0]).toMatchObject({
+        scale: 1,
+        rotation: 0,
+      });
+    });
+
+    it('makes no step when nothing changed since the last one', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.commitElements());
+      act(() => result.current.updateElement('a', { scale: 2 }));
+      act(() => result.current.commitElements());
+      act(() => result.current.commitElements());
+      // Put back by hand to the same values: still nothing new to undo.
+      act(() => result.current.updateElement('a', { scale: 2 }));
+      act(() => result.current.commitElements());
+
+      act(() => result.current.undo());
+      expect(result.current.elements[0].scale).toBe(1);
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it('drops the redo steps when a new gesture follows an undo', () => {
+      const { result } = renderHook(() =>
+        useStoryElements({ initialElements: [element('a')] }),
+      );
+
+      act(() => result.current.updateElement('a', { scale: 2 }));
+      act(() => result.current.commitElements());
+      act(() => result.current.undo());
+      act(() => result.current.updateElement('a', { rotation: 30 }));
+      act(() => result.current.commitElements());
+
+      expect(result.current.canRedo).toBe(false);
+      expect(result.current.elements[0]).toMatchObject({
+        scale: 1,
+        rotation: 30,
+      });
+    });
+  });
 });

@@ -1,17 +1,13 @@
-import {
-  type Dispatch,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { StoryElement } from '../../types';
 import type { StoryComposerTab } from './storyComposer.types';
 import { getTextStyleCSS } from './storyTextStyles';
 
 export function useStoryTextTakeover(deps: {
-  pushHistory: (newElements: StoryElement[]) => void;
-  setInternalElements: Dispatch<SetStateAction<StoryElement[]>>;
+  /** Changes the elements; the result is one undo step. */
+  changeElements: (
+    change: (elements: StoryElement[]) => StoryElement[],
+  ) => void;
   selectedElementId: string | null;
   setSelectedElementId: (id: string | null) => void;
   setActiveTab: (tab: StoryComposerTab) => void;
@@ -19,8 +15,7 @@ export function useStoryTextTakeover(deps: {
   updateElement: (id: string, updates: Partial<StoryElement>) => void;
 }) {
   const {
-    pushHistory,
-    setInternalElements,
+    changeElements,
     selectedElementId,
     setSelectedElementId,
     setActiveTab,
@@ -101,11 +96,7 @@ export function useStoryTextTakeover(deps: {
       opacity: 1,
       gradientColors: textGradientColors,
     };
-    setInternalElements((prev) => {
-      const next = [...prev, newElement];
-      pushHistory(next);
-      return next;
-    });
+    changeElements((current) => [...current, newElement]);
     setTextInput('');
     setSelectedElementId(null);
     setTextTakeover(null);
@@ -183,13 +174,13 @@ export function useStoryTextTakeover(deps: {
       } else if (commit) {
         const trimmed = textInput.trim();
         const id = selectedElementId;
-        setInternalElements((prev) => {
-          const next = !trimmed
-            ? prev.filter((e) => e.id !== id)
-            : prev.map((e) => (e.id === id ? { ...e, content: trimmed } : e));
-          pushHistory(next);
-          return next;
-        });
+        changeElements((current) =>
+          !trimmed
+            ? current.filter((e) => e.id !== id)
+            : current.map((e) =>
+                e.id === id ? { ...e, content: trimmed } : e,
+              ),
+        );
       }
     }
     setSelectedElementId(null);
