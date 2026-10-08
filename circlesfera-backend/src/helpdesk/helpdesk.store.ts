@@ -38,6 +38,8 @@ export class HelpdeskStore {
     subject: string;
     message: string;
     category?: TicketCategory;
+    // The closed ticket this one continues.
+    previousTicketId?: string;
   }) {
     return this.prisma.supportTicket.create({
       data: {
@@ -48,6 +50,7 @@ export class HelpdeskStore {
         // Kept while the column exists; the conversation is the messages.
         message: ticket.message,
         category: ticket.category,
+        previousTicketId: ticket.previousTicketId,
         messages: {
           create: {
             authorKind: 'REQUESTER',
@@ -96,6 +99,22 @@ export class HelpdeskStore {
       take: limit,
       select: { id: true, escalatedReportId: true },
     });
+  }
+
+  /**
+   * Closes the tickets solved before a moment. A ticket that is with
+   * another team, or was reopened, is not solved and is not touched.
+   */
+  async closeSolvedBefore(moment: Date): Promise<number> {
+    const { count } = await this.prisma.supportTicket.updateMany({
+      where: {
+        organizationId: this.organizationId,
+        status: 'RESOLVED',
+        resolvedAt: { lt: moment },
+      },
+      data: { status: 'CLOSED' },
+    });
+    return count;
   }
 
   findTicket(id: string) {
