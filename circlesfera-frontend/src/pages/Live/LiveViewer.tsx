@@ -22,6 +22,7 @@ import LiveQnAPanel, {
 import { apiClient as api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
 
@@ -32,8 +33,7 @@ interface FloatingReaction {
 }
 
 /** A neutral picture with the person's initials, for someone without one. */
-const fallbackAvatar = (username: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveViewer() {
   const { t } = useTranslation();

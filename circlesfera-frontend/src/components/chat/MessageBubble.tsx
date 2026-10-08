@@ -107,7 +107,7 @@ export default memo(function MessageBubble({
             </div>
             <div className="truncate opacity-90 italic">
               {msg.replyTo?.content
-                ? 'Mensaje'
+                ? t('chat.replied_message')
                 : msg.replyTo?.url
                   ? t('chat.media_attachment')
                   : t('chat.post')}
@@ -318,12 +318,15 @@ export default memo(function MessageBubble({
             </div>
           </div>
 
-          {/* Hover Actions - Floating */}
+          {/* The actions of the message, shown on hover, on a tap and on
+              keyboard focus. On phones they open in their own row under the
+              bubble and push the next message down, so they never lie over
+              another one. From tablet width there is room beside the bubble. */}
           <div
-            className={`absolute bottom-full mb-1 md:bottom-auto md:mb-0 md:top-1/2 md:-translate-y-1/2 flex items-center gap-2 opacity-0 pointer-events-none group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto group-focus-within/msg:opacity-100 group-focus-within/msg:pointer-events-auto transition-opacity duration-200 z-10 ${
+            className={`flex items-center gap-2 z-10 transition-all duration-200 max-md:h-0 max-md:overflow-hidden max-md:opacity-0 max-md:group-hover/msg:h-12 max-md:group-hover/msg:mt-1 max-md:group-hover/msg:overflow-visible max-md:group-hover/msg:opacity-100 max-md:group-focus-within/msg:h-12 max-md:group-focus-within/msg:mt-1 max-md:group-focus-within/msg:overflow-visible max-md:group-focus-within/msg:opacity-100 md:absolute md:top-1/2 md:-translate-y-1/2 md:opacity-0 md:pointer-events-none md:group-hover/msg:opacity-100 md:group-hover/msg:pointer-events-auto md:group-focus-within/msg:opacity-100 md:group-focus-within/msg:pointer-events-auto ${
               isMe
-                ? 'right-0 md:right-[calc(100%+0.5rem)] flex-row-reverse'
-                : 'left-0 md:left-[calc(100%+0.5rem)]'
+                ? 'max-md:justify-end md:right-[calc(100%+0.5rem)] md:flex-row-reverse'
+                : 'max-md:justify-start md:left-[calc(100%+0.5rem)]'
             }`}
           >
             <div

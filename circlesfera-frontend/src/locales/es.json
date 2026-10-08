@@ -1682,6 +1682,7 @@
     "replying_to": "Respondiendo a {{username}}",
     "attachment": "Archivo adjunto",
     "type_message": "Mensaje...",
+    "replied_message": "Mensaje",
     "delete_chat_title": "¿Eliminar Conversación?",
     "delete_chat_desc": "¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer y la conversación se eliminará para todos.",
     "cancel": "Cancelar",

@@ -125,6 +125,31 @@ for (const [label, viewport] of [
       await expect(bubble).toBeVisible();
       await expectInOrder(page);
 
+      // The same person has the same picture in the list and in the header:
+      // their photo, or the same initials on the same colour.
+      const pictures = await page
+        .getByRole('img', { name: 'ana', exact: true })
+        .evaluateAll((images) =>
+          images
+            .filter((image) => image.getBoundingClientRect().width > 1)
+            .map((image) => (image as HTMLImageElement).src),
+        );
+      expect(pictures.length).toBeGreaterThan(0);
+      expect(new Set(pictures).size).toBe(1);
+      expect(pictures[0]).toMatch(/^data:image\/svg\+xml,/);
+
+      // On a phone the conversation has the screen to itself.
+      const bottomBar = page.getByRole('navigation', {
+        name: 'Navegación móvil',
+      });
+      if (viewport.width < 768) {
+        await expect(bottomBar).toHaveCount(0);
+        const field = await page.getByPlaceholder('Mensaje...').boundingBox();
+        expect(
+          viewport.height - ((field?.y ?? 0) + (field?.height ?? 0)),
+        ).toBeLessThan(40);
+      }
+
       // No line of a long message ends inside a word.
       const brokenWord = await bubble.evaluate((element, message) => {
         const node = Array.from(element.childNodes).find(
@@ -151,17 +176,58 @@ for (const [label, viewport] of [
       }, LONG);
       expect(brokenWord).toBeNull();
 
-      // The actions of a message are 44 px and wholly on screen.
+      // The actions of a message are 44 px, wholly on screen, and lie over
+      // no message: not the one they belong to, nor the ones around it.
       await bubble.hover();
       const edit = page.getByRole('button', { name: 'Editar' });
       await expect(edit).toBeVisible();
-      const box = await edit.boundingBox();
-      expect(box?.width).toBeGreaterThanOrEqual(44);
-      expect(box?.height).toBeGreaterThanOrEqual(44);
-      expect(box?.x).toBeGreaterThanOrEqual(0);
-      expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(
-        viewport.width,
-      );
+      await page.waitForTimeout(400);
+      const actions = [];
+      for (const name of ['Responder', 'Reaccionar', 'Editar', 'Eliminar']) {
+        const box = await page
+          .getByRole('button', { name, exact: true })
+          .last()
+          .boundingBox();
+        expect(box, name).not.toBeNull();
+        if (!box) continue;
+        expect(box.width, name).toBeGreaterThanOrEqual(44);
+        expect(box.height, name).toBeGreaterThanOrEqual(44);
+        expect(box.x, name).toBeGreaterThanOrEqual(0);
+        expect(box.x + box.width, name).toBeLessThanOrEqual(viewport.width);
+        actions.push(box);
+      }
+      const messages = await page
+        .locator('.whitespace-pre-wrap')
+        .evaluateAll((elements) =>
+          elements
+            .filter((element) => element.closest('[class*="group/msg"]'))
+            .map((element) => {
+              const box = (
+                element.closest('[class*="group/msg"]')?.firstElementChild ??
+                element
+              ).getBoundingClientRect();
+              return {
+                x: box.x,
+                y: box.y,
+                width: box.width,
+                height: box.height,
+              };
+            }),
+        );
+      expect(messages.length).toBeGreaterThan(1);
+      const overlaps = (
+        a: { x: number; y: number; width: number; height: number },
+        b: { x: number; y: number; width: number; height: number },
+      ) =>
+        a.x < b.x + b.width - 1 &&
+        b.x < a.x + a.width - 1 &&
+        a.y < b.y + b.height - 1 &&
+        b.y < a.y + a.height - 1;
+      for (const action of actions) {
+        for (const message of messages) {
+          expect(overlaps(action, message)).toBe(false);
+        }
+      }
     });
   });
 }
