@@ -9,6 +9,7 @@ import { adminTabPath, getAdminHomeTab } from '../components/admin/adminNav';
 import { Button } from '../components/ui';
 import { adminAuthApi } from '../services/admin-auth.service';
 import { useAdminAuthStore } from '../stores/adminAuthStore';
+import { isBackofficeHost } from '../utils/adminPanel';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 type Step = 'credentials' | 'mfa' | 'mfa-setup';
@@ -50,7 +51,10 @@ export default function AdminPanelLogin() {
       if (data.permissions.includes('admins.manage')) return true;
       return data.permissions.includes(key);
     });
-    navigate(adminTabPath(homeTab), { replace: true });
+    // The Backoffice has its own home; the Admin Panel opens on a section.
+    navigate(isBackofficeHost() ? '/' : adminTabPath(homeTab), {
+      replace: true,
+    });
   };
 
   // Only reachable from the copy button, which is shown with a secret.
@@ -129,7 +133,7 @@ export default function AdminPanelLogin() {
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 mb-3">
             <ShieldCheck size={12} className="text-brand-primary" />
             <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
-              {t('adminPanel.title')}
+              {t(isBackofficeHost() ? 'backoffice.title' : 'adminPanel.title')}
             </span>
           </div>
           <h1 className="text-lg sm:text-xl md:text-2xl font-black text-center tracking-tighter bg-clip-text text-transparent bg-linear-to-r from-white via-white to-white/40">
