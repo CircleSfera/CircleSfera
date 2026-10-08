@@ -76,7 +76,7 @@ export function GuestFooter() {
                     <li key={link.to}>
                       <Link
                         to={link.to}
-                        className="inline-flex items-center min-h-11 text-sm text-white/60 hover:text-white transition-colors"
+                        className="inline-flex items-center min-h-11 min-w-11 text-sm text-white/60 hover:text-white transition-colors"
                       >
                         {link.label}
                       </Link>

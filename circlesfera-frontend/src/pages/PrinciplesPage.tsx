@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/common/SEO';
 import {
+  LandingCta,
   MarketingPage,
   MarketingPageHeader,
   ProductPrinciplesList,
@@ -19,13 +20,14 @@ export default function PrinciplesPage() {
 
       <div className="mx-auto w-full max-w-3xl px-4 sm:px-5 pb-10 sm:pb-12">
         <MarketingPageHeader
-          className="pt-8 sm:pt-10 pb-6 sm:pb-8"
+          className="pt-12 sm:pt-20 pb-8 sm:pb-12"
           eyebrow={t('landing.principles.badge')}
           title={t('landing.principles.title')}
           description={t('landing.principles.subtitle')}
         />
         <ProductPrinciplesList />
       </div>
+      <LandingCta />
     </MarketingPage>
   );
 }
