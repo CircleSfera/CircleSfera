@@ -24,6 +24,7 @@ describe('PaymentsService', () => {
     handleCheckoutSessionCompleted: ReturnType<typeof vi.fn>;
     handleCheckoutSessionExpired: ReturnType<typeof vi.fn>;
     handleChargeRefundedOrDisputed: ReturnType<typeof vi.fn>;
+    syncDispute: ReturnType<typeof vi.fn>;
     syncConnectPayoutLog: ReturnType<typeof vi.fn>;
     handleAccountUpdated: ReturnType<typeof vi.fn>;
   };
@@ -125,6 +126,7 @@ describe('PaymentsService', () => {
             handleChargeRefundedOrDisputed: vi
               .fn()
               .mockResolvedValue(undefined),
+            syncDispute: vi.fn().mockResolvedValue(undefined),
             syncConnectPayoutLog: vi.fn().mockResolvedValue(undefined),
             handleAccountUpdated: vi.fn().mockResolvedValue(undefined),
           },
@@ -1232,6 +1234,37 @@ describe('PaymentsService', () => {
         }),
       );
 
+      expect(
+        monetizationWebhookService.handleChargeRefundedOrDisputed,
+      ).toHaveBeenCalledTimes(2);
+    });
+
+    it('mirrors a dispute when it is created, updated and closed, and a refund is not a dispute', async () => {
+      const dispute = { id: 'dp_1', payment_intent: 'pi_route', amount: 999 };
+
+      for (const type of [
+        'charge.dispute.created',
+        'charge.dispute.updated',
+        'charge.dispute.closed',
+      ]) {
+        await service.processWebhookEvent(
+          asEvent({ id: `evt_${type}`, type, data: { object: dispute } }),
+        );
+      }
+      await service.processWebhookEvent(
+        asEvent({
+          id: 'evt_refund_only',
+          type: 'charge.refunded',
+          data: { object: { payment_intent: 'pi_route' } },
+        }),
+      );
+
+      expect(monetizationWebhookService.syncDispute).toHaveBeenCalledTimes(3);
+      expect(monetizationWebhookService.syncDispute).toHaveBeenCalledWith(
+        dispute,
+      );
+      // Access is revoked when the dispute opens and on the refund, not on
+      // every later update of the same dispute.
       expect(
         monetizationWebhookService.handleChargeRefundedOrDisputed,
       ).toHaveBeenCalledTimes(2);

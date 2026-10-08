@@ -1372,17 +1372,53 @@ model Transaction {
   description String?
   createdAt   DateTime @default(now())
 
-  sender     User?       @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
-  liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  sender     User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  liveStream LiveStream?      @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
   liveGift   LiveGift?
-  message    Message?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  message    Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  disputes   PaymentDispute[]
 
   @@index([senderId])
   @@index([receiverId])
   @@index([type])
   @@index([liveStreamId])
   @@map("transactions")
+}
+
+// A dispute (chargeback) opened at the payment provider against a charge.
+// The provider is the source of truth and where it is answered; this row
+// mirrors what staff need to see: the amount, the reason, the state and the
+// day the answer is due.
+model PaymentDispute {
+  id                    String  @id @default(uuid())
+  stripeDisputeId       String  @unique
+  // The charge and payment the dispute is about, as the provider names them.
+  stripeChargeId        String?
+  stripePaymentIntentId String?
+  // Null when the disputed payment has no Transaction (a plan invoice).
+  transactionId         String?
+
+  amountCents Int
+  currency    String @default("EUR")
+  // The provider's own values, stored as received (e.g. fraudulent,
+  // needs_response, won, lost).
+  reason      String
+  status      String
+
+  // The day the evidence must be in; null once none is expected.
+  evidenceDueBy DateTime?
+  openedAt      DateTime
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([evidenceDueBy])
+  @@index([transactionId])
+  @@map("payment_disputes")
 }
 
 model PostUnlock {

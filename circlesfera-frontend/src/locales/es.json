@@ -2162,6 +2162,7 @@
       "support": "Soporte",
       "plans": "Planes",
       "subscriptions": "Suscripciones",
+      "disputes": "Disputas",
       "trust": "Cola de confianza",
       "live": "Directos",
       "roles": "Roles",
@@ -2568,6 +2569,43 @@
       "toast_failed": "No se pudo guardar el plan",
       "load_failed": "No se pudo cargar el catálogo de planes",
       "empty": "No hay planes en el catálogo"
+    },
+    "disputes": {
+      "title": "Disputas",
+      "subtitle": "Pagos que un cliente ha disputado con su banco. Se contestan en Stripe, dentro del plazo.",
+      "filter_open": "Abiertas",
+      "filter_closed": "Cerradas",
+      "filter_all": "Todas",
+      "status": {
+        "needs_response": "Hay que responder",
+        "under_review": "En revisión",
+        "won": "Ganada",
+        "lost": "Perdida",
+        "warning_needs_response": "Aviso: hay que responder",
+        "warning_under_review": "Aviso en revisión",
+        "warning_closed": "Aviso cerrado"
+      },
+      "reason": {
+        "fraudulent": "Pago no reconocido (fraude)",
+        "duplicate": "Cobro duplicado",
+        "product_not_received": "Producto no recibido",
+        "product_unacceptable": "Producto no conforme",
+        "subscription_canceled": "Suscripción cancelada",
+        "credit_not_processed": "Reembolso no recibido",
+        "unrecognized": "Cargo no reconocido",
+        "general": "Motivo general"
+      },
+      "opened_on": "Abierta el {{date}}",
+      "due_in_one": "Responder antes del {{date}} (queda {{count}} día)",
+      "due_in_other": "Responder antes del {{date}} (quedan {{count}} días)",
+      "due_passed": "El plazo terminó el {{date}}",
+      "answer_in_stripe": "Responder en Stripe",
+      "open_in_stripe": "Abrir en Stripe",
+      "no_transaction": "Pago de un plan",
+      "empty_open_title": "No hay disputas abiertas",
+      "empty_title": "No hay disputas",
+      "empty_description": "Cuando un cliente dispute un pago con su banco, aparecerá aquí con su plazo.",
+      "load_failed": "No se pudieron cargar las disputas"
     },
     "subscriptions": {
       "title": "Suscripciones",
@@ -4175,6 +4213,8 @@
     },
     "overview": {
       "title": "Resumen",
+      "open_disputes": "Disputas abiertas",
+      "open_disputes_hint": "Tienen plazo de respuesta en Stripe",
       "subtitle": "Lo que conviene mirar cada día. Cada cifra abre su sección.",
       "subscriptions": "Suscripciones activas",
       "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
