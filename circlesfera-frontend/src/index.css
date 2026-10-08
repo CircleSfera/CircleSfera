@@ -719,9 +719,6 @@ input[type="range"]::-moz-range-progress {
 }
 
 @media (pointer: coarse) {
-  input[type="range"] {
-    height: 40px;
-  }
   input[type="range"]::-webkit-slider-thumb {
     width: 24px;
     height: 24px;

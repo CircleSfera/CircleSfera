@@ -78,7 +78,7 @@ export default function StoryQnaPanel({
               type="button"
               key={key}
               onClick={() => onQnaPromptChange(suggestion)}
-              className="shrink-0 min-h-9 px-3 rounded-full text-[11px] font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
+              className="shrink-0 min-h-11 px-3 rounded-full text-[11px] font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
             >
               {suggestion}
             </button>

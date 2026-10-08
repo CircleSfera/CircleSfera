@@ -23,6 +23,7 @@ interface TrackItemProps {
 }
 
 export default function TrackItem({ track, compact = true }: TrackItemProps) {
+  const [controlsOpen, setControlsOpen] = useState(false);
   const { t } = useTranslation();
   const {
     project,
@@ -75,55 +76,79 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
           compact ? 'px-1 py-0.5' : 'px-2 py-1'
         }`}
       >
-        {getTrackIcon()}
+        {/* On phones the four controls would cover most of the track, so
+            they open from the track icon. From md up they are always shown
+            and the icon is only a label. */}
+        <span
+          className="hidden md:flex min-h-11 min-w-11 items-center justify-center"
+          aria-hidden
+        >
+          {getTrackIcon()}
+        </span>
         <button
           type="button"
           onClick={(e) => {
             e.stopPropagation();
-            toggleTrackMute(track.id);
+            setControlsOpen((open) => !open);
           }}
-          className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
-            track.muted ? 'text-brand-secondary' : 'text-white/40'
-          }`}
-          aria-label={track.muted ? t('studio.unmute') : t('studio.mute')}
+          className="md:hidden min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10"
+          aria-label={t('studio.tracks.options')}
+          aria-expanded={controlsOpen}
         >
-          {track.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          {getTrackIcon()}
         </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleTrackHidden(track.id);
-          }}
-          className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
-            track.hidden ? 'text-brand-accent' : 'text-white/40'
-          }`}
-          aria-label={track.hidden ? t('studio.show') : t('studio.hide')}
+        <div
+          className={`${controlsOpen ? 'flex' : 'hidden'} md:flex items-center gap-0.5`}
         >
-          {track.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
-        </button>
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleTrackLock(track.id);
-          }}
-          className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
-            track.locked ? 'text-brand-secondary' : 'text-white/40'
-          }`}
-          aria-label={track.locked ? t('studio.unlock') : t('studio.lock')}
-        >
-          {track.locked ? <Lock size={14} /> : <Unlock size={14} />}
-        </button>
-        <button
-          type="button"
-          onClick={handleRemove}
-          disabled={track.type === 'video' && videoTrackCount <= 1}
-          className="min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-brand-secondary/20 text-white/40 hover:text-brand-secondary disabled:opacity-30"
-          aria-label={t('studio.tracks.remove')}
-        >
-          <Trash2 size={14} />
-        </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTrackMute(track.id);
+            }}
+            className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
+              track.muted ? 'text-brand-secondary' : 'text-white/40'
+            }`}
+            aria-label={track.muted ? t('studio.unmute') : t('studio.mute')}
+          >
+            {track.muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTrackHidden(track.id);
+            }}
+            className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
+              track.hidden ? 'text-brand-accent' : 'text-white/40'
+            }`}
+            aria-label={track.hidden ? t('studio.show') : t('studio.hide')}
+          >
+            {track.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleTrackLock(track.id);
+            }}
+            className={`min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-white/10 ${
+              track.locked ? 'text-brand-secondary' : 'text-white/40'
+            }`}
+            aria-label={track.locked ? t('studio.unlock') : t('studio.lock')}
+          >
+            {track.locked ? <Lock size={14} /> : <Unlock size={14} />}
+          </button>
+          <button
+            type="button"
+            onClick={handleRemove}
+            disabled={track.type === 'video' && videoTrackCount <= 1}
+            className="min-h-11 min-w-11 flex items-center justify-center rounded hover:bg-brand-secondary/20 text-white/40 hover:text-brand-secondary disabled:opacity-30"
+            aria-label={t('studio.tracks.remove')}
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
       <div

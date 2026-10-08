@@ -5,7 +5,8 @@
  *
  * Verifies that the production branch (`main`) satisfies change control requirements:
  * 1. Branch protection active.
- * 2. Required status checks enforced (CI Quality and the full Playwright E2E suite).
+ * 2. Required status checks enforced (CI Quality, the full Playwright E2E suite and
+ *    the performance budgets).
  * 3. Pull requests required; stale approvals dismissed. No approving review is
  *    required: the project has a single maintainer, so automated checks and
  *    resolved review threads are the merge gate.
@@ -27,6 +28,7 @@ const DEFAULT_BRANCH = 'main';
 const REQUIRED_STATUS_CHECKS = [
   'Run Lint and Unit Tests / Run Lint and Unit Tests',
   'Playwright E2E',
+  'Performance budgets',
 ];
 
 // Single maintainer: requiring an approving review would block every merge.

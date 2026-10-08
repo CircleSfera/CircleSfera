@@ -4,8 +4,8 @@ import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
 import { BrowserRouter } from 'react-router-dom';
+import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
-import './i18n';
 import './index.css';
 import App from './App.tsx';
 import ErrorBoundary from './components/ErrorBoundary.tsx';
@@ -42,25 +42,54 @@ const queryClient = new QueryClient({
   },
 });
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <ErrorBoundary>
-      <HelmetProvider>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter useTransitions={false}>
-            <App />
-            <Toaster
-              position="bottom-center"
-              containerStyle={{
-                bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-              }}
-            />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </HelmetProvider>
-    </ErrorBoundary>
-  </StrictMode>,
-);
+// The first screen waits for the catalog of the person's language.
+const root = createRoot(document.getElementById('root')!);
+const renderApp = () =>
+  root.render(
+    <StrictMode>
+      <ErrorBoundary>
+        <HelmetProvider>
+          <QueryClientProvider client={queryClient}>
+            <BrowserRouter useTransitions={false}>
+              <App />
+              <Toaster
+                position="bottom-center"
+                containerStyle={{
+                  bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+                }}
+              />
+            </BrowserRouter>
+          </QueryClientProvider>
+        </HelmetProvider>
+      </ErrorBoundary>
+    </StrictMode>,
+  );
+
+// No catalog could be downloaded, so there is no text to show the app with.
+// This screen cannot be translated either: it says the same in both languages.
+const renderStartupError = () =>
+  root.render(
+    <main className="min-h-dvh flex flex-col items-center justify-center gap-6 px-4 text-center bg-surface-base text-white">
+      <div className="space-y-2 max-w-sm">
+        <p className="text-base font-semibold">
+          CircleSfera could not load. Check your connection and try again.
+        </p>
+        <p className="text-base text-white/70" lang="es">
+          CircleSfera no se pudo cargar. Comprueba tu conexión e inténtalo de
+          nuevo.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => window.location.reload()}
+        className="min-h-12 px-6 rounded-full bg-brand-primary text-white text-sm font-bold"
+      >
+        Try again · Reintentar
+      </button>
+    </main>,
+  );
+
+i18nReady.then(renderApp, renderStartupError);
 
 // Register Service Worker for PWA & Push Notifications auto-initiation
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
