@@ -1096,10 +1096,10 @@
   },
   "profile": {
     "tabs": {
-      "posts": "POSTS",
-      "frames": "FRAMES",
-      "saved": "SAVED",
-      "tagged": "TAGGED"
+      "posts": "Posts",
+      "frames": "Frames",
+      "saved": "Saved",
+      "tagged": "Tagged"
     },
     "stats": {
       "posts": "Posts",

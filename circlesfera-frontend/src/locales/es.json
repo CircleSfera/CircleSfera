@@ -1096,10 +1096,10 @@
   },
   "profile": {
     "tabs": {
-      "posts": "PUBLICACIONES",
-      "frames": "FRAMES",
-      "saved": "GUARDADO",
-      "tagged": "ETIQUETADO"
+      "posts": "Publicaciones",
+      "frames": "Frames",
+      "saved": "Guardado",
+      "tagged": "Etiquetado"
     },
     "stats": {
       "posts": "Publicaciones",
