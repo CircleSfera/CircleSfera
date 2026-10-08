@@ -30,10 +30,6 @@ describe('AdminOpsController', () => {
     getUserExperiments: vi.fn(),
     assignUserExperiment: vi.fn(),
     removeUserExperiment: vi.fn(),
-    getSupportTickets: vi.fn(),
-    updateSupportTicket: vi.fn(),
-    escalateSupportTicket: vi.fn(),
-    getSupportTicketAccount: vi.fn(),
     listFeatureFlags: vi.fn(),
     upsertFeatureFlag: vi.fn(),
     deleteFeatureFlag: vi.fn(),
@@ -143,56 +139,6 @@ describe('AdminOpsController', () => {
     expect(mockService.removeUserExperiment).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'exp-1',
-    );
-  });
-
-  it('hands a ticket to moderation as adminId and reads its account card', async () => {
-    mockService.escalateSupportTicket.mockResolvedValue({ id: 't-1' });
-    mockService.getSupportTicketAccount.mockResolvedValue({ userId: 'u-1' });
-
-    await request(app.getHttpServer())
-      .post('/api/v1/admin/support/tickets/t-1/escalate')
-      .set(ADMIN_BEARER)
-      .expect(201);
-    const card = await request(app.getHttpServer())
-      .get('/api/v1/admin/support/tickets/t-1/account')
-      .set(ADMIN_BEARER)
-      .expect(200);
-
-    expect(mockService.escalateSupportTicket).toHaveBeenCalledWith(
-      TEST_ADMIN.adminId,
-      't-1',
-    );
-    expect(mockService.getSupportTicketAccount).toHaveBeenCalledWith('t-1');
-    expect(card.body).toEqual({ userId: 'u-1' });
-  });
-
-  it('lists and updates support tickets as adminId', async () => {
-    const body = { status: 'RESOLVED' as const, reply: 'Done' };
-    mockService.getSupportTickets.mockResolvedValue({ data: [] });
-    mockService.updateSupportTicket.mockResolvedValue({ id: 't-1' });
-
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/support/tickets')
-      .query({ status: 'OPEN' })
-      .set(ADMIN_BEARER)
-      .expect(200);
-    await request(app.getHttpServer())
-      .patch('/api/v1/admin/support/tickets/t-1')
-      .set(ADMIN_BEARER)
-      .send(body)
-      .expect(200);
-
-    expect(mockService.getSupportTickets).toHaveBeenCalledWith(
-      1,
-      10,
-      'OPEN',
-      undefined,
-    );
-    expect(mockService.updateSupportTicket).toHaveBeenCalledWith(
-      TEST_ADMIN.adminId,
-      't-1',
-      body,
     );
   });
 

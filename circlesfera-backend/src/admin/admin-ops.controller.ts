@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Inject,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -97,44 +96,6 @@ export class AdminOpsController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminOpsService.removeUserExperiment(admin.adminId, id);
-  }
-
-  @RequireStaffPermissions('support')
-  @Get('support/tickets')
-  async getSupportTickets(@Query() query: AdminQueryDto) {
-    return this.adminOpsService.getSupportTickets(
-      query.page ?? 1,
-      query.limit ?? 20,
-      query.status,
-      query.category,
-    );
-  }
-
-  @RequireStaffPermissions('support')
-  @Patch('support/tickets/:id')
-  async updateSupportTicket(
-    @Param('id') id: string,
-    @Body() body: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
-    @CurrentAdmin() admin: CurrentAdminData,
-  ) {
-    return this.adminOpsService.updateSupportTicket(admin.adminId, id, body);
-  }
-
-  // Hands the ticket to moderation: a report in the trust queues.
-  @RequireStaffPermissions('support')
-  @Post('support/tickets/:id/escalate')
-  async escalateSupportTicket(
-    @Param('id') id: string,
-    @CurrentAdmin() admin: CurrentAdminData,
-  ) {
-    return this.adminOpsService.escalateSupportTicket(admin.adminId, id);
-  }
-
-  // Read-only: plan, payout account and standing of who wrote the ticket.
-  @RequireStaffPermissions('support')
-  @Get('support/tickets/:id/account')
-  async getSupportTicketAccount(@Param('id') id: string) {
-    return this.adminOpsService.getSupportTicketAccount(id);
   }
 
   @Get('feature-flags')
