@@ -82,6 +82,7 @@ export default function ContentComposerPage() {
     handleFileSelect,
     handleFilterSave,
     handleRemoveFile,
+    handleMoveFile,
     handleSubmit,
     reset,
     generateAltTextForIndex,
@@ -372,6 +373,7 @@ export default function ContentComposerPage() {
                       : undefined
                   }
                   handleRemoveFile={handleRemoveFile}
+                  onMoveFile={handleMoveFile}
                   fileInputRef={fileInputRef}
                   allowModeSwitch={!modeLockedFromEntry}
                 />

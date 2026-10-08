@@ -199,4 +199,76 @@ describe('EditStep', () => {
       height: `${expected.height}px`,
     });
   });
+
+  describe('the order of a carousel', () => {
+    function renderStep(onMoveFile = vi.fn()) {
+      renderWithProviders(
+        <EditStep
+          mediaFiles={mediaFiles}
+          mode="POST"
+          setMode={vi.fn()}
+          setCurrentEditIndex={vi.fn()}
+          handleRemoveFile={vi.fn()}
+          onMoveFile={onMoveFile}
+          fileInputRef={{ current: null }}
+        />,
+        { lng: 'es' },
+      );
+      return onMoveFile;
+    }
+    const earlier = () =>
+      screen.getByRole('button', { name: 'Mover antes en el carrusel' });
+    const later = () =>
+      screen.getByRole('button', { name: 'Mover después en el carrusel' });
+
+    it('moves the item on show one place later, and keeps it on show', () => {
+      const onMoveFile = renderStep();
+
+      expect(earlier()).toBeDisabled();
+      fireEvent.click(later());
+
+      expect(onMoveFile).toHaveBeenCalledWith(0, 1);
+      expect(
+        screen.getByRole('button', {
+          name: `Elemento 2 de ${mediaFiles.length}`,
+        }),
+      ).toHaveAttribute('aria-current', 'true');
+    });
+
+    it('cannot move the last item later', () => {
+      const onMoveFile = renderStep();
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: `Elemento ${mediaFiles.length} de ${mediaFiles.length}`,
+        }),
+      );
+
+      expect(later()).toBeDisabled();
+      fireEvent.click(earlier());
+      expect(onMoveFile).toHaveBeenCalledWith(
+        mediaFiles.length - 1,
+        mediaFiles.length - 2,
+      );
+    });
+
+    it('offers no reordering for a single item', () => {
+      renderWithProviders(
+        <EditStep
+          mediaFiles={[mediaFiles[0]]}
+          mode="POST"
+          setMode={vi.fn()}
+          setCurrentEditIndex={vi.fn()}
+          handleRemoveFile={vi.fn()}
+          onMoveFile={vi.fn()}
+          fileInputRef={{ current: null }}
+        />,
+        { lng: 'es' },
+      );
+
+      expect(
+        screen.queryByRole('button', { name: 'Mover antes en el carrusel' }),
+      ).not.toBeInTheDocument();
+    });
+  });
 });
