@@ -161,12 +161,6 @@ export class StoriesService {
       });
     }
 
-    const placeAttachment = await resolvePlaceAttachment(this.prisma, {
-      placeId: dto.placeId,
-      place: dto.place,
-      location: dto.location,
-    });
-
     const mediaType = (dto.mediaType || 'image').toLowerCase();
     if (mediaType === 'video') {
       await assertVideoUrlDuration('STORY', dto.url);
@@ -185,6 +179,13 @@ export class StoriesService {
     // input shape — Prisma requires either all-relations or all-raw-FKs in
     // a single create call.
     const createdStory = await this.prisma.$transaction(async (tx) => {
+      // The place and its names are saved with the story or not at all.
+      const placeAttachment = await resolvePlaceAttachment(tx, {
+        placeId: dto.placeId,
+        place: dto.place,
+        location: dto.location,
+      });
+
       const media = await tx.media.create({
         data: buildMediaCreateInput({
           type: dto.mediaType || 'image',

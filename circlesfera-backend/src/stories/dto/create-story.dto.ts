@@ -1,15 +1,49 @@
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
+
+class PlaceTranslationDto {
+  @IsIn(['en', 'es'])
+  locale!: 'en' | 'es';
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  name!: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(300)
+  fullName?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  country?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  region?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(120)
+  locality?: string;
+}
 
 class PlaceInputDto {
   @IsString()
@@ -41,6 +75,14 @@ class PlaceInputDto {
   @IsString()
   @IsOptional()
   locality?: string;
+
+  // The same names per language, as the map provider gave them.
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(2)
+  @ValidateNested({ each: true })
+  @Type(() => PlaceTranslationDto)
+  translations?: PlaceTranslationDto[];
 }
 
 export class CreateStoryDto {

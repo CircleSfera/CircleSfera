@@ -1,6 +1,15 @@
 import { BadRequestException } from '@nestjs/common';
 import type { Prisma, PrismaClient } from '@prisma/client';
 
+export type PlaceTranslationInput = {
+  locale: 'en' | 'es';
+  name: string;
+  fullName?: string;
+  country?: string;
+  region?: string;
+  locality?: string;
+};
+
 export type PlaceInput = {
   mapboxId: string;
   name: string;
@@ -10,7 +19,28 @@ export type PlaceInput = {
   country?: string;
   region?: string;
   locality?: string;
+  translations?: PlaceTranslationInput[];
 };
+
+const PLACE_LOCALES = ['en', 'es'] as const;
+
+/**
+ * The translations worth saving: a known language, a name, and one entry per
+ * language (the first one wins).
+ */
+function usableTranslations(
+  translations: PlaceTranslationInput[] | undefined,
+): PlaceTranslationInput[] {
+  const byLocale = new Map<string, PlaceTranslationInput>();
+  for (const translation of translations ?? []) {
+    if (!PLACE_LOCALES.includes(translation?.locale)) continue;
+    if (!translation.name?.trim()) continue;
+    if (!byLocale.has(translation.locale)) {
+      byLocale.set(translation.locale, translation);
+    }
+  }
+  return [...byLocale.values()];
+}
 
 type Db = PrismaClient | Prisma.TransactionClient;
 
@@ -79,6 +109,23 @@ export async function resolvePlaceAttachment(
       },
       select: { id: true, name: true, fullName: true },
     });
+
+    for (const translation of usableTranslations(input.translations)) {
+      const names = {
+        name: translation.name.trim(),
+        fullName: translation.fullName?.trim() || null,
+        country: translation.country?.trim() || null,
+        region: translation.region?.trim() || null,
+        locality: translation.locality?.trim() || null,
+      };
+      await db.placeTranslation.upsert({
+        where: {
+          placeId_locale: { placeId: upserted.id, locale: translation.locale },
+        },
+        create: { placeId: upserted.id, locale: translation.locale, ...names },
+        update: names,
+      });
+    }
 
     return {
       placeId: upserted.id,
