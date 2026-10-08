@@ -947,7 +947,7 @@ export default function ChatWindow() {
         <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1 mr-4">
           <Link
             to="/direct/inbox"
-            className="md:hidden text-white/70 hover:text-white transition-all p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
+            className="md:hidden w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-all -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
             aria-label={t('chat.back_to_inbox')}
           >
             <ArrowLeft size={24} strokeWidth={2} />
@@ -955,7 +955,7 @@ export default function ChatWindow() {
           {conversation ? (
             <button
               type="button"
-              className="flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
+              className="min-h-11 flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
               onClick={() =>
                 chatInfo.isGroup
                   ? setShowGroupDetails(true)
@@ -1013,7 +1013,7 @@ export default function ChatWindow() {
                   {!chatInfo.isGroup && (
                     <span
                       title={t('chat.e2ee')}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold tracking-wider uppercase"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
                     >
                       <ShieldCheck size={12} className="shrink-0" />
                       <span className="hidden sm:inline">E2EE</span>
@@ -1068,7 +1068,7 @@ export default function ChatWindow() {
                       targetUser,
                     );
                 }}
-                className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
                 aria-label={t('chat.audio_call')}
               >
                 <Phone size={20} strokeWidth={2} />
@@ -1092,7 +1092,7 @@ export default function ChatWindow() {
                       targetUser,
                     );
                 }}
-                className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
                 aria-label={t('chat.video_call')}
               >
                 <Video size={24} strokeWidth={2} />
@@ -1114,7 +1114,7 @@ export default function ChatWindow() {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
-              className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
+              className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
               aria-label={t('chat.more_options')}
             >
               <MoreVertical size={22} strokeWidth={2} />
@@ -1480,7 +1480,7 @@ export default function ChatWindow() {
                           })}
                         </p>
                       )}
-                      <p className="text-[11px] text-white/40">
+                      <p className="text-xs text-white/45">
                         {t('chat.lock_message_hint')}
                       </p>
                       <div className="flex items-center gap-2 pt-1">
@@ -1537,7 +1537,7 @@ export default function ChatWindow() {
                   }
                 }}
                 rows={1}
-                className="flex-1 bg-transparent border-none py-1.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-30 min-h-11"
+                className="flex-1 bg-transparent border-none py-3 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-30 min-h-12"
                 placeholder={t('chat.type_message')}
               />
 
