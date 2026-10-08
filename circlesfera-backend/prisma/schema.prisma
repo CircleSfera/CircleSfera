@@ -87,6 +87,7 @@ model User {
 
   // Relations (account-scoped; social content lives on Profile)
   profiles              Profile[]
+  signIns               SignIn[]
   refreshTokens         RefreshToken[]
   passkeys              Passkey[]
   passkeyChallenges     PasskeyChallenge[]
@@ -120,6 +121,36 @@ model User {
   @@index([lastIpHash])
   @@index([botLabeledAt])
   @@map("users")
+}
+
+// The credentials one or more Profiles of a person sign in with: email,
+// password, two-factor and the tokens for verifying the email and resetting the
+// password. The person (KYC, payouts, the payer, data rights) stays on User.
+//
+// While sign-in still reads User, the database keeps this row equal to the
+// credential columns of its User: see the migration that creates the table.
+model SignIn {
+  id     String @id @default(uuid())
+  userId String
+
+  email                   String    @unique
+  password                String
+  emailVerified           DateTime?
+  verificationToken       String?   @unique
+  resetToken              String?   @unique
+  resetTokenExpires       DateTime?
+  passwordResetRequiredAt DateTime?
+  isTwoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profiles Profile[]
+
+  @@index([userId])
+  @@map("sign_ins")
 }
 
 model RefreshToken {
@@ -322,6 +353,12 @@ model Profile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // The sign-in this Profile is entered with. Several Profiles of one person
+  // may share one. Filled for every Profile by the database; optional in the
+  // type only until the readers have moved to it.
+  signInId String?
+  signIn   SignIn? @relation(fields: [signInId], references: [id], onDelete: NoAction)
+
   // Social Relations Moved from User
 
   posts                 Post[]
@@ -367,6 +404,7 @@ model Profile {
   platformSubscriptions PlatformSubscription[]
 
   @@index([userId])
+  @@index([signInId])
   @@map("profiles")
 }
 
