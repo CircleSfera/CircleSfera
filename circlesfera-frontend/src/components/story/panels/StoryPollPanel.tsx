@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { CREATE_PRIMARY } from '../../create-post/createStyles';
 import {
   POLL_OPTION_MAX,
   POLL_QUESTION_MAX,
@@ -43,10 +44,10 @@ export default function StoryPollPanel({
           <BarChart2 size={16} />
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-white/45 uppercase tracking-[0.14em]">
+          <p className="text-xs font-bold text-white/45 uppercase tracking-[0.14em]">
             {t('createPost.storyComposer.poll_title')}
           </p>
-          <p className="text-[11px] text-white/35 truncate">
+          <p className="text-xs text-white/35 truncate">
             {t('createPost.storyComposer.poll_create_hint')}
           </p>
         </div>
@@ -68,7 +69,7 @@ export default function StoryPollPanel({
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex justify-between gap-2 text-[10px] text-white/35 tabular-nums">
+        <div className="flex justify-between gap-2 text-xs text-white/35 tabular-nums">
           <span>{t('createPost.storyComposer.poll_question')}</span>
           <span>
             {pollQuestion.length}/{POLL_QUESTION_MAX}
@@ -80,7 +81,7 @@ export default function StoryPollPanel({
           maxLength={POLL_QUESTION_MAX}
           onChange={(e) => onPollQuestionChange(e.target.value)}
           placeholder={t('createPost.storyComposer.poll_question_ph')}
-          className="w-full min-h-12 bg-white/6 text-white px-4 py-3 rounded-xl outline-none border border-white/10 text-sm font-semibold focus:border-brand-primary/40"
+          className="w-full min-h-12 bg-white/6 text-white px-4 py-3 rounded-2xl outline-none border border-white/10 text-base focus:border-brand-primary/40"
         />
       </div>
       <div className="grid grid-cols-2 gap-2.5">
@@ -90,7 +91,7 @@ export default function StoryPollPanel({
           maxLength={POLL_OPTION_MAX}
           onChange={(e) => onPollOption1Change(e.target.value)}
           placeholder={t('createPost.storyComposer.poll_option_1')}
-          className="min-h-12 bg-white/6 text-white px-3 py-2 rounded-xl outline-none border border-white/10 text-sm"
+          className="min-h-12 bg-white/6 text-white px-4 py-2 rounded-2xl outline-none border border-white/10 text-base"
         />
         <input
           type="text"
@@ -98,7 +99,7 @@ export default function StoryPollPanel({
           maxLength={POLL_OPTION_MAX}
           onChange={(e) => onPollOption2Change(e.target.value)}
           placeholder={t('createPost.storyComposer.poll_option_2')}
-          className="min-h-12 bg-white/6 text-white px-3 py-2 rounded-xl outline-none border border-white/10 text-sm"
+          className="min-h-12 bg-white/6 text-white px-4 py-2 rounded-2xl outline-none border border-white/10 text-base"
         />
       </div>
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
@@ -109,7 +110,7 @@ export default function StoryPollPanel({
               type="button"
               key={key}
               onClick={() => onPollQuestionChange(suggestion)}
-              className="shrink-0 min-h-11 px-3 rounded-full text-[11px] font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
+              className="shrink-0 min-h-11 px-3 rounded-full text-xs font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
             >
               {suggestion}
             </button>
@@ -120,7 +121,7 @@ export default function StoryPollPanel({
         type="button"
         onClick={onAddPoll}
         disabled={!pollQuestion.trim()}
-        className="w-full min-h-12 py-3 bg-brand-primary text-white font-bold text-sm rounded-xl disabled:opacity-30 transition-all"
+        className={`w-full ${CREATE_PRIMARY}`}
       >
         {t('createPost.storyComposer.add_poll')}
       </button>

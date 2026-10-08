@@ -56,7 +56,7 @@ export default function StoryTextTypePanel({
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-white/35 shrink-0">
+        <span className="text-xs font-bold uppercase tracking-wider text-white/35 shrink-0">
           {t('createPost.storyComposer.text_gradient')}
         </span>
         <button

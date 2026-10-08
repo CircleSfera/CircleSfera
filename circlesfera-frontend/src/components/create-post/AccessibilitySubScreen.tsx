@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
 import { Textarea } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import { CREATE_THUMB, createThumbRatio } from './createStyles';
 import { EditorHeaderAction } from './EditorHeader';
 import SubScreenHeader from './SubScreenHeader';
 
@@ -27,7 +28,7 @@ export default function AccessibilitySubScreen({
 }: AccessibilitySubScreenProps) {
   // The same small preview as the strip of the edit step: same height, same
   // shape for the format, same corners.
-  const previewRatio = mode === 'POST' ? '4 / 5' : '9 / 16';
+  const previewRatio = createThumbRatio(mode);
   const { t } = useTranslation();
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
 
@@ -75,7 +76,7 @@ export default function AccessibilitySubScreen({
                 className="flex gap-2.5 p-2.5 rounded-3xl bg-white/5 border border-white/8"
               >
                 <div
-                  className="h-14 w-auto min-w-11 rounded-md overflow-hidden shrink-0 border-2 border-white/10 relative"
+                  className={`${CREATE_THUMB} border-white/10 relative`}
                   style={{ aspectRatio: previewRatio }}
                 >
                   {isVideo ? (
