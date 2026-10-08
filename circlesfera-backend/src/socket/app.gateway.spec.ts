@@ -23,12 +23,13 @@ interface ServiceOverrides {
     getCallerProfile: ReturnType<typeof vi.fn>;
     handleUserDisconnect: ReturnType<typeof vi.fn>;
   };
-  liveRealtimeService?: {
+  liveRealtimeService?: Partial<{
     incrementViewerCount: ReturnType<typeof vi.fn>;
     decrementViewerCount: ReturnType<typeof vi.fn>;
     isStreamHostOrCoHost: ReturnType<typeof vi.fn>;
     getUserProfile: ReturnType<typeof vi.fn>;
-  };
+    hasElitePlan: ReturnType<typeof vi.fn>;
+  }>;
   configService?: {
     get: ReturnType<typeof vi.fn>;
   };
@@ -1278,6 +1279,60 @@ describe('AppGateway payload bounds and authorization', () => {
       mockTo.mockClear();
       await gateway.handleLiveUnpinComment({} as any, socket);
       expect(mockTo).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      [true, '💎'],
+      [false, '🔥'],
+    ])('a plan reaction: plan %s sends %s', async (hasPlan, sent) => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const hasElitePlan = vi.fn().mockResolvedValue(hasPlan);
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        { liveRealtimeService: { hasElitePlan } },
+      );
+      const socket = mockSocket('prof-user');
+
+      await gateway.handleLiveSendReaction(
+        { streamId: 's-1', reaction: '💎' },
+        socket,
+      );
+      await gateway.handleLiveSendReaction(
+        { streamId: 's-1', reaction: '💎' },
+        socket,
+      );
+
+      expect(mockEmit).toHaveBeenLastCalledWith('live:reaction_received', {
+        profileId: 'prof-user',
+        reaction: sent,
+      });
+      // The plan is looked up once per connection, not on every tap.
+      expect(hasElitePlan).toHaveBeenCalledTimes(1);
+      expect(hasElitePlan).toHaveBeenCalledWith('prof-user');
+    });
+
+    it('a plan reaction cannot be slipped in through the heart either', async () => {
+      const mockEmit = vi.fn();
+      const mockTo = vi.fn().mockReturnValue({ emit: mockEmit });
+      const gateway = gatewayWithServer(
+        { to: mockTo },
+        {
+          liveRealtimeService: {
+            hasElitePlan: vi.fn().mockResolvedValue(false),
+          },
+        },
+      );
+
+      await gateway.handleLiveHeart(
+        { streamId: 's-1', reaction: '👑' },
+        mockSocket('prof-user'),
+      );
+
+      expect(mockEmit).toHaveBeenCalledWith('live:heart_received', {
+        profileId: 'prof-user',
+        reaction: '❤️',
+      });
     });
 
     it('handles live:heart and live:send_reaction with default and custom emoji', async () => {
