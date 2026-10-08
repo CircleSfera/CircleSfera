@@ -145,7 +145,7 @@ export default function StoryTextTakeoverChrome({
             />
           )}
 
-          <div className="px-3 py-2 flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div className="px-4 py-2 flex items-center lg:justify-center gap-2 overflow-x-auto no-scrollbar">
             {STYLE_COLORS.map((c) => (
               <button
                 type="button"
@@ -157,7 +157,9 @@ export default function StoryTextTakeoverChrome({
                     : 'border-transparent'
                 }`}
                 style={{ backgroundColor: c }}
-                aria-label={c}
+                aria-label={t('createPost.storyComposer.text_color', {
+                  color: c,
+                })}
               />
             ))}
             <div className="w-px h-6 bg-white/10 shrink-0 mx-0.5" />
@@ -186,7 +188,8 @@ export default function StoryTextTakeoverChrome({
                     ? 'bg-brand-primary text-white'
                     : 'bg-white/8 text-white/55'
                 }`}
-                aria-label={a}
+                aria-label={t(`createPost.storyComposer.align_${a}`)}
+                aria-pressed={align === a}
               >
                 {a === 'left' ? (
                   <AlignLeft size={14} />

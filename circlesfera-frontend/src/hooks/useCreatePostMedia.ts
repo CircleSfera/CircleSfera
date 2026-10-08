@@ -273,6 +273,7 @@ export function useCreatePostMedia({
       }));
     } catch (error) {
       logger.error('Failed to generate AI alt-text:', error);
+      toast.error(t('createPost.accessibility.generate_failed'));
     }
   };
 

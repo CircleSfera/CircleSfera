@@ -532,12 +532,33 @@ model Place {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  posts   Post[]
-  stories Story[]
+  posts        Post[]
+  stories      Story[]
+  translations PlaceTranslation[]
 
   @@index([name])
   @@index([latitude, longitude])
   @@map("places")
+}
+
+// The names of a place in one language of the app. A place is shown to each
+// person in their own language; the names on Place itself are the fallback
+// for places that have no translation yet.
+model PlaceTranslation {
+  id        String   @id @default(uuid())
+  placeId   String
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  locale    Locale
+  name      String
+  fullName  String?
+  country   String?
+  region    String?
+  locality  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([placeId, locale])
+  @@map("place_translations")
 }
 
 model Story {

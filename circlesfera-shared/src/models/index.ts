@@ -64,6 +64,16 @@ export interface Place {
   locality?: string | null;
 }
 
+/** The names of a place in one language of the app. */
+export interface PlaceTranslationInput {
+  locale: 'en' | 'es';
+  name: string;
+  fullName?: string;
+  country?: string;
+  region?: string;
+  locality?: string;
+}
+
 export interface PlaceInput {
   mapboxId: string;
   name: string;
@@ -73,6 +83,11 @@ export interface PlaceInput {
   country?: string;
   region?: string;
   locality?: string;
+  /**
+   * The same names in each language the map provider gave them in, at most
+   * one entry per language. A place is shown to each person in their own.
+   */
+  translations?: PlaceTranslationInput[];
 }
 
 /** Creator preview on a discovery-map place pin. */

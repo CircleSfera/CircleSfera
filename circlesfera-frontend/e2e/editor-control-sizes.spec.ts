@@ -125,7 +125,7 @@ test.describe('Post composer', () => {
     'Añadir Ubicación',
     'Etiquetar Personas',
     'Añadir Música',
-    'Añadir encuesta o Q&A',
+    'Añadir encuesta o preguntas',
     'Monetización',
     'Accesibilidad',
     'Ajustes Avanzados',
@@ -137,6 +137,41 @@ test.describe('Post composer', () => {
       await expectControlsAtSize(page);
     });
   }
+
+  test('tag people, with search results', async ({ page }) => {
+    await postAtEditStep(page);
+    await page.route('**/api/v1/search/**', (route) =>
+      route.fulfill({
+        status: 200,
+        json: [
+          { id: 'p1', username: 'ana.garcia', fullName: 'Ana García' },
+          { id: 'p2', username: 'anabel', fullName: null },
+        ],
+      }),
+    );
+    await goToCaption(page);
+    await page
+      .getByRole('button', { name: 'Etiquetar Personas' })
+      .first()
+      .click();
+    await page
+      .locator('img.cursor-crosshair')
+      .click({ position: { x: 150, y: 150 }, force: true });
+    await page.getByPlaceholder('Buscar usuario...').fill('ana');
+    await expect(page.getByText('ana.garcia')).toBeVisible();
+    await expectControlsAtSize(page);
+  });
+
+  test('music, when it cannot load', async ({ page }) => {
+    await postAtEditStep(page);
+    await goToCaption(page);
+    await page.route('**/api/v1/audio/**', (route) =>
+      route.fulfill({ status: 500, json: {} }),
+    );
+    await page.getByRole('button', { name: 'Añadir Música' }).first().click();
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
+    await expectControlsAtSize(page);
+  });
 
   test('music trim', async ({ page }) => {
     await postAtEditStep(page);
@@ -215,6 +250,41 @@ test.describe('Story composer', () => {
       await expectControlsAtSize(page);
     });
   }
+});
+
+test.describe('Story composer, editing an element', () => {
+  async function withSticker(page: Page) {
+    await openStoryComposer(page);
+    await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+    await page.getByRole('button', { name: '🔥', exact: true }).click();
+    await expect(
+      page.getByRole('button', { name: 'Estilo', exact: true }),
+    ).toBeVisible();
+  }
+
+  for (const section of ['Estilo', 'Transformar', 'Capas']) {
+    test(`section: ${section}`, async ({ page }) => {
+      await withSticker(page);
+      await page.getByRole('button', { name: section, exact: true }).click();
+      await expectControlsAtSize(page);
+    });
+  }
+
+  for (const item of ['Encuesta', 'Preguntas']) {
+    test(`more: ${item}`, async ({ page }) => {
+      await openStoryComposer(page);
+      await page.getByRole('button', { name: 'Más', exact: true }).click();
+      await page.getByRole('menuitem', { name: item }).click();
+      await expectControlsAtSize(page);
+    });
+  }
+
+  test('text mode, with the type options open', async ({ page }) => {
+    await openStoryComposer(page);
+    await page.getByRole('button', { name: 'Texto', exact: true }).click();
+    await page.getByRole('button', { name: 'Opciones de tipo' }).click();
+    await expectControlsAtSize(page);
+  });
 });
 
 test.describe('Edits studio', () => {

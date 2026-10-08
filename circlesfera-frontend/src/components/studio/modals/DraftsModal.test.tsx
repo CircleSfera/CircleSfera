@@ -64,7 +64,6 @@ describe('DraftsModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     useStudioStore.setState({
       project: null,
       cloudProjectId: null,
@@ -137,8 +136,13 @@ describe('DraftsModal', () => {
       screen.getByRole('button', { name: i18n!.t('studio.drafts.delete') }),
     );
 
-    expect(window.confirm).toHaveBeenCalledWith(
-      i18n!.t('studio.drafts.delete_confirm'),
+    // The app's own dialog asks first; nothing is deleted until confirmed.
+    expect(
+      screen.getByText(i18n!.t('studio.drafts.delete_confirm')),
+    ).toBeInTheDocument();
+    expect(editsService.deleteProject).not.toHaveBeenCalled();
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.confirm') }),
     );
     await waitFor(() => {
       expect(editsService.deleteProject).toHaveBeenCalledWith('draft-1');
@@ -153,7 +157,6 @@ describe('DraftsModal', () => {
   });
 
   it('does not delete when confirm is cancelled', async () => {
-    vi.mocked(window.confirm).mockReturnValueOnce(false);
     vi.mocked(editsService.getProjects).mockResolvedValue([validDraft]);
 
     const { i18n } = renderWithProviders(<DraftsModal onClose={onClose} />);
@@ -162,7 +165,13 @@ describe('DraftsModal', () => {
     fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('studio.drafts.delete') }),
     );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('common.cancel') }),
+    );
 
     expect(editsService.deleteProject).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText(i18n!.t('studio.drafts.delete_confirm')),
+    ).not.toBeInTheDocument();
   });
 });

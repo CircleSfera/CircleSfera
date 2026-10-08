@@ -36,7 +36,7 @@ export default function StoryTextTypePanel({
   const { t } = useTranslation();
 
   return (
-    <div className="px-3 pt-2 space-y-2 border-b border-white/8 pb-2 max-h-[min(32dvh,220px)] overflow-y-auto no-scrollbar">
+    <div className="px-4 pt-2 space-y-2 border-b border-white/8 pb-2 max-h-[min(32dvh,220px)] overflow-y-auto no-scrollbar">
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
         {fonts.map((font) => (
           <button

@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Cloud, FolderOpen, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { editsService } from '../../../services/edits.service';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { StudioProject } from '../../../types/studio';
 import { formatDate } from '../../../utils/format';
+import ConfirmModal from '../../modals/ConfirmModal';
 import { Dialog } from '../../ui/Dialog';
 
 interface DraftsModalProps {
@@ -30,6 +32,7 @@ export default function DraftsModal({ onClose }: DraftsModalProps) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
   const { setProject, setCloudProjectId, cloudProjectId } = useStudioStore();
+  const [draftToDelete, setDraftToDelete] = useState<string | null>(null);
 
   const {
     data: drafts,
@@ -125,11 +128,7 @@ export default function DraftsModal({ onClose }: DraftsModalProps) {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm(t('studio.drafts.delete_confirm'))) {
-                      deleteMutation.mutate(draft.id);
-                    }
-                  }}
+                  onClick={() => setDraftToDelete(draft.id)}
                   disabled={deleteMutation.isPending}
                   className="min-h-11 min-w-11 flex items-center justify-center rounded-xl text-white/40 hover:text-brand-secondary hover:bg-white/5 transition-colors disabled:opacity-50"
                   aria-label={t('studio.drafts.delete')}
@@ -141,6 +140,18 @@ export default function DraftsModal({ onClose }: DraftsModalProps) {
           })}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={draftToDelete !== null}
+        onClose={() => setDraftToDelete(null)}
+        onConfirm={() => {
+          if (draftToDelete) deleteMutation.mutate(draftToDelete);
+          setDraftToDelete(null);
+        }}
+        title={t('studio.drafts.delete')}
+        message={t('studio.drafts.delete_confirm')}
+        isDestructive
+      />
     </Dialog>
   );
 }

@@ -50,7 +50,7 @@ export default function StoryBackgroundPanel({
         </button>
       </div>
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-0.5">
-        {GRADIENTS.map((grad) => (
+        {GRADIENTS.map((grad, index) => (
           <button
             type="button"
             key={grad}
@@ -66,7 +66,9 @@ export default function StoryBackgroundPanel({
                 ? { backgroundImage: grad }
                 : { backgroundColor: grad }
             }
-            aria-label={t('createPost.storyComposer.backgrounds')}
+            aria-label={t('createPost.storyComposer.background_option', {
+              number: index + 1,
+            })}
             aria-pressed={bgStyle === grad}
           />
         ))}

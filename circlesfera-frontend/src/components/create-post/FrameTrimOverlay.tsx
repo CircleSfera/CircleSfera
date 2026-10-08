@@ -1,9 +1,8 @@
-import { Check, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FrameClipWindow } from '../../utils/frameClip';
 import type { VideoData } from '../PhotoEditor';
-import { Button } from '../ui';
+import EditorHeader, { EditorHeaderAction } from './EditorHeader';
 import FrameClipControls from './FrameClipControls';
 
 interface FrameTrimOverlayProps {
@@ -77,29 +76,20 @@ export default function FrameTrimOverlay({
 
   return (
     <div className="fixed inset-0 z-50 bg-black text-white flex flex-col">
-      <header className="flex justify-between items-center gap-2 shrink-0 z-10 px-3 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent min-h-11">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={onCancel}
-          className="min-w-11 min-h-11 rounded-full bg-white/10 text-white hover:bg-white/16"
-          aria-label={t('createPost.edit.cancel')}
-        >
-          <X size={16} strokeWidth={2} />
-        </Button>
-        <h1 className="text-sm font-semibold tracking-tight text-white truncate flex-1 text-center px-1">
-          {t('createPost.frameTrim.title')}
-        </h1>
-        <Button
-          type="button"
-          onClick={handleConfirm}
-          className="min-h-11 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25"
-          aria-label={t('createPost.edit.done')}
-        >
-          {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />
-        </Button>
-      </header>
+      <EditorHeader
+        surface="overlay"
+        leading="close"
+        leadingLabel={t('createPost.edit.cancel')}
+        onLeading={onCancel}
+        title={t('createPost.frameTrim.title')}
+        trailing={
+          <EditorHeaderAction
+            label={t('createPost.edit.done')}
+            onClick={handleConfirm}
+            withCheck
+          />
+        }
+      />
 
       <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 min-h-0">
         <video
@@ -112,14 +102,16 @@ export default function FrameTrimOverlay({
         />
       </div>
 
-      <div className="shrink-0 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface-elevated border-t border-white/8">
-        <FrameClipControls
-          sourceDurationSec={sourceDurationSec}
-          window={windowState}
-          onChange={setWindowState}
-          showPresets
-          compact
-        />
+      <div className="shrink-0 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] bg-surface-elevated border-t border-white/8">
+        <div className="mx-auto w-full md:max-w-xl">
+          <FrameClipControls
+            sourceDurationSec={sourceDurationSec}
+            window={windowState}
+            onChange={setWindowState}
+            showPresets
+            compact
+          />
+        </div>
       </div>
     </div>
   );

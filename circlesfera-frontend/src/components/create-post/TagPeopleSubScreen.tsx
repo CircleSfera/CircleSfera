@@ -1,11 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { MediaFile, PostTagData } from '../../hooks/useCreatePost';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { searchApi } from '../../services/search.service';
 import type { Profile } from '../../types';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
+import { EditorHeaderAction } from './EditorHeader';
+import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
 
 interface TagPeopleSubScreenProps {
@@ -29,8 +33,6 @@ export default function TagPeopleSubScreen({
     null,
   );
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Profile[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -47,7 +49,6 @@ export default function TagPeopleSubScreen({
     const y = (e.clientY - rect.top) / rect.height;
     setActiveTap({ x, y });
     setSearchQuery('');
-    setSearchResults([]);
     requestAnimationFrame(() => searchInputRef.current?.focus());
   };
 
@@ -58,36 +59,26 @@ export default function TagPeopleSubScreen({
     }));
   };
 
-  React.useEffect(() => {
-    const q = searchQuery.trim();
-    if (q.length < 2) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
-    let cancelled = false;
-    const delayDebounceFn = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        // API returns Profile[] (not { users: [] }) — same as NewChatModal / searchApi.
-        const res = await searchApi.searchUsers(q);
-        if (!cancelled) {
-          setSearchResults(Array.isArray(res.data) ? res.data : []);
-        }
-      } catch (err) {
-        console.error(err);
-        if (!cancelled) setSearchResults([]);
-      } finally {
-        if (!cancelled) setIsSearching(false);
-      }
-    }, 300);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(delayDebounceFn);
-    };
-  }, [searchQuery]);
+  // Searching from the first key press, so "no users" never shows before the
+  // search has run.
+  const trimmedQuery = searchQuery.trim();
+  const debouncedQuery = useDebouncedValue(trimmedQuery, 300);
+  const {
+    data: searchResults = [],
+    isFetching,
+    isError: searchFailed,
+    refetch: retrySearch,
+  } = useQuery({
+    queryKey: ['composer', 'tag-people', debouncedQuery],
+    queryFn: async (): Promise<Profile[]> => {
+      // The API returns Profile[], not { users: [] }.
+      const res = await searchApi.searchUsers(debouncedQuery);
+      return Array.isArray(res.data) ? res.data : [];
+    },
+    enabled: debouncedQuery.length >= 2,
+  });
+  const isSearching =
+    trimmedQuery.length >= 2 && (trimmedQuery !== debouncedQuery || isFetching);
 
   const selectUser = (user: Profile) => {
     if (!activeTap) return;
@@ -111,7 +102,6 @@ export default function TagPeopleSubScreen({
     });
     setActiveTap(null);
     setSearchQuery('');
-    setSearchResults([]);
   };
 
   return (
@@ -120,23 +110,19 @@ export default function TagPeopleSubScreen({
         title={t('createPost.tags.title')}
         onClose={onClose}
         trailing={
-          <button
-            type="button"
+          <EditorHeaderAction
+            label={t('createPost.tags.done')}
             onClick={onClose}
-            className="px-3.5 h-11 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
-          >
-            {t('createPost.tags.done')}
-          </button>
+          />
         }
       />
 
       <div className="flex flex-col min-h-0 max-md:flex-1">
-        <div className="relative bg-black flex items-center justify-center px-3 pt-2 pb-2 shrink-0">
-          <div className="absolute top-2 left-0 right-0 z-10 flex justify-center pointer-events-none px-3">
-            <span className="bg-black/55 backdrop-blur-md px-3 py-1 rounded-full text-white/85 text-[11px] font-medium">
-              {t('createPost.tags.tap_photo')}
-            </span>
-          </div>
+        <div className="bg-black flex flex-col items-center justify-center gap-2 px-4 pt-2 pb-2 shrink-0">
+          {/* Above the photo, never over it: the hint must not hide what is being tagged. */}
+          <p className="text-white/70 text-xs font-medium text-center">
+            {t('createPost.tags.tap_photo')}
+          </p>
 
           {currentMedia && currentMedia.type === 'image' ? (
             <div className="relative inline-block max-w-full">
@@ -202,7 +188,7 @@ export default function TagPeopleSubScreen({
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -6 }}
-              className="border-t border-white/8 bg-surface-elevated px-3 py-2.5 space-y-2 shrink-0"
+              className="border-t border-white/8 bg-surface-elevated px-4 py-2.5 space-y-2 shrink-0"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-white/50">
@@ -213,7 +199,6 @@ export default function TagPeopleSubScreen({
                   onClick={() => {
                     setActiveTap(null);
                     setSearchQuery('');
-                    setSearchResults([]);
                   }}
                   className="text-[11px] text-white/40 hover:text-white min-h-11 px-2"
                 >
@@ -237,9 +222,14 @@ export default function TagPeopleSubScreen({
               </div>
               <div className="max-h-40 overflow-y-auto rounded-lg border border-white/8 bg-white/2">
                 {isSearching ? (
-                  <div className="text-center text-[11px] text-white/40 py-3">
+                  <SearchMessage busy>
                     {t('createPost.tags.searching')}
-                  </div>
+                  </SearchMessage>
+                ) : searchFailed ? (
+                  <SearchError
+                    message={t('createPost.tags.search_error')}
+                    onRetry={() => retrySearch()}
+                  />
                 ) : searchResults.length > 0 ? (
                   searchResults.map((user) => (
                     <button
@@ -253,7 +243,7 @@ export default function TagPeopleSubScreen({
                           user.avatar ||
                           `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}`
                         }
-                        className="w-7 h-7 rounded-full object-cover"
+                        className="w-8 h-8 rounded-full object-cover"
                         alt=""
                       />
                       <div className="min-w-0">
@@ -269,13 +259,11 @@ export default function TagPeopleSubScreen({
                     </button>
                   ))
                 ) : searchQuery.trim().length >= 2 ? (
-                  <div className="text-center text-[11px] text-white/40 py-3">
-                    {t('createPost.tags.no_users')}
-                  </div>
+                  <SearchMessage>{t('createPost.tags.no_users')}</SearchMessage>
                 ) : (
-                  <div className="text-center text-[11px] text-white/40 py-3">
+                  <SearchMessage>
                     {t('createPost.tags.type_to_search')}
-                  </div>
+                  </SearchMessage>
                 )}
               </div>
             </motion.div>
@@ -283,7 +271,7 @@ export default function TagPeopleSubScreen({
         </AnimatePresence>
 
         {mediaFiles.length > 1 && (
-          <div className="px-3 py-2 flex gap-2 overflow-x-auto border-t border-white/8 no-scrollbar shrink-0">
+          <div className="px-4 py-2 flex gap-2 overflow-x-auto border-t border-white/8 no-scrollbar shrink-0">
             {mediaFiles.map((file, idx) => (
               <button
                 type="button"
@@ -292,7 +280,6 @@ export default function TagPeopleSubScreen({
                   setCurrentIndex(idx);
                   setActiveTap(null);
                   setSearchQuery('');
-                  setSearchResults([]);
                 }}
                 className={`w-11 h-11 rounded-lg overflow-hidden shrink-0 transition-all ${
                   currentIndex === idx
@@ -317,7 +304,7 @@ export default function TagPeopleSubScreen({
           </div>
         )}
 
-        <div className="border-t border-white/8 px-3 py-2.5 space-y-2 max-md:flex-1 max-md:overflow-y-auto pb-3">
+        <div className="border-t border-white/8 px-4 py-2.5 space-y-2 max-md:flex-1 max-md:overflow-y-auto pb-3">
           <h3 className="text-[10px] font-semibold text-white/40 uppercase tracking-wider">
             {t('createPost.tags.tags_on_photo')}
           </h3>

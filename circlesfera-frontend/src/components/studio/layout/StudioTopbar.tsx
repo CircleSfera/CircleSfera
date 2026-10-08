@@ -56,7 +56,7 @@ export default function StudioTopbar({
     <div className="pt-safe bg-surface-elevated border-b border-white/10 z-30 shrink-0">
       {/* Phones: name and export on the first row, undo and redo on the
           second. From md up everything fits on one row. */}
-      <div className="min-h-14 py-1 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 px-2 sm:px-3">
+      <div className="min-h-14 py-1 flex flex-wrap md:flex-nowrap items-center justify-between gap-y-1 px-4">
         <div className="order-1 flex-1 md:flex-none flex items-center gap-1 sm:gap-2 min-w-0">
           <button
             type="button"

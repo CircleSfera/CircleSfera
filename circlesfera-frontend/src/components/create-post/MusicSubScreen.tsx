@@ -7,6 +7,7 @@ import { audioApi } from '../../services/audio.service';
 import type { Audio } from '../../types';
 import AudioClipWaveform from '../audio/AudioClipWaveform';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
+import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
 
 function generateGradient(id: string): string {
@@ -61,16 +62,26 @@ export default function MusicSubScreen({
   const trimAudioRef = useRef<HTMLAudioElement | null>(null);
   const trimStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: trendingAudios, isLoading: isLoadingTrending } = useQuery({
+  const {
+    data: trendingAudios,
+    isLoading: isLoadingTrending,
+    isError: isTrendingError,
+    refetch: refetchTrending,
+  } = useQuery({
     queryKey: ['audio', 'trending'],
     queryFn: async () => {
       const res = await audioApi.getTrending();
       return res.data;
     },
-    enabled: !searchQuery && !trimTrack,
+    enabled: !searchQuery.trim() && !trimTrack,
   });
 
-  const { data: searchAudios, isLoading: isLoadingSearch } = useQuery({
+  const {
+    data: searchAudios,
+    isLoading: isLoadingSearch,
+    isError: isSearchError,
+    refetch: refetchSearch,
+  } = useQuery({
     queryKey: ['audio', 'search', searchQuery],
     queryFn: async () => {
       const res = await audioApi.search(searchQuery);
@@ -96,8 +107,11 @@ export default function MusicSubScreen({
     };
   }, []);
 
-  const audioList =
-    searchQuery.trim().length > 0 ? searchAudios || [] : trendingAudios || [];
+  const isSearchingAudio = searchQuery.trim().length > 0;
+  const audioList = isSearchingAudio
+    ? searchAudios || []
+    : trendingAudios || [];
+  const isAudioError = isSearchingAudio ? isSearchError : isTrendingError;
 
   const trackDurationMs = useMemo(() => {
     if (!trimTrack) return 0;
@@ -326,7 +340,7 @@ export default function MusicSubScreen({
             </div>
           ) : (
             <div className="flex flex-col flex-1 min-h-0">
-              <div className="relative shrink-0 px-6 pt-4 pb-4 bg-surface-elevated/95 backdrop-blur-xl border-b border-white/4 z-10">
+              <div className="relative shrink-0 px-4 pt-4 pb-4 bg-surface-elevated/95 backdrop-blur-xl border-b border-white/4 z-10">
                 <Search
                   className="absolute left-9 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40"
                   aria-hidden
@@ -354,15 +368,22 @@ export default function MusicSubScreen({
                 )}
 
                 {isLoadingTrending || isLoadingSearch ? (
-                  <div className="py-16 text-center text-sm font-medium text-white/40 animate-pulse">
+                  <SearchMessage busy>
                     {t('modals.audio.loading')}
-                  </div>
+                  </SearchMessage>
+                ) : isAudioError ? (
+                  <SearchError
+                    message={t('modals.audio.load_error')}
+                    onRetry={() =>
+                      isSearchingAudio ? refetchSearch() : refetchTrending()
+                    }
+                  />
                 ) : audioList.length === 0 ? (
-                  <div className="py-16 text-center text-sm font-medium text-white/40">
+                  <SearchMessage>
                     {searchQuery
                       ? t('modals.audio.no_results')
                       : t('modals.audio.empty')}
-                  </div>
+                  </SearchMessage>
                 ) : (
                   audioList.map((audio) => {
                     const isSelected = selectedAudioId === audio.id;
@@ -372,7 +393,7 @@ export default function MusicSubScreen({
                       <motion.div
                         whileTap={{ scale: 0.98 }}
                         key={audio.id}
-                        className={`group flex items-center justify-between gap-4 px-3 py-2.5 rounded-2xl transition-all cursor-pointer mx-3 ${
+                        className={`group flex items-center justify-between gap-4 px-3 py-2.5 rounded-2xl transition-all cursor-pointer mx-4 ${
                           isSelected
                             ? 'bg-brand-primary/10'
                             : 'hover:bg-white/3'
