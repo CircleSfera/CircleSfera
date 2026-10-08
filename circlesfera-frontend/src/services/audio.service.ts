@@ -2,7 +2,8 @@ import type { Audio } from '../types';
 import { apiClient } from './api';
 
 export const audioApi = {
-  search: (query: string) => apiClient.get<Audio[]>(`audio/search?q=${query}`),
+  search: (query: string) =>
+    apiClient.get<Audio[]>(`audio/search?q=${encodeURIComponent(query)}`),
 
   getTrending: () => apiClient.get<Audio[]>('audio/trending'),
 

@@ -6,5 +6,8 @@
 export const MIN_PPV_PRICE_EUR = 3;
 export const MAX_PPV_PRICE_EUR = 500;
 
+// Share of each sale the creator keeps; the platform fee is the rest.
+export const CREATOR_SHARE = 0.8;
+
 // Smallest tip, in euros (CircleSfera absorbs the Stripe fee).
 export const MIN_TIP_EUR = 2;

@@ -95,13 +95,13 @@ export default function AdvancedSettingsSubScreen({
             min={minSchedule}
             value={scheduledAt}
             onChange={(e) => setScheduledAt(e.target.value)}
-            className="w-full min-h-10 h-10 rounded-lg bg-surface-raised border border-white/10 px-2.5 text-white text-sm outline-none focus:ring-2 focus:ring-brand-primary/40"
+            className="w-full min-h-12 h-12 rounded-lg bg-surface-raised border border-white/10 px-2.5 text-white text-sm outline-none focus:ring-2 focus:ring-brand-primary/40"
           />
           {scheduledAt ? (
             <button
               type="button"
               onClick={() => setScheduledAt('')}
-              className="text-xs text-brand-primary hover:underline min-h-9"
+              className="text-xs text-brand-primary hover:underline min-h-11"
             >
               {t('createPost.caption.clear_schedule')}
             </button>

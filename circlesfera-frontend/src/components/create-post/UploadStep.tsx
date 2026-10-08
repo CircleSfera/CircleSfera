@@ -268,7 +268,7 @@ export default function UploadStep({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full h-10 min-h-10 px-4 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
+              className="w-full h-11 min-h-11 px-4 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
                          shadow-md shadow-brand-primary/20 active:scale-[0.98] transition-transform
                          outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
             >
@@ -281,7 +281,7 @@ export default function UploadStep({
               <button
                 type="button"
                 onClick={openCamera}
-                className="w-full h-10 min-h-10 px-4 flex items-center justify-center gap-2 rounded-xl font-bold text-sm
+                className="w-full h-11 min-h-11 px-4 flex items-center justify-center gap-2 rounded-xl font-bold text-sm
                          bg-white/6 border border-white/10 text-white/90 hover:bg-white/10
                          active:scale-[0.98] transition-all md:hidden
                          outline-none focus-visible:ring-2 focus-visible:ring-white/20"
@@ -356,7 +356,7 @@ export default function UploadStep({
                   aria-selected={isActive}
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative flex-1 min-h-10 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="relative flex-1 min-h-11 px-2 rounded-lg flex items-center justify-center gap-1.5 transition-colors duration-200 outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
                   {isActive && (
                     <motion.div

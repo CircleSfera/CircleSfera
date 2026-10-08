@@ -42,7 +42,6 @@ interface SubScreenRouterProps {
   setAltTextMap: Dispatch<SetStateAction<Record<number, string>>>;
   tagsMap: Record<number, any>;
   setTagsMap: Dispatch<SetStateAction<Record<number, any>>>;
-  handleRemoveFile: (index: number) => void;
   hideLikes: boolean;
   setHideLikes: (val: boolean) => void;
   turnOffComments: boolean;
@@ -87,7 +86,6 @@ export default function SubScreenRouter({
   setAltTextMap,
   tagsMap,
   setTagsMap,
-  handleRemoveFile,
   hideLikes,
   setHideLikes,
   turnOffComments,
@@ -137,7 +135,6 @@ export default function SubScreenRouter({
         mediaFiles={mediaFiles}
         altTextMap={altTextMap}
         setAltTextMap={setAltTextMap}
-        onRemoveFile={handleRemoveFile}
         onClose={() => setSubScreen('none')}
         onGenerateAltText={onGenerateAltText}
       />

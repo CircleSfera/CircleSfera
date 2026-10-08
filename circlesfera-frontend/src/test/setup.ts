@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
-import i18n from '../i18n';
+import i18n, { i18nReady, loadCatalog } from '../i18n';
 
 vi.mock('i18next-browser-languagedetector', () => ({
   default: {
@@ -12,6 +12,11 @@ vi.mock('i18next-browser-languagedetector', () => ({
     cacheUserLanguage() {},
   },
 }));
+
+// Tests read both catalogs at once, as the app did before it loaded one
+// per language.
+await i18nReady;
+await Promise.all([loadCatalog(i18n, 'en'), loadCatalog(i18n, 'es')]);
 
 afterEach(() => {
   cleanup();
