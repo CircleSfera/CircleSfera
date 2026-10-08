@@ -1316,6 +1316,8 @@
       "filters_adjustments": "Filtros y Ajustes",
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
+      "move_earlier": "Mover antes en el carrusel",
+      "move_later": "Mover después en el carrusel",
       "add_more": "Añadir más medios",
       "media_item": "Elemento {{index}} de {{total}}",
       "select_media": "Seleccionar medio",
