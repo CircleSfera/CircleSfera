@@ -70,7 +70,9 @@ export default function StoryElementEditPanel({
               <Smile size={15} />
             )}
           </div>
-          <span className="text-[11px] font-bold uppercase tracking-[0.12em] text-white/45 truncate">
+          {/* Phones have no room for the title next to the actions: the icon
+              shows the kind of element and the title stays for screen readers. */}
+          <span className="max-sm:sr-only text-[11px] font-bold uppercase tracking-[0.12em] text-white/45 truncate">
             {isPollElement(selectedElement)
               ? t('createPost.storyComposer.edit_poll')
               : isQnaElement(selectedElement)
@@ -83,6 +85,7 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onDuplicateElement(selectedElementId)}
             title={t('createPost.storyComposer.duplicate')}
+            aria-label={t('createPost.storyComposer.duplicate')}
             className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <Copy size={13} />
@@ -91,6 +94,7 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'up')}
             title={t('createPost.storyComposer.bring_forward')}
+            aria-label={t('createPost.storyComposer.bring_forward')}
             className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <ChevronUp size={13} />
@@ -99,6 +103,7 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'down')}
             title={t('createPost.storyComposer.send_backward')}
+            aria-label={t('createPost.storyComposer.send_backward')}
             className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <ChevronDown size={13} />
@@ -132,21 +137,23 @@ export default function StoryElementEditPanel({
       {/* Panel Tabs */}
       <div className="flex bg-white/3 p-0.5 rounded-lg border border-white/5">
         {[
-          { id: 'style' as PanelTab, label: 'Style', icon: Palette },
-          { id: 'transform' as PanelTab, label: 'Transform', icon: Move },
-          { id: 'layers' as PanelTab, label: 'Layers', icon: Layers },
-        ].map(({ id, label, icon: Icon }) => (
+          { id: 'style' as PanelTab, icon: Palette },
+          { id: 'transform' as PanelTab, icon: Move },
+          { id: 'layers' as PanelTab, icon: Layers },
+        ].map(({ id, icon: Icon }) => (
           <button
             type="button"
             key={id}
             onClick={() => onPanelTabChange(id)}
-            className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            aria-pressed={panelTab === id}
+            className={`flex-1 min-h-11 flex items-center justify-center gap-1 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
               panelTab === id
                 ? 'bg-white/8 text-white'
                 : 'text-white/25 hover:text-white/50'
             }`}
           >
-            <Icon size={11} /> {label}
+            <Icon size={11} aria-hidden />{' '}
+            {t(`createPost.storyComposer.panel_${id}`)}
           </button>
         ))}
       </div>
