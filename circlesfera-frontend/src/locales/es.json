@@ -198,6 +198,7 @@
       "title": "Cuenta",
       "subtitle": "Idioma, datos y estado de la cuenta",
       "language": "Idioma",
+      "language_change_failed": "No se pudo cambiar el idioma. Comprueba tu conexión e inténtalo de nuevo.",
       "disable": {
         "title": "Desactivar cuenta",
         "desc": "Tu perfil y tus posts se ocultarán hasta que vuelvas a iniciar sesión.",

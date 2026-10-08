@@ -29,6 +29,7 @@
     "verify:runtime-deps": "node scripts/check-runtime-dependencies.mjs",
     "check": "biome check --write .",
     "check:deps": "npm run check:deps --prefix circlesfera-backend && npm run check:deps --prefix circlesfera-frontend",
+    "perf:budgets": "node scripts/lighthouse-budgets.mjs",
     "backend:cov": "npm run test:cov --prefix circlesfera-backend",
     "prepare": "husky"
   },
@@ -47,6 +48,7 @@
     "@playwright/test": "1.63.0",
     "@types/node": "24.19.1",
     "husky": "9.1.7",
+    "lighthouse": "13.5.0",
     "otplib": "13.5.0",
     "typescript": "6.0.3"
   },

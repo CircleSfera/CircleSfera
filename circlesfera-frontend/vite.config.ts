@@ -90,10 +90,6 @@ export default defineConfig({
               test: /[\\/]node_modules[\\/](framer-motion|motion-dom|motion-utils|lucide-react)[\\/]/,
             },
             {
-              name: 'vendor-viz',
-              test: /[\\/]node_modules[\\/](recharts|html-to-image)[\\/]/,
-            },
-            {
               name: 'vendor-utils',
               test: /[\\/]node_modules[\\/](axios|@tanstack[\\/]react-query|@tanstack[\\/]query-core|zustand|clsx)[\\/]/,
             },
