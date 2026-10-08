@@ -124,16 +124,18 @@ export default defineConfig({
       // Ratchet: set to the measured coverage and only ever raised, never
       // lowered, until the 80% global target is met.
       thresholds: {
-        statements: 30,
-        lines: 31,
-        branches: 30,
-        functions: 27,
+        statements: 31,
+        lines: 32,
+        branches: 31,
+        functions: 28,
         // Critical paths: the API client (session renewal, CSRF), the
-        // session guards and passkeys, the account recovery pages, creator
-        // payouts and appeal review.
+        // session guards and passkeys, the sign-in and account recovery
+        // pages, creator payouts and appeal review.
         'src/services/api.ts': { statements: 100, lines: 100 },
         'src/pages/ForgotPassword.tsx': { statements: 100, lines: 100 },
         'src/pages/ResetPassword.tsx': { statements: 100, lines: 100 },
+        'src/pages/Login.tsx': { statements: 100, lines: 100 },
+        'src/pages/AdminPanelLogin.tsx': { statements: 100, lines: 100 },
         'src/components/monetization/ConnectStripeButton.tsx': {
           statements: 100,
           lines: 100,
@@ -159,6 +161,37 @@ export default defineConfig({
           statements: 100,
           lines: 100,
         },
+        'src/components/monetization/MonetizationDashboard.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/monetization/TipModal.tsx': {
+          statements: 95,
+          lines: 100,
+        },
+        'src/components/live/LiveGiftModal.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/create-post/MonetizationSubScreen.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/creator/CreatorMoneyTab.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/creator/CreatorMonetizationTab.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/pages/payments/Pricing.tsx': { statements: 100, lines: 100 },
+        'src/utils/apiErrorMessage.ts': { statements: 100, lines: 100 },
+        'src/utils/planFeatures.ts': { statements: 100, lines: 100 },
+        'src/utils/identityVerification.tsx': {
+          statements: 100,
+          lines: 100,
+        },
         'src/utils/format.ts': { statements: 100, lines: 100 },
         'src/hooks/useCreatePostMutation.ts': { statements: 85, lines: 85 },
         'src/components/admin/ReportsTab.tsx': { statements: 55, lines: 55 },
@@ -167,6 +200,7 @@ export default defineConfig({
           statements: 85,
           lines: 85,
         },
+        'src/components/chat/ChatWindow.tsx': { statements: 94, lines: 98 },
       },
     },
   },

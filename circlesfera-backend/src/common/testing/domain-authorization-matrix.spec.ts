@@ -1,3 +1,4 @@
+import { ErrorCode } from '@circlesfera/shared';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Visibility } from '@prisma/client';
@@ -431,9 +432,9 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         identityVerifiedAt: null,
       });
       const unverifiedCtx = createMockContext({ userId: 'u-unverified' });
-      await expect(guard.canActivate(unverifiedCtx)).rejects.toThrow(
-        ForbiddenException,
-      );
+      await expect(guard.canActivate(unverifiedCtx)).rejects.toMatchObject({
+        errorCode: ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
+      });
 
       // Verified user
       mockPrisma.user.findUnique.mockResolvedValue({
@@ -476,7 +477,9 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         identityVerifiedAt: null,
       });
       const ctx = createMockContext({ userId: 'u-unverified' });
-      await expect(guard.canActivate(ctx)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(ctx)).rejects.toMatchObject({
+        errorCode: ErrorCode.IDENTITY_VERIFICATION_REQUIRED,
+      });
     });
 
     it('blocks self-purchase / self-tip invariants', () => {

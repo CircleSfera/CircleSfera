@@ -6,6 +6,7 @@ import {
   apiErrorCode,
   apiErrorDetails,
   apiErrorMessage,
+  isIdentityVerificationRequired,
 } from './apiErrorMessage';
 
 // The error the API client rejects with (see handleApiError).
@@ -102,6 +103,47 @@ describe('apiErrorMessage', () => {
       }),
     ).toEqual({ appealToken: 'x' });
     expect(apiErrorCode(null)).toBeUndefined();
+  });
+
+  it('recognises a purchase refused until the identity is verified', () => {
+    const refusal = 'Debes verificar tu identidad primero para poder comprar.';
+    expect(
+      isIdentityVerificationRequired(
+        Object.assign(new Error(refusal), { status: 403, data: {} }),
+      ),
+    ).toBe(true);
+    expect(
+      isIdentityVerificationRequired({
+        response: { status: 403, data: { message: [refusal] } },
+      }),
+    ).toBe(true);
+    expect(
+      isIdentityVerificationRequired({
+        response: { status: 403, data: { message: refusal } },
+      }),
+    ).toBe(true);
+    // The code the server sends now, whatever the sentence says.
+    expect(
+      isIdentityVerificationRequired(
+        clientError(403, {
+          errorCode: 'IDENTITY_VERIFICATION_REQUIRED',
+          message: 'Verify your identity first.',
+        }),
+      ),
+    ).toBe(true);
+    // Another refusal, another status, or nothing to read.
+    expect(
+      isIdentityVerificationRequired(
+        Object.assign(new Error('Forbidden'), { status: 403, data: {} }),
+      ),
+    ).toBe(false);
+    expect(
+      isIdentityVerificationRequired(
+        Object.assign(new Error(refusal), { status: 400, data: {} }),
+      ),
+    ).toBe(false);
+    expect(isIdentityVerificationRequired({ status: 403 })).toBe(false);
+    expect(isIdentityVerificationRequired(null)).toBe(false);
   });
 
   it('both languages translate every error code and generic message', () => {
