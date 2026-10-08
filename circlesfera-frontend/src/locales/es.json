@@ -408,10 +408,11 @@
       "blocked": "Las notificaciones están bloqueadas en tu navegador.",
       "browser_capability": "Capacidad del Navegador",
       "status": "Estado",
-      "pwa_support": "Soporte PWA",
-      "enabled": "ACTIVADO",
-      "not_supported": "NO SOPORTADO",
-      "not_registered": "NO REGISTRADO",
+      "permission": {
+        "default": "Sin decidir",
+        "granted": "Permitidas",
+        "denied": "Bloqueadas"
+      },
       "enabling": "Activando alertas nativas…",
       "disabling": "Desactivando alertas nativas…",
       "subscribe_success": "Alertas nativas activadas",
@@ -446,6 +447,7 @@
       "empty": "Aún no tienes ninguna passkey registrada.",
       "register_error": "No se pudo registrar la passkey.",
       "remove_error": "No se pudo eliminar la passkey. Confírmalo con tu huella, cara o PIN e inténtalo de nuevo.",
+      "load_error": "No se han podido cargar tus passkeys. Recarga la página e inténtalo de nuevo.",
       "biometric_available": "Biometría disponible",
       "created_on": "Creado el {{date}}",
       "limit_reached": "Ya tienes el máximo de {{max}} passkeys. Elimina una para añadir otra."

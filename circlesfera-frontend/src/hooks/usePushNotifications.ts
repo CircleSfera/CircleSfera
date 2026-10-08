@@ -16,6 +16,12 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray;
 }
 
+// What the phone says about notifications, in the browser's words: allowed,
+// blocked, or not decided yet.
+function nativePermission(receive: string): NotificationPermission {
+  return receive === 'granted' || receive === 'denied' ? receive : 'default';
+}
+
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [permission, setPermission] =
@@ -30,7 +36,7 @@ export function usePushNotifications() {
       if (isNative) {
         // We assume subscribed if permission is granted in native
         const status = await PushNotifications.checkPermissions();
-        setPermission(status.receive === 'granted' ? 'granted' : 'default');
+        setPermission(nativePermission(status.receive));
         setIsSubscribed(status.receive === 'granted');
       } else {
         const registration = await navigator.serviceWorker.ready;
@@ -79,6 +85,7 @@ export function usePushNotifications() {
           permStatus = await PushNotifications.requestPermissions();
         }
         if (permStatus.receive !== 'granted') {
+          setPermission(nativePermission(permStatus.receive));
           throw new Error('User denied native permissions');
         }
         setPermission('granted');

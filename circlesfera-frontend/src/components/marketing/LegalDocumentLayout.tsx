@@ -114,7 +114,7 @@ export function LegalDocumentLayout({
             </div>
           </aside>
 
-          <main className="flex-1 min-w-0 pb-10 pt-4">
+          <div className="flex-1 min-w-0 pb-10 pt-4">
             {sections.map((section, index) => (
               <section
                 id={section.id}
@@ -143,7 +143,7 @@ export function LegalDocumentLayout({
                 </div>
               </section>
             ))}
-          </main>
+          </div>
         </div>
       </div>
     </MarketingPage>
