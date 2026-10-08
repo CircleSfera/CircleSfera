@@ -83,7 +83,7 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onDuplicateElement(selectedElementId)}
             title={t('createPost.storyComposer.duplicate')}
-            className="min-h-9 min-w-9 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <Copy size={13} />
           </button>
@@ -91,7 +91,7 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'up')}
             title={t('createPost.storyComposer.bring_forward')}
-            className="min-h-9 min-w-9 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <ChevronUp size={13} />
           </button>
@@ -99,21 +99,21 @@ export default function StoryElementEditPanel({
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'down')}
             title={t('createPost.storyComposer.send_backward')}
-            className="min-h-9 min-w-9 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
           >
             <ChevronDown size={13} />
           </button>
           <button
             type="button"
             onClick={() => onUpdateElement(selectedElementId, { x: 0, y: 0 })}
-            className="min-h-9 text-xs bg-white/4 hover:bg-white/8 px-2.5 rounded-lg border border-white/6 transition-all font-bold text-white/50 hover:text-white/80 flex items-center gap-1"
+            className="min-h-11 text-xs bg-white/4 hover:bg-white/8 px-2.5 rounded-lg border border-white/6 transition-all font-bold text-white/50 hover:text-white/80 flex items-center gap-1"
           >
             <Move size={10} /> {t('createPost.storyComposer.center')}
           </button>
           <button
             type="button"
             onClick={() => onRemoveElement(selectedElementId)}
-            className="min-h-9 min-w-9 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/15 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/15 transition-all"
             aria-label={t('createPost.storyComposer.delete')}
           >
             <Trash2 size={13} />
@@ -121,7 +121,7 @@ export default function StoryElementEditPanel({
           <button
             type="button"
             onClick={() => onSelectedElementIdChange(null)}
-            className="min-h-9 min-w-9 flex items-center justify-center hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-all"
             aria-label={t('createPost.storyComposer.close')}
           >
             <X size={16} />

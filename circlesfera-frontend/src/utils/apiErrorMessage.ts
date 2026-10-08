@@ -40,6 +40,19 @@ export function apiErrorDetails(
   return apiErrorBody(error)?.details;
 }
 
+// A purchase or payout action refused because the account's identity is not
+// verified yet. The server sends a code for it; servers from before the code
+// existed answer 403 with a Spanish sentence, which is still recognised.
+export function isIdentityVerificationRequired(error: unknown): boolean {
+  if (apiErrorCode(error) === 'IDENTITY_VERIFICATION_REQUIRED') return true;
+  if (apiErrorStatus(error) !== 403) return false;
+  const body = apiErrorBody(error)?.message;
+  const text =
+    (error as { message?: string } | null)?.message ??
+    (Array.isArray(body) ? body.join(' ') : body);
+  return !!text?.includes('verificar');
+}
+
 // The message to show for a failed API call, in the reader's language. The
 // server's own text is never shown: it is in one language and can be
 // technical. Order: the error code's text, then the kind of failure

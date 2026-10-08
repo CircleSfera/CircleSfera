@@ -119,12 +119,11 @@ export default function TagPeopleSubScreen({
       <SubScreenHeader
         title={t('createPost.tags.title')}
         onClose={onClose}
-        closeIcon="close"
         trailing={
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 h-9 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+            className="px-3.5 h-11 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
           >
             {t('createPost.tags.done')}
           </button>
@@ -216,7 +215,7 @@ export default function TagPeopleSubScreen({
                     setSearchQuery('');
                     setSearchResults([]);
                   }}
-                  className="text-[11px] text-white/40 hover:text-white min-h-8 px-2"
+                  className="text-[11px] text-white/40 hover:text-white min-h-11 px-2"
                 >
                   {t('common.cancel')}
                 </button>
@@ -232,7 +231,7 @@ export default function TagPeopleSubScreen({
                   placeholder={t('createPost.tags.search_user')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-white/5 border border-white/10 rounded-lg h-10 py-2 pl-8 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
+                  className="w-full bg-white/5 border border-white/10 rounded-lg h-12 py-2 pl-8 pr-3 text-sm text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
                   autoComplete="off"
                 />
               </div>
@@ -339,7 +338,7 @@ export default function TagPeopleSubScreen({
                   <button
                     type="button"
                     onClick={() => removeTag(idx)}
-                    className="min-h-8 min-w-8 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-white/8 transition-colors"
+                    className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-white/8 transition-colors"
                     aria-label={t('createPost.tags.remove')}
                   >
                     <X size={14} />

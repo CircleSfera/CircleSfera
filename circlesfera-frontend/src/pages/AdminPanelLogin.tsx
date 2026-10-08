@@ -19,7 +19,6 @@ export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setAdmin = useAdminAuthStore((s) => s.setAdmin);
-  const setAuthenticated = useAdminAuthStore((s) => s.setAuthenticated);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,8 +40,9 @@ export default function AdminPanelLogin() {
     }
   }, [step]);
 
+  // The session counts as signed in once the staff profile has loaded;
+  // setAdmin records both.
   const finishLogin = async () => {
-    setAuthenticated();
     const { data } = await adminAuthApi.me();
     setAdmin(data);
     const homeTab = getAdminHomeTab((key) => {
@@ -53,8 +53,8 @@ export default function AdminPanelLogin() {
     navigate(adminTabPath(homeTab), { replace: true });
   };
 
+  // Only reachable from the copy button, which is shown with a secret.
   const copySecret = async () => {
-    if (!secret) return;
     try {
       await navigator.clipboard.writeText(secret);
       toast.success(t('adminPanel.login.secret_copied'));

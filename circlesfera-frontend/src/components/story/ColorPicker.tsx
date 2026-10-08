@@ -40,6 +40,8 @@ export default function ColorPicker({
             onClick={() => onColorSelect(color)}
             className="relative shrink-0 flex items-center justify-center"
             title={color}
+            aria-label={color}
+            aria-pressed={isSelected}
           >
             {/* Selection ring */}
             {isSelected && (
@@ -51,7 +53,7 @@ export default function ColorPicker({
             )}
             <div
               className={`
-                w-7 h-7 rounded-full transition-shadow duration-200
+                w-11 h-11 rounded-full transition-shadow duration-200
                 ${isSelected ? 'shadow-md' : ''}
                 ${isBlack ? 'border border-white/20' : ''}
               `}

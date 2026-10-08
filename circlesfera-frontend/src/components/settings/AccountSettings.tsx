@@ -11,6 +11,7 @@ import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { changeAppLanguage } from '../../i18n';
 import { profileApi } from '../../services';
 import * as dataExportApi from '../../services/data-export.service';
 import { usersApi } from '../../services/users.service';
@@ -112,7 +113,9 @@ export default function AccountSettings() {
   });
 
   const changeLanguage = (lng: string) => {
-    i18n.changeLanguage(lng);
+    changeAppLanguage(lng).catch(() => {
+      toast.error(t('settings.account.language_change_failed'));
+    });
   };
 
   return (

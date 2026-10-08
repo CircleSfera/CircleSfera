@@ -48,6 +48,68 @@ describe('PostGrid', () => {
     expect(links[1]).toHaveAttribute('href', '/p/post-1');
   });
 
+  it('shows the thumbnail of a frame without loading the video', () => {
+    const { container } = renderWithProviders(
+      <PostGrid
+        items={[
+          post({
+            id: 'frame-1',
+            type: 'FRAME',
+            media: [
+              {
+                url: 'https://cdn.example/a.mp4',
+                thumbnailUrl: 'https://cdn.example/a/thumb.jpg',
+                type: 'video',
+              },
+            ] as Post['media'],
+          }),
+        ]}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+        variant="frames"
+      />,
+    );
+
+    const video = container.querySelector('video')!;
+    expect(video).toHaveAttribute('poster', 'https://cdn.example/a/thumb.jpg');
+    expect(video).toHaveAttribute('preload', 'none');
+    expect(video).toHaveAttribute('src', 'https://cdn.example/a.mp4');
+  });
+
+  it('asks for the first frame of a video that has no thumbnail yet', () => {
+    const { container } = renderWithProviders(
+      <PostGrid
+        items={[
+          post({
+            id: 'frame-1',
+            type: 'FRAME',
+            media: [
+              { url: 'https://cdn.example/a.mp4', type: 'video' },
+            ] as Post['media'],
+          }),
+          post({
+            id: 'frame-2',
+            type: 'FRAME',
+            media: [
+              { url: 'https://cdn.example/b.mp4#t=2', type: 'video' },
+            ] as Post['media'],
+          }),
+        ]}
+        emptyMessage="Empty"
+        emptySubtext=""
+        icon={null}
+        variant="frames"
+      />,
+    );
+
+    const [first, second] = Array.from(container.querySelectorAll('video'));
+    expect(first).not.toHaveAttribute('poster');
+    expect(first).toHaveAttribute('preload', 'metadata');
+    expect(first).toHaveAttribute('src', 'https://cdn.example/a.mp4#t=0.001');
+    expect(second).toHaveAttribute('src', 'https://cdn.example/b.mp4#t=2');
+  });
+
   it('uses the explore discovery column layout with 4:5 tiles', () => {
     const { container } = renderWithProviders(
       <PostGrid

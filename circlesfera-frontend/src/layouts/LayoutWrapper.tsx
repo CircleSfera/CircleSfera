@@ -186,6 +186,9 @@ export default function LayoutWrapper({
             shouldShowNav &&
             !hideBottomNavRoute &&
             !isMarketingRoute &&
+            // Frames and messages already leave room for the bottom bar on
+            // <main>; adding it here too pushed the frame up.
+            !isFramesRoute &&
             !location.pathname.startsWith('/direct')
               ? {
                   paddingBottom:

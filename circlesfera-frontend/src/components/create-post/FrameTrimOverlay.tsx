@@ -83,7 +83,7 @@ export default function FrameTrimOverlay({
           variant="ghost"
           size="icon"
           onClick={onCancel}
-          className="min-w-9 min-h-9 rounded-full bg-white/10 text-white hover:bg-white/16"
+          className="min-w-11 min-h-11 rounded-full bg-white/10 text-white hover:bg-white/16"
           aria-label={t('createPost.edit.cancel')}
         >
           <X size={16} strokeWidth={2} />
@@ -94,7 +94,7 @@ export default function FrameTrimOverlay({
         <Button
           type="button"
           onClick={handleConfirm}
-          className="min-h-9 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25"
+          className="min-h-11 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25"
           aria-label={t('createPost.edit.done')}
         >
           {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />

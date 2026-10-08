@@ -1,9 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { ExternalLink, ShieldCheck } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services';
-import { apiErrorMessage } from '../../utils/apiErrorMessage';
+import { reportPaymentError } from '../../utils/identityVerification';
 import { Button } from '../ui';
 
 export default function ConnectStripeButton() {
@@ -25,9 +24,7 @@ export default function ConnectStripeButton() {
       }
     },
     onError: (error: unknown) => {
-      toast.error(
-        apiErrorMessage(error, t, 'monetization.connect_stripe_error'),
-      );
+      reportPaymentError(error, t, 'monetization.connect_stripe_error');
     },
   });
 

@@ -9,6 +9,7 @@ slice, not the repo-root `e2e/` suite (that one hits Postgres).
 | `smoke.spec.ts` | Guest `/` loads (`#root`, title). |
 | `login.spec.ts` | Guest submits `/accounts/login` → Home nav. |
 | `composer-smoke.spec.ts` / `composer-visual.spec.ts` | Post/Frame composer. [COMPOSER_QA.md](./COMPOSER_QA.md) |
+| `editor-control-sizes.spec.ts` | Every screen of the content editor at 390×844: no button under 44 px, no text field under 48 px. Runs in CI on every pull request. |
 | `feed.spec.ts` | Post composer → caption visible on Home. |
 | `profile.spec.ts` | Own profile → Settings → bio save → bio on profile. |
 | `search.spec.ts` | Explore grid pin + people search (`es` placeholder). |
@@ -21,4 +22,5 @@ Playwright project default (Desktop Chrome).
 ```bash
 npm run test:e2e              # all specs in this folder
 npm run test:e2e:composer     # composer smoke + visual only
+npm run test:e2e:sizes        # control sizes of the content editor
 ```

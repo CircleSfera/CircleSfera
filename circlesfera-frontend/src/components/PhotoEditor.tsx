@@ -95,7 +95,7 @@ const AdjustmentSlider = ({
           {unit}
         </span>
       </div>
-      <div className="relative h-7 flex items-center">
+      <div className="relative h-11 flex items-center">
         {min === 0 && max >= 200 && (
           <div className="absolute left-1/2 top-0 bottom-0 w-px bg-white/10 -translate-x-1/2 pointer-events-none" />
         )}
@@ -105,7 +105,7 @@ const AdjustmentSlider = ({
           max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
-          className="w-full appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+          className="w-full appearance-none bg-transparent cursor-pointer outline-none h-11 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
         />
       </div>
     </motion.div>
@@ -331,7 +331,7 @@ export default function PhotoEditor({
         <button
           type="button"
           onClick={onCancel}
-          className="min-w-9 min-h-9 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+          className="min-w-11 min-h-11 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/16 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
           aria-label={t('createPost.edit.cancel')}
         >
           <X size={16} strokeWidth={2} />
@@ -347,7 +347,7 @@ export default function PhotoEditor({
                 const filterString = `filter-class:${selectedFilter.class}__style:${computedStyle.filter}__temp:${adjustments.temperature}__vignette:${adjustments.vignette}__noise:${adjustments.noise}`;
                 onApplyToAll(filterString);
               }}
-              className="min-h-9 px-2.5 text-[11px] font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+              className="min-h-11 px-2.5 text-[11px] font-bold bg-white/10 hover:bg-white/16 rounded-full text-white transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             >
               {t('createPost.edit.apply_to_all')}
             </button>
@@ -355,7 +355,7 @@ export default function PhotoEditor({
           <button
             type="button"
             onClick={handleSave}
-            className="min-h-9 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+            className="min-h-11 px-3 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-brand-primary/25 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
             aria-label={t('createPost.edit.done')}
           >
             {t('createPost.edit.done')} <Check size={14} strokeWidth={2.5} />
@@ -556,7 +556,7 @@ export default function PhotoEditor({
                     onClick={() =>
                       setVideoData((v) => ({ ...v, muted: !v.muted }))
                     }
-                    className={`min-h-9 px-3 rounded-full text-[11px] font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+                    className={`min-h-11 px-3 rounded-full text-[11px] font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                       videoData.muted
                         ? 'bg-brand-secondary/20 text-brand-secondary'
                         : 'bg-brand-primary/20 text-brand-primary'
@@ -687,7 +687,7 @@ export default function PhotoEditor({
                         key={opt.key}
                         type="button"
                         onClick={() => setAspect(opt.aspect)}
-                        className={`flex-1 min-h-9 h-9 text-[11px] font-bold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+                        className={`flex-1 min-h-11 h-11 text-[11px] font-bold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                           isActive
                             ? 'bg-brand-primary/20 text-brand-primary'
                             : 'bg-white/5 text-white/60 hover:text-white/80'
@@ -708,7 +708,7 @@ export default function PhotoEditor({
                     max={180}
                     value={rotation}
                     onChange={(e) => setRotation(Number(e.target.value))}
-                    className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                    className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-11 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                   />
                   <span className="text-[11px] font-bold text-brand-primary w-8 tabular-nums text-right shrink-0">
                     {rotation}°
@@ -728,7 +728,7 @@ export default function PhotoEditor({
                   <button
                     type="button"
                     onClick={() => setDrawMode(!drawMode)}
-                    className={`min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+                    className={`min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                       drawMode
                         ? 'bg-brand-primary text-white'
                         : 'bg-white/5 text-white/60 hover:text-white'
@@ -756,7 +756,7 @@ export default function PhotoEditor({
                         },
                       ]);
                     }}
-                    className="min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+                    className="min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25"
                   >
                     {t('createPost.edit.overlay_add_text')}
                   </button>
@@ -769,7 +769,7 @@ export default function PhotoEditor({
                         );
                         setSelectedOverlayId(null);
                       }}
-                      className="min-h-9 h-9 px-3 text-[11px] font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all inline-flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
+                      className="min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all inline-flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
                     >
                       <Trash2 size={12} /> {t('createPost.edit.overlay_delete')}
                     </button>
@@ -796,7 +796,7 @@ export default function PhotoEditor({
                           },
                         ]);
                       }}
-                      className="min-w-9 min-h-9 text-xl hover:scale-105 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
+                      className="min-w-11 min-h-11 text-xl hover:scale-105 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
                       aria-label={emoji}
                     >
                       {emoji}
@@ -809,7 +809,7 @@ export default function PhotoEditor({
                       type="color"
                       value={brushColor}
                       onChange={(e) => setBrushColor(e.target.value)}
-                      className="w-7 h-7 rounded cursor-pointer border-0 p-0 shrink-0"
+                      className="w-11 h-11 rounded cursor-pointer border-0 p-0 shrink-0"
                       aria-label={t('createPost.edit.overlay_brush_color')}
                     />
                     <input
@@ -818,7 +818,7 @@ export default function PhotoEditor({
                       max={20}
                       value={brushSize}
                       onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-7 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
+                      className="flex-1 appearance-none bg-transparent cursor-pointer outline-none h-11 [&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:bg-white/10 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-brand-primary [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:-mt-1.5 [&::-moz-range-track]:h-1 [&::-moz-range-track]:bg-white/10 [&::-moz-range-track]:rounded-full [&::-moz-range-thumb]:w-3.5 [&::-moz-range-thumb]:h-3.5 [&::-moz-range-thumb]:bg-brand-primary [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:rounded-full"
                       aria-label={t('createPost.edit.overlay_brush_size')}
                     />
                   </div>
@@ -850,7 +850,7 @@ export default function PhotoEditor({
                         type="button"
                         key={adj.key}
                         onClick={() => setActiveAdjustment(adj.key)}
-                        className={`px-2.5 min-h-9 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+                        className={`px-2.5 min-h-11 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
                           isActive
                             ? 'text-white bg-white/10'
                             : isModified
@@ -870,7 +870,7 @@ export default function PhotoEditor({
                     <button
                       type="button"
                       onClick={() => setAdjustments(DEFAULT_ADJUSTMENTS)}
-                      className="px-2.5 min-h-9 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap
+                      className="px-2.5 min-h-11 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap
                                  text-red-400/70 hover:text-red-400 ml-auto flex items-center gap-1 transition-colors"
                     >
                       <RotateCcw size={10} /> {t('createPost.edit.reset')}
@@ -939,7 +939,7 @@ export default function PhotoEditor({
                         setActiveTab(tab.id);
                         if (tab.id === 'OVERLAY') setDrawMode(false);
                       }}
-                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-10 py-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+                      className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-11 py-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                         isActive
                           ? 'bg-white/12 text-white'
                           : 'text-white/40 hover:text-white/70'

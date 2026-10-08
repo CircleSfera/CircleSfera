@@ -18,14 +18,22 @@ vi.mock('../../stores/authStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
+// The dashboard reads the profile through a selector, as the real store does.
+function signInAs(stripeConnectAccountId: string | null) {
+  vi.mocked(useAuthStore).mockImplementation(((
+    selector: (state: unknown) => unknown,
+  ) =>
+    selector({
+      profile: { user: { stripeConnectAccountId } },
+    })) as never);
+}
+
 describe('MonetizationDashboard', () => {
   const renderDashboard = () => renderWithProviders(<MonetizationDashboard />);
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(useAuthStore).mockReturnValue({
-      user: { stripeConnectAccountId: null },
-    } as unknown as ReturnType<typeof useAuthStore>);
+    signInAs(null);
     vi.mocked(monetizationApi.getMonetization).mockResolvedValue({
       userId: 'user-1',
       lifetimeEarningsCents: 0,
@@ -66,9 +74,7 @@ describe('MonetizationDashboard', () => {
   });
 
   it('shows Stripe available/pending when Connect is linked', async () => {
-    vi.mocked(useAuthStore).mockReturnValue({
-      user: { stripeConnectAccountId: 'acct_123' },
-    } as unknown as ReturnType<typeof useAuthStore>);
+    signInAs('acct_123');
     vi.mocked(monetizationApi.getPayouts).mockResolvedValue({
       available: [{ amountCents: 1000, currency: 'EUR' }],
       pending: [{ amountCents: 250, currency: 'EUR' }],
@@ -117,6 +123,114 @@ describe('MonetizationDashboard', () => {
     ).toBeInTheDocument();
     expect(await screen.findByText('Tip from a fan')).toBeInTheDocument();
     expect(screen.getByText('+€5.00')).toBeInTheDocument();
+  });
+
+  it('writes every amount as currency in Spanish', async () => {
+    signInAs('acct_123');
+    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
+      currentMonthIncome: 0,
+      totalTips: 0,
+      breakdown: {
+        postUnlocks: 12345678,
+        storyUnlocks: 0,
+        messageUnlocks: 0,
+        tips: 0,
+        liveGifts: 0,
+      },
+    });
+    vi.mocked(monetizationApi.getPayouts).mockResolvedValue({
+      available: [{ amountCents: 1050, currency: 'eur' }],
+      pending: [],
+    });
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        {
+          id: 'tx-1',
+          type: 'TIP',
+          amountCents: 500,
+          receiverId: 'user-1',
+          createdAt: new Date('2026-01-01').toISOString(),
+        },
+      ],
+    });
+
+    renderWithProviders(<MonetizationDashboard />, { lng: 'es' });
+
+    expect(await screen.findByText(/^123\.456,78\s€$/)).toBeInTheDocument();
+    expect(await screen.findByText(/^10,50\s€$/)).toBeInTheDocument();
+    expect(await screen.findByText(/^\+5,00\s€$/)).toBeInTheDocument();
+    expect(screen.queryByText(/€\d/)).not.toBeInTheDocument();
+  });
+
+  it('marks money going out and purchases, and names a transaction by its type when it has no description', async () => {
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        {
+          id: 'tx-out',
+          type: 'POST_UNLOCK',
+          amountCents: 300,
+          receiverId: 'someone-else',
+          createdAt: new Date('2026-01-01').toISOString(),
+        },
+        {
+          id: 'tx-payout',
+          type: 'PAYOUT',
+          receiverId: 'someone-else',
+          createdAt: new Date('2026-01-02').toISOString(),
+        },
+      ],
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('POST UNLOCK')).toBeInTheDocument();
+    expect(screen.getByText('-€3.00')).toBeInTheDocument();
+    expect(screen.getByText('PAYOUT')).toBeInTheDocument();
+    expect(screen.getByText('-€0.00')).toBeInTheDocument();
+  });
+
+  it('shows zero balances when Stripe reports none', async () => {
+    signInAs('acct_123');
+
+    const { i18n } = renderDashboard();
+
+    expect(
+      await screen.findByText(i18n!.t('creator.income.stripe_balances')),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText('€0.00')).toHaveLength(2);
+  });
+
+  it('names each kind of transaction in the app language, not with the stored technical text', async () => {
+    const tx = (id: string, type: string, description: string) => ({
+      id,
+      type,
+      description,
+      amountCents: 300,
+      currency: 'EUR',
+      receiverId: 'user-1',
+      createdAt: new Date('2026-01-01').toISOString(),
+    });
+    vi.mocked(monetizationApi.getTransactions).mockResolvedValue({
+      data: [
+        tx('t1', 'DIRECT_POST_UNLOCK', 'Direct Post Unlock (Intent: pi_123)'),
+        tx('t2', 'DIRECT_TIP', 'Creator Tip (Intent: pi_456)'),
+        tx('t3', 'STRIPE_SUBSCRIPTION', 'User u1 subscribed to plan p1'),
+      ],
+    });
+
+    const english = renderDashboard();
+    expect(await screen.findByText('Post unlock')).toBeInTheDocument();
+    expect(screen.getByText('Tip')).toBeInTheDocument();
+    expect(screen.getByText('Subscription')).toBeInTheDocument();
+    expect(screen.queryByText(/Intent|pi_|subscribed/)).not.toBeInTheDocument();
+    english.unmount();
+
+    renderWithProviders(<MonetizationDashboard />, { lng: 'es' });
+    expect(
+      await screen.findByText('Desbloqueo de publicación'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Propina')).toBeInTheDocument();
+    expect(screen.getByText('Suscripción')).toBeInTheDocument();
   });
 
   it('shows an empty state when there are no transactions', async () => {

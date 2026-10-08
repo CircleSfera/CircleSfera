@@ -149,3 +149,40 @@ describe('LayoutWrapper /frames chrome', () => {
     expect(screen.getByLabelText('Mobile navigation')).toBeInTheDocument();
   });
 });
+
+// Elements that leave room for the bottom bar, by class or inline style.
+function bottomBarSpacers(container: HTMLElement) {
+  return Array.from(container.querySelectorAll<HTMLElement>('*')).filter(
+    (el) =>
+      /pb-\[calc\(var\(--nav-bottom-height\)/.test(el.className) ||
+      (el.getAttribute('style') ?? '').includes('--nav-bottom-height'),
+  );
+}
+
+function renderRoute(path: string) {
+  return renderWithProviders(
+    <Routes>
+      <Route
+        path={path}
+        element={
+          <LayoutWrapper>
+            <div data-testid="page">Page</div>
+          </LayoutWrapper>
+        }
+      />
+    </Routes>,
+    { routerProps: { initialEntries: [path] } },
+  );
+}
+
+describe('LayoutWrapper room for the bottom bar', () => {
+  it.each(['/frames', '/'])(
+    'leaves room for the bottom bar exactly once on %s',
+    (path) => {
+      const { container } = renderRoute(path);
+
+      expect(screen.getByLabelText('Mobile navigation')).toBeInTheDocument();
+      expect(bottomBarSpacers(container)).toHaveLength(1);
+    },
+  );
+});

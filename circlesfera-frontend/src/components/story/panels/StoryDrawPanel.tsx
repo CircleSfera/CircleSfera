@@ -40,7 +40,7 @@ export default function StoryDrawPanel({
           <button
             type="button"
             onClick={() => storyCanvasRef.current?.undo()}
-            className="min-h-10 min-w-10 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 flex items-center justify-center text-white/70 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="min-h-11 min-w-11 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 flex items-center justify-center text-white/70 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             aria-label={t('createPost.storyComposer.undo')}
           >
             <RotateCcw size={16} />
@@ -48,7 +48,7 @@ export default function StoryDrawPanel({
           <button
             type="button"
             onClick={() => storyCanvasRef.current?.clear()}
-            className="min-h-10 min-w-10 rounded-xl bg-white/6 hover:bg-red-500/15 border border-white/8 flex items-center justify-center text-red-400/90 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="min-h-11 min-w-11 rounded-xl bg-white/6 hover:bg-red-500/15 border border-white/8 flex items-center justify-center text-red-400/90 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             aria-label={t('createPost.storyComposer.clear_drawing')}
           >
             <Trash2 size={16} />

@@ -151,7 +151,7 @@ export default function StoryTextTakeoverChrome({
                 type="button"
                 key={c}
                 onClick={() => onColorChange(c)}
-                className={`w-7 h-7 rounded-full shrink-0 border-2 transition-transform ${
+                className={`w-11 h-11 rounded-full shrink-0 border-2 transition-transform ${
                   !gradientColors && textColor.toLowerCase() === c.toLowerCase()
                     ? 'border-white scale-110'
                     : 'border-transparent'
@@ -166,7 +166,7 @@ export default function StoryTextTakeoverChrome({
                 type="button"
                 key={s.id}
                 onClick={() => onStyleChange(s.id)}
-                className={`min-h-8 px-2.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${
+                className={`min-h-11 px-2.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${
                   textStyle === s.id
                     ? 'bg-white/18 text-white'
                     : 'bg-white/8 text-white/55'
@@ -181,7 +181,7 @@ export default function StoryTextTakeoverChrome({
                 type="button"
                 key={a}
                 onClick={() => onAlignChange(a)}
-                className={`min-w-9 min-h-9 rounded-full flex items-center justify-center shrink-0 ${
+                className={`min-w-11 min-h-11 rounded-full flex items-center justify-center shrink-0 ${
                   align === a
                     ? 'bg-brand-primary text-white'
                     : 'bg-white/8 text-white/55'
@@ -200,7 +200,7 @@ export default function StoryTextTakeoverChrome({
             <button
               type="button"
               onClick={() => setShowTypePanel((v) => !v)}
-              className={`min-w-9 min-h-9 rounded-full flex items-center justify-center shrink-0 ${
+              className={`min-w-11 min-h-11 rounded-full flex items-center justify-center shrink-0 ${
                 showTypePanel
                   ? 'bg-brand-primary text-white'
                   : 'bg-white/8 text-white/55'

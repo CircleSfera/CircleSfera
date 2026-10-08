@@ -1,4 +1,4 @@
-import { Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
@@ -10,7 +10,6 @@ interface AccessibilitySubScreenProps {
   mediaFiles: Array<{ url: string; file: File; type: string; filter?: string }>;
   altTextMap: Record<number, string>;
   setAltTextMap: React.Dispatch<React.SetStateAction<Record<number, string>>>;
-  onRemoveFile: (index: number) => void;
   onClose: () => void;
   onGenerateAltText: (index: number) => Promise<void>;
 }
@@ -19,7 +18,6 @@ export default function AccessibilitySubScreen({
   mediaFiles,
   altTextMap,
   setAltTextMap,
-  onRemoveFile,
   onClose,
   onGenerateAltText,
 }: AccessibilitySubScreenProps) {
@@ -45,7 +43,7 @@ export default function AccessibilitySubScreen({
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 h-9 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
+            className="px-3.5 h-11 rounded-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-xs shrink-0 shadow-md shadow-brand-primary/20 outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40"
           >
             {t('createPost.accessibility.done')}
           </button>
@@ -91,14 +89,6 @@ export default function AccessibilitySubScreen({
                       style={style}
                     />
                   )}
-                  <button
-                    type="button"
-                    onClick={() => onRemoveFile(idx)}
-                    aria-label={t('createPost.edit.remove_media')}
-                    className="absolute top-0.5 right-0.5 w-7 h-7 min-w-7 min-h-7 bg-black/70 rounded-full flex items-center justify-center text-white border border-white/10 outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                  >
-                    <Trash2 size={12} strokeWidth={2.5} />
-                  </button>
                 </div>
 
                 <div className="flex-1 min-w-0 space-y-1.5">
@@ -124,7 +114,7 @@ export default function AccessibilitySubScreen({
                       type="button"
                       disabled={isGenerating}
                       onClick={() => handleAiGenerate(idx)}
-                      className={`inline-flex items-center gap-1.5 min-h-9 px-2.5 rounded-lg border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+                      className={`inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-lg border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                         isGenerating
                           ? 'bg-surface-raised border-white/10 text-white/40'
                           : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
