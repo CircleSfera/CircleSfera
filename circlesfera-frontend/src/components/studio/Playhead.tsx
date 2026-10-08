@@ -2,8 +2,7 @@ import { motion } from 'framer-motion';
 import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
-
-const TIMELINE_OFFSET_PX = 32;
+import { timelineOffsetPx } from './timeline.constants';
 
 export default function Playhead() {
   const { t } = useTranslation();
@@ -24,7 +23,7 @@ export default function Playhead() {
     if (!timelineEl) return;
     const rect = timelineEl.getBoundingClientRect();
     const scrollLeft = timelineEl.scrollLeft || 0;
-    const x = clientX - rect.left + scrollLeft - TIMELINE_OFFSET_PX;
+    const x = clientX - rect.left + scrollLeft - timelineOffsetPx(timelineEl);
     const max = project?.duration ?? Number.POSITIVE_INFINITY;
     setPlayhead(Math.max(0, Math.min(max, x / zoom)));
   };
@@ -58,7 +57,7 @@ export default function Playhead() {
   return (
     <motion.div
       className="absolute top-0 bottom-0 z-30"
-      style={{ left: `calc(${TIMELINE_OFFSET_PX}px + ${xPos}px)` }}
+      style={{ left: `calc(var(--timeline-offset) + ${xPos}px)` }}
     >
       <div className="w-px h-full bg-brand-primary relative shadow-[0_0_8px_rgba(136,76,255,0.8),0_0_2px_rgba(255,255,255,0.8)] pointer-events-none">
         <div
@@ -98,10 +97,10 @@ export default function Playhead() {
           >
             <path
               d="M0 2C0 0.895431 0.895431 0 2 0H12C13.1046 0 14 0.895431 14 2V14.5L7 19.5L0 14.5V2Z"
-              className="fill-brand-primary group-hover:fill-purple-400 transition-colors"
+              className="fill-brand-primary group-hover:fill-brand-primary transition-colors"
             />
           </svg>
-          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur text-white text-[10px] font-mono px-1.5 py-0.5 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur text-white text-xs font-mono px-1.5 py-0.5 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-white/10 pointer-events-none">
             {formatTime(playhead)}
           </div>
         </div>

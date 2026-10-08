@@ -47,7 +47,7 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
       <button
         type="button"
         onClick={() => fileInputRef.current?.click()}
-        className="w-full border-2 border-dashed border-white/15 hover:border-brand-primary/60 bg-white/3 hover:bg-brand-primary/5 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 transition-all min-h-24"
+        className="w-full border-2 border-dashed border-white/15 hover:border-brand-primary/60 bg-white/3 hover:bg-brand-primary/5 rounded-3xl p-4 flex flex-col items-center justify-center gap-2 transition-all min-h-24"
       >
         <div className="w-11 h-11 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center">
           <FolderPlus size={20} />
@@ -55,7 +55,7 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
         <p className="text-sm font-semibold text-white">
           {t('studio.media.import')}
         </p>
-        <span className="text-[11px] text-white/40 flex items-center gap-1">
+        <span className="text-xs text-white/40 flex items-center gap-1">
           <ImageIcon size={10} /> {t('studio.media.formats')}
         </span>
       </button>
@@ -73,16 +73,16 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
                 t('studio.media.sample_neon'),
               )
             }
-            className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-2.5 flex flex-col items-start gap-1 text-left min-h-11"
+            className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-2.5 flex flex-col items-start gap-1 text-left min-h-11"
           >
-            <div className="w-full h-16 rounded-lg overflow-hidden">
+            <div className="w-full h-16 rounded-md overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=400&auto=format&fit=crop&q=80"
                 alt=""
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-[11px] font-semibold text-white mt-1">
+            <span className="text-xs font-semibold text-white mt-1">
               {t('studio.media.sample_neon')}
             </span>
           </button>
@@ -94,16 +94,16 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
                 t('studio.media.sample_gradient'),
               )
             }
-            className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl p-2.5 flex flex-col items-start gap-1 text-left min-h-11"
+            className="bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-2.5 flex flex-col items-start gap-1 text-left min-h-11"
           >
-            <div className="w-full h-16 rounded-lg overflow-hidden">
+            <div className="w-full h-16 rounded-md overflow-hidden">
               <img
                 src="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=400&auto=format&fit=crop&q=80"
                 alt=""
                 className="w-full h-full object-cover"
               />
             </div>
-            <span className="text-[11px] font-semibold text-white mt-1">
+            <span className="text-xs font-semibold text-white mt-1">
               {t('studio.media.sample_gradient')}
             </span>
           </button>

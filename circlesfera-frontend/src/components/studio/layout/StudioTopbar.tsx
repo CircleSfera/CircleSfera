@@ -82,12 +82,12 @@ export default function StudioTopbar({
         </div>
 
         <div className="order-3 md:order-2 w-full md:w-auto flex items-center gap-1">
-          <div className="flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5">
+          <div className="flex items-center bg-white/5 border border-white/10 rounded-full p-0.5">
             <button
               type="button"
               onClick={undo}
               disabled={!canUndo}
-              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30"
+              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
               aria-label={t('studio.undo')}
             >
               <Undo2 size={15} />
@@ -96,14 +96,14 @@ export default function StudioTopbar({
               type="button"
               onClick={redo}
               disabled={!canRedo}
-              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-lg transition-colors disabled:opacity-30"
+              className="min-h-11 min-w-11 md:min-h-0 md:min-w-0 md:p-1.5 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors disabled:opacity-30"
               aria-label={t('studio.redo')}
             >
               <Redo2 size={15} />
             </button>
           </div>
 
-          <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-xl p-0.5 ml-1">
+          <div className="hidden md:flex items-center bg-white/5 border border-white/10 rounded-full p-0.5 ml-1">
             {(
               [
                 { id: '9:16' as const, icon: Smartphone },
@@ -119,7 +119,7 @@ export default function StudioTopbar({
                   key={ratio.id}
                   type="button"
                   onClick={() => setAspectRatio(ratio.id)}
-                  className={`flex items-center justify-center gap-1 px-2 min-h-11 rounded-lg text-[11px] font-bold transition-all ${
+                  className={`flex items-center justify-center gap-1 px-3 min-h-11 rounded-full text-xs font-semibold transition-all ${
                     isSelected
                       ? 'bg-brand-primary text-white shadow-sm'
                       : 'text-white/60 hover:text-white hover:bg-white/5'
@@ -139,7 +139,7 @@ export default function StudioTopbar({
           <button
             type="button"
             onClick={onOpenDrafts}
-            className="flex items-center justify-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-1.5 text-white/70 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-full text-xs font-semibold transition-colors"
             aria-label={t('studio.open_drafts')}
           >
             <FolderOpen size={15} />
@@ -149,7 +149,7 @@ export default function StudioTopbar({
           <button
             type="button"
             onClick={onSave}
-            className="flex items-center justify-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-xl text-xs font-semibold transition-colors"
+            className="flex items-center justify-center gap-1.5 text-white/80 hover:text-white hover:bg-white/5 px-2 min-w-11 min-h-11 rounded-full text-xs font-semibold transition-colors"
             aria-label={saveLabel}
           >
             <Cloud
@@ -167,7 +167,7 @@ export default function StudioTopbar({
             type="button"
             onClick={onExport}
             disabled={isExporting}
-            className="ml-1 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold h-11 md:h-11 px-3 rounded-xl text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5"
+            className="ml-1 bg-linear-to-r from-brand-primary to-brand-blue text-white font-bold h-11 md:h-11 px-3 rounded-full text-xs shadow-lg shadow-brand-primary/25 transition-all disabled:opacity-50 flex items-center gap-1.5"
           >
             <Download size={14} />
             <span>{t('studio.export')}</span>

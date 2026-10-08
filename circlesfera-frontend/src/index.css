@@ -662,7 +662,7 @@ input[type="range"] {
   height: 44px;
 }
 
-input[type="range"]::-webkit-slider-track {
+input[type="range"]::-webkit-slider-runnable-track {
   height: 5px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.08);
@@ -724,7 +724,7 @@ input[type="range"]::-moz-range-progress {
     height: 24px;
     margin-top: -10px;
   }
-  input[type="range"]::-webkit-slider-track {
+  input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
   }
   input[type="range"]::-moz-range-thumb {

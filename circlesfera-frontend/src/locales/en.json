@@ -3404,6 +3404,7 @@
     "save_error_short": "Save failed",
     "zoom": "Timeline zoom",
     "playhead": "Playhead",
+    "clip_types": { "video": "Video", "image": "Image", "audio": "Audio" },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
     "mute": "Mute track",
