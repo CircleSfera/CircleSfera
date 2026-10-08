@@ -3484,6 +3484,27 @@
     "renamed": "Colección renombrada"
   },
   "supportPage": {
+    "requests": {
+      "title": "Tus solicitudes",
+      "seo_title": "Tu solicitud a soporte",
+      "back": "Soporte",
+      "conversation": "Conversación",
+      "you": "Tú",
+      "team": "Soporte de CircleSfera",
+      "reply_label": "Responder",
+      "reply_placeholder": "Escribe tu respuesta...",
+      "send": "Enviar",
+      "reopen_hint": "Si respondes, la solicitud se vuelve a abrir.",
+      "closed_notice": "Esta solicitud está cerrada.",
+      "write_again": "Escribir una nueva",
+      "not_found": "No encontramos esta solicitud.",
+      "status": {
+        "OPEN": "Abierta",
+        "ESCALATED": "En revisión",
+        "RESOLVED": "Resuelta",
+        "CLOSED": "Cerrada"
+      }
+    },
     "category_label": "¿Sobre qué es?",
     "category_placeholder": "Elige un tema",
     "category": {

@@ -27,6 +27,7 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { Support } from './pages/Support';
+import { SupportRequest } from './pages/SupportRequest';
 import { useAdminAuthStore } from './stores/adminAuthStore';
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
@@ -507,6 +508,14 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/guidelines" element={<CommunityGuidelines />} />
         <Route path="/support" element={<Support />} />
+        <Route
+          path="/support/requests/:id"
+          element={
+            <AuthGuard>
+              <SupportRequest />
+            </AuthGuard>
+          }
+        />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/features/:slug" element={<FeatureDetailPage />} />
         <Route path="/principles" element={<PrinciplesPage />} />

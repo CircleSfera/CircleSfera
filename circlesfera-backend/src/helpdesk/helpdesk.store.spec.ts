@@ -129,4 +129,25 @@ describe('HelpdeskStore', () => {
       visibility: 'PUBLIC',
     });
   });
+
+  it('finds a ticket for its requester only: the same organization and the same person', async () => {
+    await store.findRequesterTicket('t-1', 'u-1');
+
+    expect(prisma.supportTicket.findFirst).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1', userId: 'u-1' },
+    });
+  });
+
+  it('lists only the tickets a requester opened, the latest change first', async () => {
+    await store.listRequesterTickets('u-1', 1, 20);
+
+    const where = { organizationId: 'org-1', userId: 'u-1' };
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where,
+      skip: 0,
+      take: 20,
+      orderBy: { updatedAt: 'desc' },
+    });
+    expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+  });
 });
