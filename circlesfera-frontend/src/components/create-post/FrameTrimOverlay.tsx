@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FrameClipWindow } from '../../utils/frameClip';
+import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { VideoData } from '../PhotoEditor';
+import { CREATE_FULL_SCREEN } from './createStyles';
 import EditorHeader, { EditorHeaderAction } from './EditorHeader';
 import FrameClipControls from './FrameClipControls';
 
@@ -75,7 +77,8 @@ export default function FrameTrimOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black text-white flex flex-col">
+    <div className={`${CREATE_FULL_SCREEN} text-white flex flex-col`}>
+      <BrandAmbientBackground placement="editor" />
       <EditorHeader
         surface="overlay"
         leading="close"
@@ -91,7 +94,7 @@ export default function FrameTrimOverlay({
         }
       />
 
-      <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 min-h-0">
+      <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 md:bg-transparent min-h-0">
         <video
           ref={videoRef}
           src={url}

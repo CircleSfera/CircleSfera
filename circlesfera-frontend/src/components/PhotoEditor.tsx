@@ -61,7 +61,7 @@ export default function PhotoEditor({
   const { activeTab, isVideo } = editor;
 
   return (
-    <div className="flex flex-col h-full bg-black text-white">
+    <div className="flex flex-col h-full bg-black md:bg-transparent text-white">
       <EditorHeader
         surface="overlay"
         leading="close"
