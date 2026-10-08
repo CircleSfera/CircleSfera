@@ -16,6 +16,7 @@
     "test:cov": "vitest run --coverage",
     "test:e2e": "env -u NO_COLOR FORCE_COLOR=0 playwright test",
     "test:e2e:ui": "env -u NO_COLOR FORCE_COLOR=0 playwright test --ui",
+    "test:e2e:sizes": "env -u NO_COLOR FORCE_COLOR=0 playwright test e2e/editor-control-sizes.spec.ts",
     "test:e2e:composer": "env -u NO_COLOR FORCE_COLOR=0 playwright test e2e/composer-smoke.spec.ts e2e/composer-visual.spec.ts",
     "test:e2e:composer:update": "env -u NO_COLOR FORCE_COLOR=0 playwright test e2e/composer-visual.spec.ts --update-snapshots",
     "cap:sync": "vite build && npx cap sync",

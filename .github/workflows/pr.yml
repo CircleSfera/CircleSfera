@@ -146,6 +146,14 @@ jobs:
           PLAYWRIGHT_SKIP_WEBSERVER: 'true'
         run: npm run test:e2e -- --project=chromium
 
+      # Opens every screen of the content editor at 390×844 and measures its
+      # controls. The API is replaced inside the browser, so it only needs the
+      # frontend that is already running.
+      - name: Check control sizes of the content editor
+        run: |
+          cd circlesfera-frontend
+          npx playwright test e2e/editor-control-sizes.spec.ts --project=chromium
+
       - name: Dump server logs on failure
         if: failure()
         run: |
