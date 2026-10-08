@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import { CREATE_PRIMARY } from './createStyles';
 import SubScreenHeader from './SubScreenHeader';
 
 export type InteractiveDraft =
@@ -63,7 +64,7 @@ export default function InteractiveSubScreen({
       />
 
       <div className={SUBSCREEN_BODY}>
-        <div className="flex gap-1 p-0.5 rounded-xl bg-white/5 border border-white/8">
+        <div className="flex gap-1 p-0.5 rounded-3xl bg-white/5 border border-white/8">
           {(
             [
               { id: 'none' as const, label: t('createPost.interactive.none') },
@@ -83,7 +84,7 @@ export default function InteractiveSubScreen({
               key={item.id}
               type="button"
               onClick={() => setKind(item.id)}
-              className={`flex-1 min-h-11 px-2 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
+              className={`flex-1 min-h-11 px-2 py-1.5 rounded-full text-sm font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                 kind === item.id
                   ? 'bg-white/12 text-white'
                   : 'text-white/45 hover:text-white/70'
@@ -100,19 +101,19 @@ export default function InteractiveSubScreen({
               value={question}
               onChange={(e) => setQuestion(e.target.value)}
               placeholder={t('createPost.interactive.poll_question')}
-              className="!h-12 !rounded-lg !px-3"
+              className="!h-12 !rounded-2xl !px-4 !text-base"
             />
             <Input
               value={option1}
               onChange={(e) => setOption1(e.target.value)}
               placeholder={t('createPost.interactive.option_a')}
-              className="!h-12 !rounded-lg !px-3"
+              className="!h-12 !rounded-2xl !px-4 !text-base"
             />
             <Input
               value={option2}
               onChange={(e) => setOption2(e.target.value)}
               placeholder={t('createPost.interactive.option_b')}
-              className="!h-12 !rounded-lg !px-3"
+              className="!h-12 !rounded-2xl !px-4 !text-base"
             />
           </div>
         )}
@@ -122,14 +123,14 @@ export default function InteractiveSubScreen({
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder={t('createPost.interactive.qna_prompt')}
-            className="!h-12 !rounded-lg !px-3"
+            className="!h-12 !rounded-2xl !px-4 !text-base"
           />
         )}
 
         <button
           type="button"
           onClick={save}
-          className="w-full h-11 rounded-lg bg-linear-to-r from-brand-primary to-brand-blue text-white font-semibold text-sm shadow-md shadow-brand-primary/20 hover:opacity-95 active:scale-[0.98] transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+          className={`w-full ${CREATE_PRIMARY}`}
         >
           {t('createPost.interactive.save')}
         </button>
