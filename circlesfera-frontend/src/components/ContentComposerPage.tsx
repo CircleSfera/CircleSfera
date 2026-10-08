@@ -211,6 +211,7 @@ export default function ContentComposerPage() {
       currentEditIndex={currentEditIndex}
       setCurrentEditIndex={setCurrentEditIndex}
       initialEditorTab={editorTab}
+      mode={mode}
       showFrameTrim={showFrameTrim}
       frameSourceDurationSec={frameSourceDurationSec}
       onFrameTrimConfirm={handleFrameTrimConfirm}

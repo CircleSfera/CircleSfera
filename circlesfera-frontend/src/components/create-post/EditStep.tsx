@@ -23,6 +23,7 @@ import {
   CREATE_GLASS_CHIP,
   CREATE_GLASS_ICON,
   CREATE_PANEL,
+  CREATE_THUMB,
   CREATE_TOOL,
 } from './createStyles';
 
@@ -370,7 +371,7 @@ export default function EditStep({
               >
                 <button
                   type="button"
-                  className={`h-14 w-auto min-w-11 rounded-md overflow-hidden border-2 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                  className={`${CREATE_THUMB} transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                     isSelected
                       ? 'border-brand-primary shadow-[0_0_0_1px_rgba(136,76,255,0.35)]'
                       : 'border-white/10 hover:border-white/25'

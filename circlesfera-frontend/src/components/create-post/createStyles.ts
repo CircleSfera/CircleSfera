@@ -32,3 +32,16 @@ export const CREATE_PANEL = 'rounded-3xl bg-white/4 border border-white/8';
 
 /** One tool of a tool rail: an icon over its name. */
 export const CREATE_TOOL = `flex-1 min-w-0 min-h-14 flex flex-col items-center justify-center gap-1 rounded-2xl text-white/75 hover:text-white hover:bg-white/8 active:scale-[0.97] transition-all text-xs font-semibold ${focus}`;
+
+/**
+ * A small preview: a thumbnail of the edit step, the preview of the alt text
+ * screen, a filter, a story background or a template. One size and shape
+ * everywhere: 56 px high, at least 44 px wide, in the shape of the format,
+ * with 12 px corners.
+ */
+export const CREATE_THUMB =
+  'h-14 w-auto min-w-11 shrink-0 rounded-md overflow-hidden border-2';
+
+/** The shape of a small preview for what is being created. */
+export const createThumbRatio = (mode: 'POST' | 'FRAME' | 'STORY') =>
+  mode === 'POST' ? '4 / 5' : '9 / 16';

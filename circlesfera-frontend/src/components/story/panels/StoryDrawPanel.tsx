@@ -34,14 +34,14 @@ export default function StoryDrawPanel({
       className="px-3 space-y-3"
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.14em]">
+        <span className="text-xs font-bold text-white/40 uppercase tracking-[0.14em]">
           {t('createPost.storyComposer.draw_title')}
         </span>
         <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={() => storyCanvasRef.current?.undo()}
-            className="min-h-11 min-w-11 rounded-xl bg-white/6 hover:bg-white/10 border border-white/8 flex items-center justify-center text-white/70 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="min-h-11 min-w-11 rounded-full bg-white/6 hover:bg-white/10 border border-white/8 flex items-center justify-center text-white/70 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             aria-label={t('createPost.storyComposer.undo')}
           >
             <RotateCcw size={16} />
@@ -49,7 +49,7 @@ export default function StoryDrawPanel({
           <button
             type="button"
             onClick={() => storyCanvasRef.current?.clear()}
-            className="min-h-11 min-w-11 rounded-xl bg-white/6 hover:bg-red-500/15 border border-white/8 flex items-center justify-center text-red-400/90 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+            className="min-h-11 min-w-11 rounded-full bg-white/6 hover:bg-brand-secondary/15 border border-white/8 flex items-center justify-center text-brand-secondary transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
             aria-label={t('createPost.storyComposer.clear_drawing')}
           >
             <Trash2 size={16} />
@@ -68,7 +68,7 @@ export default function StoryDrawPanel({
         onDoubleClick={() => onBrushWidthChange(DEFAULT_BRUSH_WIDTH)}
       />
       <div className="space-y-2">
-        <span className="text-[11px] font-bold text-white/35 uppercase tracking-[0.14em]">
+        <span className="text-xs font-bold text-white/35 uppercase tracking-[0.14em]">
           {t('createPost.storyComposer.brush_color')}
         </span>
         <ColorPicker

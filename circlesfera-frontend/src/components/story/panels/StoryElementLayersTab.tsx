@@ -46,7 +46,7 @@ export default function StoryElementLayersTab({
           // biome-ignore lint/a11y/useSemanticElements: Layer item is not a button to avoid nested interactive elements
           <div
             key={el.id}
-            className={`flex items-center gap-3 pl-3 pr-1 py-1 rounded-lg transition-all group ${
+            className={`flex items-center gap-3 pl-3 pr-1 py-1 rounded-2xl transition-all group ${
               selectedElementId === el.id
                 ? 'bg-white/8 border border-white/15'
                 : 'hover:bg-white/4 border border-transparent'
@@ -77,7 +77,7 @@ export default function StoryElementLayersTab({
                   onMoveElementLayer(el.id, 'up');
                 }}
                 aria-label={t('createPost.storyComposer.bring_forward')}
-                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/30 hover:text-white/60 transition-all"
               >
                 <ChevronUp size={16} aria-hidden />
               </button>
@@ -88,7 +88,7 @@ export default function StoryElementLayersTab({
                   onMoveElementLayer(el.id, 'down');
                 }}
                 aria-label={t('createPost.storyComposer.send_backward')}
-                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/30 hover:text-white/60 transition-all"
               >
                 <ChevronDown size={16} aria-hidden />
               </button>
@@ -99,7 +99,7 @@ export default function StoryElementLayersTab({
                   onDuplicateElement(el.id);
                 }}
                 aria-label={t('createPost.storyComposer.duplicate')}
-                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-lg text-white/30 hover:text-white/60 transition-all"
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/30 hover:text-white/60 transition-all"
               >
                 <Copy size={16} aria-hidden />
               </button>
@@ -110,7 +110,7 @@ export default function StoryElementLayersTab({
                   onRemoveElement(el.id);
                 }}
                 aria-label={t('createPost.storyComposer.delete')}
-                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-red-500/20 rounded-lg text-red-400/40 hover:text-red-400 transition-all"
+                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-brand-secondary/20 rounded-full text-brand-secondary/60 hover:text-brand-secondary transition-all"
               >
                 <Trash2 size={16} aria-hidden />
               </button>

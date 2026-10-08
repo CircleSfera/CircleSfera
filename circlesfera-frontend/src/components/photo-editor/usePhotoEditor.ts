@@ -35,6 +35,8 @@ interface UsePhotoEditorOptions {
   initialState?: any;
   initialTab?: PhotoEditorTab;
   constrainDuration?: { min: number; max: number };
+  /** The shape of the small previews, as a CSS aspect ratio. */
+  thumbnailRatio?: string;
 }
 
 /** Everything the photo editor remembers while it is open, and how it saves. */
@@ -45,6 +47,7 @@ export function usePhotoEditor({
   initialState,
   initialTab,
   constrainDuration,
+  thumbnailRatio = '4 / 5',
 }: UsePhotoEditorOptions) {
   const isVideo = image.type.startsWith('video');
 
@@ -298,6 +301,7 @@ export function usePhotoEditor({
     imageDims,
     previewUrl,
     thumbnailUrl,
+    thumbnailRatio,
     computedStyle,
     filterString,
     handleSave,

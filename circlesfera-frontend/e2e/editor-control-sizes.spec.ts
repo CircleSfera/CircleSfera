@@ -190,6 +190,16 @@ test.describe('Story composer', () => {
   test('composer', async ({ page }) => {
     await openStoryComposer(page);
     await expectControlsAtSize(page);
+
+    // Every tool shows its whole name: none is cut with an ellipsis.
+    const cutNames = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[role="toolbar"] span'),
+      )
+        .filter((label) => label.scrollWidth > label.clientWidth + 0.5)
+        .map((label) => label.textContent),
+    );
+    expect(cutNames).toEqual([]);
   });
 
   for (const tool of [
