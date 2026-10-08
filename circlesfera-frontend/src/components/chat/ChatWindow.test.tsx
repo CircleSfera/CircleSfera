@@ -1079,13 +1079,27 @@ describe('ChatWindow', () => {
           data: { errorCode: 'IDENTITY_VERIFICATION_REQUIRED' },
         }),
       );
-      await renderLoadedChat();
+      const i18n = await renderLoadedChat();
 
       fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
 
-      // The verification notice is a custom toast with its own button.
       await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
       expect(toast.error).not.toHaveBeenCalled();
+
+      // The notice is a custom toast: show what it would put on screen and
+      // check it is the verification notice, with its button.
+      const notice = vi.mocked(toast).mock.calls[0][0] as (item: {
+        id: string;
+      }) => React.ReactElement;
+      renderWithProviders(notice({ id: 'notice' }));
+      expect(
+        screen.getByText(i18n.t('pricingPage.verification_required_title')),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('pricingPage.verify_button'),
+        }),
+      ).toBeInTheDocument();
     });
 
     it('thanks and reloads the messages after a paid unlock', async () => {
