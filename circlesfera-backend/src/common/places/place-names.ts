@@ -16,6 +16,12 @@ export interface PlaceNames {
   country: string | null;
   region: string | null;
   locality: string | null;
+  /**
+   * Every label this place is known by, in any language. When given, the
+   * label of content is replaced only if it is one of them: any other label
+   * was written by the author and is kept.
+   */
+  labels?: ReadonlySet<string>;
 }
 
 // A response larger than this is left as it is: the walk must stay cheap.
@@ -37,6 +43,12 @@ const isPlace = (node: Json) =>
   typeof node.name === 'string' &&
   typeof node.latitude === 'number' &&
   typeof node.longitude === 'number';
+
+const isAuthorLabel = (label: unknown, names: PlaceNames) =>
+  names.labels !== undefined &&
+  typeof label === 'string' &&
+  label.trim() !== '' &&
+  !names.labels.has(label.trim());
 
 /** The ids of every place a response mentions; empty when it is too large. */
 export function collectPlaceIds(data: unknown): string[] {
@@ -85,7 +97,9 @@ export function applyPlaceNames<T>(
 
     if (isContentWithPlace(node)) {
       const names = namesByPlaceId.get(node.placeId as string);
-      if (names) copy.location = names.fullName || names.name;
+      if (names && !isAuthorLabel(node.location, names)) {
+        copy.location = names.fullName || names.name;
+      }
     }
     if (isPlace(node)) {
       const names = namesByPlaceId.get(node.id as string);

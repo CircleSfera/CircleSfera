@@ -90,6 +90,25 @@ describe('applyPlaceNames', () => {
     expect(result[0].caption).toBe('Hola');
   });
 
+  it('keeps a label that is none of the known labels of the place', () => {
+    const known = { ...spain, labels: new Set(['Spain, Europe', 'Spain']) };
+
+    const result = applyPlaceNames(
+      [
+        post({ location: 'Mi rincón favorito' }),
+        post(),
+        post({ location: '' }),
+      ],
+      names({ 'place-1': known }),
+    );
+
+    expect(result.map((item) => item.location)).toEqual([
+      'Mi rincón favorito',
+      'España, Europa',
+      'España, Europa',
+    ]);
+  });
+
   it('uses the name alone when the place has no full name in that language', () => {
     const result = applyPlaceNames(
       post(),
