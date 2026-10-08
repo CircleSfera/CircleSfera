@@ -8,9 +8,12 @@ import {
   ShieldAlert,
   XCircle,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AdminSupportTicket } from '../../services/admin.service';
+import type {
+  AdminSupportMessage,
+  AdminSupportTicket,
+} from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatDateTime } from '../../utils/format';
@@ -20,6 +23,7 @@ import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination } from './AdminTable';
@@ -67,6 +71,48 @@ function WaitingTime({ since }: { since: string }) {
   );
 }
 
+/** One message of the conversation, as the agent sees it. */
+function ConversationMessage({
+  message,
+  requester,
+}: {
+  message: AdminSupportMessage;
+  requester: string;
+}) {
+  const { t, i18n } = useTranslation();
+  const internal = message.visibility === 'INTERNAL';
+  const author =
+    message.authorKind === 'REQUESTER'
+      ? requester
+      : message.authorKind === 'AGENT'
+        ? t('admin.support.author_team')
+        : t('admin.support.author_system');
+  return (
+    <li
+      className={`rounded-xl border p-3 ${
+        internal
+          ? 'border-dashed border-yellow-400/40 bg-yellow-400/5'
+          : message.authorKind === 'REQUESTER'
+            ? 'border-white/10 bg-white/5'
+            : 'border-brand-primary/30 bg-brand-primary/10'
+      }`}
+    >
+      <p className="mb-1 flex flex-wrap items-center gap-x-2 text-xs text-white/60">
+        <span className="font-semibold text-white/85">{author}</span>
+        {internal && (
+          <span className="font-semibold text-yellow-400">
+            {t('admin.support.internal_note')}
+          </span>
+        )}
+        <span>{formatDateTime(message.createdAt, i18n.language)}</span>
+      </p>
+      <p className="text-sm text-white/85 whitespace-pre-wrap wrap-break-word leading-relaxed">
+        {message.body}
+      </p>
+    </li>
+  );
+}
+
 export default function SupportTicketsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -74,7 +120,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
-  const [reply, setReply] = useState('');
+  const [draft, setDraft] = useState('');
+  const [draftKind, setDraftKind] = useState<'PUBLIC' | 'INTERNAL'>('PUBLIC');
+  const [leaveAs, setLeaveAs] = useState<'RESOLVED' | 'OPEN'>('RESOLVED');
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmEscalate, setConfirmEscalate] = useState(false);
 
@@ -93,26 +141,53 @@ export default function SupportTicketsTab({ onToast }: Props) {
 
   const selectedTicket = data?.data.find((t) => t.id === selectedTicketId);
 
-  useEffect(() => {
-    setReply(selectedTicket?.reply ?? '');
-  }, [selectedTicket?.reply]);
+  // The conversation of the selected ticket, internal notes included.
+  const { data: detail } = useQuery({
+    queryKey: ['admin', 'support-ticket', selectedTicketId],
+    queryFn: () =>
+      adminApi
+        .getSupportTicket(selectedTicketId as string)
+        .then((res) => res.data),
+    enabled: !!selectedTicketId,
+  });
+  const messages: AdminSupportMessage[] = detail?.messages ?? [];
+  const answered = messages.some(
+    (message) =>
+      message.authorKind === 'AGENT' && message.visibility === 'PUBLIC',
+  );
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+    queryClient.invalidateQueries({ queryKey: ['admin', 'support-ticket'] });
+  };
+
+  const messageMutation = useMutation({
+    mutationFn: (id: string) =>
+      adminApi.addSupportMessage(id, {
+        body: draft.trim(),
+        visibility: kind,
+        ...(kind === 'PUBLIC' && { status: leaveAs }),
+      }),
+    onSuccess: () => {
+      setDraft('');
+      refresh();
+      onToast(
+        t(
+          kind === 'PUBLIC'
+            ? 'admin.support.toast_answered'
+            : 'admin.support.toast_note_added',
+        ),
+        'success',
+      );
+    },
+    onError: () => onToast(t('admin.support.toast_error'), 'error'),
+  });
 
   const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      status,
-      replyText,
-    }: {
-      id: string;
-      status?: TicketStatus;
-      replyText?: string;
-    }) =>
-      adminApi.updateSupportTicket(id, {
-        status,
-        reply: replyText,
-      }),
+    mutationFn: ({ id, status }: { id: string; status?: TicketStatus }) =>
+      adminApi.updateSupportTicket(id, { status }),
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+      refresh();
       if (variables.status === 'CLOSED') {
         setSelectedTicketId(null);
       }
@@ -124,7 +199,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const escalateMutation = useMutation({
     mutationFn: (id: string) => adminApi.escalateSupportTicket(id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+      refresh();
       onToast(t('admin.support.toast_escalated'), 'success');
     },
     onError: () => onToast(t('admin.support.toast_error'), 'error'),
@@ -150,25 +225,18 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const handleStatusChange = (status: TicketStatus) => {
     if (!selectedTicket) return;
 
-    if (status === 'CLOSED' && !reply.trim() && !selectedTicket.reply) {
+    if (status === 'CLOSED' && !answered) {
       setConfirmClose(true);
       return;
     }
 
-    updateMutation.mutate({
-      id: selectedTicket.id,
-      status,
-      replyText: reply.trim() || undefined,
-    });
+    updateMutation.mutate({ id: selectedTicket.id, status });
   };
 
-  const handleSaveReply = () => {
-    if (!selectedTicket) return;
-    updateMutation.mutate({
-      id: selectedTicket.id,
-      replyText: reply.trim(),
-    });
-  };
+  // An answer cannot be sent to a closed ticket or to one that is with
+  // moderation; a note always can.
+  const canAnswer = selectedTicket?.status !== 'CLOSED' && !withModeration;
+  const kind = canAnswer ? draftKind : 'INTERNAL';
 
   const isFiltered = statusFilter !== '' || categoryFilter !== '';
 
@@ -180,41 +248,45 @@ export default function SupportTicketsTab({ onToast }: Props) {
       />
 
       <AdminFilterBar>
-        <FilterDropdown
-          label={t('admin.support.filter_status')}
-          value={statusFilter}
-          onChange={(v) => {
-            setStatusFilter(v);
-            setPage(1);
-            setSelectedTicketId(null);
-          }}
-          options={[
-            { value: '', label: t('admin.support.status_all') },
-            { value: 'OPEN', label: t('admin.support.status_open') },
-            { value: 'RESOLVED', label: t('admin.support.status_resolved') },
-            { value: 'CLOSED', label: t('admin.support.status_closed') },
-            {
-              value: 'ESCALATED',
-              label: t('admin.support.status_escalated'),
-            },
-          ]}
-        />
-        <FilterDropdown
-          label={t('admin.support.filter_category')}
-          value={categoryFilter}
-          onChange={(v) => {
-            setCategoryFilter(v);
-            setPage(1);
-            setSelectedTicketId(null);
-          }}
-          options={[
-            { value: '', label: t('admin.support.category_all') },
-            ...TICKET_CATEGORIES.map((value) => ({
-              value,
-              label: t(`supportPage.category.${value}`),
-            })),
-          ]}
-        />
+        <div className="sm:w-56">
+          <FilterDropdown
+            label={t('admin.support.filter_status')}
+            value={statusFilter}
+            onChange={(v) => {
+              setStatusFilter(v);
+              setPage(1);
+              setSelectedTicketId(null);
+            }}
+            options={[
+              { value: '', label: t('admin.support.status_all') },
+              { value: 'OPEN', label: t('admin.support.status_open') },
+              { value: 'RESOLVED', label: t('admin.support.status_resolved') },
+              { value: 'CLOSED', label: t('admin.support.status_closed') },
+              {
+                value: 'ESCALATED',
+                label: t('admin.support.status_escalated'),
+              },
+            ]}
+          />
+        </div>
+        <div className="sm:w-56">
+          <FilterDropdown
+            label={t('admin.support.filter_category')}
+            value={categoryFilter}
+            onChange={(v) => {
+              setCategoryFilter(v);
+              setPage(1);
+              setSelectedTicketId(null);
+            }}
+            options={[
+              { value: '', label: t('admin.support.category_all') },
+              ...TICKET_CATEGORIES.map((value) => ({
+                value,
+                label: t(`supportPage.category.${value}`),
+              })),
+            ]}
+          />
+        </div>
       </AdminFilterBar>
 
       <AdminSplitView
@@ -303,7 +375,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       {selectedTicket.subject}
                     </h3>
                     <p className="text-xs text-white/50 truncate">
-                      ID: {selectedTicket.id}
+                      {selectedTicket.reference
+                        ? `#${selectedTicket.reference}`
+                        : `ID: ${selectedTicket.id}`}
                     </p>
                   </div>
                   {withModeration && (
@@ -467,44 +541,113 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     </section>
                   )}
 
-                  <div>
-                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
-                      {t('admin.support.message_label')}
-                    </p>
-                    <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
-                      {selectedTicket.message}
-                    </p>
-                  </div>
-
-                  <div className="space-y-3 pt-1 border-t border-white/5">
+                  <section
+                    aria-label={t('admin.support.conversation')}
+                    className="space-y-2"
+                  >
                     <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">
-                      {t('admin.support.reply_label')}
+                      {t('admin.support.conversation')}
                     </p>
+                    {/* Until the conversation loads, what the requester wrote */}
+                    {messages.length === 0 && (
+                      <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
+                        {selectedTicket.message}
+                      </p>
+                    )}
+                    <ol className="space-y-2">
+                      {messages.map((message) => (
+                        <ConversationMessage
+                          key={message.id}
+                          message={message}
+                          requester={
+                            selectedTicket.user?.profile?.username
+                              ? `@${selectedTicket.user.profile.username}`
+                              : selectedTicket.email
+                          }
+                        />
+                      ))}
+                    </ol>
+                  </section>
+
+                  <div className="space-y-3 pt-3 border-t border-white/5">
+                    {canAnswer && (
+                      <AdminSegmentedControl
+                        value={draftKind}
+                        onChange={(value) =>
+                          setDraftKind(value as 'PUBLIC' | 'INTERNAL')
+                        }
+                        options={[
+                          {
+                            value: 'PUBLIC',
+                            label: t('admin.support.kind_answer'),
+                          },
+                          {
+                            value: 'INTERNAL',
+                            label: t('admin.support.kind_note'),
+                          },
+                        ]}
+                      />
+                    )}
                     <Textarea
-                      value={reply}
-                      onChange={(e) => setReply(e.target.value)}
-                      placeholder={t('admin.support.reply_placeholder')}
-                      rows={5}
-                      disabled={
-                        selectedTicket.status === 'CLOSED' || withModeration
-                      }
+                      value={draft}
+                      onChange={(e) => setDraft(e.target.value)}
+                      aria-label={t(
+                        kind === 'PUBLIC'
+                          ? 'admin.support.kind_answer'
+                          : 'admin.support.kind_note',
+                      )}
+                      placeholder={t(
+                        kind === 'PUBLIC'
+                          ? 'admin.support.reply_placeholder'
+                          : 'admin.support.note_placeholder',
+                      )}
+                      rows={4}
+                      maxLength={5000}
                     />
-                    {selectedTicket.status !== 'CLOSED' && !withModeration && (
+                    <p className="text-xs text-white/60">
+                      {t(
+                        kind === 'PUBLIC'
+                          ? 'admin.support.answer_hint'
+                          : 'admin.support.note_hint',
+                      )}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {kind === 'PUBLIC' && (
+                        <div className="sm:w-56">
+                          <FilterDropdown
+                            label={t('admin.support.leave_as')}
+                            value={leaveAs}
+                            onChange={(value) =>
+                              setLeaveAs(value as 'RESOLVED' | 'OPEN')
+                            }
+                            options={[
+                              {
+                                value: 'RESOLVED',
+                                label: t('admin.support.leave_resolved'),
+                              },
+                              {
+                                value: 'OPEN',
+                                label: t('admin.support.leave_open'),
+                              },
+                            ]}
+                          />
+                        </div>
+                      )}
                       <Button
-                        onClick={handleSaveReply}
-                        isLoading={updateMutation.isPending}
-                        disabled={!reply.trim()}
+                        onClick={() =>
+                          messageMutation.mutate(selectedTicket.id)
+                        }
+                        isLoading={messageMutation.isPending}
+                        disabled={!draft.trim()}
                         className="min-h-11"
                       >
-                        {t('admin.support.save_reply')}
+                        {t(
+                          kind === 'PUBLIC'
+                            ? 'admin.support.send_answer'
+                            : 'admin.support.save_note',
+                        )}
                       </Button>
-                    )}
-                    {selectedTicket.reply &&
-                      selectedTicket.status === 'CLOSED' && (
-                        <p className="text-sm text-white/70 whitespace-pre-wrap leading-relaxed">
-                          {selectedTicket.reply}
-                        </p>
-                      )}
+                    </div>
                   </div>
                 </div>
               </motion.div>

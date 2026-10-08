@@ -18,6 +18,7 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import { AgentMessageDto } from './dto/agent-message.dto.js';
 import { AgentTicketsQueryDto } from './dto/agent-tickets-query.dto.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
@@ -39,6 +40,22 @@ export class HelpdeskAgentController {
       query.status,
       query.category,
     );
+  }
+
+  // The ticket with its whole conversation, internal notes included.
+  @Get(':id')
+  async getTicket(@Param('id') id: string) {
+    return this.tickets.getTicket(id);
+  }
+
+  // An answer to the requester or an internal note.
+  @Post(':id/messages')
+  async addMessage(
+    @Param('id') id: string,
+    @Body() dto: AgentMessageDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.tickets.addMessage(admin.adminId, id, dto);
   }
 
   @Patch(':id')

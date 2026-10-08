@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -10,6 +10,8 @@ vi.mock('../../services/admin.service', () => ({
     updateSupportTicket: vi.fn(),
     escalateSupportTicket: vi.fn(),
     getSupportTicketAccount: vi.fn(),
+    getSupportTicket: vi.fn(),
+    addSupportMessage: vi.fn(),
   },
 }));
 
@@ -55,6 +57,27 @@ const account = {
   ],
 };
 
+const message = (overrides: Record<string, unknown>) => ({
+  id: 'm-1',
+  authorKind: 'REQUESTER',
+  authorRef: 'u-1',
+  visibility: 'PUBLIC',
+  body: 'It keeps happening in my comments.',
+  channel: 'PRODUCT',
+  createdAt: '2026-09-01T10:00:00.000Z',
+  ...overrides,
+});
+const conversation = [
+  message({}),
+  message({
+    id: 'm-2',
+    authorKind: 'AGENT',
+    authorRef: 'admin-1',
+    visibility: 'INTERNAL',
+    body: 'Third time they write about this.',
+  }),
+];
+
 describe('SupportTicketsTab', () => {
   const onToast = vi.fn();
 
@@ -62,6 +85,9 @@ describe('SupportTicketsTab', () => {
     vi.clearAllMocks();
     vi.mocked(adminApi.getSupportTicketAccount).mockResolvedValue({
       data: account,
+    } as never);
+    vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
+      data: { ...ticket(), messages: conversation },
     } as never);
   });
 
@@ -124,9 +150,16 @@ describe('SupportTicketsTab', () => {
         screen.queryByRole('button', { name: i18n.t(`admin.support.${key}`) }),
       ).not.toBeInTheDocument();
     }
+    // No answer can be sent; a note for the team still can.
     expect(
-      screen.getByPlaceholderText(i18n.t('admin.support.reply_placeholder')),
-    ).toBeDisabled();
+      screen.queryByPlaceholderText(i18n.t('admin.support.reply_placeholder')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(i18n.t('admin.support.note_placeholder')),
+    ).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: i18n.t('admin.support.save_note') }),
+    ).toBeInTheDocument();
   });
 
   it('goes back to support once moderation has decided', async () => {
@@ -195,5 +228,97 @@ describe('SupportTicketsTab', () => {
         'ACCOUNT',
       ),
     );
+  });
+
+  it('shows the whole conversation, with internal notes marked as such', async () => {
+    const i18n = await open([ticket()]);
+
+    const list = await screen.findByRole('region', {
+      name: i18n.t('admin.support.conversation'),
+    });
+    const items = await within(list).findAllByRole('listitem');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveTextContent('@ana');
+    expect(items[0]).toHaveTextContent('It keeps happening in my comments.');
+    expect(items[1]).toHaveTextContent(i18n.t('admin.support.author_team'));
+    expect(items[1]).toHaveTextContent(i18n.t('admin.support.internal_note'));
+    expect(items[0]).not.toHaveTextContent(
+      i18n.t('admin.support.internal_note'),
+    );
+  });
+
+  it('sends an answer and leaves the ticket as the agent chose', async () => {
+    vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
+      data: ticket(),
+    } as never);
+    const i18n = await open([ticket()]);
+
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n.t('admin.support.reply_placeholder')),
+      { target: { value: '  We are looking into it.  ' } },
+    );
+    fireEvent.change(
+      screen.getByRole('combobox', { name: i18n.t('admin.support.leave_as') }),
+      { target: { value: 'OPEN' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('admin.support.send_answer') }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.addSupportMessage).toHaveBeenCalledWith('t-1', {
+        body: 'We are looking into it.',
+        visibility: 'PUBLIC',
+        status: 'OPEN',
+      }),
+    );
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        i18n.t('admin.support.toast_answered'),
+        'success',
+      ),
+    );
+  });
+
+  it('saves an internal note without a state and without sending anything to the person', async () => {
+    vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
+      data: ticket(),
+    } as never);
+    const i18n = await open([ticket()]);
+
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('admin.support.kind_note') }),
+    );
+    expect(
+      screen.getByText(i18n.t('admin.support.note_hint')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', {
+        name: i18n.t('admin.support.leave_as'),
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n.t('admin.support.note_placeholder')),
+      { target: { value: 'Checked the payment.' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('admin.support.save_note') }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.addSupportMessage).toHaveBeenCalledWith('t-1', {
+        body: 'Checked the payment.',
+        visibility: 'INTERNAL',
+      }),
+    );
+  });
+
+  it('keeps the send button off until something is written', async () => {
+    const i18n = await open([ticket()]);
+
+    expect(
+      screen.getByRole('button', { name: i18n.t('admin.support.send_answer') }),
+    ).toBeDisabled();
   });
 });

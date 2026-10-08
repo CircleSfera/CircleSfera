@@ -460,8 +460,21 @@ export interface AdminSupportAccount {
   }[];
 }
 
+export interface AdminSupportMessage {
+  id: string;
+  authorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
+  // Empty for the system and for answers from before authors were stored.
+  authorRef: string | null;
+  visibility: 'PUBLIC' | 'INTERNAL';
+  body: string;
+  channel: 'PRODUCT' | 'EMAIL';
+  createdAt: string;
+}
+
 export interface AdminSupportTicket {
   id: string;
+  // Short number shown to requester and agent.
+  reference?: number;
   email: string;
   subject: string;
   message: string;
@@ -478,6 +491,10 @@ export interface AdminSupportTicket {
     email: string;
     profile?: { username: string; avatar: string | null } | null;
   } | null;
+}
+
+export interface AdminSupportTicketDetail extends AdminSupportTicket {
+  messages: AdminSupportMessage[];
 }
 
 export interface AdminFeatureFlag {
@@ -1092,6 +1109,24 @@ export const adminApi = {
     id: string,
     data: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
   ) => apiClient.patch<AdminSupportTicket>(`admin/support/tickets/${id}`, data),
+
+  // One ticket with its whole conversation, internal notes included.
+  getSupportTicket: (id: string) =>
+    apiClient.get<AdminSupportTicketDetail>(`admin/support/tickets/${id}`),
+
+  // An answer the requester receives, or an internal note only agents see.
+  addSupportMessage: (
+    id: string,
+    data: {
+      body: string;
+      visibility: 'PUBLIC' | 'INTERNAL';
+      status?: 'OPEN' | 'RESOLVED';
+    },
+  ) =>
+    apiClient.post<AdminSupportTicketDetail>(
+      `admin/support/tickets/${id}/messages`,
+      data,
+    ),
 
   // Hands the ticket to moderation: a report in the trust queues.
   escalateSupportTicket: (id: string) =>
