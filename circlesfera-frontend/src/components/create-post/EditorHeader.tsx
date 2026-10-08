@@ -39,7 +39,7 @@ interface EditorHeaderProps {
 const SURFACE = {
   bar: 'px-4 py-1 bg-surface-elevated/95 backdrop-blur-md border-b border-white/8',
   overlay:
-    'px-4 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent',
+    'px-4 pb-1.5 pt-[max(0.5rem,calc(env(safe-area-inset-top,0px)+0.25rem))] bg-linear-to-b from-black via-black/90 to-transparent md:bg-none',
 } as const;
 
 export default function EditorHeader({

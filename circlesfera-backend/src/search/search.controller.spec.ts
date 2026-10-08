@@ -57,6 +57,22 @@ describe('SearchController', () => {
     expect(mockService.search).not.toHaveBeenCalled();
   });
 
+  it('passes the verified-only filter on when the search asks for it', async () => {
+    mockService.search.mockResolvedValue({ users: [], hashtags: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/search')
+      .query({ q: 'ada', verified: 'true' })
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.search).toHaveBeenCalledWith(
+      'ada',
+      TEST_USER.profileId,
+      true,
+    );
+  });
+
   it('searches as the session profileId', async () => {
     mockService.search.mockResolvedValue({ users: [], hashtags: [] });
 
@@ -67,7 +83,11 @@ describe('SearchController', () => {
       .expect(200);
 
     expect(res.body).toEqual({ users: [], hashtags: [] });
-    expect(mockService.search).toHaveBeenCalledWith('ada', TEST_USER.profileId);
+    expect(mockService.search).toHaveBeenCalledWith(
+      'ada',
+      TEST_USER.profileId,
+      false,
+    );
   });
 
   it('loads trending, history and clears history as the session profile', async () => {
@@ -162,6 +182,7 @@ describe('SearchController', () => {
     expect(mockService.searchUsers).toHaveBeenCalledWith(
       'bob',
       TEST_USER.profileId,
+      false,
     );
   });
 });

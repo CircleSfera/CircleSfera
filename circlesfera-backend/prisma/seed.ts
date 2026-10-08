@@ -167,14 +167,13 @@ async function main() {
       update: {},
       create: {
         name: 'Premium',
-        description:
-          'Insignia de verificación, Analíticas básicas y Soporte prioritario.',
+        description: 'Verified badge.',
         priceCents: 999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQGHGBnYo5yGX',
         stripePriceId: 'price_1TtdPZIEniBX3suALJ68LF3d',
-        features: ['verified_badge', 'basic_analytics', 'priority_support'],
+        features: ['verified_badge'],
       },
     });
 
@@ -184,17 +183,16 @@ async function main() {
       create: {
         name: 'Elite Creator',
         description:
-          'Herramientas Pro de crecimiento, Insights de audiencia y Spotlight.',
+          'Elite badge, a feed without promoted posts and advanced analytics.',
         priceCents: 1999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQG21Jd98Vidi',
         stripePriceId: 'price_1TtdPZIEniBX3suAnR6uNNsN',
         features: [
-          'pro_growth_tools',
-          'audience_insights',
-          'profile_spotlight',
           'verified_badge',
+          'no_promoted_content',
+          'advanced_analytics',
         ],
       },
     });
@@ -205,17 +203,16 @@ async function main() {
       create: {
         name: 'Business',
         description:
-          'Verificación de negocio, Gestión multi-cuenta y Soporte 24/7 dedicado.',
+          'Business badge, a feed without promoted posts and advanced analytics.',
         priceCents: 4999,
         currency: 'EUR',
         interval: 'month',
         stripeProductId: 'prod_UtQGy36G3SscjF',
         stripePriceId: 'price_1TtdPaIEniBX3suAm9IfVW1o',
         features: [
-          'business_verification',
-          'multi_account',
-          'dedicated_support',
-          'api_access_beta',
+          'verified_badge',
+          'no_promoted_content',
+          'advanced_analytics',
         ],
       },
     });
