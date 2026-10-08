@@ -55,13 +55,19 @@ export default function InteractionRail({
   showCounts = false,
   footer,
 }: InteractionRailProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const isVertical = variant === 'vertical';
+  // 1280 reads as 1,3 mil: the rail is 44 px wide.
+  const compact = (count: number) =>
+    new Intl.NumberFormat(i18n.language, {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(count);
   const isLg = size === 'lg';
   const iconSize = isVertical ? 24 : isLg ? 24 : 20;
   const iconClass = isLg || isVertical ? 'w-6 h-6' : 'w-5 h-5';
   const hitClass = isVertical
-    ? 'flex flex-col items-center justify-center min-w-11 min-h-11 gap-0.5'
+    ? 'flex flex-col items-center justify-center min-w-11 min-h-11 gap-1'
     : isLg
       ? 'w-12 h-12 inline-flex items-center justify-center'
       : 'w-11 h-11 inline-flex items-center justify-center';
@@ -72,7 +78,7 @@ export default function InteractionRail({
 
   const ShareIcon = shareIcon === 'share' ? Share2 : Send;
   const countClass = isVertical
-    ? 'text-white font-semibold text-[10px] drop-shadow-md leading-none'
+    ? 'text-white font-semibold text-xs drop-shadow-md leading-none'
     : 'sr-only';
 
   const likeCommentShare = (
@@ -86,10 +92,10 @@ export default function InteractionRail({
           postId={postId}
           onToggle={onLikeToggle}
           iconClassName={`${iconClass} ${iconShadow}`}
-          className={isVertical ? undefined : hitClass}
+          className={isVertical ? 'min-w-11 min-h-11' : hitClass}
         />
         {showCounts && likesCount !== undefined ? (
-          <span className={countClass}>{likesCount}</span>
+          <span className={countClass}>{compact(likesCount)}</span>
         ) : null}
       </div>
 
@@ -110,7 +116,7 @@ export default function InteractionRail({
             }
           />
           {showCounts ? (
-            <span className={countClass}>{commentsCount ?? 0}</span>
+            <span className={countClass}>{compact(commentsCount ?? 0)}</span>
           ) : null}
         </button>
       ) : hideComment && !isVertical ? (
