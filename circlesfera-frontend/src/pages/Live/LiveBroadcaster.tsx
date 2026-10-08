@@ -364,7 +364,7 @@ export default function LiveBroadcaster() {
 
   if (isEnded) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center bg-surface-base px-4 text-white">
+      <div className="flex h-dvh flex-col items-center justify-center bg-surface-base md:bg-transparent px-4 text-white">
         <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
           <div className="p-4 bg-brand-primary/20 rounded-full">
             <Heart className="w-12 h-12 text-brand-primary" />
@@ -404,7 +404,7 @@ export default function LiveBroadcaster() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-dvh bg-surface-base flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-surface-base md:bg-transparent flex items-center justify-center overflow-hidden">
       {/* A double tap anywhere sends a heart. It is not a button: it holds
           every control of the screen, and the reactions have their own. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}

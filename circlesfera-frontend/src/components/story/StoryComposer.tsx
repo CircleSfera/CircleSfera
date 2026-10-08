@@ -1,4 +1,6 @@
 import type { StoryElement } from '../../types';
+import BrandAmbientBackground from '../common/BrandAmbientBackground';
+import { CREATE_FULL_SCREEN } from '../create-post/createStyles';
 import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
@@ -20,7 +22,8 @@ export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
 
   return (
-    <div className="fixed inset-0 z-50 bg-black font-sans">
+    <div className={`${CREATE_FULL_SCREEN} font-sans`}>
+      <BrandAmbientBackground placement="editor" />
       <StoryComposerStage
         stagePadClass={s.stagePadClass}
         cardSizeClass={s.cardSizeClass}
