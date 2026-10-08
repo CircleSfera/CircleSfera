@@ -109,6 +109,8 @@ export interface ProfileWithUser extends IProfile {
   verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   // Colour chosen for the profile page; empty means the colour of the app.
   accentColor?: string | null;
+  // On the Business plan, with a payout account verified as a company.
+  companyVerified?: boolean;
   isVerified?: boolean;
   isPrivate?: boolean;
   banner?: string | null;

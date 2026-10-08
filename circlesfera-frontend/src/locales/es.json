@@ -128,6 +128,11 @@
       "presence_links": "Presencia y Enlaces",
       "bio": "Biografía",
       "website": "Sitio web",
+      "company": {
+        "title": "Empresa",
+        "hint": "Verifica tu empresa con Stripe para que tu perfil muestre «Empresa verificada». Stripe comprueba los datos de la empresa; CircleSfera no guarda ningún documento.",
+        "verify": "Verificar empresa"
+      },
       "colour": {
         "title": "Color del perfil",
         "hint": "Se ve en la parte alta de tu perfil, en el botón principal y en tu enlace. Lo ve todo el que visita tu perfil.",
@@ -1241,7 +1246,8 @@
       }
     },
     "private_account": "Cuenta privada",
-    "private_label": "Privada"
+    "private_label": "Privada",
+    "company_verified": "Empresa verificada"
   },
   "suggestions": {
     "title": "Sugerencias para ti",
