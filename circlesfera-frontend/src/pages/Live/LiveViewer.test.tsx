@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -161,6 +161,54 @@ describe('LiveViewer', () => {
       expect(toast.error).toHaveBeenCalledWith(
         i18n!.t('live.ended_or_not_found'),
       );
+    });
+  });
+
+  describe('the bar under the video', () => {
+    it('names the comment field and every reaction', async () => {
+      mockJoin();
+      const { i18n } = renderViewer();
+      await screen.findByText(i18n!.t('live.now'));
+
+      expect(
+        screen.getByRole('textbox', { name: i18n!.t('live.chat_placeholder') }),
+      ).toBeInTheDocument();
+      for (const emoji of ['🔥', '❤️', '👏', '🚀', '⭐']) {
+        expect(
+          screen.getByRole('button', {
+            name: i18n!.t('live.send_reaction', { emoji }),
+          }),
+        ).toBeInTheDocument();
+      }
+    });
+
+    it('offers the gift until a comment is typed, then offers to send it', async () => {
+      mockJoin();
+      const { i18n } = renderViewer();
+      await screen.findByText(i18n!.t('live.now'));
+      const gift = { name: i18n!.t('live.send_gift_btn') };
+      const send = { name: i18n!.t('live.send_comment') };
+
+      expect(screen.getByRole('button', gift)).toBeInTheDocument();
+      expect(screen.queryByRole('button', send)).not.toBeInTheDocument();
+
+      fireEvent.change(
+        screen.getByRole('textbox', { name: i18n!.t('live.chat_placeholder') }),
+        { target: { value: 'Hello' } },
+      );
+
+      expect(screen.getByRole('button', send)).toBeInTheDocument();
+      expect(screen.queryByRole('button', gift)).not.toBeInTheDocument();
+    });
+
+    it('shows a neutral picture with initials when the host has none, never a stock photo', async () => {
+      mockJoin('alice');
+      const { i18n } = renderViewer();
+      await screen.findByText(i18n!.t('live.now'));
+
+      const picture = screen.getByRole('img', { name: 'alice' });
+      expect(picture.getAttribute('src')).toContain('ui-avatars.com');
+      expect(picture.getAttribute('src')).toContain('alice');
     });
   });
 });

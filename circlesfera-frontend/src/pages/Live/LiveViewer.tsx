@@ -31,6 +31,10 @@ interface FloatingReaction {
   x: number;
 }
 
+/** A neutral picture with the person's initials, for someone without one. */
+const fallbackAvatar = (username: string) =>
+  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+
 export default function LiveViewer() {
   const { t } = useTranslation();
   const { streamId } = useParams<{ streamId: string }>();
@@ -254,23 +258,25 @@ export default function LiveViewer() {
 
   return (
     <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
-      {/* biome-ignore lint/a11y/useSemanticElements: Double-tap on screen area */}
+      {/* A double tap anywhere sends a heart. It is not a button: it holds
+          every control of the screen, and the reactions have their own. */}
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
       <div
-        role="button"
-        tabIndex={0}
         className="w-full h-full md:max-w-105 md:h-[88vh] md:rounded-3xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.9)] relative flex flex-col overflow-hidden bg-black select-none"
         onDoubleClick={handleDoubleTap}
-        onKeyDown={(e) => e.key === 'Enter' && handleDoubleTap()}
       >
         {/* Top Header Overlay */}
-        <div className="absolute top-4 left-4 right-4 z-50 flex items-center justify-between pointer-events-auto">
+        <div className="absolute left-4 right-4 top-[max(1rem,env(safe-area-inset-top,0px))] z-50 flex items-center justify-between gap-2 pointer-events-auto">
           <div className="flex items-center gap-2.5">
             {/* Host Avatar with Gradient Ring */}
             <div className="p-0.5 bg-linear-to-tr from-amber-400 via-pink-500 to-purple-600 rounded-full shadow-lg">
               <img
                 src={
                   streamDetails?.host?.profile?.avatar ||
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
+                  fallbackAvatar(
+                    streamDetails?.host?.profile?.username ||
+                      t('live.host_fallback'),
+                  )
                 }
                 alt={
                   streamDetails?.host?.profile?.username || t('common.alt.host')
@@ -285,12 +291,12 @@ export default function LiveViewer() {
                   {streamDetails?.host?.profile?.username ||
                     t('live.host_fallback')}
                 </span>
-                <span className="bg-linear-to-r from-pink-600 to-purple-600 text-[10px] font-black text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-md shadow-pink-500/30">
+                <span className="bg-linear-to-r from-pink-600 to-purple-600 text-xs font-black text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-md shadow-pink-500/30">
                   {t('live.now')}
                 </span>
               </div>
               {streamDetails?.title && (
-                <span className="text-[11px] text-white/70 truncate max-w-35">
+                <span className="text-xs text-white/70 truncate max-w-35">
                   {streamDetails.title}
                 </span>
               )}
@@ -308,7 +314,7 @@ export default function LiveViewer() {
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="p-2 bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-xl border border-white/10 transition-all shadow-xl hover:scale-105 active:scale-95"
+              className="w-11 h-11 shrink-0 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-xl border border-white/10 transition-all shadow-xl hover:scale-105 active:scale-95"
               aria-label={t('common.close')}
             >
               <X className="w-5 h-5" />
@@ -316,7 +322,7 @@ export default function LiveViewer() {
           </div>
         </div>
         {/* Live Goal Bar (Top Center/Left below header) */}
-        <div className="absolute top-16 left-4 z-50 pointer-events-auto">
+        <div className="absolute left-4 top-[calc(max(1rem,env(safe-area-inset-top,0px))+3.25rem)] z-50 pointer-events-auto">
           <LiveGoalBar goal={liveGoal} isHost={false} />
         </div>
         {/* Co-Host Invite Banner */}
@@ -337,7 +343,10 @@ export default function LiveViewer() {
             serverUrl={serverUrl}
             data-lk-theme="default"
             className="h-full w-full"
-            onDisconnected={() => navigate(-1)}
+            onDisconnected={() => {
+              toast.error(t('live.connection_lost'));
+              navigate(-1);
+            }}
           >
             <CinematicStage />
             <RoomAudioRenderer />
@@ -351,7 +360,7 @@ export default function LiveViewer() {
                   <img
                     src={
                       highlightedQuestion.avatar ||
-                      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50'
+                      fallbackAvatar(highlightedQuestion.username)
                     }
                     alt={highlightedQuestion.username}
                     className="w-8 h-8 rounded-full"
@@ -360,7 +369,7 @@ export default function LiveViewer() {
                     <span className="block text-xs font-bold text-neutral-800">
                       {highlightedQuestion.username}
                     </span>
-                    <span className="block text-[10px] text-pink-500 font-bold uppercase tracking-widest">
+                    <span className="block text-xs text-pink-500 font-bold uppercase tracking-widest">
                       {t('live.qna.question')}
                     </span>
                   </div>
@@ -395,7 +404,7 @@ export default function LiveViewer() {
           </AnimatePresence>
         </div>
         {/* Live chat and interactivity overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/60 to-transparent p-4 flex flex-col justify-end z-40">
+        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/60 to-transparent px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-end z-40">
           {/* Pinned Comment Banner */}
           <LivePinnedComment pinnedComment={pinnedComment} />
 
@@ -423,61 +432,61 @@ export default function LiveViewer() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Bottom action bar */}
-          <div className="flex items-center gap-2 pointer-events-auto">
-            <form
-              onSubmit={handleSend}
-              className="flex-1 flex gap-2 items-center"
-            >
+          {/* Reactions on their own row, so the comment field keeps its width */}
+          <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar pointer-events-auto">
+            {REACTION_EMOJIS.map((emoji) => (
               <button
                 type="button"
-                onClick={() => setIsQnAOpen(true)}
-                className="p-2.5 bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors relative"
-                aria-label={t('live.qna.title')}
+                key={emoji}
+                onClick={() => sendQuickReaction(emoji)}
+                className="w-11 h-11 shrink-0 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-lg transition-all backdrop-blur-xl border border-white/10"
+                aria-label={t('live.send_reaction', { emoji })}
               >
-                <HelpCircle size={20} />
+                <span aria-hidden>{emoji}</span>
               </button>
-              <input
-                type="text"
-                placeholder={t('live.chat_placeholder')}
-                value={messageInput}
-                onChange={(e) => setMessageInput(e.target.value)}
-                className="w-full rounded-full bg-white/15 border border-white/25 px-4 py-2.5 text-xs sm:text-sm text-white placeholder-white/60 outline-none backdrop-blur-xl focus:bg-white/25 focus:border-pink-500/50 transition-all shadow-inner"
-              />
-              {messageInput.trim() && (
-                <button
-                  type="submit"
-                  className="rounded-full bg-pink-600 p-2.5 text-white hover:bg-pink-700 active:scale-95 transition-all shadow-md shadow-pink-600/30 shrink-0"
-                >
-                  <Send className="h-4 w-4" />
-                </button>
-              )}
-            </form>
+            ))}
+          </div>
 
-            {/* Action Buttons: Quick Emoji Reactions & Gift */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              {REACTION_EMOJIS.map((emoji) => (
-                <button
-                  type="button"
-                  key={emoji}
-                  onClick={() => sendQuickReaction(emoji)}
-                  className="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-sm transition-all backdrop-blur-xl border border-white/20 shadow-md shrink-0"
-                  title={t('live.send_reaction', { emoji })}
-                >
-                  {emoji}
-                </button>
-              ))}
+          {/* Comment bar */}
+          <form
+            onSubmit={handleSend}
+            className="flex gap-2 items-center pointer-events-auto"
+          >
+            <button
+              type="button"
+              onClick={() => setIsQnAOpen(true)}
+              className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors"
+              aria-label={t('live.qna.title')}
+            >
+              <HelpCircle size={20} aria-hidden />
+            </button>
+            <input
+              type="text"
+              aria-label={t('live.chat_placeholder')}
+              placeholder={t('live.chat_placeholder')}
+              value={messageInput}
+              onChange={(e) => setMessageInput(e.target.value)}
+              className="flex-1 min-w-0 min-h-12 rounded-full bg-white/15 border border-white/25 px-4 text-base text-white placeholder-white/60 outline-none backdrop-blur-xl focus:bg-white/25 transition-colors"
+            />
+            {messageInput.trim() ? (
+              <button
+                type="submit"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-pink-600 text-white hover:bg-pink-700 active:scale-95 transition-all shadow-md shadow-pink-600/30"
+                aria-label={t('live.send_comment')}
+              >
+                <Send className="h-4 w-4" aria-hidden />
+              </button>
+            ) : (
               <button
                 type="button"
                 onClick={() => setGiftModalOpen(true)}
-                className="p-2.5 rounded-full bg-linear-to-tr from-amber-400 to-pink-500 text-white shadow-lg shadow-pink-500/30 hover:scale-105 active:scale-95 transition-all shrink-0"
-                title={t('live.send_gift_btn')}
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-linear-to-tr from-amber-400 to-pink-500 text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all"
                 aria-label={t('live.send_gift_btn')}
               >
-                <Gift className="w-5 h-5 text-white animate-pulse" />
+                <Gift className="w-5 h-5 text-white" aria-hidden />
               </button>
-            </div>
-          </div>
+            )}
+          </form>
         </div>
         {streamId ? (
           <LiveGiftModal
