@@ -11,9 +11,14 @@ vi.mock('../../services/live', () => ({
   },
 }));
 
-vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
-}));
+vi.mock('react-hot-toast', () => {
+  const t = Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  });
+  return { toast: t, default: t };
+});
 
 describe('LiveGiftModal', () => {
   const onClose = vi.fn();
@@ -154,6 +159,67 @@ describe('LiveGiftModal', () => {
       'Could not start checkout',
     );
     expect(toast.error).not.toHaveBeenCalledWith('No se pudo iniciar el pago');
+  });
+
+  it('explains a failed gift in the app language and can be sent again', async () => {
+    // The shape the API client rejects with: server text in English.
+    vi.mocked(liveApi.sendGift).mockRejectedValue(
+      Object.assign(new Error('Stream has ended'), {
+        status: 400,
+        data: { message: 'Stream has ended' },
+      }),
+    );
+    const { i18n } = renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+    );
+    const send = screen.getByRole('button', {
+      name: new RegExp(i18n!.t('live.confirm_send_gift')),
+    });
+
+    fireEvent.click(send);
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(i18n!.t('live.gift_error')),
+    );
+    expect(toast.error).not.toHaveBeenCalledWith('Stream has ended');
+    await waitFor(() => expect(send).toBeEnabled());
+  });
+
+  it('offers to verify the identity when the gift is refused for it', async () => {
+    vi.mocked(liveApi.sendGift).mockRejectedValue(
+      Object.assign(
+        new Error(
+          'Debes verificar tu identidad primero para poder comprar o cobrar.',
+        ),
+        { status: 403, data: {} },
+      ),
+    );
+    const { i18n } = renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+    );
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: new RegExp(i18n!.t('live.confirm_send_gift')),
+      }),
+    );
+
+    await waitFor(() =>
+      expect(toast).toHaveBeenCalledWith(
+        expect.any(Function),
+        expect.anything(),
+      ),
+    );
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('writes the gift prices as currency in Spanish', () => {
+    renderWithProviders(
+      <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
+      { lng: 'es' },
+    );
+
+    expect(screen.getByText(/^25\s€$/)).toBeInTheDocument();
   });
 
   it('calls onClose when the close button is clicked', () => {

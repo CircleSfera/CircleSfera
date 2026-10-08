@@ -1,9 +1,11 @@
 import { Euro } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import {
+  CREATOR_SHARE,
   MAX_PPV_PRICE_EUR,
   MIN_PPV_PRICE_EUR,
 } from '../../constants/monetization';
+import { formatCents } from '../../utils/money';
 import { Switch } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
 import SubScreenHeader from './SubScreenHeader';
@@ -23,7 +25,10 @@ export default function MonetizationSubScreen({
   setPrice,
   onClose,
 }: MonetizationSubScreenProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  // Whole cents, so the two amounts always add up to the price.
+  const priceCents = Math.round(price * 100);
+  const creatorCents = Math.round(priceCents * CREATOR_SHARE);
 
   return (
     <div className={SUBSCREEN_SHELL}>
@@ -73,7 +78,7 @@ export default function MonetizationSubScreen({
                   setPrice(Number.parseFloat(e.target.value) || 0)
                 }
                 placeholder="5.00"
-                className="w-full min-h-10 h-10 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
+                className="w-full min-h-12 h-12 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
               />
             </div>
 
@@ -92,11 +97,13 @@ export default function MonetizationSubScreen({
               <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/20 text-[11px] text-white/80 space-y-0.5">
                 <div className="flex justify-between font-semibold">
                   <span>{t('createPost.caption.creator_earning')}</span>
-                  <span>€{(price * 0.8).toFixed(2)}</span>
+                  <span>{formatCents(creatorCents, i18n.language)}</span>
                 </div>
                 <div className="flex justify-between text-white/40">
                   <span>{t('createPost.caption.platform_fee')}</span>
-                  <span>€{(price * 0.2).toFixed(2)}</span>
+                  <span>
+                    {formatCents(priceCents - creatorCents, i18n.language)}
+                  </span>
                 </div>
               </div>
             )}

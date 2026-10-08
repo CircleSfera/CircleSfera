@@ -19,7 +19,6 @@ export default function AdminPanelLogin() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const setAdmin = useAdminAuthStore((s) => s.setAdmin);
-  const setAuthenticated = useAdminAuthStore((s) => s.setAuthenticated);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -41,8 +40,9 @@ export default function AdminPanelLogin() {
     }
   }, [step]);
 
+  // The session counts as signed in once the staff profile has loaded;
+  // setAdmin records both.
   const finishLogin = async () => {
-    setAuthenticated();
     const { data } = await adminAuthApi.me();
     setAdmin(data);
     const homeTab = getAdminHomeTab((key) => {

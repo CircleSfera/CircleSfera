@@ -12,7 +12,7 @@ import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
-import { apiErrorMessage } from '../utils/apiErrorMessage';
+import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
@@ -89,7 +89,7 @@ export default function FrameItem({
       }
     },
     onError: (error: unknown) => {
-      toast.error(apiErrorMessage(error, t, 'post.media.unlock_error'));
+      reportPaymentError(error, t, 'post.media.unlock_error');
     },
   });
 

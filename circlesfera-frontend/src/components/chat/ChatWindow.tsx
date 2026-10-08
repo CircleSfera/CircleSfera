@@ -34,6 +34,7 @@ import { useSocketStore } from '../../stores/socketStore';
 import { useCallStore } from '../../stores/useCallStore';
 import type { Conversation, Message, Participant } from '../../types';
 import { logger } from '../../utils/logger';
+import { formatCents } from '../../utils/money';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
@@ -46,8 +47,42 @@ import {
   upsertSentMessage,
 } from './mergeChatMessages';
 
+// Frequent emojis for the message box; phones already have their own keyboard.
+const MESSAGE_EMOJIS = [
+  '😀',
+  '😂',
+  '🥰',
+  '😍',
+  '😘',
+  '😎',
+  '🤔',
+  '😅',
+  '😢',
+  '😭',
+  '😡',
+  '😮',
+  '👍',
+  '👎',
+  '👏',
+  '🙏',
+  '💪',
+  '🙌',
+  '❤️',
+  '🔥',
+  '✨',
+  '🎉',
+  '💯',
+  '👀',
+  '😴',
+  '🤗',
+  '😉',
+  '🤣',
+  '💔',
+  '✅',
+];
+
 export default function ChatWindow() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,6 +113,8 @@ export default function ChatWindow() {
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
+  const [lockPriceInvalid, setLockPriceInvalid] = useState(false);
+  const [isEmojiPanelOpen, setIsEmojiPanelOpen] = useState(false);
 
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -145,6 +182,7 @@ export default function ChatWindow() {
     } catch (err) {
       logger.error('Failed to send voice message:', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+      toast.error(t('chat.send_error'));
     }
   };
 
@@ -184,21 +222,25 @@ export default function ChatWindow() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }, []);
 
-  const handleDelete = useCallback(async (messageId: string) => {
-    try {
-      await chatApi.deleteMessage(messageId);
-      // Optimistic update
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.id === messageId
-            ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
-            : m,
-        ),
-      );
-    } catch (err) {
-      logger.error('Failed to delete message', err);
-    }
-  }, []);
+  const handleDelete = useCallback(
+    async (messageId: string) => {
+      try {
+        await chatApi.deleteMessage(messageId);
+        // Optimistic update
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === messageId
+              ? { ...m, isDeleted: true, content: '', e2eKeys: undefined }
+              : m,
+          ),
+        );
+      } catch (err) {
+        logger.error('Failed to delete message', err);
+        toast.error(t('chat.delete_message_error'));
+      }
+    },
+    [t],
+  );
 
   const handleUnlockMessage = useCallback(
     async (messageId: string) => {
@@ -522,6 +564,18 @@ export default function ChatWindow() {
     };
   }, [id, chatInfo.otherProfileId, chatInfo.isGroup, isTyping, stopTyping]);
 
+  // Puts the emoji where the cursor is and leaves the cursor after it.
+  const insertEmoji = (emoji: string) => {
+    const box = inputRef.current;
+    const start = box?.selectionStart ?? input.length;
+    const end = box?.selectionEnd ?? input.length;
+    setInput(input.slice(0, start) + emoji + input.slice(end));
+    requestAnimationFrame(() => {
+      box?.focus();
+      box?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
+  };
+
   const handleReply = (msg: Message) => {
     setReplyTo(msg);
     inputRef.current?.focus();
@@ -620,7 +674,7 @@ export default function ChatWindow() {
       navigate('/direct/inbox');
     } catch (error) {
       logger.error('Failed to delete conversation', error);
-      // Could show a toast here
+      toast.error(t('chat.delete_chat_error'));
     }
   };
 
@@ -688,6 +742,7 @@ export default function ChatWindow() {
     } catch (err) {
       logger.error('Upload failed', err);
       setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+      toast.error(t('chat.send_error'));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -726,7 +781,15 @@ export default function ChatWindow() {
     const doSend = async () => {
       try {
         if (editingMessage) {
-          await chatApi.editMessage(editingMessage.id, plaintext);
+          // The live event brings the same message; applying the answer
+          // keeps the text right when the live connection is down.
+          const res = await chatApi.editMessage(editingMessage.id, plaintext);
+          const edited = res.data;
+          if (edited?.id) {
+            setMessages((prev) =>
+              prev.map((m) => (m.id === edited.id ? edited : m)),
+            );
+          }
         } else {
           const res = await chatApi.sendMessage({
             conversationId: id,
@@ -750,6 +813,9 @@ export default function ChatWindow() {
       } catch (err) {
         logger.error('Failed to send E2E message', err);
         setMessages((prev) => prev.filter((m) => m.tempId !== tempId));
+        // Give the text back so it is not lost, unless something new was typed.
+        setInput((current) => current || plaintext);
+        toast.error(t('chat.send_error'));
       }
     };
 
@@ -760,6 +826,7 @@ export default function ChatWindow() {
     setEditingMessage(null);
     setLockedPrice(null);
     setLockPriceDraft('5.00');
+    setIsEmojiPanelOpen(false);
     setIsTyping(false);
     if (!chatInfo.isGroup && chatInfo.otherProfileId) {
       stopTyping(id, chatInfo.otherProfileId);
@@ -881,6 +948,7 @@ export default function ChatWindow() {
           <Link
             to="/direct/inbox"
             className="md:hidden text-white/70 hover:text-white transition-all p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
+            aria-label={t('chat.back_to_inbox')}
           >
             <ArrowLeft size={24} strokeWidth={2} />
           </Link>
@@ -1001,6 +1069,7 @@ export default function ChatWindow() {
                     );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                aria-label={t('chat.audio_call')}
               >
                 <Phone size={20} strokeWidth={2} />
               </button>
@@ -1024,6 +1093,7 @@ export default function ChatWindow() {
                     );
                 }}
                 className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                aria-label={t('chat.video_call')}
               >
                 <Video size={24} strokeWidth={2} />
               </button>
@@ -1045,6 +1115,7 @@ export default function ChatWindow() {
                 setShowMenu(!showMenu);
               }}
               className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
+              aria-label={t('chat.more_options')}
             >
               <MoreVertical size={22} strokeWidth={2} />
             </button>
@@ -1211,6 +1282,7 @@ export default function ChatWindow() {
                 type="button"
                 onClick={cancelReply}
                 className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                aria-label={t('chat.cancel_reply')}
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -1240,6 +1312,7 @@ export default function ChatWindow() {
                   setInput('');
                 }}
                 className="p-1 bg-black/40 hover:bg-white/10 rounded-full text-white/70 hover:text-white transition-colors border border-white/10"
+                aria-label={t('chat.cancel_edit')}
               >
                 <X size={14} strokeWidth={2.5} />
               </button>
@@ -1256,7 +1329,7 @@ export default function ChatWindow() {
                 <Lock size={14} className="text-brand-primary shrink-0" />
                 <span className="text-brand-primary font-semibold text-xs">
                   {t('chat.locked_chip_label', {
-                    price: `€${(lockedPrice / 100).toFixed(2)}`,
+                    price: formatCents(lockedPrice, i18n.language),
                   })}
                 </span>
               </div>
@@ -1328,6 +1401,7 @@ export default function ChatWindow() {
                   }
                 }}
                 className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors shrink-0 mb-0.5 ml-0.5"
+                aria-label={t('chat.attach_image')}
               >
                 <ImageIcon size={22} strokeWidth={1.5} />
               </button>
@@ -1374,11 +1448,38 @@ export default function ChatWindow() {
                           max={MAX_PPV_PRICE_EUR}
                           step="0.50"
                           value={lockPriceDraft}
-                          onChange={(e) => setLockPriceDraft(e.target.value)}
+                          onChange={(e) => {
+                            setLockPriceDraft(e.target.value);
+                            setLockPriceInvalid(false);
+                          }}
+                          aria-invalid={lockPriceInvalid}
+                          aria-describedby={
+                            lockPriceInvalid
+                              ? 'lock-message-price-error'
+                              : undefined
+                          }
                           placeholder="5.00"
                           className="w-full min-h-11 h-11 bg-surface-raised border border-white/10 rounded-lg py-2 pl-7 pr-3 text-white text-sm focus:ring-2 focus:ring-brand-primary/40 outline-none"
                         />
                       </div>
+                      {lockPriceInvalid && (
+                        <p
+                          id="lock-message-price-error"
+                          role="alert"
+                          className="text-xs text-red-400"
+                        >
+                          {t('chat.lock_message_range_error', {
+                            min: formatCents(
+                              MIN_PPV_PRICE_EUR * 100,
+                              i18n.language,
+                            ),
+                            max: formatCents(
+                              MAX_PPV_PRICE_EUR * 100,
+                              i18n.language,
+                            ),
+                          })}
+                        </p>
+                      )}
                       <p className="text-[11px] text-white/40">
                         {t('chat.lock_message_hint')}
                       </p>
@@ -1387,6 +1488,7 @@ export default function ChatWindow() {
                           type="button"
                           onClick={() => {
                             setLockedPrice(null);
+                            setLockPriceInvalid(false);
                             setIsLockPopoverOpen(false);
                           }}
                           className="flex-1 min-h-10 h-10 rounded-lg text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 transition-colors"
@@ -1402,8 +1504,10 @@ export default function ChatWindow() {
                               euros < MIN_PPV_PRICE_EUR ||
                               euros > MAX_PPV_PRICE_EUR
                             ) {
+                              setLockPriceInvalid(true);
                               return;
                             }
+                            setLockPriceInvalid(false);
                             setLockedPrice(Math.round(euros * 100));
                             setIsLockPopoverOpen(false);
                           }}
@@ -1437,6 +1541,37 @@ export default function ChatWindow() {
                 placeholder={t('chat.type_message')}
               />
 
+              <div className="relative shrink-0 mb-0.5">
+                <button
+                  type="button"
+                  onClick={() => setIsEmojiPanelOpen((open) => !open)}
+                  aria-label={t('chat.add_emoji')}
+                  aria-expanded={isEmojiPanelOpen}
+                  className={`p-3 rounded-full transition-colors ${
+                    isEmojiPanelOpen
+                      ? 'text-brand-primary bg-brand-primary/15'
+                      : 'text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  <Smile size={22} strokeWidth={1.5} />
+                </button>
+                {isEmojiPanelOpen && (
+                  <fieldset className="absolute bottom-full right-0 mb-2 w-72 max-w-[calc(100vw-2rem)] glass-panel rounded-2xl border border-white/10 shadow-2xl shadow-black/50 p-2 grid grid-cols-6 z-20">
+                    <legend className="sr-only">{t('chat.emoji_panel')}</legend>
+                    {MESSAGE_EMOJIS.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => insertEmoji(emoji)}
+                        className="h-11 w-11 flex items-center justify-center rounded-lg text-xl hover:bg-white/10 transition-colors"
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </fieldset>
+                )}
+              </div>
+
               {input.trim() || isUploading ? (
                 <motion.button
                   type="submit"
@@ -1444,6 +1579,7 @@ export default function ChatWindow() {
                   animate={{ scale: 1 }}
                   disabled={!input.trim() && !isUploading}
                   className="p-3 rounded-full bg-linear-to-tr from-brand-primary to-brand-secondary text-white font-semibold hover:opacity-90 disabled:opacity-50 transition-colors shrink-0 shadow-lg shadow-brand-primary/30 mb-0.5 mr-0.5"
+                  aria-label={t('chat.send')}
                 >
                   <Send size={18} fill="currentColor" className="ml-0.5" />
                 </motion.button>
@@ -1453,14 +1589,9 @@ export default function ChatWindow() {
                     type="button"
                     onClick={() => setIsRecording(true)}
                     className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                    aria-label={t('chat.record_voice')}
                   >
                     <Mic size={22} strokeWidth={1.5} />
-                  </button>
-                  <button
-                    type="button"
-                    className="p-3 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-                  >
-                    <Smile size={22} strokeWidth={1.5} />
                   </button>
                 </div>
               )}

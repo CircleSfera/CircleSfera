@@ -131,7 +131,7 @@ export default function FrameClipControls({
                   type="button"
                   disabled={disabled}
                   onClick={() => applyLength(preset)}
-                  className={`min-h-9 min-w-9 px-2.5 rounded-full text-[11px] font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-35 disabled:cursor-not-allowed ${
+                  className={`min-h-11 min-w-11 px-2.5 rounded-full text-[11px] font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-35 disabled:cursor-not-allowed ${
                     isActive
                       ? 'bg-brand-primary text-white'
                       : 'bg-white/8 text-white/70 hover:bg-white/12'

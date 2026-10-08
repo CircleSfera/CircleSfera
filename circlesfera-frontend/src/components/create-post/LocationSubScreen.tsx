@@ -207,7 +207,6 @@ export default function LocationSubScreen({
         <SubScreenHeader
           title={t('createPost.location.title')}
           onClose={onClose}
-          closeIcon="close"
         />
 
         <div className="p-4 relative z-10 flex flex-col flex-1 min-h-0">

@@ -133,13 +133,14 @@ export default function EditStep({
     else setCurrentEditIndex(index);
   };
 
-  // Maintain rounded corners everywhere for consistency with composer
+  // On phones the preview is a card with a side gutter, like the Frames
+  // card; the larger radius is kept from md up.
   const frameChrome =
-    'rounded-[32px] border-0 shadow-none md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]';
+    'rounded-[20px] md:rounded-[32px] border-0 shadow-none md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]';
 
   return (
     <div className="flex-1 bg-surface-elevated flex flex-col h-full w-full overflow-hidden min-h-0">
-      <div className="flex-1 relative bg-zinc-950/40 flex items-center justify-center overflow-hidden min-h-0 w-full px-0 py-0 md:px-8 md:py-4">
+      <div className="flex-1 relative bg-zinc-950/40 flex items-center justify-center overflow-hidden min-h-0 w-full px-4 py-0 md:px-8 md:py-4">
         <div
           ref={hostRef}
           className="relative h-full w-full max-w-full flex items-center justify-center min-h-0"
@@ -173,7 +174,7 @@ export default function EditStep({
 
             <button
               type="button"
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 h-10 min-h-10
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3.5 h-11 min-h-11
                        bg-black/60 border border-white/15 rounded-full
                        text-white shadow-lg active:scale-95 transition-transform
                        outline-none focus-visible:ring-2 focus-visible:ring-white/30"
@@ -192,12 +193,27 @@ export default function EditStep({
               </span>
             </button>
 
+            {/* Removes the item on show. One button of the common size, instead
+                of a small badge on each thumbnail. Top right: a video keeps
+                its sound button at the bottom right. */}
+            <button
+              type="button"
+              className="absolute top-2.5 right-2.5 z-10 w-11 h-11 flex items-center justify-center
+                       bg-black/60 border border-white/15 rounded-full
+                       text-white shadow-lg active:scale-95 transition-transform
+                       outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+              onClick={() => handleRemoveFile(selectedIndex)}
+              aria-label={t('createPost.edit.remove_media')}
+            >
+              <Trash2 size={16} strokeWidth={2} />
+            </button>
+
             <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 uppercase tracking-wider pointer-events-none">
               {config.badge}
             </div>
 
             {mediaFiles.length > 1 && (
-              <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
+              <div className="absolute top-2.5 left-16 px-2 py-0.5 rounded-lg bg-black/50 border border-white/10 text-[10px] font-bold text-white/60 pointer-events-none">
                 {t('createPost.edit.n_files', { count: mediaFiles.length })}
               </div>
             )}
@@ -223,7 +239,7 @@ export default function EditStep({
                   aria-selected={isActive}
                   key={m}
                   onClick={() => setMode(m)}
-                  className="relative flex-1 min-h-10 px-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                  className="relative flex-1 min-h-11 px-2.5 rounded-lg flex items-center justify-center gap-1.5 transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20"
                 >
                   {isActive && (
                     <motion.div
@@ -257,7 +273,7 @@ export default function EditStep({
 
       <div
         ref={thumbnailContainerRef}
-        className="min-h-16 bg-surface-elevated border-t border-white/8 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
+        className="min-h-18 bg-surface-elevated border-t border-white/8 flex items-center px-3 gap-2.5 overflow-x-auto no-scrollbar shrink-0 py-1.5 pb-2"
       >
         <AnimatePresence>
           {mediaFiles.map((item, idx) => {
@@ -276,7 +292,7 @@ export default function EditStep({
               >
                 <button
                   type="button"
-                  className={`h-12 w-auto rounded overflow-hidden border-2 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
+                  className={`h-14 w-auto min-w-11 rounded overflow-hidden border-2 transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                     isSelected
                       ? 'border-brand-primary shadow-[0_0_0_1px_rgba(136,76,255,0.35)]'
                       : 'border-white/10 hover:border-white/25'
@@ -287,13 +303,10 @@ export default function EditStep({
                     else setSelectedIndex(idx);
                   }}
                   onDoubleClick={() => openEditor(idx)}
-                  aria-label={
-                    isSelected
-                      ? onEditMedia
-                        ? t('createPost.edit.edit_story')
-                        : t('createPost.edit.edit_media')
-                      : t('createPost.edit.select_media')
-                  }
+                  aria-label={t('createPost.edit.media_item', {
+                    index: idx + 1,
+                    total: mediaFiles.length,
+                  })}
                   aria-current={isSelected ? 'true' : undefined}
                 >
                   {item.type === 'video' ? (
@@ -318,22 +331,6 @@ export default function EditStep({
                     />
                   )}
                 </button>
-
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveFile(idx);
-                  }}
-                  className="absolute -top-1 -right-1 w-7 h-7 min-w-7 min-h-7 bg-brand-secondary/90 rounded-full
-                             flex items-center justify-center text-white
-                             hover:bg-brand-secondary active:scale-95 z-10
-                             shadow-md border border-white/20
-                             outline-none focus-visible:ring-2 focus-visible:ring-white/40"
-                  aria-label={t('createPost.edit.remove_media')}
-                >
-                  <Trash2 size={11} strokeWidth={2.5} />
-                </button>
               </motion.div>
             );
           })}
@@ -343,7 +340,7 @@ export default function EditStep({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="h-12 w-auto rounded border-2 border-dashed border-white/10
+            className="h-14 w-auto min-w-11 rounded border-2 border-dashed border-white/10
                      flex items-center justify-center text-white/35 hover:text-white/55
                      hover:border-white/20 hover:bg-white/4 transition-all shrink-0
                      outline-none focus-visible:ring-2 focus-visible:ring-white/20"

@@ -1,9 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
+import type { TFunction } from 'i18next';
 import { ArrowDownLeft, ArrowUpRight, Coins, ShieldCheck } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import { formatDate } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import { Card } from '../ui';
 
 interface Transaction {
@@ -14,11 +16,23 @@ interface Transaction {
   createdAt: string;
   description?: string;
   amount?: number;
+  currency?: string;
 }
 
 interface MonetizationData {
   userId: string;
   lifetimeEarningsCents: number;
+}
+
+// What a transaction was, in the reader's language. The stored description
+// is technical (it carries payment ids) and in English, so it is only used
+// for a type the app has no text for.
+function transactionLabel(tx: Transaction, t: TFunction): string {
+  return (
+    t(`creator.income.tx_types.${tx.type}`, { defaultValue: '' }) ||
+    tx.description ||
+    tx.type.replace(/_/g, ' ')
+  );
 }
 
 // Ledger + Stripe balances for the merged Ingresos surface. No in-app wallet.
@@ -91,7 +105,7 @@ export default function MonetizationDashboard() {
               >
                 <p className="text-[11px] text-white/50">{t(key, fallback)}</p>
                 <p className="text-base font-semibold text-white tabular-nums mt-0.5">
-                  €{((cents || 0) / 100).toFixed(2)}
+                  {formatCents(cents || 0, i18n.language)}
                 </p>
               </div>
             ))}
@@ -114,12 +128,11 @@ export default function MonetizationDashboard() {
                 {t('creator.income.available')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
-                {(
-                  (payoutsSummary.available?.[0]?.amountCents || 0) / 100
-                ).toFixed(2)}{' '}
-                <span className="text-xs font-normal text-white/40">
-                  {payoutsSummary.available?.[0]?.currency || 'EUR'}
-                </span>
+                {formatCents(
+                  payoutsSummary.available?.[0]?.amountCents || 0,
+                  i18n.language,
+                  payoutsSummary.available?.[0]?.currency || 'EUR',
+                )}
               </p>
             </div>
             <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
@@ -127,12 +140,11 @@ export default function MonetizationDashboard() {
                 {t('creator.income.pending')}
               </p>
               <p className="text-2xl font-semibold text-white tabular-nums">
-                {(
-                  (payoutsSummary.pending?.[0]?.amountCents || 0) / 100
-                ).toFixed(2)}{' '}
-                <span className="text-xs font-normal text-white/40">
-                  {payoutsSummary.pending?.[0]?.currency || 'EUR'}
-                </span>
+                {formatCents(
+                  payoutsSummary.pending?.[0]?.amountCents || 0,
+                  i18n.language,
+                  payoutsSummary.pending?.[0]?.currency || 'EUR',
+                )}
               </p>
             </div>
           </div>
@@ -173,7 +185,7 @@ export default function MonetizationDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-white">
-                      {tx.description || tx.type.replace(/_/g, ' ')}
+                      {transactionLabel(tx, t)}
                     </p>
                     <p className="text-[11px] text-white/40">
                       {formatDate(tx.createdAt, i18n.language)}
@@ -185,7 +197,8 @@ export default function MonetizationDashboard() {
                     isIncoming ? 'text-white' : 'text-brand-secondary'
                   }`}
                 >
-                  {isIncoming ? '+' : '-'}€{(cents / 100).toFixed(2)}
+                  {isIncoming ? '+' : '-'}
+                  {formatCents(cents, i18n.language, tx.currency || 'EUR')}
                 </span>
               </div>
             );

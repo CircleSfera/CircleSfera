@@ -34,6 +34,18 @@ const GRID_CLASS = {
     'grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-0.5 md:gap-1',
 } as const;
 
+// A video shows nothing on phones until it plays. Its thumbnail is used as
+// the poster; while there is none yet, the time fragment makes the browser
+// paint the first frame.
+function videoPreviewSrc(
+  media: { url?: string; thumbnailUrl?: string | null } | undefined,
+): string | undefined {
+  if (!media?.url || media.thumbnailUrl || media.url.includes('#')) {
+    return media?.url;
+  }
+  return `${media.url}#t=0.001`;
+}
+
 export default function PostGrid({
   items,
   emptyMessage,
@@ -98,12 +110,13 @@ export default function PostGrid({
             )}
             {post.media?.[0]?.type === 'video' || post.type === 'FRAME' ? (
               <video
-                src={post.media?.[0]?.url}
+                src={videoPreviewSrc(post.media?.[0])}
+                poster={post.media?.[0]?.thumbnailUrl || undefined}
                 className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
                 muted
                 playsInline
                 loop
-                preload="metadata"
+                preload={post.media?.[0]?.thumbnailUrl ? 'none' : 'metadata'}
                 onMouseOver={(e) => {
                   e.currentTarget.play().catch(() => {});
                 }}

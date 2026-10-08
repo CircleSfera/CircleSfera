@@ -252,7 +252,7 @@ export default function Frames() {
 
   return (
     <div
-      className="h-full min-h-0 w-full flex flex-col max-md:px-3 max-md:pt-1 max-md:pb-0 md:items-center md:justify-center relative overflow-hidden"
+      className="h-full min-h-0 w-full flex flex-col max-md:px-3 max-md:py-1 md:items-center md:justify-center relative overflow-hidden"
       data-content-shell="vertical"
     >
       <div className="hidden md:block absolute inset-0 z-0">

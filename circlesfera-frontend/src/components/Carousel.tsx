@@ -187,7 +187,7 @@ export default function Carousel({
               type="button"
               onClick={toggleMute}
               aria-label={isMuted ? t('common.unmute') : t('common.mute')}
-              className="absolute bottom-4 right-4 p-2 bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
+              className="absolute bottom-4 right-4 w-11 h-11 flex items-center justify-center bg-black/50 backdrop-blur-md rounded-full text-white z-20 hover:bg-black/70 transition-colors"
             >
               {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}
             </button>
