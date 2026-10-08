@@ -1323,6 +1323,8 @@
       "muted": "Silenciado",
       "with_sound": "Con sonido",
       "trim_label": "Recortar ({{seconds}}s)",
+      "trim_start": "Inicio del clip",
+      "trim_end": "Fin del clip",
       "reset": "Restablecer",
       "tab_filters": "Filtros",
       "tab_adjust": "Ajustar",

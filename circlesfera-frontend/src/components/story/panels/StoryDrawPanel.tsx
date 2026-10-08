@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ColorPicker from '../ColorPicker';
 import type { StoryCanvasRef } from '../Editor/StoryCanvas';
 import SliderControl from '../SliderControl';
+import { DEFAULT_BRUSH_WIDTH } from '../storyComposer.constants';
 
 export interface StoryDrawPanelProps {
   storyCanvasRef: RefObject<StoryCanvasRef | null>;
@@ -64,7 +65,7 @@ export default function StoryDrawPanel({
         step={1}
         unit="px"
         onChange={onBrushWidthChange}
-        onDoubleClick={() => onBrushWidthChange(4)}
+        onDoubleClick={() => onBrushWidthChange(DEFAULT_BRUSH_WIDTH)}
       />
       <div className="space-y-2">
         <span className="text-[11px] font-bold text-white/35 uppercase tracking-[0.14em]">

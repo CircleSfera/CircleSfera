@@ -50,6 +50,8 @@ const AdjustmentSlider = ({
           min={min}
           max={max}
           value={value}
+          aria-label={label}
+          aria-valuetext={`${value}${unit}`}
           onChange={(e) => onChange(Number(e.target.value))}
           className={`w-full ${PHOTO_RANGE_CLASS}`}
         />

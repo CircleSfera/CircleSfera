@@ -308,6 +308,39 @@ describe('PhotoEditor', () => {
     });
   });
 
+  it('names its sliders, so a screen reader says what each one changes', async () => {
+    renderEditor();
+
+    await openTab('Ajustar', slider);
+    expect(screen.getByRole('slider', { name: 'Brillo' })).toHaveAttribute(
+      'aria-valuetext',
+      '100%',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Viñeta' }));
+    expect(screen.getByRole('slider', { name: 'Viñeta' })).toBeInTheDocument();
+
+    await openTab('Recorte', () => button('4:5'));
+    expect(screen.getByRole('slider', { name: 'Rotación' })).toHaveAttribute(
+      'aria-valuetext',
+      '0°',
+    );
+  });
+
+  it('gives each new layer item its own id', async () => {
+    const { onStateChange } = renderEditor();
+
+    await openTab('Capa', () => button('+ Texto'));
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+
+    const ids = onStateChange.mock.calls
+      .at(-1)?.[0]
+      .overlays.map((overlay: OverlayElement) => overlay.id);
+    expect(ids).toHaveLength(2);
+    expect(new Set(ids).size).toBe(2);
+  });
+
   describe('a video', () => {
     it('offers trim instead of crop and layer', () => {
       renderEditor({ image: clip() });
@@ -340,6 +373,12 @@ describe('PhotoEditor', () => {
         screen.getByRole('button', { name: 'Silenciado' }),
       ).toHaveAttribute('aria-pressed', 'true');
 
+      expect(
+        screen.getByRole('slider', { name: 'Inicio del clip' }),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('slider', { name: 'Fin del clip' }),
+      ).toBeInTheDocument();
       const [start] = screen.getAllByRole('slider');
       fireEvent.change(start, { target: { value: '4' } });
       save();

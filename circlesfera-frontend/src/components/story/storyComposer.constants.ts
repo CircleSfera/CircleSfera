@@ -35,6 +35,9 @@ export const GRADIENT_PRESETS: [string, string][] = [
   ['#fdcb6e', '#e17055'],
 ];
 
+/** The brush size the draw tool starts at and returns to on a double tap. */
+export const DEFAULT_BRUSH_WIDTH = 5;
+
 export const POLL_QUESTION_MAX = 120;
 export const POLL_OPTION_MAX = 32;
 export const QNA_PROMPT_MAX = 120;

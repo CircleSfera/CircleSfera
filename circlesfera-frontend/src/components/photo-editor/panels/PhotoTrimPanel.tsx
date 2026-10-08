@@ -82,6 +82,8 @@ export default function PhotoTrimPanel({
               max={videoRef.current?.duration || 100}
               step={0.1}
               value={videoData.startTime}
+              aria-label={t('createPost.edit.trim_start')}
+              aria-valuetext={`${videoData.startTime.toFixed(1)}s`}
               onChange={(e) => {
                 const val = Number(e.target.value);
                 if (val < videoData.endTime) {
@@ -97,6 +99,8 @@ export default function PhotoTrimPanel({
               max={videoRef.current?.duration || 100}
               step={0.1}
               value={videoData.endTime}
+              aria-label={t('createPost.edit.trim_end')}
+              aria-valuetext={`${videoData.endTime.toFixed(1)}s`}
               onChange={(e) => {
                 const val = Number(e.target.value);
                 if (val > videoData.startTime) {

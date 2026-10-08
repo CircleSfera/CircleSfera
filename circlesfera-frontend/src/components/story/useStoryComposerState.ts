@@ -7,7 +7,10 @@ import {
   buildQnaElement,
   buildStickerElement,
 } from './storyComposer.append';
-import type { StoryTemplate } from './storyComposer.constants';
+import {
+  DEFAULT_BRUSH_WIDTH,
+  type StoryTemplate,
+} from './storyComposer.constants';
 import {
   exportStoryCanvas,
   reportStoryExportError,
@@ -61,7 +64,7 @@ export function useStoryComposerState(props: {
   const chromeArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeStickerCategory, setActiveStickerCategory] = useState(0);
   const [brushColor, setBrushColor] = useState('#FFFFFF');
-  const [brushWidth, setBrushWidth] = useState(5);
+  const [brushWidth, setBrushWidth] = useState(DEFAULT_BRUSH_WIDTH);
   const storyCanvasRef = useRef<StoryCanvasRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -160,6 +163,10 @@ export function useStoryComposerState(props: {
       question: pollQuestion,
       option1: pollOption1,
       option2: pollOption2,
+      defaultOptions: [
+        t('createPost.storyComposer.poll_yes'),
+        t('createPost.storyComposer.poll_no'),
+      ],
     });
     if (!el) return;
     appendElement(el);

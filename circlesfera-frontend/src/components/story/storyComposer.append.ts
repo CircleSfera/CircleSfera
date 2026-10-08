@@ -24,6 +24,8 @@ export function buildPollElement(options: {
   question: string;
   option1: string;
   option2: string;
+  /** The answers used when one is left empty, in the app language. */
+  defaultOptions: [string, string];
 }): StoryElement | null {
   const question = options.question.trim();
   if (!question) return null;
@@ -33,8 +35,14 @@ export function buildPollElement(options: {
     content: JSON.stringify({
       question: question.slice(0, POLL_QUESTION_MAX),
       options: [
-        (options.option1.trim() || 'Yes').slice(0, POLL_OPTION_MAX),
-        (options.option2.trim() || 'No').slice(0, POLL_OPTION_MAX),
+        (options.option1.trim() || options.defaultOptions[0]).slice(
+          0,
+          POLL_OPTION_MAX,
+        ),
+        (options.option2.trim() || options.defaultOptions[1]).slice(
+          0,
+          POLL_OPTION_MAX,
+        ),
       ],
     }),
     x: 0,
