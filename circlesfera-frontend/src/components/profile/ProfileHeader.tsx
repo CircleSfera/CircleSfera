@@ -15,7 +15,6 @@ import {
   ShieldCheck,
   Star,
   VolumeX,
-  Wand2,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -23,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import type { ProfileWithUser } from '../../types';
+import { hasCreatorTools } from '../../utils/creatorTools';
 import FollowButton from '../FollowButton';
 import MuteDurationModal from '../modals/MuteDurationModal';
 import ProfileSwitcher from '../profiles/ProfileSwitcher';
@@ -375,26 +375,6 @@ export default function ProfileHeader({
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setCreatorMode(!isCreatorModeActive)}
-                    className={`px-3 h-11 rounded-full border transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg flex items-center gap-1 text-sm font-semibold
-                      ${
-                        isCreatorModeActive
-                          ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
-                          : 'bg-white/5 text-gray-300 hover:text-white border-white/5 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)]'
-                      }`}
-                    title={
-                      isCreatorModeActive
-                        ? t('profile.creator_mode.exit')
-                        : t('profile.creator_mode.enter')
-                    }
-                  >
-                    <Wand2 size={16} aria-hidden="true" />
-                    {isCreatorModeActive
-                      ? t('profile.creator_mode.creator')
-                      : t('profile.creator_mode.consumer')}
-                  </button>
                   <Link
                     to="/accounts"
                     aria-label={t('profile.actions.settings')}
@@ -596,27 +576,26 @@ export default function ProfileHeader({
                 >
                   <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreatorMode(!isCreatorModeActive)}
-                  className={`flex-1 min-w-0 px-2 h-11 rounded-full border transition-all flex items-center justify-center gap-1 text-xs sm:text-sm font-semibold shadow-lg
-                    ${
-                      isCreatorModeActive
-                        ? 'bg-brand-primary text-white border-brand-primary/50 shadow-brand-primary/20'
-                        : 'bg-white/5 text-gray-300 border-white/5'
-                    }`}
-                >
-                  <Wand2
-                    size={14}
-                    className="hidden sm:block shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span className="truncate">
-                    {isCreatorModeActive
-                      ? t('profile.creator_mode.creator')
-                      : t('profile.creator_mode.consumer')}
-                  </span>
-                </button>
+                {/* Creator mode swaps two entries of the bottom bar on phones,
+                    so it is offered only there and only to the accounts
+                    that have creator tools. */}
+                {hasCreatorTools(profile.data.accountType) ? (
+                  <button
+                    type="button"
+                    onClick={() => setCreatorMode(!isCreatorModeActive)}
+                    aria-pressed={isCreatorModeActive}
+                    className={`flex-1 min-w-0 px-2 h-11 rounded-full border transition-all flex items-center justify-center text-xs sm:text-sm font-semibold
+                      ${
+                        isCreatorModeActive
+                          ? 'bg-brand-primary text-white border-brand-primary/50 shadow-lg shadow-brand-primary/20'
+                          : 'bg-white/5 text-gray-300 border-white/10'
+                      }`}
+                  >
+                    <span className="truncate">
+                      {t('profile.creator_mode.label')}
+                    </span>
+                  </button>
+                ) : null}
                 <Link
                   to="/accounts"
                   aria-label={t('profile.actions.settings')}

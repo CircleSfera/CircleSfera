@@ -10,11 +10,15 @@ import {
  * is at least 12 px, the controls of the page are at size, and nothing of the
  * header leaves its card.
  */
-async function openProfile(page: Page, who: 'own' | 'other') {
-  const { user } = await prepareAuthenticatedSession(page);
+async function openProfile(
+  page: Page,
+  who: 'own' | 'other',
+  accountType: 'PERSONAL' | 'CREATOR' = 'PERSONAL',
+) {
+  const { user } = await prepareAuthenticatedSession(page, { accountType });
   const username = who === 'own' ? user.username : 'ana';
   const profile = {
-    ...testProfile({ bio: 'Fotógrafa de costa y montaña.' }, user),
+    ...testProfile({ bio: 'Fotógrafa de costa y montaña.', accountType }, user),
     ...(who === 'other'
       ? { id: 'profile-ana', userId: 'user-ana', username: 'ana' }
       : {}),
@@ -111,3 +115,48 @@ for (const [label, viewport] of [
     });
   });
 }
+
+test.describe('creator mode', () => {
+  const creatorMode = (page: Page) =>
+    page.getByRole('button', { name: 'Modo creador' });
+
+  test.describe('on a phone', () => {
+    test.use({ viewport: { width: 390, height: 844 } });
+
+    test('a creator account has the switch, and it swaps the bottom bar', async ({
+      page,
+    }) => {
+      await openProfile(page, 'own', 'CREATOR');
+      await expectInOrder(page);
+      const bar = page.getByRole('navigation', { name: 'Navegación móvil' });
+
+      await expect(creatorMode(page)).toHaveAttribute('aria-pressed', 'false');
+      // The whole label is in view, not cut short.
+      const cut = await creatorMode(page).evaluate((button) => {
+        const label = button.querySelector('span');
+        return label ? label.scrollWidth > label.clientWidth : true;
+      });
+      expect(cut).toBe(false);
+      await expect(bar.getByRole('link', { name: 'Buscar' })).toBeVisible();
+
+      await creatorMode(page).click();
+      await expect(creatorMode(page)).toHaveAttribute('aria-pressed', 'true');
+      await expect(bar.getByRole('link', { name: 'Buscar' })).toHaveCount(0);
+      await expect(bar.getByRole('link', { name: 'Studio' })).toBeVisible();
+    });
+
+    test('a personal account has no switch', async ({ page }) => {
+      await openProfile(page, 'own');
+      await expect(creatorMode(page)).toHaveCount(0);
+    });
+  });
+
+  test.describe('on desktop', () => {
+    test.use({ viewport: { width: 1440, height: 900 } });
+
+    test('there is no switch: it changes nothing there', async ({ page }) => {
+      await openProfile(page, 'own', 'CREATOR');
+      await expect(creatorMode(page)).toHaveCount(0);
+    });
+  });
+});

@@ -1129,10 +1129,7 @@
       "create_post": "Crear publicación"
     },
     "creator_mode": {
-      "creator": "Creador",
-      "consumer": "Consumidor",
-      "enter": "Activar modo creador",
-      "exit": "Salir del modo creador"
+      "label": "Modo creador"
     },
     "highlights": {
       "new": "Nuevo"
