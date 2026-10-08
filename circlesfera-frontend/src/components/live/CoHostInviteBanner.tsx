@@ -94,7 +94,7 @@ export default function CoHostInviteBanner({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="shrink-0 p-1.5 text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
+                className="shrink-0 w-11 h-11 flex items-center justify-center text-white/40 hover:text-white/80 transition-colors rounded-full hover:bg-white/10"
                 aria-label={t('common.close')}
               >
                 <X size={16} />
@@ -105,7 +105,7 @@ export default function CoHostInviteBanner({
               <button
                 type="button"
                 onClick={handleAccept}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-purple-500/20 active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-purple-500/20 active:scale-95"
               >
                 <UserPlus size={16} />
                 {t('live.cohost_invite.join')}
@@ -113,7 +113,7 @@ export default function CoHostInviteBanner({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="py-2.5 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-xl transition-all active:scale-95"
+                className="min-h-12 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-xl transition-all active:scale-95"
               >
                 {t('live.cohost_invite.decline')}
               </button>

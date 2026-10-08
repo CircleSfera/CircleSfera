@@ -43,7 +43,7 @@ export default function LiveQnAPanel({
 
   return (
     <div className="absolute inset-x-0 bottom-0 top-[20%] bg-black/90 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 flex flex-col z-50 animate-in slide-in-from-bottom-8 duration-300">
-      <div className="flex items-center justify-between p-4 border-b border-white/10">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
         <div className="flex items-center gap-2 text-white">
           <HelpCircle size={20} className="text-pink-400" />
           <h3 className="font-bold">{t('live.qna.title')}</h3>
@@ -51,7 +51,7 @@ export default function LiveQnAPanel({
         <button
           type="button"
           onClick={onClose}
-          className="p-1.5 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
+          className="w-11 h-11 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
           aria-label={t('common.close')}
         >
           <X size={16} />
@@ -76,10 +76,10 @@ export default function LiveQnAPanel({
                 <img
                   src={
                     q.avatar ||
-                    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=50'
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(q.username)}`
                   }
                   alt={q.username}
-                  className="w-6 h-6 rounded-full object-cover"
+                  className="w-8 h-8 rounded-full object-cover"
                 />
                 <span className="text-xs font-bold text-white/70">
                   {q.username}
@@ -92,7 +92,7 @@ export default function LiveQnAPanel({
                   <button
                     type="button"
                     onClick={() => onHighlightQuestion(q)}
-                    className="text-[11px] font-bold text-pink-400 bg-pink-400/10 px-3 py-1 rounded-full hover:bg-pink-400/20 transition-colors"
+                    className="min-h-11 text-xs font-bold text-pink-400 bg-pink-400/10 px-4 rounded-full hover:bg-pink-400/20 transition-colors"
                   >
                     {t('live.qna.project')}
                   </button>
@@ -108,7 +108,7 @@ export default function LiveQnAPanel({
           <button
             type="button"
             onClick={onClearHighlight}
-            className="w-full py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
+            className="w-full min-h-12 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
           >
             {t('live.qna.clear_screen')}
           </button>
@@ -123,12 +123,13 @@ export default function LiveQnAPanel({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={t('live.qna.placeholder')}
-            className="flex-1 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-sm text-white outline-none focus:border-pink-500"
+            aria-label={t('live.qna.placeholder')}
+            className="flex-1 min-w-0 min-h-12 bg-white/10 border border-white/10 rounded-full px-4 text-base text-white outline-none focus:border-pink-500"
           />
           <button
             type="submit"
             disabled={!input.trim()}
-            className="p-2 bg-pink-500 rounded-full text-white disabled:opacity-50 hover:bg-pink-600 transition-colors shrink-0"
+            className="w-11 h-11 flex items-center justify-center bg-pink-500 rounded-full text-white disabled:opacity-50 hover:bg-pink-600 transition-colors shrink-0"
             aria-label={t('live.qna.send')}
           >
             <Send size={18} />
