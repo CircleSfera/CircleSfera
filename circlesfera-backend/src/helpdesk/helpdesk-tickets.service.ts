@@ -345,6 +345,37 @@ export class HelpdeskTicketsService {
     return this.getTicket(id);
   }
 
+  // An answer written in the team's own channel instead of the Help Desk.
+  // Who of the team wrote it is not known there, so the message has no
+  // author and nothing goes to the staff log. Returns false when the ticket
+  // cannot be answered: missing, closed, already solved or with another team.
+  async answerFromTeamChannel(id: string, text: string): Promise<boolean> {
+    const body = text.trim();
+    const ticket = body ? await this.store.findTicket(id) : null;
+    if (
+      !ticket ||
+      ticket.status === 'CLOSED' ||
+      ticket.status === 'RESOLVED' ||
+      (await this.isHeldByOtherTeam(ticket))
+    ) {
+      return false;
+    }
+
+    const resolvedAt = resolvedAtOnStatusChange(
+      'RESOLVED',
+      ticket.resolvedAt,
+      ['RESOLVED', 'CLOSED'],
+      'OPEN',
+    );
+    const updated = await this.store.updateTicket(
+      id,
+      { status: 'RESOLVED', ...(resolvedAt !== undefined && { resolvedAt }) },
+      { authorKind: 'AGENT', authorRef: null, visibility: 'PUBLIC', body },
+    );
+    await this.notifier.answer(this.noticeOf(updated), body);
+    return true;
+  }
+
   async updateTicket(
     agentRef: string,
     id: string,

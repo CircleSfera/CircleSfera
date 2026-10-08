@@ -1,5 +1,6 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { MaintenanceService } from './maintenance.service.js';
@@ -58,6 +59,10 @@ describe('MaintenanceService', () => {
     $transaction: vi.fn().mockResolvedValue([]),
   };
 
+  const mockHelpdeskData = {
+    deleteEndedBefore: vi.fn().mockResolvedValue({ count: 1 }),
+  };
+
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
   };
@@ -68,6 +73,7 @@ describe('MaintenanceService', () => {
         MaintenanceService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: UploadsService, useValue: mockUploadsService },
+        { provide: HelpdeskDataPort, useValue: mockHelpdeskData },
       ],
     }).compile();
 
@@ -400,7 +406,6 @@ describe('MaintenanceService', () => {
       vi.setSystemTime(now);
       for (const model of [
         'notification',
-        'supportTicket',
         'appeal',
         'adminAuditLog',
         'dataExportRequest',
@@ -424,15 +429,8 @@ describe('MaintenanceService', () => {
           createdAt: { lt: new Date(now.getTime() - 90 * DAY) },
         },
       });
-      expect(mockPrismaService.supportTicket.deleteMany).toHaveBeenCalledWith({
-        where: {
-          status: { in: ['RESOLVED', 'CLOSED'] },
-          OR: [
-            { resolvedAt: { lt: twoYears } },
-            { resolvedAt: null, updatedAt: { lt: twoYears } },
-          ],
-        },
-      });
+      // Tickets are the Help Desk's: it is asked to delete the ended ones.
+      expect(mockHelpdeskData.deleteEndedBefore).toHaveBeenCalledWith(twoYears);
       expect(mockPrismaService.appeal.deleteMany).toHaveBeenCalledWith({
         where: {
           status: { in: ['APPROVED', 'REJECTED'] },
@@ -461,10 +459,7 @@ describe('MaintenanceService', () => {
       expect(
         mockPrismaService.notification.deleteMany.mock.calls[0][0].where.read,
       ).toBe(true);
-      expect(
-        mockPrismaService.supportTicket.deleteMany.mock.calls[0][0].where
-          .status,
-      ).toEqual({ in: ['RESOLVED', 'CLOSED'] });
+      expect(mockPrismaService.supportTicket.deleteMany).not.toHaveBeenCalled();
       expect(
         mockPrismaService.appeal.deleteMany.mock.calls[0][0].where.status,
       ).toEqual({ in: ['APPROVED', 'REJECTED'] });

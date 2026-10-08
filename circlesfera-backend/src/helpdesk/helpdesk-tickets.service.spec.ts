@@ -729,6 +729,67 @@ describe('HelpdeskTicketsService', () => {
     });
   });
 
+  describe('an answer written in the team channel', () => {
+    it('becomes a message of the team, solves the ticket and tells the requester', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({
+        ...ticket,
+        reference: 42,
+        status: 'RESOLVED',
+      });
+
+      expect(await service.answerFromTeamChannel('t-1', '  Fixed.  ')).toBe(
+        true,
+      );
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        { status: 'RESOLVED', resolvedAt: expect.any(Date) },
+        // The channel does not say who of the team wrote it.
+        {
+          authorKind: 'AGENT',
+          authorRef: null,
+          visibility: 'PUBLIC',
+          body: 'Fixed.',
+        },
+      );
+      expect(notifier.answer).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 't-1', email: 'ana@example.com' }),
+        'Fixed.',
+      );
+      expect(staffLog.record).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      ['does not exist', null],
+      ['is closed', { ...ticket, status: 'CLOSED' }],
+      ['is already solved', { ...ticket, status: 'RESOLVED' }],
+    ])('refuses when the ticket %s', async (_case, found) => {
+      store.findTicket.mockResolvedValue(found);
+
+      expect(await service.answerFromTeamChannel('t-1', 'Fixed.')).toBe(false);
+      expect(store.updateTicket).not.toHaveBeenCalled();
+      expect(notifier.answer).not.toHaveBeenCalled();
+    });
+
+    it('refuses while the ticket is with another team', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        status: 'ESCALATED',
+        escalatedReportId: 'r-1',
+      });
+      handover.cases.mockResolvedValue(caseOf('PENDING'));
+
+      expect(await service.answerFromTeamChannel('t-1', 'Fixed.')).toBe(false);
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('refuses an answer that is only spaces without looking for the ticket', async () => {
+      expect(await service.answerFromTeamChannel('t-1', '   ')).toBe(false);
+      expect(store.findTicket).not.toHaveBeenCalled();
+    });
+  });
+
   describe('changing a ticket', () => {
     const escalated = {
       ...ticket,

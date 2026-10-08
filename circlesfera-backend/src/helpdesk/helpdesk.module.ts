@@ -3,6 +3,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { HelpdeskScheduler } from './helpdesk.scheduler.js';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { HelpdeskAgentController } from './helpdesk-agent.controller.js';
+import { HelpdeskDataPort } from './helpdesk-data.port.js';
 import { HelpdeskRequesterController } from './helpdesk-requester.controller.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
@@ -17,8 +18,16 @@ export class HelpdeskModule {}
 export function helpdeskFor(host: Type<unknown>): DynamicModule {
   return {
     module: HelpdeskModule,
+    // The data port is what the rest of the product may ask the Help Desk.
+    global: true,
     imports: [PrismaModule, host],
     controllers: [HelpdeskRequesterController, HelpdeskAgentController],
-    providers: [HelpdeskStore, HelpdeskTicketsService, HelpdeskScheduler],
+    providers: [
+      HelpdeskStore,
+      HelpdeskTicketsService,
+      HelpdeskScheduler,
+      HelpdeskDataPort,
+    ],
+    exports: [HelpdeskDataPort],
   };
 }

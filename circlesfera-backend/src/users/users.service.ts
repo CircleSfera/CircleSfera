@@ -231,7 +231,6 @@ export class UsersService {
           },
           settings: true,
           appeals: true,
-          supportTickets: true,
           sentTransactions: {
             select: {
               id: true,
@@ -299,7 +298,6 @@ export class UsersService {
       })),
       settings: relations.settings,
       appeals: relations.appeals,
-      supportTickets: relations.supportTickets,
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,

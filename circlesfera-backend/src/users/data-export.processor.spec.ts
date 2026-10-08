@@ -4,6 +4,7 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { type Job, UnrecoverableError } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailService } from '../email/email.service.js';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DataExportProcessor } from './data-export.processor.js';
 import { DataExportService } from './data-export.service.js';
@@ -53,6 +54,7 @@ describe('DataExportProcessor', () => {
   let usersService: any;
   let emailService: any;
   let dataExportService: any;
+  let helpdeskData: { exportForRequester: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     mockExistsSync = vi.fn().mockReturnValue(true);
@@ -96,6 +98,10 @@ describe('DataExportProcessor', () => {
       sendDataExportReadyEmail: vi.fn().mockResolvedValue(true),
     };
 
+    helpdeskData = {
+      exportForRequester: vi.fn().mockResolvedValue([{ id: 't-1' }]),
+    };
+
     dataExportService = {
       generateDownloadToken: vi.fn().mockReturnValue('mock-token-123'),
     };
@@ -108,6 +114,7 @@ describe('DataExportProcessor', () => {
         { provide: UsersService, useValue: usersService },
         { provide: EmailService, useValue: emailService },
         { provide: DataExportService, useValue: dataExportService },
+        { provide: HelpdeskDataPort, useValue: helpdeskData },
       ],
     }).compile();
 
@@ -222,6 +229,9 @@ describe('DataExportProcessor', () => {
       });
 
       expect(usersService.exportUserData).toHaveBeenCalledWith('u1');
+      // What they wrote to support comes from the Help Desk, not from a
+      // query of this job.
+      expect(helpdeskData.exportForRequester).toHaveBeenCalledWith('u1');
       expect(dataExportService.generateDownloadToken).toHaveBeenCalled();
       expect(emailService.sendDataExportReadyEmail).toHaveBeenCalledWith(
         'user@test.com',
