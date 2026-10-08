@@ -85,6 +85,13 @@ describe('HelpdeskTicketsService', () => {
           message: dto.message,
           category: undefined,
           userId: dto.userId,
+          messages: {
+            create: {
+              authorKind: 'REQUESTER',
+              authorRef: dto.userId,
+              body: dto.message,
+            },
+          },
         },
       });
       expect(teamChannel.ticketOpened).toHaveBeenCalledWith(created);
@@ -306,6 +313,14 @@ describe('HelpdeskTicketsService', () => {
           reply: '  Fixed.  ',
           status: 'RESOLVED',
           resolvedAt: expect.any(Date),
+          // The same answer the requester receives, as a message of the agent
+          messages: {
+            create: {
+              authorKind: 'AGENT',
+              authorRef: 'admin-1',
+              body: 'Fixed.',
+            },
+          },
         }),
       });
       expect(notifier.answer).toHaveBeenCalledWith(
@@ -333,6 +348,21 @@ describe('HelpdeskTicketsService', () => {
 
       expect(notifier.answer).not.toHaveBeenCalled();
       expect(staffLog.record).toHaveBeenCalled();
+      expect(
+        prisma.supportTicket.update.mock.calls[0][0].data,
+      ).not.toHaveProperty('messages');
+    });
+
+    it('adds no message for a reply that is only spaces', async () => {
+      prisma.supportTicket.findUnique.mockResolvedValue(ticket);
+      prisma.supportTicket.update.mockResolvedValue(ticket);
+
+      await service.updateTicket('admin-1', 't-1', { reply: '   ' });
+
+      expect(
+        prisma.supportTicket.update.mock.calls[0][0].data,
+      ).not.toHaveProperty('messages');
+      expect(notifier.answer).not.toHaveBeenCalled();
     });
 
     it('says so when the ticket does not exist', async () => {
