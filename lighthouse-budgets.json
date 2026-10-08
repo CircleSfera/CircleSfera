@@ -1,0 +1,26 @@
+{
+  "runs": 3,
+  "confirmRuns": 4,
+  "pages": [
+    {
+      "name": "login",
+      "path": "/accounts/login",
+      "budgets": { "lcpMs": 8900, "cls": 0.05, "tbtMs": 200, "scriptKb": 830 }
+    },
+    {
+      "name": "sign-up",
+      "path": "/accounts/signup",
+      "budgets": { "lcpMs": 9400, "cls": 0.05, "tbtMs": 200, "scriptKb": 830 }
+    },
+    {
+      "name": "features",
+      "path": "/features",
+      "budgets": { "lcpMs": 8200, "cls": 0.05, "tbtMs": 200, "scriptKb": 830 }
+    },
+    {
+      "name": "pricing",
+      "path": "/pricing",
+      "budgets": { "lcpMs": 8100, "cls": 0.1, "tbtMs": 200, "scriptKb": 830 }
+    }
+  ]
+}
