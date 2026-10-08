@@ -158,4 +158,19 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
     expect(adminApi.getSupportTicketAccount).toHaveBeenCalledWith('t-1');
   });
+
+  it('says how long an open ticket has waited, and not for a closed one', async () => {
+    const threeDaysAgo = new Date(
+      Date.now() - 3 * 24 * 60 * 60 * 1000 - 60_000,
+    ).toISOString();
+    vi.mocked(adminApi.getSupportTickets).mockResolvedValue(
+      page([
+        ticket({ id: 't-old', createdAt: threeDaysAgo }),
+        ticket({ id: 't-done', status: 'RESOLVED', createdAt: threeDaysAgo }),
+      ]) as never,
+    );
+    renderWithProviders(<SupportTicketsTab onToast={onToast} />);
+
+    expect(await screen.findAllByText('Waiting 3 days')).toHaveLength(1);
+  });
 });
