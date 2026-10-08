@@ -116,7 +116,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                     onClick={() => setShowWhy(!showWhy)}
                     className="cursor-pointer hover:text-gray-300 font-medium flex items-center gap-1 focus:outline-none"
                   >
-                    <span className="text-[10px] opacity-70">
+                    <span className="text-xs opacity-70">
                       {showWhy ? '▼' : '▶'}
                     </span>
                     {t('post.recommendation.why')}
@@ -158,7 +158,7 @@ export default memo(function PostCard({ post, priority }: PostCardProps) {
                         return (
                           <p
                             key={signal}
-                            className="text-[11px] text-gray-400 leading-relaxed"
+                            className="text-xs text-gray-400 leading-relaxed"
                           >
                             {explanation}
                           </p>

@@ -1091,6 +1091,7 @@
     "delete_title": "Eliminar Comentario",
     "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.",
     "add_media": "Añadir media",
+    "remove_media": "Quitar el archivo",
     "voice_note": "🎤 Nota de voz"
   },
   "profile": {
