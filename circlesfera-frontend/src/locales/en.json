@@ -128,6 +128,11 @@
       "presence_links": "Presence & Links",
       "bio": "Bio",
       "website": "Website",
+      "company": {
+        "title": "Company",
+        "hint": "Verify your company with Stripe so your profile shows “Verified company”. Stripe checks the company details; CircleSfera keeps no document.",
+        "verify": "Verify company"
+      },
       "colour": {
         "title": "Profile colour",
         "hint": "It shows at the top of your profile, on the main button and on your link. Everyone who visits your profile sees it.",
@@ -1238,7 +1243,8 @@
       }
     },
     "private_account": "Private account",
-    "private_label": "Private"
+    "private_label": "Private",
+    "company_verified": "Verified company"
   },
   "suggestions": {
     "title": "Suggested for you",
