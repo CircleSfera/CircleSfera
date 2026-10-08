@@ -37,7 +37,11 @@ vi.mock('../../services/index', () => ({
 }));
 
 vi.mock('react-hot-toast', () => ({
-  toast: { success: vi.fn(), error: vi.fn() },
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  }),
 }));
 
 vi.mock('../../utils/logger', () => ({
@@ -1066,6 +1070,36 @@ describe('ChatWindow', () => {
         ),
       );
       window.location.hash = '';
+    });
+
+    it('offers the identity verification when unlocking needs it, instead of a plain failure', async () => {
+      vi.mocked(apiClient.post).mockRejectedValueOnce(
+        Object.assign(new Error('forbidden'), {
+          status: 403,
+          data: { errorCode: 'IDENTITY_VERIFICATION_REQUIRED' },
+        }),
+      );
+      const i18n = await renderLoadedChat();
+
+      fireEvent.click(screen.getByRole('button', { name: 'unlock m1' }));
+
+      await waitFor(() => expect(toast).toHaveBeenCalledTimes(1));
+      expect(toast.error).not.toHaveBeenCalled();
+
+      // The notice is a custom toast: show what it would put on screen and
+      // check it is the verification notice, with its button.
+      const notice = vi.mocked(toast).mock.calls[0][0] as (item: {
+        id: string;
+      }) => React.ReactElement;
+      renderWithProviders(notice({ id: 'notice' }));
+      expect(
+        screen.getByText(i18n.t('pricingPage.verification_required_title')),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {
+          name: i18n.t('pricingPage.verify_button'),
+        }),
+      ).toBeInTheDocument();
     });
 
     it('thanks and reloads the messages after a paid unlock', async () => {
