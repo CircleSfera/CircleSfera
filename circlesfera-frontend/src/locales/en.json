@@ -993,9 +993,9 @@
       "unlock_success": "Post successfully unlocked!",
       "unlock_error": "Error unlocking post",
       "carousel": "Media carousel",
-      "previous_slide": "Previous slide",
-      "next_slide": "Next slide",
-      "go_to_slide": "Go to slide {{n}}",
+      "previous_slide": "Previous photo or video",
+      "next_slide": "Next photo or video",
+      "position": "{{n}} of {{total}}",
       "sensitive": "Sensitive content blurred"
     },
     "menu": {
