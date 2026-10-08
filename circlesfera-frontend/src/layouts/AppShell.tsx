@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { AppLockScreen } from '../components/auth/AppLockScreen';
 import CookieConsent from '../components/CookieConsent';
 import ScrollToTop from '../components/common/ScrollToTop';
+import ErrorBoundary from '../components/ErrorBoundary';
 import CreateBottomSheet from '../components/modals/CreateBottomSheet';
 import { GlobalCallContainer } from '../components/navigation/GlobalCallContainer';
 import { useUIStore } from '../stores/uiStore';
@@ -42,16 +43,20 @@ export default function AppShell() {
       <AppLockScreen />
       <CreateBottomSheet />
       <GlobalCreateHighlightModal />
-      <Suspense
-        key={`${location.key}:${outletKey}`}
-        fallback={
-          <div className="h-full min-h-[40vh] w-full flex items-center justify-center">
-            <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
-          </div>
-        }
-      >
-        <Outlet />
-      </Suspense>
+      {/* A screen that fails shows its error here, inside the layout: the
+          navigation stays, and going to another screen clears it. */}
+      <ErrorBoundary key={location.pathname} scope="page">
+        <Suspense
+          key={`${location.key}:${outletKey}`}
+          fallback={
+            <div className="h-full min-h-[40vh] w-full flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
+      </ErrorBoundary>
     </LayoutWrapper>
   );
 }

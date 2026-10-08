@@ -9,6 +9,7 @@ import { chatApi } from '../../services/chat.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { asList } from '../../utils/asList';
 import { getMessagePreviewText } from '../../utils/chatMessageDisplay';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
@@ -25,7 +26,7 @@ export default function ConversationList() {
     queryKey: ['conversations', folder],
     queryFn: async () => {
       const res = await chatApi.getConversations(folder);
-      return res.data as Conversation[];
+      return asList<Conversation>(res.data);
     },
   });
 
@@ -33,7 +34,7 @@ export default function ConversationList() {
     queryKey: ['conversations', 'requests'],
     queryFn: async () => {
       const res = await chatApi.getConversations('requests');
-      return res.data as Conversation[];
+      return asList<Conversation>(res.data);
     },
   });
   const requestsCount = requests.length;

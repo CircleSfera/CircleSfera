@@ -3720,6 +3720,7 @@
     "error_title": "Something went wrong",
     "error_message": "An unexpected error occurred. Please try again.",
     "error_message_refresh": "An unexpected error occurred. Please try refreshing the page.",
+    "error_message_page": "This screen could not be shown. You can try again or carry on with the rest of the app.",
     "try_again": "Try Again",
     "reload_page": "Reload Page",
     "seo_default_title": "CircleSfera - Social Reimagined",

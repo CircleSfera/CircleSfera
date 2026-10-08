@@ -134,3 +134,43 @@ describe('AppShell navigation from Frames', () => {
     expect(screen.queryByTestId('frames-page')).not.toBeInTheDocument();
   });
 });
+
+function BrokenStub(): never {
+  throw new Error('this screen is broken');
+}
+
+describe('AppShell when a screen fails', () => {
+  it('shows the error inside the layout, keeps the navigation and recovers on another screen', async () => {
+    // React logs the caught error; keep the test output clean.
+    const consoleError = vi
+      .spyOn(console, 'error')
+      .mockImplementation(() => {});
+    const user = userEvent.setup();
+    const { i18n } = renderWithProviders(
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/broken" element={<BrokenStub />} />
+          <Route path="/notifications" element={<NotificationsStub />} />
+        </Route>
+      </Routes>,
+      {
+        routerProps: { initialEntries: ['/broken'], useTransitions: false },
+      },
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      i18n!.t('common.error_message_page'),
+    );
+    // The rest of the app is still within reach.
+    expect(screen.getByLabelText('Sidebar')).toBeInTheDocument();
+    expect(screen.getByLabelText('Mobile navigation')).toBeInTheDocument();
+
+    await user.click(screen.getAllByRole('link', { name: 'Notifications' })[0]);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    consoleError.mockRestore();
+  });
+});
