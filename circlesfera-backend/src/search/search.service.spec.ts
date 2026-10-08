@@ -354,12 +354,60 @@ describe('SearchService', () => {
       expect(await service.searchUsers('x')).toEqual([]);
     });
 
+    it('a plan does not move a profile up in people search', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        {
+          id: 'u-plan',
+          username: 'plan_user',
+          verificationLevel: 'ELITE',
+          _count: { followers: 10 },
+        },
+        {
+          id: 'u-free',
+          username: 'free_user',
+          verificationLevel: 'BASIC',
+          _count: { followers: 100 },
+        },
+      ]);
+
+      const results = await service.searchUsers('user');
+
+      expect(results.map((profile) => profile.id)).toEqual([
+        'u-free',
+        'u-plan',
+      ]);
+    });
+
+    it('limits people to profiles with a plan badge when asked for verified only', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+
+      await service.searchUsers('user', undefined, true);
+
+      expect(mockPrismaService.profile.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            verificationLevel: { not: 'BASIC' },
+          }),
+        }),
+      );
+    });
+
+    it('does not filter by badge unless asked', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
+
+      await service.searchUsers('user');
+
+      const where = mockPrismaService.profile.findMany.mock.lastCall?.[0]
+        ?.where as Record<string, unknown>;
+      expect(where).not.toHaveProperty('verificationLevel');
+    });
+
     it('returns empty array when no profiles match', async () => {
       mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
       expect(await service.searchUsers('nonexistent')).toEqual([]);
     });
 
-    it('ranks users by followers, verification authority, and mutual connections', async () => {
+    it('ranks users by followers and mutual connections', async () => {
       mockPrismaService.profile.findMany.mockResolvedValueOnce([
         {
           id: 'u-basic',
@@ -395,7 +443,7 @@ describe('SearchService', () => {
         }),
       );
       expect(results).toHaveLength(3);
-      // u-pro has PRO verification (+20) and mutual connection (+5), ranking higher
+      // u-pro has a mutual connection (+5), ranking higher
       expect(results[0].id).toBe('u-pro');
       expect(results[0].followedByFriends).toEqual(['mutual_friend']);
     });
@@ -546,7 +594,7 @@ describe('SearchService', () => {
       );
     });
 
-    it('ranks posts by engagement and author verification authority', async () => {
+    it('ranks posts by engagement alone: a plan does not move a post up', async () => {
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         {
           id: 'p-standard',
@@ -562,8 +610,7 @@ describe('SearchService', () => {
 
       const res = await service.searchPosts('sunset');
       expect(res).toHaveLength(2);
-      // p-verified gets +100 authority bonus, ranking it first
-      expect(res[0].id).toBe('p-verified');
+      expect(res[0].id).toBe('p-standard');
     });
   });
 
