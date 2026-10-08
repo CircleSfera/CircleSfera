@@ -139,11 +139,14 @@ test.describe('Photo editor', () => {
   for (const tab of ['Filtros', 'Ajustar', 'Recorte', 'Capa']) {
     test(`tab: ${tab}`, async ({ page }) => {
       await postAtEditStep(page);
+      // The tools of the edit step open the editor on their own tab.
       await page
-        .getByTestId('edit-preview-frame')
-        .getByRole('button', { name: /Editar Medio/i })
+        .getByRole('toolbar', { name: /Editar Medio/i })
+        .getByRole('button', { name: new RegExp(tab, 'i') })
         .click();
-      await page.getByRole('tab', { name: new RegExp(tab, 'i') }).click();
+      await expect(
+        page.getByRole('tab', { name: new RegExp(tab, 'i') }),
+      ).toHaveAttribute('aria-selected', 'true');
       await expectControlsAtSize(page);
     });
   }

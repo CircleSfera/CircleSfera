@@ -71,7 +71,7 @@ describe('CaptionStep', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses dense option rows without truncating labels to a single ellipsis line', () => {
+  it('uses 56 px option rows without truncating labels to a single ellipsis line', () => {
     const { i18n } = renderWithProviders(
       <CaptionStep {...baseProps} mediaFiles={[imageFile]} mode="POST" />,
       { lng: 'es' },
@@ -80,7 +80,7 @@ describe('CaptionStep', () => {
     const locationBtn = screen
       .getByText(i18n!.t('createPost.caption.add_location'))
       .closest('button');
-    expect(locationBtn?.className).toMatch(/min-h-11/);
+    expect(locationBtn?.className).toMatch(/min-h-14/);
 
     const label = screen.getByText(i18n!.t('createPost.caption.add_location'));
     expect(label.className).toMatch(/line-clamp-2/);
