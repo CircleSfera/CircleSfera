@@ -43,7 +43,7 @@ export default memo(function MessageBubble({
   const { t, i18n } = useTranslation();
   const openStories = useStoryStore((state) => state.openStories);
   const timeString = msg.createdAt
-    ? new Date(msg.createdAt).toLocaleTimeString([], {
+    ? new Date(msg.createdAt).toLocaleTimeString(i18n.language, {
         hour: '2-digit',
         minute: '2-digit',
       })
@@ -237,7 +237,7 @@ export default memo(function MessageBubble({
                   </div>
                 ) : (
                   <span
-                    className={`break-all whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
+                    className={`wrap-break-word whitespace-pre-wrap ${msg.isDeleted ? 'opacity-70 italic' : ''}`}
                   >
                     {msg.isDeleted ? (
                       <>🚫 {t('chat.message_deleted')}</>
@@ -258,7 +258,7 @@ export default memo(function MessageBubble({
             <div
               className={`absolute bottom-1 right-2.5 flex items-center gap-1 pl-2 text-xs ${isMe ? 'text-white/80' : 'text-gray-300'}`}
             >
-              <span className="tabular-nums font-mono leading-none tracking-wide opacity-80 flex items-center gap-1">
+              <span className="tabular-nums leading-none opacity-80 flex items-center gap-1">
                 {msg.isEdited && !msg.isDeleted && (
                   <span className="text-xs lowercase">
                     ({t('chat.edited')})
@@ -320,30 +320,32 @@ export default memo(function MessageBubble({
 
           {/* Hover Actions - Floating */}
           <div
-            className={`absolute top-1/2 -translate-y-1/2 flex items-center gap-2 opacity-0 group-hover/msg:opacity-100 transition-all duration-200 z-10 ${
+            className={`absolute bottom-full mb-1 md:bottom-auto md:mb-0 md:top-1/2 md:-translate-y-1/2 flex items-center gap-2 opacity-0 pointer-events-none group-hover/msg:opacity-100 group-hover/msg:pointer-events-auto group-focus-within/msg:opacity-100 group-focus-within/msg:pointer-events-auto transition-opacity duration-200 z-10 ${
               isMe
-                ? 'right-[calc(100%+0.5rem)] flex-row-reverse'
-                : 'left-[calc(100%+0.5rem)]'
+                ? 'right-0 md:right-[calc(100%+0.5rem)] flex-row-reverse'
+                : 'left-0 md:left-[calc(100%+0.5rem)]'
             }`}
           >
             <div
-              className={`flex bg-zinc-900/80 rounded-lg p-1 shadow-2xl border border-white/10 backdrop-blur-xl ${isMe ? 'flex-row-reverse' : ''}`}
+              className={`flex bg-zinc-900/90 rounded-full p-0.5 shadow-2xl border border-white/10 backdrop-blur-xl ${isMe ? 'flex-row-reverse' : ''}`}
             >
               <button
                 type="button"
                 onClick={() => onReply(msg)}
-                className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
+                className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                 title={t('chat.reply')}
+                aria-label={t('chat.reply')}
               >
-                <Reply size={14} />
+                <Reply size={18} />
               </button>
               <div className="relative group/emojis">
                 <button
                   type="button"
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
+                  className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                   title={t('chat.react')}
+                  aria-label={t('chat.react')}
                 >
-                  <Smile size={14} />
+                  <Smile size={18} />
                 </button>
                 <div
                   className={`absolute bottom-full mb-0 pb-3 ${isMe ? 'right-0' : 'left-0'} hidden group-hover/emojis:flex z-100 pointer-events-auto`}
@@ -386,7 +388,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onEdit(msg, decryptedText)}
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
+                  className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-300 hover:text-white transition-colors"
                   title={t('chat.edit')}
                   aria-label={t('chat.edit')}
                 >
@@ -411,7 +413,7 @@ export default memo(function MessageBubble({
                 <button
                   type="button"
                   onClick={() => onDelete(msg.id!)}
-                  className="p-1 hover:bg-white/10 rounded-full text-gray-300 hover:text-red-400 transition-colors"
+                  className="w-11 h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-gray-300 hover:text-brand-secondary transition-colors"
                   title={t('chat.delete')}
                   aria-label={t('chat.delete')}
                 >
@@ -464,7 +466,7 @@ export default memo(function MessageBubble({
                     >
                       <span>{emoji}</span>
                       {count > 1 && (
-                        <span className="opacity-90 text-[10px]">{count}</span>
+                        <span className="opacity-90 text-xs">{count}</span>
                       )}
                     </motion.button>
                   );
