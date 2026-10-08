@@ -1,6 +1,7 @@
 import { HelpCircle, Send, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 export interface LiveQuestion {
   id: string;
@@ -74,10 +75,7 @@ export default function LiveQnAPanel({
             >
               <div className="flex items-center gap-2">
                 <img
-                  src={
-                    q.avatar ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(q.username)}`
-                  }
+                  src={q.avatar || initialsAvatarUrl(q.username)}
                   alt={q.username}
                   className="w-8 h-8 rounded-full object-cover"
                 />

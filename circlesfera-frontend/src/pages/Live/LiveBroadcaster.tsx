@@ -35,10 +35,10 @@ import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
 import { useSocketStore } from '../../stores/socketStore';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 /** A neutral picture with the person's initials, for someone without one. */
-const fallbackAvatar = (username: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveBroadcaster() {
   const { t } = useTranslation();

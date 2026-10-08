@@ -997,7 +997,9 @@ export default function ChatWindow() {
                     src={chatInfo.avatar || undefined}
                     thumbnailUrl={chatInfo.thumbnailUrl || undefined}
                     standardUrl={chatInfo.standardUrl || undefined}
-                    alt={chatInfo.name}
+                    // By username, like everywhere else: the same person shows
+                    // the same initials on every screen.
+                    alt={chatInfo.username || chatInfo.name}
                     isOnline={
                       chatInfo.otherProfileId
                         ? userStatuses[chatInfo.otherProfileId]?.isOnline

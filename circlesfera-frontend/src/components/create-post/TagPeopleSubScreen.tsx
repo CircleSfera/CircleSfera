@@ -7,6 +7,7 @@ import type { MediaFile, PostTagData } from '../../hooks/useCreatePost';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { searchApi } from '../../services/search.service';
 import type { Profile } from '../../types';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
 import { EditorHeaderAction } from './EditorHeader';
 import { SearchError, SearchMessage } from './SearchState';
@@ -228,10 +229,7 @@ export default function TagPeopleSubScreen({
                       className="w-full flex items-center gap-2.5 px-2.5 py-2 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
                     >
                       <img
-                        src={
-                          user.avatar ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}`
-                        }
+                        src={user.avatar || initialsAvatarUrl(user.username)}
                         className="w-8 h-8 rounded-full object-cover"
                         alt=""
                       />
