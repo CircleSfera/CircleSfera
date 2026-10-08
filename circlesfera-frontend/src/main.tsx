@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { StrictMode } from 'react';
+import { StrictMode, startTransition } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from 'react-hot-toast';
@@ -45,24 +45,28 @@ const queryClient = new QueryClient({
 // The first screen waits for the catalog of the person's language.
 const root = createRoot(document.getElementById('root')!);
 const renderApp = () =>
-  root.render(
-    <StrictMode>
-      <ErrorBoundary>
-        <HelmetProvider>
-          <QueryClientProvider client={queryClient}>
-            <BrowserRouter useTransitions={false}>
-              <App />
-              <Toaster
-                position="bottom-center"
-                containerStyle={{
-                  bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-                }}
-              />
-            </BrowserRouter>
-          </QueryClientProvider>
-        </HelmetProvider>
-      </ErrorBoundary>
-    </StrictMode>,
+  // As a transition, React builds the first screen in short slices instead of
+  // one long task, so the page keeps answering while it starts.
+  startTransition(() =>
+    root.render(
+      <StrictMode>
+        <ErrorBoundary>
+          <HelmetProvider>
+            <QueryClientProvider client={queryClient}>
+              <BrowserRouter useTransitions={false}>
+                <App />
+                <Toaster
+                  position="bottom-center"
+                  containerStyle={{
+                    bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
+                  }}
+                />
+              </BrowserRouter>
+            </QueryClientProvider>
+          </HelmetProvider>
+        </ErrorBoundary>
+      </StrictMode>,
+    ),
   );
 
 // No catalog could be downloaded, so there is no text to show the app with.
