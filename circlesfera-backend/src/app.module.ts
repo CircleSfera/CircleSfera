@@ -57,6 +57,8 @@ import { ExperimentsModule } from './experiments/experiments.module.js';
 import { FeedModule } from './feed/feed.module.js';
 import { FollowsModule } from './follows/follows.module.js';
 import { HealthModule } from './health/health.module.js';
+import { helpdeskFor } from './helpdesk/helpdesk.module.js';
+import { CircleSferaHelpdeskHostModule } from './helpdesk-host/circlesfera-helpdesk-host.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
 import { InteractiveModule } from './interactive/interactive.module.js';
 import { LikesModule } from './likes/likes.module.js';
@@ -80,7 +82,6 @@ import { SlackModule } from './slack/slack.module.js';
 import { SocketModule } from './socket/socket.module.js';
 import { StoriesModule } from './stories/stories.module.js';
 import { ProfileStrikesModule } from './strikes/profile-strikes.module.js';
-import { SupportModule } from './support/support.module.js';
 import { SystemSettingsModule } from './system-settings/system-settings.module.js';
 import { UploadsModule } from './uploads/uploads.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -210,7 +211,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     WebrtcModule,
     EditsModule,
     SlackModule,
-    SupportModule,
+    helpdeskFor(CircleSferaHelpdeskHostModule),
     ExperimentsModule,
     MaintenanceModule,
     LiveModule,
