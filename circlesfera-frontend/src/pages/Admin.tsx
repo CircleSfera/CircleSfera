@@ -27,6 +27,7 @@ import {
   SpamReviewTab,
   StatsTab,
   StoriesTab,
+  SubscriptionsTab,
   SupportTicketsTab,
   SystemHealthTab,
   TrustTab,
@@ -125,6 +126,7 @@ export default function Admin() {
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
         {activeTab === 'plans' && <PlansTab onToast={addToast} />}
+        {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}

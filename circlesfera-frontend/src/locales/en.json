@@ -2161,6 +2161,7 @@
       "appeals": "Appeals",
       "support": "Support",
       "plans": "Plans",
+      "subscriptions": "Subscriptions",
       "trust": "Trust Queue",
       "live": "Live Streams",
       "roles": "Roles",
@@ -2567,6 +2568,31 @@
       "toast_failed": "The plan could not be saved",
       "load_failed": "The plan catalogue could not be loaded",
       "empty": "There are no plans in the catalogue"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "subtitle": "Who has each plan and in what state. To change, cancel or refund a subscription, open it in Stripe.",
+      "search_placeholder": "Search by username or email",
+      "filter_status": "State",
+      "all_statuses": "All states",
+      "filter_plan": "Plan",
+      "all_plans": "All plans",
+      "status": {
+        "ACTIVE": "Active",
+        "TRIALING": "Trialing",
+        "PAST_DUE": "Payment pending",
+        "INCOMPLETE": "Incomplete",
+        "CANCELLED": "Cancelled",
+        "EXPIRED": "Expired"
+      },
+      "renews_on": "Renews on {{date}}",
+      "ends_on": "Ends on {{date}}",
+      "period_ended_on": "Period until {{date}}",
+      "open_in_stripe": "Open in Stripe",
+      "account_deleted": "Deleted account",
+      "empty_title": "No subscriptions",
+      "empty_description": "Subscriptions to the plans will show here once someone buys one.",
+      "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
       "title": "Support Tickets",
