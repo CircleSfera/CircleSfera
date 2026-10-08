@@ -46,13 +46,13 @@ export default function CoHostInviteBanner({
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
           className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-sm"
         >
-          <div className="bg-black/90 backdrop-blur-xl border border-purple-500/40 rounded-2xl p-4 shadow-2xl shadow-purple-500/20">
+          <div className="bg-black/90 backdrop-blur-xl border border-brand-primary/40 rounded-2xl p-4 shadow-2xl shadow-brand-primary/20">
             <div className="flex items-center gap-2 mb-3">
               <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-secondary opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-secondary" />
               </span>
-              <span className="text-xs font-bold text-red-400 uppercase tracking-widest">
+              <span className="text-xs font-bold text-brand-secondary uppercase tracking-widest">
                 {t('live.cohost_invite.badge')}
               </span>
             </div>
@@ -63,23 +63,23 @@ export default function CoHostInviteBanner({
                   <img
                     src={invite.host.avatar}
                     alt={invite.host.username || t('common.alt.host')}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-purple-500"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-brand-primary"
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-brand-primary to-brand-blue flex items-center justify-center">
                     <span className="text-white font-bold text-lg">
                       {(invite.host.username?.[0] || '?').toUpperCase()}
                     </span>
                   </div>
                 )}
-                <span className="absolute -bottom-1 -right-1 bg-red-500 rounded-full p-0.5">
+                <span className="absolute -bottom-1 -right-1 bg-brand-secondary rounded-full p-0.5">
                   <Radio size={10} className="text-white" />
                 </span>
               </div>
 
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm leading-tight">
-                  <span className="text-purple-300">
+                  <span className="text-brand-primary">
                     @{invite.host.username || t('live.anonymous')}
                   </span>{' '}
                   {t('live.cohost_invite.body')}
@@ -105,7 +105,7 @@ export default function CoHostInviteBanner({
               <button
                 type="button"
                 onClick={handleAccept}
-                className="flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm font-semibold rounded-xl transition-all shadow-lg shadow-purple-500/20 active:scale-95"
+                className="flex-1 flex items-center justify-center gap-2 min-h-12 px-4 bg-linear-to-r from-brand-primary to-brand-blue hover:opacity-95 text-white text-sm font-semibold rounded-full transition-all shadow-lg shadow-brand-primary/20 active:scale-95"
               >
                 <UserPlus size={16} />
                 {t('live.cohost_invite.join')}
@@ -113,7 +113,7 @@ export default function CoHostInviteBanner({
               <button
                 type="button"
                 onClick={onDismiss}
-                className="min-h-12 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-xl transition-all active:scale-95"
+                className="min-h-12 px-4 bg-white/10 hover:bg-white/15 text-white/70 text-sm font-medium rounded-full transition-all active:scale-95"
               >
                 {t('live.cohost_invite.decline')}
               </button>
