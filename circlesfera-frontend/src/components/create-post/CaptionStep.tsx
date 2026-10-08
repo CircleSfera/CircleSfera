@@ -185,7 +185,7 @@ export default function CaptionStep({
   const username = profile?.username || t('createPost.caption.you');
 
   const renderRows = (rows: OptionRow[]) => (
-    <div className="rounded-xl border border-white/8 bg-white/2 overflow-hidden divide-y divide-white/6">
+    <div className="rounded-3xl border border-white/8 bg-white/4 overflow-hidden divide-y divide-white/6">
       {rows.map((item) => {
         const Icon = item.icon;
         return (
@@ -193,20 +193,20 @@ export default function CaptionStep({
             type="button"
             key={item.key}
             onClick={item.onClick}
-            className="w-full flex items-center justify-between min-h-11 px-3 py-2 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
+            className="w-full flex items-center justify-between min-h-14 px-3 py-2 hover:bg-white/5 transition-all text-left group outline-none focus-visible:bg-white/8"
           >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
               <div
-                className={`w-8 h-8 rounded-lg border flex items-center justify-center shrink-0 transition-all ${
+                className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-all ${
                   item.isActive
                     ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary'
                     : 'bg-white/5 border-white/8 text-white/70 group-hover:text-white'
                 }`}
               >
-                <Icon size={14} strokeWidth={1.8} />
+                <Icon size={18} strokeWidth={1.8} aria-hidden />
               </div>
               <span
-                className={`text-[13px] font-semibold text-left wrap-break-word line-clamp-2 ${
+                className={`text-sm font-semibold text-left wrap-break-word line-clamp-2 ${
                   item.isActive ? 'text-white' : 'text-white/90'
                 }`}
               >
@@ -251,7 +251,7 @@ export default function CaptionStep({
           <div className="flex-1 min-w-0 flex flex-col gap-1.5">
             <div className="flex items-center gap-2">
               <UserAvatar src={profile?.avatar} alt={username} size="sm" />
-              <span className="font-bold text-[13px] text-white/90 truncate">
+              <span className="font-semibold text-sm text-white/90 truncate">
                 {username}
               </span>
             </div>
@@ -275,12 +275,12 @@ export default function CaptionStep({
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
                 placeholder={t('createPost.caption.write_caption')}
-                className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/30 text-sm leading-relaxed min-h-20 max-h-40 p-0 md:p-2.5"
+                className="w-full bg-transparent text-white/90 border-0 resize-none focus:outline-none placeholder-white/35 text-base leading-relaxed min-h-20 max-h-40 p-0 md:p-2.5"
                 aria-label={t('createPost.caption.write_caption')}
               />
               <div className="flex items-center justify-end md:px-2.5 md:pb-1.5">
                 <span
-                  className={`text-[11px] font-bold tabular-nums ${
+                  className={`text-xs font-semibold tabular-nums ${
                     isOverLimit
                       ? 'text-brand-secondary'
                       : isNearLimit
@@ -296,12 +296,12 @@ export default function CaptionStep({
         </div>
 
         <div className="px-4 py-2.5 space-y-2.5 pb-3">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 px-1 block">
+          <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block">
             {t('createPost.caption.options')}
           </span>
           {renderRows(primaryRows)}
 
-          <span className="text-[11px] font-bold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
+          <span className="text-xs font-semibold uppercase tracking-wider text-white/50 px-1 block pt-0.5">
             {t('createPost.caption.more_options')}
           </span>
           {renderRows(moreRows)}

@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import EditStep, { fitAspectBox } from './EditStep';
@@ -82,11 +82,12 @@ describe('EditStep', () => {
       '4:5',
     );
 
-    const editButtons = screen.getAllByRole('button', {
-      name: 'Editar Medio',
-    });
-    expect(editButtons.length).toBeGreaterThanOrEqual(1);
-    fireEvent.click(editButtons[0]);
+    // The tools are on screen, one tap away, and each opens the editor.
+    const tools = within(screen.getByRole('toolbar', { name: 'Editar Medio' }));
+    expect(
+      tools.getAllByRole('button').map((tool) => tool.textContent),
+    ).toEqual(['Filtros', 'Ajustar', 'Recorte', 'Capa']);
+    fireEvent.click(tools.getByRole('button', { name: 'Filtros' }));
     expect(setCurrentEditIndex).toHaveBeenCalledWith(0);
 
     // One delete button, for the item on show.
@@ -103,7 +104,7 @@ describe('EditStep', () => {
     expect(handleRemoveFile).toHaveBeenLastCalledWith(1);
   });
 
-  it('names each thumbnail by its position, leaving one edit button', () => {
+  it('names each thumbnail by its position, with one set of tools', () => {
     renderWithProviders(
       <EditStep
         mediaFiles={mediaFiles}
@@ -127,8 +128,39 @@ describe('EditStep', () => {
       }),
     ).not.toHaveAttribute('aria-current');
     expect(
-      screen.getAllByRole('button', { name: 'Editar Medio' }),
+      screen.getAllByRole('toolbar', { name: 'Editar Medio' }),
     ).toHaveLength(1);
+  });
+
+  it('opens the editor on the tab of the tool that was pressed', () => {
+    const setCurrentEditIndex = vi.fn();
+    const onChooseEditorTab = vi.fn();
+    renderWithProviders(
+      <EditStep
+        mediaFiles={mediaFiles}
+        mode="POST"
+        setMode={vi.fn()}
+        setCurrentEditIndex={setCurrentEditIndex}
+        onChooseEditorTab={onChooseEditorTab}
+        handleRemoveFile={vi.fn()}
+        fileInputRef={{ current: null }}
+      />,
+      { lng: 'es' },
+    );
+    const tools = within(screen.getByRole('toolbar', { name: 'Editar Medio' }));
+
+    fireEvent.click(tools.getByRole('button', { name: 'Recorte' }));
+    expect(onChooseEditorTab).toHaveBeenLastCalledWith('CROP');
+    expect(setCurrentEditIndex).toHaveBeenLastCalledWith(0);
+
+    fireEvent.click(
+      screen.getByRole('button', {
+        name: `Elemento 2 de ${mediaFiles.length}`,
+      }),
+    );
+    fireEvent.click(tools.getByRole('button', { name: 'Ajustar' }));
+    expect(onChooseEditorTab).toHaveBeenLastCalledWith('ADJUST');
+    expect(setCurrentEditIndex).toHaveBeenLastCalledWith(1);
   });
 
   it('sizes the Frame preview to a measured 9:16 box', () => {

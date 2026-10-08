@@ -8,16 +8,18 @@ import {
 import type { MediaFile } from '../../hooks/useCreatePost';
 import type { StoryElement } from '../../types';
 import type { CropData, VideoData } from '../PhotoEditor';
+import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
 import FrameTrimOverlay from './FrameTrimOverlay';
 
 const PhotoEditor = lazy(() => import('../PhotoEditor'));
 const StoryComposer = lazy(() => import('../story/StoryComposer'));
-
 interface EditorOverlayManagerProps {
   showStoryComposer: boolean;
   setShowStoryComposer: (val: boolean) => void;
   currentEditIndex: number | null;
   setCurrentEditIndex: (val: number | null) => void;
+  /** The tab the photo editor opens on; filters when not given. */
+  initialEditorTab?: PhotoEditorTab;
   showFrameTrim?: boolean;
   frameSourceDurationSec?: number;
   onFrameTrimConfirm?: (videoData: VideoData) => void;
@@ -55,6 +57,7 @@ export default function EditorOverlayManager({
   setShowStoryComposer,
   currentEditIndex,
   setCurrentEditIndex,
+  initialEditorTab,
   showFrameTrim = false,
   frameSourceDurationSec = 0,
   onFrameTrimConfirm,
@@ -167,11 +170,14 @@ export default function EditorOverlayManager({
               videoData: mediaFiles[currentEditIndex].videoData,
               filter: mediaFiles[currentEditIndex].filter,
             }}
+            // The tab asked for; a frame video opened without one starts on
+            // its trim.
             initialTab={
-              constrainFrameDuration &&
+              initialEditorTab ??
+              (constrainFrameDuration &&
               mediaFiles[currentEditIndex].type === 'video'
                 ? 'TRIM'
-                : undefined
+                : undefined)
             }
             constrainDuration={
               constrainFrameDuration

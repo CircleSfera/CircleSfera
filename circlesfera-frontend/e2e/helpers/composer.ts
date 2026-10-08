@@ -98,8 +98,11 @@ export async function waitEditPreviewReady(
   await expect(frame).toHaveAttribute('data-aspect', aspect, {
     timeout: 15_000,
   });
+  // The tools of the edit step, or the single button of a composed story.
   await expect(
-    frame.getByRole('button', { name: /Editar Medio/i }),
+    page
+      .getByRole('toolbar', { name: /Editar Medio/i })
+      .or(frame.getByRole('button', { name: /Editar Historia/i })),
   ).toBeVisible();
 
   await page.waitForFunction(

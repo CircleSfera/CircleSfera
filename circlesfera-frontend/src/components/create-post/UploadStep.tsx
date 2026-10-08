@@ -17,6 +17,7 @@ import type { ChangeEvent, MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreateMode } from '../../hooks/useCreatePost';
+import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
 
 interface UploadStepProps {
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -186,11 +187,9 @@ export default function UploadStep({
         ref={dropRef}
         className={`
           flex-1 flex flex-col min-h-0 relative z-10
-          max-md:px-4 max-md:pt-4 max-md:gap-2.5
-          md:px-3 md:pt-3 md:gap-2
-          ${allowModeSwitch ? 'max-md:pb-[4.75rem] md:pb-16' : 'pb-3'}
+          px-4 pt-4 gap-3
+          ${allowModeSwitch ? 'pb-[4.75rem] md:pb-16' : 'pb-4'}
           transition-colors duration-300
-          ${isDragging ? 'bg-white/[0.03]' : ''}
         `}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
@@ -198,30 +197,22 @@ export default function UploadStep({
         onDrop={handleDrop}
         role="presentation"
       >
-        {/* Mobile: flat full-bleed surface. Desktop: nested drop panel inside the card. */}
+        {/* The place to drop or pick files: a large panel with the brand glow,
+            so the screen is not an empty black page. */}
         <motion.div
-          className={`
-            relative w-full min-h-0
-            flex flex-col items-center gap-2.5
-            max-md:flex-none max-md:justify-start max-md:pt-1
-            md:flex-1 md:justify-center md:rounded-xl md:border md:p-3
-            transition-colors duration-300
-            ${
-              isDragging
-                ? `${translatedConfig.borderAccent} md:bg-white/5`
-                : 'md:border-white/12 md:bg-white/[0.03]'
-            }
-          `}
+          className={`relative w-full flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center overflow-hidden rounded-3xl border border-dashed transition-colors duration-300 ${
+            isDragging
+              ? `${translatedConfig.borderAccent} bg-white/8`
+              : 'border-white/15 bg-white/3'
+          }`}
           animate={{ scale: isDragging ? 1.005 : 1 }}
           transition={{ duration: 0.2 }}
         >
           <div
-            className={`w-12 h-12 rounded-xl flex items-center justify-center border shrink-0 ${
-              isDragging
-                ? 'bg-white/10 border-white/15'
-                : 'bg-white/6 border-white/8'
-            }`}
-          >
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_42%,rgba(var(--brand-primary-rgb),0.22),transparent_70%)]"
+            aria-hidden
+          />
+          <div className="relative w-16 h-16 rounded-3xl flex items-center justify-center bg-linear-to-br from-brand-primary/30 to-brand-blue/20 border border-white/12 shadow-lg shadow-brand-primary/20 shrink-0">
             <AnimatePresence mode="wait">
               <motion.div
                 key={isDragging ? 'drag' : mode}
@@ -232,14 +223,14 @@ export default function UploadStep({
               >
                 {isDragging ? (
                   <ArrowUpFromLine
-                    size={22}
-                    className={translatedConfig.accent}
+                    size={28}
+                    className="text-white"
                     strokeWidth={1.5}
                   />
                 ) : (
                   <translatedConfig.icon
-                    size={22}
-                    className={translatedConfig.accent}
+                    size={28}
+                    className="text-white"
                     strokeWidth={1.5}
                   />
                 )}
@@ -247,14 +238,14 @@ export default function UploadStep({
             </AnimatePresence>
           </div>
 
-          <div className="text-center space-y-0.5 w-full px-1">
-            <p className="text-[13px] font-semibold text-white/90">
+          <div className="relative space-y-1.5 w-full">
+            <p className="text-xl font-semibold text-white leading-tight">
               {isDragging
                 ? t('createPost.upload.drop_files')
                 : translatedConfig.description}
             </p>
             {!isDragging ? (
-              <p className="text-[11px] text-white/60 font-medium">
+              <p className="text-sm text-white/60 text-balance">
                 <span className="hidden md:inline">
                   {t('createPost.upload.drag_files')}
                   {' · '}
@@ -263,65 +254,48 @@ export default function UploadStep({
               </p>
             ) : null}
           </div>
+        </motion.div>
 
-          <div className="flex flex-col w-full gap-2 mt-1.5 max-md:mt-2 md:max-w-sm">
+        {/* Actions at the bottom, within reach of the thumb. */}
+        <div className="flex flex-col w-full gap-2 shrink-0 md:max-w-sm md:mx-auto">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className={`w-full ${CREATE_PRIMARY}`}
+          >
+            {mode === 'FRAME'
+              ? t('createPost.upload.select_video')
+              : t('createPost.upload.select_device')}
+          </button>
+
+          {mode !== 'FRAME' ? (
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full h-11 min-h-11 px-4 bg-linear-to-r from-brand-primary to-brand-blue text-white rounded-xl font-bold text-sm
-                         shadow-md shadow-brand-primary/20 active:scale-[0.98] transition-transform
-                         outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+              onClick={openCamera}
+              className={`w-full md:hidden ${CREATE_SECONDARY}`}
             >
-              {mode === 'FRAME'
-                ? t('createPost.upload.select_video')
-                : t('createPost.upload.select_device')}
+              <Camera size={18} aria-hidden />
+              {t('createPost.upload.take_photo')}
             </button>
-
-            {mode !== 'FRAME' ? (
-              <button
-                type="button"
-                onClick={openCamera}
-                className="w-full h-11 min-h-11 px-4 flex items-center justify-center gap-2 rounded-xl font-bold text-sm
-                         bg-white/6 border border-white/10 text-white/90 hover:bg-white/10
-                         active:scale-[0.98] transition-all md:hidden
-                         outline-none focus-visible:ring-2 focus-visible:ring-white/20"
-              >
-                <Camera size={16} />
-                {t('createPost.upload.take_photo')}
-              </button>
-            ) : null}
-          </div>
+          ) : null}
 
           <AnimatePresence>
             {mode === 'STORY' && onTextStory && (
               <motion.button
                 type="button"
                 onClick={onTextStory}
-                className="flex items-center gap-2.5 w-full px-3 min-h-11 h-11 rounded-xl shrink-0 mt-0.5 md:max-w-sm
-                           bg-white/[0.04] border border-white/8
-                           hover:bg-white/[0.07] hover:border-white/15
-                           transition-colors duration-200 group
-                           outline-none focus-visible:ring-2 focus-visible:ring-white/20"
+                className={`w-full ${CREATE_SECONDARY}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}
                 transition={{ duration: 0.2 }}
               >
-                <div className="w-8 h-8 rounded-lg bg-brand-accent/15 border border-brand-accent/20 flex items-center justify-center shrink-0">
-                  <Sparkles size={14} className="text-brand-accent" />
-                </div>
-                <div className="text-left min-w-0">
-                  <p className="text-[13px] font-bold text-white/90 truncate">
-                    {t('createPost.upload.create_text_story')}
-                  </p>
-                  <p className="text-[11px] text-white/60 font-medium truncate">
-                    {t('createPost.upload.create_text_story_desc')}
-                  </p>
-                </div>
+                <Sparkles size={18} className="text-brand-accent" aria-hidden />
+                {t('createPost.upload.create_text_story')}
               </motion.button>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
       </div>
 
       <input

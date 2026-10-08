@@ -16,6 +16,7 @@ import StoryControlsBar from './create-post/StoryControlsBar';
 import SubScreenRouter from './create-post/SubScreenRouter';
 import UploadStep from './create-post/UploadStep';
 import ConfirmModal from './modals/ConfirmModal';
+import type { PhotoEditorTab } from './photo-editor/photoEditor.types';
 
 const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
 
@@ -32,6 +33,10 @@ export default function ContentComposerPage() {
 
   const [stepDirection, setStepDirection] = React.useState(1);
   const [showStoryComposer, setShowStoryComposer] = React.useState(false);
+  // The tab the photo editor opens on, chosen from the tools of the edit step.
+  const [editorTab, setEditorTab] = React.useState<PhotoEditorTab | undefined>(
+    undefined,
+  );
   const [clipWindowMs, setClipWindowMs] = React.useState(15_000);
 
   const {
@@ -205,6 +210,7 @@ export default function ContentComposerPage() {
       setShowStoryComposer={setShowStoryComposer}
       currentEditIndex={currentEditIndex}
       setCurrentEditIndex={setCurrentEditIndex}
+      initialEditorTab={editorTab}
       showFrameTrim={showFrameTrim}
       frameSourceDurationSec={frameSourceDurationSec}
       onFrameTrimConfirm={handleFrameTrimConfirm}
@@ -357,6 +363,7 @@ export default function ContentComposerPage() {
                   mode={mode}
                   setMode={setMode}
                   setCurrentEditIndex={setCurrentEditIndex}
+                  onChooseEditorTab={setEditorTab}
                   onEditMedia={
                     isStoryMode && isComposed
                       ? () => setShowStoryComposer(true)
