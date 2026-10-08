@@ -3491,6 +3491,7 @@
   },
   "supportPage": {
     "requests": {
+      "continues": "Continues an earlier request",
       "title": "Your requests",
       "seo_title": "Your request to support",
       "back": "Support",
@@ -3501,8 +3502,8 @@
       "reply_placeholder": "Write your reply...",
       "send": "Send",
       "reopen_hint": "If you reply, the request opens again.",
-      "closed_notice": "This request is closed.",
-      "write_again": "Write a new one",
+      "closed_notice": "This request is closed. If you write, a new one opens that continues it.",
+      "write_again": "Write again about this",
       "not_found": "We could not find this request.",
       "status": {
         "OPEN": "Open",

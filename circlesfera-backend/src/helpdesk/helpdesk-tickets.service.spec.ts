@@ -11,6 +11,7 @@ describe('HelpdeskTicketsService', () => {
     findRequesterTicket: vi.fn(),
     listRequesterTickets: vi.fn(),
     ticketsWithOtherTeam: vi.fn(),
+    closeSolvedBefore: vi.fn(),
     listTickets: vi.fn(),
     updateTicket: vi.fn(),
     messages: vi.fn(),
@@ -380,6 +381,7 @@ describe('HelpdeskTicketsService', () => {
       status: 'OPEN',
       createdAt: stored.createdAt,
       updatedAt: stored.updatedAt,
+      previousTicketId: null,
     };
 
     it('lists what they opened, without anything internal', async () => {
@@ -484,16 +486,54 @@ describe('HelpdeskTicketsService', () => {
       expect(store.updateTicket.mock.calls[0][1]).toEqual({});
     });
 
-    it('refuses a reply to a closed ticket', async () => {
+    it('opens a new request that continues a closed one, and leaves the closed one as it is', async () => {
+      const continued = {
+        ...stored,
+        id: 't-2',
+        reference: 43,
+        subject: `Re: ${ticket.subject}`,
+        previousTicketId: 't-1',
+      };
+      store.findRequesterTicket
+        .mockResolvedValueOnce({ ...stored, status: 'CLOSED' })
+        .mockResolvedValueOnce(continued);
+      store.openTicket.mockResolvedValue(continued);
+
+      const result = await service.replyToMyTicket('u-1', 't-1', {
+        body: '  It happened again.  ',
+      });
+
+      expect(store.openTicket).toHaveBeenCalledWith({
+        requesterRef: 'u-1',
+        email: 'ana@example.com',
+        subject: `Re: ${ticket.subject}`,
+        message: 'It happened again.',
+        category: 'PAYMENTS',
+        previousTicketId: 't-1',
+      });
+      expect(store.updateTicket).not.toHaveBeenCalled();
+      expect(teamChannel.ticketOpened).toHaveBeenCalledWith(continued);
+      expect(result.id).toBe('t-2');
+      expect(result.previousTicketId).toBe('t-1');
+    });
+
+    it('does not pile up "Re:" and keeps the subject within its length', async () => {
+      store.openTicket.mockResolvedValue({ ...stored, id: 't-2' });
       store.findRequesterTicket.mockResolvedValue({
         ...stored,
         status: 'CLOSED',
+        subject: 'Re: Help',
       });
+      await service.replyToMyTicket('u-1', 't-1', { body: 'Again' });
+      expect(store.openTicket.mock.calls[0][0].subject).toBe('Re: Help');
 
-      await expect(
-        service.replyToMyTicket('u-1', 't-1', { body: 'Hello' }),
-      ).rejects.toMatchObject({ status: 409 });
-      expect(store.updateTicket).not.toHaveBeenCalled();
+      store.findRequesterTicket.mockResolvedValue({
+        ...stored,
+        status: 'CLOSED',
+        subject: 'x'.repeat(100),
+      });
+      await service.replyToMyTicket('u-1', 't-1', { body: 'Again' });
+      expect(store.openTicket.mock.calls[1][0].subject).toHaveLength(100);
     });
 
     it('refuses a reply that is only spaces', async () => {
@@ -602,6 +642,20 @@ describe('HelpdeskTicketsService', () => {
       await expect(
         service.handOver('admin-1', 'missing'),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('closing solved tickets', () => {
+    it('closes the ones solved more than seven days ago', async () => {
+      store.closeSolvedBefore.mockResolvedValue(2);
+      const before = Date.now();
+
+      expect(await service.closeSolvedTickets()).toBe(2);
+
+      const moment = store.closeSolvedBefore.mock.calls[0][0] as Date;
+      const sevenDays = 7 * 24 * 60 * 60 * 1000;
+      expect(before - moment.getTime()).toBeGreaterThanOrEqual(sevenDays);
+      expect(before - moment.getTime()).toBeLessThan(sevenDays + 5_000);
     });
   });
 

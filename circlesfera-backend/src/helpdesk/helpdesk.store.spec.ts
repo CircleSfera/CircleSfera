@@ -11,6 +11,7 @@ describe('HelpdeskStore', () => {
       findMany: vi.fn().mockResolvedValue([]),
       count: vi.fn().mockResolvedValue(0),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 3 }),
     },
     helpdeskMessage: { findMany: vi.fn().mockResolvedValue([]) },
   };
@@ -40,6 +41,7 @@ describe('HelpdeskStore', () => {
         subject: 'Help',
         message: 'I cannot sign in',
         category: 'ACCOUNT',
+        previousTicketId: undefined,
         messages: {
           create: {
             authorKind: 'REQUESTER',
@@ -159,6 +161,35 @@ describe('HelpdeskStore', () => {
       orderBy: { updatedAt: 'asc' },
       take: 50,
       select: { id: true, escalatedReportId: true },
+    });
+  });
+
+  it('closes only solved tickets of the organization that were solved before the moment', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    expect(await store.closeSolvedBefore(moment)).toBe(3);
+    expect(prisma.supportTicket.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        status: 'RESOLVED',
+        resolvedAt: { lt: moment },
+      },
+      data: { status: 'CLOSED' },
+    });
+  });
+
+  it('links a new ticket to the closed one it continues', async () => {
+    await store.openTicket({
+      requesterRef: 'u-1',
+      email: 'ana@example.com',
+      subject: 'Re: Help',
+      message: 'It happened again',
+      previousTicketId: 't-old',
+    });
+
+    expect(prisma.supportTicket.create.mock.calls[0][0].data).toMatchObject({
+      organizationId: 'org-1',
+      previousTicketId: 't-old',
     });
   });
 });

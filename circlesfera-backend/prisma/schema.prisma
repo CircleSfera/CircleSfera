@@ -1676,9 +1676,12 @@ model SupportTicket {
   updatedAt  DateTime       @updatedAt
 
   // The Help Desk organization the ticket belongs to
-  organizationId String
+  organizationId   String
   // Short number shown to requester and agent
-  reference      Int    @unique @default(autoincrement())
+  reference        Int     @unique @default(autoincrement())
+  // The closed ticket this one continues, when it was opened by replying
+  // to it
+  previousTicketId String?
 
   user              User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
@@ -1686,11 +1689,14 @@ model SupportTicket {
   escalatedReport   Report?              @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
   organization      HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   messages          HelpdeskMessage[]
+  previousTicket    SupportTicket?       @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
+  continuations     SupportTicket[]      @relation("TicketContinuation")
 
   @@index([userId])
   @@index([status])
   @@index([resolvedAt])
   @@index([organizationId, status, createdAt])
+  @@index([previousTicketId])
   @@map("support_tickets")
 }
 

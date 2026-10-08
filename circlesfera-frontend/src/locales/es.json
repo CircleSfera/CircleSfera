@@ -3491,6 +3491,7 @@
   },
   "supportPage": {
     "requests": {
+      "continues": "Continúa una solicitud anterior",
       "title": "Tus solicitudes",
       "seo_title": "Tu solicitud a soporte",
       "back": "Soporte",
@@ -3501,8 +3502,8 @@
       "reply_placeholder": "Escribe tu respuesta...",
       "send": "Enviar",
       "reopen_hint": "Si respondes, la solicitud se vuelve a abrir.",
-      "closed_notice": "Esta solicitud está cerrada.",
-      "write_again": "Escribir una nueva",
+      "closed_notice": "Esta solicitud está cerrada. Si escribes, se abre una nueva que continúa esta.",
+      "write_again": "Escribir de nuevo sobre esto",
       "not_found": "No encontramos esta solicitud.",
       "status": {
         "OPEN": "Abierta",

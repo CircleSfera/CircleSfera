@@ -13,6 +13,20 @@ export class HelpdeskScheduler {
     private readonly tickets: HelpdeskTicketsService,
   ) {}
 
+  @Cron(CronExpression.EVERY_HOUR)
+  async closeSolvedTickets(): Promise<void> {
+    try {
+      const closed = await this.tickets.closeSolvedTickets();
+      if (closed > 0) {
+        this.logger.log(`Solved tickets closed: ${closed}`);
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Closing solved tickets failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_5_MINUTES)
   async returnDecidedHandovers(): Promise<void> {
     try {

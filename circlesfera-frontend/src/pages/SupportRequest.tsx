@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ChevronLeft } from 'lucide-react';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { MarketingCTA, MarketingPage } from '../components/marketing';
 import { RequestStatus } from '../components/support/RequestStatus';
@@ -25,6 +25,7 @@ export function SupportRequest() {
   const { id = '' } = useParams<{ id: string }>();
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [reply, setReply] = useState('');
 
   const {
@@ -43,10 +44,14 @@ export function SupportRequest() {
     onSuccess: (res) => {
       setReply('');
       queryClient.setQueryData<SupportRequestDetail>(
-        ['support', 'my-request', id],
+        ['support', 'my-request', res.data.id],
         res.data,
       );
       queryClient.invalidateQueries({ queryKey: ['support', 'my-requests'] });
+      // A reply to a closed request opened a new one: go to it.
+      if (res.data.id !== id) {
+        navigate(`/support/requests/${res.data.id}`);
+      }
     },
   });
 
@@ -95,6 +100,14 @@ export function SupportRequest() {
                 #{request.reference} ·{' '}
                 {t(`supportPage.category.${request.category}`)}
               </p>
+              {request.previousTicketId && (
+                <Link
+                  to={`/support/requests/${request.previousTicketId}`}
+                  className="mt-1 inline-flex min-h-11 items-center text-sm font-semibold text-white/80 underline underline-offset-2 hover:text-white"
+                >
+                  {t('supportPage.requests.continues')}
+                </Link>
+              )}
             </header>
 
             <ol
@@ -132,55 +145,52 @@ export function SupportRequest() {
               })}
             </ol>
 
-            {request.status === 'CLOSED' ? (
+            {request.status === 'CLOSED' && (
               <p className="mt-6 rounded-2xl glass-panel p-4 text-base text-white/70">
-                {t('supportPage.requests.closed_notice')}{' '}
-                <Link
-                  to="/support"
-                  className="font-semibold text-white underline underline-offset-2"
-                >
-                  {t('supportPage.requests.write_again')}
-                </Link>
+                {t('supportPage.requests.closed_notice')}
               </p>
-            ) : (
-              <form onSubmit={send} className="mt-6 space-y-3">
-                <Textarea
-                  id="reply"
-                  label={t('supportPage.requests.reply_label')}
-                  value={reply}
-                  onChange={(e) => setReply(e.target.value)}
-                  placeholder={t('supportPage.requests.reply_placeholder')}
-                  rows={4}
-                  maxLength={MAX_LENGTH}
-                  disabled={replyMutation.isPending}
-                  className="min-h-28"
-                />
-                {request.status === 'RESOLVED' && (
-                  <p className="text-sm text-white/60">
-                    {t('supportPage.requests.reopen_hint')}
-                  </p>
-                )}
-                {replyMutation.isError && (
-                  <p className="text-sm text-brand-secondary" role="alert">
-                    {apiErrorMessage(
-                      replyMutation.error,
-                      t,
-                      'supportPage.error_generic',
-                    )}
-                  </p>
-                )}
-                <MarketingCTA
-                  type="submit"
-                  variant="primary"
-                  className="w-full sm:w-auto"
-                  disabled={!reply.trim() || replyMutation.isPending}
-                >
-                  {replyMutation.isPending
-                    ? t('supportPage.submitting')
-                    : t('supportPage.requests.send')}
-                </MarketingCTA>
-              </form>
             )}
+            <form onSubmit={send} className="mt-6 space-y-3">
+              <Textarea
+                id="reply"
+                label={t(
+                  request.status === 'CLOSED'
+                    ? 'supportPage.requests.write_again'
+                    : 'supportPage.requests.reply_label',
+                )}
+                value={reply}
+                onChange={(e) => setReply(e.target.value)}
+                placeholder={t('supportPage.requests.reply_placeholder')}
+                rows={4}
+                maxLength={MAX_LENGTH}
+                disabled={replyMutation.isPending}
+                className="min-h-28"
+              />
+              {request.status === 'RESOLVED' && (
+                <p className="text-sm text-white/60">
+                  {t('supportPage.requests.reopen_hint')}
+                </p>
+              )}
+              {replyMutation.isError && (
+                <p className="text-sm text-brand-secondary" role="alert">
+                  {apiErrorMessage(
+                    replyMutation.error,
+                    t,
+                    'supportPage.error_generic',
+                  )}
+                </p>
+              )}
+              <MarketingCTA
+                type="submit"
+                variant="primary"
+                className="w-full sm:w-auto"
+                disabled={!reply.trim() || replyMutation.isPending}
+              >
+                {replyMutation.isPending
+                  ? t('supportPage.submitting')
+                  : t('supportPage.requests.send')}
+              </MarketingCTA>
+            </form>
           </>
         )}
       </div>
