@@ -70,7 +70,7 @@ export default function StoryComposerShellChrome(
   return (
     <>
       <div
-        className={`absolute top-0 left-0 right-0 z-40 bg-linear-to-b from-black/70 via-black/35 to-transparent ${
+        className={`absolute top-0 left-0 right-0 z-40 bg-linear-to-b from-black/70 via-black/35 to-transparent md:bg-none ${
           p.chromePointerArmed ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
       >

@@ -39,7 +39,7 @@ export default function PhotoEditorPreview({
   } = editor;
 
   return (
-    <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 min-h-0">
+    <div className="flex-1 relative flex items-center justify-center overflow-hidden bg-zinc-950 md:bg-transparent min-h-0">
       <div className="absolute inset-0 bg-radial-[at_50%_50%] from-white/1 via-transparent to-transparent pointer-events-none" />
       <div className="relative w-full h-full flex items-center justify-center p-4">
         {isVideo ? (
