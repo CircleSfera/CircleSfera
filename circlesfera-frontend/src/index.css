@@ -879,7 +879,7 @@ input[type="range"]::-moz-range-progress {
   }
 }
 @media (min-width: 80rem) {
-  body:has(.sidebar-root) .beside-sidebar {
+  body:has(.sidebar-root:not(.sidebar-compact)) .beside-sidebar {
     left: var(--nav-sidebar-width);
   }
 }

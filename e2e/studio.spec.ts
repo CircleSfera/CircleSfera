@@ -18,7 +18,8 @@ test.describe('Edits Studio', () => {
     await expect(
       page.getByRole('button', { name: 'Pantalla completa' }),
     ).toBeVisible();
-    await expect(page.locator('.sidebar-root')).toHaveCount(0);
+    // The studio keeps the sidebar, as a narrow rail of icons.
+    await expect(page.locator('.sidebar-root.sidebar-compact')).toHaveCount(1);
 
     await page.getByRole('button', { name: 'Medios' }).click();
     await page.locator('input[type="file"]').setInputFiles(POST_IMAGE);
