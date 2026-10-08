@@ -31,6 +31,7 @@ export interface StoryElementEditPanelProps {
   onDuplicateElement: (id: string) => void;
   onMoveElementLayer: (id: string, direction: 'up' | 'down') => void;
   onUpdateElement: (id: string, updates: Partial<StoryElement>) => void;
+  onCommitElements: () => void;
   onRemoveElement: (id: string) => void;
   onSelectedElementIdChange: (id: string | null) => void;
 }
@@ -44,6 +45,7 @@ export default function StoryElementEditPanel({
   onDuplicateElement,
   onMoveElementLayer,
   onUpdateElement,
+  onCommitElements,
   onRemoveElement,
   onSelectedElementIdChange,
 }: StoryElementEditPanelProps) {
@@ -57,6 +59,19 @@ export default function StoryElementEditPanel({
       exit={{ opacity: 0, y: 20 }}
       transition={{ duration: 0.25 }}
       className="px-3 pb-4 space-y-3"
+      // One undo step per finished gesture, whatever control made it: a
+      // slider released or moved with the keyboard, a button pressed, a text
+      // field left. Typing is not a step until the field is left.
+      onPointerUp={onCommitElements}
+      onClick={onCommitElements}
+      onDoubleClick={onCommitElements}
+      onBlur={onCommitElements}
+      onKeyUp={(event) => {
+        const target = event.target as HTMLElement;
+        if (target instanceof HTMLInputElement && target.type === 'range') {
+          onCommitElements();
+        }
+      }}
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">

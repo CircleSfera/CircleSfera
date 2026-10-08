@@ -51,6 +51,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         setSelectedElementId={s.setSelectedElementId}
         setActiveTab={s.setActiveTab}
         updateElement={s.updateElement}
+        commitElements={s.commitElements}
         setDraggingLayer={s.setDraggingLayer}
         setShowVGuide={s.setShowVGuide}
         setShowHGuide={s.setShowHGuide}
@@ -91,6 +92,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           duplicateElement={s.duplicateElement}
           moveElementLayer={s.moveElementLayer}
           updateElement={s.updateElement}
+          commitElements={s.commitElements}
           removeElement={s.removeElement}
           setSelectedElementId={s.setSelectedElementId}
           setBrushWidth={s.setBrushWidth}

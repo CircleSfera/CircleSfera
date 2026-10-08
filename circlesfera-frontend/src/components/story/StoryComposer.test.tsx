@@ -374,6 +374,40 @@ describe('StoryComposer', () => {
       await waitFor(() => expect(lastElements()).toHaveLength(1));
     });
 
+    it('undoes a slider change as one step, back to the value before the drag', async () => {
+      const { lastElements } = await withSticker();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Transformar' }));
+      const rotation = screen.getByRole('slider', { name: 'Rotación' });
+      // A drag: many values, then the pointer is released.
+      fireEvent.change(rotation, { target: { value: '10' } });
+      fireEvent.change(rotation, { target: { value: '25' } });
+      fireEvent.change(rotation, { target: { value: '45' } });
+      fireEvent.pointerUp(rotation);
+      await waitFor(() => expect(lastElements()[0].rotation).toBe(45));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+      await waitFor(() => expect(lastElements()[0].rotation).toBe(0));
+      // The sticker itself is still there: only the rotation was undone.
+      expect(lastElements()).toHaveLength(1);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Rehacer' }));
+      await waitFor(() => expect(lastElements()[0].rotation).toBe(45));
+    });
+
+    it('undoes a slider moved with the keyboard, and the "Centrar" button', async () => {
+      const { lastElements } = await withSticker();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Transformar' }));
+      const rotation = screen.getByRole('slider', { name: 'Rotación' });
+      fireEvent.change(rotation, { target: { value: '5' } });
+      fireEvent.keyUp(rotation, { key: 'ArrowRight' });
+      await waitFor(() => expect(lastElements()[0].rotation).toBe(5));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Deshacer' }));
+      await waitFor(() => expect(lastElements()[0].rotation).toBe(0));
+    });
+
     it('closes the edit panel and keeps the element', async () => {
       const { lastElements } = await withSticker();
 

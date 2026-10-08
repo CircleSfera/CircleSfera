@@ -39,6 +39,7 @@ export interface StoryComposerStageProps {
   setSelectedElementId: (id: string | null) => void;
   setActiveTab: (tab: StoryComposerTab) => void;
   updateElement: (id: string, updates: Partial<StoryElement>) => void;
+  commitElements: () => void;
   setDraggingLayer: (v: boolean) => void;
   setShowVGuide: (v: boolean) => void;
   setShowHGuide: (v: boolean) => void;
@@ -167,6 +168,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             hidden={p.textTakeover === 'edit' && el.id === p.selectedElementId}
             dimmed={p.textTakeoverActive}
             onUpdate={p.updateElement}
+            onCommit={p.commitElements}
             onSelect={p.setSelectedElementId}
             onDragActiveChange={p.setDraggingLayer}
             setShowVGuide={p.setShowVGuide}

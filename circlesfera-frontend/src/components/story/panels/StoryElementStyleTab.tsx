@@ -27,17 +27,19 @@ export default function StoryElementStyleTab({
   const { t } = useTranslation();
 
   if (isPollElement(selectedElement)) {
+    const yes = t('createPost.storyComposer.poll_yes');
+    const no = t('createPost.storyComposer.poll_no');
     const poll = parsePollPayload(selectedElement.content) || {
       question: '',
-      options: ['Sí', 'No'],
+      options: [yes, no],
     };
     const commit = (next: PollPayload) => {
       onUpdateElement(selectedElementId, {
         content: JSON.stringify({
           question: next.question.slice(0, POLL_QUESTION_MAX),
           options: [
-            (next.options[0] || 'Sí').slice(0, POLL_OPTION_MAX),
-            (next.options[1] || 'No').slice(0, POLL_OPTION_MAX),
+            (next.options[0] || yes).slice(0, POLL_OPTION_MAX),
+            (next.options[1] || no).slice(0, POLL_OPTION_MAX),
           ],
         }),
       });

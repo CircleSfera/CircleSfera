@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import type { OverlayElement } from '../../services/edits.service';
 import { clampFrameWindow } from '../../utils/frameClip';
 import {
@@ -120,8 +127,18 @@ export function usePhotoEditor({
     [rotation],
   );
 
-  const [previewUrl] = useState(URL.createObjectURL(image));
-  const [thumbnailUrl, setThumbnailUrl] = useState<string>(previewUrl);
+  // The browser keeps a file in memory for as long as an address points to
+  // it, so the address is made once per file and released when the editor
+  // closes or the file changes. It is set before the first paint.
+  const [previewUrl, setPreviewUrl] = useState('');
+  useLayoutEffect(() => {
+    const url = URL.createObjectURL(image);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [image]);
+  // Filters are previewed on the file itself, or on a frame of the video.
+  const [videoFrameUrl, setVideoFrameUrl] = useState<string | null>(null);
+  const thumbnailUrl = videoFrameUrl ?? previewUrl;
   // Auto-save effect
   useEffect(() => {
     if (onStateChange) {
@@ -139,7 +156,7 @@ export function usePhotoEditor({
 
   // Generate thumbnail for video files
   useEffect(() => {
-    if (isVideo) {
+    if (isVideo && previewUrl) {
       const video = document.createElement('video');
       video.src = previewUrl;
       video.muted = true;
@@ -155,7 +172,7 @@ export function usePhotoEditor({
         const ctx = canvas.getContext('2d');
         if (ctx) {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          setThumbnailUrl(canvas.toDataURL());
+          setVideoFrameUrl(canvas.toDataURL());
         }
       };
 

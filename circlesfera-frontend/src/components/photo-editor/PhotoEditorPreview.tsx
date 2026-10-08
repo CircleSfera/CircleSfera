@@ -45,7 +45,7 @@ export default function PhotoEditorPreview({
         {isVideo ? (
           <video
             ref={videoRef}
-            src={previewUrl}
+            src={previewUrl || undefined}
             className={`max-w-full max-h-full object-contain rounded-lg ${selectedFilter.class}`}
             style={computedStyle}
             controls={false}
@@ -75,7 +75,7 @@ export default function PhotoEditorPreview({
         ) : (
           <img
             ref={imageRef}
-            src={previewUrl}
+            src={previewUrl || undefined}
             alt={t('common.alt.upload')}
             className={`max-w-full max-h-full object-contain rounded-lg ${selectedFilter.class} shadow-2xl`}
             style={computedStyle}

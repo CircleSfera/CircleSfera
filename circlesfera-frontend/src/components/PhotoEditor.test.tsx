@@ -341,6 +341,35 @@ describe('PhotoEditor', () => {
     expect(new Set(ids).size).toBe(2);
   });
 
+  describe('the temporary address of the file', () => {
+    const made = () => vi.mocked(URL.createObjectURL).mock.calls.length;
+
+    it('is made once, however many times the editor redraws', async () => {
+      renderEditor();
+      const afterOpening = made();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Moon' }));
+      await openTab('Ajustar', slider);
+      fireEvent.change(await slider(), { target: { value: '130' } });
+
+      expect(made()).toBe(afterOpening);
+      expect(screen.getByAltText(/.+/)).toHaveAttribute('src', 'blob:preview');
+    });
+
+    it('is released when the editor closes', () => {
+      const onSave = vi.fn();
+      const { unmount } = renderWithProviders(
+        <PhotoEditor image={photo()} onSave={onSave} onCancel={vi.fn()} />,
+        { lng: 'es' },
+      );
+      expect(URL.revokeObjectURL).not.toHaveBeenCalledWith('blob:preview');
+
+      unmount();
+
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+    });
+  });
+
   describe('a video', () => {
     it('offers trim instead of crop and layer', () => {
       renderEditor({ image: clip() });
