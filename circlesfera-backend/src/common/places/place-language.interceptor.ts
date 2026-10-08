@@ -52,20 +52,41 @@ export class PlaceLanguageInterceptor implements NestInterceptor {
 
   private async translate(data: unknown, placeIds: string[], req: Request) {
     const locale = await this.viewerLocale(req);
+    // Every language is read, not only the viewer's: the names of a place in
+    // any of them tell its own labels from one the author wrote.
     const rows = await this.prisma.placeTranslation.findMany({
-      where: { placeId: { in: placeIds }, locale },
+      where: { placeId: { in: placeIds } },
       select: {
         placeId: true,
+        locale: true,
         name: true,
         fullName: true,
         country: true,
         region: true,
         locality: true,
+        place: { select: { name: true, fullName: true } },
       },
     });
-    const names = new Map<string, PlaceNames>(
-      rows.map(({ placeId, ...rest }) => [placeId, rest]),
-    );
+
+    const labels = new Map<string, Set<string>>();
+    for (const row of rows) {
+      const known = labels.get(row.placeId) ?? new Set<string>();
+      for (const label of [
+        row.name,
+        row.fullName,
+        row.place?.name,
+        row.place?.fullName,
+      ]) {
+        if (label?.trim()) known.add(label.trim());
+      }
+      labels.set(row.placeId, known);
+    }
+
+    const names = new Map<string, PlaceNames>();
+    for (const { placeId, locale: rowLocale, place: _place, ...rest } of rows) {
+      if (rowLocale !== locale) continue;
+      names.set(placeId, { ...rest, labels: labels.get(placeId) });
+    }
     return applyPlaceNames(data, names);
   }
 
