@@ -310,7 +310,7 @@
   /* Inputs */
   --input-height-standard: 48px;
   --input-height-compact: 44px;
-  --input-height-search: 44px;
+  --input-height-search: 48px;
 
   /* Navigation */
   --nav-top-height: 52px; /* 48-52px for high density mobile UI */
