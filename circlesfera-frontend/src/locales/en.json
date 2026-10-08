@@ -1263,6 +1263,7 @@
       "placeholder": "Write alt text...",
       "placeholder_video": "Describe this video…",
       "generating": "Generating...",
+      "generate_failed": "Could not generate the description. Write it yourself or try again.",
       "magic_ai": "Generate"
     },
     "preview": {
@@ -1410,6 +1411,8 @@
       "geo_loading": "Finding place…",
       "suggested": "Suggested Location",
       "not_found": "No locations found",
+      "search_error": "Could not search for places.",
+      "clear_search": "Clear search",
       "try_different": "Try searching for a different city or region.",
       "token_missing": "Place search is not available right now.",
       "retrieve_failed": "Could not resolve that place. Try another result.",
@@ -1546,6 +1549,7 @@
       "search_user": "Search user...",
       "searching": "Searching...",
       "no_users": "No users found",
+      "search_error": "Could not search for people.",
       "type_to_search": "Type to search",
       "unsupported": "Tagging is only supported on images.",
       "done": "Done",
@@ -3774,6 +3778,7 @@
       "clear_selection": "Remove selected music",
       "loading": "Loading audio tracks…",
       "no_results": "No results found.",
+      "load_error": "Could not load the music.",
       "empty": "No audio tracks available.",
       "unknown_artist": "Unknown artist",
       "selected": "Selected",

@@ -1,10 +1,13 @@
 import type { PlaceInput } from '@circlesfera/shared';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
 import { Loader2, MapPin, Navigation, Search, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
+import { SearchError, SearchMessage } from './SearchState';
 import SubScreenHeader from './SubScreenHeader';
 
 export type PlaceSelection = {
@@ -34,51 +37,52 @@ export default function LocationSubScreen({
 }: LocationSubScreenProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isRetrieving, setIsRetrieving] = useState(false);
   const [isGeoLoading, setIsGeoLoading] = useState(false);
   const [sessionToken, setSessionToken] = useState(generateSessionToken());
 
-  useEffect(() => {
-    if (!query.trim() || !MAPBOX_TOKEN) {
-      setSuggestions([]);
-      return;
-    }
+  // Searching from the first key press, so "no locations" never shows before
+  // the search has run.
+  const trimmedQuery = query.trim();
+  const debouncedQuery = useDebouncedValue(trimmedQuery, 300);
+  const canSearch = Boolean(MAPBOX_TOKEN) && debouncedQuery.length > 0;
+  const {
+    data: foundPlaces,
+    isFetching,
+    isError: searchFailed,
+    refetch: retrySearch,
+  } = useQuery({
+    queryKey: ['composer', 'places', debouncedQuery, sessionToken],
+    queryFn: async (): Promise<any[]> => {
+      const url = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
+      url.searchParams.set('q', debouncedQuery);
+      url.searchParams.set('access_token', MAPBOX_TOKEN ?? '');
+      url.searchParams.set('session_token', sessionToken);
+      url.searchParams.set('language', 'en');
+      url.searchParams.set(
+        'types',
+        'country,region,postcode,district,place,locality,neighborhood,address,poi',
+      );
 
-    const timeoutId = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const url = new URL(
-          'https://api.mapbox.com/search/searchbox/v1/suggest',
-        );
-        url.searchParams.set('q', query);
-        url.searchParams.set('access_token', MAPBOX_TOKEN);
-        url.searchParams.set('session_token', sessionToken);
-        url.searchParams.set('language', 'en');
-        url.searchParams.set(
-          'types',
-          'country,region,postcode,district,place,locality,neighborhood,address,poi',
-        );
-
-        const res = await fetch(url.toString());
-        if (res.ok) {
-          const data = await res.json();
-          setSuggestions(data.suggestions || []);
-        }
-      } catch (err) {
-        console.error('Mapbox search error:', err);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [query, sessionToken]);
+      const res = await fetch(url.toString());
+      if (!res.ok) throw new Error(`Place search failed: ${res.status}`);
+      const data = await res.json();
+      return data.suggestions || [];
+    },
+    enabled: canSearch,
+    placeholderData: keepPreviousData,
+  });
+  const isSearching =
+    Boolean(MAPBOX_TOKEN) &&
+    trimmedQuery.length > 0 &&
+    (trimmedQuery !== debouncedQuery || isFetching);
+  // Results kept from the previous search must not outlive the text.
+  const suggestions = trimmedQuery ? (foundPlaces ?? []) : [];
 
   const handleSelectSuggestion = async (suggestion: any) => {
     if (!MAPBOX_TOKEN) return;
 
-    setIsSearching(true);
+    setIsRetrieving(true);
     try {
       const url = new URL(
         `https://api.mapbox.com/search/searchbox/v1/retrieve/${suggestion.mapbox_id}`,
@@ -122,7 +126,7 @@ export default function LocationSubScreen({
     } catch {
       toast.error(t('createPost.location.retrieve_failed'));
     } finally {
-      setIsSearching(false);
+      setIsRetrieving(false);
     }
   };
 
@@ -223,27 +227,29 @@ export default function LocationSubScreen({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t('createPost.location.search')}
-                  className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-white/20 rounded-xl pl-10 pr-10 min-h-12 h-12 text-[14px] font-medium text-white placeholder-white/30 transition-all outline-none shadow-inner"
+                  className="w-full bg-white/5 hover:bg-white/10 focus:bg-white/10 border border-white/10 focus:border-white/20 rounded-xl pl-10 pr-12 min-h-12 h-12 text-[14px] font-medium text-white placeholder-white/30 transition-all outline-none shadow-inner"
                 />
                 {query && (
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-white/40 hover:text-white bg-white/5 hover:bg-white/10 rounded-full transition-colors"
+                    aria-label={t('createPost.location.clear_search')}
+                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center text-white/50 hover:text-white rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25"
                   >
-                    <X size={14} />
+                    <X size={16} aria-hidden />
                   </button>
                 )}
               </div>
 
               {suggestions.length > 0 && (
-                <div className="flex-1 overflow-y-auto no-scrollbar rounded-xl border border-white/10 bg-white/5 divide-y divide-white/10">
+                <div className="min-h-0 overflow-y-auto no-scrollbar rounded-xl border border-white/10 bg-white/5 divide-y divide-white/10">
                   {suggestions.map((suggestion) => (
                     <button
                       type="button"
                       key={suggestion.mapbox_id}
                       onClick={() => handleSelectSuggestion(suggestion)}
-                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex flex-col gap-0.5"
+                      disabled={isRetrieving}
+                      className="w-full text-left px-4 py-3 hover:bg-white/5 transition-colors flex flex-col gap-0.5 disabled:opacity-50"
                     >
                       <span className="text-[14px] font-semibold text-white">
                         {suggestion.name}
@@ -256,11 +262,32 @@ export default function LocationSubScreen({
                 </div>
               )}
 
-              {suggestions.length === 0 && query && !isSearching && (
-                <div className="flex-1 flex items-center justify-center text-[13px] text-white/40 font-medium">
-                  {t('modals.audio.no_results')}
-                </div>
+              {suggestions.length === 0 && query && isSearching && (
+                <SearchMessage busy>
+                  {t('createPost.tags.searching')}
+                </SearchMessage>
               )}
+
+              {searchFailed && !isSearching && (
+                <SearchError
+                  message={t('createPost.location.search_error')}
+                  onRetry={() => retrySearch()}
+                />
+              )}
+
+              {suggestions.length === 0 &&
+                query &&
+                !isSearching &&
+                !searchFailed && (
+                  <SearchMessage>
+                    <span className="text-white/70">
+                      {t('createPost.location.not_found')}
+                    </span>
+                    <span className="text-xs text-white/45">
+                      {t('createPost.location.try_different')}
+                    </span>
+                  </SearchMessage>
+                )}
 
               {suggestions.length === 0 && !query && (
                 <div className="flex-1 flex flex-col gap-3">

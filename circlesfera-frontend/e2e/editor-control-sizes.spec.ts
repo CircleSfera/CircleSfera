@@ -138,6 +138,41 @@ test.describe('Post composer', () => {
     });
   }
 
+  test('tag people, with search results', async ({ page }) => {
+    await postAtEditStep(page);
+    await page.route('**/api/v1/search/**', (route) =>
+      route.fulfill({
+        status: 200,
+        json: [
+          { id: 'p1', username: 'ana.garcia', fullName: 'Ana García' },
+          { id: 'p2', username: 'anabel', fullName: null },
+        ],
+      }),
+    );
+    await goToCaption(page);
+    await page
+      .getByRole('button', { name: 'Etiquetar Personas' })
+      .first()
+      .click();
+    await page
+      .locator('img.cursor-crosshair')
+      .click({ position: { x: 150, y: 150 }, force: true });
+    await page.getByPlaceholder('Buscar usuario...').fill('ana');
+    await expect(page.getByText('ana.garcia')).toBeVisible();
+    await expectControlsAtSize(page);
+  });
+
+  test('music, when it cannot load', async ({ page }) => {
+    await postAtEditStep(page);
+    await goToCaption(page);
+    await page.route('**/api/v1/audio/**', (route) =>
+      route.fulfill({ status: 500, json: {} }),
+    );
+    await page.getByRole('button', { name: 'Añadir Música' }).first().click();
+    await expect(page.getByRole('alert')).toBeVisible({ timeout: 15_000 });
+    await expectControlsAtSize(page);
+  });
+
   test('music trim', async ({ page }) => {
     await postAtEditStep(page);
     await goToCaption(page);
