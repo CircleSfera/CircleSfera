@@ -48,6 +48,7 @@ import {
   createPinoRedactPaths,
   REDACTED_CENSOR,
 } from './common/observability/redaction.util.js';
+import { PlaceLanguageInterceptor } from './common/places/place-language.interceptor.js';
 import { CryptoModule } from './common/services/crypto.module.js';
 import { CreatorModule } from './creator/creator.module.js';
 import { EditsModule } from './edits/edits.module.js';
@@ -236,6 +237,11 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     {
       provide: APP_INTERCEPTOR,
       useClass: ObservabilityInterceptor,
+    },
+    // Runs on the response after it is serialized, so it sees plain data.
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: PlaceLanguageInterceptor,
     },
     {
       provide: APP_INTERCEPTOR,
