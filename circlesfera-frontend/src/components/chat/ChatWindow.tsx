@@ -40,6 +40,7 @@ import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
 import UserAvatar from '../UserAvatar';
+import ChatDetailsModal from './ChatDetailsModal';
 import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
 import {
@@ -110,6 +111,7 @@ export default function ChatWindow() {
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [showChatDetails, setShowChatDetails] = useState(false);
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
@@ -957,9 +959,11 @@ export default function ChatWindow() {
               type="button"
               className="min-h-11 flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
               onClick={() =>
+                // The header opens the details of the conversation; the way
+                // to the profile is inside them.
                 chatInfo.isGroup
                   ? setShowGroupDetails(true)
-                  : chatInfo.username && navigate(`/${chatInfo.username}`)
+                  : setShowChatDetails(true)
               }
             >
               {chatInfo.isGroup ? (
@@ -1137,7 +1141,7 @@ export default function ChatWindow() {
                       setShowMenu(false);
                       confirmDelete('me');
                     }}
-                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
+                    className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_me')}
@@ -1149,7 +1153,7 @@ export default function ChatWindow() {
                       setShowMenu(false);
                       confirmDelete('both');
                     }}
-                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
+                    className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_everyone')}
@@ -1605,6 +1609,32 @@ export default function ChatWindow() {
       </div>
 
       {/* Modal deleted, options moved directly to dropdown menu */}
+      {showChatDetails && conversation && !chatInfo.isGroup && (
+        <ChatDetailsModal
+          isOpen={showChatDetails}
+          onClose={() => setShowChatDetails(false)}
+          person={{
+            username: chatInfo.username,
+            name: chatInfo.name,
+            avatar: chatInfo.avatar,
+            thumbnailUrl: chatInfo.thumbnailUrl,
+            standardUrl: chatInfo.standardUrl,
+          }}
+          isEncrypted={Boolean(chatInfo.otherProfileId)}
+          onViewProfile={() => {
+            setShowChatDetails(false);
+            if (chatInfo.username) navigate(`/${chatInfo.username}`);
+          }}
+          onDeleteForMe={() => {
+            setShowChatDetails(false);
+            confirmDelete('me');
+          }}
+          onDeleteForEveryone={() => {
+            setShowChatDetails(false);
+            confirmDelete('both');
+          }}
+        />
+      )}
       {showGroupDetails && conversation && (
         <GroupDetailsModal
           isOpen={showGroupDetails}

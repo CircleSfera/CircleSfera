@@ -1,4 +1,10 @@
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import type { i18n as I18nInstance } from 'i18next';
 import { createElement, type ReactNode } from 'react';
 import { toast } from 'react-hot-toast';
@@ -375,11 +381,22 @@ describe('ChatWindow', () => {
       expect(chatApi.markAsRead).not.toHaveBeenCalled();
     });
 
-    it('opens the profile of the other person from the header', async () => {
-      await renderLoadedChat();
+    it('opens the details from the header, and the profile from the details', async () => {
+      const i18n = await renderLoadedChat();
 
       fireEvent.click(await screen.findByText('Ana Ruiz'));
 
+      // The conversation stays: the header no longer leaves for the profile.
+      expect(mockNavigate).not.toHaveBeenCalled();
+      const details = await screen.findByRole('dialog', {
+        name: i18n.t('chat.details.title'),
+      });
+
+      fireEvent.click(
+        within(details).getByRole('button', {
+          name: i18n.t('chat.details.view_profile'),
+        }),
+      );
       expect(mockNavigate).toHaveBeenCalledWith('/ana');
     });
 
@@ -881,6 +898,50 @@ describe('ChatWindow', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/direct/inbox'),
       );
       expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', mode);
+    });
+
+    it.each([
+      ['chat.delete_for_me', 'me'],
+      ['chat.delete_for_everyone', 'both'],
+    ] as const)(
+      '%s from the details deletes it too, and closes them',
+      async (key, mode) => {
+        vi.mocked(chatApi.deleteConversation).mockResolvedValue({} as never);
+        const i18n = await renderLoadedChat();
+        fireEvent.click(await screen.findByText('Ana Ruiz'));
+        const details = await screen.findByRole('dialog', {
+          name: i18n.t('chat.details.title'),
+        });
+
+        fireEvent.click(
+          within(details).getByRole('button', {
+            name: new RegExp(i18n.t(key)),
+          }),
+        );
+
+        await waitFor(() =>
+          expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', mode),
+        );
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      },
+    );
+
+    it('closes the details and stays in the conversation', async () => {
+      const i18n = await renderLoadedChat();
+      fireEvent.click(await screen.findByText('Ana Ruiz'));
+      const details = await screen.findByRole('dialog', {
+        name: i18n.t('chat.details.title'),
+      });
+
+      fireEvent.click(
+        within(details).getByRole('button', {
+          name: i18n.t('common.close_dialog'),
+        }),
+      );
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalled();
+      expect(chatApi.deleteConversation).not.toHaveBeenCalled();
     });
 
     it('stays in the conversation and says so when it cannot be deleted', async () => {

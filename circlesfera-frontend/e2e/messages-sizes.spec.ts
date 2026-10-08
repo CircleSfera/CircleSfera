@@ -125,6 +125,41 @@ for (const [label, viewport] of [
       await expect(bubble).toBeVisible();
       await expectInOrder(page);
 
+      // The header opens the details of the conversation, not the profile.
+      await page
+        .getByRole('button', { name: /Ana Martín/ })
+        .last()
+        .click();
+      const details = page.getByRole('dialog', { name: 'Detalles' });
+      await expect(details).toBeVisible();
+      await expect(page).toHaveURL(/\/direct\/inbox\/t\/conv-1/);
+      await expect(
+        details.getByRole('button', { name: 'Ver perfil' }),
+      ).toBeVisible();
+      const rows = await details
+        .getByRole('button')
+        .evaluateAll((buttons) =>
+          buttons.map((button) => button.getBoundingClientRect().height),
+        );
+      expect(Math.min(...rows)).toBeGreaterThanOrEqual(44);
+      // Nothing in the panel is written under 12 px.
+      const smallest = await details.evaluate((panel) => {
+        let size = 99;
+        const walker = document.createTreeWalker(panel, NodeFilter.SHOW_TEXT);
+        while (walker.nextNode()) {
+          const parent = walker.currentNode.parentElement;
+          if (!parent || !walker.currentNode.textContent?.trim()) continue;
+          size = Math.min(
+            size,
+            Number.parseFloat(getComputedStyle(parent).fontSize),
+          );
+        }
+        return size;
+      });
+      expect(smallest).toBeGreaterThanOrEqual(12);
+      await page.keyboard.press('Escape');
+      await expect(details).toHaveCount(0);
+
       // The same person has the same picture in the list and in the header:
       // their photo, or the same initials on the same colour.
       const pictures = await page
