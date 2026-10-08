@@ -1,5 +1,6 @@
 import {
   Activity,
+  BadgeCheck,
   Bot,
   Briefcase,
   Clock,
@@ -54,6 +55,7 @@ export type AdminTab =
   | 'appeals'
   | 'spam-review'
   | 'support'
+  | 'plans'
   | 'roles'
   | 'trust'
   | 'live'
@@ -100,6 +102,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   appeals: 'appeals',
   'spam-review': 'users.read',
   support: 'support',
+  plans: 'plans',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -256,6 +259,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.support',
         icon: LifeBuoy,
       },
+      {
+        id: 'plans',
+        labelKey: 'admin.nav.plans',
+        icon: BadgeCheck,
+      },
     ],
   },
 ];
@@ -267,6 +275,7 @@ export type StaffSite = 'admin' | 'backoffice';
 
 const BACKOFFICE_TABS: readonly AdminTab[] = [
   'support',
+  'plans',
   'promotions',
   'payouts',
   'monetization',

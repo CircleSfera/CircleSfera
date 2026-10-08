@@ -34,6 +34,7 @@ describe('the two staff sites', () => {
   it('puts the business sections in the Backoffice', () => {
     expect(backoffice).toEqual([
       'support',
+      'plans',
       'promotions',
       'payouts',
       'monetization',
