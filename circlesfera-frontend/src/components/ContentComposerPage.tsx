@@ -245,6 +245,7 @@ export default function ContentComposerPage() {
         <SEO title={documentTitle} noIndex />
         <ComposerChrome size="fit">
           <SubScreenRouter
+            mode={mode}
             subScreen={subScreen}
             setSubScreen={setSubScreen}
             mediaFiles={mediaFiles}

@@ -114,7 +114,7 @@ export default function FrameClipControls({
       {showPresets ? (
         <>
           <p
-            className={`text-white/55 text-center ${compact ? 'text-[11px]' : 'text-xs'}`}
+            className={`text-white/55 text-center ${compact ? 'text-xs' : 'text-xs'}`}
           >
             {t('createPost.frameTrim.hint', { min: 15, max: 90 })}
           </p>
@@ -131,7 +131,7 @@ export default function FrameClipControls({
                   type="button"
                   disabled={disabled}
                   onClick={() => applyLength(preset)}
-                  className={`min-h-11 min-w-11 px-2.5 rounded-full text-[11px] font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-35 disabled:cursor-not-allowed ${
+                  className={`min-h-11 min-w-11 px-2.5 rounded-full text-xs font-bold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 disabled:opacity-35 disabled:cursor-not-allowed ${
                     isActive
                       ? 'bg-brand-primary text-white'
                       : 'bg-white/8 text-white/70 hover:bg-white/12'
@@ -149,7 +149,7 @@ export default function FrameClipControls({
       ) : null}
 
       <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
-        <div className="flex justify-between text-[11px] font-bold text-white/50">
+        <div className="flex justify-between text-xs font-bold text-white/50">
           <span>{formatClipClock(clipWindow.startTime)}</span>
           <span>
             {t('createPost.edit.trim_label', { seconds: length.toFixed(1) })}
@@ -191,7 +191,7 @@ export default function FrameClipControls({
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className={`relative ${compact ? 'h-11' : 'h-12'} rounded-lg bg-neutral-950/80 border border-white/8 overflow-hidden touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 ${
+          className={`relative ${compact ? 'h-11' : 'h-12'} rounded-2xl bg-neutral-950/80 border border-white/8 overflow-hidden touch-none select-none outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 ${
             maxStart <= 0 ? 'cursor-default opacity-70' : 'cursor-ew-resize'
           }`}
         >

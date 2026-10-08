@@ -36,7 +36,7 @@ export default function PhotoOverlayPanel({
         <button
           type="button"
           onClick={() => setDrawMode(!drawMode)}
-          className={`min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+          className={`min-h-11 h-11 px-4 text-sm font-semibold rounded-full transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
             drawMode
               ? 'bg-brand-primary text-white'
               : 'bg-white/5 text-white/60 hover:text-white'
@@ -64,7 +64,7 @@ export default function PhotoOverlayPanel({
               },
             ]);
           }}
-          className="min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg bg-white/5 text-white/60 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25"
+          className="min-h-11 h-11 px-4 text-sm font-semibold rounded-full bg-white/5 text-white/60 hover:text-white transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25"
         >
           {t('createPost.edit.overlay_add_text')}
         </button>
@@ -75,9 +75,10 @@ export default function PhotoOverlayPanel({
               setOverlays(overlays.filter((o) => o.id !== selectedOverlayId));
               setSelectedOverlayId(null);
             }}
-            className="min-h-11 h-11 px-3 text-[11px] font-bold rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500 hover:text-white transition-all inline-flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-red-400/40"
+            className="min-h-11 h-11 px-4 text-sm font-semibold rounded-full bg-brand-secondary/15 text-brand-secondary hover:bg-brand-secondary hover:text-white transition-all inline-flex items-center gap-1 outline-none focus-visible:ring-2 focus-visible:ring-brand-secondary/40"
           >
-            <Trash2 size={12} /> {t('createPost.edit.overlay_delete')}
+            <Trash2 size={16} aria-hidden />{' '}
+            {t('createPost.edit.overlay_delete')}
           </button>
         )}
       </div>
@@ -102,7 +103,7 @@ export default function PhotoOverlayPanel({
                 },
               ]);
             }}
-            className="min-w-11 min-h-11 text-xl hover:scale-105 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
+            className="min-w-11 min-h-11 text-xl hover:scale-105 transition-transform outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-full"
             aria-label={emoji}
           >
             {emoji}
@@ -115,7 +116,7 @@ export default function PhotoOverlayPanel({
             type="color"
             value={brushColor}
             onChange={(e) => setBrushColor(e.target.value)}
-            className="w-11 h-11 rounded cursor-pointer border-0 p-0 shrink-0"
+            className="w-11 h-11 rounded-full overflow-hidden cursor-pointer border border-white/20 p-0 shrink-0 bg-transparent"
             aria-label={t('createPost.edit.overlay_brush_color')}
           />
           <input

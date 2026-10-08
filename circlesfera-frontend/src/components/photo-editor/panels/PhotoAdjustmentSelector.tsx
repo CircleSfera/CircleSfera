@@ -29,7 +29,7 @@ export default function PhotoAdjustmentSelector({
       transition={{ duration: 0.15 }}
       className="overflow-hidden"
     >
-      <div className="flex lg:justify-center overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-4 scroll-px-4 gap-0.5">
+      <div className="flex lg:justify-center overflow-x-auto py-1.5 border-b border-white/6 no-scrollbar px-4 scroll-px-4 gap-1.5">
         {PHOTO_ADJUSTMENT_CONFIG.map((adj) => {
           const isActive = activeAdjustment === adj.key;
           const isModified =
@@ -39,7 +39,7 @@ export default function PhotoAdjustmentSelector({
               type="button"
               key={adj.key}
               onClick={() => setActiveAdjustment(adj.key)}
-              className={`px-2.5 min-h-11 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap rounded-md transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
+              className={`px-4 min-h-11 text-sm font-semibold whitespace-nowrap rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/20 ${
                 isActive
                   ? 'text-white bg-white/10'
                   : isModified
@@ -49,7 +49,7 @@ export default function PhotoAdjustmentSelector({
             >
               {t(`createPost.edit.adjust.${adj.labelKey}`)}
               {isModified && !isActive ? (
-                <span className="ml-1 w-1 h-1 bg-brand-primary rounded-full inline-block align-middle" />
+                <span className="ml-1.5 w-1.5 h-1.5 bg-brand-primary rounded-full inline-block align-middle" />
               ) : null}
             </button>
           );
@@ -59,10 +59,10 @@ export default function PhotoAdjustmentSelector({
           <button
             type="button"
             onClick={() => setAdjustments(DEFAULT_PHOTO_ADJUSTMENTS)}
-            className="px-2.5 min-h-11 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap
-                                 text-red-400/70 hover:text-red-400 ml-auto flex items-center gap-1 transition-colors"
+            className="px-4 min-h-11 text-sm font-semibold whitespace-nowrap rounded-full
+                                 text-brand-secondary/80 hover:text-brand-secondary ml-auto flex items-center gap-1 transition-colors"
           >
-            <RotateCcw size={10} /> {t('createPost.edit.reset')}
+            <RotateCcw size={14} aria-hidden /> {t('createPost.edit.reset')}
           </button>
         )}
       </div>

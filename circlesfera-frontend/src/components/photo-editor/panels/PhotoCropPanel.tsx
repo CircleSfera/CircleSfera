@@ -54,7 +54,7 @@ export default function PhotoCropPanel({
               key={opt.key}
               type="button"
               onClick={() => setAspect(opt.aspect)}
-              className={`flex-1 min-h-11 h-11 text-[11px] font-bold rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+              className={`flex-1 min-h-11 h-11 text-sm font-semibold rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                 isActive
                   ? 'bg-brand-primary/20 text-brand-primary'
                   : 'bg-white/5 text-white/60 hover:text-white/80'
@@ -66,7 +66,7 @@ export default function PhotoCropPanel({
         })}
       </div>
       <div className="flex items-center gap-2.5">
-        <span className="text-[11px] font-bold text-white/40 uppercase shrink-0">
+        <span className="text-sm font-semibold text-white/70 shrink-0">
           {t('createPost.edit.crop_rotation')}
         </span>
         <input
@@ -79,7 +79,7 @@ export default function PhotoCropPanel({
           onChange={(e) => setRotation(Number(e.target.value))}
           className={`flex-1 ${PHOTO_RANGE_CLASS}`}
         />
-        <span className="text-[11px] font-bold text-brand-primary w-8 tabular-nums text-right shrink-0">
+        <span className="text-sm font-semibold text-brand-primary w-10 tabular-nums text-right shrink-0">
           {rotation}°
         </span>
       </div>
