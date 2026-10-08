@@ -639,7 +639,7 @@ export default function ProfileHeader({
             ) : (
               <div className="flex-1 flex gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
-                  <FollowButton username={profile.data.username} />
+                  <FollowButton username={profile.data.username} fill />
                 </div>
                 <button
                   type="button"

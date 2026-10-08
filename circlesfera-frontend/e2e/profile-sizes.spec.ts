@@ -111,6 +111,18 @@ for (const [label, viewport] of [
 
     test('the profile of someone else', async ({ page }) => {
       await openProfile(page, 'other');
+      // The two main actions sit side by side without touching.
+      const follow = await page
+        .getByRole('button', { name: 'Seguir', exact: true })
+        .filter({ visible: true })
+        .boundingBox();
+      const message = await page
+        .getByRole('button', { name: 'Mensaje', exact: true })
+        .filter({ visible: true })
+        .boundingBox();
+      expect(
+        (message?.x ?? 0) - ((follow?.x ?? 0) + (follow?.width ?? 0)),
+      ).toBeGreaterThanOrEqual(8);
       await expectInOrder(page);
     });
   });

@@ -6,7 +6,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Clock, X as CloseIcon, Map as MapIcon, Sparkles } from 'lucide-react';
+import {
+  BadgeCheck,
+  Clock,
+  X as CloseIcon,
+  Map as MapIcon,
+  Sparkles,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
@@ -45,6 +51,8 @@ export default function Explore() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'foryou' | 'trending'>('foryou');
+  // A choice of the person searching: people with a badge only.
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   // Debounce query
   useEffect(() => {
@@ -73,10 +81,10 @@ export default function Explore() {
   // Standard Search Query (Combined Users, Tags, and AI Semantic Posts)
   const { data: searchResults, isLoading: isSearching } =
     useQuery<SearchResult | null>({
-      queryKey: ['search', debouncedQuery],
+      queryKey: ['search', debouncedQuery, verifiedOnly],
       queryFn: async () => {
         if (debouncedQuery.length < 2) return null;
-        const res = await searchApi.search(debouncedQuery);
+        const res = await searchApi.search(debouncedQuery, verifiedOnly);
         // Invalidate history after a successful search is recorded (backend does this)
         queryClient.invalidateQueries({ queryKey: ['searchHistory'] });
         return res.data;
@@ -294,10 +302,25 @@ export default function Explore() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                   {/* Users (Left Column) */}
                   <div className="lg:col-span-1">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <span className="text-purple-400">@</span>{' '}
-                      {t('explore.people')}
-                    </h2>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-xl font-bold flex items-center gap-2">
+                        <span className="text-purple-400">@</span>{' '}
+                        {t('explore.people')}
+                      </h2>
+                      <button
+                        type="button"
+                        aria-pressed={verifiedOnly}
+                        onClick={() => setVerifiedOnly((on) => !on)}
+                        className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 ${
+                          verifiedOnly
+                            ? 'border-brand-primary/50 bg-brand-primary/20 text-white'
+                            : 'border-white/10 bg-white/8 text-white/70 hover:text-white'
+                        }`}
+                      >
+                        <BadgeCheck size={16} aria-hidden />
+                        {t('explore.verified_only')}
+                      </button>
+                    </div>
                     {searchResults?.users && searchResults.users.length > 0 ? (
                       <div className="space-y-3">
                         {searchResults.users.map((user: ProfileWithUser) => (

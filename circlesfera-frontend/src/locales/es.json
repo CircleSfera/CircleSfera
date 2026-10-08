@@ -128,6 +128,21 @@
       "presence_links": "Presencia y Enlaces",
       "bio": "Biografía",
       "website": "Sitio web",
+      "colour": {
+        "title": "Color del perfil",
+        "hint": "Se ve en la parte alta de tu perfil, en el botón principal y en tu enlace. Lo ve todo el que visita tu perfil.",
+        "plan_hint": "El color del perfil viene con los planes Elite Creator y Business.",
+        "options": {
+          "default": "Morado de CircleSfera",
+          "blue": "Azul",
+          "cyan": "Cian",
+          "teal": "Turquesa",
+          "green": "Verde",
+          "amber": "Ámbar",
+          "pink": "Rosa",
+          "silver": "Plata"
+        }
+      },
       "account_type": "Tipo de Cuenta",
       "types": {
         "personal": {
@@ -775,6 +790,7 @@
     "trending_topics": "Temas en Tendencia",
     "tags_title": "Etiquetas",
     "no_people_found": "No se encontraron personas",
+    "verified_only": "Solo verificados",
     "no_tags_found": "No se encontraron etiquetas",
     "no_results": "No se encontraron resultados para",
     "recent_searches": "Búsquedas Recientes",
