@@ -53,6 +53,7 @@ describe('Help Desk: tickets waiting for their requester', () => {
       },
       { record: vi.fn() },
       agents,
+      { for: () => undefined } as never,
     );
   });
 

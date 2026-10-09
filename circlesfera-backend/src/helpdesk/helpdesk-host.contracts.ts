@@ -73,6 +73,11 @@ export interface TicketNotice {
   subject: string;
   email: string;
   requesterRef: string | null;
+  /**
+   * The address the requester answers to from their mail app. Empty while
+   * email in is off: the email then cannot be answered.
+   */
+  replyTo?: string;
 }
 
 export interface RequesterNotifier {

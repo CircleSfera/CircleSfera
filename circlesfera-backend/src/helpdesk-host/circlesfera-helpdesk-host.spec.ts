@@ -209,6 +209,31 @@ describe('CircleSfera as the host of the Help Desk', () => {
         42,
         't-1',
         7,
+        undefined,
+      );
+    });
+
+    it('passes the address of the request on, so that both emails can be answered', async () => {
+      prisma.profile.findFirst.mockResolvedValue(null);
+      const replyTo = 'ticket+42.0123456789abcdef@reply.example.com';
+
+      await notifier.answer({ ...ticket, replyTo }, 'Fixed.');
+      await notifier.remind({ ...ticket, replyTo }, 7);
+
+      expect(email.sendSupportReplyEmail).toHaveBeenCalledWith(
+        'ana@example.com',
+        'Help',
+        'Fixed.',
+        't-1',
+        replyTo,
+      );
+      expect(email.sendSupportReminderEmail).toHaveBeenCalledWith(
+        'ana@example.com',
+        'Help',
+        42,
+        't-1',
+        7,
+        replyTo,
       );
     });
 
@@ -222,6 +247,7 @@ describe('CircleSfera as the host of the Help Desk', () => {
         'Help',
         'Fixed.',
         't-1',
+        undefined,
       );
       expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
         recipientId: 'p-1',

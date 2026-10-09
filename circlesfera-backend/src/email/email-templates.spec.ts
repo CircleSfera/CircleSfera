@@ -159,4 +159,30 @@ describe('fill and escapeHtml', () => {
     expect(inSpanish.html).toContain('solicitud n.º 42');
     expect(inSpanish.html).toContain('en 7 días');
   });
+
+  it('says an email can be answered only when it has an address to answer to', () => {
+    const url = 'https://circlesfera.com/support/requests/t-1';
+    const closed = [
+      EmailTemplates.supportReply(en, 'Help', 'Fixed.', url).html,
+      EmailTemplates.supportReminder(en, 'Help', 42, 7, url).html,
+    ];
+    const open = [
+      EmailTemplates.supportReply(en, 'Help', 'Fixed.', url, true).html,
+      EmailTemplates.supportReminder(en, 'Help', 42, 7, url, true).html,
+      EmailTemplates.supportReply(es, 'Ayuda', 'Hecho.', url, true).html,
+    ];
+
+    for (const html of closed) {
+      expect(html).toContain(EMAIL_COPY.en.automated);
+      expect(html).not.toContain(EMAIL_COPY.en.replyable);
+    }
+    expect(open[0]).toContain(EMAIL_COPY.en.replyable);
+    expect(open[0]).not.toContain(EMAIL_COPY.en.automated);
+    expect(open[1]).toContain(EMAIL_COPY.en.replyable);
+    expect(open[2]).toContain(EMAIL_COPY.es.replyable);
+    // Every other email still says it cannot be answered.
+    expect(EmailTemplates.verification(en, 'https://x/verify').html).toContain(
+      EMAIL_COPY.en.automated,
+    );
+  });
 });

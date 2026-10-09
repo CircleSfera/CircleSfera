@@ -206,6 +206,7 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       ticket.subject,
       body,
       ticket.id,
+      ticket.replyTo,
     );
 
     const recipientId = ticket.requesterRef
@@ -228,6 +229,7 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       ticket.reference,
       ticket.id,
       solvedInDays,
+      ticket.replyTo,
     );
   }
 }

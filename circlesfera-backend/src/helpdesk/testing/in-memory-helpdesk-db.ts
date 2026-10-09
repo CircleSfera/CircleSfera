@@ -22,6 +22,7 @@ export class InMemoryHelpdeskDb {
   messages: Row[] = [];
   events: Row[] = [];
   savedReplies: Row[] = [];
+  inboundEmails: Row[] = [];
   private sequence = 0;
   private clock = Date.parse('2026-01-01T00:00:00Z');
 
@@ -282,6 +283,53 @@ export class InMemoryHelpdeskDb {
     deleteMany: async ({ where }: { where?: Where }) => {
       const gone = this.savedReplies.filter((r) => this.matches(r, where));
       this.savedReplies = this.savedReplies.filter((r) => !gone.includes(r));
+      return { count: gone.length };
+    },
+  };
+
+  readonly helpdeskInboundEmail = {
+    findUnique: async ({ where }: { where: Where }) => {
+      const key = where.organizationId_messageId as Where | undefined;
+      const found = this.inboundEmails.find((e) =>
+        this.matches(e, key ?? where),
+      );
+      return found ? { ...found } : null;
+    },
+
+    findUniqueOrThrow: async (args: { where: Where }) => {
+      const found = await this.helpdeskInboundEmail.findUnique(args);
+      if (!found) throw new Error('No record was found.');
+      return found;
+    },
+
+    create: async ({ data }: { data: Row }) => {
+      if (
+        this.inboundEmails.some(
+          (e) =>
+            e.organizationId === data.organizationId &&
+            e.messageId === data.messageId,
+        )
+      ) {
+        // What the database client does on a repeated unique value.
+        throw Object.assign(new Error('Unique constraint failed'), {
+          code: 'P2002',
+        });
+      }
+      const email: Row = {
+        id: this.next('i'),
+        outcome: 'RECEIVED',
+        ticketId: null,
+        noticeSentAt: null,
+        receivedAt: this.now(),
+        ...data,
+      };
+      this.inboundEmails.push(email);
+      return { ...email };
+    },
+
+    deleteMany: async ({ where }: { where?: Where }) => {
+      const gone = this.inboundEmails.filter((e) => this.matches(e, where));
+      this.inboundEmails = this.inboundEmails.filter((e) => !gone.includes(e));
       return { count: gone.length };
     },
   };

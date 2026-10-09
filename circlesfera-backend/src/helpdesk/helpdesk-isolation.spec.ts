@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { HelpdeskDataPort } from './helpdesk-data.port.js';
+import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 import { InMemoryHelpdeskDb } from './testing/in-memory-helpdesk-db.js';
 
@@ -18,6 +19,7 @@ describe('Help Desk: isolation between two organizations', () => {
   let store: HelpdeskStore;
   let tickets: HelpdeskTicketsService;
   let port: HelpdeskDataPort;
+  let inbound: HelpdeskInboundService;
   const handover = {
     open: vi.fn(),
     withdraw: vi.fn(),
@@ -39,7 +41,16 @@ describe('Help Desk: isolation between two organizations', () => {
     handed: string;
     waiting: string;
     reminded: string;
+    keptEmail: string;
   };
+  const sameEmail = {
+    messageId: '<same@mail.example.com>',
+    from: 'ana@example.com',
+    to: ['ticket+1.0123456789abcdef@reply.example.com'],
+    subject: 'Re: Help',
+    text: 'An answer by email',
+  };
+  const emailOfA = () => db.inboundEmails.find((e) => e.id === a.keptEmail);
 
   const as = (organization: 'org-a' | 'org-b') => {
     current = organization;
@@ -53,6 +64,9 @@ describe('Help Desk: isolation between two organizations', () => {
       ),
       messages: db.messages.filter((m) =>
         Object.values(a).includes(m.ticketId as string),
+      ),
+      inboundEmails: db.inboundEmails.filter(
+        (e) => e.organizationId === 'org-a',
       ),
     });
   const idsOf = (rows: { id?: unknown }[]) => rows.map((row) => row.id);
@@ -101,8 +115,17 @@ describe('Help Desk: isolation between two organizations', () => {
       },
       { record: vi.fn() },
       agents,
+      { for: () => undefined } as never,
     );
-    port = new HelpdeskDataPort(store, { get: () => tickets } as never);
+    inbound = new HelpdeskInboundService(store, {
+      enabled: true,
+      isReplyDomain: (address: string) =>
+        address.endsWith('@reply.example.com'),
+    } as never);
+    port = new HelpdeskDataPort(store, {
+      get: (wanted: unknown) =>
+        wanted === HelpdeskInboundService ? inbound : tickets,
+    } as never);
 
     as('org-a');
     a = {
@@ -112,7 +135,9 @@ describe('Help Desk: isolation between two organizations', () => {
       handed: await open('ana', 'A with another team'),
       waiting: await open('ana', 'A waiting for its requester'),
       reminded: await open('ana', 'A reminded long ago'),
+      keptEmail: '',
     };
+    a.keptEmail = (await port.receiveEmail(sameEmail)).id;
     await tickets.addMessage('agent-a', a.open, {
       body: 'internal note of org a',
       visibility: 'INTERNAL',
@@ -258,6 +283,17 @@ describe('Help Desk: isolation between two organizations', () => {
     }),
 
     // --- what the rest of the product may ask ---
+    // A setting of the installation, not data of an organization.
+    emailInEnabled: async () => ({ leaked: port.emailInEnabled() !== true }),
+    // The same email, by its Message-ID, is a different email in each
+    // organization: the second one keeps its own and deletes only its own.
+    receiveEmail: async () => {
+      const { id, kept } = await port.receiveEmail(sameEmail);
+      const deleted = await inbound.deleteOld(-1);
+      return {
+        leaked: !kept || id === a.keptEmail || deleted !== 1 || !emailOfA(),
+      };
+    },
     exportForRequester: async () => {
       const rows = await port.exportForRequester('shared');
       return { leaked: rows.length !== 1 || idsOf(rows).some(ofOrgA) };

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { EmailModule } from '../email/email.module.js';
 import {
   ACCOUNT_CARD_PROVIDER,
@@ -12,6 +13,10 @@ import {
 } from '../helpdesk/helpdesk-host.contracts.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { SlackModule } from '../slack/slack.module.js';
+import {
+  BrevoInboundController,
+  InboundTokenGuard,
+} from './brevo-inbound.controller.js';
 import {
   AdminAuditStaffActionLog,
   CircleSferaAccountCard,
@@ -36,8 +41,9 @@ const contracts = [
 
 /** CircleSfera's side of the Help Desk contracts. */
 @Module({
-  imports: [PrismaModule, EmailModule, SlackModule],
-  providers: contracts,
+  imports: [PrismaModule, EmailModule, SlackModule, ConfigModule],
+  controllers: [BrevoInboundController],
+  providers: [...contracts, InboundTokenGuard],
   exports: contracts.map((contract) => contract.provide),
 })
 export class CircleSferaHelpdeskHostModule {}
