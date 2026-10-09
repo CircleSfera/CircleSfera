@@ -127,6 +127,8 @@ export class PaymentsService {
 
     const plan = await this.prisma.platformPlan.findFirst({
       where: {
+        // A plan taken off sale cannot be bought, whoever names its id.
+        isActive: true,
         OR: [{ id: planId }, { stripeProductId: planId }],
       },
     });
