@@ -2649,6 +2649,20 @@
       "assignee_nobody": "Nadie",
       "assignee_me": "Tú",
       "assignee_other": "Otro agente",
+      "event": {
+        "state": "Estado: {{from}} → {{to}}",
+        "topic": "Tema: {{from}} → {{to}}",
+        "priority": "Prioridad: {{from}} → {{to}}",
+        "assignment": "Lo lleva: {{from}} → {{to}}",
+        "handover": "Pasado a moderación",
+        "state_name": {
+          "OPEN": "Abierto",
+          "WAITING": "Esperando al cliente",
+          "RESOLVED": "Resuelto",
+          "CLOSED": "Cerrado",
+          "ESCALATED": "En moderación"
+        }
+      },
       "take": "Tomar",
       "release": "Soltar",
       "status_waiting": "Esperando al cliente",

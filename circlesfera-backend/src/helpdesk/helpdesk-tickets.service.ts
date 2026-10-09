@@ -352,8 +352,9 @@ export class HelpdeskTicketsService {
   // the agent's view.
   async getTicket(id: string) {
     const ticket = await this.ticketOrFail(id);
-    const [messages, requesters, cases] = await Promise.all([
+    const [messages, events, requesters, cases] = await Promise.all([
       this.store.messages(ticket.id),
+      this.store.events(ticket.id),
       this.requesters.describe(ticket.userId ? [ticket.userId] : []),
       this.handover.cases(
         ticket.escalatedReportId ? [ticket.escalatedReportId] : [],
@@ -367,6 +368,8 @@ export class HelpdeskTicketsService {
       user: (ticket.userId && requesters.get(ticket.userId)) || null,
       escalatedReport: handed ? { id: handed.id, status: handed.status } : null,
       messages,
+      // What changed and who changed it: for agents only.
+      events,
     };
   }
 

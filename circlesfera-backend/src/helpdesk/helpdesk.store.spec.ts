@@ -15,6 +15,7 @@ describe('HelpdeskStore', () => {
       deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
     },
     helpdeskMessage: { findMany: vi.fn().mockResolvedValue([]) },
+    helpdeskTicketEvent: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const organization = { current: vi.fn() };
   let store: HelpdeskStore;
@@ -116,6 +117,17 @@ describe('HelpdeskStore', () => {
     await store.messages('t-1');
 
     const query = prisma.helpdeskMessage.findMany.mock.calls[0][0];
+    expect(query.where).toEqual({
+      ticketId: 't-1',
+      ticket: { organizationId: 'org-1' },
+    });
+    expect(query.orderBy).toEqual({ createdAt: 'asc' });
+  });
+
+  it('reads what changed in a ticket of the organization, oldest first', async () => {
+    await store.events('t-1');
+
+    const query = prisma.helpdeskTicketEvent.findMany.mock.calls[0][0];
     expect(query.where).toEqual({
       ticketId: 't-1',
       ticket: { organizationId: 'org-1' },

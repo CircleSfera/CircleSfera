@@ -11,6 +11,7 @@ import {
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
+  AdminSupportEvent,
   AdminSupportMessage,
   AdminSupportTicket,
 } from '../../services/admin.service';
@@ -127,6 +128,69 @@ function ConversationMessage({
   );
 }
 
+/** One change of the ticket, as a line between the messages. */
+function HistoryLine({
+  event,
+  requester,
+  agentName,
+}: {
+  event: AdminSupportEvent;
+  requester: string;
+  agentName: (agentRef: string | null) => string;
+}) {
+  const { t, i18n } = useTranslation();
+  const values = (name: (value: string | null) => string) => ({
+    from: name(event.fromValue),
+    to: name(event.toValue),
+  });
+  const what = {
+    STATE: () =>
+      t(
+        'admin.support.event.state',
+        values((value) => t(`admin.support.event.state_name.${value}`)),
+      ),
+    TOPIC: () =>
+      t(
+        'admin.support.event.topic',
+        values((value) => t(`supportPage.category.${value}`)),
+      ),
+    PRIORITY: () =>
+      t(
+        'admin.support.event.priority',
+        values((value) => t(`admin.support.priority.${value}`)),
+      ),
+    ASSIGNMENT: () => t('admin.support.event.assignment', values(agentName)),
+    HANDOVER: () => t('admin.support.event.handover'),
+  }[event.kind]();
+  const who =
+    event.actorKind === 'REQUESTER'
+      ? requester
+      : event.actorKind === 'SYSTEM'
+        ? t('admin.support.author_system')
+        : event.actorRef
+          ? agentName(event.actorRef)
+          : t('admin.support.author_team');
+  return (
+    <li className="flex flex-wrap items-center gap-x-2 px-3 text-xs text-white/60">
+      <span className="text-white/80">{what}</span>
+      <span>{who}</span>
+      <span>{formatDateTime(event.createdAt, i18n.language)}</span>
+    </li>
+  );
+}
+
+// Messages and changes of a ticket in the order they happened; a change
+// written with a message comes right after it.
+function timelineOf(
+  messages: AdminSupportMessage[],
+  events: AdminSupportEvent[],
+) {
+  return [
+    ...messages.map((message) => ({ message, at: message.createdAt })),
+    ...events.map((event) => ({ event, at: event.createdAt })),
+  ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+}
+
 export default function SupportTicketsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
@@ -178,6 +242,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
   });
 
   const selectedTicket = data?.data.find((t) => t.id === selectedTicketId);
+  const requesterName = selectedTicket?.user?.profile?.username
+    ? `@${selectedTicket.user.profile.username}`
+    : (selectedTicket?.email ?? '');
 
   // The conversation of the selected ticket, internal notes included.
   const { data: detail } = useQuery({
@@ -728,17 +795,23 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </p>
                     )}
                     <ol className="space-y-2">
-                      {messages.map((message) => (
-                        <ConversationMessage
-                          key={message.id}
-                          message={message}
-                          requester={
-                            selectedTicket.user?.profile?.username
-                              ? `@${selectedTicket.user.profile.username}`
-                              : selectedTicket.email
-                          }
-                        />
-                      ))}
+                      {timelineOf(messages, detail?.events ?? []).map(
+                        (entry) =>
+                          'message' in entry ? (
+                            <ConversationMessage
+                              key={entry.message.id}
+                              message={entry.message}
+                              requester={requesterName}
+                            />
+                          ) : (
+                            <HistoryLine
+                              key={entry.event.id}
+                              event={entry.event}
+                              requester={requesterName}
+                              agentName={assigneeLabel}
+                            />
+                          ),
+                      )}
                     </ol>
                   </section>
 
