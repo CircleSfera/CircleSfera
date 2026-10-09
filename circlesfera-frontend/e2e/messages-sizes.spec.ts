@@ -157,8 +157,17 @@ for (const [label, viewport] of [
         return size;
       });
       expect(smallest).toBeGreaterThanOrEqual(12);
-      await page.keyboard.press('Escape');
-      await expect(details).toHaveCount(0);
+      // Deleting asks first, and "no" keeps the conversation.
+      await details
+        .getByRole('button', { name: /Eliminar para todos/ })
+        .click();
+      const question = page.getByRole('heading', {
+        name: '¿Eliminar la conversación para todos?',
+      });
+      await expect(question).toBeVisible();
+      await page.getByRole('button', { name: 'Cancelar' }).click();
+      await expect(question).toHaveCount(0);
+      await expect(page).toHaveURL(/\/direct\/inbox\/t\/conv-1/);
 
       // The same person has the same picture in the list and in the header:
       // their photo, or the same initials on the same colour.

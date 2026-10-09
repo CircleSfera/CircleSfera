@@ -889,27 +889,49 @@ describe('ChatWindow', () => {
       return i18n;
     }
 
-    it.each([
-      ['chat.delete_for_me', 'me'],
-      ['chat.delete_for_everyone', 'both'],
-    ] as const)('%s deletes it and returns to the inbox', async (key, mode) => {
-      vi.mocked(chatApi.deleteConversation).mockResolvedValue({} as never);
-      const i18n = await openMenu();
+    const CASES = [
+      ['chat.delete_for_me', 'me', 'chat.delete_confirm.me_title'],
+      [
+        'chat.delete_for_everyone',
+        'both',
+        'chat.delete_confirm.everyone_title',
+      ],
+    ] as const;
 
-      fireEvent.click(screen.getByRole('button', { name: i18n.t(key) }));
+    /** The confirmation that deleting asks for, found by its question. */
+    async function confirmation(i18n: I18nInstance, titleKey: string) {
+      const question = await screen.findByRole('heading', {
+        name: i18n.t(titleKey),
+      });
+      return question.closest('[role="dialog"]') as HTMLElement;
+    }
 
-      await waitFor(() =>
-        expect(mockNavigate).toHaveBeenCalledWith('/direct/inbox'),
-      );
-      expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', mode);
-    });
+    it.each(CASES)(
+      '%s asks first, then deletes it and returns to the inbox',
+      async (key, mode, titleKey) => {
+        vi.mocked(chatApi.deleteConversation).mockResolvedValue({} as never);
+        const i18n = await openMenu();
 
-    it.each([
-      ['chat.delete_for_me', 'me'],
-      ['chat.delete_for_everyone', 'both'],
-    ] as const)(
-      '%s from the details deletes it too, and closes them',
-      async (key, mode) => {
+        fireEvent.click(screen.getByRole('button', { name: i18n.t(key) }));
+
+        // Nothing is deleted until the question is answered.
+        const dialog = await confirmation(i18n, titleKey);
+        expect(chatApi.deleteConversation).not.toHaveBeenCalled();
+
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: i18n.t(key) }),
+        );
+
+        await waitFor(() =>
+          expect(mockNavigate).toHaveBeenCalledWith('/direct/inbox'),
+        );
+        expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', mode);
+      },
+    );
+
+    it.each(CASES)(
+      '%s from the details asks first too',
+      async (key, mode, titleKey) => {
         vi.mocked(chatApi.deleteConversation).mockResolvedValue({} as never);
         const i18n = await renderLoadedChat();
         fireEvent.click(await screen.findByText('Ana Ruiz'));
@@ -923,12 +945,38 @@ describe('ChatWindow', () => {
           }),
         );
 
+        const dialog = await confirmation(i18n, titleKey);
+        expect(chatApi.deleteConversation).not.toHaveBeenCalled();
+        fireEvent.click(
+          within(dialog).getByRole('button', { name: i18n.t(key) }),
+        );
+
         await waitFor(() =>
           expect(chatApi.deleteConversation).toHaveBeenCalledWith('c1', mode),
         );
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       },
     );
+
+    it('keeps the conversation when the question is answered with no', async () => {
+      const i18n = await openMenu();
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('chat.delete_for_everyone'),
+        }),
+      );
+      const dialog = await confirmation(
+        i18n,
+        'chat.delete_confirm.everyone_title',
+      );
+
+      fireEvent.click(
+        within(dialog).getByRole('button', { name: i18n.t('chat.cancel') }),
+      );
+
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(chatApi.deleteConversation).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
 
     it('closes the details and stays in the conversation', async () => {
       const i18n = await renderLoadedChat();
@@ -956,6 +1004,12 @@ describe('ChatWindow', () => {
 
       fireEvent.click(
         screen.getByRole('button', { name: i18n.t('chat.delete_for_me') }),
+      );
+      const dialog = await confirmation(i18n, 'chat.delete_confirm.me_title');
+      fireEvent.click(
+        within(dialog).getByRole('button', {
+          name: i18n.t('chat.delete_for_me'),
+        }),
       );
 
       await waitFor(() =>

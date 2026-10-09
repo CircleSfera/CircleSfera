@@ -40,6 +40,7 @@ import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
+import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import ChatDetailsModal from './ChatDetailsModal';
 import GroupDetailsModal from './GroupDetailsModal';
@@ -113,6 +114,10 @@ export default function ChatWindow() {
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
   const [showChatDetails, setShowChatDetails] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<'me' | 'both' | null>(
+    null,
+  );
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
@@ -669,15 +674,21 @@ export default function ChatWindow() {
     );
   };
 
-  const confirmDelete = async (mode: 'me' | 'both') => {
-    if (!id) return;
+  // Deleting asks first: it cannot be undone, and "for everyone" removes the
+  // conversation for the other people too.
+  const deleteConversation = async () => {
+    if (!id || !pendingDelete) return;
+    setIsDeletingConversation(true);
     try {
-      await chatApi.deleteConversation(id, mode);
+      await chatApi.deleteConversation(id, pendingDelete);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate('/direct/inbox');
     } catch (error) {
       logger.error('Failed to delete conversation', error);
       toast.error(t('chat.delete_chat_error'));
+    } finally {
+      setIsDeletingConversation(false);
+      setPendingDelete(null);
     }
   };
 
@@ -1140,7 +1151,7 @@ export default function ChatWindow() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
-                      confirmDelete('me');
+                      setPendingDelete('me');
                     }}
                     className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium"
                   >
@@ -1152,7 +1163,7 @@ export default function ChatWindow() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
-                      confirmDelete('both');
+                      setPendingDelete('both');
                     }}
                     className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
@@ -1628,14 +1639,36 @@ export default function ChatWindow() {
           }}
           onDeleteForMe={() => {
             setShowChatDetails(false);
-            confirmDelete('me');
+            setPendingDelete('me');
           }}
           onDeleteForEveryone={() => {
             setShowChatDetails(false);
-            confirmDelete('both');
+            setPendingDelete('both');
           }}
         />
       )}
+      <ConfirmModal
+        isOpen={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={deleteConversation}
+        title={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_confirm.everyone_title'
+            : 'chat.delete_confirm.me_title',
+        )}
+        message={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_confirm.everyone_message'
+            : 'chat.delete_confirm.me_message',
+        )}
+        confirmText={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_for_everyone'
+            : 'chat.delete_for_me',
+        )}
+        cancelText={t('chat.cancel')}
+        isLoading={isDeletingConversation}
+      />
       {showGroupDetails && conversation && (
         <GroupDetailsModal
           isOpen={showGroupDetails}
