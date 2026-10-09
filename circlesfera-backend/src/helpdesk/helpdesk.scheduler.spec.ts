@@ -106,4 +106,26 @@ describe('HelpdeskScheduler', () => {
       scheduler.processPendingInboundEmails(),
     ).resolves.toBeUndefined();
   });
+
+  it('checks email in every hour only while it is on, and survives a failed run', async () => {
+    const watched = {
+      enabled: false,
+      alertOnTrouble: vi.fn().mockResolvedValue(true),
+    };
+    const scheduler = new HelpdeskScheduler({} as never, watched as never);
+
+    await scheduler.alertOnEmailInTrouble();
+    expect(watched.alertOnTrouble).not.toHaveBeenCalled();
+
+    watched.enabled = true;
+    await scheduler.alertOnEmailInTrouble();
+    expect(watched.alertOnTrouble).toHaveBeenCalledTimes(1);
+
+    watched.alertOnTrouble.mockResolvedValue(false);
+    await scheduler.alertOnEmailInTrouble();
+    watched.alertOnTrouble.mockRejectedValue(new Error('db down'));
+    await expect(scheduler.alertOnEmailInTrouble()).resolves.toBeUndefined();
+    watched.alertOnTrouble.mockRejectedValue('db down');
+    await expect(scheduler.alertOnEmailInTrouble()).resolves.toBeUndefined();
+  });
 });

@@ -580,4 +580,32 @@ export class HelpdeskStore {
       data: { noticeSentAt: moment },
     });
   }
+
+  /** How many emails that arrived since a moment had each outcome. */
+  async inboundOutcomesSince(
+    moment: Date,
+  ): Promise<Partial<Record<HelpdeskInboundOutcome, number>>> {
+    const groups = await this.prisma.helpdeskInboundEmail.groupBy({
+      by: ['outcome'],
+      where: {
+        organizationId: this.organizationId,
+        receivedAt: { gte: moment },
+      },
+      _count: { _all: true },
+    });
+    return Object.fromEntries(
+      groups.map((group) => [group.outcome, group._count._all]),
+    );
+  }
+
+  /** How many emails kept before a moment nobody has looked at yet. */
+  inboundStuckBefore(moment: Date): Promise<number> {
+    return this.prisma.helpdeskInboundEmail.count({
+      where: {
+        organizationId: this.organizationId,
+        outcome: 'RECEIVED',
+        receivedAt: { lt: moment },
+      },
+    });
+  }
 }

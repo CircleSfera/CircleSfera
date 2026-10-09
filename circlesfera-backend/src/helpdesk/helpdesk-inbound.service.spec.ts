@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { isAutomatedMail } from './helpdesk-inbound.js';
 import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
@@ -10,6 +10,11 @@ describe('Help Desk: keeping email that arrives', () => {
   let db: InMemoryHelpdeskDb;
   let organization: string;
   let inbound: HelpdeskInboundService;
+  const teamChannel = {
+    ticketOpened: vi.fn(),
+    requesterReplied: vi.fn(),
+    emailInTrouble: vi.fn(),
+  };
   const settings: Record<string, string> = {
     HELPDESK_REPLY_DOMAIN: 'reply.example.com',
     HELPDESK_REPLY_SECRET: 'secret',
@@ -26,6 +31,7 @@ describe('Help Desk: keeping email that arrives', () => {
   };
 
   beforeEach(() => {
+    vi.resetAllMocks();
     db = new InMemoryHelpdeskDb();
     organization = 'org-a';
     const scope = { current: () => organization };
@@ -45,6 +51,7 @@ describe('Help Desk: keeping email that arrives', () => {
         remind: async () => {},
         unmatchedSender: async () => {},
       },
+      teamChannel,
     );
   });
 
@@ -161,6 +168,88 @@ describe('Help Desk: keeping email that arrives', () => {
       ['org-a', '<abc@mail.example.com>'],
       ['org-b', '<recent@mail.example.com>'],
     ]);
+  });
+
+  describe('telling the team that email in needs a look', () => {
+    // Emails of the last hour with each outcome, written straight to the rows.
+    const withOutcomes = (outcomes: Record<string, number>, org = 'org-a') => {
+      for (const [outcome, count] of Object.entries(outcomes)) {
+        for (let n = 0; n < count; n += 1) {
+          db.inboundEmails.push({
+            id: `x-${org}-${outcome}-${n}`,
+            organizationId: org,
+            outcome,
+            receivedAt: new Date(Date.now() - 20 * 60 * 1000),
+          });
+        }
+      }
+    };
+
+    it('says nothing in a quiet hour, or below ten unmatched emails', async () => {
+      expect(await inbound.alertOnTrouble()).toBe(false);
+      withOutcomes({ NO_TICKET: 5, SENDER_MISMATCH: 4, MATCHED: 40 });
+
+      expect(await inbound.alertOnTrouble()).toBe(false);
+      expect(teamChannel.emailInTrouble).not.toHaveBeenCalled();
+    });
+
+    it('tells the team, with the count of each, at ten unmatched emails in the hour', async () => {
+      withOutcomes({ NO_TICKET: 6, SENDER_MISMATCH: 4 });
+
+      expect(await inbound.alertOnTrouble()).toBe(true);
+      expect(teamChannel.emailInTrouble).toHaveBeenCalledTimes(1);
+      expect(teamChannel.emailInTrouble).toHaveBeenCalledWith({
+        noTicket: 6,
+        senderMismatch: 4,
+        stuck: 0,
+      });
+    });
+
+    it('does not count mail from machines or spam: they are expected', async () => {
+      withOutcomes({ AUTOMATED: 30, SPAM: 30, EMPTY: 30, NO_TICKET: 9 });
+
+      expect(await inbound.alertOnTrouble()).toBe(false);
+    });
+
+    it('does not count what arrived more than an hour ago', async () => {
+      withOutcomes({ NO_TICKET: 12 });
+      for (const kept of db.inboundEmails) {
+        kept.receivedAt = new Date(Date.now() - 61 * 60 * 1000);
+      }
+
+      expect(await inbound.alertOnTrouble()).toBe(false);
+    });
+
+    it('tells the team of any email left unlooked at for a quarter of an hour, and of both things at once', async () => {
+      withOutcomes({ RECEIVED: 2, NO_TICKET: 10 });
+      // One arrived a moment ago: it is not stuck yet.
+      db.inboundEmails.push({
+        id: 'fresh',
+        organizationId: 'org-a',
+        outcome: 'RECEIVED',
+        receivedAt: new Date(),
+      });
+
+      expect(await inbound.alertOnTrouble()).toBe(true);
+      expect(teamChannel.emailInTrouble).toHaveBeenCalledWith({
+        noTicket: 10,
+        senderMismatch: 0,
+        stuck: 2,
+      });
+    });
+
+    it('counts only the emails of its organization', async () => {
+      withOutcomes({ NO_TICKET: 50, RECEIVED: 5 }, 'org-b');
+
+      expect(await inbound.alertOnTrouble()).toBe(false);
+      organization = 'org-b';
+      expect(await inbound.alertOnTrouble()).toBe(true);
+      expect(teamChannel.emailInTrouble).toHaveBeenCalledWith({
+        noTicket: 50,
+        senderMismatch: 0,
+        stuck: 5,
+      });
+    });
   });
 
   it('says whether email in is set up', () => {

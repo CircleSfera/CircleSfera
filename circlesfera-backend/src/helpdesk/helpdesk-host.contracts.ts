@@ -103,6 +103,18 @@ export interface TeamChannel {
   ticketOpened(ticket: object): void;
   /** Tells the team the requester answered in a ticket. */
   requesterReplied(ticket: TicketNotice): Promise<void>;
+  /** Tells the team that email in needs a look. Counts only. */
+  emailInTrouble(trouble: EmailInTrouble): Promise<void>;
+}
+
+/** What went wrong with the email that arrived, in numbers. */
+export interface EmailInTrouble {
+  /** In the last hour: sent to no ticket. */
+  noTicket: number;
+  /** In the last hour: sent to a ticket by someone who is not its requester. */
+  senderMismatch: number;
+  /** Kept and still not looked at after a quarter of an hour. */
+  stuck: number;
 }
 
 export interface StaffActionLog {

@@ -302,6 +302,19 @@ export class InMemoryHelpdeskDb {
     count: async ({ where }: { where?: Where }) =>
       this.inboundEmails.filter((e) => this.matches(e, where)).length,
 
+    groupBy: async ({ where }: { where?: Where }) => {
+      const counts = new Map<unknown, number>();
+      for (const email of this.inboundEmails.filter((e) =>
+        this.matches(e, where),
+      )) {
+        counts.set(email.outcome, (counts.get(email.outcome) ?? 0) + 1);
+      }
+      return [...counts].map(([outcome, all]) => ({
+        outcome,
+        _count: { _all: all },
+      }));
+    },
+
     updateMany: async ({ where, data }: { where?: Where; data: Row }) => {
       const rows = this.inboundEmails.filter((e) => this.matches(e, where));
       for (const email of rows) Object.assign(email, data);

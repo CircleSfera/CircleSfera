@@ -292,7 +292,10 @@ describe('CircleSfera as the host of the Help Desk', () => {
 
   describe('telling the team', () => {
     const eventEmitter = { emit: vi.fn() };
-    const slack = { sendSupportReplyAlert: vi.fn() };
+    const slack = {
+      sendSupportReplyAlert: vi.fn(),
+      sendSupportEmailInAlert: vi.fn(),
+    };
     const channel = new CircleSferaTeamChannel(
       eventEmitter as never,
       slack as never,
@@ -321,6 +324,14 @@ describe('CircleSfera as the host of the Help Desk', () => {
       await channel.requesterReplied(ticket);
 
       expect(slack.sendSupportReplyAlert).toHaveBeenCalledWith(ticket);
+    });
+
+    it('passes the counts of email in trouble to the internal channel', async () => {
+      const trouble = { noTicket: 7, senderMismatch: 4, stuck: 2 };
+
+      await channel.emailInTrouble(trouble);
+
+      expect(slack.sendSupportEmailInAlert).toHaveBeenCalledWith(trouble);
     });
   });
 
