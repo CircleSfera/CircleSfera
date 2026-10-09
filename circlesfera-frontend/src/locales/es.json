@@ -4308,6 +4308,18 @@
     "caption_more": "más",
     "caption_less": "menos",
     "caption_error": "No se ha podido guardar el texto. Inténtalo de nuevo.",
+    "cover": {
+      "title": "Portada",
+      "preview": "Vista previa de la portada",
+      "slider": "Momento del vídeo",
+      "automatic": "Automática: la elegimos por ti",
+      "chosen": "En el {{time}} del vídeo",
+      "help": "La portada es un momento de tu frame. Se ve en tu perfil y allí donde aparezca el frame.",
+      "use_automatic": "Usar la portada automática",
+      "row": "Elegir portada",
+      "row_chosen": "Portada elegida",
+      "pending": "Guardado. La portada nueva se verá en unos segundos."
+    },
     "original_audio": "{{username}} • Audio original",
     "artist_fallback": "Artista",
     "audio_disc": "Disco de audio",

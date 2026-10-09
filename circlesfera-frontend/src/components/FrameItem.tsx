@@ -24,6 +24,7 @@ import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
+import FrameCoverPicker from './frames/FrameCoverPicker';
 import type { FrameMenuActions } from './frames/FrameOptionsSheet';
 import FrameOverlayInfo from './frames/FrameOverlayInfo';
 import ConfirmModal from './modals/ConfirmModal';
@@ -76,6 +77,8 @@ export default function FrameItem({
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
+  // The cover being chosen in the dialog; none while it is left as it is.
+  const [editCover, setEditCover] = useState<number | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const [progress, setProgress] = useState(0);
@@ -113,9 +116,14 @@ export default function FrameItem({
   // Only the caption of a published frame can be changed here; its video
   // cannot.
   const captionMutation = useMutation({
-    mutationFn: (caption: string) => postsApi.update(post.id, caption),
-    onSuccess: () => {
+    mutationFn: (changes: { caption: string; coverTimeMs?: number }) =>
+      postsApi.update(post.id, changes.caption, changes.coverTimeMs),
+    onSuccess: (_saved, changes) => {
       setShowEditModal(false);
+      // The image of a new cover is made in the background.
+      if (changes.coverTimeMs !== undefined) {
+        toast.success(t('frames.cover.pending'));
+      }
       queryClient.invalidateQueries({ queryKey: ['frames'] });
       queryClient.invalidateQueries({ queryKey: ['userFrames'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -147,6 +155,7 @@ export default function FrameItem({
     onRegisterMenuActions({
       onEdit: () => {
         setEditCaption(captionRef.current || '');
+        setEditCover(null);
         setShowEditModal(true);
       },
       onDelete: () => setShowDeleteModal(true),
@@ -392,6 +401,8 @@ export default function FrameItem({
   const isOwner = profile?.id === post.profileId;
   const videoMedia = post.media?.find((m) => m.type === 'video') ||
     post.media?.[0] || { url: '' };
+  const chosenCoverMs =
+    (videoMedia as { coverTimeMs?: number | null }).coverTimeMs ?? null;
 
   return (
     <div className="w-full h-full bg-black relative flex items-center justify-center snap-start rounded-[20px] overflow-hidden group">
@@ -523,10 +534,21 @@ export default function FrameItem({
         onCaptionChange={setEditCaption}
         onSubmit={(e) => {
           e.preventDefault();
-          captionMutation.mutate(editCaption);
+          captionMutation.mutate({
+            caption: editCaption,
+            ...(editCover !== null && { coverTimeMs: editCover }),
+          });
         }}
         isSaving={captionMutation.isPending}
-      />
+      >
+        {videoMedia.url && (
+          <FrameCoverPicker
+            src={videoMedia.url}
+            valueMs={editCover ?? chosenCoverMs}
+            onChange={setEditCover}
+          />
+        )}
+      </EditCaptionDialog>
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}

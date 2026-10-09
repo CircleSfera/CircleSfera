@@ -12,6 +12,8 @@ interface EditCaptionDialogProps {
   onCaptionChange: (caption: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   isSaving: boolean;
+  // What else can be changed with the caption (the cover of a frame).
+  children?: React.ReactNode;
 }
 
 /** Changes the caption of a published post or frame; the media stays. */
@@ -22,6 +24,7 @@ export default function EditCaptionDialog({
   onCaptionChange,
   onSubmit,
   isSaving,
+  children,
 }: EditCaptionDialogProps) {
   const { t } = useTranslation();
   return (
@@ -39,6 +42,7 @@ export default function EditCaptionDialog({
           placeholder={t('post.modals.write_caption')}
           maxLength={CAPTION_MAX_LENGTH}
         />
+        {children}
         <div className="flex gap-3">
           <Button
             type="button"

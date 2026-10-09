@@ -14,6 +14,7 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import type { CreatePostDto } from './dto/create-post.dto.js';
 import { PostsService } from './posts.service.js';
+import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
@@ -87,6 +88,8 @@ describe('PostsService', () => {
     dispatchPostPublished: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockFrameCover = { choose: vi.fn() };
+
   const mockPostMediaCleanupService = {
     cleanupMedia: vi.fn().mockResolvedValue(undefined),
   };
@@ -124,6 +127,7 @@ describe('PostsService', () => {
           provide: PostMediaCleanupService,
           useValue: mockPostMediaCleanupService,
         },
+        { provide: FrameCoverService, useValue: mockFrameCover },
       ],
     }).compile();
 
@@ -140,6 +144,14 @@ describe('PostsService', () => {
       await expect(
         service.create('user-1', { caption: 'test' }),
       ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('refuses a cover for a post that is not a frame, before creating it', async () => {
+      await expect(
+        service.create('user-1', { caption: 'test', coverTimeMs: 1000 }),
+      ).rejects.toThrow('Only a frame has a cover to choose');
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
+      expect(mockFrameCover.choose).not.toHaveBeenCalled();
     });
 
     it('validates premium price bounds when isPremium is true', async () => {
@@ -316,12 +328,15 @@ describe('PostsService', () => {
       await service.create('user-1', {
         type: 'FRAME',
         media: [{ url: 'https://vid.mp4', type: 'video' }],
+        coverTimeMs: 2500,
       });
 
       expect(assertVideoUrlDuration).toHaveBeenCalledWith(
         'FRAME',
         'https://vid.mp4',
       );
+      // The cover chosen while creating is asked for once the frame exists.
+      expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 2500);
     });
 
     it('validates duration for POST video media items', async () => {
@@ -1186,6 +1201,55 @@ describe('PostsService', () => {
         },
         include: expect.any(Object),
       });
+    });
+
+    it('chooses the cover of a frame before changing its caption', async () => {
+      const order: string[] = [];
+      mockFrameCover.choose.mockImplementation(async () => {
+        order.push('cover');
+      });
+      mockPrismaService.post.update.mockImplementation(async () => {
+        order.push('caption');
+        return { id: 'frame-1', media: [] };
+      });
+
+      await service.update('frame-1', { caption: 'New', coverTimeMs: 3000 });
+
+      expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 3000);
+      expect(order).toEqual(['cover', 'caption']);
+    });
+
+    it('takes a cover at the very start of the video', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'frame-1',
+        media: [],
+      });
+
+      await service.update('frame-1', { coverTimeMs: 0 });
+
+      expect(mockFrameCover.choose).toHaveBeenCalledWith('frame-1', 0);
+    });
+
+    it('leaves the caption alone when the post has no cover to choose', async () => {
+      mockFrameCover.choose.mockRejectedValue(
+        new BadRequestException('Only a frame has a cover to choose'),
+      );
+
+      await expect(
+        service.update('post-1', { caption: 'New', coverTimeMs: 3000 }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(mockPrismaService.post.update).not.toHaveBeenCalled();
+    });
+
+    it('does not touch the cover when none is asked for', async () => {
+      mockPrismaService.post.update.mockResolvedValue({
+        id: 'post-1',
+        media: [],
+      });
+
+      await service.update('post-1', { caption: 'New' });
+
+      expect(mockFrameCover.choose).not.toHaveBeenCalled();
     });
   });
 

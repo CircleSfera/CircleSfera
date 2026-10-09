@@ -52,6 +52,7 @@ export function useCreatePost() {
     caption: state.caption,
     hideLikes: state.hideLikes,
     turnOffComments: state.turnOffComments,
+    coverTimeMs: state.coverTimeMs,
     isSensitive: state.isSensitive,
     location: state.location,
     selectedPlace: state.selectedPlace,

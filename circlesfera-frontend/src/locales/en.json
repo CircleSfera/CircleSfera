@@ -4308,6 +4308,18 @@
     "caption_more": "more",
     "caption_less": "less",
     "caption_error": "Could not save the caption. Try again.",
+    "cover": {
+      "title": "Cover",
+      "preview": "Cover preview",
+      "slider": "Moment of the video",
+      "automatic": "Automatic: chosen for you",
+      "chosen": "At {{time}} of the video",
+      "help": "The cover is a moment of your frame. It shows on your profile and wherever the frame is listed.",
+      "use_automatic": "Use the automatic cover",
+      "row": "Choose cover",
+      "row_chosen": "Cover chosen",
+      "pending": "Saved. The new cover will show in a few seconds."
+    },
     "original_audio": "{{username}} • Original audio",
     "artist_fallback": "Artist",
     "audio_disc": "Audio disc",

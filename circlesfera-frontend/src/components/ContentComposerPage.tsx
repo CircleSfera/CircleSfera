@@ -66,6 +66,8 @@ export default function ContentComposerPage() {
     setHideLikes,
     turnOffComments,
     setTurnOffComments,
+    coverTimeMs,
+    setCoverTimeMs,
     isSensitive,
     setIsSensitive,
     selectedAudio,
@@ -257,6 +259,8 @@ export default function ContentComposerPage() {
             setHideLikes={setHideLikes}
             turnOffComments={turnOffComments}
             setTurnOffComments={setTurnOffComments}
+            coverTimeMs={coverTimeMs}
+            setCoverTimeMs={setCoverTimeMs}
             isSensitive={isSensitive}
             setIsSensitive={setIsSensitive}
             showSensitiveToggle={mode !== 'STORY'}
@@ -400,6 +404,7 @@ export default function ContentComposerPage() {
                   onOpenMusic={() => setSubScreen('music')}
                   isPremium={isPremium}
                   interactiveDraft={interactiveDraft}
+                  hasChosenCover={coverTimeMs !== null}
                 />
               </StepAnimationWrapper>
             )}

@@ -17,6 +17,9 @@ vi.mock('../services', () => ({
 }));
 vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
 vi.mock('../utils/imageExport', () => ({ exportEditedImage: vi.fn() }));
+vi.mock('../utils/videoExport', () => ({
+  exportEditedVideo: vi.fn(async (file: File) => file),
+}));
 vi.mock('../utils/logger', () => ({ logger: { error: vi.fn() } }));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', async (importOriginal) => ({
@@ -47,6 +50,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     caption: 'Hola',
     hideLikes: false,
     turnOffComments: true,
+    coverTimeMs: null,
     isSensitive: false,
     location: '',
     selectedPlace: null,
@@ -141,6 +145,59 @@ describe('useCreatePostMutation', () => {
     await short.submit();
     expect(short.deps.setShowFrameTrim).toHaveBeenCalledWith(true);
     expect(short.deps.uploadFiles).not.toHaveBeenCalled();
+  });
+
+  describe('the cover of a frame', () => {
+    const clip = {
+      ...image('clip.mp4'),
+      type: 'video',
+      videoData: { startTime: 0, endTime: 20 },
+    };
+
+    it('is sent as the moment its author chose', async () => {
+      const { submit } = setup({
+        mode: 'FRAME',
+        mediaFiles: [clip],
+        coverTimeMs: 4200,
+      });
+      await submit();
+
+      expect(postsApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'FRAME', coverTimeMs: 4200 }),
+      );
+    });
+
+    it('is sent at the very start of the video too', async () => {
+      const { submit } = setup({
+        mode: 'FRAME',
+        mediaFiles: [clip],
+        coverTimeMs: 0,
+      });
+      await submit();
+
+      expect(postsApi.create).toHaveBeenCalledWith(
+        expect.objectContaining({ coverTimeMs: 0 }),
+      );
+    });
+
+    it('is left to the server when none was chosen', async () => {
+      const { submit } = setup({ mode: 'FRAME', mediaFiles: [clip] });
+      await submit();
+
+      expect(postsApi.create).toHaveBeenCalled();
+      expect(vi.mocked(postsApi.create).mock.calls[0][0]).not.toHaveProperty(
+        'coverTimeMs',
+      );
+    });
+
+    it('is never sent for a post', async () => {
+      const { submit } = setup({ coverTimeMs: 4200 });
+      await submit();
+
+      expect(vi.mocked(postsApi.create).mock.calls[0][0]).not.toHaveProperty(
+        'coverTimeMs',
+      );
+    });
   });
 
   it('publishes a post with the price in cents, tags and rating, then goes home', async () => {
