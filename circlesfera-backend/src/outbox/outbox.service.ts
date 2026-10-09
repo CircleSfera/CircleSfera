@@ -4,6 +4,7 @@ import { ModuleRef } from '@nestjs/core';
 import { Cron } from '@nestjs/schedule';
 import type { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import { queueJobId } from '../common/utils/queue-job-id.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
   EnqueueOutboxEventDto,
@@ -150,8 +151,11 @@ export class OutboxService {
           }
 
           const rawOptions = (event.options as Record<string, unknown>) || {};
-          const deterministicJobId =
-            (rawOptions.jobId as string) || `outbox:${event.id}`;
+          // An id stored by an earlier version may still carry a colon,
+          // which the queue refuses: it is published under a valid one.
+          const deterministicJobId = queueJobId(
+            (rawOptions.jobId as string) || `outbox-${event.id}`,
+          );
 
           await queue.add(event.eventName, event.payload, {
             ...rawOptions,
