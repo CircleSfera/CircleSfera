@@ -1637,7 +1637,10 @@ model SupportTicket {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // The report created when the ticket was handed to moderation
+  escalatedReportId String? @unique
+  escalatedReport   Report? @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([status])
@@ -1673,6 +1676,8 @@ model Report {
   reporter      Profile         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
   strikes       ProfileStrike[]
+  // Set when the report came from a support ticket handed to moderation
+  supportTicket SupportTicket?
 
   @@index([reporterId])
   @@index([targetType, targetId])
@@ -2147,6 +2152,8 @@ enum TicketStatus {
   OPEN
   RESOLVED
   CLOSED
+  // Handed to moderation: a report in the trust queues decides it
+  ESCALATED
 }
 
 enum TransactionStatus {

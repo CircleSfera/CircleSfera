@@ -377,12 +377,32 @@ export interface UserExperiment {
   } | null;
 }
 
+// What support sees about who wrote a ticket. It is read-only.
+export interface AdminSupportAccount {
+  userId: string;
+  isActive: boolean;
+  memberSince: string;
+  identityVerified: boolean;
+  plan: { name: string; renewsAt: string; cancelAtPeriodEnd: boolean } | null;
+  payouts: { connected: boolean; enabled: boolean };
+  profiles: {
+    id: string;
+    username: string;
+    accountType: string;
+    verificationLevel: string;
+    banned: boolean;
+    suspended: boolean;
+  }[];
+}
+
 export interface AdminSupportTicket {
   id: string;
   email: string;
   subject: string;
   message: string;
-  status: 'OPEN' | 'RESOLVED' | 'CLOSED';
+  // ESCALATED: handed to moderation, which decides its report.
+  status: 'OPEN' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  escalatedReport?: { id: string; status: string } | null;
   reply: string | null;
   createdAt: string;
   updatedAt: string;
@@ -1000,6 +1020,16 @@ export const adminApi = {
     id: string,
     data: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
   ) => apiClient.patch<AdminSupportTicket>(`admin/support/tickets/${id}`, data),
+
+  // Hands the ticket to moderation: a report in the trust queues.
+  escalateSupportTicket: (id: string) =>
+    apiClient.post<AdminSupportTicket>(`admin/support/tickets/${id}/escalate`),
+
+  // Read-only: plan, payout account and standing of who wrote the ticket.
+  getSupportTicketAccount: (id: string) =>
+    apiClient.get<AdminSupportAccount | null>(
+      `admin/support/tickets/${id}/account`,
+    ),
 
   // Feature flags
   getFeatureFlags: () =>

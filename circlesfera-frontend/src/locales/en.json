@@ -2575,7 +2575,30 @@
       "confirm_close_title": "Close without reply?",
       "confirm_close_message": "This ticket will be closed without a reply. Continue?",
       "toast_updated": "Ticket updated",
-      "toast_error": "Failed to update ticket"
+      "toast_error": "Failed to update ticket",
+      "status_escalated": "With moderation",
+      "hand_to_moderation": "Hand to moderation",
+      "confirm_escalate_title": "Hand this ticket to moderation?",
+      "confirm_escalate_message": "A report with the content of the ticket will be created in the trust queues. You will not be able to answer or close it until moderation decides.",
+      "toast_escalated": "Ticket handed to moderation",
+      "with_moderation_notice": "This ticket is with moderation. It cannot be answered or closed until its report is decided.",
+      "view_reports": "See reports",
+      "moderation_decided": "Moderation has decided the report of this ticket. You can answer and close it.",
+      "account": {
+        "title": "Account",
+        "plan": "Plan",
+        "no_plan": "No plan",
+        "identity": "Verified identity",
+        "yes": "Yes",
+        "no": "No",
+        "payouts": "Payouts",
+        "payouts_enabled": "Active",
+        "payouts_pending": "Setup not finished",
+        "payouts_none": "No payout account",
+        "banned": "Banned",
+        "suspended": "Suspended",
+        "in_good_standing": "In good standing"
+      }
     },
     "audit": {
       "title": "Audit Log",
