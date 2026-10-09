@@ -33,9 +33,11 @@ describe('TwoFactorService', () => {
       update: vi.fn().mockResolvedValue({}),
     },
     signIn: {
-      findFirst: vi.fn(async (args?: unknown) =>
-        mockPrismaService.user.findUnique(args),
-      ),
+      update: vi.fn().mockResolvedValue({}),
+      findFirst: vi.fn(async (args?: unknown) => {
+        const account = await mockPrismaService.user.findUnique(args);
+        return account ? { id: 'sign-in-1', ...account } : account;
+      }),
     },
   };
 
@@ -69,14 +71,15 @@ describe('TwoFactorService', () => {
 
   describe('generateTwoFactorAuthenticationSecret', () => {
     it('generates a secret, encrypts it before persistence, and returns the plaintext to user', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({});
       const result = await service.generateTwoFactorAuthenticationSecret({
         id: 'user-1',
         email: 'user@example.com',
       });
 
       expect(generateSecret).toHaveBeenCalled();
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
         data: {
           twoFactorSecret: expect.stringMatching(
             /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/,
@@ -144,7 +147,7 @@ describe('TwoFactorService', () => {
       );
       expect(isValid).toBe(true);
       // Already encrypted, so no opportunistic migration needed
-      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.signIn.update).not.toHaveBeenCalled();
     });
 
     it('reads the secret of the first sign-in of the account, not the one of the account', async () => {
@@ -160,12 +163,56 @@ describe('TwoFactorService', () => {
       expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
         where: { userId: 'user-1' },
         orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-        select: { twoFactorSecret: true },
+        select: { id: true, twoFactorSecret: true },
       });
       expect(mockPrismaService.user.findUnique).not.toHaveBeenCalled();
       expect(verifySync).toHaveBeenCalledWith(
         expect.objectContaining({ secret: 'SECRET_OF_THE_SIGN_IN' }),
       );
+    });
+
+    it('writes on the sign-in of the session when the session names one, inside its account', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValue({
+        id: 'sign-in-own',
+        twoFactorSecret: cryptoService.encrypt('SECRET_OF_ITS_OWN'),
+      } as never);
+      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+
+      await service.turnOnTwoFactorAuthentication(
+        'user-1',
+        '123456',
+        'sign-in-own',
+      );
+
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user-1', id: 'sign-in-own' },
+        }),
+      );
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-own' },
+        data: { isTwoFactorEnabled: true },
+      });
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      mockPrismaService.signIn.findFirst.mockImplementation(
+        async (args?: unknown) => {
+          const account = await mockPrismaService.user.findUnique(args);
+          return account ? { id: 'sign-in-1', ...account } : account;
+        },
+      );
+    });
+
+    it('generates no secret for an account without a sign-in, and writes nothing', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null as never);
+
+      await expect(
+        service.generateTwoFactorAuthenticationSecret({
+          id: 'user-1',
+          email: 'user@example.com',
+        }),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockPrismaService.signIn.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
 
     it('refuses any code for an account without a sign-in', async () => {
@@ -196,8 +243,8 @@ describe('TwoFactorService', () => {
       expect(isValid).toBe(true);
 
       // Verify opportunistic migration was triggered to encrypt the legacy secret
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
         data: {
           twoFactorSecret: expect.stringMatching(
             /^[0-9a-f]+:[0-9a-f]+:[0-9a-f]+$/,
@@ -210,7 +257,7 @@ describe('TwoFactorService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         twoFactorSecret: 'LEGACY_PLAINTEXT_SECRET',
       });
-      mockPrismaService.user.update.mockRejectedValueOnce(
+      mockPrismaService.signIn.update.mockRejectedValueOnce(
         new Error('DB failure'),
       );
       vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
@@ -249,8 +296,8 @@ describe('TwoFactorService', () => {
 
       await service.turnOnTwoFactorAuthentication('user-1', '123456');
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
         data: { isTwoFactorEnabled: true },
       });
     });
@@ -278,8 +325,8 @@ describe('TwoFactorService', () => {
 
       await service.turnOffTwoFactorAuthentication('user-1', '123456');
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'user-1' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
         data: { isTwoFactorEnabled: false, twoFactorSecret: null },
       });
     });

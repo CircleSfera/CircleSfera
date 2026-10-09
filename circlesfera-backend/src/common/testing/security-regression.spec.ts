@@ -58,6 +58,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
               : null;
           }),
           findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }),
+          update: vi.fn().mockResolvedValue({}),
         },
         profile: {
           findFirst: vi.fn().mockResolvedValue(null),
@@ -240,9 +241,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       });
 
       expect(result).toBeDefined();
-      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect(mockPrisma.signIn.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'user-bcrypt' },
+          where: { id: 'sign-in-user-bcrypt' },
           data: expect.objectContaining({
             password: expect.stringMatching(/^\$argon2/),
           }),
