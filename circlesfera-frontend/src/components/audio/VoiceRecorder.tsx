@@ -37,14 +37,33 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const animFrameRef = useRef<number | null>(null);
   const waveformPeaksRef = useRef<number[]>([]);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  // Set when a recording is thrown away: what the recorder hands over a
+  // moment after it stops is then not kept.
+  const discardRef = useRef(false);
 
+  // Stops listening: the microphone is released however the recording ends.
+  const releaseMicrophone = () => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => {});
+    }
+    streamRef.current?.getTracks().forEach((track) => {
+      track.stop();
+    });
+    streamRef.current = null;
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs once, when the recorder goes away
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {});
+      // Leaving while recording must not leave the microphone on.
+      if (mediaRecorderRef.current?.state === 'recording') {
+        discardRef.current = true;
+        mediaRecorderRef.current.stop();
       }
+      releaseMicrophone();
       if (previewAudioRef.current) {
         previewAudioRef.current.pause();
       }
@@ -54,6 +73,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      discardRef.current = false;
       audioChunksRef.current = [];
       waveformPeaksRef.current = [];
       const recorder = new MediaRecorder(stream);
@@ -108,17 +129,14 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       };
 
       recorder.onstop = () => {
+        releaseMicrophone();
+        if (discardRef.current) {
+          discardRef.current = false;
+          audioChunksRef.current = [];
+          return;
+        }
         const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         setRecordedBlob(blob);
-
-        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-        if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-          audioCtxRef.current.close().catch(() => {});
-        }
-
-        stream.getTracks().forEach((track) => {
-          track.stop();
-        });
       };
 
       mediaRecorderRef.current = recorder;
@@ -143,6 +161,8 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   };
 
   const cancelRecording = () => {
+    // A recording in progress is thrown away, not kept for sending.
+    if (isRecording) discardRef.current = true;
     stopRecording();
     if (previewAudioRef.current) {
       previewAudioRef.current.pause();
