@@ -397,4 +397,60 @@ export class HelpdeskStore {
       },
     });
   }
+
+  /** The saved replies an agent may use: the shared ones and their own. */
+  savedRepliesFor(agentRef: string) {
+    return this.prisma.helpdeskSavedReply.findMany({
+      where: {
+        organizationId: this.organizationId,
+        OR: [{ ownerRef: null }, { ownerRef: agentRef }],
+      },
+      orderBy: { title: 'asc' },
+    });
+  }
+
+  /** A saved reply of the organization, whoever owns it, or nothing. */
+  findSavedReply(id: string) {
+    return this.prisma.helpdeskSavedReply.findFirst({
+      where: { id, organizationId: this.organizationId },
+    });
+  }
+
+  createSavedReply(reply: {
+    title: string;
+    body: string;
+    // Nobody: shared with the team.
+    ownerRef: string | null;
+  }) {
+    return this.prisma.helpdeskSavedReply.create({
+      data: {
+        organizationId: this.organizationId,
+        title: reply.title,
+        body: reply.body,
+        ownerRef: reply.ownerRef,
+      },
+    });
+  }
+
+  /** Changes the words of a saved reply; never whose it is. */
+  async updateSavedReply(
+    id: string,
+    changes: { title?: string; body?: string },
+  ) {
+    const { count } = await this.prisma.helpdeskSavedReply.updateMany({
+      where: { id, organizationId: this.organizationId },
+      data: {
+        ...(changes.title !== undefined && { title: changes.title }),
+        ...(changes.body !== undefined && { body: changes.body }),
+      },
+    });
+    return count === 1 ? this.findSavedReply(id) : null;
+  }
+
+  async deleteSavedReply(id: string): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskSavedReply.deleteMany({
+      where: { id, organizationId: this.organizationId },
+    });
+    return count === 1;
+  }
 }
