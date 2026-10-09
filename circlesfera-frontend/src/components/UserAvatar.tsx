@@ -2,6 +2,7 @@ import type React from 'react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBlurFallbackUrl, sanitizeUrl } from '../utils/apiUtils';
+import { initialsAvatarUrl } from '../utils/initialsAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
 interface UserAvatarProps {
@@ -61,7 +62,8 @@ export default memo(function UserAvatar({
   const { t } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
+  // No photo: the initials, drawn here. Nothing is asked of another site.
+  const defaultAvatar = initialsAvatarUrl(alt);
   const sanitizedSrc = sanitizeUrl(src);
   const blurUrl =
     getBlurFallbackUrl(sanitizedSrc) || getBlurFallbackUrl(thumbnailUrl);
