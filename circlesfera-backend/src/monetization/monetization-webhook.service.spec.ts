@@ -469,6 +469,43 @@ describe('MonetizationWebhookService', () => {
         }),
       );
     });
+
+    it('records a company the provider has finished verifying', async () => {
+      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+
+      await service.handleAccountUpdated({
+        id: 'acct_1',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+        business_type: 'company',
+        details_submitted: true,
+        requirements: { currently_due: [], disabled_reason: null },
+      });
+
+      expect(prisma.monetization.upsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ verifiedCompany: true }),
+        }),
+      );
+    });
+
+    it('does not record the account of a person as a company', async () => {
+      prisma.user.findFirst = vi.fn().mockResolvedValue({ id: 'creator1' });
+
+      await service.handleAccountUpdated({
+        id: 'acct_1',
+        charges_enabled: true,
+        capabilities: { transfers: 'active' },
+        business_type: 'individual',
+        details_submitted: true,
+      });
+
+      expect(prisma.monetization.upsert).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          update: expect.objectContaining({ verifiedCompany: false }),
+        }),
+      );
+    });
   });
 
   describe('syncConnectPayoutLog', () => {

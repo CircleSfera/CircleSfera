@@ -1356,6 +1356,8 @@ model Monetization {
   // Cached from Stripe account.updated webhook
   transfersEnabled      Boolean @default(false)
   chargesEnabled        Boolean @default(false)
+  // The payout account belongs to a company and the provider has verified it
+  verifiedCompany       Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

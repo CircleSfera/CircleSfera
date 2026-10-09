@@ -9,7 +9,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import type Stripe from 'stripe';
 import { CREATOR_SHARE_DECIMAL } from '../common/constants/monetization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
-import { deriveConnectAccountFlags } from '../common/stripe/stripe.service.js';
+import {
+  type ConnectAccountCompanyFields,
+  deriveConnectAccountFlags,
+  isVerifiedCompanyAccount,
+} from '../common/stripe/stripe.service.js';
 import { primaryProfileIdForUser } from '../common/utils/user-profile-shape.util.js';
 import type { Notice } from '../notifications/notice-copy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -550,11 +554,13 @@ export class MonetizationWebhookService {
     });
   }
 
-  async handleAccountUpdated(account: {
-    id: string;
-    charges_enabled?: boolean;
-    capabilities?: { transfers?: string };
-  }): Promise<void> {
+  async handleAccountUpdated(
+    account: {
+      id: string;
+      charges_enabled?: boolean;
+      capabilities?: { transfers?: string };
+    } & ConnectAccountCompanyFields,
+  ): Promise<void> {
     const user = await this.prisma.user.findFirst({
       where: { stripeConnectAccountId: account.id },
       select: { id: true },
@@ -562,10 +568,16 @@ export class MonetizationWebhookService {
     if (user) {
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
+      const verifiedCompany = isVerifiedCompanyAccount(account);
       await this.prisma.monetization.upsert({
         where: { userId: user.id },
-        update: { transfersEnabled, chargesEnabled },
-        create: { userId: user.id, transfersEnabled, chargesEnabled },
+        update: { transfersEnabled, chargesEnabled, verifiedCompany },
+        create: {
+          userId: user.id,
+          transfersEnabled,
+          chargesEnabled,
+          verifiedCompany,
+        },
       });
     }
   }

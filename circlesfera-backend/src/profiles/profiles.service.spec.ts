@@ -527,9 +527,43 @@ describe('ProfilesService', () => {
         mockPrismaService.platformSubscription = {
           findFirst: vi.fn().mockResolvedValue(null),
         };
+        mockPrismaService.monetization = {
+          findUnique: vi.fn().mockResolvedValue(null),
+        };
 
         const res: any = await service.getProfile('colouruser');
         expect(res.accentColor).toBe(shown);
+      },
+    );
+
+    it.each([
+      ['BUSINESS', true, true],
+      ['BUSINESS', false, false],
+      // The payout account of a company without the Business plan.
+      ['ELITE', true, false],
+      ['BASIC', true, false],
+    ])(
+      'a Profile on the %s level with a verified company account (%s) shows verified company: %s',
+      async (level, verifiedCompany, shown) => {
+        mockCacheManager.get.mockResolvedValue(null);
+        mockPrismaService.profile.findFirst.mockResolvedValue({
+          id: 'p-company',
+          userId: 'u-company',
+          username: 'companyuser',
+          verificationLevel: level,
+          accountType: 'BUSINESS',
+          user: null,
+          _count: { posts: 0, followers: 0, following: 0 },
+        });
+        mockPrismaService.platformSubscription = {
+          findFirst: vi.fn().mockResolvedValue(null),
+        };
+        mockPrismaService.monetization = {
+          findUnique: vi.fn().mockResolvedValue({ verifiedCompany }),
+        };
+
+        const res: any = await service.getProfile('companyuser');
+        expect(res.companyVerified).toBe(shown);
       },
     );
 
@@ -670,11 +704,16 @@ describe('ProfilesService', () => {
       mockPrismaService.platformSubscription = {
         findFirst: vi.fn().mockResolvedValue(null),
       };
+      mockPrismaService.monetization = {
+        findUnique: vi.fn().mockResolvedValue({ verifiedCompany: true }),
+      };
 
       const res = await service.getMyProfile('p-me');
       expect(res.username).toBe('myuser');
       expect(res.isPrivate).toBe(true);
       expect(res.isVerified).toBe(true);
+      // The owner sees the same company state as everyone else.
+      expect(res.companyVerified).toBe(true);
     });
   });
 
