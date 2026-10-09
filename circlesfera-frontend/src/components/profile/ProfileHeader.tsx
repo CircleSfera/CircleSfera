@@ -371,7 +371,7 @@ export default function ProfileHeader({
                     type="button"
                     onClick={openCreateMenu}
                     aria-label={t('profile.actions.create_post')}
-                    className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-white rounded-full border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
+                    className="p-2 h-11 w-11 bg-brand-primary hover:bg-brand-secondary text-(color:--on-brand-primary) rounded-full border border-brand-primary/50 transition-all duration-300 hover:scale-105 active:scale-95 shadow-lg shadow-brand-primary/20 flex items-center justify-center"
                   >
                     <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                   </button>
@@ -572,7 +572,7 @@ export default function ProfileHeader({
                   type="button"
                   onClick={openCreateMenu}
                   aria-label={t('profile.actions.create_post')}
-                  className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-white rounded-full border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
+                  className="h-11 w-11 shrink-0 bg-brand-primary hover:bg-brand-secondary text-(color:--on-brand-primary) rounded-full border border-brand-primary/50 transition-all flex items-center justify-center shadow-lg shadow-brand-primary/20"
                 >
                   <Plus size={18} strokeWidth={2.5} aria-hidden="true" />
                 </button>
@@ -587,7 +587,7 @@ export default function ProfileHeader({
                     className={`flex-1 min-w-0 px-2 h-11 rounded-full border transition-all flex items-center justify-center text-xs sm:text-sm font-semibold
                       ${
                         isCreatorModeActive
-                          ? 'bg-brand-primary text-white border-brand-primary/50 shadow-lg shadow-brand-primary/20'
+                          ? 'bg-brand-primary text-(color:--on-brand-primary) border-brand-primary/50 shadow-lg shadow-brand-primary/20'
                           : 'bg-white/5 text-gray-300 border-white/10'
                       }`}
                   >
@@ -639,7 +639,7 @@ export default function ProfileHeader({
             ) : (
               <div className="flex-1 flex gap-2 min-w-0">
                 <div className="flex-1 min-w-0">
-                  <FollowButton username={profile.data.username} />
+                  <FollowButton username={profile.data.username} fill />
                 </div>
                 <button
                   type="button"
