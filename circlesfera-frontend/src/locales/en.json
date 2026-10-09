@@ -3371,7 +3371,7 @@
     "badge": "Pricing",
     "heading": "Start for free.",
     "heading_highlight": "Upgrade whenever you want.",
-    "subtitle": "Everything social is free, and support is the same for everyone. Plans are optional.",
+    "subtitle": "Everything social is free. Plans are optional.",
     "most_popular": "Most popular",
     "current_plan": "Your plan",
     "manage_subscription": "Manage subscription",
@@ -3423,7 +3423,7 @@
       "manage_title": "You are in charge",
       "manage_desc": "Change or manage your subscription from Settings.",
       "support_title": "Support for everyone",
-      "support_desc": "Any account can write to Support, with or without a plan."
+      "support_desc": "Any account can write to Support. With a plan, we answer you first."
     },
     "all_questions": "See all questions"
   },

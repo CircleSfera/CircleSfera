@@ -3371,7 +3371,7 @@
     "badge": "Precios",
     "heading": "Empieza gratis.",
     "heading_highlight": "Mejora cuando quieras.",
-    "subtitle": "Todo lo social es gratis, y el soporte es el mismo para todos. Los planes son opcionales.",
+    "subtitle": "Todo lo social es gratis. Los planes son opcionales.",
     "most_popular": "Más popular",
     "current_plan": "Tu plan",
     "manage_subscription": "Gestionar suscripción",
@@ -3423,7 +3423,7 @@
       "manage_title": "Lo gestionas tú",
       "manage_desc": "Cambia o gestiona tu suscripción desde Ajustes.",
       "support_title": "Soporte para todos",
-      "support_desc": "Cualquier cuenta puede escribir a Soporte, tenga o no un plan."
+      "support_desc": "Cualquier cuenta puede escribir a Soporte. Con un plan, te respondemos antes."
     },
     "all_questions": "Ver todas las preguntas"
   },
