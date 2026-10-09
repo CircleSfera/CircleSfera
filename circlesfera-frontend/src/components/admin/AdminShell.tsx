@@ -10,11 +10,15 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import logoSrc from '../../assets/logo.png';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
-import { platformOrigin } from '../../utils/adminPanel';
+import {
+  adminPanelOrigin,
+  backofficeOrigin,
+  platformOrigin,
+} from '../../utils/adminPanel';
 import { AdminMobileDrawer } from './AdminMobileNav';
 import AdminSidebar from './AdminSidebar';
 import type { AdminTab } from './adminNav';
-import { findAdminNavItem } from './adminNav';
+import { currentStaffSite, findAdminNavItem } from './adminNav';
 import { CommandPalette } from './CommandPalette';
 
 interface AdminShellProps {
@@ -74,7 +78,11 @@ export default function AdminShell({
             <div className="min-w-0">
               <div className="flex items-center gap-2 min-w-0">
                 <h1 className="text-sm sm:text-base font-bold text-white tracking-tight leading-tight truncate">
-                  {t('adminPanel.title')}
+                  {t(
+                    currentStaffSite() === 'backoffice'
+                      ? 'backoffice.title'
+                      : 'adminPanel.title',
+                  )}
                 </h1>
                 <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-primary/15 border border-brand-primary/25 shrink-0">
                   <ShieldCheck size={10} className="text-brand-primary" />
@@ -182,6 +190,22 @@ function AdminAccountMenu() {
             </p>
             <p className="text-[11px] text-white/50 truncate">{admin.email}</p>
           </div>
+          <a
+            href={
+              currentStaffSite() === 'backoffice'
+                ? adminPanelOrigin()
+                : backofficeOrigin()
+            }
+            role="menuitem"
+            className="flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white"
+          >
+            <ExternalLink size={14} className="text-brand-primary shrink-0" />
+            {t(
+              currentStaffSite() === 'backoffice'
+                ? 'adminPanel.title'
+                : 'backoffice.title',
+            )}
+          </a>
           <a
             href={platformOrigin()}
             role="menuitem"

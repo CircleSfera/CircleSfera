@@ -1,10 +1,30 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
+import {
+  adminTabPath,
+  canOpenSite,
+  getAdminHomeTab,
+} from '../../components/admin/adminNav';
 import AdminGuard from '../../components/auth/AdminGuard';
 import BrandAmbientBackground from '../../components/common/BrandAmbientBackground';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import BackofficeHome from './BackofficeHome';
 
+const Admin = lazy(() => import('../Admin'));
 const AdminPanelLogin = lazy(() => import('../AdminPanelLogin'));
+
+// The first section the operator can open; the home, which says what the site
+// is for, when they can open none.
+function BackofficeIndex() {
+  const hasPermission = useAdminAuthStore((state) => state.hasPermission);
+  if (!canOpenSite(hasPermission, 'backoffice')) return <BackofficeHome />;
+  return (
+    <Navigate
+      to={adminTabPath(getAdminHomeTab(hasPermission, 'backoffice'))}
+      replace
+    />
+  );
+}
 
 /**
  * The Backoffice: the staff site that runs the business, served on its own
@@ -28,7 +48,15 @@ export default function BackofficeApp() {
             path="/"
             element={
               <AdminGuard>
-                <BackofficeHome />
+                <BackofficeIndex />
+              </AdminGuard>
+            }
+          />
+          <Route
+            path="/:tab"
+            element={
+              <AdminGuard>
+                <Admin />
               </AdminGuard>
             }
           />
