@@ -14,6 +14,10 @@ vi.mock('../../services/admin.service', () => ({
     getSupportTicket: vi.fn(),
     assignSupportTicket: vi.fn(),
     getSupportAgents: vi.fn(),
+    getSavedReplies: vi.fn(),
+    createSavedReply: vi.fn(),
+    updateSavedReply: vi.fn(),
+    deleteSavedReply: vi.fn(),
     addSupportMessage: vi.fn(),
   },
 }));
@@ -98,6 +102,9 @@ describe('SupportTicketsTab', () => {
     } as never);
     vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
       data: { ...ticket(), messages: conversation },
+    } as never);
+    vi.mocked(adminApi.getSavedReplies).mockResolvedValue({
+      data: [],
     } as never);
   });
 
@@ -357,6 +364,82 @@ describe('SupportTicketsTab', () => {
     expect(
       screen.getByText(i18n.t('admin.support.author_system')),
     ).toBeInTheDocument();
+  });
+
+  describe('saved replies', () => {
+    const saved = [
+      {
+        id: 'r-1',
+        title: 'Blocking an account',
+        body: 'Hello {{name}}, about "{{subject}}" (#{{reference}}): block them from their page. Your plan: {{plan}}.',
+        shared: true,
+        updatedAt: '2026-09-01T10:00:00.000Z',
+      },
+    ];
+    const box = (i18n: { t: (key: string) => string }) =>
+      screen.getByPlaceholderText(i18n.t('admin.support.reply_placeholder'));
+    const choose = async (i18n: { t: (key: string) => string }) =>
+      fireEvent.change(
+        await screen.findByRole('combobox', {
+          name: i18n.t('admin.support.saved_replies.insert'),
+        }),
+        { target: { value: 'r-1' } },
+      );
+
+    beforeEach(() => {
+      vi.mocked(adminApi.getSavedReplies).mockResolvedValue({
+        data: saved,
+      } as never);
+    });
+
+    it('puts the chosen reply in the box, filled for this ticket, and sends nothing', async () => {
+      const i18n = await open([
+        ticket({
+          reference: 1042,
+          user: {
+            id: 'u-1',
+            email: 'ana@example.com',
+            profile: { username: 'ana', fullName: 'Ana López' },
+          },
+        }),
+      ]);
+
+      await choose(i18n);
+
+      // What is not known of the ticket stays as written.
+      expect(box(i18n)).toHaveValue(
+        'Hello Ana, about "Someone is harassing me" (#1042): block them from their page. Your plan: {{plan}}.',
+      );
+      expect(adminApi.addSupportMessage).not.toHaveBeenCalled();
+    });
+
+    it('adds it after what the agent already wrote', async () => {
+      const i18n = await open([ticket()]);
+      fireEvent.change(box(i18n), { target: { value: 'Sorry for the wait.' } });
+
+      await choose(i18n);
+
+      expect((box(i18n) as HTMLTextAreaElement).value).toMatch(
+        /^Sorry for the wait\.\n\nHello ana, about/,
+      );
+    });
+
+    it('is not offered for an internal note', async () => {
+      const i18n = await open([ticket()]);
+      await screen.findByRole('combobox', {
+        name: i18n.t('admin.support.saved_replies.insert'),
+      });
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('admin.support.kind_note') }),
+      );
+
+      expect(
+        screen.queryByRole('combobox', {
+          name: i18n.t('admin.support.saved_replies.insert'),
+        }),
+      ).toBeNull();
+    });
   });
 
   describe('when someone else writes while the agent writes', () => {

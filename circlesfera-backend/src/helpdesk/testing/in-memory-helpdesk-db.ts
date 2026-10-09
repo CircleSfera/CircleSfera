@@ -21,6 +21,7 @@ export class InMemoryHelpdeskDb {
   tickets: Row[] = [];
   messages: Row[] = [];
   events: Row[] = [];
+  savedReplies: Row[] = [];
   private sequence = 0;
   private clock = Date.parse('2026-01-01T00:00:00Z');
 
@@ -58,6 +59,8 @@ export class InMemoryHelpdeskDb {
       if (!isPlainObject(condition)) return same(value, condition);
       return Object.entries(condition).every(([operator, operand]) => {
         switch (operator) {
+          case 'equals':
+            return same(value, operand);
           case 'in':
             return (operand as unknown[]).includes(value);
           case 'not':
@@ -233,5 +236,53 @@ export class InMemoryHelpdeskDb {
         this.messages.filter((m) => this.matches(m, args.where)),
         args.orderBy,
       ).map((m) => ({ ...m })),
+  };
+
+  readonly helpdeskSavedReply = {
+    findMany: async (args: {
+      where?: Where;
+      orderBy?: Record<string, 'asc' | 'desc'>;
+    }) => {
+      const rows = this.savedReplies.filter((r) => this.matches(r, args.where));
+      const field = Object.keys(args.orderBy ?? {})[0];
+      return (
+        field
+          ? [...rows].sort((a, b) =>
+              String(a[field]).localeCompare(String(b[field])),
+            )
+          : rows
+      ).map((r) => ({ ...r }));
+    },
+
+    findFirst: async ({ where }: { where?: Where }) => {
+      const found = this.savedReplies.find((r) => this.matches(r, where));
+      return found ? { ...found } : null;
+    },
+
+    create: async ({ data }: { data: Row }) => {
+      const moment = this.now();
+      const reply: Row = {
+        id: this.next('r'),
+        createdAt: moment,
+        updatedAt: moment,
+        ...data,
+      };
+      this.savedReplies.push(reply);
+      return { ...reply };
+    },
+
+    updateMany: async ({ where, data }: { where?: Where; data: Row }) => {
+      const rows = this.savedReplies.filter((r) => this.matches(r, where));
+      for (const reply of rows) {
+        Object.assign(reply, data, { updatedAt: this.now() });
+      }
+      return { count: rows.length };
+    },
+
+    deleteMany: async ({ where }: { where?: Where }) => {
+      const gone = this.savedReplies.filter((r) => this.matches(r, where));
+      this.savedReplies = this.savedReplies.filter((r) => !gone.includes(r));
+      return { count: gone.length };
+    },
   };
 }

@@ -1719,9 +1719,29 @@ model HelpdeskOrganization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tickets SupportTicket[]
+  tickets      SupportTicket[]
+  savedReplies HelpdeskSavedReply[]
 
   @@map("helpdesk_organizations")
+}
+
+// An answer an agent keeps for a repeated question. It only fills the reply
+// box; it is never sent on its own.
+model HelpdeskSavedReply {
+  id             String   @id @default(uuid())
+  organizationId String
+  title          String   @db.VarChar(120)
+  body           String
+  // The agent who owns it, as the host names them. Empty when the whole
+  // team shares it.
+  ownerRef       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, ownerRef])
+  @@map("helpdesk_saved_replies")
 }
 
 enum HelpdeskAuthorKind {
