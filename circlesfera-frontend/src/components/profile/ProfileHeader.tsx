@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import {
   Ban,
   Bot,
+  Building2,
   ExternalLink,
   Flag,
   Gift,
@@ -493,6 +494,16 @@ export default function ProfileHeader({
         {/* Bio & Details Section */}
         <div className="md:px-0 text-left space-y-2">
           <div className="max-w-xl text-left mx-0">
+            {profile.data.companyVerified && (
+              <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
+                <Building2
+                  size={14}
+                  className="text-brand-primary"
+                  aria-hidden
+                />
+                {t('profile.company_verified')}
+              </p>
+            )}
             {profile.data.bio && (
               <p className="text-zinc-400 text-[13px] md:text-base leading-relaxed whitespace-pre-wrap">
                 {profile.data.bio}

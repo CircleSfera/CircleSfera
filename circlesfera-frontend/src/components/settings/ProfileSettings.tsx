@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BarChart3,
+  Building2,
   Camera,
   Check,
   Loader2,
@@ -480,6 +481,35 @@ export default function ProfileSettings() {
           )}
         </div>
       </SettingsSection>
+
+      {profile?.verificationLevel === 'BUSINESS' && (
+        <SettingsSection title={t('settings.profile.company.title')}>
+          <div className="p-4">
+            {profile.companyVerified ? (
+              <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Building2
+                  size={18}
+                  className="text-brand-primary"
+                  aria-hidden
+                />
+                {t('profile.company_verified')}
+              </p>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-white/60">
+                  {t('settings.profile.company.hint')}
+                </p>
+                <Link
+                  to="/creator/monetization"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-primary/30 px-5 text-sm font-semibold text-white btn-gradient-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+                >
+                  {t('settings.profile.company.verify')}
+                </Link>
+              </>
+            )}
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection title={t('settings.profile.account_type')}>
         {accountTypes.map((type) => {
