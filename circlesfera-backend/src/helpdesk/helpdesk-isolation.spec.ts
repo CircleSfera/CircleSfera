@@ -118,6 +118,7 @@ describe('Help Desk: isolation between two organizations', () => {
       {
         ticketOpened: vi.fn(),
         requesterReplied: vi.fn().mockResolvedValue(undefined),
+        emailInTrouble: vi.fn(),
       },
       { record: vi.fn() },
       agents,
@@ -139,6 +140,11 @@ describe('Help Desk: isolation between two organizations', () => {
       } as never,
       tickets,
       notifier,
+      {
+        ticketOpened: vi.fn(),
+        requesterReplied: vi.fn(),
+        emailInTrouble: vi.fn(),
+      },
     );
     port = new HelpdeskDataPort(store, {
       get: (wanted: unknown) =>

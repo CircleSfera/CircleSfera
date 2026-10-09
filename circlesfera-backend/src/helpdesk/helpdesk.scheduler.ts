@@ -31,6 +31,20 @@ export class HelpdeskScheduler {
     }
   }
 
+  @Cron(CronExpression.EVERY_HOUR)
+  async alertOnEmailInTrouble(): Promise<void> {
+    try {
+      if (!this.inbound.enabled) return;
+      if (await this.inbound.alertOnTrouble()) {
+        this.logger.warn('Email in needs a look: the team was told');
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Checking email in failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async deleteOldInboundEmails(): Promise<void> {
     try {

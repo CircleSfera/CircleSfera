@@ -10,6 +10,7 @@ import { EmailService } from '../email/email.service.js';
 import type {
   AccountCardProvider,
   AgentDirectory,
+  EmailInTrouble,
   HandoverCase,
   HandoverGateway,
   OrganizationScope,
@@ -298,6 +299,10 @@ export class CircleSferaTeamChannel implements TeamChannel {
 
   async requesterReplied(ticket: TicketNotice) {
     await this.slack.sendSupportReplyAlert(ticket);
+  }
+
+  async emailInTrouble(trouble: EmailInTrouble) {
+    await this.slack.sendSupportEmailInAlert(trouble);
   }
 }
 

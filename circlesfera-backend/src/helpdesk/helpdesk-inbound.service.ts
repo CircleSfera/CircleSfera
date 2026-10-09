@@ -4,6 +4,8 @@ import { HelpdeskStore } from './helpdesk.store.js';
 import {
   REQUESTER_NOTIFIER,
   type RequesterNotifier,
+  TEAM_CHANNEL,
+  type TeamChannel,
 } from './helpdesk-host.contracts.js';
 import {
   cutQuotedText,
@@ -21,6 +23,11 @@ const MAX_KEPT_LINE = 500;
 const MAX_MESSAGE = 5000;
 // From this spam score on, the mail provider's filter calls it junk.
 const SPAM_SCORE = 6;
+// This many emails in an hour that matched no ticket is worth a look.
+const UNMATCHED_ALERT = 10;
+const HOUR_MS = 60 * 60 * 1000;
+// An email not looked at after this long is stuck.
+const STUCK_AFTER_MS = 15 * 60 * 1000;
 
 // Email that arrives at the reply addresses of the Help Desk. Each email is
 // kept once, for 30 days, and becomes a message of its ticket when its
@@ -37,6 +44,7 @@ export class HelpdeskInboundService {
     @Inject(HelpdeskTicketsService)
     private readonly tickets: HelpdeskTicketsService,
     @Inject(REQUESTER_NOTIFIER) private readonly notifier: RequesterNotifier,
+    @Inject(TEAM_CHANNEL) private readonly teamChannel: TeamChannel,
   ) {}
 
   /** Whether email in is set up. */
@@ -155,6 +163,26 @@ export class HelpdeskInboundService {
       await this.store.undoInboundMatch(id);
       throw err;
     }
+  }
+
+  /**
+   * Tells the team when email in needs a look: many emails of the last hour
+   * matched no ticket, or some were kept and never looked at. Mail from
+   * machines and spam are expected and not counted. Says whether it told.
+   */
+  async alertOnTrouble(): Promise<boolean> {
+    const now = Date.now();
+    const [outcomes, stuck] = await Promise.all([
+      this.store.inboundOutcomesSince(new Date(now - HOUR_MS)),
+      this.store.inboundStuckBefore(new Date(now - STUCK_AFTER_MS)),
+    ]);
+    const noTicket = outcomes.NO_TICKET ?? 0;
+    const senderMismatch = outcomes.SENDER_MISMATCH ?? 0;
+    if (noTicket + senderMismatch < UNMATCHED_ALERT && stuck === 0) {
+      return false;
+    }
+    await this.teamChannel.emailInTrouble({ noTicket, senderMismatch, stuck });
+    return true;
   }
 
   /** Looks at the kept emails that were not looked at when they arrived. */
