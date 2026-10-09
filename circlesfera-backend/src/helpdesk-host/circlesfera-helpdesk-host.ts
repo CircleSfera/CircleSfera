@@ -9,6 +9,7 @@ import {
 import { EmailService } from '../email/email.service.js';
 import type {
   AccountCardProvider,
+  AgentDirectory,
   HandoverCase,
   HandoverGateway,
   OrganizationScope,
@@ -228,6 +229,48 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       ticket.id,
       solvedInDays,
     );
+  }
+}
+
+// Agents are staff identities. A ticket can be given to the active ones
+// whose roles let them answer support.
+@Injectable()
+export class StaffAgentDirectory implements AgentDirectory {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async describe(agentRefs: string[]) {
+    const staff = await this.prisma.adminIdentity.findMany({
+      where: { id: { in: agentRefs } },
+      select: { id: true, displayName: true },
+    });
+    return new Map(staff.map((one) => [one.id, one.displayName]));
+  }
+
+  async assignable() {
+    const staff = await this.prisma.adminIdentity.findMany({
+      where: {
+        status: 'ACTIVE',
+        roles: {
+          some: {
+            role: {
+              OR: [
+                { name: 'SUPER_ADMIN' },
+                {
+                  permissions: {
+                    some: {
+                      permission: { key: { in: ['support', 'admins.manage'] } },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      orderBy: { displayName: 'asc' },
+      select: { id: true, displayName: true },
+    });
+    return staff.map((one) => ({ ref: one.id, name: one.displayName }));
   }
 }
 

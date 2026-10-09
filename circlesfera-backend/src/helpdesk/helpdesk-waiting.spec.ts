@@ -14,6 +14,7 @@ describe('Help Desk: tickets waiting for their requester', () => {
   let db: InMemoryHelpdeskDb;
   let tickets: HelpdeskTicketsService;
   const notifier = { answer: vi.fn(), remind: vi.fn() };
+  const agents = { describe: vi.fn(), assignable: vi.fn() };
 
   const row = (id: string) => db.tickets.find((t) => t.id === id);
   const onDay = (day: number) => vi.setSystemTime(START + day * DAY);
@@ -38,6 +39,7 @@ describe('Help Desk: tickets waiting for their requester', () => {
     vi.resetAllMocks();
     vi.useFakeTimers();
     onDay(0);
+    agents.describe.mockResolvedValue(new Map());
     db = new InMemoryHelpdeskDb();
     tickets = new HelpdeskTicketsService(
       new HelpdeskStore(db as never, { current: () => 'org-1' }),
@@ -50,6 +52,7 @@ describe('Help Desk: tickets waiting for their requester', () => {
         requesterReplied: vi.fn().mockResolvedValue(undefined),
       },
       { record: vi.fn() },
+      agents,
     );
   });
 

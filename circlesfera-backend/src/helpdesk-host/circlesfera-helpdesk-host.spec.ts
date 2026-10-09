@@ -8,6 +8,7 @@ import {
   CircleSferaRequesterNotifier,
   CircleSferaTeamChannel,
   ModerationHandover,
+  StaffAgentDirectory,
 } from './circlesfera-helpdesk-host.js';
 
 // CircleSfera's answers to what the Help Desk asks of its host.
@@ -17,6 +18,7 @@ describe('CircleSfera as the host of the Help Desk', () => {
     profile: { findFirst: vi.fn() },
     report: { create: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
     adminAuditLog: { create: vi.fn() },
+    adminIdentity: { findMany: vi.fn() },
   };
 
   beforeEach(() => {
@@ -301,6 +303,47 @@ describe('CircleSfera as the host of the Help Desk', () => {
         targetId: 't-1',
         details: 'Updated ticket t-1',
       },
+    });
+  });
+
+  describe('the agents', () => {
+    const directory = new StaffAgentDirectory(prisma as never);
+
+    it('names staff identities by their display name, and leaves out the ones that are gone', async () => {
+      prisma.adminIdentity.findMany.mockResolvedValue([
+        { id: 'admin-1', displayName: 'Ana' },
+      ]);
+
+      const names = await directory.describe(['admin-1', 'admin-gone']);
+
+      expect(prisma.adminIdentity.findMany).toHaveBeenCalledWith({
+        where: { id: { in: ['admin-1', 'admin-gone'] } },
+        select: { id: true, displayName: true },
+      });
+      expect([...names]).toEqual([['admin-1', 'Ana']]);
+    });
+
+    it('offers only active staff whose roles let them answer support', async () => {
+      prisma.adminIdentity.findMany.mockResolvedValue([
+        { id: 'admin-1', displayName: 'Ana' },
+      ]);
+
+      expect(await directory.assignable()).toEqual([
+        { ref: 'admin-1', name: 'Ana' },
+      ]);
+
+      const { where } = prisma.adminIdentity.findMany.mock.calls[0][0];
+      expect(where.status).toBe('ACTIVE');
+      expect(where.roles.some.role.OR).toEqual([
+        { name: 'SUPER_ADMIN' },
+        {
+          permissions: {
+            some: {
+              permission: { key: { in: ['support', 'admins.manage'] } },
+            },
+          },
+        },
+      ]);
     });
   });
 });
