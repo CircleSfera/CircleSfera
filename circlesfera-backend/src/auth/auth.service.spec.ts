@@ -44,6 +44,8 @@ describe('AuthService', () => {
           emailVerified: account.emailVerified ?? null,
           passwordResetRequiredAt: account.passwordResetRequiredAt ?? null,
           resetTokenExpires: account.resetTokenExpires ?? null,
+          isTwoFactorEnabled: account.isTwoFactorEnabled ?? false,
+          twoFactorSecret: account.twoFactorSecret ?? null,
           user: account,
         }
       : null;
@@ -1273,7 +1275,9 @@ describe('AuthService', () => {
             username: { equals: 'my_cool_handle', mode: 'insensitive' },
           },
           select: {
-            signIn: expect.objectContaining({ omit: { password: false } }),
+            signIn: expect.objectContaining({
+              omit: { password: false, twoFactorSecret: false },
+            }),
           },
         }),
       );
@@ -1309,6 +1313,34 @@ describe('AuthService', () => {
       );
     });
 
+    it('asks for the two-factor code when the sign-in has it on, whatever the account says', async () => {
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-1',
+        userId: 'u-1',
+        email: 'own@example.com',
+        password: await argon2.hash('SignInPassword1!'),
+        passwordResetRequiredAt: null,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'secret-of-the-sign-in',
+        user: {
+          id: 'u-1',
+          email: 'own@example.com',
+          isActive: true,
+          isTwoFactorEnabled: false,
+          twoFactorSecret: null,
+        },
+      } as never);
+
+      await expect(
+        service.login({
+          identifier: 'own@example.com',
+          password: 'SignInPassword1!',
+        }),
+      ).rejects.toThrow(
+        new UnauthorizedException(ApiErrorCode.TWO_FA_REQUIRED),
+      );
+    });
+
     it('checks the password and the required reset of the sign-in, not those of the account', async () => {
       // The hash the sign-in holds; the account below holds another one.
       const password = await argon2.hash('SignInPassword1!');
@@ -1336,7 +1368,7 @@ describe('AuthService', () => {
       expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { email: 'own@example.com' },
-          omit: { password: false },
+          omit: { password: false, twoFactorSecret: false },
         }),
       );
       // The session is opened for the email of the sign-in.
