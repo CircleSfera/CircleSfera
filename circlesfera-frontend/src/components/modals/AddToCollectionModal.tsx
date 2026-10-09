@@ -3,6 +3,8 @@ import { Check, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { bookmarksApi, collectionsApi } from '../../services';
+import type { Collection } from '../../types';
+import { asList } from '../../utils/asList';
 import FrameBottomSheet from '../frames/FrameBottomSheet';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
@@ -128,7 +130,7 @@ function CollectionPickerBody({
           </form>
         )}
 
-        {collections?.data.map((collection) => (
+        {asList<Collection>(collections?.data).map((collection) => (
           <button
             type="button"
             key={collection.id}

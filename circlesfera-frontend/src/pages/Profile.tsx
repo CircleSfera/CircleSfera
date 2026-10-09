@@ -32,6 +32,7 @@ import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Collection, ProfileWithUser } from '../types';
+import { asList } from '../utils/asList';
 
 const CreateCollectionModal = lazy(
   () => import('../components/collections/CreateCollectionModal'),
@@ -487,7 +488,7 @@ export default function Profile() {
               </span>
             </button>
 
-            {collections?.data.map((collection: Collection) => (
+            {asList<Collection>(collections?.data).map((collection) => (
               <CollectionCard
                 key={collection.id}
                 collection={collection}

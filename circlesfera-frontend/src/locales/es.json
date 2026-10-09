@@ -3720,6 +3720,7 @@
     "error_title": "Algo salió mal",
     "error_message": "Ha ocurrido un error inesperado. Inténtalo de nuevo.",
     "error_message_refresh": "Ha ocurrido un error inesperado. Prueba a actualizar la página.",
+    "error_message_page": "Esta pantalla no se ha podido mostrar. Puedes reintentar o seguir por el resto de la app.",
     "try_again": "Reintentar",
     "reload_page": "Recargar página",
     "seo_default_title": "CircleSfera - Social reinventada",
