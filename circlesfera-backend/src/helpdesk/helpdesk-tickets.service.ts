@@ -17,7 +17,11 @@ import type { AgentMessageDto } from './dto/agent-message.dto.js';
 import type { CreateTicketDto } from './dto/create-ticket.dto.js';
 import type { RateTicketDto } from './dto/rate-ticket.dto.js';
 import type { RequesterMessageDto } from './dto/requester-message.dto.js';
-import { HelpdeskStore, type TicketEventInput } from './helpdesk.store.js';
+import {
+  HelpdeskStore,
+  type TicketEventInput,
+  TicketStateChangedError,
+} from './helpdesk.store.js';
 import {
   ACCOUNT_CARD_PROVIDER,
   type AccountCardProvider,
@@ -191,6 +195,8 @@ export class HelpdeskTicketsService {
     },
     actor: { kind: TicketEventInput['actorKind']; ref: string | null },
     message?: Parameters<HelpdeskStore['updateTicket']>[2],
+    // Makes the change only if the ticket is still in this state.
+    onlyIfStatus?: TicketStatus,
   ) {
     const events: TicketEventInput[] = [];
     const record = (
@@ -240,7 +246,15 @@ export class HelpdeskTicketsService {
         changes.pausedAt = null;
       }
     }
-    return this.store.updateTicket(before.id, changes, message, events);
+    return onlyIfStatus
+      ? this.store.updateTicket(
+          before.id,
+          changes,
+          message,
+          events,
+          onlyIfStatus,
+        )
+      : this.store.updateTicket(before.id, changes, message, events);
   }
 
   private async requesterTicketOrFail(id: string, requesterRef: string) {
@@ -660,9 +674,13 @@ export class HelpdeskTicketsService {
     }
 
     const answer = data.reply?.trim();
+    // A ticket still marked as handed over gets here only once its case is
+    // decided; an answer solves it like it solves an open one.
     const effectiveStatus =
       data.status ??
-      (answer && existing.status === 'OPEN' ? 'RESOLVED' : undefined);
+      (answer && ['OPEN', 'ESCALATED'].includes(existing.status)
+        ? 'RESOLVED'
+        : undefined);
 
     const changes: Parameters<HelpdeskTicketsService['change']>[1] = {
       ...(data.priority && { priority: data.priority }),
@@ -774,14 +792,21 @@ export class HelpdeskTicketsService {
 
     let updated: Awaited<ReturnType<HelpdeskStore['updateTicket']>>;
     try {
+      // Only while the ticket is still open: of two agents handing it over
+      // at the same moment, one links its case and the other is refused.
       updated = await this.change(
         ticket,
         { status: 'ESCALATED', escalatedReportId: opened.caseRef },
         { kind: 'AGENT', ref: agentRef },
+        undefined,
+        'OPEN',
       );
     } catch (error) {
       // The case must not stay open with no ticket pointing at it.
       await this.handover.withdraw(opened.caseRef);
+      if (error instanceof TicketStateChangedError) {
+        throw new ConflictException('Only an open ticket can be handed over');
+      }
       throw error;
     }
 

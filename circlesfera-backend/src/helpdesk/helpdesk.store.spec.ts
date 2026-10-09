@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HelpdeskStore } from './helpdesk.store.js';
+import { HelpdeskStore, TicketStateChangedError } from './helpdesk.store.js';
 
 // The data access layer of the Help Desk: every read and every write carries
 // the organization of the current request.
@@ -310,6 +310,43 @@ describe('HelpdeskStore', () => {
       where: { id: 't-1', organizationId: 'org-1' },
       data: { status: 'RESOLVED', events: { create: [event] } },
     });
+  });
+
+  it('changes a ticket only in the state asked for, when one is given', async () => {
+    prisma.supportTicket.update.mockResolvedValue({ id: 't-1' });
+    await store.updateTicket(
+      't-1',
+      { status: 'ESCALATED' },
+      undefined,
+      [],
+      'OPEN',
+    );
+
+    expect(prisma.supportTicket.update.mock.calls[0][0].where).toEqual({
+      id: 't-1',
+      organizationId: 'org-1',
+      status: 'OPEN',
+    });
+  });
+
+  it('says the state changed when the ticket is no longer in it', async () => {
+    prisma.supportTicket.update.mockRejectedValue(
+      Object.assign(new Error('Record to update not found.'), {
+        code: 'P2025',
+      }),
+    );
+
+    await expect(
+      store.updateTicket('t-1', { status: 'ESCALATED' }, undefined, [], 'OPEN'),
+    ).rejects.toBeInstanceOf(TicketStateChangedError);
+  });
+
+  it('passes on any other failure of a change as it is', async () => {
+    prisma.supportTicket.update.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      store.updateTicket('t-1', { status: 'ESCALATED' }, undefined, [], 'OPEN'),
+    ).rejects.toThrow('db down');
   });
 
   it('links a new ticket to the closed one it continues', async () => {

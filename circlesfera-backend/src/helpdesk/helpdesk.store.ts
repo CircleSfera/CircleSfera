@@ -4,6 +4,7 @@ import type {
   HelpdeskMessageVisibility,
   Prisma,
   TicketCategory,
+  TicketStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -22,6 +23,13 @@ const pastTarget = (moment: Date): Prisma.SupportTicketWhereInput => ({
 });
 
 /** One change of a ticket and who made it. */
+/** A change asked for a ticket in one state found it in another. */
+export class TicketStateChangedError extends Error {
+  constructor() {
+    super('The ticket is no longer in the expected state');
+  }
+}
+
 export interface TicketEventInput {
   kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
   fromValue: string | null;
@@ -384,6 +392,9 @@ export class HelpdeskStore {
     },
     // What changed and who changed it, written with the change.
     events: TicketEventInput[] = [],
+    // When given, the change is made only if the ticket is still in this
+    // state; otherwise nothing is written and the update fails.
+    onlyIfStatus?: TicketStatus,
   ) {
     // A ticket never changes identity or organization, whatever is passed.
     const {
@@ -391,13 +402,25 @@ export class HelpdeskStore {
       organizationId: _organizationId,
       ...safeChanges
     } = changes as Prisma.SupportTicketUncheckedUpdateInput;
-    return this.prisma.supportTicket.update({
-      where: { id, organizationId: this.organizationId },
+    const update = this.prisma.supportTicket.update({
+      where: {
+        id,
+        organizationId: this.organizationId,
+        ...(onlyIfStatus && { status: onlyIfStatus }),
+      },
       data: {
         ...safeChanges,
         ...(message && { messages: { create: message } }),
         ...(events.length > 0 && { events: { create: events } }),
       },
+    });
+    if (!onlyIfStatus) return update;
+    return update.catch((error: unknown) => {
+      // No row matched: someone changed the state first.
+      if ((error as { code?: string })?.code === 'P2025') {
+        throw new TicketStateChangedError();
+      }
+      throw error;
     });
   }
 
