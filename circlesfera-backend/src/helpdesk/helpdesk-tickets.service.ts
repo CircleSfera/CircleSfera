@@ -249,11 +249,31 @@ export class HelpdeskTicketsService {
     return this.getMyTicket(requesterRef, id);
   }
 
-  async listTickets(page = 1, limit = 20, status?: string, category?: string) {
-    const filters: { status?: TicketStatus; category?: TicketCategory } = {};
+  async listTickets(
+    page = 1,
+    limit = 20,
+    status?: string,
+    category?: string,
+    // Whose tickets: the agent's own, the ones nobody has, or all.
+    team: { priority?: string; assignment?: string; agentRef?: string } = {},
+  ) {
+    const filters: {
+      status?: TicketStatus;
+      category?: TicketCategory;
+      priority?: HelpdeskPriority;
+      assignedAgentRef?: string | null;
+    } = {};
+    if (team.priority && ['LOW', 'NORMAL', 'HIGH'].includes(team.priority)) {
+      filters.priority = team.priority as HelpdeskPriority;
+    }
+    if (team.assignment === 'unassigned') {
+      filters.assignedAgentRef = null;
+    } else if (team.assignment === 'mine' && team.agentRef) {
+      filters.assignedAgentRef = team.agentRef;
+    }
     if (
       status &&
-      ['OPEN', 'RESOLVED', 'CLOSED', 'ESCALATED'].includes(status)
+      ['OPEN', 'WAITING', 'RESOLVED', 'CLOSED', 'ESCALATED'].includes(status)
     ) {
       filters.status = status as TicketStatus;
     }

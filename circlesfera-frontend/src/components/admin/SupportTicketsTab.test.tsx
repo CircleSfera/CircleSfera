@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import SupportTicketsTab from './SupportTicketsTab';
 
@@ -11,6 +12,7 @@ vi.mock('../../services/admin.service', () => ({
     escalateSupportTicket: vi.fn(),
     getSupportTicketAccount: vi.fn(),
     getSupportTicket: vi.fn(),
+    assignSupportTicket: vi.fn(),
     addSupportMessage: vi.fn(),
   },
 }));
@@ -226,6 +228,7 @@ describe('SupportTicketsTab', () => {
         20,
         undefined,
         'ACCOUNT',
+        {},
       ),
     );
   });
@@ -381,5 +384,124 @@ describe('SupportTicketsTab', () => {
     expect(
       screen.getAllByText(i18n.t('admin.support.status_waiting')).length,
     ).toBeGreaterThan(0);
+  });
+
+  describe('working as a team', () => {
+    beforeEach(() => {
+      useAdminAuthStore.setState({ admin: { id: 'admin-1' } } as never);
+      vi.mocked(adminApi.assignSupportTicket).mockResolvedValue({
+        data: ticket(),
+      } as never);
+      vi.mocked(adminApi.updateSupportTicket).mockResolvedValue({
+        data: ticket(),
+      } as never);
+    });
+
+    it('asks for the agent own tickets, the ones nobody has, and by priority', async () => {
+      const i18n = await open([ticket()]);
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('admin.support.whose_mine'),
+        }),
+      );
+      await waitFor(() =>
+        expect(adminApi.getSupportTickets).toHaveBeenLastCalledWith(
+          1,
+          20,
+          undefined,
+          undefined,
+          { assignment: 'mine' },
+        ),
+      );
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: i18n.t('admin.support.whose_unassigned'),
+        }),
+      );
+      fireEvent.change(
+        screen.getByRole('combobox', {
+          name: i18n.t('admin.support.filter_priority'),
+        }),
+        { target: { value: 'HIGH' } },
+      );
+      await waitFor(() =>
+        expect(adminApi.getSupportTickets).toHaveBeenLastCalledWith(
+          1,
+          20,
+          undefined,
+          undefined,
+          { assignment: 'unassigned', priority: 'HIGH' },
+        ),
+      );
+    });
+
+    it('says who has each ticket and marks the high priority ones', async () => {
+      const i18n = await open([
+        ticket({ priority: 'HIGH', assignedAgentRef: 'admin-2' }),
+      ]);
+
+      expect(
+        screen.getAllByText(i18n.t('admin.support.assignee_other')).length,
+      ).toBeGreaterThan(0);
+      expect(
+        screen.getAllByText(i18n.t('admin.support.priority.HIGH')).length,
+      ).toBeGreaterThan(0);
+      // Not theirs and not free: neither taking nor releasing is offered.
+      expect(
+        screen.queryByRole('button', { name: i18n.t('admin.support.take') }),
+      ).toBeNull();
+      expect(
+        screen.queryByRole('button', { name: i18n.t('admin.support.release') }),
+      ).toBeNull();
+    });
+
+    it('takes a ticket nobody has', async () => {
+      const i18n = await open([ticket({ assignedAgentRef: null })]);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('admin.support.take') }),
+      );
+
+      await waitFor(() =>
+        expect(adminApi.assignSupportTicket).toHaveBeenCalledWith(
+          't-1',
+          'admin-1',
+        ),
+      );
+    });
+
+    it('lets go of their own ticket', async () => {
+      const i18n = await open([ticket({ assignedAgentRef: 'admin-1' })]);
+
+      expect(
+        screen.getAllByText(i18n.t('admin.support.assignee_me')).length,
+      ).toBeGreaterThan(0);
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n.t('admin.support.release') }),
+      );
+
+      await waitFor(() =>
+        expect(adminApi.assignSupportTicket).toHaveBeenCalledWith('t-1', null),
+      );
+    });
+
+    it('changes the priority of the ticket', async () => {
+      const i18n = await open([ticket({ priority: 'NORMAL' })]);
+
+      fireEvent.change(
+        screen.getByRole('combobox', {
+          name: i18n.t('admin.support.set_priority'),
+        }),
+        { target: { value: 'HIGH' } },
+      );
+
+      await waitFor(() =>
+        expect(adminApi.updateSupportTicket).toHaveBeenCalledWith('t-1', {
+          priority: 'HIGH',
+        }),
+      );
+    });
   });
 });
