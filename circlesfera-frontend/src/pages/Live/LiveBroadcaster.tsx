@@ -15,6 +15,10 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import {
+  CREATE_PRIMARY,
+  CREATE_SECONDARY,
+} from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
 import LiveGoalBar, {
   type LiveGoalData,
@@ -31,10 +35,10 @@ import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
 import { useSocketStore } from '../../stores/socketStore';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 /** A neutral picture with the person's initials, for someone without one. */
-const fallbackAvatar = (username: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveBroadcaster() {
   const { t } = useTranslation();
@@ -326,7 +330,7 @@ export default function LiveBroadcaster() {
         >
           <X className="w-6 h-6" aria-hidden />
         </button>
-        <h1 className="text-2xl font-semibold text-white">
+        <h1 className="text-2xl font-semibold text-white text-center">
           {t('live.setup_title')}
         </h1>
         <form
@@ -334,7 +338,7 @@ export default function LiveBroadcaster() {
           className="w-full max-w-sm flex flex-col gap-4"
         >
           <label className="flex flex-col gap-2 text-left">
-            <span className="text-sm text-zinc-400">
+            <span className="text-sm text-white/70">
               {t('live.title_label')}
             </span>
             <input
@@ -343,13 +347,13 @@ export default function LiveBroadcaster() {
               onChange={(e) => setTitleInput(e.target.value)}
               placeholder={t('live.title_placeholder')}
               maxLength={100}
-              className="min-h-12 rounded-full bg-white/10 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
+              className="min-h-12 rounded-2xl bg-white/8 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
             />
           </label>
           <button
             type="submit"
             disabled={isStarting}
-            className="min-h-12 rounded-full bg-brand-primary px-6 text-white font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+            className={CREATE_PRIMARY}
           >
             {isStarting ? t('live.starting') : t('live.start_button')}
           </button>
@@ -360,37 +364,33 @@ export default function LiveBroadcaster() {
 
   if (isEnded) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center bg-neutral-950 px-4 text-white">
+      <div className="flex h-dvh flex-col items-center justify-center bg-surface-base md:bg-transparent px-4 text-white">
         <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
           <div className="p-4 bg-brand-primary/20 rounded-full">
             <Heart className="w-12 h-12 text-brand-primary" />
           </div>
           <div className="text-center">
-            <h1 className="text-3xl font-bold mb-2">{t('live.ended_title')}</h1>
-            <p className="text-neutral-400 text-sm">
-              {t('live.ended_summary')}
-            </p>
+            <h1 className="text-2xl font-semibold mb-2">
+              {t('live.ended_title')}
+            </h1>
+            <p className="text-white/60 text-sm">{t('live.ended_summary')}</p>
           </div>
           <div className="w-full flex gap-4 text-center mt-2">
             <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
               <span className="block text-2xl font-bold">{viewerCount}</span>
-              <span className="text-xs text-neutral-400 uppercase tracking-wider">
-                {t('live.viewers')}
-              </span>
+              <span className="text-xs text-white/60">{t('live.viewers')}</span>
             </div>
             <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
-              <span className="block text-2xl font-bold text-pink-400">
+              <span className="block text-2xl font-bold text-brand-secondary">
                 {likesCount}
               </span>
-              <span className="text-xs text-neutral-400 uppercase tracking-wider">
-                {t('live.likes')}
-              </span>
+              <span className="text-xs text-white/60">{t('live.likes')}</span>
             </div>
           </div>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-full mt-4 min-h-12 rounded-full bg-white/10 hover:bg-white/20 px-6 font-semibold transition-all"
+            className={`w-full mt-4 ${CREATE_SECONDARY}`}
           >
             {t('live.close_summary')}
           </button>
@@ -404,7 +404,7 @@ export default function LiveBroadcaster() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-surface-base md:bg-transparent flex items-center justify-center overflow-hidden">
       {/* A double tap anywhere sends a heart. It is not a button: it holds
           every control of the screen, and the reactions have their own. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
@@ -418,21 +418,21 @@ export default function LiveBroadcaster() {
             <button
               type="button"
               onClick={() => setConfirmEndOpen(true)}
-              className="w-11 h-11 flex items-center justify-center bg-black/60 hover:bg-red-500/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
+              className="w-11 h-11 flex items-center justify-center bg-black/60 hover:bg-brand-secondary/80 rounded-full text-white backdrop-blur-md transition-colors shadow-md"
               aria-label={t('live.end_stream')}
             >
               <X className="w-5 h-5" aria-hidden />
             </button>
 
             <div className="flex items-center gap-1.5 px-3 min-h-9 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
-              <Eye className="w-4 h-4 text-pink-400" aria-hidden />
+              <Eye className="w-4 h-4 text-brand-secondary" aria-hidden />
               <span>{viewerCount}</span>
               <span className="sr-only">{t('live.viewers')}</span>
             </div>
           </div>
 
           {coHostUsername ? (
-            <div className="flex items-center gap-1.5 bg-purple-900/80 backdrop-blur-md pl-3 rounded-full text-white text-xs border border-purple-500/30 shadow-lg min-w-0">
+            <div className="flex items-center gap-1.5 bg-brand-primary/25 backdrop-blur-md pl-3 rounded-full text-white text-xs border border-brand-primary/40 shadow-lg min-w-0">
               <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400" />
@@ -443,7 +443,7 @@ export default function LiveBroadcaster() {
               <button
                 type="button"
                 onClick={handleRemoveCoHost}
-                className="w-11 h-11 shrink-0 flex items-center justify-center text-red-300 hover:text-red-100 transition-colors"
+                className="w-11 h-11 shrink-0 flex items-center justify-center text-brand-secondary hover:text-brand-secondary transition-colors"
                 aria-label={t('live.cohost_remove')}
               >
                 <UserMinus size={18} aria-hidden />
@@ -453,7 +453,7 @@ export default function LiveBroadcaster() {
             <button
               type="button"
               onClick={() => setCoHostFormOpen((open) => !open)}
-              className="w-11 h-11 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-purple-200 shadow-lg"
+              className="w-11 h-11 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-brand-primary shadow-lg"
               aria-label={t('live.cohost_invite_button')}
               aria-expanded={coHostFormOpen}
             >
@@ -536,7 +536,7 @@ export default function LiveBroadcaster() {
                     <span className="block text-xs font-bold text-neutral-800">
                       {highlightedQuestion.username}
                     </span>
-                    <span className="block text-xs text-pink-500 font-bold uppercase tracking-widest">
+                    <span className="block text-xs text-brand-secondary font-bold uppercase tracking-widest">
                       {t('live.qna.question')}
                     </span>
                   </div>
@@ -557,7 +557,7 @@ export default function LiveBroadcaster() {
               className="animate-float-up absolute bottom-0 opacity-0"
               style={{ transform: `translateX(${heart.x}px)` }}
             >
-              <Heart className="h-7 w-7 fill-red-500 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              <Heart className="h-7 w-7 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
             </div>
           ))}
         </div>
@@ -590,10 +590,10 @@ export default function LiveBroadcaster() {
                       : 'border-white/10'
                   }`}
                 >
-                  <span className="font-extrabold text-purple-300">
+                  <span className="font-extrabold text-white">
                     {msg.user.username}:{' '}
                   </span>
-                  <span className="text-neutral-100">{msg.message}</span>
+                  <span className="text-white/90">{msg.message}</span>
                 </span>
               </button>
             ))}
@@ -613,14 +613,14 @@ export default function LiveBroadcaster() {
               <button
                 type="button"
                 onClick={handleDeleteMessage}
-                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-red-500/20 hover:bg-red-500/40 text-red-300 rounded-xl text-xs font-semibold transition-colors"
+                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-brand-secondary/20 hover:bg-brand-secondary/40 text-brand-secondary rounded-xl text-xs font-semibold transition-colors"
               >
                 <Trash2 size={14} /> {t('live.delete_comment')}
               </button>
               <button
                 type="button"
                 onClick={() => setSelectedMessage(null)}
-                className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-neutral-400 transition-colors"
+                className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/60 transition-colors"
                 aria-label={t('common.close')}
               >
                 <X size={16} aria-hidden />
@@ -642,7 +642,7 @@ export default function LiveBroadcaster() {
               <HelpCircle size={20} aria-hidden />
               {questions.length > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 bg-pink-500 text-xs min-w-5 h-5 px-1 flex items-center justify-center rounded-full font-bold"
+                  className="absolute -top-1 -right-1 bg-brand-secondary text-xs min-w-5 h-5 px-1 flex items-center justify-center rounded-full font-bold"
                   aria-hidden
                 >
                   {questions.length}

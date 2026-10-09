@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { CREATE_THUMB } from '../../create-post/createStyles';
 import { PHOTO_FILTERS } from '../photoEditor.constants';
 import type { PhotoEditorState } from '../usePhotoEditor';
 
@@ -7,7 +8,8 @@ export default function PhotoFiltersPanel({
 }: {
   editor: PhotoEditorState;
 }) {
-  const { selectedFilter, setSelectedFilter, thumbnailUrl } = editor;
+  const { selectedFilter, setSelectedFilter, thumbnailUrl, thumbnailRatio } =
+    editor;
 
   return (
     <motion.div
@@ -26,7 +28,8 @@ export default function PhotoFiltersPanel({
           className="flex flex-col items-center gap-1 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
         >
           <div
-            className={`w-14 h-14 rounded-xl overflow-hidden border transition-colors ${
+            style={{ aspectRatio: thumbnailRatio }}
+            className={`${CREATE_THUMB} transition-colors ${
               selectedFilter.name === filter.name
                 ? 'border-brand-primary'
                 : 'border-white/10'

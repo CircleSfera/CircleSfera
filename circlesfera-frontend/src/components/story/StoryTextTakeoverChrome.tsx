@@ -103,7 +103,7 @@ export default function StoryTextTakeoverChrome({
             e.stopPropagation();
             onCancel();
           }}
-          className="pointer-events-auto min-h-11 px-2 text-[15px] font-semibold text-white/75 hover:text-white"
+          className="pointer-events-auto min-h-11 px-2 text-sm font-semibold text-white/75 hover:text-white"
         >
           {t('createPost.storyComposer.cancel')}
         </button>
@@ -168,7 +168,7 @@ export default function StoryTextTakeoverChrome({
                 type="button"
                 key={s.id}
                 onClick={() => onStyleChange(s.id)}
-                className={`min-h-11 px-2.5 rounded-full text-[11px] font-bold whitespace-nowrap shrink-0 ${
+                className={`min-h-11 px-2.5 rounded-full text-xs font-bold whitespace-nowrap shrink-0 ${
                   textStyle === s.id
                     ? 'bg-white/18 text-white'
                     : 'bg-white/8 text-white/55'

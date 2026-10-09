@@ -22,10 +22,11 @@ export default function HighlightBubble({
 }: HighlightBubbleProps) {
   if (isAddButton) {
     return (
-      <motion.div
+      <motion.button
+        type="button"
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        className="flex flex-col items-center gap-1 cursor-pointer shrink-0"
+        className="flex flex-col items-center gap-1 cursor-pointer shrink-0 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-white/30"
         onClick={onClick}
       >
         <div className="w-16 h-16 rounded-full border-2 border-dashed border-white/20 flex items-center justify-center bg-white/5 hover:bg-white/10 hover:border-white/40 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all duration-300">
@@ -44,10 +45,8 @@ export default function HighlightBubble({
             />
           </svg>
         </div>
-        <span className="text-xs font-bold text-white/40 uppercase tracking-wide">
-          New
-        </span>
-      </motion.div>
+        <span className="text-xs font-medium text-white/60">{title}</span>
+      </motion.button>
     );
   }
 
@@ -77,7 +76,7 @@ export default function HighlightBubble({
           )}
         </div>
       </motion.div>
-      <span className="text-xs font-black text-white/60 group-hover:text-white truncate max-w-[72px] text-center tracking-tighter transition-colors">
+      <span className="text-xs font-medium text-white/70 group-hover:text-white truncate max-w-18 text-center transition-colors">
         {title}
       </span>
     </Link>

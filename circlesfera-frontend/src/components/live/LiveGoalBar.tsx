@@ -46,13 +46,13 @@ export default function LiveGoalBar({
           <span className="text-xs font-bold text-white tracking-wide uppercase truncate pr-2">
             {goal.title}
           </span>
-          <span className="text-xs font-black text-amber-400 shrink-0">
+          <span className="text-xs font-black text-brand-accent shrink-0">
             {goal.current}/{goal.target}
           </span>
         </div>
         <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
           <div
-            className="absolute top-0 left-0 h-full bg-linear-to-r from-amber-500 to-pink-500 transition-all duration-500"
+            className="absolute top-0 left-0 h-full bg-linear-to-r from-brand-primary to-brand-blue transition-all duration-500"
             style={{ width: `${percentage}%` }}
           />
         </div>
@@ -70,13 +70,13 @@ export default function LiveGoalBar({
         <span className="text-xs font-bold text-white tracking-wide uppercase truncate pr-2">
           {goal.title}
         </span>
-        <span className="text-xs font-black text-amber-400 shrink-0">
+        <span className="text-xs font-black text-brand-accent shrink-0">
           {goal.current}/{goal.target}
         </span>
       </div>
       <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
         <div
-          className="absolute top-0 left-0 h-full bg-linear-to-r from-amber-500 to-pink-500 transition-all duration-500"
+          className="absolute top-0 left-0 h-full bg-linear-to-r from-brand-primary to-brand-blue transition-all duration-500"
           style={{ width: `${percentage}%` }}
         />
       </div>

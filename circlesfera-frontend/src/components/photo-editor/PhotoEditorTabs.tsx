@@ -1,5 +1,12 @@
-import { Crop, Scissors, SlidersHorizontal, Sparkles } from 'lucide-react';
+import {
+  Crop,
+  Layers,
+  Scissors,
+  SlidersHorizontal,
+  Sparkles,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { CREATE_PANEL, CREATE_TOOL } from '../create-post/createStyles';
 import type { PhotoEditorState } from './usePhotoEditor';
 
 export default function PhotoEditorTabs({
@@ -12,11 +19,11 @@ export default function PhotoEditorTabs({
 
   return (
     <div
-      className="flex justify-center px-3 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
+      className="flex justify-center px-4 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom,0px))]"
       role="presentation"
     >
       <div
-        className="flex w-full max-w-[280px] gap-0.5 rounded-xl bg-white/5 p-0.5 border border-white/8"
+        className={`flex w-full md:max-w-sm gap-1 p-1 ${CREATE_PANEL}`}
         role="tablist"
         aria-label={t('createPost.edit.filters_adjustments')}
       >
@@ -48,7 +55,7 @@ export default function PhotoEditorTabs({
             },
             {
               id: 'OVERLAY' as const,
-              icon: Sparkles,
+              icon: Layers,
               label: t('createPost.edit.tab_overlay'),
               show: !isVideo,
             },
@@ -68,16 +75,12 @@ export default function PhotoEditorTabs({
                   setActiveTab(tab.id);
                   if (tab.id === 'OVERLAY') setDrawMode(false);
                 }}
-                className={`flex-1 flex flex-col items-center justify-center gap-0.5 min-h-11 py-1.5 rounded-lg transition-colors outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
-                  isActive
-                    ? 'bg-white/12 text-white'
-                    : 'text-white/40 hover:text-white/70'
+                className={`${CREATE_TOOL} ${
+                  isActive ? 'bg-brand-primary/20 text-white!' : ''
                 }`}
               >
-                <Icon size={16} strokeWidth={isActive ? 2.25 : 1.75} />
-                <span className="text-[9px] font-semibold uppercase tracking-wide leading-none">
-                  {tab.label}
-                </span>
+                <Icon size={20} strokeWidth={isActive ? 2 : 1.75} aria-hidden />
+                <span>{tab.label}</span>
               </button>
             );
           })}

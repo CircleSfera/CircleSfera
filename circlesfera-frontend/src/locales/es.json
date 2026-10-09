@@ -408,10 +408,11 @@
       "blocked": "Las notificaciones están bloqueadas en tu navegador.",
       "browser_capability": "Capacidad del Navegador",
       "status": "Estado",
-      "pwa_support": "Soporte PWA",
-      "enabled": "ACTIVADO",
-      "not_supported": "NO SOPORTADO",
-      "not_registered": "NO REGISTRADO",
+      "permission": {
+        "default": "Sin decidir",
+        "granted": "Permitidas",
+        "denied": "Bloqueadas"
+      },
       "enabling": "Activando alertas nativas…",
       "disabling": "Desactivando alertas nativas…",
       "subscribe_success": "Alertas nativas activadas",
@@ -446,6 +447,7 @@
       "empty": "Aún no tienes ninguna passkey registrada.",
       "register_error": "No se pudo registrar la passkey.",
       "remove_error": "No se pudo eliminar la passkey. Confírmalo con tu huella, cara o PIN e inténtalo de nuevo.",
+      "load_error": "No se han podido cargar tus passkeys. Recarga la página e inténtalo de nuevo.",
       "biometric_available": "Biometría disponible",
       "created_on": "Creado el {{date}}",
       "limit_reached": "Ya tienes el máximo de {{max}} passkeys. Elimina una para añadir otra."
@@ -755,14 +757,15 @@
     "people": "Personas",
     "followed_by": "Seguido por",
     "trending_topics": "Temas en Tendencia",
+    "tags_title": "Etiquetas",
     "no_people_found": "No se encontraron personas",
     "no_tags_found": "No se encontraron etiquetas",
     "no_results": "No se encontraron resultados para",
     "recent_searches": "Búsquedas Recientes",
     "clear_all": "Borrar Todo",
     "no_recent_searches": "No hay búsquedas recientes",
-    "for_you": "Para Ti",
-    "trending": "Trending",
+    "for_you": "Para ti",
+    "trending": "Tendencias",
     "discover_content": "Descubre contenido nuevo aquí basado en tus gustos.",
     "map": {
       "open": "Abrir mapa de descubrimiento",
@@ -993,9 +996,9 @@
       "unlock_success": "¡Publicación desbloqueada con éxito!",
       "unlock_error": "Error al desbloquear la publicación",
       "carousel": "Carrusel de medios",
-      "previous_slide": "Diapositiva anterior",
-      "next_slide": "Diapositiva siguiente",
-      "go_to_slide": "Ir a la diapositiva {{n}}",
+      "previous_slide": "Foto o vídeo anterior",
+      "next_slide": "Foto o vídeo siguiente",
+      "position": "{{n}} de {{total}}",
       "sensitive": "Contenido sensible difuminado"
     },
     "menu": {
@@ -1091,14 +1094,15 @@
     "delete_title": "Eliminar Comentario",
     "delete_warning": "¿Estás seguro de que quieres eliminar este comentario? Esta acción no se puede deshacer.",
     "add_media": "Añadir media",
+    "remove_media": "Quitar el archivo",
     "voice_note": "🎤 Nota de voz"
   },
   "profile": {
     "tabs": {
-      "posts": "PUBLICACIONES",
-      "frames": "FRAMES",
-      "saved": "GUARDADO",
-      "tagged": "ETIQUETADO"
+      "posts": "Publicaciones",
+      "frames": "Frames",
+      "saved": "Guardado",
+      "tagged": "Etiquetado"
     },
     "stats": {
       "posts": "Publicaciones",
@@ -1128,10 +1132,7 @@
       "create_post": "Crear publicación"
     },
     "creator_mode": {
-      "creator": "Creador",
-      "consumer": "Consumidor",
-      "enter": "Activar modo creador",
-      "exit": "Salir del modo creador"
+      "label": "Modo creador"
     },
     "highlights": {
       "new": "Nuevo"
@@ -1316,6 +1317,8 @@
       "filters_adjustments": "Filtros y Ajustes",
       "n_files": "{{count}} archivos",
       "remove_media": "Eliminar medio",
+      "move_earlier": "Mover antes en el carrusel",
+      "move_later": "Mover después en el carrusel",
       "add_more": "Añadir más medios",
       "media_item": "Elemento {{index}} de {{total}}",
       "select_media": "Seleccionar medio",
@@ -1615,6 +1618,7 @@
     "seo_title": "Notificaciones",
     "title": "Actividad",
     "no_activity": "No hay actividad aún",
+    "view_post": "Ver la publicación",
     "unknown_user": "Desconocido",
     "error_title": "No se pudieron cargar las notificaciones",
     "error_message": "Algo salió mal. Inténtalo de nuevo.",
@@ -1680,6 +1684,7 @@
     "replying_to": "Respondiendo a {{username}}",
     "attachment": "Archivo adjunto",
     "type_message": "Mensaje...",
+    "replied_message": "Mensaje",
     "delete_chat_title": "¿Eliminar Conversación?",
     "delete_chat_desc": "¿Estás seguro de que quieres eliminar este chat? Esta acción no se puede deshacer y la conversación se eliminará para todos.",
     "cancel": "Cancelar",
@@ -1706,6 +1711,19 @@
     "accept": "Aceptar",
     "in_call": "En Llamada...",
     "remote_user": "Usuario remoto",
+    "delete_confirm": {
+      "me_title": "¿Eliminar la conversación para ti?",
+      "me_message": "Desaparecerá de tu bandeja. Las demás personas la seguirán viendo.",
+      "everyone_title": "¿Eliminar la conversación para todos?",
+      "everyone_message": "Se borrará para todas las personas de la conversación. No se puede deshacer."
+    },
+    "details": {
+      "title": "Detalles",
+      "view_profile": "Ver perfil",
+      "encrypted": "Cifrado de extremo a extremo",
+      "delete_for_me_hint": "Desaparece solo de tu bandeja.",
+      "delete_for_everyone_hint": "Desaparece para las dos personas."
+    },
     "group_details": {
       "title": "Detalles del grupo",
       "default_name": "Chat grupal",
@@ -3404,6 +3422,7 @@
     "save_error_short": "Error al guardar",
     "zoom": "Zoom de timeline",
     "playhead": "Cabezal de reproducción",
+    "clip_types": { "video": "Vídeo", "image": "Imagen", "audio": "Audio" },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
     "mute": "Silenciar pista",
@@ -3701,6 +3720,7 @@
     "error_title": "Algo salió mal",
     "error_message": "Ha ocurrido un error inesperado. Inténtalo de nuevo.",
     "error_message_refresh": "Ha ocurrido un error inesperado. Prueba a actualizar la página.",
+    "error_message_page": "Esta pantalla no se ha podido mostrar. Puedes reintentar o seguir por el resto de la app.",
     "try_again": "Reintentar",
     "reload_page": "Recargar página",
     "seo_default_title": "CircleSfera - Social reinventada",

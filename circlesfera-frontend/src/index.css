@@ -281,7 +281,7 @@
   --text-body: 16px; /* Body */
   --text-body-sm: 14px; /* Body Small */
   --text-caption: 12px; /* Caption */
-  --text-badge: 11px; /* Badge */
+  --text-badge: 12px; /* Badge */
 
   /* Line heights */
   --lh-display: 1.1; /* 110% */
@@ -310,7 +310,7 @@
   /* Inputs */
   --input-height-standard: 48px;
   --input-height-compact: 44px;
-  --input-height-search: 44px;
+  --input-height-search: 48px;
 
   /* Navigation */
   --nav-top-height: 52px; /* 48-52px for high density mobile UI */
@@ -662,7 +662,7 @@ input[type="range"] {
   height: 44px;
 }
 
-input[type="range"]::-webkit-slider-track {
+input[type="range"]::-webkit-slider-runnable-track {
   height: 5px;
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.08);
@@ -724,7 +724,7 @@ input[type="range"]::-moz-range-progress {
     height: 24px;
     margin-top: -10px;
   }
-  input[type="range"]::-webkit-slider-track {
+  input[type="range"]::-webkit-slider-runnable-track {
     height: 6px;
   }
   input[type="range"]::-moz-range-thumb {
@@ -869,4 +869,17 @@ input[type="range"]::-moz-range-progress {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* A full-window layer that leaves the sidebar in view: on the screens that
+   have a sidebar it starts where the sidebar ends. */
+@media (min-width: 48rem) {
+  body:has(.sidebar-root) .beside-sidebar {
+    left: var(--nav-sidebar-collapsed);
+  }
+}
+@media (min-width: 80rem) {
+  body:has(.sidebar-root:not(.sidebar-compact)) .beside-sidebar {
+    left: var(--nav-sidebar-width);
+  }
 }

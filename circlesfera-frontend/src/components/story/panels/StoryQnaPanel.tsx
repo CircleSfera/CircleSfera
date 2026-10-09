@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { CREATE_PRIMARY } from '../../create-post/createStyles';
 import {
   QNA_PROMPT_MAX,
   QNA_SUGGESTION_KEYS,
@@ -34,10 +35,10 @@ export default function StoryQnaPanel({
           <HelpCircle size={16} />
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-bold text-white/45 uppercase tracking-[0.14em]">
+          <p className="text-xs font-bold text-white/45 uppercase tracking-[0.14em]">
             {t('createPost.storyComposer.qna_title')}
           </p>
-          <p className="text-[11px] text-white/35 truncate">
+          <p className="text-xs text-white/35 truncate">
             {t('createPost.storyComposer.qna_create_hint')}
           </p>
         </div>
@@ -55,7 +56,7 @@ export default function StoryQnaPanel({
       </div>
 
       <div className="space-y-1.5">
-        <div className="flex justify-between gap-2 text-[10px] text-white/35 tabular-nums">
+        <div className="flex justify-between gap-2 text-xs text-white/35 tabular-nums">
           <span>{t('createPost.storyComposer.qna_prompt')}</span>
           <span>
             {qnaPrompt.length}/{QNA_PROMPT_MAX}
@@ -67,7 +68,7 @@ export default function StoryQnaPanel({
           maxLength={QNA_PROMPT_MAX}
           onChange={(e) => onQnaPromptChange(e.target.value)}
           placeholder={t('createPost.storyComposer.qna_prompt_ph')}
-          className="w-full min-h-12 bg-white/6 text-white px-4 py-3 rounded-xl outline-none border border-white/10 text-sm font-semibold focus:border-brand-primary/40"
+          className="w-full min-h-12 bg-white/6 text-white px-4 py-3 rounded-2xl outline-none border border-white/10 text-base focus:border-brand-primary/40"
         />
       </div>
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
@@ -78,7 +79,7 @@ export default function StoryQnaPanel({
               type="button"
               key={key}
               onClick={() => onQnaPromptChange(suggestion)}
-              className="shrink-0 min-h-11 px-3 rounded-full text-[11px] font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
+              className="shrink-0 min-h-11 px-3 rounded-full text-xs font-semibold text-white/65 bg-white/6 border border-white/8 hover:bg-white/10 hover:text-white"
             >
               {suggestion}
             </button>
@@ -89,7 +90,7 @@ export default function StoryQnaPanel({
         type="button"
         onClick={onAddQna}
         disabled={!qnaPrompt.trim()}
-        className="w-full min-h-12 py-3 bg-brand-primary text-white font-bold text-sm rounded-xl disabled:opacity-30 transition-all"
+        className={`w-full ${CREATE_PRIMARY}`}
       >
         {t('createPost.storyComposer.add_qna')}
       </button>

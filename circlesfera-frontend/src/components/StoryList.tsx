@@ -7,6 +7,7 @@ import { liveApi, storiesApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import type { Story } from '../types';
+import { asList } from '../utils/asList';
 import UserAvatar from './UserAvatar';
 import type { VerificationLevel } from './VerificationBadge';
 
@@ -30,7 +31,7 @@ export default function StoryList() {
 
   const groupedStories = useMemo(() => {
     if (!storiesResponse?.data) return [];
-    const stories = storiesResponse.data as Story[];
+    const stories = asList<Story>(storiesResponse.data);
     const grouped: { profile: any; stories: Story[] }[] = Object.values(
       stories.reduce(
         (acc, story) => {

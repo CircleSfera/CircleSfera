@@ -77,8 +77,11 @@ what risk remains open. Never claim a check you did not run.
 - Never move authorization to the client. Never trust client-supplied amounts, prices or
   entitlements.
 - Critical business rules live in backend services, not only in the UI.
-- Social content attaches to `Profile.id`. Credentials, billing and GDPR concerns attach to
-  `User.id`. Staff access uses `AdminIdentity` RBAC, never `User.role`.
+- Social content attaches to `Profile.id`. Identity, billing and GDPR concerns attach to `User.id`.
+  Credentials are on `User` today and move to `SignIn` records: Profiles of one `User` may share a
+  `SignIn` or use separate `SignIn` records, as defined in
+  `docs/adr/0025-sign-in-per-profile-one-identity.md`: check which step is on `main` before
+  touching authentication. Staff access uses `AdminIdentity` RBAC, never `User.role`.
 - Money is integer cents. The platform fee constants are in
   `circlesfera-backend/src/common/constants/monetization.constants.ts`.
 - Never invent models, endpoints, enums, relations, permissions or flows that are not backed by the

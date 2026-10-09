@@ -1,6 +1,7 @@
 import { HelpCircle, Send, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 export interface LiveQuestion {
   id: string;
@@ -45,7 +46,7 @@ export default function LiveQnAPanel({
     <div className="absolute inset-x-0 bottom-0 top-[20%] bg-black/90 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 flex flex-col z-50 animate-in slide-in-from-bottom-8 duration-300">
       <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
         <div className="flex items-center gap-2 text-white">
-          <HelpCircle size={20} className="text-pink-400" />
+          <HelpCircle size={20} className="text-brand-secondary" />
           <h3 className="font-bold">{t('live.qna.title')}</h3>
         </div>
         <button
@@ -74,10 +75,7 @@ export default function LiveQnAPanel({
             >
               <div className="flex items-center gap-2">
                 <img
-                  src={
-                    q.avatar ||
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(q.username)}`
-                  }
+                  src={q.avatar || initialsAvatarUrl(q.username)}
                   alt={q.username}
                   className="w-8 h-8 rounded-full object-cover"
                 />
@@ -92,7 +90,7 @@ export default function LiveQnAPanel({
                   <button
                     type="button"
                     onClick={() => onHighlightQuestion(q)}
-                    className="min-h-11 text-xs font-bold text-pink-400 bg-pink-400/10 px-4 rounded-full hover:bg-pink-400/20 transition-colors"
+                    className="min-h-11 text-xs font-bold text-brand-primary bg-brand-primary/10 px-4 rounded-full hover:bg-brand-primary/20 transition-colors"
                   >
                     {t('live.qna.project')}
                   </button>
@@ -124,12 +122,12 @@ export default function LiveQnAPanel({
             onChange={(e) => setInput(e.target.value)}
             placeholder={t('live.qna.placeholder')}
             aria-label={t('live.qna.placeholder')}
-            className="flex-1 min-w-0 min-h-12 bg-white/10 border border-white/10 rounded-full px-4 text-base text-white outline-none focus:border-pink-500"
+            className="flex-1 min-w-0 min-h-12 bg-white/10 border border-white/10 rounded-full px-4 text-base text-white outline-none focus:border-brand-primary"
           />
           <button
             type="submit"
             disabled={!input.trim()}
-            className="w-11 h-11 flex items-center justify-center bg-pink-500 rounded-full text-white disabled:opacity-50 hover:bg-pink-600 transition-colors shrink-0"
+            className="w-11 h-11 flex items-center justify-center bg-brand-primary rounded-full text-white disabled:opacity-50 hover:bg-brand-primary/90 transition-colors shrink-0"
             aria-label={t('live.qna.send')}
           >
             <Send size={18} />

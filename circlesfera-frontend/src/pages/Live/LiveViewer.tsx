@@ -22,6 +22,7 @@ import LiveQnAPanel, {
 import { apiClient as api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
 
@@ -32,8 +33,7 @@ interface FloatingReaction {
 }
 
 /** A neutral picture with the person's initials, for someone without one. */
-const fallbackAvatar = (username: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveViewer() {
   const { t } = useTranslation();
@@ -246,7 +246,7 @@ export default function LiveViewer() {
 
   if (activeToken === '') {
     return (
-      <div className="flex h-dvh items-center justify-center bg-black text-white font-bold">
+      <div className="flex h-dvh items-center justify-center bg-black md:bg-transparent text-white font-bold">
         {t('live.connecting')}
       </div>
     );
@@ -257,7 +257,7 @@ export default function LiveViewer() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-dvh bg-neutral-950 flex items-center justify-center overflow-hidden">
+    <div className="w-full h-dvh bg-surface-base md:bg-transparent flex items-center justify-center overflow-hidden">
       {/* A double tap anywhere sends a heart. It is not a button: it holds
           every control of the screen, and the reactions have their own. */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
@@ -269,7 +269,7 @@ export default function LiveViewer() {
         <div className="absolute left-4 right-4 top-[max(1rem,env(safe-area-inset-top,0px))] z-50 flex items-center justify-between gap-2 pointer-events-auto">
           <div className="flex items-center gap-2.5">
             {/* Host Avatar with Gradient Ring */}
-            <div className="p-0.5 bg-linear-to-tr from-amber-400 via-pink-500 to-purple-600 rounded-full shadow-lg">
+            <div className="p-0.5 bg-linear-to-tr from-brand-accent via-brand-secondary to-brand-primary rounded-full shadow-lg">
               <img
                 src={
                   streamDetails?.host?.profile?.avatar ||
@@ -291,7 +291,7 @@ export default function LiveViewer() {
                   {streamDetails?.host?.profile?.username ||
                     t('live.host_fallback')}
                 </span>
-                <span className="bg-linear-to-r from-pink-600 to-purple-600 text-xs font-black text-white px-2 py-0.5 rounded-md uppercase tracking-wider shadow-md shadow-pink-500/30">
+                <span className="bg-brand-secondary text-xs font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wide shadow-md shadow-brand-secondary/30">
                   {t('live.now')}
                 </span>
               </div>
@@ -306,7 +306,7 @@ export default function LiveViewer() {
           <div className="flex items-center gap-3">
             {/* Viewer Count Badge */}
             <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
-              <Eye className="w-3.5 h-3.5 text-pink-400" />
+              <Eye className="w-3.5 h-3.5 text-brand-secondary" />
               <span>{viewerCount}</span>
             </div>
 
@@ -369,7 +369,7 @@ export default function LiveViewer() {
                     <span className="block text-xs font-bold text-neutral-800">
                       {highlightedQuestion.username}
                     </span>
-                    <span className="block text-xs text-pink-500 font-bold uppercase tracking-widest">
+                    <span className="block text-xs text-brand-secondary font-bold uppercase tracking-widest">
                       {t('live.qna.question')}
                     </span>
                   </div>
@@ -395,7 +395,7 @@ export default function LiveViewer() {
                 style={{ transform: `translateX(${r.x}px)` }}
               >
                 {r.emoji === '❤️' ? (
-                  <Heart className="h-8 w-8 fill-red-500 text-red-500 drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
+                  <Heart className="h-8 w-8 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
                 ) : (
                   <span>{r.emoji}</span>
                 )}
@@ -420,7 +420,7 @@ export default function LiveViewer() {
                   transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                   className="text-white text-xs sm:text-sm bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit max-w-[85%] shadow-md flex items-center gap-1.5"
                 >
-                  <span className="font-extrabold text-pink-400 drop-shadow-sm">
+                  <span className="font-extrabold text-white drop-shadow-sm">
                     {msg.user.username}
                   </span>
                   <span className="text-white/90 font-medium">
@@ -471,7 +471,7 @@ export default function LiveViewer() {
             {messageInput.trim() ? (
               <button
                 type="submit"
-                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-pink-600 text-white hover:bg-pink-700 active:scale-95 transition-all shadow-md shadow-pink-600/30"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary/90 active:scale-95 transition-all shadow-md shadow-brand-primary/30"
                 aria-label={t('live.send_comment')}
               >
                 <Send className="h-4 w-4" aria-hidden />
@@ -480,7 +480,7 @@ export default function LiveViewer() {
               <button
                 type="button"
                 onClick={() => setGiftModalOpen(true)}
-                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-linear-to-tr from-amber-400 to-pink-500 text-white shadow-lg shadow-pink-500/30 active:scale-95 transition-all"
+                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-linear-to-tr from-brand-accent to-brand-secondary text-white shadow-lg shadow-brand-secondary/30 active:scale-95 transition-all"
                 aria-label={t('live.send_gift_btn')}
               >
                 <Gift className="w-5 h-5 text-white" aria-hidden />

@@ -42,7 +42,7 @@ export default function StudioToolDock() {
                   setActiveTab(tool.id);
                 }
               }}
-              className={`flex flex-1 flex-col items-center justify-center gap-0.5 min-h-11 rounded-xl px-1 py-1.5 text-[10px] font-semibold transition-colors ${
+              className={`flex flex-1 flex-col items-center justify-center gap-1 min-h-14 rounded-2xl px-1 py-1.5 text-xs font-semibold transition-colors ${
                 isActive
                   ? 'text-brand-primary bg-brand-primary/10'
                   : 'text-white/50 hover:text-white hover:bg-white/5'

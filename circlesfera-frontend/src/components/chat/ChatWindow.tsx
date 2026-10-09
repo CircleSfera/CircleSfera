@@ -40,7 +40,9 @@ import { pickNativeImage } from '../../utils/nativeFilePicker';
 import { VoiceRecorder } from '../audio/VoiceRecorder';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
+import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
+import ChatDetailsModal from './ChatDetailsModal';
 import GroupDetailsModal from './GroupDetailsModal';
 import MessageBubble from './MessageBubble';
 import {
@@ -111,6 +113,11 @@ export default function ChatWindow() {
   } | null>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [showGroupDetails, setShowGroupDetails] = useState(false);
+  const [showChatDetails, setShowChatDetails] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<'me' | 'both' | null>(
+    null,
+  );
+  const [isDeletingConversation, setIsDeletingConversation] = useState(false);
   const [isLockPopoverOpen, setIsLockPopoverOpen] = useState(false);
   const [lockedPrice, setLockedPrice] = useState<number | null>(null);
   const [lockPriceDraft, setLockPriceDraft] = useState('5.00');
@@ -667,15 +674,21 @@ export default function ChatWindow() {
     );
   };
 
-  const confirmDelete = async (mode: 'me' | 'both') => {
-    if (!id) return;
+  // Deleting asks first: it cannot be undone, and "for everyone" removes the
+  // conversation for the other people too.
+  const deleteConversation = async () => {
+    if (!id || !pendingDelete) return;
+    setIsDeletingConversation(true);
     try {
-      await chatApi.deleteConversation(id, mode);
+      await chatApi.deleteConversation(id, pendingDelete);
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
       navigate('/direct/inbox');
     } catch (error) {
       logger.error('Failed to delete conversation', error);
       toast.error(t('chat.delete_chat_error'));
+    } finally {
+      setIsDeletingConversation(false);
+      setPendingDelete(null);
     }
   };
 
@@ -948,7 +961,7 @@ export default function ChatWindow() {
         <div className="flex items-center gap-3 md:gap-4 min-w-0 flex-1 mr-4">
           <Link
             to="/direct/inbox"
-            className="md:hidden text-white/70 hover:text-white transition-all p-2 -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
+            className="md:hidden w-11 h-11 flex items-center justify-center text-white/70 hover:text-white transition-all -ml-2 rounded-full hover:bg-white/10 active:scale-95 shrink-0"
             aria-label={t('chat.back_to_inbox')}
           >
             <ArrowLeft size={24} strokeWidth={2} />
@@ -956,11 +969,13 @@ export default function ChatWindow() {
           {conversation ? (
             <button
               type="button"
-              className="flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
+              className="min-h-11 flex items-center gap-3 md:gap-4 cursor-pointer group min-w-0 flex-1 appearance-none bg-transparent border-none p-0 text-left"
               onClick={() =>
+                // The header opens the details of the conversation; the way
+                // to the profile is inside them.
                 chatInfo.isGroup
                   ? setShowGroupDetails(true)
-                  : chatInfo.username && navigate(`/${chatInfo.username}`)
+                  : setShowChatDetails(true)
               }
             >
               {chatInfo.isGroup ? (
@@ -998,7 +1013,9 @@ export default function ChatWindow() {
                     src={chatInfo.avatar || undefined}
                     thumbnailUrl={chatInfo.thumbnailUrl || undefined}
                     standardUrl={chatInfo.standardUrl || undefined}
-                    alt={chatInfo.name}
+                    // By username, like everywhere else: the same person shows
+                    // the same initials on every screen.
+                    alt={chatInfo.username || chatInfo.name}
                     isOnline={
                       chatInfo.otherProfileId
                         ? userStatuses[chatInfo.otherProfileId]?.isOnline
@@ -1014,7 +1031,7 @@ export default function ChatWindow() {
                   {!chatInfo.isGroup && (
                     <span
                       title={t('chat.e2ee')}
-                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold tracking-wider uppercase"
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold"
                     >
                       <ShieldCheck size={12} className="shrink-0" />
                       <span className="hidden sm:inline">E2EE</span>
@@ -1069,7 +1086,7 @@ export default function ChatWindow() {
                       targetUser,
                     );
                 }}
-                className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
                 aria-label={t('chat.audio_call')}
               >
                 <Phone size={20} strokeWidth={2} />
@@ -1093,7 +1110,7 @@ export default function ChatWindow() {
                       targetUser,
                     );
                 }}
-                className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:scale-90"
+                className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:scale-90"
                 aria-label={t('chat.video_call')}
               >
                 <Video size={24} strokeWidth={2} />
@@ -1115,7 +1132,7 @@ export default function ChatWindow() {
                 e.stopPropagation();
                 setShowMenu(!showMenu);
               }}
-              className="hover:text-white text-white/60 transition-all p-2.5 rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
+              className="w-11 h-11 flex items-center justify-center hover:text-white text-white/60 transition-all rounded-full hover:bg-white/10 active:bg-white/20 relative z-50"
               aria-label={t('chat.more_options')}
             >
               <MoreVertical size={22} strokeWidth={2} />
@@ -1134,9 +1151,9 @@ export default function ChatWindow() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
-                      confirmDelete('me');
+                      setPendingDelete('me');
                     }}
-                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium"
+                    className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_me')}
@@ -1146,9 +1163,9 @@ export default function ChatWindow() {
                     onClick={(e) => {
                       e.stopPropagation();
                       setShowMenu(false);
-                      confirmDelete('both');
+                      setPendingDelete('both');
                     }}
-                    className="w-full text-left px-2 py-1 text-sm text-red-500 hover:bg-red-500/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
+                    className="w-full min-h-11 text-left px-4 text-sm text-brand-secondary hover:bg-brand-secondary/10 transition-colors flex items-center gap-3 font-medium border-t border-white/10"
                   >
                     <Trash2 size={16} />
                     {t('chat.delete_for_everyone')}
@@ -1481,7 +1498,7 @@ export default function ChatWindow() {
                           })}
                         </p>
                       )}
-                      <p className="text-[11px] text-white/40">
+                      <p className="text-xs text-white/45">
                         {t('chat.lock_message_hint')}
                       </p>
                       <div className="flex items-center gap-2 pt-1">
@@ -1538,7 +1555,7 @@ export default function ChatWindow() {
                   }
                 }}
                 rows={1}
-                className="flex-1 bg-transparent border-none py-1.5 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-30 min-h-11"
+                className="flex-1 bg-transparent border-none py-3 px-2 text-white placeholder-white/40 focus:ring-0 text-[15px] resize-none overflow-hidden custom-scrollbar max-h-30 min-h-12"
                 placeholder={t('chat.type_message')}
               />
 
@@ -1604,6 +1621,54 @@ export default function ChatWindow() {
       </div>
 
       {/* Modal deleted, options moved directly to dropdown menu */}
+      {showChatDetails && conversation && !chatInfo.isGroup && (
+        <ChatDetailsModal
+          isOpen={showChatDetails}
+          onClose={() => setShowChatDetails(false)}
+          person={{
+            username: chatInfo.username,
+            name: chatInfo.name,
+            avatar: chatInfo.avatar,
+            thumbnailUrl: chatInfo.thumbnailUrl,
+            standardUrl: chatInfo.standardUrl,
+          }}
+          isEncrypted={Boolean(chatInfo.otherProfileId)}
+          onViewProfile={() => {
+            setShowChatDetails(false);
+            if (chatInfo.username) navigate(`/${chatInfo.username}`);
+          }}
+          onDeleteForMe={() => {
+            setShowChatDetails(false);
+            setPendingDelete('me');
+          }}
+          onDeleteForEveryone={() => {
+            setShowChatDetails(false);
+            setPendingDelete('both');
+          }}
+        />
+      )}
+      <ConfirmModal
+        isOpen={pendingDelete !== null}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={deleteConversation}
+        title={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_confirm.everyone_title'
+            : 'chat.delete_confirm.me_title',
+        )}
+        message={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_confirm.everyone_message'
+            : 'chat.delete_confirm.me_message',
+        )}
+        confirmText={t(
+          pendingDelete === 'both'
+            ? 'chat.delete_for_everyone'
+            : 'chat.delete_for_me',
+        )}
+        cancelText={t('chat.cancel')}
+        isLoading={isDeletingConversation}
+      />
       {showGroupDetails && conversation && (
         <GroupDetailsModal
           isOpen={showGroupDetails}

@@ -62,8 +62,10 @@ export default function PostDetail() {
     return <Navigate to={`/frames?post=${id}`} replace />;
   }
 
+  // On desktop the card sits in the middle of the window: the top padding
+  // matches the space the layout and the card leave below it.
   return (
-    <div className="min-h-dvh py-3 md:py-6 relative">
+    <div className="min-h-dvh py-3 relative md:min-h-[calc(100dvh-4.5rem)] md:pt-22 md:pb-0 md:flex md:flex-col md:justify-center">
       <SEO
         title={`Post de @${post.data.profile?.username || 'Usuario'}`}
         description={

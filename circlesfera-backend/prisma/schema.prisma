@@ -336,6 +336,8 @@ model Profile {
 
   verificationLevel VerificationLevel @default(BASIC)
   accountType       AccountType       @default(PERSONAL)
+  // Colour of the Profile page, from the closed list of the app; empty = default.
+  accentColor       String?
 
   // Account Ban Flags
 

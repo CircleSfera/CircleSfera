@@ -408,10 +408,11 @@
       "blocked": "Notifications are blocked in your browser settings.",
       "browser_capability": "Browser Capability",
       "status": "Status",
-      "pwa_support": "PWA Support",
-      "enabled": "ENABLED",
-      "not_supported": "NOT SUPPORTED",
-      "not_registered": "NOT REGISTERED",
+      "permission": {
+        "default": "Not decided",
+        "granted": "Allowed",
+        "denied": "Blocked"
+      },
       "enabling": "Enabling native alerts…",
       "disabling": "Disabling native alerts…",
       "subscribe_success": "Native alerts enabled",
@@ -446,6 +447,7 @@
       "empty": "You don't have any passkeys yet.",
       "register_error": "Could not register the passkey.",
       "remove_error": "Could not remove the passkey. Confirm with your fingerprint, face or PIN and try again.",
+      "load_error": "Your passkeys could not be loaded. Reload the page and try again.",
       "biometric_available": "Biometrics available",
       "created_on": "Created {{date}}",
       "limit_reached": "You have the maximum of {{max}} passkeys. Remove one to add another."
@@ -755,6 +757,7 @@
     "people": "People",
     "followed_by": "Followed by",
     "trending_topics": "Trending Topics",
+    "tags_title": "Tags",
     "no_people_found": "No people found",
     "no_tags_found": "No tags found",
     "no_results": "No results found for",
@@ -993,9 +996,9 @@
       "unlock_success": "Post successfully unlocked!",
       "unlock_error": "Error unlocking post",
       "carousel": "Media carousel",
-      "previous_slide": "Previous slide",
-      "next_slide": "Next slide",
-      "go_to_slide": "Go to slide {{n}}",
+      "previous_slide": "Previous photo or video",
+      "next_slide": "Next photo or video",
+      "position": "{{n}} of {{total}}",
       "sensitive": "Sensitive content blurred"
     },
     "menu": {
@@ -1091,14 +1094,15 @@
     "delete_title": "Delete Comment",
     "delete_warning": "Are you sure you want to delete this comment? This action cannot be undone.",
     "add_media": "Add media",
+    "remove_media": "Remove the file",
     "voice_note": "🎤 Voice note"
   },
   "profile": {
     "tabs": {
-      "posts": "POSTS",
-      "frames": "FRAMES",
-      "saved": "SAVED",
-      "tagged": "TAGGED"
+      "posts": "Posts",
+      "frames": "Frames",
+      "saved": "Saved",
+      "tagged": "Tagged"
     },
     "stats": {
       "posts": "Posts",
@@ -1128,10 +1132,7 @@
       "create_post": "Create new post"
     },
     "creator_mode": {
-      "creator": "Creator",
-      "consumer": "Consumer",
-      "enter": "Enter Creator Mode",
-      "exit": "Exit Creator Mode"
+      "label": "Creator mode"
     },
     "highlights": {
       "new": "New"
@@ -1316,6 +1317,8 @@
       "filters_adjustments": "Filters & Adjustments",
       "n_files": "{{count}} files",
       "remove_media": "Remove media",
+      "move_earlier": "Move earlier in the carousel",
+      "move_later": "Move later in the carousel",
       "add_more": "Add more media",
       "media_item": "Item {{index}} of {{total}}",
       "select_media": "Select media",
@@ -1615,6 +1618,7 @@
     "seo_title": "Notifications",
     "title": "Activity",
     "no_activity": "No activity yet",
+    "view_post": "View the post",
     "unknown_user": "Unknown",
     "error_title": "Couldn't load notifications",
     "error_message": "Something went wrong. Please try again.",
@@ -1680,6 +1684,7 @@
     "replying_to": "Replying to {{username}}",
     "attachment": "Attachment",
     "type_message": "Type a message...",
+    "replied_message": "Message",
     "delete_chat_title": "Delete Conversation?",
     "delete_chat_desc": "Are you sure you want to delete this chat? This action cannot be undone and the conversation will be removed for everyone.",
     "cancel": "Cancel",
@@ -1706,6 +1711,19 @@
     "accept": "Accept",
     "in_call": "In Call...",
     "remote_user": "Remote user",
+    "delete_confirm": {
+      "me_title": "Delete the conversation for you?",
+      "me_message": "It will leave your inbox. The other people will still see it.",
+      "everyone_title": "Delete the conversation for everyone?",
+      "everyone_message": "It will be removed for everyone in the conversation. This cannot be undone."
+    },
+    "details": {
+      "title": "Details",
+      "view_profile": "View profile",
+      "encrypted": "End-to-end encrypted",
+      "delete_for_me_hint": "Removed from your inbox only.",
+      "delete_for_everyone_hint": "Removed for both of you."
+    },
     "group_details": {
       "title": "Group details",
       "default_name": "Group chat",
@@ -3404,6 +3422,7 @@
     "save_error_short": "Save failed",
     "zoom": "Timeline zoom",
     "playhead": "Playhead",
+    "clip_types": { "video": "Video", "image": "Image", "audio": "Audio" },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
     "mute": "Mute track",
@@ -3701,6 +3720,7 @@
     "error_title": "Something went wrong",
     "error_message": "An unexpected error occurred. Please try again.",
     "error_message_refresh": "An unexpected error occurred. Please try refreshing the page.",
+    "error_message_page": "This screen could not be shown. You can try again or carry on with the rest of the app.",
     "try_again": "Try Again",
     "reload_page": "Reload Page",
     "seo_default_title": "CircleSfera - Social Reimagined",

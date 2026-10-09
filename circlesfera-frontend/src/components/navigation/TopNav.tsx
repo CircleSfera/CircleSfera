@@ -43,7 +43,7 @@ export default function TopNav() {
       <Link
         to="/"
         onClick={triggerHaptic}
-        className="flex items-center justify-center gap-1.5 flex-none focus:outline-none"
+        className="min-h-11 flex items-center justify-center gap-1.5 flex-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
         aria-label={t('nav.home')}
       >
         <img

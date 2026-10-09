@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { parseFilter } from '../../utils/styleUtils';
 import { Textarea } from '../ui';
 import { SUBSCREEN_BODY, SUBSCREEN_SHELL } from './ComposerChrome';
+import { CREATE_THUMB, createThumbRatio } from './createStyles';
 import { EditorHeaderAction } from './EditorHeader';
 import SubScreenHeader from './SubScreenHeader';
 
@@ -13,6 +14,8 @@ interface AccessibilitySubScreenProps {
   setAltTextMap: React.Dispatch<React.SetStateAction<Record<number, string>>>;
   onClose: () => void;
   onGenerateAltText: (index: number) => Promise<void>;
+  /** What is being created: its preview has the shape of that format. */
+  mode?: 'POST' | 'FRAME' | 'STORY';
 }
 
 export default function AccessibilitySubScreen({
@@ -21,7 +24,11 @@ export default function AccessibilitySubScreen({
   setAltTextMap,
   onClose,
   onGenerateAltText,
+  mode = 'POST',
 }: AccessibilitySubScreenProps) {
+  // The same small preview as the strip of the edit step: same height, same
+  // shape for the format, same corners.
+  const previewRatio = createThumbRatio(mode);
   const { t } = useTranslation();
   const [generatingIdx, setGeneratingIdx] = React.useState<number | null>(null);
 
@@ -68,7 +75,10 @@ export default function AccessibilitySubScreen({
                 key={item.url}
                 className="flex gap-2.5 p-2.5 rounded-3xl bg-white/5 border border-white/8"
               >
-                <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-white/10 relative">
+                <div
+                  className={`${CREATE_THUMB} border-white/10 relative`}
+                  style={{ aspectRatio: previewRatio }}
+                >
                   {isVideo ? (
                     <video
                       src={item.url}

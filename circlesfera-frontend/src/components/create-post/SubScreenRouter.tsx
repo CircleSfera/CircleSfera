@@ -15,6 +15,8 @@ import TagPeopleSubScreen from './TagPeopleSubScreen';
 /** Routes caption sub-screens for the stepped Post/Frame composer. */
 
 interface SubScreenRouterProps {
+  /** What is being created; previews take the shape of that format. */
+  mode?: 'POST' | 'FRAME' | 'STORY';
   subScreen:
     | 'none'
     | 'location'
@@ -79,6 +81,7 @@ interface SubScreenRouterProps {
 }
 
 export default function SubScreenRouter({
+  mode,
   subScreen,
   setSubScreen,
   mediaFiles,
@@ -137,6 +140,7 @@ export default function SubScreenRouter({
         setAltTextMap={setAltTextMap}
         onClose={() => setSubScreen('none')}
         onGenerateAltText={onGenerateAltText}
+        mode={mode}
       />
     );
   }

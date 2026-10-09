@@ -79,7 +79,7 @@ export default function StoryToolRail({
                 setMoreOpen(false);
                 onSelectTab(isActive ? 'none' : tab);
               }}
-              className={`relative flex-1 min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+              className={`relative flex-1 min-h-12 min-w-0 flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                 isActive
                   ? 'bg-white/12 text-white'
                   : 'text-white/55 hover:bg-white/6 hover:text-white/90'
@@ -89,7 +89,7 @@ export default function StoryToolRail({
             >
               <Icon size={22} strokeWidth={isActive ? 2.25 : 1.85} />
               <span
-                className={`text-[10px] font-semibold tracking-wide leading-none truncate max-w-full px-0.5 ${
+                className={`text-xs font-medium tracking-tight leading-none truncate max-w-full ${
                   isActive ? 'text-white/90' : 'text-white/45'
                 }`}
               >
@@ -109,7 +109,7 @@ export default function StoryToolRail({
           <button
             type="button"
             onClick={() => setMoreOpen((v) => !v)}
-            className={`relative w-full min-h-12 flex flex-col items-center justify-center gap-1 rounded-xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+            className={`relative w-full min-h-12 flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
               moreToolActive
                 ? 'bg-white/12 text-white'
                 : moreOpen
@@ -122,7 +122,7 @@ export default function StoryToolRail({
           >
             <Ellipsis size={22} strokeWidth={moreToolActive ? 2.25 : 1.85} />
             <span
-              className={`text-[10px] font-semibold tracking-wide leading-none ${
+              className={`text-xs font-medium tracking-tight leading-none ${
                 moreToolActive || moreOpen ? 'text-white/90' : 'text-white/45'
               }`}
             >
@@ -141,7 +141,7 @@ export default function StoryToolRail({
               role="menu"
               className="absolute bottom-full right-0 mb-2.5 w-52 rounded-2xl border border-white/12 bg-zinc-900/98 shadow-[0_12px_40px_rgba(0,0,0,0.55)] overflow-hidden z-50 backdrop-blur-xl"
             >
-              <p className="px-3.5 pt-3 pb-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-white/35">
+              <p className="px-3.5 pt-3 pb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-white/35">
                 {t('createPost.storyComposer.more_section')}
               </p>
               {MORE_TOOLS.map(({ tab, icon: Icon, labelKey }) => {

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Eye, Image as ImageIcon, SunDim } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CREATE_THUMB, createThumbRatio } from '../../create-post/createStyles';
 import SliderControl from '../SliderControl';
 import { GRADIENTS } from '../storyComposer.constants';
 
@@ -38,13 +39,13 @@ export default function StoryBackgroundPanel({
       className="px-3 space-y-3.5"
     >
       <div className="flex items-center justify-between gap-3">
-        <span className="text-[11px] font-bold text-white/40 uppercase tracking-[0.14em]">
+        <span className="text-xs font-bold text-white/40 uppercase tracking-[0.14em]">
           {t('createPost.storyComposer.backgrounds')}
         </span>
         <button
           type="button"
           onClick={onUploadBackground}
-          className="min-h-11 text-xs bg-white/8 hover:bg-white/12 px-3 rounded-xl border border-white/10 flex items-center gap-1.5 transition-all font-semibold text-white/70 hover:text-white"
+          className="min-h-11 text-sm bg-white/8 hover:bg-white/12 px-4 rounded-full border border-white/10 flex items-center gap-1.5 transition-all font-semibold text-white/70 hover:text-white"
         >
           <ImageIcon size={14} /> {t('createPost.storyComposer.upload')}
         </button>
@@ -55,17 +56,18 @@ export default function StoryBackgroundPanel({
             type="button"
             key={grad}
             onClick={() => onSelectGradient(grad)}
-            className={`aspect-[9/16] w-11 shrink-0 rounded-lg border-2 transition-all duration-200 ${
+            className={`${CREATE_THUMB} transition-all duration-200 ${
               bgStyle === grad
                 ? 'border-white scale-[1.03] shadow-lg shadow-black/40'
                 : 'border-white/10 hover:border-white/25 opacity-85 hover:opacity-100'
             }`}
-            style={
-              grad.startsWith('linear-gradient') ||
+            style={{
+              aspectRatio: createThumbRatio('STORY'),
+              ...(grad.startsWith('linear-gradient') ||
               grad.startsWith('radial-gradient')
                 ? { backgroundImage: grad }
-                : { backgroundColor: grad }
-            }
+                : { backgroundColor: grad }),
+            }}
             aria-label={t('createPost.storyComposer.background_option', {
               number: index + 1,
             })}
@@ -74,7 +76,7 @@ export default function StoryBackgroundPanel({
         ))}
       </div>
       {backgroundUrl && (
-        <div className="space-y-0 rounded-lg border border-white/8 bg-white/3 px-2.5 py-1">
+        <div className="space-y-0 rounded-2xl border border-white/8 bg-white/3 px-3 py-1">
           <SliderControl
             icon={SunDim}
             label={t('createPost.storyComposer.blur')}

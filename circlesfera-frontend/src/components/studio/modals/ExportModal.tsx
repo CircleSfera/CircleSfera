@@ -181,12 +181,12 @@ export default function ExportModal({
               {t('studio.export_quality_hint')}
             </p>
             {constrained ? (
-              <p className="text-[11px] text-brand-accent mb-3 text-left w-full">
+              <p className="text-xs text-brand-accent mb-3 text-left w-full">
                 {t('studio.export_mobile_hint')}
               </p>
             ) : null}
             {projectDuration > 90 ? (
-              <p className="text-[11px] text-white/45 mb-3 text-left w-full">
+              <p className="text-xs text-white/45 mb-3 text-left w-full">
                 {t('studio.export_long_duration_hint')}
               </p>
             ) : null}

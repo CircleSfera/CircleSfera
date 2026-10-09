@@ -2,6 +2,7 @@ import type React from 'react';
 import { memo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBlurFallbackUrl, sanitizeUrl } from '../utils/apiUtils';
+import { initialsAvatarUrl } from '../utils/initialsAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
 interface UserAvatarProps {
@@ -26,7 +27,8 @@ const sizeClasses: Record<NonNullable<UserAvatarProps['size']>, string> = {
   md: 'w-10 h-10', // 40px
   lg: 'w-14 h-14', // 56px — --avatar-lg
   xl: 'w-20 h-20', // 80px
-  profile: 'w-24 h-24', // 96px — --avatar-profile
+  // 80 px on phones, so the figures beside it fit; 96 px from tablet width.
+  profile: 'w-20 h-20 md:w-24 md:h-24',
   full: 'w-full h-full',
 };
 
@@ -60,7 +62,8 @@ export default memo(function UserAvatar({
   const { t } = useTranslation();
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(alt)}&background=random&color=fff&bold=true`;
+  // No photo: the initials, drawn here. Nothing is asked of another site.
+  const defaultAvatar = initialsAvatarUrl(alt);
   const sanitizedSrc = sanitizeUrl(src);
   const blurUrl =
     getBlurFallbackUrl(sanitizedSrc) || getBlurFallbackUrl(thumbnailUrl);

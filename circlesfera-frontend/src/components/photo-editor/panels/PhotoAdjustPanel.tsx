@@ -32,10 +32,10 @@ const AdjustmentSlider = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.12 }}
     >
-      <div className="flex justify-between text-[11px] font-semibold uppercase tracking-wide">
-        <span className="text-white/40 truncate pr-2">{label}</span>
+      <div className="flex justify-between text-sm font-semibold">
+        <span className="text-white/70 truncate pr-2">{label}</span>
         <span
-          className={`tabular-nums shrink-0 ${isModified ? 'text-brand-primary' : 'text-white/25'}`}
+          className={`tabular-nums shrink-0 ${isModified ? 'text-brand-primary' : 'text-white/45'}`}
         >
           {value}
           {unit}

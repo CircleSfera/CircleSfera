@@ -190,6 +190,16 @@ test.describe('Story composer', () => {
   test('composer', async ({ page }) => {
     await openStoryComposer(page);
     await expectControlsAtSize(page);
+
+    // Every tool shows its whole name: none is cut with an ellipsis.
+    const cutNames = await page.evaluate(() =>
+      Array.from(
+        document.querySelectorAll<HTMLElement>('[role="toolbar"] span'),
+      )
+        .filter((label) => label.scrollWidth > label.clientWidth + 0.5)
+        .map((label) => label.textContent),
+    );
+    expect(cutNames).toEqual([]);
   });
 
   for (const tool of [
@@ -261,5 +271,45 @@ test.describe('Edits studio', () => {
       () => document.documentElement.scrollWidth,
     );
     expect(width).toBeLessThanOrEqual(390);
+  });
+
+  test('with an image on the timeline: the clip is free of the track button, and its properties', async ({
+    page,
+  }) => {
+    await prepare(page);
+    // The upload has no server here; the clip keeps its local file.
+    await page.route('**/api/v1/upload**', (route) => route.abort());
+    await page.goto('/edits');
+    await page.getByRole('button', { name: 'Medios', exact: true }).click();
+    await page
+      .locator('input[type="file"][accept*="image"]')
+      .setInputFiles(FIXTURES.postImage);
+    const sheet = page.getByRole('dialog');
+    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
+
+    const clip = page
+      .locator('[data-studio-timeline]')
+      .getByText('Imagen', { exact: true });
+    await expect(clip).toBeVisible();
+    await expectControlsAtSize(page);
+
+    // The button of the track stays left of where the clip starts.
+    const trackButton = await page
+      .getByRole('button', { name: /Opciones de la pista/ })
+      .first()
+      .boundingBox();
+    const clipBox = await clip.boundingBox();
+    expect(trackButton && clipBox).toBeTruthy();
+    expect(
+      (trackButton?.x ?? 0) + (trackButton?.width ?? 0),
+    ).toBeLessThanOrEqual(clipBox?.x ?? 0);
+
+    await clip.click();
+    await expect(sheet.getByText('Propiedades')).toBeVisible();
+    await expectControlsAtSize(page);
+    for (const section of ['Filtros', 'Audio y velocidad']) {
+      await sheet.getByRole('button', { name: section }).click();
+      await expectControlsAtSize(page);
+    }
   });
 });

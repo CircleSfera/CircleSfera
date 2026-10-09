@@ -72,27 +72,27 @@ export default function PropertiesPanel() {
       <div className="flex items-center justify-between pb-2 border-b border-white/5">
         <div className="flex items-center gap-2">
           <Sliders size={16} className="text-brand-primary" />
-          <span className="text-xs font-bold text-white uppercase tracking-wider">
-            {t(
-              `studio.tracks.${selectedClip.type === 'image' ? 'video' : selectedClip.type === 'text' ? 'text' : selectedClip.type === 'audio' ? 'audio' : 'video'}`,
-            )}
+          <span className="text-sm font-semibold text-white">
+            {selectedClip.type === 'text'
+              ? t('studio.tracks.text')
+              : t(`studio.clip_types.${selectedClip.type}`)}
           </span>
         </div>
         <button
           type="button"
           onClick={() => selectClip(null)}
-          className="min-h-11 min-w-11 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
+          className="hidden md:flex min-h-11 min-w-11 items-center justify-center bg-white/5 hover:bg-white/10 rounded-full text-white/50 hover:text-white transition-all"
           aria-label={t('studio.properties.close')}
         >
           <X size={16} />
         </button>
       </div>
 
-      <div className="flex items-center justify-around bg-black/40 p-1 rounded-xl border border-white/5">
+      <div className="flex items-center justify-around gap-1 bg-white/5 p-1 rounded-full border border-white/8">
         <button
           type="button"
           onClick={() => setTab('transform')}
-          className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+          className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
             tab === 'transform'
               ? 'bg-brand-primary text-white shadow-sm'
               : 'text-white/50 hover:text-white'
@@ -105,7 +105,7 @@ export default function PropertiesPanel() {
         <button
           type="button"
           onClick={() => setTab('style')}
-          className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+          className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
             tab === 'style'
               ? 'bg-brand-primary text-white shadow-sm'
               : 'text-white/50 hover:text-white'
@@ -123,7 +123,7 @@ export default function PropertiesPanel() {
           <button
             type="button"
             onClick={() => setTab('audio')}
-            className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 ${
+            className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
               tab === 'audio'
                 ? 'bg-brand-primary text-white shadow-sm'
                 : 'text-white/50 hover:text-white'
@@ -143,12 +143,13 @@ export default function PropertiesPanel() {
                 <Maximize2 size={13} className="text-brand-primary" />{' '}
                 {t('studio.properties.scale')}
               </span>
-              <span className="font-mono text-[11px] text-white/40">
+              <span className="font-mono text-xs text-white/40">
                 {Math.round(transform.scale * 100)}%
               </span>
             </div>
             <input
               type="range"
+              aria-label={t('studio.properties.scale')}
               min="0.2"
               max="3"
               step="0.05"
@@ -157,7 +158,7 @@ export default function PropertiesPanel() {
               onChange={(e) =>
                 handleTransformChange('scale', parseFloat(e.target.value))
               }
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+              className="w-full"
             />
           </div>
 
@@ -167,12 +168,13 @@ export default function PropertiesPanel() {
                 <RotateCw size={13} className="text-brand-primary" />{' '}
                 {t('studio.properties.rotation')}
               </span>
-              <span className="font-mono text-[11px] text-white/40">
+              <span className="font-mono text-xs text-white/40">
                 {transform.rotation}°
               </span>
             </div>
             <input
               type="range"
+              aria-label={t('studio.properties.rotation')}
               min="-180"
               max="180"
               step="5"
@@ -181,37 +183,39 @@ export default function PropertiesPanel() {
               onChange={(e) =>
                 handleTransformChange('rotation', parseInt(e.target.value, 10))
               }
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+              className="w-full"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] text-white/60 font-medium">
+              <span className="text-xs text-white/60 font-medium">
                 {t('studio.properties.position_x')}
               </span>
               <input
                 type="number"
+                aria-label={t('studio.properties.position_x')}
                 value={transform.x}
                 onFocus={commitContinuous}
                 onChange={(e) =>
                   handleTransformChange('x', parseInt(e.target.value, 10) || 0)
                 }
-                className="bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-brand-primary"
+                className="min-h-12 bg-white/5 border border-white/10 rounded-2xl px-4 text-base text-white outline-none focus:border-brand-primary"
               />
             </div>
             <div className="flex flex-col gap-1">
-              <span className="text-[11px] text-white/60 font-medium">
+              <span className="text-xs text-white/60 font-medium">
                 {t('studio.properties.position_y')}
               </span>
               <input
                 type="number"
+                aria-label={t('studio.properties.position_y')}
                 value={transform.y}
                 onFocus={commitContinuous}
                 onChange={(e) =>
                   handleTransformChange('y', parseInt(e.target.value, 10) || 0)
                 }
-                className="bg-white/5 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white outline-none focus:border-brand-primary"
+                className="min-h-12 bg-white/5 border border-white/10 rounded-2xl px-4 text-base text-white outline-none focus:border-brand-primary"
               />
             </div>
           </div>
@@ -223,7 +227,7 @@ export default function PropertiesPanel() {
                   <span className="font-medium">
                     {t('studio.properties.opacity')}
                   </span>
-                  <span className="font-mono text-[11px] text-white/40">
+                  <span className="font-mono text-xs text-white/40">
                     {Math.round(
                       ((selectedClip as MediaClip).opacity ?? 1) * 100,
                     )}
@@ -232,6 +236,7 @@ export default function PropertiesPanel() {
                 </div>
                 <input
                   type="range"
+                  aria-label={t('studio.properties.opacity')}
                   min="0"
                   max="1"
                   step="0.05"
@@ -242,7 +247,7 @@ export default function PropertiesPanel() {
                       opacity: parseFloat(e.target.value),
                     } as Partial<MediaClip>)
                   }
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                  className="w-full"
                 />
               </div>
 
@@ -262,12 +267,13 @@ export default function PropertiesPanel() {
                         { history: true },
                       )
                     }
-                    className={`p-2 rounded-xl border transition-all min-h-11 min-w-11 flex items-center justify-center ${
+                    className={`p-2 rounded-full border transition-all min-h-11 min-w-11 flex items-center justify-center ${
                       (selectedClip as MediaClip).flipX
                         ? 'bg-brand-primary border-brand-primary text-white'
                         : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
                     }`}
                     title={t('studio.properties.flip_h')}
+                    aria-label={t('studio.properties.flip_h')}
                   >
                     <FlipHorizontal size={14} />
                   </button>
@@ -282,12 +288,13 @@ export default function PropertiesPanel() {
                         { history: true },
                       )
                     }
-                    className={`p-2 rounded-xl border transition-all min-h-11 min-w-11 flex items-center justify-center ${
+                    className={`p-2 rounded-full border transition-all min-h-11 min-w-11 flex items-center justify-center ${
                       (selectedClip as MediaClip).flipY
                         ? 'bg-brand-primary border-brand-primary text-white'
                         : 'bg-white/5 border-white/10 text-white/60 hover:text-white'
                     }`}
                     title={t('studio.properties.flip_v')}
+                    aria-label={t('studio.properties.flip_v')}
                   >
                     <FlipVertical size={14} />
                   </button>
@@ -307,6 +314,7 @@ export default function PropertiesPanel() {
                   {t('studio.properties.text_content')}
                 </span>
                 <textarea
+                  aria-label={t('studio.properties.text_content')}
                   value={(selectedClip as TextClip).content}
                   onFocus={commitContinuous}
                   onChange={(e) =>
@@ -314,7 +322,7 @@ export default function PropertiesPanel() {
                       content: e.target.value,
                     } as Partial<TextClip>)
                   }
-                  className="bg-black/50 border border-white/10 rounded-xl px-3 py-2 text-xs text-white w-full outline-none focus:border-brand-primary transition-all resize-none h-16"
+                  className="bg-white/5 border border-white/10 rounded-2xl px-4 py-3 text-base text-white w-full outline-none focus:border-brand-primary transition-all resize-none min-h-20"
                   placeholder={t('studio.properties.text_placeholder')}
                 />
               </div>
@@ -323,7 +331,7 @@ export default function PropertiesPanel() {
                 <span className="text-xs text-white/70 font-medium">
                   {t('studio.properties.align')}
                 </span>
-                <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+                <div className="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10">
                   {[
                     { align: 'left' as const, icon: AlignLeft },
                     { align: 'center' as const, icon: AlignCenter },
@@ -349,7 +357,7 @@ export default function PropertiesPanel() {
                             { history: true },
                           );
                         }}
-                        className={`p-1.5 rounded-lg transition-colors min-h-11 min-w-11 flex items-center justify-center ${
+                        className={`p-1.5 rounded-full transition-colors min-h-11 min-w-11 flex items-center justify-center ${
                           isActive
                             ? 'bg-brand-primary text-white'
                             : 'text-white/40 hover:text-white'
@@ -371,6 +379,7 @@ export default function PropertiesPanel() {
                 </div>
                 <input
                   type="range"
+                  aria-label={t('studio.properties.font_size')}
                   min="16"
                   max="120"
                   value={(selectedClip as TextClip).style.fontSize}
@@ -384,17 +393,18 @@ export default function PropertiesPanel() {
                       },
                     } as Partial<TextClip>);
                   }}
-                  className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+                  className="w-full"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
                 <div className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60 font-medium">
+                  <span className="text-xs text-white/60 font-medium">
                     {t('studio.properties.text_color')}
                   </span>
                   <input
                     type="color"
+                    aria-label={t('studio.properties.text_color')}
                     value={(selectedClip as TextClip).style.color || '#ffffff'}
                     onFocus={commitContinuous}
                     onChange={(e) => {
@@ -407,11 +417,12 @@ export default function PropertiesPanel() {
                   />
                 </div>
                 <div className="flex flex-col gap-1">
-                  <span className="text-[11px] text-white/60 font-medium">
+                  <span className="text-xs text-white/60 font-medium">
                     {t('studio.properties.box_bg')}
                   </span>
                   <input
                     type="color"
+                    aria-label={t('studio.properties.box_bg')}
                     value={
                       (selectedClip as TextClip).style.backgroundColor ===
                       'transparent'
@@ -429,7 +440,7 @@ export default function PropertiesPanel() {
                         },
                       } as Partial<TextClip>);
                     }}
-                    className="w-full h-9 rounded-xl cursor-pointer bg-white/5 border border-white/10 p-1"
+                    className="w-full h-11 rounded-xl cursor-pointer bg-white/5 border border-white/10 p-1"
                   />
                 </div>
               </div>
@@ -453,7 +464,7 @@ export default function PropertiesPanel() {
                         { history: true },
                       )
                     }
-                    className={`px-2 py-2 text-[11px] font-semibold rounded-xl border transition-all min-h-11 ${
+                    className={`px-2 py-2 text-xs font-semibold rounded-xl border transition-all min-h-11 ${
                       (selectedClip as MediaClip).filter === filter.value ||
                       (!filter.value && !(selectedClip as MediaClip).filter)
                         ? 'bg-brand-primary border-brand-primary text-white shadow-md'
@@ -482,6 +493,7 @@ export default function PropertiesPanel() {
             </div>
             <input
               type="range"
+              aria-label={t('studio.properties.volume')}
               min="0"
               max="2"
               step="0.05"
@@ -492,7 +504,7 @@ export default function PropertiesPanel() {
                   volume: parseFloat(e.target.value),
                 } as Partial<MediaClip>)
               }
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-brand-primary"
+              className="w-full"
             />
           </div>
 

@@ -207,8 +207,10 @@ describe('LiveViewer', () => {
       await screen.findByText(i18n!.t('live.now'));
 
       const picture = screen.getByRole('img', { name: 'alice' });
-      expect(picture.getAttribute('src')).toContain('ui-avatars.com');
-      expect(picture.getAttribute('src')).toContain('alice');
+      // Drawn in the app: the name is not sent to another site.
+      const src = picture.getAttribute('src') ?? '';
+      expect(src).toMatch(/^data:image\/svg\+xml,/);
+      expect(decodeURIComponent(src)).toContain('>AL</text>');
     });
   });
 });

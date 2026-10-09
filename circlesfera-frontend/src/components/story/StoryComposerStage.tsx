@@ -53,7 +53,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
 
   return (
     <div
-      className={`absolute inset-0 flex items-center justify-center bg-zinc-950 px-4 md:px-10 transition-[padding] duration-200 ${p.stagePadClass}`}
+      className={`absolute inset-0 flex items-center justify-center bg-zinc-950 md:bg-transparent px-4 md:px-10 transition-[padding] duration-200 ${p.stagePadClass}`}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget && !p.textTakeoverActive) {
           p.setSelectedElementId(null);
@@ -152,7 +152,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             <button
               type="button"
               onClick={() => p.setActiveTab('background')}
-              className="min-h-12 px-5 rounded-xl bg-white/10 border border-white/12 text-sm font-bold text-white"
+              className="min-h-12 px-6 rounded-full bg-white/10 border border-white/12 text-sm font-semibold text-white"
             >
               {t('createPost.storyComposer.open_backgrounds')}
             </button>

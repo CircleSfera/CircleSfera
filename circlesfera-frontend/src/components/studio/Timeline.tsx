@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../stores/studioStore';
 import Playhead from './Playhead';
 import TrackItem from './Track';
+import { TIMELINE_OFFSET_CLASS, timelineOffsetPx } from './timeline.constants';
 
 export default function Timeline() {
   const { t } = useTranslation();
@@ -55,8 +56,7 @@ export default function Timeline() {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const clickX = e.clientX - rect.left + containerRef.current.scrollLeft;
-    const offsetLeft = 32;
-    let newTime = (clickX - offsetLeft) / zoom;
+    let newTime = (clickX - timelineOffsetPx(containerRef.current)) / zoom;
     if (newTime < 0) newTime = 0;
     setPlayhead(newTime);
   };
@@ -69,7 +69,10 @@ export default function Timeline() {
     );
   }
 
-  const paddingStyle = { paddingLeft: '32px', paddingRight: '50vw' };
+  const paddingStyle = {
+    paddingLeft: 'var(--timeline-offset)',
+    paddingRight: '50vw',
+  };
   const rulerMarkers = [];
   const duration = Math.max(project.duration, 10);
   for (let i = 0; i <= duration; i += 1) {
@@ -79,7 +82,7 @@ export default function Timeline() {
         className="absolute bottom-0 flex flex-col items-center"
         style={{ left: `${i * zoom}px`, transform: 'translateX(-50%)' }}
       >
-        <span className="text-[10px] text-white/50 mb-1 font-mono">
+        <span className="text-xs text-white/50 mb-1 font-mono">
           00:{i.toString().padStart(2, '0')}
         </span>
         <div className="w-px h-2 bg-white/20" />
@@ -108,7 +111,7 @@ export default function Timeline() {
       <div
         ref={containerRef}
         data-studio-timeline
-        className="flex-1 overflow-x-auto overflow-y-auto relative no-scrollbar"
+        className={`flex-1 overflow-x-auto overflow-y-auto relative no-scrollbar ${TIMELINE_OFFSET_CLASS}`}
         onScroll={handleScroll}
       >
         {/* biome-ignore lint/a11y/useKeyWithClickEvents: Timeline canvas cannot be a button due to nested interactive clips */}

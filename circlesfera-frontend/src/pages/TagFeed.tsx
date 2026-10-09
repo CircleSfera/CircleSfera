@@ -6,7 +6,6 @@ import { ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import PostCard from '../components/PostCard';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
-import LayoutWrapper from '../layouts/LayoutWrapper';
 import { postsApi } from '../services';
 import type { PaginatedResponse, Post } from '../types';
 
@@ -52,51 +51,49 @@ export default function TagFeed() {
   };
 
   return (
-    <LayoutWrapper>
-      <div className="pt-24 pb-20 px-4 md:px-5 lg:px-6 min-h-dvh max-w-6xl mx-auto">
-        <div className="mb-8 text-center">
-          <h1 className="text-2xl font-black mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-400">
-            #{tag}
-          </h1>
-          <p className="text-gray-300">{t('post.tag_feed.discover')}</p>
-        </div>
-
-        {isLoading ? (
-          <div className="flex justify-center p-8">
-            <LoadingSpinner size="lg" />
-          </div>
-        ) : isError ? (
-          <ErrorState
-            title={t('post.tag_feed.error_title')}
-            message={t('post.tag_feed.error_message')}
-            onRetry={() => refetch()}
-          />
-        ) : posts.length === 0 ? (
-          <div className="text-center py-20 opacity-50">
-            <p className="text-xl font-medium">
-              {t('post.tag_feed.no_posts')} #{tag}
-            </p>
-          </div>
-        ) : (
-          <>
-            <Masonry
-              breakpointCols={breakpointColumnsObj}
-              className="flex w-auto -ml-6"
-              columnClassName="pl-6 bg-clip-padding"
-            >
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </Masonry>
-            <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
-            {isFetchingNextPage && (
-              <div className="flex justify-center py-8">
-                <LoadingSpinner size="md" />
-              </div>
-            )}
-          </>
-        )}
+    <div className="pt-24 pb-20 px-4 md:px-5 lg:px-6 min-h-dvh max-w-6xl mx-auto">
+      <div className="mb-8 text-center">
+        <h1 className="text-2xl font-black mb-2 text-transparent bg-clip-text bg-linear-to-r from-blue-400 to-purple-400">
+          #{tag}
+        </h1>
+        <p className="text-gray-300">{t('post.tag_feed.discover')}</p>
       </div>
-    </LayoutWrapper>
+
+      {isLoading ? (
+        <div className="flex justify-center p-8">
+          <LoadingSpinner size="lg" />
+        </div>
+      ) : isError ? (
+        <ErrorState
+          title={t('post.tag_feed.error_title')}
+          message={t('post.tag_feed.error_message')}
+          onRetry={() => refetch()}
+        />
+      ) : posts.length === 0 ? (
+        <div className="text-center py-20 opacity-50">
+          <p className="text-xl font-medium">
+            {t('post.tag_feed.no_posts')} #{tag}
+          </p>
+        </div>
+      ) : (
+        <>
+          <Masonry
+            breakpointCols={breakpointColumnsObj}
+            className="flex w-auto -ml-6"
+            columnClassName="pl-6 bg-clip-padding"
+          >
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </Masonry>
+          <div ref={loadMoreRef} className="h-1" aria-hidden="true" />
+          {isFetchingNextPage && (
+            <div className="flex justify-center py-8">
+              <LoadingSpinner size="md" />
+            </div>
+          )}
+        </>
+      )}
+    </div>
   );
 }

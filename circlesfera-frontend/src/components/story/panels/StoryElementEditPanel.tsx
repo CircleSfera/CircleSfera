@@ -75,7 +75,7 @@ export default function StoryElementEditPanel({
     >
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 shrink-0 sm:shrink sm:min-w-0">
           <div className="w-8 h-8 rounded-xl bg-brand-primary/15 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
             {isPollElement(selectedElement) ? (
               <BarChart2 size={15} />
@@ -87,7 +87,7 @@ export default function StoryElementEditPanel({
           </div>
           {/* Phones have no room for the title next to the actions: the icon
               shows the kind of element and the title stays for screen readers. */}
-          <span className="max-sm:sr-only text-[11px] font-bold uppercase tracking-[0.12em] text-white/45 truncate">
+          <span className="max-sm:sr-only text-xs font-bold uppercase tracking-[0.12em] text-white/45 truncate">
             {isPollElement(selectedElement)
               ? t('createPost.storyComposer.edit_poll')
               : isQnaElement(selectedElement)
@@ -101,47 +101,52 @@ export default function StoryElementEditPanel({
             onClick={() => onDuplicateElement(selectedElementId)}
             title={t('createPost.storyComposer.duplicate')}
             aria-label={t('createPost.storyComposer.duplicate')}
-            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-full border border-white/6 transition-all"
           >
-            <Copy size={13} />
+            <Copy size={16} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'up')}
             title={t('createPost.storyComposer.bring_forward')}
             aria-label={t('createPost.storyComposer.bring_forward')}
-            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-full border border-white/6 transition-all"
           >
-            <ChevronUp size={13} />
+            <ChevronUp size={16} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'down')}
             title={t('createPost.storyComposer.send_backward')}
             aria-label={t('createPost.storyComposer.send_backward')}
-            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-lg border border-white/6 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-full border border-white/6 transition-all"
           >
-            <ChevronDown size={13} />
+            <ChevronDown size={16} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => onUpdateElement(selectedElementId, { x: 0, y: 0 })}
-            className="min-h-11 text-xs bg-white/4 hover:bg-white/8 px-2.5 rounded-lg border border-white/6 transition-all font-bold text-white/50 hover:text-white/80 flex items-center gap-1"
+            className="min-h-11 min-w-11 sm:px-4 text-sm bg-white/4 hover:bg-white/8 rounded-full border border-white/6 transition-all font-semibold text-white/50 hover:text-white/80 flex items-center justify-center gap-1.5"
+            aria-label={t('createPost.storyComposer.center')}
           >
-            <Move size={10} /> {t('createPost.storyComposer.center')}
+            <Move size={16} aria-hidden />
+            {/* On phones the row has room for the icon only. */}
+            <span className="max-sm:hidden">
+              {t('createPost.storyComposer.center')}
+            </span>
           </button>
           <button
             type="button"
             onClick={() => onRemoveElement(selectedElementId)}
-            className="min-h-11 min-w-11 flex items-center justify-center bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/15 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center bg-brand-secondary/10 hover:bg-brand-secondary/20 text-brand-secondary rounded-full border border-red-500/15 transition-all"
             aria-label={t('createPost.storyComposer.delete')}
           >
-            <Trash2 size={13} />
+            <Trash2 size={16} aria-hidden />
           </button>
           <button
             type="button"
             onClick={() => onSelectedElementIdChange(null)}
-            className="min-h-11 min-w-11 flex items-center justify-center hover:bg-white/5 rounded-lg text-white/30 hover:text-white/60 transition-all"
+            className="min-h-11 min-w-11 flex items-center justify-center hover:bg-white/5 rounded-full text-white/30 hover:text-white/60 transition-all"
             aria-label={t('createPost.storyComposer.close')}
           >
             <X size={16} />
@@ -150,7 +155,7 @@ export default function StoryElementEditPanel({
       </div>
 
       {/* Panel Tabs */}
-      <div className="flex bg-white/3 p-0.5 rounded-lg border border-white/5">
+      <div className="flex gap-1 bg-white/5 p-1 rounded-full border border-white/8">
         {[
           { id: 'style' as PanelTab, icon: Palette },
           { id: 'transform' as PanelTab, icon: Move },
@@ -161,13 +166,13 @@ export default function StoryElementEditPanel({
             key={id}
             onClick={() => onPanelTabChange(id)}
             aria-pressed={panelTab === id}
-            className={`flex-1 min-h-11 flex items-center justify-center gap-1 rounded-md text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`flex-1 min-h-11 flex items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition-all ${
               panelTab === id
                 ? 'bg-white/8 text-white'
                 : 'text-white/25 hover:text-white/50'
             }`}
           >
-            <Icon size={11} aria-hidden />{' '}
+            <Icon size={16} aria-hidden />{' '}
             {t(`createPost.storyComposer.panel_${id}`)}
           </button>
         ))}
