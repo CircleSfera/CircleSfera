@@ -18,7 +18,9 @@ import {
   MarketingPage,
   MarketingPageHeader,
 } from '../../components/marketing';
+import { ArticleLinks } from '../../components/support/ArticleLinks';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { helpCentreApi } from '../../services/helpCentre.service';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -27,6 +29,33 @@ import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
+
+// The articles of the help centre that answer what is asked before paying.
+const PRICING_ARTICLES = [
+  'is-circlesfera-free',
+  'what-plans-unlock',
+  'identity-verification',
+];
+
+// Shows nothing when the help centre does not answer: the link to all the
+// questions below it stays.
+function PricingQuestions() {
+  const { i18n } = useTranslation();
+  const { data } = useQuery({
+    queryKey: ['help', 'articles', i18n.language, ''],
+    queryFn: () => helpCentreApi.list(i18n.language).then((res) => res.data),
+    retry: false,
+  });
+  const questions = PRICING_ARTICLES.flatMap(
+    (slug) => data?.articles.find((one) => one.slug === slug) ?? [],
+  );
+  if (questions.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <ArticleLinks articles={questions} />
+    </div>
+  );
+}
 
 // Plan name → verification level it grants. "Verified" is the old name of
 // the €9.99 plan, now "Premium".
@@ -351,20 +380,9 @@ export default function Pricing() {
           <h2 className="text-center text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">
             {t('landing.faq.title')}
           </h2>
-          <dl className="mt-6 divide-y divide-white/8 overflow-hidden rounded-3xl glass-panel">
-            {(['free', 'plans', 'verify'] as const).map((item) => (
-              <div key={item} className="p-6">
-                <dt className="text-lg font-bold tracking-tight text-white">
-                  {t(`landing.faq.items.${item}.q`)}
-                </dt>
-                <dd className="mt-2 text-base leading-relaxed text-white/60">
-                  {t(`landing.faq.items.${item}.a`)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <PricingQuestions />
           <div className="mt-6 flex justify-center">
-            <MarketingCTA to="/faq" variant="secondary" size="lg">
+            <MarketingCTA to="/help" variant="secondary" size="lg">
               {t('pricingPage.all_questions')}
             </MarketingCTA>
           </div>

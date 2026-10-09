@@ -8,6 +8,8 @@ import { HelpdeskArticlesController } from './helpdesk-articles.controller.js';
 import { HelpdeskArticlesService } from './helpdesk-articles.service.js';
 import { HelpdeskDataPort } from './helpdesk-data.port.js';
 import { HelpdeskFiguresService } from './helpdesk-figures.service.js';
+import { HelpdeskHelpCentreController } from './helpdesk-help-centre.controller.js';
+import { HelpdeskHelpCentreService } from './helpdesk-help-centre.service.js';
 import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
 import { HelpdeskReplyAddress } from './helpdesk-reply-address.js';
 import { HelpdeskRequesterController } from './helpdesk-requester.controller.js';
@@ -34,6 +36,7 @@ export function helpdeskFor(host: Type<unknown>): DynamicModule {
       HelpdeskAgentController,
       HelpdeskSavedRepliesController,
       HelpdeskArticlesController,
+      HelpdeskHelpCentreController,
     ],
     providers: [
       HelpdeskStore,
@@ -41,6 +44,7 @@ export function helpdeskFor(host: Type<unknown>): DynamicModule {
       HelpdeskSavedRepliesService,
       HelpdeskFiguresService,
       HelpdeskArticlesService,
+      HelpdeskHelpCentreService,
       HelpdeskReplyAddress,
       HelpdeskInboundService,
       HelpdeskScheduler,

@@ -21,7 +21,7 @@ export function GuestFooter() {
       links: [
         { to: '/features', label: t('landing.footer.features') },
         { to: '/principles', label: t('landing.footer.principles') },
-        { to: '/faq', label: t('landing.faq.badge') },
+        { to: '/help', label: t('helpCentre.badge') },
       ],
     },
     {

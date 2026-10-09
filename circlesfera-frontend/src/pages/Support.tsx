@@ -9,6 +9,7 @@ import {
   MarketingPageHeader,
 } from '../components/marketing';
 import { MyRequests } from '../components/support/MyRequests';
+import { SuggestedArticles } from '../components/support/SuggestedArticles';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
@@ -17,7 +18,7 @@ import { useAuthStore } from '../stores/authStore';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 const SHORTCUTS = [
-  { key: 'faq', to: '/faq', icon: HelpCircle },
+  { key: 'help', to: '/help', icon: HelpCircle },
   { key: 'rules', to: '/guidelines', icon: Scale },
   { key: 'privacy', to: '/privacy', icon: Fingerprint },
 ] as const;
@@ -222,6 +223,9 @@ export const Support = () => {
                   disabled={!userEmail || status === 'loading'}
                   className="min-h-32"
                 />
+
+                {/* The answer may already be written: offer it before sending */}
+                {userEmail && <SuggestedArticles subject={subject} />}
 
                 {status === 'error' && (
                   <p className="text-sm text-brand-secondary" role="alert">

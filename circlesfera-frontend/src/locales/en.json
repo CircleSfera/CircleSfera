@@ -3692,8 +3692,8 @@
     "error_generic": "Could not send the message. Try again.",
     "steps_title": "How we help",
     "help": {
-      "faq_title": "Frequently asked questions",
-      "faq_desc": "Plans, verification, the feed and mobile.",
+      "help_title": "Help centre",
+      "help_desc": "Answers about your account, payments and content.",
       "rules_title": "Community guidelines",
       "rules_desc": "What can be posted and how moderation works.",
       "privacy_title": "Privacy and data",
@@ -4352,35 +4352,7 @@
       }
     },
     "faq": {
-      "badge": "FAQ",
-      "title": "Frequently asked questions",
-      "subtitle": "Plans, the feed, verification and how to use CircleSfera on your phone.",
-      "items": {
-        "free": {
-          "q": "Is CircleSfera free?",
-          "a": "Yes. The main social features are free. There are optional plans (Premium, Elite Creator and Business) and tools for creators to earn money. Payments go through Stripe and the price is shown before you pay."
-        },
-        "verify": {
-          "q": "How does identity verification work?",
-          "a": "You do it from Settings with Stripe Identity, when you need it to earn money or to build trust. Plan badges (Verified, Elite and Business) depend on having an active subscription."
-        },
-        "control": {
-          "q": "Do I control what I see?",
-          "a": "Yes. In Settings you can change your feed preferences, mute and hide, and appeal decisions. You choose what you see and who can interact with you."
-        },
-        "mobile": {
-          "q": "Is there a mobile app?",
-          "a": "CircleSfera works in the browser on your phone and on desktop. You can add it to your home screen. There is no App Store or Google Play app yet."
-        },
-        "plans": {
-          "q": "What do the plans unlock?",
-          "a": "Premium, Elite Creator and Business are optional subscriptions billed through Stripe. They give a badge, which requires verifying your identity. Pricing shows what each one includes and what it costs before you pay."
-        },
-        "support": {
-          "q": "How do I contact support?",
-          "a": "Log in, write from Support and a person replies to the email on your account. Support is the same for everyone, with or without a plan."
-        }
-      }
+      "title": "Frequently asked questions"
     },
     "cta": {
       "title": "Start on CircleSfera today",
@@ -4395,10 +4367,6 @@
       "principles": {
         "seo_title": "Principles — CircleSfera",
         "seo_desc": "User control, why you see what you see, clear moderation, and responsible data handling."
-      },
-      "faq": {
-        "seo_title": "FAQ — CircleSfera",
-        "seo_desc": "Straight answers about CircleSfera: free plan, verification, feed control, phone use, and optional subscriptions."
       }
     },
     "footer": {
@@ -4518,6 +4486,29 @@
     "send": "Send voice note",
     "stop": "Stop recording",
     "uploading": "Uploading voice note..."
+  },
+  "helpCentre": {
+    "topic_general": "General",
+    "badge": "Help centre",
+    "title": "How can we help?",
+    "subtitle": "Answers about your account, payments and content.",
+    "seo_title": "Help centre — CircleSfera",
+    "seo_desc": "Straight answers about CircleSfera: your account, plans and payments, verification, content and how to write to support.",
+    "article_seo_title": "{{title}} — CircleSfera Help",
+    "search_label": "Search the help centre",
+    "search_placeholder": "Search for an answer",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "no_results": "No articles about “{{words}}”. Try other words or write to us.",
+    "empty": "There are no published articles yet.",
+    "load_error": "The help centre could not be loaded. Try again.",
+    "back": "Help centre",
+    "missing_title": "This article does not exist",
+    "missing_desc": "It may have been withdrawn, or the address may be wrong.",
+    "contact_title": "Can't find the answer?",
+    "contact_desc": "Write to us and a person on the team replies.",
+    "contact_cta": "Write to support",
+    "suggested_title": "This may already answer it"
   },
   "errors": {
     "action_limit": {
