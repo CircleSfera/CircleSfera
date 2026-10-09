@@ -28,6 +28,9 @@ import {
   REQUESTER_NOTIFIER,
   type RequesterDirectory,
   type RequesterNotifier,
+  SERVICE_LEVEL_PROVIDER,
+  type ServiceLevel,
+  type ServiceLevelProvider,
   STAFF_ACTION_LOG,
   type StaffActionLog,
   TEAM_CHANNEL,
@@ -36,6 +39,7 @@ import {
 import { HelpdeskReplyAddress } from './helpdesk-reply-address.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
 
 // Tickets of the Help Desk: opened by a requester, listed, answered and
 // handed to another team by an agent. Its data comes through the store,
@@ -58,7 +62,32 @@ export class HelpdeskTicketsService {
     @Inject(AGENT_DIRECTORY) private readonly agents: AgentDirectory,
     @Inject(HelpdeskReplyAddress)
     private readonly replyAddress: HelpdeskReplyAddress,
+    @Inject(SERVICE_LEVEL_PROVIDER)
+    private readonly serviceLevels: ServiceLevelProvider,
   ) {}
+
+  // What a ticket opened now by this requester is measured by: its service
+  // level, the priority it starts with, and when its first response and its
+  // resolution are due. An organization without targets for the level does
+  // not measure its tickets.
+  private async measuresFor(requesterRef: string | null) {
+    const serviceLevel: ServiceLevel = requesterRef
+      ? await this.serviceLevels.levelOf(requesterRef).catch(() => 'STANDARD')
+      : 'STANDARD';
+    const target = await this.store.serviceTarget(serviceLevel);
+    const now = Date.now();
+    return {
+      serviceLevel,
+      priority:
+        serviceLevel === 'PRIORITY' ? ('HIGH' as const) : ('NORMAL' as const),
+      ...(target && {
+        firstResponseDueAt: new Date(
+          now + target.firstResponseMinutes * MINUTE_MS,
+        ),
+        resolutionDueAt: new Date(now + target.resolutionMinutes * MINUTE_MS),
+      }),
+    };
+  }
 
   // The names of the agents these references point to, by reference.
   private async agentNames(refs: (string | null | undefined)[]) {
@@ -79,6 +108,7 @@ export class HelpdeskTicketsService {
       subject: dto.subject,
       message: dto.message,
       category: dto.category,
+      ...(await this.measuresFor(dto.userId)),
     });
 
     this.teamChannel.ticketOpened(ticket);
@@ -142,6 +172,9 @@ export class HelpdeskTicketsService {
       priority?: HelpdeskPriority;
       assignedAgentRef?: string | null;
       escalatedReportId?: string | null;
+      firstRespondedAt?: Date | null;
+      resolutionDueAt?: Date | null;
+      pausedAt?: Date | null;
     },
     changes: {
       status?: TicketStatus;
@@ -151,6 +184,9 @@ export class HelpdeskTicketsService {
       escalatedReportId?: string;
       resolvedAt?: Date | null;
       waitingRemindedAt?: Date | null;
+      firstRespondedAt?: Date;
+      resolutionDueAt?: Date;
+      pausedAt?: Date | null;
     },
     actor: { kind: TicketEventInput['actorKind']; ref: string | null },
     message?: Parameters<HelpdeskStore['updateTicket']>[2],
@@ -175,6 +211,34 @@ export class HelpdeskTicketsService {
     record('PRIORITY', before.priority, changes.priority);
     record('ASSIGNMENT', before.assignedAgentRef, changes.assignedAgentRef);
     record('HANDOVER', before.escalatedReportId, changes.escalatedReportId);
+
+    // The times the ticket is measured by move with the change itself, so
+    // they can never disagree with its state.
+    const now = new Date();
+    // The first public answer of an agent, once.
+    if (
+      before.firstRespondedAt === null &&
+      message?.authorKind === 'AGENT' &&
+      message.visibility === 'PUBLIC'
+    ) {
+      changes.firstRespondedAt = now;
+    }
+    // The resolution clock runs only while the ticket is open: waiting for
+    // the requester, with another team, solved or closed, it is stopped.
+    // When it runs again its due time moves on by the time it was stopped.
+    if (changes.status && before.status && changes.status !== before.status) {
+      if (before.status === 'OPEN') {
+        changes.pausedAt = now;
+      } else if (changes.status === 'OPEN' && before.pausedAt) {
+        if (before.resolutionDueAt) {
+          changes.resolutionDueAt = new Date(
+            before.resolutionDueAt.getTime() +
+              (now.getTime() - before.pausedAt.getTime()),
+          );
+        }
+        changes.pausedAt = null;
+      }
+    }
     return this.store.updateTicket(before.id, changes, message, events);
   }
 
@@ -286,6 +350,8 @@ export class HelpdeskTicketsService {
         category: ticket.category,
         previousTicketId: ticket.id,
         channel,
+        // A ticket that continues a closed one is measured on its own.
+        ...(await this.measuresFor(ticket.userId)),
       });
       this.teamChannel.ticketOpened(continued);
       return continued.id;
@@ -788,7 +854,7 @@ export class HelpdeskTicketsService {
         : undefined;
       if (handed?.pending) continue;
       await this.change(
-        { id: ticket.id, status: 'ESCALATED' },
+        { ...ticket, status: 'ESCALATED' },
         { status: 'OPEN', resolvedAt: null },
         { kind: 'SYSTEM', ref: null },
         {

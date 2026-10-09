@@ -23,6 +23,7 @@ export class InMemoryHelpdeskDb {
   events: Row[] = [];
   savedReplies: Row[] = [];
   inboundEmails: Row[] = [];
+  serviceTargets: Row[] = [];
   private sequence = 0;
   private clock = Date.parse('2026-01-01T00:00:00Z');
 
@@ -137,9 +138,17 @@ export class InMemoryHelpdeskDb {
         priority: 'NORMAL',
         assignedAgentRef: null,
         waitingRemindedAt: null,
+        serviceLevel: 'STANDARD',
+        firstResponseDueAt: null,
+        firstRespondedAt: null,
+        resolutionDueAt: null,
+        pausedAt: null,
         createdAt: moment,
         updatedAt: moment,
-        ...fields,
+        // A value left out is the default of the column, as in the database.
+        ...Object.fromEntries(
+          Object.entries(fields).filter(([, value]) => value !== undefined),
+        ),
       };
       this.tickets.push(ticket);
       if (messages?.create)
@@ -364,6 +373,15 @@ export class InMemoryHelpdeskDb {
       const gone = this.inboundEmails.filter((e) => this.matches(e, where));
       this.inboundEmails = this.inboundEmails.filter((e) => !gone.includes(e));
       return { count: gone.length };
+    },
+  };
+
+  readonly helpdeskServiceTarget = {
+    findUnique: async ({ where }: { where: Where }) => {
+      const found = this.serviceTargets.find((t) =>
+        this.matches(t, where.organizationId_serviceLevel as Where),
+      );
+      return found ? { ...found } : null;
     },
   };
 }

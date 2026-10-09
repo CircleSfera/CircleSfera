@@ -173,7 +173,12 @@ describe('HelpdeskStore', () => {
       where: { organizationId: 'org-1', status: 'ESCALATED' },
       orderBy: { updatedAt: 'asc' },
       take: 50,
-      select: { id: true, escalatedReportId: true },
+      select: {
+        id: true,
+        escalatedReportId: true,
+        resolutionDueAt: true,
+        pausedAt: true,
+      },
     });
   });
 

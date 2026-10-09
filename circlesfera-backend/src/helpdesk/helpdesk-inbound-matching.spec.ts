@@ -79,6 +79,7 @@ describe('Help Desk: matching an email to its ticket', () => {
       { record: vi.fn() },
       { describe: vi.fn().mockResolvedValue(new Map()), assignable: vi.fn() },
       addresses,
+      { levelOf: async () => 'STANDARD' as const },
     );
     inbound = new HelpdeskInboundService(
       store,

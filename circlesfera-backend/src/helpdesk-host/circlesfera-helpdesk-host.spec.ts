@@ -8,6 +8,7 @@ import {
   CircleSferaRequesterNotifier,
   CircleSferaTeamChannel,
   ModerationHandover,
+  PlanServiceLevel,
   StaffAgentDirectory,
 } from './circlesfera-helpdesk-host.js';
 
@@ -15,7 +16,7 @@ import {
 describe('CircleSfera as the host of the Help Desk', () => {
   const prisma = {
     user: { findMany: vi.fn(), findUnique: vi.fn() },
-    profile: { findFirst: vi.fn() },
+    profile: { findFirst: vi.fn(), count: vi.fn() },
     report: { create: vi.fn(), deleteMany: vi.fn(), findMany: vi.fn() },
     adminAuditLog: { create: vi.fn() },
     adminIdentity: { findMany: vi.fn() },
@@ -391,6 +392,25 @@ describe('CircleSfera as the host of the Help Desk', () => {
           },
         },
       ]);
+    });
+  });
+
+  describe('who has preference', () => {
+    const levels = new PlanServiceLevel(prisma as never);
+
+    it('is a requester with any Profile on a paid plan', async () => {
+      prisma.profile.count.mockResolvedValue(1);
+
+      expect(await levels.levelOf('u-1')).toBe('PRIORITY');
+      expect(prisma.profile.count).toHaveBeenCalledWith({
+        where: { userId: 'u-1', verificationLevel: { not: 'BASIC' } },
+      });
+    });
+
+    it('is not a requester whose Profiles have no plan, or who has none', async () => {
+      prisma.profile.count.mockResolvedValue(0);
+
+      expect(await levels.levelOf('u-1')).toBe('STANDARD');
     });
   });
 });
