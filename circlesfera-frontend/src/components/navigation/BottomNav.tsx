@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
+import { hasCreatorTools } from '../../utils/creatorTools';
 
 // Height: var(--nav-bottom-height) (48px) + safe-area-inset-bottom
 // Strictly 5 core items max for clean spacing and touch target density
@@ -67,7 +68,12 @@ export default function BottomNav() {
     { icon: User, label: t('nav.profile'), to: profileUrl, badge: 0 },
   ];
 
-  const navItems = isCreatorModeActive ? creatorNavItems : consumerNavItems;
+  // Creator entries only for the accounts that have creator tools, whatever
+  // the saved mode says: an account can go back to personal with it on.
+  const navItems =
+    isCreatorModeActive && hasCreatorTools(profile?.accountType)
+      ? creatorNavItems
+      : consumerNavItems;
 
   return (
     <nav

@@ -6,7 +6,13 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Clock, X as CloseIcon, Map as MapIcon, Sparkles } from 'lucide-react';
+import {
+  BadgeCheck,
+  Clock,
+  X as CloseIcon,
+  Map as MapIcon,
+  Sparkles,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
@@ -45,6 +51,8 @@ export default function Explore() {
   const [query, setQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'foryou' | 'trending'>('foryou');
+  // A choice of the person searching: people with a badge only.
+  const [verifiedOnly, setVerifiedOnly] = useState(false);
 
   // Debounce query
   useEffect(() => {
@@ -73,10 +81,10 @@ export default function Explore() {
   // Standard Search Query (Combined Users, Tags, and AI Semantic Posts)
   const { data: searchResults, isLoading: isSearching } =
     useQuery<SearchResult | null>({
-      queryKey: ['search', debouncedQuery],
+      queryKey: ['search', debouncedQuery, verifiedOnly],
       queryFn: async () => {
         if (debouncedQuery.length < 2) return null;
-        const res = await searchApi.search(debouncedQuery);
+        const res = await searchApi.search(debouncedQuery, verifiedOnly);
         // Invalidate history after a successful search is recorded (backend does this)
         queryClient.invalidateQueries({ queryKey: ['searchHistory'] });
         return res.data;
@@ -144,7 +152,7 @@ export default function Explore() {
                 placeholder={t('explore.search_placeholder')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="input-glass w-full pl-5 pr-12 rounded-xl text-white placeholder-gray-500 text-sm font-medium transition-all"
+                className="input-glass w-full pl-5 pr-20 rounded-2xl text-white placeholder-gray-400 text-sm font-medium transition-all"
                 style={{ height: 'var(--input-height-search, 48px)' }}
               />
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -152,7 +160,7 @@ export default function Explore() {
                   <button
                     type="button"
                     onClick={() => setQuery('')}
-                    className="p-1 text-gray-400 hover:text-white transition-colors"
+                    className="w-11 h-11 -my-2 -mx-2 flex items-center justify-center rounded-full text-gray-400 hover:text-white transition-colors"
                     aria-label={t('explore.clear_search')}
                   >
                     <CloseIcon size={18} />
@@ -180,7 +188,7 @@ export default function Explore() {
               type="button"
               onClick={() => navigate('/explore/map')}
               aria-label={t('explore.map.open')}
-              className="shrink-0 w-12 h-12 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center justify-center"
+              className="shrink-0 w-12 h-12 rounded-full border border-white/10 bg-white/5 text-white hover:bg-white/10 flex items-center justify-center"
             >
               <MapIcon size={20} />
             </button>
@@ -294,10 +302,25 @@ export default function Explore() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
                   {/* Users (Left Column) */}
                   <div className="lg:col-span-1">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-                      <span className="text-purple-400">@</span>{' '}
-                      {t('explore.people')}
-                    </h2>
+                    <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-xl font-bold flex items-center gap-2">
+                        <span className="text-purple-400">@</span>{' '}
+                        {t('explore.people')}
+                      </h2>
+                      <button
+                        type="button"
+                        aria-pressed={verifiedOnly}
+                        onClick={() => setVerifiedOnly((on) => !on)}
+                        className={`inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 ${
+                          verifiedOnly
+                            ? 'border-brand-primary/50 bg-brand-primary/20 text-white'
+                            : 'border-white/10 bg-white/8 text-white/70 hover:text-white'
+                        }`}
+                      >
+                        <BadgeCheck size={16} aria-hidden />
+                        {t('explore.verified_only')}
+                      </button>
+                    </div>
                     {searchResults?.users && searchResults.users.length > 0 ? (
                       <div className="space-y-3">
                         {searchResults.users.map((user: ProfileWithUser) => (
@@ -355,7 +378,7 @@ export default function Explore() {
                   <div className="lg:col-span-2">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                       <span className="text-blue-400">#</span>{' '}
-                      {t('explore.trending_topics')}
+                      {t('explore.tags_title')}
                     </h2>
                     {searchResults?.hashtags &&
                     searchResults.hashtags.length > 0 ? (
@@ -369,7 +392,7 @@ export default function Explore() {
                             <Link
                               key={tag.id}
                               to={`/explore/tags/${tag.tag}`}
-                              className="glass-panel px-4 py-2 rounded-full flex items-center gap-2 hover:bg-blue-500/20 hover:border-blue-500/50 transition-all group"
+                              className="glass-panel min-h-11 px-4 rounded-full flex items-center gap-2 hover:bg-brand-blue/20 hover:border-brand-blue/50 transition-all group"
                             >
                               <span className="text-blue-400 group-hover:text-blue-300 font-bold">
                                 #{tag.tag}
@@ -456,7 +479,7 @@ export default function Explore() {
                     key={tab}
                     type="button"
                     onClick={() => setActiveTab(tab)}
-                    className={`relative px-4 py-1.5 md:px-6 md:py-2 text-xs font-bold rounded-full transition-all duration-200 focus:outline-none ${
+                    className={`relative min-h-11 px-6 text-sm font-bold rounded-full transition-all duration-200 focus:outline-none ${
                       activeTab === tab
                         ? 'text-white'
                         : 'text-gray-400 hover:text-white'

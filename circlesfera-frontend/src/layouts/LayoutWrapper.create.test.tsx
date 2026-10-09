@@ -112,7 +112,7 @@ function renderEditsRoute() {
 }
 
 describe('LayoutWrapper /edits immersive shell', () => {
-  it('hides TopNav, BottomNav, and Sidebar on /edits for full-screen studio', () => {
+  it('hides TopNav and BottomNav on /edits and keeps the Sidebar', () => {
     renderEditsRoute();
 
     expect(screen.getByTestId('edits-page')).toBeInTheDocument();
@@ -120,7 +120,7 @@ describe('LayoutWrapper /edits immersive shell', () => {
     expect(
       screen.queryByLabelText('Mobile navigation'),
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Sidebar')).not.toBeInTheDocument();
+    expect(screen.getByText('Sidebar')).toBeInTheDocument();
   });
 });
 

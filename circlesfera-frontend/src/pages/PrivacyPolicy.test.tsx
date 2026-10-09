@@ -15,7 +15,10 @@ describe('PrivacyPolicy', () => {
       expect(
         (
           await screen.findAllByText(
-            i18n!.t(`legal.privacy.sections.s${i}_title`),
+            // The page shows the number of a section apart from its title.
+            i18n!
+              .t(`legal.privacy.sections.s${i}_title`)
+              .replace(/^\d+\.\s*/, ''),
           )
         ).length,
       ).toBeGreaterThan(0);

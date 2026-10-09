@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/common/SEO';
 import {
   LandingChapters,
+  LandingCta,
   LandingHero,
   LandingPrinciples,
   MarketingPage,
@@ -22,6 +23,7 @@ export default function LandingPage() {
       <LandingHero />
       <LandingChapters />
       <LandingPrinciples />
+      <LandingCta />
     </MarketingPage>
   );
 }

@@ -11,6 +11,7 @@ import {
 } from 'vitest';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
+import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import {
   BEARER,
@@ -88,6 +89,7 @@ describe('CreatorController', () => {
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: CreatorAccountGuard, mode: 'allow' },
+        { guard: ElitePlanGuard, mode: 'allow' },
       ],
     });
   });

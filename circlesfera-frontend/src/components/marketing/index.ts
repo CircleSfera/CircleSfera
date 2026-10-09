@@ -1,12 +1,14 @@
-export { BentoCard, type BentoCardProps } from './BentoCard';
+export {
+  ExploreVisual,
+  FEATURE_KEYS,
+  type FeatureKey,
+  FeatureShowcase,
+  FeatureVisual,
+} from './FeatureShowcase';
 export { GuestAppChrome } from './GuestAppChrome';
 export { GuestFooter } from './GuestFooter';
-export {
-  chapterToSurface,
-  type GuestSurface,
-  GuestSurfaceMedia,
-} from './GuestSurfaceMedia';
 export { LandingChapters } from './LandingChapters';
+export { LandingCta } from './LandingCta';
 export { LandingHero } from './LandingHero';
 export { LandingPrinciples } from './LandingPrinciples';
 export {
@@ -17,6 +19,5 @@ export { MarketingCTA } from './MarketingCTA';
 export { MarketingPage } from './MarketingPage';
 export { MarketingPageHeader } from './MarketingPageHeader';
 export { MarketingSection } from './MarketingSection';
-export { ProductChaptersList } from './ProductChaptersList';
 export { ProductFaqList } from './ProductFaqList';
 export { ProductPrinciplesList } from './ProductPrinciplesList';

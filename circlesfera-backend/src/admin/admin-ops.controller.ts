@@ -119,6 +119,23 @@ export class AdminOpsController {
     return this.adminOpsService.updateSupportTicket(admin.adminId, id, body);
   }
 
+  // Hands the ticket to moderation: a report in the trust queues.
+  @RequireStaffPermissions('support')
+  @Post('support/tickets/:id/escalate')
+  async escalateSupportTicket(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminOpsService.escalateSupportTicket(admin.adminId, id);
+  }
+
+  // Read-only: plan, payout account and standing of who wrote the ticket.
+  @RequireStaffPermissions('support')
+  @Get('support/tickets/:id/account')
+  async getSupportTicketAccount(@Param('id') id: string) {
+    return this.adminOpsService.getSupportTicketAccount(id);
+  }
+
   @Get('feature-flags')
   @RequireStaffPermissions('experiments')
   async listFeatureFlags() {

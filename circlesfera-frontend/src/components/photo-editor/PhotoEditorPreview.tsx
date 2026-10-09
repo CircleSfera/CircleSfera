@@ -28,6 +28,7 @@ export default function PhotoEditorPreview({
     imageRef,
     adjustments,
     imageDims,
+    measureImage,
     stageRef,
     overlays,
     setOverlays,
@@ -75,6 +76,7 @@ export default function PhotoEditorPreview({
         ) : (
           <img
             ref={imageRef}
+            onLoad={measureImage}
             src={previewUrl || undefined}
             alt={t('common.alt.upload')}
             className={`max-w-full max-h-full object-contain rounded-lg ${selectedFilter.class} shadow-2xl`}

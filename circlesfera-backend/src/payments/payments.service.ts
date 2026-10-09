@@ -9,6 +9,7 @@ import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
+  type ConnectAccountCompanyFields,
   classifyStripeError,
   StripeService,
 } from '../common/stripe/stripe.service.js';
@@ -795,7 +796,7 @@ export class PaymentsService {
             id: string;
             charges_enabled?: boolean;
             capabilities?: { transfers?: string };
-          },
+          } & ConnectAccountCompanyFields,
         );
         break;
       }

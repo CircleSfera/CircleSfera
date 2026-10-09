@@ -70,11 +70,7 @@ export function hidesBottomNav(shell: ContentShell): boolean {
   );
 }
 
-// Hide Sidebar even on md+ (edits studio only — checked separately via pathname)
+// The edits studio keeps the sidebar as a narrow rail of icons at every width
 export function isEditsPath(pathname: string): boolean {
   return pathname.startsWith('/edits');
-}
-
-export function isMapPath(pathname: string): boolean {
-  return pathname.startsWith('/explore/map');
 }

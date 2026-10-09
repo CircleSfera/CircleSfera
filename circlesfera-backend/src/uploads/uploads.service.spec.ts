@@ -156,7 +156,8 @@ describe('UploadsService', () => {
           userId: 'user-abc',
         }),
         expect.objectContaining({
-          jobId: expect.stringMatching(/^transcode:.+$/),
+          // No colon: the queue refuses an id that has one.
+          jobId: expect.stringMatching(/^transcode-[^:]+$/),
           attempts: 3,
           backoff: { type: 'exponential', delay: 5000 },
           removeOnComplete: { count: 100, age: 24 * 3600 },

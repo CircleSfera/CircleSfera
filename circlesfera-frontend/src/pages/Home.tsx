@@ -1,6 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
-import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation } from 'react-router-dom';
@@ -16,6 +15,7 @@ import PostCard from '../components/PostCard';
 import StoryList from '../components/StoryList';
 import { SuggestionsList } from '../components/suggestions/SuggestionsList';
 import { PullToRefresh } from '../components/ui';
+import { SegmentedControl } from '../components/ui/SegmentedControl';
 import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { feedApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -97,7 +97,7 @@ export default function Home() {
     <PullToRefresh onRefresh={handleRefresh}>
       {/* Feed: full-width mobile, desktop adds right sidebar */}
       <div
-        className="min-h-dvh pt-[calc(var(--nav-top-height,52px)+4px)] md:pt-0 pb-24 md:pb-8"
+        className="min-h-dvh pt-1 md:pt-0 pb-24 md:pb-8"
         data-content-shell="stream"
       >
         <SEO title={t('feed.home_title')} />
@@ -113,7 +113,7 @@ export default function Home() {
             <div className="pt-6 pb-3 hidden md:flex justify-center items-center">
               <Link
                 to="/"
-                className="flex items-center gap-2.5 group focus:outline-none"
+                className="min-h-11 flex items-center gap-2.5 group focus:outline-none"
               >
                 <img
                   src={logoSrc}
@@ -126,38 +126,16 @@ export default function Home() {
               </Link>
             </div>
             {/* Feed Header — Centered Floating Glass Pill Switcher */}
-            <div className="sticky top-[calc(var(--nav-top-height,52px))] md:top-0 z-30 py-2.5 px-4 flex justify-center backdrop-blur-md">
-              <div className="inline-flex items-center p-1.5 rounded-full bg-black/75 border border-white/12 shadow-2xl backdrop-blur-md gap-1.5">
-                {(['foryou', 'following'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className={`relative px-6 py-2 text-xs font-bold rounded-full transition-all duration-200 focus:outline-none ${
-                      activeTab === tab
-                        ? 'text-white'
-                        : 'text-gray-400 hover:text-white'
-                    }`}
-                  >
-                    {activeTab === tab && (
-                      <motion.div
-                        layoutId="feedTabPill"
-                        className="absolute inset-0 rounded-full bg-white/15 border border-white/20 shadow-inner"
-                        transition={{
-                          type: 'spring',
-                          stiffness: 500,
-                          damping: 35,
-                        }}
-                      />
-                    )}
-                    <span className="relative z-10">
-                      {tab === 'foryou'
-                        ? t('feed.for_you')
-                        : t('feed.following')}
-                    </span>
-                  </button>
-                ))}
-              </div>
+            <div className="sticky top-0 z-30 py-2.5 px-4 flex justify-center backdrop-blur-md">
+              <SegmentedControl
+                id="feedTabPill"
+                value={activeTab}
+                onChange={setActiveTab}
+                items={[
+                  { value: 'foryou', label: t('feed.for_you') },
+                  { value: 'following', label: t('feed.following') },
+                ]}
+              />
             </div>
             {/* Stories strip — part of feed composition, not a dashboard card */}
             {isLoading ? (

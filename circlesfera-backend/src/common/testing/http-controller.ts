@@ -46,6 +46,7 @@ export const TEST_ADMIN: CurrentAdminData = {
     'audit',
     'live',
     'content',
+    'plans',
     'admins.manage',
   ],
   roles: ['SUPER_ADMIN'],
