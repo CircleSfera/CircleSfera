@@ -252,7 +252,7 @@ export default function Frames() {
 
   return (
     <div
-      className="h-full min-h-0 w-full flex flex-col max-md:px-3 max-md:py-1 md:items-center md:justify-center relative overflow-hidden"
+      className="h-full min-h-0 w-full flex flex-col max-md:px-3 max-md:py-1 max-md:justify-center md:items-center md:justify-center relative overflow-hidden"
       data-content-shell="vertical"
     >
       <div className="hidden md:block absolute inset-0 z-0">
@@ -268,8 +268,11 @@ export default function Frames() {
         )}
       </div>
 
+      {/* On phones the frame keeps its own shape, 9:16: as wide as the
+          screen when the height allows it, and otherwise as tall as the
+          space left between the bars, never stretched. */}
       <div
-        className={`flex flex-1 min-h-0 w-full max-md:h-full md:flex-none md:justify-center md:items-center md:py-4 ${desktopStageClass}`}
+        className={`flex min-h-0 max-md:mx-auto max-md:aspect-9/16 max-md:h-[min(100%,calc((100vw-1.5rem)*16/9))] max-md:max-w-full max-md:self-center md:w-full md:flex-none md:justify-center md:items-center md:py-4 ${desktopStageClass}`}
       >
         <div
           className={`flex h-full min-h-0 w-full max-md:flex-col md:flex-row md:items-stretch md:overflow-hidden md:shadow-[0_0_50px_rgba(0,0,0,0.5)] md:border md:border-white/10 md:rounded-[20px] ${
