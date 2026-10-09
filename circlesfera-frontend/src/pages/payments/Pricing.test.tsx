@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactElement } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { helpCentreApi } from '../../services/helpCentre.service';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -15,6 +16,9 @@ vi.mock('../../services/payments.service', () => ({
     getBillingPortalUrl: vi.fn(),
     createSubscriptionCheckout: vi.fn(),
   },
+}));
+vi.mock('../../services/helpCentre.service', () => ({
+  helpCentreApi: { article: vi.fn() },
 }));
 vi.mock('../../services/users.service', () => ({
   usersApi: { syncIdentitySession: vi.fn(), createIdentitySession: vi.fn() },
@@ -70,6 +74,7 @@ describe('Pricing', () => {
     vi.mocked(usersApi.syncIdentitySession).mockResolvedValue({
       status: 'none',
     });
+    vi.mocked(helpCentreApi.article).mockRejectedValue(new Error('down'));
     useAuthStore.setState({
       isAuthenticated: true,
       profile: {
@@ -98,6 +103,56 @@ describe('Pricing', () => {
         name: i18n!.t('pricingPage.button_premium'),
       }),
     ).toBeInTheDocument();
+  });
+
+  it('answers the questions asked before paying with their articles of the help centre, in its own order', async () => {
+    const titles: Record<string, string> = {
+      'what-plans-unlock': 'What do the plans unlock?',
+      'is-circlesfera-free': 'Is CircleSfera free?',
+    };
+    // Each article is asked for by its address, so it shows however many
+    // others the help centre holds. One of the three is not published.
+    vi.mocked(helpCentreApi.article).mockImplementation(((slug: string) =>
+      titles[slug]
+        ? Promise.resolve({
+            data: { slug, topic: 'PAYMENTS', title: titles[slug] },
+          })
+        : Promise.reject(new Error('not found'))) as never);
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    const free = await screen.findByRole('link', {
+      name: 'Is CircleSfera free?',
+    });
+    const plans = screen.getByRole('link', {
+      name: 'What do the plans unlock?',
+    });
+    expect(free).toHaveAttribute('href', '/help/is-circlesfera-free');
+    expect(
+      free.compareDocumentPosition(plans) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      vi.mocked(helpCentreApi.article).mock.calls.map(([slug]) => slug),
+    ).toEqual([
+      'is-circlesfera-free',
+      'what-plans-unlock',
+      'identity-verification',
+    ]);
+    expect(
+      screen.getByRole('link', { name: i18n!.t('pricingPage.all_questions') }),
+    ).toHaveAttribute('href', '/help');
+  });
+
+  it('keeps the way to all the questions when the help centre does not answer', async () => {
+    const { i18n } = renderWithProviders(<Pricing />);
+
+    expect(
+      await screen.findByRole('link', {
+        name: i18n!.t('pricingPage.all_questions'),
+      }),
+    ).toHaveAttribute('href', '/help');
+    expect(
+      screen.queryByRole('link', { name: /free/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('sends a visitor to sign up instead of checkout', async () => {

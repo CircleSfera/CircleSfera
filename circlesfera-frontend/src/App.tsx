@@ -50,7 +50,8 @@ const Creator = lazy(() => import('./pages/Creator'));
 const EditsStudio = lazy(() => import('./pages/EditsStudio'));
 const Explore = lazy(() => import('./pages/Explore'));
 const ExploreMapPage = lazy(() => import('./pages/explore-map/ExploreMapPage'));
-const FaqPage = lazy(() => import('./pages/FaqPage'));
+const HelpArticle = lazy(() => import('./pages/HelpArticle'));
+const HelpCentre = lazy(() => import('./pages/HelpCentre'));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Frames = lazy(() => import('./pages/Frames'));
@@ -519,7 +520,10 @@ function App() {
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/features/:slug" element={<FeatureDetailPage />} />
         <Route path="/principles" element={<PrinciplesPage />} />
-        <Route path="/faq" element={<FaqPage />} />
+        <Route path="/help" element={<HelpCentre />} />
+        <Route path="/help/:slug" element={<HelpArticle />} />
+        {/* The questions that lived here are articles of the help centre */}
+        <Route path="/faq" element={<Navigate to="/help" replace />} />
 
         {/* User profile (after static routes to avoid conflicts) */}
         <Route

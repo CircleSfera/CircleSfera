@@ -833,10 +833,11 @@ export class HelpdeskStore {
    */
   publishedArticles(
     locale: string,
-    filters: { search?: string; topic?: TicketCategory },
+    filters: { search?: string[]; topic?: TicketCategory },
     limit: number,
   ) {
-    const words = filters.search;
+    // An article is found when it holds any of the words.
+    const words = filters.search ?? [];
     return this.prisma.helpdeskArticle.findMany({
       where: {
         organizationId: this.organizationId,
@@ -845,11 +846,11 @@ export class HelpdeskStore {
         texts: {
           some: {
             locale,
-            ...(words && {
-              OR: [
-                { title: { contains: words, mode: 'insensitive' } },
-                { body: { contains: words, mode: 'insensitive' } },
-              ],
+            ...(words.length > 0 && {
+              OR: words.flatMap((word) => [
+                { title: { contains: word, mode: 'insensitive' as const } },
+                { body: { contains: word, mode: 'insensitive' as const } },
+              ]),
             }),
           },
         },

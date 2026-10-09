@@ -3692,8 +3692,8 @@
     "error_generic": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
     "steps_title": "Así te ayudamos",
     "help": {
-      "faq_title": "Preguntas frecuentes",
-      "faq_desc": "Planes, verificación, el feed y el móvil.",
+      "help_title": "Centro de ayuda",
+      "help_desc": "Respuestas sobre la cuenta, los pagos y el contenido.",
       "rules_title": "Normas de la comunidad",
       "rules_desc": "Qué se puede publicar y cómo se modera.",
       "privacy_title": "Privacidad y datos",
@@ -4352,35 +4352,7 @@
       }
     },
     "faq": {
-      "badge": "Preguntas frecuentes",
-      "title": "Preguntas frecuentes",
-      "subtitle": "Planes, el feed, la verificación y cómo usar CircleSfera en el móvil.",
-      "items": {
-        "free": {
-          "q": "¿CircleSfera es gratis?",
-          "a": "Sí. Las funciones sociales principales son gratis. Hay planes opcionales (Premium, Elite Creator y Business) y herramientas para que los creadores ganen dinero. Los pagos van por Stripe y el precio se ve antes de pagar."
-        },
-        "verify": {
-          "q": "¿Cómo funciona la verificación de identidad?",
-          "a": "Se hace desde Ajustes con Stripe Identity, cuando la necesitas para ganar dinero o para dar más confianza. Las insignias de plan (Verified, Elite y Business) dependen de tener una suscripción activa."
-        },
-        "control": {
-          "q": "¿Controlo lo que veo?",
-          "a": "Sí. En Ajustes puedes cambiar las preferencias del feed, silenciar y ocultar, y apelar decisiones. Tú eliges qué ves y quién puede interactuar contigo."
-        },
-        "mobile": {
-          "q": "¿Hay app móvil?",
-          "a": "CircleSfera funciona en el navegador del móvil y del escritorio. Puedes añadirla a la pantalla de inicio. Todavía no hay app en App Store ni en Google Play."
-        },
-        "plans": {
-          "q": "¿Qué desbloquean los planes?",
-          "a": "Premium, Elite Creator y Business son suscripciones opcionales que se cobran con Stripe. Dan una insignia, que exige verificar tu identidad. En Precios ves qué incluye cada una y cuánto cuesta antes de pagar."
-        },
-        "support": {
-          "q": "¿Cómo contacto con soporte?",
-          "a": "Entra en tu cuenta, escribe desde Soporte y una persona te responde al correo de tu cuenta. El soporte es el mismo para todos, tengas o no un plan."
-        }
-      }
+      "title": "Preguntas frecuentes"
     },
     "cta": {
       "title": "Empieza hoy en CircleSfera",
@@ -4395,10 +4367,6 @@
       "principles": {
         "seo_title": "Principios — CircleSfera",
         "seo_desc": "Control del usuario, por qué ves lo que ves, moderación clara y datos responsables."
-      },
-      "faq": {
-        "seo_title": "FAQ — CircleSfera",
-        "seo_desc": "Respuestas claras sobre CircleSfera: plan gratuito, verificación, control del feed, uso en el móvil y suscripciones opcionales."
       }
     },
     "footer": {
@@ -4518,6 +4486,29 @@
     "send": "Enviar nota de voz",
     "stop": "Detener grabación",
     "uploading": "Subiendo nota de voz..."
+  },
+  "helpCentre": {
+    "topic_general": "General",
+    "badge": "Centro de ayuda",
+    "title": "¿En qué podemos ayudarte?",
+    "subtitle": "Respuestas sobre tu cuenta, los pagos y el contenido.",
+    "seo_title": "Centro de ayuda — CircleSfera",
+    "seo_desc": "Respuestas claras sobre CircleSfera: la cuenta, los planes y los pagos, la verificación, el contenido y cómo escribir a soporte.",
+    "article_seo_title": "{{title}} — Ayuda de CircleSfera",
+    "search_label": "Buscar en el centro de ayuda",
+    "search_placeholder": "Busca una respuesta",
+    "results_one": "{{count}} resultado",
+    "results_other": "{{count}} resultados",
+    "no_results": "No hay artículos sobre «{{words}}». Prueba con otras palabras o escríbenos.",
+    "empty": "Todavía no hay artículos publicados.",
+    "load_error": "No se ha podido cargar el centro de ayuda. Inténtalo de nuevo.",
+    "back": "Centro de ayuda",
+    "missing_title": "Este artículo no existe",
+    "missing_desc": "Puede que se haya retirado o que la dirección no sea correcta.",
+    "contact_title": "¿No encuentras la respuesta?",
+    "contact_desc": "Escríbenos y una persona del equipo te responde.",
+    "contact_cta": "Escribir a soporte",
+    "suggested_title": "Puede que esto lo resuelva"
   },
   "errors": {
     "action_limit": {

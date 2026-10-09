@@ -53,7 +53,7 @@ for (const [label, viewport] of [
       ['features', '/features'],
       ['feature detail', '/features/feed'],
       ['principles', '/principles'],
-      ['questions', '/faq'],
+      ['help centre', '/help'],
       ['guest explore', '/explore'],
       ['support', '/support'],
       ['pricing', '/pricing'],
