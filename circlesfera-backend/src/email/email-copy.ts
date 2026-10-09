@@ -47,6 +47,12 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
+  supportUnmatched: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   subscriptionReceipt: {
     subject: string;
     title: string;
@@ -127,6 +133,12 @@ const en: EmailCopy = {
     title: 'Do you still need help?',
     body: 'We answered your request #{reference}, <strong>{subject}</strong>, and have not heard back from you.<br><br>If you still need help, answer in the request. If we do not hear from you in {days} days, we will mark it as solved.',
     button: 'See your request',
+  },
+  supportUnmatched: {
+    subject: 'We could not add your email to a request - CircleSfera Support',
+    title: 'Your email did not reach a request',
+    body: 'This address only receives answers to support requests, sent from the address that opened the request.<br><br>If you need help, open a request from the support page. If you were answering one, answer from the email address of your account, or write in the request itself.',
+    button: 'Go to support',
   },
   subscriptionReceipt: {
     subject: 'Subscription receipt - {plan}',
@@ -211,6 +223,13 @@ const es: EmailCopy = {
     title: '¿Sigues necesitando ayuda?',
     body: 'Respondimos a tu solicitud n.º {reference}, <strong>{subject}</strong>, y no hemos vuelto a saber de ti.<br><br>Si sigues necesitando ayuda, responde en la solicitud. Si no recibimos respuesta en {days} días, la marcaremos como resuelta.',
     button: 'Ver tu solicitud',
+  },
+  supportUnmatched: {
+    subject:
+      'No hemos podido añadir tu correo a una solicitud - Soporte de CircleSfera',
+    title: 'Tu correo no ha llegado a ninguna solicitud',
+    body: 'Esta dirección solo recibe respuestas a solicitudes de soporte, enviadas desde la dirección que abrió la solicitud.<br><br>Si necesitas ayuda, abre una solicitud desde la página de soporte. Si estabas respondiendo a una, responde desde el correo de tu cuenta o escribe en la propia solicitud.',
+    button: 'Ir a soporte',
   },
   subscriptionReceipt: {
     subject: 'Recibo de suscripción - {plan}',

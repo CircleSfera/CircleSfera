@@ -107,9 +107,17 @@ function ConversationMessage({
     message.authorKind === 'SYSTEM'
       ? /^handover\.decided:(RESOLVED|REJECTED|GONE)$/.exec(message.body)
       : null;
+  const leftOut =
+    message.authorKind === 'SYSTEM'
+      ? /^inbound\.attachments:(\d+)$/.exec(message.body)
+      : null;
   const systemText = decided
     ? t(`admin.support.system.handover_${decided[1]}`)
-    : null;
+    : leftOut
+      ? t('admin.support.system.attachments_left_out', {
+          count: Number(leftOut[1]),
+        })
+      : null;
   const author =
     message.authorKind === 'REQUESTER'
       ? requester
@@ -134,6 +142,9 @@ function ConversationMessage({
           </span>
         )}
         <span>{formatDateTime(message.createdAt, i18n.language)}</span>
+        {message.channel === 'EMAIL' && (
+          <span>{t('admin.support.by_email')}</span>
+        )}
       </p>
       <p className="text-sm text-white/85 whitespace-pre-wrap wrap-break-word leading-relaxed">
         {systemText ?? message.body}

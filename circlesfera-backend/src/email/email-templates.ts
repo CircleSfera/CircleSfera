@@ -328,6 +328,18 @@ export const EmailTemplates = {
     };
   },
 
+  supportUnmatched: (ctx: EmailContext, supportUrl: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.supportUnmatched.subject,
+      html: layout(ctx, copy, {
+        title: copy.supportUnmatched.title,
+        content: copy.supportUnmatched.body,
+        button: { text: copy.supportUnmatched.button, url: supportUrl },
+      }),
+    };
+  },
+
   subscriptionReceipt: (
     ctx: EmailContext,
     planName: string,

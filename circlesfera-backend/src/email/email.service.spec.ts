@@ -352,6 +352,18 @@ describe('EmailService', () => {
       expect(jobs[2].html).not.toContain('Puedes responder a este correo');
     });
 
+    it('tells an unmatched sender where requests are opened, with no address to answer to', async () => {
+      await service.sendSupportUnmatchedEmail('mallory@example.com');
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { to: string; html: string; replyTo?: string },
+      ];
+      expect(job.to).toBe('mallory@example.com');
+      expect(job.html).toContain('/support');
+      expect('replyTo' in job).toBe(false);
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

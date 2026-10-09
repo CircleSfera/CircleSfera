@@ -232,22 +232,63 @@ export class HelpdeskTicketsService {
       throw new BadRequestException('The message is empty');
     }
     const ticket = await this.requesterTicketOrFail(id, requesterRef);
+    const written = await this.addRequesterMessage(ticket, body, 'PRODUCT');
+    return this.getMyTicket(requesterRef, written);
+  }
+
+  // The requester answers by email. Who sent it and to which ticket was
+  // settled before this is called; the answer then counts exactly as one
+  // written in the product. Returns the ticket that holds the message: the
+  // same one, or the new one that continues a closed ticket. Nothing when
+  // the ticket is gone.
+  async replyByEmail(id: string, text: string): Promise<string | null> {
+    const body = text.trim();
+    const ticket = body ? await this.store.findTicket(id) : null;
+    if (!ticket) return null;
+    const written = await this.addRequesterMessage(ticket, body, 'EMAIL');
+    return written;
+  }
+
+  // A note only agents see, written by the system on a ticket.
+  async addSystemNote(id: string, body: string): Promise<void> {
+    await this.store.updateTicket(
+      id,
+      {},
+      { authorKind: 'SYSTEM', authorRef: null, visibility: 'INTERNAL', body },
+    );
+  }
+
+  // What the requester wrote becomes a message of their ticket. A solved or
+  // waiting ticket opens again; a closed one stays closed and a new ticket
+  // continues it. Returns the ticket that holds the message.
+  private async addRequesterMessage(
+    ticket: {
+      id: string;
+      reference: number;
+      userId: string | null;
+      email: string;
+      subject: string;
+      status: TicketStatus;
+      category: TicketCategory;
+    },
+    body: string,
+    channel: 'PRODUCT' | 'EMAIL',
+  ): Promise<string> {
     if (ticket.status === 'CLOSED') {
-      // A closed ticket stays closed: what they write opens a new one that
-      // continues it.
       const subject = ticket.subject.startsWith('Re: ')
         ? ticket.subject
         : `Re: ${ticket.subject}`.slice(0, 100);
       const continued = await this.store.openTicket({
-        requesterRef,
+        requesterRef: ticket.userId,
         email: ticket.email,
         subject,
         message: body,
         category: ticket.category,
         previousTicketId: ticket.id,
+        channel,
       });
       this.teamChannel.ticketOpened(continued);
-      return this.getMyTicket(requesterRef, continued.id);
+      return continued.id;
     }
 
     // Their reply ends a wait and reopens a solved ticket.
@@ -258,19 +299,20 @@ export class HelpdeskTicketsService {
       reopened
         ? { status: 'OPEN', resolvedAt: null, waitingRemindedAt: null }
         : {},
-      { kind: 'REQUESTER', ref: requesterRef },
+      { kind: 'REQUESTER', ref: ticket.userId },
       {
         authorKind: 'REQUESTER',
-        authorRef: requesterRef,
+        authorRef: ticket.userId,
         visibility: 'PUBLIC',
         body,
+        channel,
       },
     );
     // The team hears of it; a failure to tell them does not undo the reply.
     await this.teamChannel
       .requesterReplied(this.noticeOf(ticket))
       .catch(() => undefined);
-    return this.getMyTicket(requesterRef, id);
+    return ticket.id;
   }
 
   async listTickets(

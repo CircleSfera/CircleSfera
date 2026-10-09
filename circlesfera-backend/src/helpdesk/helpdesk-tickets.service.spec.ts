@@ -20,7 +20,11 @@ describe('HelpdeskTicketsService', () => {
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
   const handover = { open: vi.fn(), withdraw: vi.fn(), cases: vi.fn() };
-  const notifier = { answer: vi.fn(), remind: vi.fn() };
+  const notifier = {
+    answer: vi.fn(),
+    remind: vi.fn(),
+    unmatchedSender: vi.fn(),
+  };
   const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
   const staffLog = { record: vi.fn() };
   const agents = { describe: vi.fn(), assignable: vi.fn() };
@@ -290,6 +294,30 @@ describe('HelpdeskTicketsService', () => {
       body: 'Checked the payment.',
       visibility: 'INTERNAL' as const,
     };
+
+    it('takes nothing from an email with no text, or for a ticket that is gone', async () => {
+      store.findTicket.mockResolvedValue(null);
+
+      expect(await service.replyByEmail('t-1', '   ')).toBeNull();
+      expect(store.findTicket).not.toHaveBeenCalled();
+      expect(await service.replyByEmail('gone', 'Hello')).toBeNull();
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('writes a note of the system that only agents see', async () => {
+      await service.addSystemNote('t-1', 'inbound.attachments:2');
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        {},
+        {
+          authorKind: 'SYSTEM',
+          authorRef: null,
+          visibility: 'INTERNAL',
+          body: 'inbound.attachments:2',
+        },
+      );
+    });
 
     it('tells the requester with the address to answer to, when email in is on', async () => {
       store.findTicket.mockResolvedValue(ticket);
@@ -613,6 +641,7 @@ describe('HelpdeskTicketsService', () => {
           authorRef: 'u-1',
           visibility: 'PUBLIC',
           body: 'On the 2nd.',
+          channel: 'PRODUCT',
         },
         [],
       );
@@ -688,6 +717,7 @@ describe('HelpdeskTicketsService', () => {
         message: 'It happened again.',
         category: 'PAYMENTS',
         previousTicketId: 't-1',
+        channel: 'PRODUCT',
       });
       expect(store.updateTicket).not.toHaveBeenCalled();
       expect(teamChannel.ticketOpened).toHaveBeenCalledWith(continued);

@@ -266,6 +266,15 @@ export class EmailService {
     );
   }
 
+  // To someone whose email matched no request: where a request is opened.
+  async sendSupportUnmatchedEmail(email: string) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.supportUnmatched(ctx, `${ctx.frontendUrl}/support`),
+    );
+  }
+
   // Receipt for a platform subscription.
   async sendSubscriptionReceipt(
     email: string,

@@ -232,6 +232,10 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       ticket.replyTo,
     );
   }
+
+  async unmatchedSender(address: string) {
+    await this.email.sendSupportUnmatchedEmail(address);
+  }
 }
 
 // Agents are staff identities. A ticket can be given to the active ones
