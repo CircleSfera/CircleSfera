@@ -100,6 +100,14 @@ export default function FrameItem({
     },
   });
 
+  // The page passes a new save handler on every render. The menu reaches the
+  // latest one through this ref, so that a new handler alone does not hand
+  // the menu over again: handing it over makes the page render.
+  const onSaveOpenRef = useRef(onSaveOpen);
+  useEffect(() => {
+    onSaveOpenRef.current = onSaveOpen;
+  }, [onSaveOpen]);
+
   useEffect(() => {
     if (!isActive || !onRegisterMenuActions) return;
 
@@ -107,12 +115,12 @@ export default function FrameItem({
       onEdit: () => {},
       onDelete: () => setShowDeleteModal(true),
       onReport: () => setShowReportModal(true),
-      onSave: () => onSaveOpen?.(),
+      onSave: () => onSaveOpenRef.current?.(),
       onPromote: canPromote ? () => setShowPromoteModal(true) : undefined,
     });
 
     return () => onRegisterMenuActions(null);
-  }, [isActive, onRegisterMenuActions, onSaveOpen, canPromote]);
+  }, [isActive, onRegisterMenuActions, canPromote]);
 
   useEffect(() => {
     if (isActive && videoRef.current) {
