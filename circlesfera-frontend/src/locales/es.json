@@ -2651,6 +2651,16 @@
       "assignee_former": "Antiguo agente",
       "assignee_me_named": "{{name}} (tú)",
       "assign_to": "Asignar a",
+      "target": {
+        "label": "Objetivo",
+        "filter": "Objetivo",
+        "filter_all": "Con o sin retraso",
+        "filter_past": "Fuera de objetivo",
+        "first_response": "1.ª respuesta",
+        "resolution": "Resolución",
+        "near": "{{target}}: quedan {{time}}",
+        "past": "{{target}}: fuera de objetivo hace {{time}}"
+      },
       "by_email": "por correo",
       "saved_replies": {
         "title": "Respuestas guardadas",

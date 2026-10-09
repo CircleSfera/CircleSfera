@@ -314,4 +314,63 @@ describe('Help Desk: service level and due times', () => {
       });
     });
   });
+
+  describe('the list of open tickets', () => {
+    it('puts high priority first and, inside each priority, the one waiting longest', async () => {
+      const first = await open('ana');
+      atHour(1);
+      serviceLevels.levelOf.mockResolvedValue('PRIORITY');
+      const paid = await open('bea');
+      atHour(2);
+      serviceLevels.levelOf.mockResolvedValue('STANDARD');
+      const last = await open('carl');
+      await tickets.updateTicket('agent-1', last, { priority: 'LOW' });
+      atHour(3);
+      serviceLevels.levelOf.mockResolvedValue('PRIORITY');
+      const paidLater = await open('dora');
+
+      const { data } = await tickets.listTickets(1, 20, 'OPEN');
+
+      expect(data.map((t) => t.id)).toEqual([paid, paidLater, first, last]);
+    });
+
+    it('filters to the open tickets past their target', async () => {
+      // Standard: first response due at 24 h. Priority: at 4 h.
+      const late = await open('ana');
+      serviceLevels.levelOf.mockResolvedValue('PRIORITY');
+      const lateSooner = await open('bea');
+      const answered = await open('carl');
+      const waiting = await open('dora');
+      const unmeasured = await open('eve');
+      Object.assign(row(unmeasured), {
+        firstResponseDueAt: null,
+        resolutionDueAt: null,
+      });
+      atHour(1);
+      await answer(answered, 'OPEN');
+      await answer(waiting, 'WAITING');
+      const past = async () =>
+        (
+          await tickets.listTickets(1, 20, undefined, undefined, {
+            target: 'past',
+          })
+        ).data.map((t) => t.id);
+
+      atHour(3);
+      expect(await past()).toEqual([]);
+      atHour(5);
+      expect(await past()).toEqual([lateSooner]);
+      atHour(25);
+      expect(await past()).toEqual([lateSooner, late]);
+      // Answered in time: it is late only once its resolution is.
+      atHour(73);
+      expect(await past()).toEqual([lateSooner, answered, late]);
+      // A ticket that waits for its requester, or is not measured, never is.
+      expect(await past()).not.toContain(waiting);
+      expect(await past()).not.toContain(unmeasured);
+
+      organization = 'org-b';
+      expect(await past()).toEqual([]);
+    });
+  });
 });

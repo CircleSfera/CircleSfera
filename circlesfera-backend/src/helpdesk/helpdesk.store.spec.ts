@@ -71,9 +71,34 @@ describe('HelpdeskStore', () => {
       where,
       skip: 20,
       take: 20,
-      orderBy: { createdAt: 'asc' },
+      // What to answer next: high priority first, then the longest wait.
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
     });
     expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+  });
+
+  it('lists any other state newest first', async () => {
+    await store.listTickets({ status: 'RESOLVED' }, 1, 20, false);
+
+    expect(prisma.supportTicket.findMany.mock.calls[0][0].orderBy).toEqual({
+      createdAt: 'desc',
+    });
+  });
+
+  it('lists the open tickets past their target: late for a first response not given yet, or late to be solved', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.listTickets({ priority: 'HIGH' }, 1, 20, true, moment);
+
+    expect(prisma.supportTicket.findMany.mock.calls[0][0].where).toEqual({
+      priority: 'HIGH',
+      organizationId: 'org-1',
+      status: 'OPEN',
+      OR: [
+        { firstRespondedAt: null, firstResponseDueAt: { lt: moment } },
+        { resolutionDueAt: { lt: moment } },
+      ],
+    });
   });
 
   it('cannot be asked for another organization through a filter', async () => {

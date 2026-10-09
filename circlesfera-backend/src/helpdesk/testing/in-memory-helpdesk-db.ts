@@ -78,12 +78,26 @@ export class InMemoryHelpdeskDb {
     });
   }
 
-  private ordered(rows: Row[], orderBy?: Record<string, 'asc' | 'desc'>) {
+  private ordered(
+    rows: Row[],
+    orderBy?: Record<string, 'asc' | 'desc'> | Record<string, 'asc' | 'desc'>[],
+  ) {
     if (!orderBy) return rows;
-    const [[field, direction]] = Object.entries(orderBy);
+    const keys = (Array.isArray(orderBy) ? orderBy : [orderBy]).map(
+      (one) => Object.entries(one)[0],
+    );
+    // A priority sorts as the database sorts its values, not as a word.
+    const rank = (field: string, value: unknown) =>
+      field === 'priority'
+        ? ['LOW', 'NORMAL', 'HIGH'].indexOf(value as string)
+        : time(value);
     return [...rows].sort((a, b) => {
-      const difference = time(a[field]) - time(b[field]);
-      return direction === 'asc' ? difference : -difference;
+      for (const [field, direction] of keys) {
+        const difference = rank(field, a[field]) - rank(field, b[field]);
+        if (difference !== 0)
+          return direction === 'asc' ? difference : -difference;
+      }
+      return 0;
     });
   }
 
@@ -163,7 +177,9 @@ export class InMemoryHelpdeskDb {
 
     findMany: async (args: {
       where?: Where;
-      orderBy?: Record<string, 'asc' | 'desc'>;
+      orderBy?:
+        | Record<string, 'asc' | 'desc'>
+        | Record<string, 'asc' | 'desc'>[];
       skip?: number;
       take?: number;
       select?: Record<string, unknown>;

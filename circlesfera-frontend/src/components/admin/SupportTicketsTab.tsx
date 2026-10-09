@@ -8,7 +8,7 @@ import {
   ShieldAlert,
   XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type {
   AdminSupportEvent,
@@ -24,6 +24,7 @@ import {
   fillSavedReply,
   requesterGreetingName,
 } from '../../utils/savedReply';
+import { shortDuration, targetState } from '../../utils/ticketTarget';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -81,12 +82,37 @@ function WaitingTime({ since }: { since: string }) {
     Math.floor((Date.now() - new Date(since).getTime()) / HOUR_MS),
   );
   return (
-    <span className={hours >= 48 ? 'font-semibold text-yellow-400' : undefined}>
+    <span>
       {hours < 1
         ? t('admin.support.waiting_under_hour')
         : hours < 24
           ? t('admin.support.waiting_hours', { count: hours })
           : t('admin.support.waiting_days', { count: Math.floor(hours / 24) })}
+    </span>
+  );
+}
+
+/** Where a ticket stands against its target, when that is worth saying. */
+function TargetMark({
+  ticket,
+  now,
+}: {
+  ticket: AdminSupportTicket;
+  now: number;
+}) {
+  const { t } = useTranslation();
+  const standing = targetState(ticket, now);
+  if (!standing) return null;
+  return (
+    <span
+      className={`font-semibold ${
+        standing.state === 'past' ? 'text-red-400' : 'text-yellow-400'
+      }`}
+    >
+      {t(`admin.support.target.${standing.state}`, {
+        target: t(`admin.support.target.${standing.target}`),
+        time: shortDuration(standing.ms),
+      })}
     </span>
   );
 }
@@ -224,6 +250,13 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [categoryFilter, setCategoryFilter] = useState('');
   const [whose, setWhose] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [pastTargetOnly, setPastTargetOnly] = useState(false);
+  // The marks against the targets follow the clock.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const myRef = useAdminAuthStore((state) => state.admin?.id);
   // Who leads the team gives tickets to others; every agent takes and lets go.
   const leadsTeam = useAdminAuthStore((state) =>
@@ -253,6 +286,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
       categoryFilter,
       whose,
       priorityFilter,
+      pastTargetOnly,
     ],
     queryFn: () =>
       adminApi
@@ -264,6 +298,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
           {
             ...(whose !== 'all' && { assignment: whose }),
             ...(priorityFilter && { priority: priorityFilter }),
+            ...(pastTargetOnly && { target: 'past' as const }),
           },
         )
         .then((res) => res.data as SupportTicketsPage),
@@ -436,7 +471,8 @@ export default function SupportTicketsTab({ onToast }: Props) {
     statusFilter !== '' ||
     categoryFilter !== '' ||
     whose !== 'all' ||
-    priorityFilter !== '';
+    priorityFilter !== '' ||
+    pastTargetOnly;
 
   return (
     <div className="flex flex-col min-h-0 gap-4">
@@ -474,6 +510,21 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 value,
                 label: t(`admin.support.priority.${value}`),
               })),
+            ]}
+          />
+        </div>
+        <div className="sm:w-52">
+          <FilterDropdown
+            label={t('admin.support.target.filter')}
+            value={pastTargetOnly ? 'past' : ''}
+            onChange={(v) => {
+              setPastTargetOnly(v === 'past');
+              setPage(1);
+              setSelectedTicketId(null);
+            }}
+            options={[
+              { value: '', label: t('admin.support.target.filter_all') },
+              { value: 'past', label: t('admin.support.target.filter_past') },
             ]}
           />
         </div>
@@ -582,7 +633,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         )}
                         <span>{assigneeLabel(ticket.assignedAgentRef)}</span>
                         {ticket.status === 'OPEN' ? (
-                          <WaitingTime since={ticket.createdAt} />
+                          <>
+                            <WaitingTime since={ticket.createdAt} />
+                            <TargetMark ticket={ticket} now={now} />
+                          </>
                         ) : (
                           <span>
                             {formatDate(ticket.createdAt, i18n.language)}
@@ -704,6 +758,16 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         </span>
                       </dd>
                     </div>
+                    {targetState(selectedTicket, now) && (
+                      <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
+                        <dt className="text-xs font-medium text-white/40">
+                          {t('admin.support.target.label')}
+                        </dt>
+                        <dd className="text-sm text-right">
+                          <TargetMark ticket={selectedTicket} now={now} />
+                        </dd>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
                       <dt className="text-xs font-medium text-white/40">
                         {t('admin.support.filter_priority')}

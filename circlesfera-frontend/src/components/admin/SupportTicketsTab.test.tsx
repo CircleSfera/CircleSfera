@@ -366,6 +366,88 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
   });
 
+  describe('targets', () => {
+    const HOUR = 3_600_000;
+    const ago = (hours: number) =>
+      new Date(Date.now() - hours * HOUR).toISOString();
+    const inHours = (hours: number) =>
+      new Date(Date.now() + hours * HOUR).toISOString();
+
+    it('marks an open ticket near or past its target, and no other', async () => {
+      const i18n = await open([
+        ticket({
+          id: 't-1',
+          createdAt: ago(27),
+          firstResponseDueAt: ago(3.5),
+          resolutionDueAt: inHours(45),
+        }),
+        ticket({
+          id: 't-2',
+          subject: 'Answered, running out',
+          createdAt: ago(60),
+          firstResponseDueAt: ago(36),
+          firstRespondedAt: ago(58),
+          // Half an hour of margin: the clock moves while the test runs.
+          resolutionDueAt: inHours(12.5),
+        }),
+        ticket({
+          id: 't-3',
+          subject: 'Plenty of time',
+          createdAt: ago(1),
+          firstResponseDueAt: inHours(23),
+          resolutionDueAt: inHours(71),
+        }),
+        ticket({
+          id: 't-4',
+          subject: 'Waiting for them',
+          status: 'WAITING',
+          createdAt: ago(200),
+          firstResponseDueAt: ago(176),
+          resolutionDueAt: ago(128),
+        }),
+      ]);
+
+      const past = i18n.t('admin.support.target.past', {
+        target: i18n.t('admin.support.target.first_response'),
+        time: '3 h',
+      });
+      // In the list and in the open ticket.
+      expect(screen.getAllByText(past)).toHaveLength(2);
+      expect(
+        screen.getByText(
+          i18n.t('admin.support.target.near', {
+            target: i18n.t('admin.support.target.resolution'),
+            time: '12 h',
+          }),
+        ),
+      ).toBeInTheDocument();
+      // The ticket with plenty of time and the one that waits have no mark:
+      // these three are all there are.
+      expect(screen.getAllByText(/left$|past target by/)).toHaveLength(3);
+    });
+
+    it('asks for the tickets past their target only', async () => {
+      const i18n = await open([ticket()]);
+
+      fireEvent.change(
+        screen.getByRole('combobox', {
+          name: i18n.t('admin.support.target.filter'),
+        }),
+        { target: { value: 'past' } },
+      );
+
+      await waitFor(() =>
+        expect(adminApi.getSupportTickets).toHaveBeenLastCalledWith(
+          1,
+          20,
+          undefined,
+          undefined,
+          { target: 'past' },
+        ),
+      );
+    });
+  });
+
   describe('saved replies', () => {
     const saved = [
       {
