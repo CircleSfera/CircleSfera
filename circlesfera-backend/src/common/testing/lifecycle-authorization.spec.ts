@@ -50,6 +50,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         mockQueue,
         mockOutbox as any,
         { emit: vi.fn() } as any,
+        { del: vi.fn() } as any,
       );
     });
 

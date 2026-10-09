@@ -69,6 +69,11 @@ test.describe('Direct', () => {
         await route.fulfill({ status: 200, json: { count: 0 } });
         return;
       }
+      // One conversation by its id, or the list of them.
+      if (/conversations\/conv-1(\?|$)/.test(url)) {
+        await route.fulfill({ status: 200, json: conversation });
+        return;
+      }
       if (route.request().method() === 'GET') {
         await route.fulfill({ status: 200, json: [conversation] });
         return;

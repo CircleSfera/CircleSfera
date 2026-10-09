@@ -45,7 +45,7 @@ export default function SliderControl({
             {label}
           </span>
         </div>
-        <span className="shrink-0 min-w-11 text-center px-1.5 py-0.5 rounded-md bg-white/8 border border-white/12 text-[11px] font-mono font-bold tabular-nums text-white/85">
+        <span className="shrink-0 min-w-11 text-center px-2 py-0.5 rounded-full bg-white/8 border border-white/12 text-xs font-mono font-bold tabular-nums text-white/85">
           {display}
         </span>
       </div>

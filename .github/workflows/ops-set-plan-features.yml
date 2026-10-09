@@ -1,0 +1,60 @@
+name: Ops — set plan features
+
+# Sets the stored description and feature list of the three platform plans in
+# production to what each plan really includes. It runs as a dry run and only
+# prints what would change, unless `apply` is ticked. Prices, Stripe
+# identifiers and subscriptions are never touched.
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Change the plans (leave unticked to only print what would change)
+        type: boolean
+        default: false
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: if a deploy is triggered (merge to
+# main) while this run waits for approval or for a running deploy, the newer
+# deploy replaces it and this run is cancelled. Do not merge while it is
+# pending; re-run it if it was cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  set-plan-features:
+    name: Set plan features
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Set the plan features on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          APPLY: ${{ inputs.apply && '1' || '0' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: APPLY
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              -e APPLY \
+              backend node scripts/set-plan-features.ts

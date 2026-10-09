@@ -13,6 +13,11 @@ import {
   accountStanding,
   lastActiveBucket,
 } from '../common/abuse/trust-score.js';
+import {
+  BUSINESS_PROFILE_LIMIT,
+  canPersonalizeProfile,
+  PROFILE_LIMIT,
+} from '../common/constants/profile-personalization.constants.js';
 import { AppException } from '../common/errors/app.exception.js';
 import {
   isBlockedEitherWay,
@@ -160,6 +165,11 @@ export class ProfilesService {
       privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
       isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
+      // The chosen colour shows only while the plan that includes it is
+      // active; the choice itself stays stored.
+      accentColor: canPersonalizeProfile(profile.verificationLevel)
+        ? profile.accentColor
+        : null,
       identityVerified: !!user?.identityVerifiedAt,
       emailConfirmed: !!user?.emailVerified,
       joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
@@ -263,6 +273,13 @@ export class ProfilesService {
       throw AppException.NotFound(
         ErrorCode.PROFILE_NOT_FOUND,
         'Profile not found',
+      );
+    }
+
+    if (dto.accentColor && !canPersonalizeProfile(profile.verificationLevel)) {
+      throw AppException.Forbidden(
+        ErrorCode.FORBIDDEN_ACCESS,
+        'Choosing a Profile colour needs the Elite Creator or Business plan',
       );
     }
 
@@ -575,15 +592,24 @@ export class ProfilesService {
     }));
   }
 
-  // Create an additional profile under the authenticated user identity (max 5 per identity).
+  // Create an additional profile under the authenticated user identity:
+  // up to 5 per identity, 10 when one of its Profiles is on the Business plan.
   async createProfile(userId: string, dto: CreateProfileDto) {
     const profileCount = await this.prisma.profile.count({
       where: { userId },
     });
-    if (profileCount >= 5) {
+    // The plan is only looked up when it can change the answer.
+    const onBusinessPlan =
+      profileCount >= PROFILE_LIMIT &&
+      !!(await this.prisma.profile.findFirst({
+        where: { userId, verificationLevel: 'BUSINESS' },
+        select: { id: true },
+      }));
+    const limit = onBusinessPlan ? BUSINESS_PROFILE_LIMIT : PROFILE_LIMIT;
+    if (profileCount >= limit) {
       throw AppException.BadRequest(
         ErrorCode.INVALID_INPUT,
-        'Maximum limit of 5 profiles per user identity reached',
+        `Maximum limit of ${limit} profiles per user identity reached`,
       );
     }
 

@@ -17,7 +17,6 @@ import {
   hidesBottomNav,
   hidesTopNav,
   isEditsPath,
-  isMapPath,
   isViewportLockedShell,
 } from './contentShell';
 
@@ -41,11 +40,10 @@ export default function LayoutWrapper({
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isFramesRoute = shell === 'vertical';
   const isEditsRoute = isEditsPath(location.pathname);
-  const isMapRoute = isMapPath(location.pathname);
   const hideTopNavRoute = hidesTopNav(shell);
   const hideBottomNavRoute = hidesBottomNav(shell);
   const isViewportLocked = isViewportLockedShell(shell);
-  // Create shell keeps Sidebar on md+; edits studio does not
+  // The edits studio keeps the narrow rail of icons at every width
   const isCreateComposer =
     shell === 'create' && location.pathname.startsWith('/create');
 
@@ -60,6 +58,10 @@ export default function LayoutWrapper({
     '/explore',
     '/guidelines',
   ];
+  // Inside a conversation the phone shows the conversation alone: no top
+  // bar and no bottom bar, so the message field sits at the bottom.
+  const isConversationRoute = location.pathname.includes('/direct/inbox/t/');
+
   const isMarketingRoute = marketingRoutes.some(
     (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
   );
@@ -86,8 +88,7 @@ export default function LayoutWrapper({
 
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
 
-  const showAppSidebar = shouldShowNav && !isEditsRoute && !isMapRoute;
-  const mainHasSidebarPad = showAppSidebar;
+  const showAppSidebar = shouldShowNav;
 
   useLayoutEffect(() => {
     if (!isViewportLocked) {
@@ -136,25 +137,28 @@ export default function LayoutWrapper({
 
       <BrandAmbientBackground />
 
-      {shouldShowNav &&
-        !location.pathname.includes('/direct/inbox/t/') &&
-        !hideTopNavRoute && <TopNav />}
+      {shouldShowNav && !isConversationRoute && !hideTopNavRoute && <TopNav />}
 
       {shouldShowNav && <EmailVerificationBanner immersive={hideTopNavRoute} />}
 
       {shouldShowNav && (
         <>
-          {showAppSidebar && <Sidebar />}
-          {!hideBottomNavRoute && <BottomNav />}
+          {showAppSidebar && <Sidebar compact={isEditsRoute} />}
+          {!hideBottomNavRoute && !isConversationRoute && <BottomNav />}
         </>
       )}
 
       <main
         id="main-content"
         className={`flex-1 min-h-0 w-full flex flex-col ${
-          mainHasSidebarPad ? 'md:pl-17 xl:pl-65' : ''
+          showAppSidebar
+            ? isEditsRoute
+              ? 'md:pl-17'
+              : 'md:pl-17 xl:pl-65'
+            : ''
         } ${
           shouldShowNav &&
+          !isConversationRoute &&
           (isFramesRoute || location.pathname.startsWith('/direct'))
             ? 'max-md:pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))]'
             : ''
@@ -162,17 +166,15 @@ export default function LayoutWrapper({
         data-content-shell={shell}
         data-create-composer={isCreateComposer ? 'true' : undefined}
       >
-        {shouldShowNav &&
-          !location.pathname.includes('/direct/inbox/t/') &&
-          !hideTopNavRoute && (
-            <div
-              className="md:hidden shrink-0"
-              style={{
-                height:
-                  'calc(var(--nav-top-height) + env(safe-area-inset-top, 0px))',
-              }}
-            />
-          )}
+        {shouldShowNav && !isConversationRoute && !hideTopNavRoute && (
+          <div
+            className="md:hidden shrink-0"
+            style={{
+              height:
+                'calc(var(--nav-top-height) + env(safe-area-inset-top, 0px))',
+            }}
+          />
+        )}
 
         <div
           className={`w-full flex flex-col flex-1 min-h-0 ${

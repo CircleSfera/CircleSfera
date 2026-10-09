@@ -82,6 +82,7 @@ export default function ContentComposerPage() {
     handleFileSelect,
     handleFilterSave,
     handleRemoveFile,
+    handleMoveFile,
     handleSubmit,
     reset,
     generateAltTextForIndex,
@@ -211,6 +212,7 @@ export default function ContentComposerPage() {
       currentEditIndex={currentEditIndex}
       setCurrentEditIndex={setCurrentEditIndex}
       initialEditorTab={editorTab}
+      mode={mode}
       showFrameTrim={showFrameTrim}
       frameSourceDurationSec={frameSourceDurationSec}
       onFrameTrimConfirm={handleFrameTrimConfirm}
@@ -245,6 +247,7 @@ export default function ContentComposerPage() {
         <SEO title={documentTitle} noIndex />
         <ComposerChrome size="fit">
           <SubScreenRouter
+            mode={mode}
             subScreen={subScreen}
             setSubScreen={setSubScreen}
             mediaFiles={mediaFiles}
@@ -370,6 +373,7 @@ export default function ContentComposerPage() {
                       : undefined
                   }
                   handleRemoveFile={handleRemoveFile}
+                  onMoveFile={handleMoveFile}
                   fileInputRef={fileInputRef}
                   allowModeSwitch={!modeLockedFromEntry}
                 />

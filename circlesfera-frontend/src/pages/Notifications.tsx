@@ -2,12 +2,12 @@ import { useQuery } from '@tanstack/react-query';
 import {
   AtSign,
   Bell,
+  ChevronRight,
   Coins,
   Heart,
   MessageCircle,
   Rocket,
   Shield,
-  Star,
   UserPlus,
 } from 'lucide-react';
 import { useEffect } from 'react';
@@ -153,30 +153,24 @@ export default function Notifications() {
       case 'LIKE':
       case 'COMMENT_LIKE':
         return {
-          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-          boxShadow: '0 2px 8px rgba(239,68,68,0.5)',
+          background: 'var(--brand-secondary)',
         };
       case 'FOLLOW':
       case 'FOLLOW_ACCEPTED':
         return {
-          background: 'linear-gradient(135deg, #405de6, #3b82f6)',
-          boxShadow: '0 2px 8px rgba(64,93,230,0.5)',
+          background: 'var(--brand-blue)',
         };
       case 'FOLLOW_REQUEST':
         return {
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-          boxShadow: '0 2px 8px rgba(99,102,241,0.5)',
+          background: 'var(--brand-blue)',
         };
       case 'COMMENT':
         return {
-          background: 'linear-gradient(135deg, #884cff, #a855f7)',
-          boxShadow: '0 2px 8px rgba(136,76,255,0.5)',
+          background: 'var(--brand-primary)',
         };
       case 'MENTION':
         return {
-          background: 'linear-gradient(135deg, #ff5757, #f59e0b)',
-          color: 'black',
-          boxShadow: '0 2px 8px rgba(255,87,87,0.5)',
+          background: 'var(--brand-primary)',
         };
       case 'PROMOTION_SUCCESS':
         return {
@@ -262,7 +256,7 @@ export default function Notifications() {
         </h1>
       </div>
 
-      <div className="flex flex-col px-2 pt-1">
+      <div className="flex flex-col gap-2 px-2 pt-1">
         <PendingFollowRequests />
         {notifs.length === 0 ? (
           <div className="mt-10 px-4">
@@ -303,7 +297,11 @@ export default function Notifications() {
               <div className="relative shrink-0 ml-2">
                 <Link
                   to={`/${notif.sender?.username}`}
-                  className="block transition-transform active:scale-95"
+                  className="block p-0.5 transition-transform active:scale-95"
+                  aria-label={t('common.view_profile', {
+                    username:
+                      notif.sender?.username || t('notifications.unknown_user'),
+                  })}
                 >
                   <UserAvatar
                     src={notif.sender?.avatar || ''}
@@ -312,10 +310,10 @@ export default function Notifications() {
                     alt={
                       notif.sender?.username || t('notifications.unknown_user')
                     }
-                    size="compact"
+                    size="md"
                   />
                   <div
-                    className="absolute -right-1 -bottom-1 w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-white"
+                    className="absolute -right-0.5 -bottom-0.5 w-5 h-5 rounded-full border-2 border-black flex items-center justify-center text-white"
                     style={getIconStyle(notif.type)}
                   >
                     {getIcon(notif.type)}
@@ -374,33 +372,19 @@ export default function Notifications() {
                       : t('notifications.appeal_cta')}
                   </Link>
                 )}
-                <p
-                  className="text-[11px] font-semibold mt-1"
-                  style={{ color: 'rgba(255,255,255,0.28)' }}
-                >
+                <p className="text-xs font-medium mt-1 text-white/45">
                   {getRelativeTime(String(notif.createdAt))}
                 </p>
               </div>
 
-              {/* Post thumbnail */}
+              {/* The way to the post */}
               {notif.postId && notif.type !== 'MODERATION' && (
                 <Link
                   to={`/p/${notif.postId}`}
-                  className="shrink-0 opacity-70 group-hover:opacity-100 group-hover:scale-105 transition-all duration-200"
+                  aria-label={t('notifications.view_post')}
+                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-white/5 border border-white/8 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
                 >
-                  <div
-                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
-                    style={{
-                      background:
-                        'linear-gradient(135deg, rgba(136, 76, 255,0.15), rgba(64,93,230,0.1))',
-                      border: '1px solid rgba(255,255,255,0.08)',
-                    }}
-                  >
-                    <Star
-                      size={16}
-                      style={{ color: 'rgba(255,255,255,0.25)' }}
-                    />
-                  </div>
+                  <ChevronRight size={18} aria-hidden="true" />
                 </Link>
               )}
               {notif.type === 'MODERATION' && notif.postId && (
@@ -410,7 +394,7 @@ export default function Notifications() {
                   aria-label={t('notifications.appeal_cta')}
                 >
                   <div
-                    className="w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center"
+                    className="w-11 h-11 rounded-full overflow-hidden flex items-center justify-center"
                     style={{
                       background:
                         'linear-gradient(135deg, rgba(249,115,22,0.2), rgba(234,88,12,0.15))',

@@ -17,7 +17,7 @@ export default function CreatorShell({
 }: CreatorShellProps) {
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const mainRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
   const activeItem = findCreatorNavItem(activeTab);
   const title = activeItem ? t(activeItem.labelKey) : t('creator.title');
 
@@ -53,14 +53,14 @@ export default function CreatorShell({
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-8">
           <CreatorSidebar />
-          <main
+          <div
             ref={mainRef}
             tabIndex={-1}
             id="creator-main"
             className="flex-1 min-w-0 outline-none"
           >
             {children}
-          </main>
+          </div>
         </div>
       </div>
     </div>

@@ -91,11 +91,11 @@ export function PollStickerPreview({
         <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-primary text-white shrink-0">
           <BarChart2 size={13} strokeWidth={2.5} />
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">
+        <span className="text-xs font-bold uppercase tracking-wider text-white/80">
           {label}
         </span>
       </div>
-      <p className="text-[13px] font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
+      <p className="text-sm font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
         {question}
       </p>
       <div className="space-y-1.5">
@@ -105,9 +105,7 @@ export function PollStickerPreview({
             className="w-full rounded-xl border border-white/15 bg-[#2a2a30] px-3 py-2 text-xs font-semibold text-white flex items-center justify-between gap-2"
           >
             <span className="break-words whitespace-normal min-w-0">{opt}</span>
-            <span className="text-[10px] text-white/35 font-bold shrink-0">
-              —
-            </span>
+            <span className="text-xs text-white/35 font-bold shrink-0">—</span>
           </div>
         ))}
       </div>
@@ -136,14 +134,14 @@ export function QnaStickerPreview({
         <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-primary text-white shrink-0">
           <HelpCircle size={13} strokeWidth={2.5} />
         </span>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-white/85">
+        <span className="text-xs font-bold uppercase tracking-wider text-white/85">
           {label}
         </span>
       </div>
-      <p className="text-[13px] font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
+      <p className="text-sm font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
         {prompt}
       </p>
-      <div className="rounded-xl border border-white/15 bg-[#1a1028] px-3 py-2.5 text-[11px] text-white/55 font-medium">
+      <div className="rounded-xl border border-white/15 bg-[#1a1028] px-3 py-2.5 text-xs text-white/55 font-medium">
         {hint}
       </div>
     </div>

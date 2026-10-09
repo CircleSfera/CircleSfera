@@ -28,6 +28,8 @@ interface PhotoEditorProps {
   initialTab?: PhotoEditorTab;
   /** When set, video trim length is clamped to [min, max] seconds. */
   constrainDuration?: { min: number; max: number };
+  /** The shape of the small previews: that of what is being created. */
+  thumbnailRatio?: string;
 }
 
 /**
@@ -44,6 +46,7 @@ export default function PhotoEditor({
   onApplyToAll,
   initialTab,
   constrainDuration,
+  thumbnailRatio,
 }: PhotoEditorProps) {
   const { t } = useTranslation();
   const editor = usePhotoEditor({
@@ -53,11 +56,12 @@ export default function PhotoEditor({
     initialState,
     initialTab,
     constrainDuration,
+    thumbnailRatio,
   });
   const { activeTab, isVideo } = editor;
 
   return (
-    <div className="flex flex-col h-full bg-black text-white">
+    <div className="flex flex-col h-full bg-black md:bg-transparent text-white">
       <EditorHeader
         surface="overlay"
         leading="close"

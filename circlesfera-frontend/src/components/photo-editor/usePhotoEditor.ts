@@ -35,6 +35,8 @@ interface UsePhotoEditorOptions {
   initialState?: any;
   initialTab?: PhotoEditorTab;
   constrainDuration?: { min: number; max: number };
+  /** The shape of the small previews, as a CSS aspect ratio. */
+  thumbnailRatio?: string;
 }
 
 /** Everything the photo editor remembers while it is open, and how it saves. */
@@ -45,6 +47,7 @@ export function usePhotoEditor({
   initialState,
   initialTab,
   constrainDuration,
+  thumbnailRatio = '4 / 5',
 }: UsePhotoEditorOptions) {
   const isVideo = image.type.startsWith('video');
 
@@ -106,19 +109,24 @@ export function usePhotoEditor({
   const stageRef = useRef<any>(null);
   const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
 
+  // The size of the preview image on screen, which the drawing layer copies.
+  // It is known once the image has loaded, and the image is mounted again
+  // when leaving the crop tab, so it is measured then too.
+  const measureImage = useCallback(() => {
+    if (imageRef.current) {
+      setImageDims({
+        width: imageRef.current.clientWidth,
+        height: imageRef.current.clientHeight,
+      });
+    }
+  }, []);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: the tab decides whether the image is on screen
   useEffect(() => {
-    const updateDims = () => {
-      if (imageRef.current) {
-        setImageDims({
-          width: imageRef.current.clientWidth,
-          height: imageRef.current.clientHeight,
-        });
-      }
-    };
-    updateDims();
-    window.addEventListener('resize', updateDims);
-    return () => window.removeEventListener('resize', updateDims);
-  }, []); // Re-calculate when tabs change
+    measureImage();
+    window.addEventListener('resize', measureImage);
+    return () => window.removeEventListener('resize', measureImage);
+  }, [activeTab, measureImage]);
 
   const onCropComplete = useCallback(
     (_croppedArea: any, croppedAreaPixels: any) => {
@@ -231,9 +239,10 @@ export function usePhotoEditor({
     if (stageRef.current) {
       // Export at double resolution for crispness, but this depends on original image
       // Let's just do pixelRatio: 2 for now, or match it to the ratio of naturalWidth / displayWidth
-      const pixelRatio = imageRef.current
-        ? imageRef.current.naturalWidth / imageDims.width
-        : 2;
+      const pixelRatio =
+        imageRef.current && imageDims.width > 0
+          ? imageRef.current.naturalWidth / imageDims.width
+          : 2;
       overlayDataUrl = stageRef.current.toDataURL({ pixelRatio });
     }
     let nextVideoData: VideoData | undefined = isVideo ? videoData : undefined;
@@ -296,8 +305,10 @@ export function usePhotoEditor({
     videoRef,
     stageRef,
     imageDims,
+    measureImage,
     previewUrl,
     thumbnailUrl,
+    thumbnailRatio,
     computedStyle,
     filterString,
     handleSave,

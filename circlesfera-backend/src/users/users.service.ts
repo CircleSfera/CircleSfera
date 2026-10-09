@@ -1,5 +1,6 @@
 import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
@@ -11,6 +12,7 @@ import {
   Visibility,
 } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
@@ -28,6 +30,7 @@ export class UsersService {
     @InjectQueue('users-processing') private readonly usersQueue: Queue,
     @Inject(OutboxService) private readonly outboxService: OutboxService,
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -656,6 +659,8 @@ export class UsersService {
           where: { id: profile.id },
           data: { verificationLevel: targetVerificationLevel },
         });
+        // The public profile is cached with what the old level allowed.
+        await this.cacheManager.del(`profile:${profile.username}`);
         this.logger.log(
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );

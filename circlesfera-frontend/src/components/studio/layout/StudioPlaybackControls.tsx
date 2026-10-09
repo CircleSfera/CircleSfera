@@ -63,7 +63,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => setPlayhead(0)}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('studio.playback.start')}
         >
           <SkipBack size={18} />
@@ -72,7 +72,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => stepFrames(-1)}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('studio.playback.frame_back')}
         >
           <ChevronLeft size={18} />
@@ -96,7 +96,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => stepFrames(1)}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('studio.playback.frame_forward')}
         >
           <ChevronRight size={18} />
@@ -105,7 +105,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={() => project && setPlayhead(project.duration)}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('studio.playback.end')}
         >
           <SkipForward size={18} />
@@ -116,7 +116,7 @@ export default function StudioPlaybackControls() {
         <button
           type="button"
           onClick={toggleFullscreen}
-          className="min-h-11 min-w-11 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+          className="min-h-11 min-w-11 flex items-center justify-center text-white/30 hover:text-white hover:bg-white/10 rounded-full transition-colors"
           aria-label={t('studio.playback.fullscreen')}
         >
           <Maximize size={16} />
