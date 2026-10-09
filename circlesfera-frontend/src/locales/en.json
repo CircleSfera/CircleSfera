@@ -4488,6 +4488,13 @@
     "uploading": "Uploading voice note..."
   },
   "helpCentre": {
+    "feedback": {
+      "question": "Was this article useful?",
+      "yes": "Yes",
+      "no": "No",
+      "thanks": "Thanks for telling us.",
+      "error": "Your answer could not be sent. Try again."
+    },
     "topic_general": "General",
     "badge": "Help centre",
     "title": "How can we help?",

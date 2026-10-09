@@ -88,4 +88,12 @@ export class HelpdeskHelpCentreService {
       updatedAt: article.updatedAt,
     };
   }
+
+  // A reader says whether a published article helped. Only the count is
+  // kept: nothing about who answered.
+  async feedback(slug: string, useful: boolean): Promise<void> {
+    if (!(await this.store.countArticleFeedback(slug, useful))) {
+      throw new NotFoundException('Article not found');
+    }
+  }
 }

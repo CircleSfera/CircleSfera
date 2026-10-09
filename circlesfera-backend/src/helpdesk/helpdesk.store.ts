@@ -889,12 +889,18 @@ export class HelpdeskStore {
    * there is no such published article.
    */
   async countArticleFeedback(slug: string, useful: boolean): Promise<boolean> {
-    const { count } = await this.prisma.helpdeskArticle.updateMany({
-      where: { slug, organizationId: this.organizationId, status: 'PUBLISHED' },
-      data: useful
-        ? { usefulYes: { increment: 1 } }
-        : { usefulNo: { increment: 1 } },
-    });
+    // Written as a statement of its own so that the date the article was
+    // last changed stays what it was: an answer is not a change to it.
+    const organizationId = this.organizationId;
+    const count = useful
+      ? await this.prisma.$executeRaw`
+          UPDATE "helpdesk_articles" SET "usefulYes" = "usefulYes" + 1
+          WHERE "slug" = ${slug} AND "organizationId" = ${organizationId}
+            AND "status" = 'PUBLISHED'`
+      : await this.prisma.$executeRaw`
+          UPDATE "helpdesk_articles" SET "usefulNo" = "usefulNo" + 1
+          WHERE "slug" = ${slug} AND "organizationId" = ${organizationId}
+            AND "status" = 'PUBLISHED'`;
     return count === 1;
   }
 }

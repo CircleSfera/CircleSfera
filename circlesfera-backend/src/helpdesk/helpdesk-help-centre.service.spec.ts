@@ -5,6 +5,7 @@ describe('HelpdeskHelpCentreService', () => {
   const store = {
     organizationLocales: vi.fn(),
     publishedArticles: vi.fn(),
+    countArticleFeedback: vi.fn(),
     publishedArticle: vi.fn(),
   };
   let service: HelpdeskHelpCentreService;
@@ -191,6 +192,30 @@ describe('HelpdeskHelpCentreService', () => {
       texts: [],
     });
     await expect(service.article('x', 'es')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
+
+  it.each([true, false])(
+    'adds one to the count of a published article when a reader says useful: %s',
+    async (useful) => {
+      store.countArticleFeedback.mockResolvedValue(true);
+
+      await expect(
+        service.feedback('refunds', useful),
+      ).resolves.toBeUndefined();
+
+      expect(store.countArticleFeedback).toHaveBeenCalledWith(
+        'refunds',
+        useful,
+      );
+    },
+  );
+
+  it('answers 404 to an answer about a draft or about nothing', async () => {
+    store.countArticleFeedback.mockResolvedValue(false);
+
+    await expect(service.feedback('draft', true)).rejects.toMatchObject({
       status: 404,
     });
   });
