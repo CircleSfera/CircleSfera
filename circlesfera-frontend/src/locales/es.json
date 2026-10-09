@@ -483,9 +483,61 @@
       "update_error": "No se pudieron actualizar los ajustes",
       "updated": "Ajustes actualizados"
     },
+    "signIns": {
+      "title": "Cómo entra cada perfil",
+      "description": "Un perfil puede entrar con el mismo correo y contraseña que otro, o tener los suyos. La identidad, los pagos y los cobros son los mismos para todos tus perfiles, entren como entren.",
+      "shared": "Comparte el inicio de sesión",
+      "own": "Tiene su propio inicio de sesión",
+      "unverified": "Correo sin verificar",
+      "give_own": "Correo y contraseña propios",
+      "share_again": "Volver a compartir",
+      "load_failed": "No se ha podido cargar cómo entran tus perfiles.",
+      "current_password": "Tu contraseña actual",
+      "current_password_hint": "La contraseña con la que has entrado. La pedimos para confirmar que eres tú.",
+      "current_password_required": "Escribe tu contraseña actual.",
+      "own_form": {
+        "title": "Correo y contraseña propios para @{{username}}",
+        "effect_new": "Este perfil entrará con el correo y la contraseña nuevos.",
+        "effect_others": "Tus otros perfiles siguen entrando como hasta ahora.",
+        "effect_notices": "Los avisos de este perfil irán al correo nuevo cuando lo verifiques.",
+        "effect_security": "La verificación en dos pasos y las passkeys se configuran de nuevo para este inicio de sesión.",
+        "email": "Correo nuevo",
+        "password": "Contraseña nueva",
+        "email_invalid": "Escribe un correo válido.",
+        "password_short": "La contraseña debe tener al menos 8 caracteres.",
+        "submit": "Crear inicio de sesión",
+        "done": "@{{username}} ya tiene su propio inicio de sesión. Revisa el correo nuevo para verificarlo."
+      },
+      "share_form": {
+        "title": "Volver a compartir el inicio de sesión de @{{username}}",
+        "effect_stops": "El correo {{email}} y su contraseña dejarán de servir para entrar.",
+        "effect_sessions": "Se cerrarán las sesiones abiertas con ese correo.",
+        "effect_security": "Se eliminarán sus passkeys y su verificación en dos pasos.",
+        "target": "Entrará con",
+        "submit": "Volver a compartir",
+        "done": "@{{username}} vuelve a compartir el inicio de sesión."
+      },
+      "create": {
+        "legend": "Cómo entrará este perfil",
+        "share": "Con el mismo correo y contraseña",
+        "share_desc": "Entras una vez y cambias de perfil cuando quieras.",
+        "own": "Con su propio correo y contraseña",
+        "own_desc": "Para entrar a este perfil por separado.",
+        "own_failed": "El perfil se ha creado compartiendo el inicio de sesión. Puedes darle el suyo desde esta pantalla."
+      },
+      "errors": {
+        "SIGN_IN_EMAIL_TAKEN": "Ese correo ya se usa para entrar. Elige otro.",
+        "SIGN_IN_PROOF_INVALID": "La contraseña no es correcta.",
+        "SIGN_IN_PROOF_REQUIRED": "Escribe tu contraseña actual.",
+        "SIGN_IN_ALREADY_OWN": "Este perfil ya tiene su propio inicio de sesión.",
+        "SIGN_IN_NOT_FOUND": "No hemos encontrado ese perfil o ese inicio de sesión.",
+        "SIGN_IN_LIMIT_REACHED": "Acabas de crear un inicio de sesión. Espera un rato antes de crear otro.",
+        "generic": "No se ha podido guardar el cambio. Inténtalo de nuevo."
+      }
+    },
     "profiles": {
       "title": "Tus perfiles",
-      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. El inicio de sesión, la seguridad y el plan son compartidos.",
+      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. Cada perfil comparte el inicio de sesión o tiene el suyo; el plan es compartido.",
       "current": "Actual",
       "suspended": "Suspendido",
       "banned": "Bloqueado",

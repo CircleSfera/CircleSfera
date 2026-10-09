@@ -483,9 +483,61 @@
       "update_error": "Failed to update settings",
       "updated": "Settings updated"
     },
+    "signIns": {
+      "title": "How each profile signs in",
+      "description": "A profile can sign in with the same email and password as another, or have its own. Your identity, payments and payouts are the same for all your profiles, however each one signs in.",
+      "shared": "Shares a sign-in",
+      "own": "Has its own sign-in",
+      "unverified": "Email not verified",
+      "give_own": "Own email and password",
+      "share_again": "Share a sign-in again",
+      "load_failed": "We could not load how your profiles sign in.",
+      "current_password": "Your current password",
+      "current_password_hint": "The password you signed in with. We ask for it to confirm it is you.",
+      "current_password_required": "Enter your current password.",
+      "own_form": {
+        "title": "Own email and password for @{{username}}",
+        "effect_new": "This profile will sign in with the new email and password.",
+        "effect_others": "Your other profiles keep signing in as they do now.",
+        "effect_notices": "Notices about this profile will go to the new email once you verify it.",
+        "effect_security": "Two-step verification and passkeys are set up again for this sign-in.",
+        "email": "New email",
+        "password": "New password",
+        "email_invalid": "Enter a valid email.",
+        "password_short": "The password must be at least 8 characters.",
+        "submit": "Create sign-in",
+        "done": "@{{username}} now has its own sign-in. Check the new email to verify it."
+      },
+      "share_form": {
+        "title": "Share a sign-in again for @{{username}}",
+        "effect_stops": "The email {{email}} and its password will stop working to sign in.",
+        "effect_sessions": "Sessions opened with that email will be closed.",
+        "effect_security": "Its passkeys and its two-step verification will be removed.",
+        "target": "It will sign in with",
+        "submit": "Share again",
+        "done": "@{{username}} shares a sign-in again."
+      },
+      "create": {
+        "legend": "How this profile will sign in",
+        "share": "With the same email and password",
+        "share_desc": "You sign in once and switch profiles whenever you want.",
+        "own": "With its own email and password",
+        "own_desc": "To sign in to this profile separately.",
+        "own_failed": "The profile was created sharing the sign-in. You can give it its own from this screen."
+      },
+      "errors": {
+        "SIGN_IN_EMAIL_TAKEN": "That email is already used to sign in. Choose another.",
+        "SIGN_IN_PROOF_INVALID": "The password is not correct.",
+        "SIGN_IN_PROOF_REQUIRED": "Enter your current password.",
+        "SIGN_IN_ALREADY_OWN": "This profile already has its own sign-in.",
+        "SIGN_IN_NOT_FOUND": "We could not find that profile or that sign-in.",
+        "SIGN_IN_LIMIT_REACHED": "You have just created a sign-in. Wait a while before creating another.",
+        "generic": "The change could not be saved. Try again."
+      }
+    },
     "profiles": {
       "title": "Your profiles",
-      "description": "One account can have up to {{max}} profiles, each with its own posts, followers and messages. Your login, security and plan are shared.",
+      "description": "An account can have up to {{max}} profiles, each with its own posts, followers and messages. Each profile shares a sign-in or has its own; the plan is shared.",
       "current": "Current",
       "suspended": "Suspended",
       "banned": "Banned",
