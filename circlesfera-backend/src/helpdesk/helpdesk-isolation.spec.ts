@@ -74,6 +74,7 @@ describe('Help Desk: isolation between two organizations', () => {
       inboundEmails: db.inboundEmails.filter(
         (e) => e.organizationId === 'org-a',
       ),
+      ratings: db.ratings.filter((r) => r.organizationId === 'org-a'),
     });
   const idsOf = (rows: { id?: unknown }[]) => rows.map((row) => row.id);
   const ofOrgA = (id: unknown) =>
@@ -286,6 +287,14 @@ describe('Help Desk: isolation between two organizations', () => {
         ),
     }),
 
+    rateMyTicket: async () => ({
+      leaked: await tickets
+        .rateMyTicket('shared', a.shared, { score: 'BAD' })
+        .then(
+          () => true,
+          (error) => error.status !== 404,
+        ),
+    }),
     // An answer by email for a ticket of the first organization, arriving
     // at the second: there is no such ticket there.
     replyByEmail: async () => ({

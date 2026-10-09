@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { MarketingCTA, MarketingPage } from '../components/marketing';
+import { RequestRating } from '../components/support/RequestRating';
 import { RequestStatus } from '../components/support/RequestStatus';
 import { Textarea } from '../components/ui/Textarea';
 import {
@@ -144,6 +145,9 @@ export function SupportRequest() {
                 );
               })}
             </ol>
+
+            {/* Remounted with the request, so it starts from its rating. */}
+            <RequestRating key={request.id} request={request} />
 
             {request.status === 'CLOSED' && (
               <p className="mt-6 rounded-2xl glass-panel p-4 text-base text-white/70">

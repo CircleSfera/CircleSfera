@@ -24,6 +24,7 @@ export class InMemoryHelpdeskDb {
   savedReplies: Row[] = [];
   inboundEmails: Row[] = [];
   serviceTargets: Row[] = [];
+  ratings: Row[] = [];
   private sequence = 0;
   private clock = Date.parse('2026-01-01T00:00:00Z');
 
@@ -398,6 +399,30 @@ export class InMemoryHelpdeskDb {
         this.matches(t, where.organizationId_serviceLevel as Where),
       );
       return found ? { ...found } : null;
+    },
+  };
+
+  readonly helpdeskRating = {
+    findFirst: async ({ where }: { where?: Where }) => {
+      const found = this.ratings.find((r) => this.matches(r, where));
+      return found ? { ...found } : null;
+    },
+
+    upsert: async (args: { where: Where; create: Row; update: Row }) => {
+      const found = this.ratings.find((r) => this.matches(r, args.where));
+      if (found) {
+        Object.assign(found, args.update, { updatedAt: this.now() });
+        return { ...found };
+      }
+      const moment = this.now();
+      const rating: Row = {
+        id: this.next('g'),
+        createdAt: moment,
+        updatedAt: moment,
+        ...args.create,
+      };
+      this.ratings.push(rating);
+      return { ...rating };
     },
   };
 }

@@ -2651,6 +2651,11 @@
       "assignee_former": "Former agent",
       "assignee_me_named": "{{name}} (you)",
       "assign_to": "Assign to",
+      "rating": {
+        "label": "Requester's rating",
+        "GOOD": "Good",
+        "BAD": "Bad"
+      },
       "target": {
         "label": "Target",
         "filter": "Target",
@@ -3578,6 +3583,17 @@
       "closed_notice": "This request is closed. If you write, a new one opens that continues it.",
       "write_again": "Write again about this",
       "not_found": "We could not find this request.",
+      "rating": {
+        "question": "Did the answer help?",
+        "GOOD": "Yes",
+        "BAD": "No",
+        "comment_label": "Anything else you want to tell us? (optional)",
+        "send": "Send rating",
+        "change": "Change rating",
+        "thanks": "Thank you for your rating.",
+        "yours": "Your rating of the answer: {{score}}",
+        "error": "Your rating could not be saved. Try again."
+      },
       "status": {
         "WAITING": "Waiting for your reply",
         "OPEN": "Open",

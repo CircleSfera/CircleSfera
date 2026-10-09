@@ -336,6 +336,10 @@ describe('HelpdeskStore', () => {
       expect(query.where).toEqual({ organizationId: 'org-1', userId: 'u-1' });
       // Internal notes are left out by the query itself.
       expect(query.select.messages.where).toEqual({ visibility: 'PUBLIC' });
+      // What they thought of the answer is theirs too.
+      expect(query.select.rating).toEqual({
+        select: { score: true, comment: true, updatedAt: true },
+      });
       // Neither who of the team wrote, nor the old fields, nor the case with
       // another team.
       expect(Object.keys(query.select.messages.select)).toEqual([

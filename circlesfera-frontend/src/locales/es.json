@@ -2651,6 +2651,11 @@
       "assignee_former": "Antiguo agente",
       "assignee_me_named": "{{name}} (tú)",
       "assign_to": "Asignar a",
+      "rating": {
+        "label": "Valoración de la persona",
+        "GOOD": "Buena",
+        "BAD": "Mala"
+      },
       "target": {
         "label": "Objetivo",
         "filter": "Objetivo",
@@ -3578,6 +3583,17 @@
       "closed_notice": "Esta solicitud está cerrada. Si escribes, se abre una nueva que continúa esta.",
       "write_again": "Escribir de nuevo sobre esto",
       "not_found": "No encontramos esta solicitud.",
+      "rating": {
+        "question": "¿Te ha servido la respuesta?",
+        "GOOD": "Sí",
+        "BAD": "No",
+        "comment_label": "¿Quieres contarnos algo más? (opcional)",
+        "send": "Enviar valoración",
+        "change": "Cambiar valoración",
+        "thanks": "Gracias por tu valoración.",
+        "yours": "Tu valoración de la respuesta: {{score}}",
+        "error": "No se ha podido guardar tu valoración. Inténtalo de nuevo."
+      },
       "status": {
         "WAITING": "Esperando tu respuesta",
         "OPEN": "Abierta",

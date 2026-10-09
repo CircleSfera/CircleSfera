@@ -15,6 +15,7 @@ import type {
 import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import type { AgentMessageDto } from './dto/agent-message.dto.js';
 import type { CreateTicketDto } from './dto/create-ticket.dto.js';
+import type { RateTicketDto } from './dto/rate-ticket.dto.js';
 import type { RequesterMessageDto } from './dto/requester-message.dto.js';
 import { HelpdeskStore, type TicketEventInput } from './helpdesk.store.js';
 import {
@@ -271,9 +272,14 @@ export class HelpdeskTicketsService {
   // The requester's view of their ticket: its public messages only.
   async getMyTicket(requesterRef: string, id: string) {
     const ticket = await this.requesterTicketOrFail(id, requesterRef);
-    const messages = await this.store.messages(ticket.id, 'PUBLIC');
+    const [messages, rating] = await Promise.all([
+      this.store.messages(ticket.id, 'PUBLIC'),
+      this.store.rating(ticket.id),
+    ]);
     return {
       ...this.requesterView(ticket),
+      // What they thought of the answer, when they said.
+      rating,
       messages: messages.map((message) => ({
         id: message.id,
         // Who of the team answered is not told to the requester.
@@ -282,6 +288,19 @@ export class HelpdeskTicketsService {
         createdAt: message.createdAt,
       })),
     };
+  }
+
+  // The requester says whether the answer was good or bad. Only on their own
+  // ticket and only while it is solved: an open ticket has no answer to
+  // rate yet, and a closed one keeps the rating it has. Rating again
+  // replaces the rating.
+  async rateMyTicket(requesterRef: string, id: string, dto: RateTicketDto) {
+    const ticket = await this.requesterTicketOrFail(id, requesterRef);
+    if (ticket.status !== 'RESOLVED') {
+      throw new ConflictException('Only a solved request can be rated');
+    }
+    await this.store.rate(ticket.id, dto.score, dto.comment?.trim() || null);
+    return this.getMyTicket(requesterRef, id);
   }
 
   // The requester answers in their own ticket. A solved ticket opens again;
@@ -491,9 +510,10 @@ export class HelpdeskTicketsService {
   // the agent's view.
   async getTicket(id: string) {
     const ticket = await this.ticketOrFail(id);
-    const [messages, events, requesters, cases] = await Promise.all([
+    const [messages, events, rating, requesters, cases] = await Promise.all([
       this.store.messages(ticket.id),
       this.store.events(ticket.id),
+      this.store.rating(ticket.id),
       this.requesters.describe(ticket.userId ? [ticket.userId] : []),
       this.handover.cases(
         ticket.escalatedReportId ? [ticket.escalatedReportId] : [],
@@ -509,6 +529,8 @@ export class HelpdeskTicketsService {
       messages,
       // What changed and who changed it: for agents only.
       events,
+      // What the requester thought of the answer, when they said.
+      rating,
       // Who the agents named in the ticket are, by reference.
       agents: await this.agentNames([
         ticket.assignedAgentRef,
