@@ -325,13 +325,19 @@ export class CircleSferaTeamChannel implements TeamChannel {
 export class AdminAuditStaffActionLog implements StaffActionLog {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async record(agentRef: string, ticketId: string, details: string) {
+  async record(
+    agentRef: string,
+    targetId: string,
+    details: string,
+    target: 'ticket' | 'article' = 'ticket',
+  ) {
     await this.prisma.adminAuditLog.create({
       data: {
         adminId: agentRef,
         action: AdminAction.MANUAL_OVERRIDE,
-        targetType: 'support_ticket',
-        targetId: ticketId,
+        targetType:
+          target === 'article' ? 'helpdesk_article' : 'support_ticket',
+        targetId,
         details,
       },
     });

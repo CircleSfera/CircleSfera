@@ -129,8 +129,16 @@ export interface EmailInTrouble {
 }
 
 export interface StaffActionLog {
-  /** Records what an agent did to a ticket in the host's staff audit log. */
-  record(agentRef: string, ticketId: string, details: string): Promise<void>;
+  /**
+   * Records what someone of the staff did in the host's staff audit log:
+   * to a ticket, unless another thing is named.
+   */
+  record(
+    agentRef: string,
+    targetId: string,
+    details: string,
+    target?: 'ticket' | 'article',
+  ): Promise<void>;
 }
 
 export interface OrganizationScope {
