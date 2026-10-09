@@ -11,7 +11,6 @@ import SettingsSection from './SettingsSection';
 export default function NotificationsSettings() {
   const {
     isSupported,
-    hasServiceWorker,
     permission,
     isSubscribed,
     loading,
@@ -96,11 +95,6 @@ export default function NotificationsSettings() {
   };
 
   const nativeDisabled = permission === 'denied' || !isSupported;
-  const pwaStatus = !('serviceWorker' in navigator)
-    ? t('settings.notifications_tab.not_supported')
-    : hasServiceWorker
-      ? t('settings.notifications_tab.enabled')
-      : t('settings.notifications_tab.not_registered');
 
   return (
     <div className="max-w-xl space-y-5">
@@ -125,16 +119,21 @@ export default function NotificationsSettings() {
                     void toggleNativeAlerts();
                   }}
                   aria-label={t('settings.notifications_tab.native_alerts')}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-white/10 transition-colors focus:outline-none focus:ring-2 focus:ring-brand-primary/50 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    isSubscribed ? 'bg-brand-primary' : 'bg-white/10'
-                  }`}
+                  className="group/switch inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
                 >
+                  {/* The switch to look at, inside 44 px to touch. */}
                   <span
                     aria-hidden
-                    className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
-                      isSubscribed ? 'translate-x-5' : 'translate-x-0.5'
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full border border-white/10 transition-colors group-focus-visible/switch:ring-2 group-focus-visible/switch:ring-brand-primary/50 ${
+                      isSubscribed ? 'bg-brand-primary' : 'bg-white/10'
                     }`}
-                  />
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                        isSubscribed ? 'translate-x-5' : 'translate-x-0.5'
+                      }`}
+                    />
+                  </span>
                 </button>
               }
             >
@@ -187,20 +186,17 @@ export default function NotificationsSettings() {
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+          {/* Why notifications do or do not arrive: what the browser allows. */}
+          <div>
+            <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-3">
               <p className="text-xs text-white/40 mb-1">
                 {t('settings.notifications_tab.status')}
               </p>
-              <p className="text-sm font-medium text-white capitalize">
-                {permission}
+              <p className="text-sm font-medium text-white">
+                {t(`settings.notifications_tab.permission.${permission}`, {
+                  defaultValue: permission,
+                })}
               </p>
-            </div>
-            <div className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
-              <p className="text-xs text-white/40 mb-1">
-                {t('settings.notifications_tab.pwa_support')}
-              </p>
-              <p className="text-sm font-medium text-white">{pwaStatus}</p>
             </div>
           </div>
         </div>

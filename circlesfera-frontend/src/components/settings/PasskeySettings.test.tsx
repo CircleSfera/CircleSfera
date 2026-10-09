@@ -63,6 +63,27 @@ describe('PasskeySettings', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['is not a list', () => Promise.resolve({ data: { message: 'ok' } })],
+    ['cannot be read', () => Promise.reject(new Error('down'))],
+  ])(
+    'says the list could not be loaded when it %s, instead of "none", and does not offer to add one',
+    async (_case, answer) => {
+      vi.mocked(passkeyApi.listPasskeys).mockImplementation(answer as never);
+      const { i18n } = renderWithProviders(<PasskeySettings />);
+
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        i18n!.t('settings.passkey_settings.load_error'),
+      );
+      expect(
+        screen.queryByText(i18n!.t('settings.passkey_settings.empty')),
+      ).not.toBeInTheDocument();
+      for (const button of screen.getAllByRole('button')) {
+        expect(button).toBeDisabled();
+      }
+    },
+  );
+
   it('labels delete from the catalog when a key exists', async () => {
     vi.mocked(passkeyApi.listPasskeys).mockResolvedValue({
       data: [
@@ -201,9 +222,14 @@ describe('PasskeySettings', () => {
     vi.mocked(passkeyApi.listPasskeys).mockRejectedValue(new Error('down'));
     const { i18n } = renderWithProviders(<PasskeySettings />);
 
+    // The screen is there, and it does not claim to know how many there are.
+    await screen.findByRole('alert');
     expect(
-      await screen.findByText(i18n!.t('settings.passkey_settings.empty')),
+      screen.getByRole('heading', {
+        name: i18n!.t('settings.passkey_settings.title'),
+      }),
     ).toBeInTheDocument();
+    expect(screen.queryByText('0 / 5')).not.toBeInTheDocument();
   });
 
   it('shows how many passkeys the account has out of the limit', async () => {
