@@ -15,6 +15,7 @@ vi.mock('../../services/admin.service', () => ({
     assignSupportTicket: vi.fn(),
     getSupportAgents: vi.fn(),
     getSavedReplies: vi.fn(),
+    getSupportFigures: vi.fn(),
     createSavedReply: vi.fn(),
     updateSavedReply: vi.fn(),
     deleteSavedReply: vi.fn(),
@@ -936,6 +937,16 @@ describe('SupportTicketsTab', () => {
         return { i18n, selector };
       };
 
+      it('is offered the figures of the team', async () => {
+        const { i18n } = await openAsLead(null);
+
+        expect(
+          screen.getByRole('button', {
+            name: i18n.t('admin.support.figures.open'),
+          }),
+        ).toBeInTheDocument();
+      });
+
       it('gives a ticket to another agent, chosen by name', async () => {
         const { i18n, selector } = await openAsLead(null);
 
@@ -982,6 +993,15 @@ describe('SupportTicketsTab', () => {
           }),
         ).toBeInTheDocument();
       });
+    });
+
+    it('offers the figures to who leads the team and not to an agent', async () => {
+      const i18n = await open([ticket()]);
+      expect(
+        screen.queryByRole('button', {
+          name: i18n.t('admin.support.figures.open'),
+        }),
+      ).toBeNull();
     });
 
     it('does not offer an agent the choice of who gets a ticket, nor ask for the list of agents', async () => {

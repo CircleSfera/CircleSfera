@@ -5,6 +5,7 @@ import { HelpdeskScheduler } from './helpdesk.scheduler.js';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { HelpdeskAgentController } from './helpdesk-agent.controller.js';
 import { HelpdeskDataPort } from './helpdesk-data.port.js';
+import { HelpdeskFiguresService } from './helpdesk-figures.service.js';
 import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
 import { HelpdeskReplyAddress } from './helpdesk-reply-address.js';
 import { HelpdeskRequesterController } from './helpdesk-requester.controller.js';
@@ -35,6 +36,7 @@ export function helpdeskFor(host: Type<unknown>): DynamicModule {
       HelpdeskStore,
       HelpdeskTicketsService,
       HelpdeskSavedRepliesService,
+      HelpdeskFiguresService,
       HelpdeskReplyAddress,
       HelpdeskInboundService,
       HelpdeskScheduler,

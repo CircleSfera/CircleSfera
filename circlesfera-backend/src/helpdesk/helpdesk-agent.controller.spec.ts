@@ -22,10 +22,13 @@ import {
   TEST_ADMIN,
 } from '../common/testing/http-controller.js';
 import { HelpdeskAgentController } from './helpdesk-agent.controller.js';
+import { HelpdeskFiguresService } from './helpdesk-figures.service.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
 describe('HelpdeskAgentController', () => {
   let app: INestApplication;
+
+  const figures = { figures: vi.fn() };
 
   const mockService = {
     listTickets: vi.fn(),
@@ -41,7 +44,10 @@ describe('HelpdeskAgentController', () => {
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [HelpdeskAgentController],
-      providers: [{ provide: HelpdeskTicketsService, useValue: mockService }],
+      providers: [
+        { provide: HelpdeskTicketsService, useValue: mockService },
+        { provide: HelpdeskFiguresService, useValue: figures },
+      ],
       guards: [
         { guard: AdminJwtAuthGuard, mode: 'admin' },
         { guard: AdminGuard, mode: 'allow' },
@@ -327,5 +333,32 @@ describe('HelpdeskAgentController', () => {
       .get('/api/v1/admin/support/tickets?assignment=theirs')
       .set(ADMIN_BEARER)
       .expect(400);
+  });
+
+  it('gives the figures only to who leads the team, for the last 7 days or the last 30', async () => {
+    figures.figures.mockResolvedValue({ days: 7 });
+    expect(
+      new Reflector().get(
+        STAFF_PERMISSIONS_KEY,
+        HelpdeskAgentController.prototype.figures,
+      ),
+    ).toEqual(['support.manage']);
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets/figures')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets/figures?days=30')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets/figures?days=365')
+      .set(ADMIN_BEARER)
+      .expect(400);
+
+    expect(figures.figures.mock.calls).toEqual([[7], [30]]);
+    // The word "figures" is never taken for a ticket.
+    expect(mockService.getTicket).not.toHaveBeenCalled();
   });
 });

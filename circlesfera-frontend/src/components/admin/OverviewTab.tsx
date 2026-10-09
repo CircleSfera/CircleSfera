@@ -104,6 +104,14 @@ export default function OverviewTab() {
     queryFn: () => adminApi.getSupportTickets(1, 1, 'OPEN').then(totalOf),
     enabled: support,
   });
+  const { data: pastTarget } = useQuery({
+    queryKey: ['admin', 'overview', 'tickets', 'past-target'],
+    queryFn: () =>
+      adminApi
+        .getSupportTickets(1, 1, undefined, undefined, { target: 'past' })
+        .then(totalOf),
+    enabled: support,
+  });
   const { data: withModeration } = useQuery({
     queryKey: ['admin', 'overview', 'tickets', 'ESCALATED'],
     queryFn: () => adminApi.getSupportTickets(1, 1, 'ESCALATED').then(totalOf),
@@ -183,11 +191,22 @@ export default function OverviewTab() {
             label={t('backoffice.overview.open_tickets')}
             value={count(openTickets)}
             hint={
-              withModeration === undefined
+              withModeration === undefined && pastTarget === undefined
                 ? undefined
-                : t('backoffice.overview.tickets_with_moderation', {
-                    count: withModeration,
-                  })
+                : [
+                    pastTarget === undefined
+                      ? null
+                      : t('backoffice.overview.tickets_past_target', {
+                          count: pastTarget,
+                        }),
+                    withModeration === undefined
+                      ? null
+                      : t('backoffice.overview.tickets_with_moderation', {
+                          count: withModeration,
+                        }),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
             }
             attention={!!openTickets && openTickets > 0}
           />
