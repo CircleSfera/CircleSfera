@@ -505,6 +505,9 @@ model PostMedia {
   order        Int      @default(0) // For carousel ordering
   filter       String? // Store filter ID (e.g. "sepia", "clarendon")
   altText      String? // Accessibility text
+  // The moment of its video the author of a frame chose as the cover, in
+  // milliseconds. Empty when the cover is the one made by the server alone.
+  coverTimeMs  Int?
   createdAt    DateTime @default(now())
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)

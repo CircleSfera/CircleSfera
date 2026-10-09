@@ -3,6 +3,9 @@
 export const FRAME_MIN_DURATION_SEC = 15;
 export const FRAME_MAX_DURATION_SEC = 90;
 
+/** The latest moment a frame's cover can be asked for: its longest length. */
+export const FRAME_COVER_MAX_TIME_MS = FRAME_MAX_DURATION_SEC * 1000;
+
 /** Aligns with create copy “Up to 60s”. */
 export const STORY_MAX_DURATION_SEC = 60;
 

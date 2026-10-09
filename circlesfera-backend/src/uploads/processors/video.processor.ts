@@ -1,4 +1,6 @@
+import { randomUUID } from 'node:crypto';
 import * as fs from 'node:fs';
+import * as os from 'node:os';
 import * as path from 'node:path';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
@@ -8,6 +10,10 @@ import {
   getWorkerOptions,
   QUEUE_NAMES,
 } from '../../common/constants/queue-policy.constants.js';
+import {
+  probeMediaDurationSec,
+  resolveMediaInputPath,
+} from '../../common/utils/media-duration.util.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
@@ -39,8 +45,17 @@ export class VideoProcessor extends WorkerHost {
   }
 
   async process(
-    job: Job<{ url: string; originalname?: string; userId?: string }>,
+    job: Job<{
+      url: string;
+      originalname?: string;
+      userId?: string;
+      postMediaId?: string;
+    }>,
   ): Promise<void> {
+    if (job.name === 'cover') {
+      await this.makeCover(job.data?.postMediaId);
+      return;
+    }
     if (job.name && job.name !== 'transcode' && job.name !== '__default__') {
       throw new UnrecoverableError(
         `Unknown job name in video-transcoding queue: ${job.name}`,
@@ -276,12 +291,18 @@ export class VideoProcessor extends WorkerHost {
       }
 
       // Update PostMedia
+      // A frame whose author chose its cover keeps it: only the stream is
+      // written there.
       const updatedPosts = await this.prisma.postMedia.updateMany({
-        where: { url },
+        where: { url, coverTimeMs: null },
         data: {
           standardUrl: m3u8Url,
           thumbnailUrl: thumbUrl,
         },
+      });
+      await this.prisma.postMedia.updateMany({
+        where: { url, coverTimeMs: { not: null } },
+        data: { standardUrl: m3u8Url },
       });
 
       // Update Story
@@ -342,9 +363,12 @@ export class VideoProcessor extends WorkerHost {
       // rows only exist for backfilled historical content until every
       // upload/read site is migrated onto the relation). A no-op update
       // when there's no match is expected and harmless.
+      const withChosenCover = {
+        postMedia: { some: { coverTimeMs: { not: null } } },
+      };
       await this.prisma.media
         .updateMany({
-          where: { url },
+          where: { url, NOT: withChosenCover },
           data: {
             status: 'READY',
             standardUrl: m3u8Url,
@@ -353,6 +377,17 @@ export class VideoProcessor extends WorkerHost {
             failureReason: null,
           },
         })
+        .then(() =>
+          this.prisma.media.updateMany({
+            where: { url, ...withChosenCover },
+            data: {
+              status: 'READY',
+              standardUrl: m3u8Url,
+              failedAt: null,
+              failureReason: null,
+            },
+          }),
+        )
         .catch((err) =>
           this.logger.warn(
             `Failed to sync Media status to READY for ${url}: ${err}`,
@@ -402,5 +437,102 @@ export class VideoProcessor extends WorkerHost {
       }
       throw error;
     }
+  }
+
+  // Makes the cover a frame's author chose: the image of that moment of the
+  // frame's own video. The moment is read when the job runs, so of several
+  // choices made in a row the last one is the one that stays.
+  private async makeCover(postMediaId: string | undefined): Promise<void> {
+    if (!postMediaId) {
+      throw new UnrecoverableError('Missing media for the cover of a frame');
+    }
+    if (!this.storageProvider) {
+      throw new UnrecoverableError('No storage to keep the cover of a frame');
+    }
+    const media = await this.prisma.postMedia.findUnique({
+      where: { id: postMediaId },
+      select: { id: true, url: true, coverTimeMs: true, mediaId: true },
+    });
+    // Deleted meanwhile, or no longer a chosen cover: nothing to make.
+    if (!media || media.coverTimeMs === null) return;
+
+    // A moment past the end of the video is taken as its last one.
+    const durationSec = await probeMediaDurationSec(media.url);
+    const atSec = Math.max(
+      0,
+      Math.min(media.coverTimeMs / 1000, durationSec - 0.1),
+    );
+
+    const workDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'frame-cover-'),
+    );
+    try {
+      await this.screenshot(resolveMediaInputPath(media.url), atSec, workDir);
+      const buffer = await fs.promises.readFile(
+        path.join(workDir, 'cover.jpg'),
+      );
+      const stored = await this.storageProvider.upload({
+        originalname: `${randomUUID()}.jpg`,
+        buffer,
+        mimetype: 'image/jpeg',
+      });
+
+      // Written only if the author has not chosen another moment meanwhile.
+      const written = await this.prisma.postMedia.updateMany({
+        where: { id: media.id, coverTimeMs: media.coverTimeMs },
+        data: { thumbnailUrl: stored.url },
+      });
+      if (written.count === 0) {
+        await this.storageProvider.delete(stored.url).catch(() => {});
+        return;
+      }
+      if (media.mediaId) {
+        await this.prisma.media.updateMany({
+          where: { id: media.mediaId },
+          data: { thumbnailUrl: stored.url },
+        });
+      }
+      this.logger.log(`Cover made for frame media ${media.id}`);
+    } finally {
+      await fs.promises
+        .rm(workDir, { recursive: true, force: true })
+        .catch(() => {});
+    }
+  }
+
+  // One image of a video at a moment, written as cover.jpg in a folder.
+  private screenshot(
+    input: string,
+    atSec: number,
+    folder: string,
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let finished = false;
+      const command = ffmpeg(input, { timeout: 120 });
+      const done = (error?: Error) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        if (error) reject(error);
+        else resolve();
+      };
+      const timer = setTimeout(() => {
+        try {
+          command.kill('SIGKILL');
+        } catch {
+          // Already gone.
+        }
+        done(new Error('Making the cover of a frame timed out'));
+      }, 120_000);
+      command
+        .screenshots({
+          timestamps: [atSec],
+          filename: 'cover.jpg',
+          folder,
+          size: '540x?',
+        })
+        .on('end', () => done())
+        .on('error', (err: Error) => done(err));
+    });
   }
 }

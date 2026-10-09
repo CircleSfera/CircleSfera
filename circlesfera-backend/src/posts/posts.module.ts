@@ -11,6 +11,7 @@ import { UploadsModule } from '../uploads/uploads.module.js';
 import { PostsController } from './posts.controller.js';
 import { PostsProcessor } from './posts.processor.js';
 import { PostsService } from './posts.service.js';
+import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
@@ -20,6 +21,10 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     BullModule.registerQueue(getRegisterQueueOptions(QUEUE_NAMES.FEED_FANOUT)),
     BullModule.registerQueue(
       getRegisterQueueOptions(QUEUE_NAMES.POSTS_PROCESSING),
+    ),
+    // Asking for the cover of a frame is a job of the video queue.
+    BullModule.registerQueue(
+      getRegisterQueueOptions(QUEUE_NAMES.VIDEO_TRANSCODING),
     ),
     PrismaModule,
     AIModule,
@@ -33,6 +38,7 @@ import { PostPaywallService } from './services/post-paywall.service.js';
     PostPaywallService,
     PostDistributionService,
     PostMediaCleanupService,
+    FrameCoverService,
   ],
   exports: [
     PostsService,

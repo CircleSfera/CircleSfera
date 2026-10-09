@@ -124,6 +124,8 @@ export interface PostMediaItem {
   url: string;
   standardUrl?: string;
   thumbnailUrl?: string;
+  /** The moment the author chose as the cover of a frame, if any. */
+  coverTimeMs?: number | null;
   type?: string;
   filter?: string;
   altText?: string;
@@ -168,6 +170,8 @@ export type CreatePostDto = {
   };
   hideLikes?: boolean;
   turnOffComments?: boolean;
+  /** For a frame: the moment of its video to use as the cover. */
+  coverTimeMs?: number;
   media?: PostMediaItem[];
   audioId?: string;
   audioStartMs?: number;

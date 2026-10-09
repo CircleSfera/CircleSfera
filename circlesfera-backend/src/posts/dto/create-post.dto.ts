@@ -11,10 +11,12 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Max,
   MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
+import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
 export const POST_CAPTION_MAX_LENGTH = 2200;
@@ -200,4 +202,12 @@ export class CreatePostDto {
   @IsOptional()
   @Type(() => Date)
   scheduledAt?: Date;
+
+  // For a frame: the moment of its video to use as the cover, in
+  // milliseconds. The image is taken by the server from the video itself.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(FRAME_COVER_MAX_TIME_MS)
+  coverTimeMs?: number;
 }

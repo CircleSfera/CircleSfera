@@ -3,6 +3,7 @@ import {
   ChevronRight,
   Euro,
   Eye,
+  Image as ImageIcon,
   MapPin,
   Music as MusicIcon,
   Settings,
@@ -40,6 +41,8 @@ interface CaptionStepProps {
   onOpenMusic: () => void;
   isPremium?: boolean;
   interactiveDraft?: InteractiveDraft;
+  // A frame whose author already chose its cover.
+  hasChosenCover?: boolean;
 }
 
 const MAX_CAPTION_LENGTH = 2200;
@@ -65,6 +68,7 @@ export default function CaptionStep({
   onOpenMusic,
   isPremium,
   interactiveDraft,
+  hasChosenCover = false,
 }: CaptionStepProps) {
   const { t } = useTranslation();
   const profile = useAuthStore((state) => state.profile);
@@ -134,6 +138,15 @@ export default function CaptionStep({
   ];
 
   if (mode === 'FRAME') {
+    primaryRows.push({
+      key: 'cover',
+      icon: ImageIcon,
+      label: hasChosenCover
+        ? t('frames.cover.row_chosen')
+        : t('frames.cover.row'),
+      isActive: hasChosenCover,
+      onClick: () => setSubScreen('cover'),
+    });
     const musicIdx = primaryRows.findIndex((r) => r.key === 'music');
     if (musicIdx > 0) {
       const [music] = primaryRows.splice(musicIdx, 1);
