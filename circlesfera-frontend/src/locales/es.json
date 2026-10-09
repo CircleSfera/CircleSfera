@@ -1709,6 +1709,13 @@
     "accept": "Aceptar",
     "in_call": "En Llamada...",
     "remote_user": "Usuario remoto",
+    "details": {
+      "title": "Detalles",
+      "view_profile": "Ver perfil",
+      "encrypted": "Cifrado de extremo a extremo",
+      "delete_for_me_hint": "Desaparece solo de tu bandeja.",
+      "delete_for_everyone_hint": "Desaparece para las dos personas."
+    },
     "group_details": {
       "title": "Detalles del grupo",
       "default_name": "Chat grupal",
