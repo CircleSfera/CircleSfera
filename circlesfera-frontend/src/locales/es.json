@@ -2650,6 +2650,9 @@
       "assignee_nobody": "Nadie",
       "assignee_me": "Tú",
       "assignee_other": "Otro agente",
+      "new_message_title": "Ha llegado un mensaje nuevo mientras escribías",
+      "new_message_hint": "Léelo antes de enviar. Lo que has escrito se conserva.",
+      "new_message_read": "Lo he leído",
       "event": {
         "state": "Estado: {{from}} → {{to}}",
         "topic": "Tema: {{from}} → {{to}}",
