@@ -14,6 +14,17 @@ vi.mock('../../services/creator.service', () => ({
   },
 }));
 
+const auth = vi.hoisted(() => ({ verificationLevel: 'BASIC' }));
+vi.mock('../../stores/authStore', () => ({
+  useAuthStore: (
+    selector: (s: { profile: { verificationLevel: string } }) => unknown,
+  ) => selector({ profile: { verificationLevel: auth.verificationLevel } }),
+}));
+
+vi.mock('./CreatorAnalyticsDashboard', () => ({
+  CreatorAnalyticsDashboard: () => <div data-testid="advanced-analytics" />,
+}));
+
 vi.mock('../../services/monetization.service', () => ({
   monetizationApi: {
     getIncomeStats: vi.fn(),
@@ -61,6 +72,40 @@ describe('CreatorAnalyticsTab', () => {
       totalTips: 0,
     } as never);
   });
+
+  it.each(['BASIC', 'VERIFIED'])(
+    'points a creator on the %s level to the plans instead of the advanced analytics',
+    async (level) => {
+      auth.verificationLevel = level;
+      const { i18n } = renderWithProviders(<CreatorAnalyticsTab />);
+
+      expect(
+        await screen.findByRole('link', {
+          name: i18n!.t('creator.advanced.plan_cta'),
+        }),
+      ).toHaveAttribute('href', '/pricing');
+      expect(
+        screen.queryByTestId('advanced-analytics'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  it.each(['ELITE', 'BUSINESS'])(
+    'shows the advanced analytics to a creator on the %s plan',
+    async (level) => {
+      auth.verificationLevel = level;
+      const { i18n } = renderWithProviders(<CreatorAnalyticsTab />);
+
+      expect(
+        await screen.findByTestId('advanced-analytics'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('link', {
+          name: i18n!.t('creator.advanced.plan_cta'),
+        }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it('labels analytics section headers from the catalog', async () => {
     const { i18n } = renderWithProviders(<CreatorAnalyticsTab />);
