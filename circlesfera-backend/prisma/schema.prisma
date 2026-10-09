@@ -1648,15 +1648,16 @@ model SupportTicket {
   // to it
   previousTicketId  String?
 
-  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
-  escalatedReportId String?               @unique
-  escalatedReport   Report?               @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
-  organization      HelpdeskOrganization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  escalatedReportId String?                @unique
+  escalatedReport   Report?                @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  organization      HelpdeskOrganization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   messages          HelpdeskMessage[]
   events            HelpdeskTicketEvent[]
-  previousTicket    SupportTicket?        @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
-  continuations     SupportTicket[]       @relation("TicketContinuation")
+  previousTicket    SupportTicket?         @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
+  continuations     SupportTicket[]        @relation("TicketContinuation")
+  inboundEmails     HelpdeskInboundEmail[]
 
   @@index([userId])
   @@index([status])
@@ -1677,8 +1678,9 @@ model HelpdeskOrganization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tickets      SupportTicket[]
-  savedReplies HelpdeskSavedReply[]
+  tickets       SupportTicket[]
+  savedReplies  HelpdeskSavedReply[]
+  inboundEmails HelpdeskInboundEmail[]
 
   @@map("helpdesk_organizations")
 }
@@ -1722,6 +1724,55 @@ enum HelpdeskPriority {
   LOW
   NORMAL
   HIGH
+}
+
+// What became of an email that arrived at a reply address.
+enum HelpdeskInboundOutcome {
+  // Kept, not looked at yet
+  RECEIVED
+  // It is a message of its ticket
+  MATCHED
+  // Not sent to the address of a ticket
+  NO_TICKET
+  // Sent to a ticket by someone who is not its requester
+  SENDER_MISMATCH
+  // Nothing left once quoted text was cut
+  EMPTY
+  // Out-of-office answers, bounces, lists
+  AUTOMATED
+  SPAM
+}
+
+// An email that arrived at a reply address. Kept for 30 days; what matters
+// of a matched one lives on as the message of its ticket.
+model HelpdeskInboundEmail {
+  id              String                 @id @default(uuid())
+  organizationId  String
+  // The Message-ID of the email: the same email delivered twice is kept once
+  messageId       String
+  fromAddress     String
+  toAddress       String
+  subject         String
+  // Its text, without quoted replies when the mail provider cut them
+  body            String
+  spamScore       Float?
+  attachmentCount Int                    @default(0)
+  // Its headers say a machine sent it
+  automated       Boolean                @default(false)
+  outcome         HelpdeskInboundOutcome @default(RECEIVED)
+  ticketId        String?
+  // When the sender was told their email matched no request
+  noticeSentAt    DateTime?
+  receivedAt      DateTime               @default(now())
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ticket       SupportTicket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, messageId])
+  @@index([organizationId, outcome, receivedAt])
+  @@index([receivedAt])
+  @@index([ticketId])
+  @@map("helpdesk_inbound_emails")
 }
 
 enum HelpdeskEventKind {

@@ -206,6 +206,9 @@ async function bootstrap(): Promise<void> {
       // Browsers send CSP violation reports without cookies or a CSRF token.
       // The endpoint only logs a sanitized summary and changes nothing.
       normalizedPath === '/api/v1/security/csp-report' ||
+      // The mail provider posts received email without cookies. The route
+      // has no session and asks for its own secret token instead.
+      normalizedPath === '/api/v1/helpdesk/inbound/email' ||
       normalizedPath.includes('/socket.io');
 
     if (isExcluded) {

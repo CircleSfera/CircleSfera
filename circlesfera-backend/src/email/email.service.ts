@@ -17,6 +17,8 @@ export interface SendMailOptions {
   to: string;
   subject: string;
   html: string;
+  // Where an answer to this email goes, when it can be answered.
+  replyTo?: string;
 }
 
 // Service for sending transactional emails (verification, password reset, welcome).
@@ -95,8 +97,17 @@ export class EmailService {
     };
   }
 
-  private async send(to: string, email: RenderedEmail): Promise<void> {
-    await this.queueMail({ to, subject: email.subject, html: email.html });
+  private async send(
+    to: string,
+    email: RenderedEmail,
+    replyTo?: string,
+  ): Promise<void> {
+    await this.queueMail({
+      to,
+      subject: email.subject,
+      html: email.html,
+      ...(replyTo && { replyTo }),
+    });
   }
 
   private nameOr(ctx: EmailContext, name: string | null | undefined): string {
@@ -212,6 +223,8 @@ export class EmailService {
     replyText: string,
     // The request the reply belongs to: the email links to its page.
     ticketId?: string,
+    // The address of the request: with it the email can be answered.
+    replyTo?: string,
   ) {
     const ctx = await this.contextFor(email);
     await this.send(
@@ -223,7 +236,9 @@ export class EmailService {
         ticketId
           ? `${ctx.frontendUrl}/support/requests/${encodeURIComponent(ticketId)}`
           : undefined,
+        !!replyTo,
       ),
+      replyTo,
     );
   }
 
@@ -234,6 +249,7 @@ export class EmailService {
     reference: number,
     ticketId: string,
     solvedInDays: number,
+    replyTo?: string,
   ) {
     const ctx = await this.contextFor(email);
     await this.send(
@@ -244,7 +260,9 @@ export class EmailService {
         reference,
         solvedInDays,
         `${ctx.frontendUrl}/support/requests/${encodeURIComponent(ticketId)}`,
+        !!replyTo,
       ),
+      replyTo,
     );
   }
 
@@ -337,6 +355,7 @@ export class EmailService {
         htmlContent: options.html,
         sender: { email: fromEmail, name: fromName },
         to: [{ email: options.to }],
+        ...(options.replyTo && { replyTo: { email: options.replyTo } }),
       });
       this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error: unknown) {

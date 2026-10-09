@@ -8,6 +8,8 @@ export interface EmailCopy {
   htmlLang: string;
   footer: string;
   automated: string;
+  // In place of the line above, on an email that can be answered.
+  replyable: string;
   buttonFallback: string;
   privacy: string;
   welcome: { subject: string; title: string; body: string; button: string };
@@ -59,6 +61,7 @@ const en: EmailCopy = {
   htmlLang: 'en',
   footer: '© {year} CircleSfera. All rights reserved.',
   automated: 'This is an automated email, please do not reply to it.',
+  replyable: 'You can answer this email: your answer is added to your request.',
   buttonFallback:
     'If the button does not work, copy and paste this link into your browser:',
   privacy: 'Privacy policy',
@@ -140,6 +143,8 @@ const es: EmailCopy = {
   footer: '© {year} CircleSfera. Todos los derechos reservados.',
   automated:
     'Este es un correo automático, por favor no respondas directamente.',
+  replyable:
+    'Puedes responder a este correo: tu respuesta se añade a tu solicitud.',
   buttonFallback:
     'Si el botón no funciona, copia y pega este enlace en tu navegador:',
   privacy: 'Política de privacidad',

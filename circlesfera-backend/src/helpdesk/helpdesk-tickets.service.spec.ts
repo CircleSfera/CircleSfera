@@ -24,6 +24,8 @@ describe('HelpdeskTicketsService', () => {
   const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
   const staffLog = { record: vi.fn() };
   const agents = { describe: vi.fn(), assignable: vi.fn() };
+  // Email in is off unless a test turns it on.
+  const replyAddress = { for: vi.fn() };
   let service: HelpdeskTicketsService;
 
   const ticket = {
@@ -85,6 +87,7 @@ describe('HelpdeskTicketsService', () => {
       teamChannel,
       staffLog,
       agents,
+      replyAddress as never,
     );
   });
 
@@ -287,6 +290,26 @@ describe('HelpdeskTicketsService', () => {
       body: 'Checked the payment.',
       visibility: 'INTERNAL' as const,
     };
+
+    it('tells the requester with the address to answer to, when email in is on', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({ ...ticket, reference: 42 });
+      replyAddress.for.mockReturnValue(
+        'ticket+42.0123456789abcdef@reply.example.com',
+      );
+
+      await service.addMessage('admin-1', 't-1', answer);
+
+      expect(replyAddress.for).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 't-1', reference: 42 }),
+      );
+      expect(notifier.answer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          replyTo: 'ticket+42.0123456789abcdef@reply.example.com',
+        }),
+        'Fixed.',
+      );
+    });
 
     it('sends an answer: the message, the ticket solved, the requester told, the action recorded', async () => {
       store.findTicket.mockResolvedValue(ticket);
