@@ -213,6 +213,17 @@ export class InMemoryHelpdeskDb {
     },
   };
 
+  readonly helpdeskTicketEvent = {
+    findMany: async (args: {
+      where?: Where;
+      orderBy?: Record<string, 'asc' | 'desc'>;
+    }) =>
+      this.ordered(
+        this.events.filter((e) => this.matches(e, args.where)),
+        args.orderBy,
+      ).map((e) => ({ ...e })),
+  };
+
   readonly helpdeskMessage = {
     findMany: async (args: {
       where?: Where;

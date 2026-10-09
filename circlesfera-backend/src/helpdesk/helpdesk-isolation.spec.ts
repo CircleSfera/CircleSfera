@@ -106,6 +106,8 @@ describe('Help Desk: isolation between two organizations', () => {
       body: 'internal note of org a',
       visibility: 'INTERNAL',
     });
+    // A change, so that the ticket has a history.
+    await tickets.updateTicket('agent-a', a.open, { priority: 'HIGH' });
     Object.assign(ticket(a.solved) as object, {
       status: 'RESOLVED',
       resolvedAt: new Date('2025-01-01T00:00:00Z'),
@@ -277,7 +279,7 @@ describe('Help Desk: isolation between two organizations', () => {
   // The service looks a ticket up before it reads its messages or changes
   // it, so those two are also guarded one level up. The store is asked
   // directly here: it must hold on its own.
-  it('the store refuses to change a ticket of the first organization, or read its messages', async () => {
+  it('the store refuses to change a ticket of the first organization, or read its messages or its history', async () => {
     as('org-b');
     const before = snapshot();
 
@@ -297,6 +299,7 @@ describe('Help Desk: isolation between two organizations', () => {
       ),
     ).rejects.toMatchObject({ code: 'P2025' });
     expect(await store.messages(a.open)).toEqual([]);
+    expect(await store.events(a.open)).toEqual([]);
     expect(snapshot()).toBe(before);
   });
 
@@ -336,6 +339,7 @@ describe('Help Desk: isolation between two organizations', () => {
       'PUBLIC',
       'INTERNAL',
     ]);
+    expect(own.events.map((e) => e.kind)).toEqual(['PRIORITY']);
     expect((await tickets.listMyTickets('shared', 1, 100)).data).toHaveLength(
       1,
     );

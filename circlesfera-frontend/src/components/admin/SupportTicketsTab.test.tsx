@@ -351,6 +351,116 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
   });
 
+  it('writes what changed in the ticket between the messages, in the order it happened', async () => {
+    useAdminAuthStore.setState({ admin: { id: 'admin-1' } as never });
+    const event = (overrides: Record<string, unknown>) => ({
+      actorKind: 'AGENT',
+      actorRef: 'admin-1',
+      fromValue: null,
+      toValue: null,
+      ...overrides,
+    });
+    vi.mocked(adminApi.getSupportTickets).mockResolvedValue(
+      page([ticket()]) as never,
+    );
+    vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
+      data: {
+        ...ticket(),
+        messages: [
+          message({}),
+          message({
+            id: 'm-2',
+            authorKind: 'AGENT',
+            authorRef: 'admin-1',
+            body: 'Which email do you use?',
+            createdAt: '2026-09-02T10:00:00.000Z',
+          }),
+        ],
+        events: [
+          // Written with the answer: it comes right after it.
+          event({
+            id: 'e-3',
+            kind: 'STATE',
+            fromValue: 'OPEN',
+            toValue: 'WAITING',
+            createdAt: '2026-09-02T10:00:00.000Z',
+          }),
+          event({
+            id: 'e-1',
+            kind: 'ASSIGNMENT',
+            toValue: 'admin-1',
+            createdAt: '2026-09-01T11:00:00.000Z',
+          }),
+          event({
+            id: 'e-2',
+            kind: 'PRIORITY',
+            fromValue: 'NORMAL',
+            toValue: 'HIGH',
+            actorRef: 'admin-2',
+            createdAt: '2026-09-01T12:00:00.000Z',
+          }),
+          event({
+            id: 'e-4',
+            kind: 'TOPIC',
+            fromValue: 'OTHER',
+            toValue: 'PAYMENTS',
+            actorRef: null,
+            createdAt: '2026-09-03T10:00:00.000Z',
+          }),
+          event({
+            id: 'e-5',
+            kind: 'STATE',
+            fromValue: 'WAITING',
+            toValue: 'OPEN',
+            actorKind: 'REQUESTER',
+            actorRef: 'u-1',
+            createdAt: '2026-09-04T10:00:00.000Z',
+          }),
+          event({
+            id: 'e-6',
+            kind: 'HANDOVER',
+            toValue: 'r-1',
+            createdAt: '2026-09-05T10:00:00.000Z',
+          }),
+          event({
+            id: 'e-7',
+            kind: 'STATE',
+            fromValue: 'ESCALATED',
+            toValue: 'OPEN',
+            actorKind: 'SYSTEM',
+            actorRef: null,
+            createdAt: '2026-09-06T10:00:00.000Z',
+          }),
+        ],
+      },
+    } as never);
+    renderWithProviders(<SupportTicketsTab onToast={vi.fn()} />);
+    fireEvent.click(await screen.findByText('Someone is harassing me'));
+
+    const thread = within(
+      await screen.findByRole('region', { name: 'Conversation' }),
+    );
+    await thread.findByText('Which email do you use?');
+    const lines = thread
+      .getAllByRole('listitem')
+      .map((item) => item.textContent ?? '');
+
+    expect(lines).toHaveLength(9);
+    expect(lines[0]).toContain('It keeps happening in my comments.');
+    expect(lines[1]).toMatch(/^Handled by: Nobody → YouYou/);
+    expect(lines[2]).toMatch(/^Priority: Normal → HighAnother agent/);
+    expect(lines[3]).toContain('Which email do you use?');
+    expect(lines[4]).toMatch(/^Status: Open → Waiting for requesterYou/);
+    expect(lines[5]).toMatch(
+      /^Topic: Something else → Payments and plansSupport/,
+    );
+    expect(lines[6]).toMatch(/^Status: Waiting for requester → Open@ana/);
+    expect(lines[7]).toMatch(/^Handed to moderationYou/);
+    expect(lines[8]).toMatch(/^Status: With moderation → OpenSystem/);
+    // The reference of the case is not shown.
+    expect(thread.queryByText(/r-1/)).not.toBeInTheDocument();
+  });
+
   it('sends an answer that leaves the ticket waiting for the requester', async () => {
     vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
       data: ticket(),

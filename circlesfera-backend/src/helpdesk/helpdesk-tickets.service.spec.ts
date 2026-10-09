@@ -15,6 +15,7 @@ describe('HelpdeskTicketsService', () => {
     listTickets: vi.fn(),
     updateTicket: vi.fn(),
     messages: vi.fn(),
+    events: vi.fn(),
   };
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
@@ -65,6 +66,7 @@ describe('HelpdeskTicketsService', () => {
     store.listTickets.mockResolvedValue({ tickets: [], total: 0 });
     store.listRequesterTickets.mockResolvedValue({ tickets: [], total: 0 });
     store.messages.mockResolvedValue([]);
+    store.events.mockResolvedValue([]);
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
     teamChannel.requesterReplied.mockResolvedValue(undefined);
@@ -239,13 +241,17 @@ describe('HelpdeskTicketsService', () => {
   });
 
   describe('reading one ticket', () => {
-    it('gives the agent the whole conversation, internal notes included', async () => {
+    it('gives the agent the whole conversation, internal notes included, and what changed in the ticket', async () => {
       const messages = [
         { id: 'm-1', authorKind: 'REQUESTER', visibility: 'PUBLIC' },
         { id: 'm-2', authorKind: 'AGENT', visibility: 'INTERNAL' },
       ];
+      const events = [
+        { id: 'e-1', ...stateEvent('OPEN', 'WAITING', 'AGENT', 'admin-1') },
+      ];
       store.findTicket.mockResolvedValue(ticket);
       store.messages.mockResolvedValue(messages);
+      store.events.mockResolvedValue(events);
       requesters.describe.mockResolvedValue(new Map([['u-1', ana]]));
 
       const result = await service.getTicket('t-1');
@@ -253,6 +259,8 @@ describe('HelpdeskTicketsService', () => {
       // No visibility filter: this is the agent's view.
       expect(store.messages).toHaveBeenCalledWith('t-1');
       expect(result.messages).toEqual(messages);
+      expect(store.events).toHaveBeenCalledWith('t-1');
+      expect(result.events).toEqual(events);
       expect(result.user).toEqual(ana);
       expect(result.escalatedReport).toBeNull();
     });
@@ -534,6 +542,8 @@ describe('HelpdeskTicketsService', () => {
       expect(store.findRequesterTicket).toHaveBeenCalledWith('t-1', 'u-1');
       // Internal notes are left out by the query, not by this code.
       expect(store.messages).toHaveBeenCalledWith('t-1', 'PUBLIC');
+      // What changed in the ticket is for agents: it is not even read.
+      expect(store.events).not.toHaveBeenCalled();
       expect(result).toEqual({
         ...shown,
         messages: [
