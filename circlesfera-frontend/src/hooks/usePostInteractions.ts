@@ -3,14 +3,14 @@ import { useEffect, useRef, useState } from 'react';
 import { bookmarksApi, creatorApi, postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { Post } from '../types';
+import { hasCreatorTools } from '../utils/creatorTools';
 import { telemetry } from '../utils/telemetry';
 
 export function usePostInteractions(post: Post) {
   const queryClient = useQueryClient();
   const profile = useAuthStore((state) => state.profile);
-  const verificationLevel =
-    profile?.verificationLevel || profile?.verificationLevel;
-  const canPromote = verificationLevel === 'ELITE';
+  // Promoting follows the kind of account, not a paid plan.
+  const canPromote = hasCreatorTools(profile?.accountType);
   const isOwner = profile?.id === post.profileId;
 
   const [showMenu, setShowMenu] = useState(false);

@@ -8,7 +8,6 @@ import {
   Megaphone,
 } from 'lucide-react';
 import { useState } from 'react';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type {
   CreatorChartDay,
@@ -16,7 +15,6 @@ import type {
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import { useAuthStore } from '../../stores/authStore';
 import type { PaginatedResponse } from '../../types';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button, Card } from '../ui';
@@ -64,10 +62,6 @@ export default function CreatorDashboard({
   chartData?: CreatorChartDay[];
 }) {
   const { t } = useTranslation();
-  const profile = useAuthStore((state) => state.profile);
-  const verificationLevel =
-    profile?.verificationLevel || profile?.verificationLevel;
-  const canPromote = verificationLevel === 'ELITE';
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
   const { data: recentPosts, isLoading: postsLoading } = useQuery<
@@ -166,10 +160,6 @@ export default function CreatorDashboard({
                     className="mt-2 min-h-11 gap-1.5"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (!canPromote) {
-                        toast(t('creator.promotions.elite_required'));
-                        return;
-                      }
                       onPromote(post);
                     }}
                   >
