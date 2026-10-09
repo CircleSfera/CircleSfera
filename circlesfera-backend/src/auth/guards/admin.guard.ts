@@ -24,6 +24,7 @@ export type StaffPermission =
   | 'audit'
   | 'live'
   | 'content'
+  | 'plans'
   | 'admins.manage';
 
 export const STAFF_PERMISSIONS_KEY = 'staff_permissions';

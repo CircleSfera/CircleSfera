@@ -18,6 +18,7 @@ import {
   MonetizationTab,
   NewsletterTab,
   PayoutsTab,
+  PlansTab,
   PostsTab,
   PromotionsTab,
   ReportsTab,
@@ -123,6 +124,7 @@ export default function Admin() {
         {activeTab === 'appeals' && <AppealsTab />}
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
+        {activeTab === 'plans' && <PlansTab onToast={addToast} />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}

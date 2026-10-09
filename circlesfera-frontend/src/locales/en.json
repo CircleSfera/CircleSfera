@@ -2157,6 +2157,7 @@
       "audit": "Audit Log",
       "appeals": "Appeals",
       "support": "Support",
+      "plans": "Plans",
       "trust": "Trust Queue",
       "live": "Live Streams",
       "roles": "Roles",
@@ -2547,6 +2548,22 @@
       "status_live_now": "Live now",
       "gifts": "Gifts",
       "viewers": "Viewers"
+    },
+    "plans": {
+      "title": "Plans",
+      "subtitle": "What each plan includes and whether it is on sale. Changes apply to every subscriber of the plan.",
+      "price_month": "{{price}} a month",
+      "price_year": "{{price}} a year",
+      "price_note": "Stripe charges the price; it cannot be changed here.",
+      "on_sale": "On sale",
+      "on_sale_hint": "If you turn it off, it is no longer shown in Pricing. Those who already have it keep it.",
+      "includes": "Includes",
+      "description": "Description",
+      "save": "Save changes",
+      "toast_saved": "Plan saved",
+      "toast_failed": "The plan could not be saved",
+      "load_failed": "The plan catalogue could not be loaded",
+      "empty": "There are no plans in the catalogue"
     },
     "support": {
       "title": "Support Tickets",
