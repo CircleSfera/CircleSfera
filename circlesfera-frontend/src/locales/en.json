@@ -2634,6 +2634,23 @@
       "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
+      "whose_all": "All",
+      "whose_mine": "Mine",
+      "whose_unassigned": "Unassigned",
+      "filter_priority": "Priority",
+      "set_priority": "Priority of the ticket",
+      "priority_all": "Any priority",
+      "priority": {
+        "HIGH": "High",
+        "NORMAL": "Normal",
+        "LOW": "Low"
+      },
+      "assignee": "Handled by",
+      "assignee_nobody": "Nobody",
+      "assignee_me": "You",
+      "assignee_other": "Another agent",
+      "take": "Take",
+      "release": "Release",
       "status_waiting": "Waiting for requester",
       "leave_waiting": "Leave waiting for requester",
       "system": {

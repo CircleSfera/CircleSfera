@@ -116,6 +116,11 @@ describe('HelpdeskAgentController', () => {
       10,
       'OPEN',
       undefined,
+      {
+        priority: undefined,
+        assignment: undefined,
+        agentRef: TEST_ADMIN.adminId,
+      },
     );
     expect(mockService.updateTicket).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
@@ -136,6 +141,11 @@ describe('HelpdeskAgentController', () => {
       10,
       undefined,
       'PAYMENTS',
+      {
+        priority: undefined,
+        assignment: undefined,
+        agentRef: TEST_ADMIN.adminId,
+      },
     );
 
     await request(app.getHttpServer())
@@ -256,5 +266,32 @@ describe('HelpdeskAgentController', () => {
       .set(ADMIN_BEARER)
       .send({ body: 'Which day?', visibility: 'PUBLIC', status: 'WAITING' })
       .expect(201);
+  });
+
+  it('lists the tickets of who is signed in, whatever agent the request names', async () => {
+    mockService.listTickets.mockResolvedValue({ data: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets?assignment=mine&priority=HIGH')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    expect(mockService.listTickets).toHaveBeenLastCalledWith(
+      1,
+      10,
+      undefined,
+      undefined,
+      { priority: 'HIGH', assignment: 'mine', agentRef: TEST_ADMIN.adminId },
+    );
+
+    await request(app.getHttpServer())
+      .get(
+        '/api/v1/admin/support/tickets?assignment=mine&agentRef=someone-else',
+      )
+      .set(ADMIN_BEARER)
+      .expect(400);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets?assignment=theirs')
+      .set(ADMIN_BEARER)
+      .expect(400);
   });
 });

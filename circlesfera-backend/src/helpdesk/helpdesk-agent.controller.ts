@@ -35,12 +35,21 @@ export class HelpdeskAgentController {
   ) {}
 
   @Get()
-  async listTickets(@Query() query: AgentTicketsQueryDto) {
+  async listTickets(
+    @Query() query: AgentTicketsQueryDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
     return this.tickets.listTickets(
       query.page ?? 1,
       query.limit ?? 20,
       query.status,
       query.category,
+      {
+        priority: query.priority,
+        assignment: query.assignment,
+        // "mine" is always who is signed in, never a value of the request.
+        agentRef: admin.adminId,
+      },
     );
   }
 

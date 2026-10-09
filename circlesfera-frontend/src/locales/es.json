@@ -2634,6 +2634,23 @@
       "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
+      "whose_all": "Todos",
+      "whose_mine": "Míos",
+      "whose_unassigned": "Sin asignar",
+      "filter_priority": "Prioridad",
+      "set_priority": "Prioridad del ticket",
+      "priority_all": "Toda prioridad",
+      "priority": {
+        "HIGH": "Alta",
+        "NORMAL": "Normal",
+        "LOW": "Baja"
+      },
+      "assignee": "Lo lleva",
+      "assignee_nobody": "Nadie",
+      "assignee_me": "Tú",
+      "assignee_other": "Otro agente",
+      "take": "Tomar",
+      "release": "Soltar",
       "status_waiting": "Esperando al cliente",
       "leave_waiting": "Dejar esperando al cliente",
       "system": {

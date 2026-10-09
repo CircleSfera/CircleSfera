@@ -15,6 +15,7 @@ import type {
   AdminSupportTicket,
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
@@ -52,6 +53,8 @@ function statusBadgeClass(status: ShownStatus) {
 }
 
 const TICKET_CATEGORIES = ['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'] as const;
+
+const PRIORITIES = ['HIGH', 'NORMAL', 'LOW'] as const;
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -130,6 +133,16 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [whose, setWhose] = useState<'all' | 'mine' | 'unassigned'>('all');
+  const [priorityFilter, setPriorityFilter] = useState('');
+  const myRef = useAdminAuthStore((state) => state.admin?.id);
+  // Who has a ticket, as far as this screen can say without a list of agents.
+  const assigneeLabel = (agentRef: string | null | undefined) =>
+    !agentRef
+      ? t('admin.support.assignee_nobody')
+      : agentRef === myRef
+        ? t('admin.support.assignee_me')
+        : t('admin.support.assignee_other');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [draftKind, setDraftKind] = useState<'PUBLIC' | 'INTERNAL'>('PUBLIC');
@@ -140,7 +153,15 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [confirmEscalate, setConfirmEscalate] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminSupportTicket>>({
-    queryKey: ['admin', 'support-tickets', page, statusFilter, categoryFilter],
+    queryKey: [
+      'admin',
+      'support-tickets',
+      page,
+      statusFilter,
+      categoryFilter,
+      whose,
+      priorityFilter,
+    ],
     queryFn: () =>
       adminApi
         .getSupportTickets(
@@ -148,6 +169,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
           20,
           statusFilter || undefined,
           categoryFilter || undefined,
+          {
+            ...(whose !== 'all' && { assignment: whose }),
+            ...(priorityFilter && { priority: priorityFilter }),
+          },
         )
         .then((res) => res.data as PaginatedResponse<AdminSupportTicket>),
   });
@@ -209,6 +234,31 @@ export default function SupportTicketsTab({ onToast }: Props) {
     onError: () => onToast(t('admin.support.toast_error'), 'error'),
   });
 
+  const assignMutation = useMutation({
+    mutationFn: ({ id, agentRef }: { id: string; agentRef: string | null }) =>
+      adminApi.assignSupportTicket(id, agentRef),
+    onSuccess: () => {
+      refresh();
+      onToast(t('admin.support.toast_updated'), 'success');
+    },
+    onError: () => onToast(t('admin.support.toast_error'), 'error'),
+  });
+
+  const priorityMutation = useMutation({
+    mutationFn: ({
+      id,
+      priority,
+    }: {
+      id: string;
+      priority: 'LOW' | 'NORMAL' | 'HIGH';
+    }) => adminApi.updateSupportTicket(id, { priority }),
+    onSuccess: () => {
+      refresh();
+      onToast(t('admin.support.toast_updated'), 'success');
+    },
+    onError: () => onToast(t('admin.support.toast_error'), 'error'),
+  });
+
   const escalateMutation = useMutation({
     mutationFn: (id: string) => adminApi.escalateSupportTicket(id),
     onSuccess: () => {
@@ -251,7 +301,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const canAnswer = selectedTicket?.status !== 'CLOSED' && !withModeration;
   const kind = canAnswer ? draftKind : 'INTERNAL';
 
-  const isFiltered = statusFilter !== '' || categoryFilter !== '';
+  const isFiltered =
+    statusFilter !== '' ||
+    categoryFilter !== '' ||
+    whose !== 'all' ||
+    priorityFilter !== '';
 
   return (
     <div className="flex flex-col min-h-0 gap-4">
@@ -261,6 +315,37 @@ export default function SupportTicketsTab({ onToast }: Props) {
       />
 
       <AdminFilterBar>
+        <AdminSegmentedControl
+          value={whose}
+          onChange={(value) => {
+            setWhose(value as typeof whose);
+            setPage(1);
+            setSelectedTicketId(null);
+          }}
+          options={[
+            { value: 'all', label: t('admin.support.whose_all') },
+            { value: 'mine', label: t('admin.support.whose_mine') },
+            { value: 'unassigned', label: t('admin.support.whose_unassigned') },
+          ]}
+        />
+        <div className="sm:w-44">
+          <FilterDropdown
+            label={t('admin.support.filter_priority')}
+            value={priorityFilter}
+            onChange={(v) => {
+              setPriorityFilter(v);
+              setPage(1);
+              setSelectedTicketId(null);
+            }}
+            options={[
+              { value: '', label: t('admin.support.priority_all') },
+              ...PRIORITIES.map((value) => ({
+                value,
+                label: t(`admin.support.priority.${value}`),
+              })),
+            ]}
+          />
+        </div>
         <div className="sm:w-56">
           <FilterDropdown
             label={t('admin.support.filter_status')}
@@ -359,6 +444,12 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         <span className="text-white/70">
                           {t(`supportPage.category.${ticket.category}`)}
                         </span>
+                        {ticket.priority === 'HIGH' && (
+                          <span className="font-semibold text-yellow-400">
+                            {t('admin.support.priority.HIGH')}
+                          </span>
+                        )}
+                        <span>{assigneeLabel(ticket.assignedAgentRef)}</span>
                         {ticket.status === 'OPEN' ? (
                           <WaitingTime since={ticket.createdAt} />
                         ) : (
@@ -480,6 +571,67 @@ export default function SupportTicketsTab({ onToast }: Props) {
                               ? t('admin.support.status_waiting')
                               : selectedTicket.status}
                         </span>
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
+                      <dt className="text-xs font-medium text-white/40">
+                        {t('admin.support.filter_priority')}
+                      </dt>
+                      <dd className="w-40">
+                        <FilterDropdown
+                          label={t('admin.support.set_priority')}
+                          value={selectedTicket.priority ?? 'NORMAL'}
+                          onChange={(value) =>
+                            priorityMutation.mutate({
+                              id: selectedTicket.id,
+                              priority: value as 'LOW' | 'NORMAL' | 'HIGH',
+                            })
+                          }
+                          options={PRIORITIES.map((value) => ({
+                            value,
+                            label: t(`admin.support.priority.${value}`),
+                          }))}
+                        />
+                      </dd>
+                    </div>
+                    <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
+                      <dt className="text-xs font-medium text-white/40">
+                        {t('admin.support.assignee')}
+                      </dt>
+                      <dd className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-white">
+                          {assigneeLabel(selectedTicket.assignedAgentRef)}
+                        </span>
+                        {!selectedTicket.assignedAgentRef && myRef && (
+                          <Button
+                            variant="secondary"
+                            className="min-h-11 text-sm"
+                            isLoading={assignMutation.isPending}
+                            onClick={() =>
+                              assignMutation.mutate({
+                                id: selectedTicket.id,
+                                agentRef: myRef,
+                              })
+                            }
+                          >
+                            {t('admin.support.take')}
+                          </Button>
+                        )}
+                        {selectedTicket.assignedAgentRef === myRef && myRef && (
+                          <Button
+                            variant="secondary"
+                            className="min-h-11 text-sm"
+                            isLoading={assignMutation.isPending}
+                            onClick={() =>
+                              assignMutation.mutate({
+                                id: selectedTicket.id,
+                                agentRef: null,
+                              })
+                            }
+                          >
+                            {t('admin.support.release')}
+                          </Button>
+                        )}
                       </dd>
                     </div>
                   </dl>

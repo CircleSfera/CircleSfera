@@ -1102,15 +1102,28 @@ export const adminApi = {
     limit = 20,
     status?: string,
     category?: string,
+    // Whose tickets and of which priority.
+    team: { assignment?: 'mine' | 'unassigned'; priority?: string } = {},
   ) =>
     apiClient.get<PaginatedResponse<AdminSupportTicket>>(
       'admin/support/tickets',
-      { params: { page, limit, status, category } },
+      { params: { page, limit, status, category, ...team } },
+    ),
+
+  // Takes the ticket (the agent's own reference) or lets go of it (null).
+  assignSupportTicket: (id: string, agentRef: string | null) =>
+    apiClient.post<AdminSupportTicket>(
+      `admin/support/tickets/${id}/assignment`,
+      { agentRef },
     ),
 
   updateSupportTicket: (
     id: string,
-    data: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
+    data: {
+      status?: 'OPEN' | 'RESOLVED' | 'CLOSED';
+      reply?: string;
+      priority?: 'LOW' | 'NORMAL' | 'HIGH';
+    },
   ) => apiClient.patch<AdminSupportTicket>(`admin/support/tickets/${id}`, data),
 
   // One ticket with its whole conversation, internal notes included.
