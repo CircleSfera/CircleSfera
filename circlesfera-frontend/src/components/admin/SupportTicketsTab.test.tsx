@@ -351,6 +351,108 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
   });
 
+  describe('when someone else writes while the agent writes', () => {
+    const theirs = message({
+      id: 'm-3',
+      authorKind: 'AGENT',
+      authorRef: 'admin-2',
+      body: 'I already told them how to block the account.',
+      createdAt: '2026-09-01T11:00:00.000Z',
+    });
+    const withTheirs = {
+      data: { ...ticket(), messages: [...conversation, theirs] },
+    } as never;
+
+    // Opens the ticket, waits for its conversation and starts an answer.
+    const startWriting = async () => {
+      vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
+        data: ticket(),
+      } as never);
+      const i18n = await open([ticket()]);
+      await screen.findByText('Third time they write about this.');
+      fireEvent.change(
+        screen.getByPlaceholderText(i18n.t('admin.support.reply_placeholder')),
+        { target: { value: 'Block the account from its page.' } },
+      );
+      return {
+        i18n,
+        sendButton: () =>
+          screen.getByRole('button', {
+            name: i18n.t('admin.support.send_answer'),
+          }),
+      };
+    };
+
+    it('sends nothing when a message has just arrived: it shows it and asks to read it first', async () => {
+      const { i18n, sendButton } = await startWriting();
+      vi.mocked(adminApi.getSupportTicket).mockResolvedValue(withTheirs);
+
+      fireEvent.click(sendButton());
+
+      const warning = await screen.findByRole('status');
+      expect(warning).toHaveTextContent(
+        i18n.t('admin.support.new_message_title'),
+      );
+      expect(
+        screen.getByText('I already told them how to block the account.'),
+      ).toBeInTheDocument();
+      expect(sendButton()).toBeDisabled();
+      expect(adminApi.addSupportMessage).not.toHaveBeenCalled();
+    });
+
+    it('sends once the agent has read it, with what they had written', async () => {
+      const { i18n, sendButton } = await startWriting();
+      vi.mocked(adminApi.getSupportTicket).mockResolvedValue(withTheirs);
+      fireEvent.click(sendButton());
+
+      fireEvent.click(
+        within(await screen.findByRole('status')).getByRole('button', {
+          name: i18n.t('admin.support.new_message_read'),
+        }),
+      );
+
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(sendButton()).toBeEnabled();
+      fireEvent.click(sendButton());
+      await waitFor(() =>
+        expect(adminApi.addSupportMessage).toHaveBeenCalledWith(
+          't-1',
+          expect.objectContaining({ body: 'Block the account from its page.' }),
+        ),
+      );
+    });
+
+    it('reads the ticket again before sending, and sends when nothing is new', async () => {
+      const { sendButton } = await startWriting();
+      const readings = vi.mocked(adminApi.getSupportTicket).mock.calls.length;
+
+      fireEvent.click(sendButton());
+
+      await waitFor(() =>
+        expect(adminApi.addSupportMessage).toHaveBeenCalledTimes(1),
+      );
+      expect(
+        vi.mocked(adminApi.getSupportTicket).mock.calls.length,
+      ).toBeGreaterThan(readings);
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('reads the ticket again by itself while there is text, and warns', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      try {
+        const { sendButton } = await startWriting();
+        vi.mocked(adminApi.getSupportTicket).mockResolvedValue(withTheirs);
+
+        await vi.advanceTimersByTimeAsync(20_000);
+
+        expect(await screen.findByRole('status')).toBeInTheDocument();
+        expect(sendButton()).toBeDisabled();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
+
   it('writes what changed in the ticket between the messages, in the order it happened', async () => {
     useAdminAuthStore.setState({ admin: { id: 'admin-1' } as never });
     const event = (overrides: Record<string, unknown>) => ({

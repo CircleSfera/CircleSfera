@@ -59,6 +59,9 @@ const PRIORITIES = ['HIGH', 'NORMAL', 'LOW'] as const;
 
 const HOUR_MS = 60 * 60 * 1000;
 
+// How often the ticket is read again while the agent writes in it.
+const NEW_MESSAGE_CHECK_MS = 20_000;
+
 /** How long an open ticket has waited for an answer; marked after two days. */
 function WaitingTime({ since }: { since: string }) {
   const { t } = useTranslation();
@@ -209,6 +212,12 @@ export default function SupportTicketsTab({ onToast }: Props) {
         : t('admin.support.assignee_other');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
+  // The last message on screen when the agent started writing, and where.
+  const [writingFrom, setWritingFrom] = useState<{
+    ticketId: string;
+    lastId: string | null;
+  } | null>(null);
+  const [checkingBeforeSend, setCheckingBeforeSend] = useState(false);
   const [draftKind, setDraftKind] = useState<'PUBLIC' | 'INTERNAL'>('PUBLIC');
   const [leaveAs, setLeaveAs] = useState<'RESOLVED' | 'WAITING' | 'OPEN'>(
     'RESOLVED',
@@ -247,15 +256,25 @@ export default function SupportTicketsTab({ onToast }: Props) {
     : (selectedTicket?.email ?? '');
 
   // The conversation of the selected ticket, internal notes included.
-  const { data: detail } = useQuery({
+  const { data: detail, refetch: refetchDetail } = useQuery({
     queryKey: ['admin', 'support-ticket', selectedTicketId],
     queryFn: () =>
       adminApi
         .getSupportTicket(selectedTicketId as string)
         .then((res) => res.data),
     enabled: !!selectedTicketId,
+    // While the agent writes, someone else may write in the same ticket.
+    refetchInterval: draft.trim() ? NEW_MESSAGE_CHECK_MS : false,
   });
   const messages: AdminSupportMessage[] = detail?.messages ?? [];
+  const lastMessageId = messages.at(-1)?.id ?? null;
+  // A message that arrived after the agent started writing in this ticket.
+  const arrivedAfter = (latest: string | null) =>
+    writingFrom?.ticketId === selectedTicketId &&
+    writingFrom.lastId !== null &&
+    latest !== null &&
+    latest !== writingFrom.lastId;
+  const newMessageArrived = !!draft.trim() && arrivedAfter(lastMessageId);
   const answered = messages.some(
     (message) =>
       message.authorKind === 'AGENT' && message.visibility === 'PUBLIC',
@@ -287,6 +306,16 @@ export default function SupportTicketsTab({ onToast }: Props) {
     },
     onError: () => onToast(t('admin.support.toast_error'), 'error'),
   });
+
+  // Reads the ticket once more before sending: if someone wrote meanwhile,
+  // nothing is sent and the warning asks the agent to read it first.
+  const send = async (id: string) => {
+    setCheckingBeforeSend(true);
+    const { data: fresh } = await refetchDetail();
+    setCheckingBeforeSend(false);
+    if (arrivedAfter(fresh?.messages.at(-1)?.id ?? null)) return;
+    messageMutation.mutate(id);
+  };
 
   const updateMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status?: TicketStatus }) =>
@@ -836,7 +865,15 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     )}
                     <Textarea
                       value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
+                      onChange={(e) => {
+                        if (!draft.trim()) {
+                          setWritingFrom({
+                            ticketId: selectedTicket.id,
+                            lastId: lastMessageId,
+                          });
+                        }
+                        setDraft(e.target.value);
+                      }}
                       aria-label={t(
                         kind === 'PUBLIC'
                           ? 'admin.support.kind_answer'
@@ -857,6 +894,33 @@ export default function SupportTicketsTab({ onToast }: Props) {
                           : 'admin.support.note_hint',
                       )}
                     </p>
+                    {newMessageArrived && (
+                      <div
+                        role="status"
+                        className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-yellow-400/40 bg-yellow-400/10 p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-yellow-400">
+                            {t('admin.support.new_message_title')}
+                          </p>
+                          <p className="text-xs text-white/70">
+                            {t('admin.support.new_message_hint')}
+                          </p>
+                        </div>
+                        <Button
+                          variant="secondary"
+                          className="min-h-11"
+                          onClick={() =>
+                            setWritingFrom({
+                              ticketId: selectedTicket.id,
+                              lastId: lastMessageId,
+                            })
+                          }
+                        >
+                          {t('admin.support.new_message_read')}
+                        </Button>
+                      </div>
+                    )}
                     <div className="flex flex-wrap items-center gap-2">
                       {kind === 'PUBLIC' && (
                         <div className="sm:w-56">
@@ -884,11 +948,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         </div>
                       )}
                       <Button
-                        onClick={() =>
-                          messageMutation.mutate(selectedTicket.id)
+                        onClick={() => send(selectedTicket.id)}
+                        isLoading={
+                          messageMutation.isPending || checkingBeforeSend
                         }
-                        isLoading={messageMutation.isPending}
-                        disabled={!draft.trim()}
+                        disabled={!draft.trim() || newMessageArrived}
                         className="min-h-11"
                       >
                         {t(

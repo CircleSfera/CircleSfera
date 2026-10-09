@@ -2649,6 +2649,9 @@
       "assignee_nobody": "Nobody",
       "assignee_me": "You",
       "assignee_other": "Another agent",
+      "new_message_title": "A new message arrived while you were writing",
+      "new_message_hint": "Read it before you send. What you wrote is kept.",
+      "new_message_read": "I have read it",
       "event": {
         "state": "Status: {{from}} → {{to}}",
         "topic": "Topic: {{from}} → {{to}}",
