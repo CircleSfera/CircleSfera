@@ -270,6 +270,9 @@
     "billing": {
       "title": "Subscription",
       "subtitle": "Manage your platform plan",
+      "subtitle_profile": "The plan of @{{username}}. Each profile has its own; you pay for those of all your profiles.",
+      "other_profiles": "Plans of your other profiles",
+      "other_profiles_desc": "They are managed in the same billing.",
       "current_plan": "Current plan",
       "free": "Free",
       "free_desc": "Basic level without advanced features",
@@ -537,7 +540,7 @@
     },
     "profiles": {
       "title": "Your profiles",
-      "description": "An account can have up to {{max}} profiles, each with its own posts, followers and messages. Each profile shares a sign-in or has its own; the plan is shared.",
+      "description": "An account can have up to {{max}} profiles, each with its own posts, followers and messages. Each profile shares a sign-in or has its own, and has its own plan.",
       "current": "Current",
       "suspended": "Suspended",
       "banned": "Banned",
@@ -3818,6 +3821,10 @@
       "support_title": "Support for everyone",
       "support_desc": "Any account can write to Support. With a plan, we answer you first."
     },
+    "for_profile": {
+      "CREATOR": "For creator profiles. Change the type of this profile in Settings to choose it.",
+      "BUSINESS": "For business profiles. Change the type of this profile in Settings to choose it."
+    },
     "all_questions": "See all questions"
   },
   "studio": {
@@ -4577,6 +4584,7 @@
       "other": "You've reached an activity limit. Try again later."
     },
     "codes": {
+      "PLAN_NOT_FOR_PROFILE_TYPE": "This plan is for another type of profile.",
       "INTERNAL_SERVER_ERROR": "Something went wrong on our side. Please try again.",
       "NOT_FOUND": "We couldn't find that.",
       "BAD_REQUEST": "That request isn't valid. Check the details and try again.",
@@ -4604,7 +4612,7 @@
       "STRIPE_ONBOARDING_FAILED": "We couldn't start the payout setup. Try again.",
       "PLAN_NOT_FOUND": "That plan isn't available.",
       "PRICE_NOT_FOUND": "That price isn't available.",
-      "ACTIVE_SUBSCRIPTION_EXISTS": "You already have an active subscription.",
+      "ACTIVE_SUBSCRIPTION_EXISTS": "This profile already has an active plan. Manage it from billing.",
       "STRIPE_CUSTOMER_MISSING": "We couldn't find your billing details. Contact support.",
       "PROMOTION_ID_MISSING": "That promotion is missing. Try again.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Switch to a Creator or Business profile to earn money.",

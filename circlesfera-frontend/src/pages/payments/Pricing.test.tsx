@@ -81,6 +81,8 @@ describe('Pricing', () => {
         id: 'p1',
         identityVerifiedAt: '2026-01-01',
         verificationLevel: 'NONE',
+        // A creator profile: Premium and Elite Creator are for it.
+        accountType: 'CREATOR',
       } as never,
     });
   });
@@ -153,6 +155,62 @@ describe('Pricing', () => {
     expect(
       screen.queryByRole('link', { name: /free/i }),
     ).not.toBeInTheDocument();
+  });
+
+  describe('each plan is for one type of profile', () => {
+    const asProfile = (accountType: string) =>
+      useAuthStore.setState({
+        isAuthenticated: true,
+        profile: {
+          id: 'p1',
+          identityVerifiedAt: '2026-01-01',
+          verificationLevel: 'NONE',
+          accountType,
+        } as never,
+      });
+    const button = (key: string, t: (k: string) => string) =>
+      screen.getByRole('button', { name: t(`pricingPage.button_${key}`) });
+
+    it('a personal profile can choose Premium; the other two say which profile they are for', async () => {
+      asProfile('PERSONAL');
+      const { i18n } = renderWithProviders(<Pricing />);
+      const t = i18n!.t.bind(i18n);
+      await screen.findByText('Premium');
+
+      expect(button('premium', t)).toBeEnabled();
+      expect(button('elite', t)).toBeDisabled();
+      expect(button('business', t)).toBeDisabled();
+      expect(button('elite', t)).toHaveAccessibleDescription(
+        t('pricingPage.for_profile.CREATOR'),
+      );
+      expect(
+        screen.getByText(t('pricingPage.for_profile.BUSINESS')),
+      ).toBeVisible();
+    });
+
+    it('a creator profile can choose Elite Creator, not Business', async () => {
+      asProfile('CREATOR');
+      const { i18n } = renderWithProviders(<Pricing />);
+      const t = i18n!.t.bind(i18n);
+      await screen.findByText('Premium');
+
+      expect(button('elite', t)).toBeEnabled();
+      expect(button('business', t)).toBeDisabled();
+      expect(
+        screen.queryByText(t('pricingPage.for_profile.CREATOR')),
+      ).not.toBeInTheDocument();
+    });
+
+    it('a visitor sees every plan as available', async () => {
+      useAuthStore.setState({ isAuthenticated: false, profile: null });
+      const { i18n } = renderWithProviders(<Pricing />);
+      const t = i18n!.t.bind(i18n);
+      await screen.findByText('Premium');
+
+      for (const key of ['premium', 'elite', 'business']) {
+        expect(button(key, t)).toBeEnabled();
+      }
+    });
   });
 
   it('sends a visitor to sign up instead of checkout', async () => {
@@ -239,7 +297,7 @@ describe('Pricing', () => {
 
     fireEvent.click(
       await screen.findByRole('button', {
-        name: i18n!.t('pricingPage.button_business'),
+        name: i18n!.t('pricingPage.button_elite'),
       }),
     );
 
@@ -428,7 +486,7 @@ describe('Pricing', () => {
 
     fireEvent.click(
       await screen.findByRole('button', {
-        name: i18n!.t('pricingPage.button_business'),
+        name: i18n!.t('pricingPage.button_elite'),
       }),
     );
 

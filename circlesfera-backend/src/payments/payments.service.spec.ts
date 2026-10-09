@@ -9,7 +9,7 @@ import { EmailService } from '../email/email.service.js';
 import { MonetizationWebhookService } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
-import { PaymentsService } from './payments.service.js';
+import { PaymentsService, planAccountType } from './payments.service.js';
 
 const asEvent = (event: unknown) => event as unknown as Stripe.Event;
 
@@ -76,7 +76,11 @@ describe('PaymentsService', () => {
               findUnique: vi.fn(),
               findFirst: vi.fn(),
             },
-            profile: { findFirst: vi.fn() },
+            profile: {
+              findFirst: vi
+                .fn()
+                .mockResolvedValue({ id: 'prof_1', accountType: 'PERSONAL' }),
+            },
             $transaction: vi.fn((callback) => callback(prisma)),
           },
         },
@@ -234,7 +238,7 @@ describe('PaymentsService', () => {
     it('throws USER_NOT_FOUND when user does not exist', async () => {
       prisma.user.findUnique = vi.fn().mockResolvedValue(null);
       await expect(
-        service.createCheckout('u_none', 'plan_1', 'MONTHLY'),
+        service.createCheckout('u_none', 'plan_1', 'MONTHLY', 'prof_1'),
       ).rejects.toThrow('User not found');
     });
 
@@ -246,7 +250,7 @@ describe('PaymentsService', () => {
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue(null);
 
       await expect(
-        service.createCheckout('u_1', 'plan_none', 'MONTHLY'),
+        service.createCheckout('u_1', 'plan_none', 'MONTHLY', 'prof_1'),
       ).rejects.toThrow('Plan not found');
     });
 
@@ -258,7 +262,7 @@ describe('PaymentsService', () => {
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue(null);
 
       await expect(
-        service.createCheckout('u_1', 'plan_off_sale', 'MONTHLY'),
+        service.createCheckout('u_1', 'plan_off_sale', 'MONTHLY', 'prof_1'),
       ).rejects.toThrow('Plan not found');
 
       expect(prisma.platformPlan.findFirst).toHaveBeenCalledWith({
@@ -270,7 +274,11 @@ describe('PaymentsService', () => {
       prisma.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u_1',
         platformSubscriptions: [
-          { planId: 'plan_1', status: SubscriptionStatus.ACTIVE },
+          {
+            planId: 'plan_1',
+            profileId: 'prof_1',
+            status: SubscriptionStatus.ACTIVE,
+          },
         ],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
@@ -279,7 +287,7 @@ describe('PaymentsService', () => {
       });
 
       await expect(
-        service.createCheckout('u_1', 'plan_1', 'MONTHLY'),
+        service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1'),
       ).rejects.toThrow('You already have an active subscription to this plan');
     });
 
@@ -287,7 +295,11 @@ describe('PaymentsService', () => {
       prisma.user.findUnique = vi.fn().mockResolvedValue({
         id: 'u_1',
         platformSubscriptions: [
-          { planId: 'plan_diff', status: SubscriptionStatus.ACTIVE },
+          {
+            planId: 'plan_diff',
+            profileId: 'prof_1',
+            status: SubscriptionStatus.ACTIVE,
+          },
         ],
       });
       prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
@@ -296,8 +308,8 @@ describe('PaymentsService', () => {
       });
 
       await expect(
-        service.createCheckout('u_1', 'plan_1', 'MONTHLY'),
-      ).rejects.toThrow('You already have an active platform plan');
+        service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1'),
+      ).rejects.toThrow('This profile already has an active platform plan');
     });
 
     it('throws error when requested billingCycle price is missing', async () => {
@@ -312,7 +324,7 @@ describe('PaymentsService', () => {
       });
 
       await expect(
-        service.createCheckout('u_1', 'plan_1', 'YEARLY'),
+        service.createCheckout('u_1', 'plan_1', 'YEARLY', 'prof_1'),
       ).rejects.toThrow('Billing cycle YEARLY is not available for this plan');
     });
 
@@ -334,13 +346,133 @@ describe('PaymentsService', () => {
           ),
       );
 
-      const promise1 = service.createCheckout('u_flight', 'plan_1', 'MONTHLY');
-      const promise2 = service.createCheckout('u_flight', 'plan_1', 'MONTHLY');
+      const promise1 = service.createCheckout(
+        'u_flight',
+        'plan_1',
+        'MONTHLY',
+        'prof_1',
+      );
+      const promise2 = service.createCheckout(
+        'u_flight',
+        'plan_1',
+        'MONTHLY',
+        'prof_1',
+      );
 
       const [res1, res2] = await Promise.all([promise1, promise2]);
       expect(res1).toEqual({ id: 'cs_flight' });
       expect(res2).toEqual({ id: 'cs_flight' });
       expect(stripeService.createCheckoutSession).toHaveBeenCalledTimes(1);
+    });
+
+    describe('a plan belongs to one Profile', () => {
+      const person = (subscriptions: object[] = []) => {
+        prisma.user.findUnique = vi.fn().mockResolvedValue({
+          id: 'u_1',
+          email: 'u@test.com',
+          stripeCustomerId: 'cust_1',
+          platformSubscriptions: subscriptions,
+        });
+      };
+      const plan = (name: string) => {
+        prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+          id: 'plan_1',
+          name,
+          stripePriceId: 'price_monthly',
+        });
+      };
+      const profileOfType = (accountType: string) => {
+        prisma.profile.findFirst = vi
+          .fn()
+          .mockResolvedValue({ id: 'prof_1', accountType });
+      };
+      const checkout = () =>
+        service.createCheckout('u_1', 'plan_1', 'MONTHLY', 'prof_1');
+      beforeEach(() => {
+        stripeService.createCheckoutSession.mockResolvedValue({
+          url: 'https://checkout',
+        });
+      });
+
+      it('lets a second Profile subscribe while another Profile of the person keeps its plan', async () => {
+        person([
+          {
+            planId: 'plan_1',
+            profileId: 'prof_other',
+            status: SubscriptionStatus.ACTIVE,
+          },
+        ]);
+        plan('Premium');
+
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+        expect(stripeService.createCheckoutSession).toHaveBeenCalledWith(
+          expect.objectContaining({
+            metadata: expect.objectContaining({ profileId: 'prof_1' }),
+          }),
+          expect.anything(),
+        );
+      });
+
+      it('looks for the Profile among those of the person, and refuses one of someone else or none at all', async () => {
+        person();
+        plan('Premium');
+        prisma.profile.findFirst = vi.fn().mockResolvedValue(null);
+
+        await expect(checkout()).rejects.toThrow('Profile not found');
+        expect(prisma.profile.findFirst).toHaveBeenCalledWith({
+          where: { id: 'prof_1', userId: 'u_1' },
+          select: { id: true, accountType: true },
+        });
+
+        prisma.profile.findFirst = vi.fn();
+        await expect(
+          service.createCheckout('u_1', 'plan_1', 'MONTHLY'),
+        ).rejects.toThrow('Profile not found');
+        expect(prisma.profile.findFirst).not.toHaveBeenCalled();
+        expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+      });
+
+      it.each([
+        ['Elite Creator', 'PERSONAL', 'CREATOR'],
+        ['Elite Creator', 'BUSINESS', 'CREATOR'],
+        ['Business', 'PERSONAL', 'BUSINESS'],
+        ['Business', 'CREATOR', 'BUSINESS'],
+      ])(
+        'refuses %s for a %s Profile, saying which type it is for',
+        async (name, type, required) => {
+          person();
+          plan(name);
+          profileOfType(type);
+
+          const error = await checkout().catch((e) => e);
+          expect(error.errorCode).toBe('PLAN_NOT_FOR_PROFILE_TYPE');
+          expect(error.getStatus()).toBe(400);
+          expect(error.details).toEqual({ requiredAccountType: required });
+          expect(stripeService.createCheckoutSession).not.toHaveBeenCalled();
+        },
+      );
+
+      it.each([
+        ['Premium', 'PERSONAL'],
+        ['Premium', 'CREATOR'],
+        ['Premium', 'BUSINESS'],
+        ['Elite Creator', 'CREATOR'],
+        ['Business', 'BUSINESS'],
+      ])('lets a %s plan be bought for a %s Profile', async (name, type) => {
+        person();
+        plan(name);
+        profileOfType(type);
+
+        await expect(checkout()).resolves.toEqual({ url: 'https://checkout' });
+      });
+
+      it('names the type of Profile each plan is for from its name', () => {
+        expect(planAccountType('Business')).toBe('BUSINESS');
+        expect(planAccountType('Elite Creator')).toBe('CREATOR');
+        expect(planAccountType('Premium')).toBeNull();
+        expect(planAccountType('Verified')).toBeNull();
+        expect(planAccountType(undefined)).toBeNull();
+      });
     });
 
     it('creates checkout session for yearly subscription with profileId and frontendUrl fallback', async () => {
@@ -379,7 +511,7 @@ describe('PaymentsService', () => {
           }),
         }),
         expect.objectContaining({
-          idempotencyKey: 'checkout_sub_u_year:plan_1:YEARLY',
+          idempotencyKey: 'checkout_sub_u_year:prof_1:plan_1:YEARLY',
         }),
       );
     });
@@ -480,7 +612,7 @@ describe('PaymentsService', () => {
         },
       });
 
-      const res = await service.getBillingStatus('u_1');
+      const res = await service.getBillingStatus('u_1', 'prof_1');
       expect(res.hasActiveSubscription).toBe(true);
       expect(res.subscription?.planName).toBe('Pro');
       expect(res.subscription?.priceCents).toBe(2000);
@@ -494,15 +626,62 @@ describe('PaymentsService', () => {
         plan: { name: 'Pro', priceCents: 2000, currency: 'EUR' },
       });
 
-      const res = await service.getBillingStatus('u_1');
+      const res = await service.getBillingStatus('u_1', 'prof_1');
       expect(res.hasActiveSubscription).toBe(false);
       expect(res.subscription?.status).toBe(SubscriptionStatus.PAST_DUE);
+    });
+
+    it('reads the plan of the Profile in use, and names the other Profiles of the person that have one', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+      prisma.platformSubscription.findMany = vi.fn().mockResolvedValue([
+        {
+          status: SubscriptionStatus.ACTIVE,
+          plan: { name: 'Business' },
+          profile: { id: 'prof_shop', username: 'ana.shop' },
+        },
+        // Kept after its Profile was removed: not listed.
+        {
+          status: SubscriptionStatus.ACTIVE,
+          plan: { name: 'Premium' },
+          profile: null,
+        },
+      ]);
+
+      const res = await service.getBillingStatus('u_1', 'prof_1');
+
+      expect(
+        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
+          ?.where,
+      ).toMatchObject({ userId: 'u_1', profileId: 'prof_1' });
+      expect(
+        vi.mocked(prisma.platformSubscription.findMany).mock.calls[0][0]?.where,
+      ).toMatchObject({ userId: 'u_1', profileId: { not: 'prof_1' } });
+      expect(res.hasActiveSubscription).toBe(false);
+      expect(res.otherProfiles).toEqual([
+        {
+          profileId: 'prof_shop',
+          username: 'ana.shop',
+          planName: 'Business',
+          status: SubscriptionStatus.ACTIVE,
+        },
+      ]);
+    });
+
+    it('gives a session without a Profile no plan, never the one of another Profile', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await service.getBillingStatus('u_1', '');
+
+      expect(
+        vi.mocked(prisma.platformSubscription.findFirst).mock.calls[0][0]
+          ?.where,
+      ).toMatchObject({ profileId: '__no_profile__' });
     });
 
     it('returns null subscription when no subscription found', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
 
-      const res = await service.getBillingStatus('u_1');
+      const res = await service.getBillingStatus('u_1', 'prof_1');
       expect(res.hasActiveSubscription).toBe(false);
       expect(res.subscription).toBeNull();
     });
@@ -806,7 +985,39 @@ describe('PaymentsService', () => {
 
       await service.processWebhookEvent(asEvent(event));
 
-      expect(prisma.platformSubscription.upsert).toHaveBeenCalled();
+      // The plan is recorded for a Profile of the person: none was named,
+      // so the oldest one.
+      expect(prisma.profile.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user1' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+      expect(prisma.platformSubscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({
+            userId: 'user1',
+            profileId: 'prof_1',
+          }),
+        }),
+      );
+      // Only the other plans of that Profile are cancelled, and before the
+      // new one is recorded.
+      expect(prisma.platformSubscription.findMany).toHaveBeenCalledWith({
+        where: {
+          profileId: 'prof_1',
+          status: {
+            in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+          },
+          NOT: { stripeSubscriptionId: 'sub_123' },
+        },
+      });
+      expect(
+        vi.mocked(prisma.platformSubscription.update).mock
+          .invocationCallOrder[0],
+      ).toBeLessThan(
+        vi.mocked(prisma.platformSubscription.upsert).mock
+          .invocationCallOrder[0],
+      );
       expect(usersService.syncUserTier).toHaveBeenCalledWith('user1');
       expect(stripeService.cancelSubscription).toHaveBeenCalledWith(
         'old_stripe_sub',
@@ -827,6 +1038,55 @@ describe('PaymentsService', () => {
         }),
       );
       expect(prisma.webhookEvent.update).toHaveBeenCalled();
+    });
+
+    it('2a. records the plan for the Profile the checkout names, looked for among those of the person, and records nothing without one', async () => {
+      const event = (id: string) => ({
+        id,
+        type: 'checkout.session.completed',
+        data: {
+          object: {
+            id: `cs_${id}`,
+            amount_total: 1000,
+            currency: 'eur',
+            subscription: `sub_${id}`,
+            metadata: {
+              userId: 'user1',
+              planId: 'plan_elite',
+              profileId: 'prof_named',
+            },
+          },
+        },
+      });
+      stripeService.getSubscription.mockResolvedValue({
+        status: 'active',
+        current_period_start: 1,
+        current_period_end: 2,
+        cancel_at_period_end: false,
+      });
+      prisma.profile.findFirst = vi
+        .fn()
+        .mockResolvedValue({ id: 'prof_named' });
+
+      await service.processWebhookEvent(asEvent(event('evt_named')));
+
+      expect(prisma.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user1', id: 'prof_named' },
+        }),
+      );
+      expect(prisma.platformSubscription.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          create: expect.objectContaining({ profileId: 'prof_named' }),
+          update: expect.objectContaining({ profileId: 'prof_named' }),
+        }),
+      );
+
+      // A Profile that is not the person's is not found: nothing is recorded.
+      vi.mocked(prisma.platformSubscription.upsert).mockClear();
+      prisma.profile.findFirst = vi.fn().mockResolvedValue(null);
+      await service.processWebhookEvent(asEvent(event('evt_foreign')));
+      expect(prisma.platformSubscription.upsert).not.toHaveBeenCalled();
     });
 
     it('2b. gracefully handles Stripe error when cancelling previous subscription', async () => {

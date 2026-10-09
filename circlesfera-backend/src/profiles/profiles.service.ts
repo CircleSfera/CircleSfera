@@ -134,10 +134,11 @@ export class ProfilesService {
 
     await this.assertNotBlocked(viewerProfileId, profile.id);
 
-    // Check if user is verified via subscription (PlatformSubscription is on User)
+    // The badge comes from a plan of this Profile, not of another Profile of
+    // the same person.
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
-        userId: profile.userId,
+        profileId: profile.id,
         status: SubscriptionStatus.ACTIVE,
         plan: { features: { has: 'verified_badge' } },
       },
@@ -483,10 +484,10 @@ export class ProfilesService {
       );
     }
 
-    // Check if user is verified via subscription
+    // The badge comes from a plan of this Profile.
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
-        userId: profile.userId,
+        profileId: profile.id,
         status: SubscriptionStatus.ACTIVE,
         plan: { features: { has: 'verified_badge' } },
       },

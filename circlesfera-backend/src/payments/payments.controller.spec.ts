@@ -111,6 +111,8 @@ describe('PaymentsController', () => {
       TEST_USER.userId,
       TEST_UUID,
       'YEARLY',
+      // For the Profile in use.
+      TEST_USER.profileId,
     );
   });
 
@@ -138,7 +140,10 @@ describe('PaymentsController', () => {
     expect(ledger.text).toBe('id,amount\n');
 
     expect(mockService.getPortalUrl).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(mockService.getBillingStatus).toHaveBeenCalledWith(TEST_USER.userId);
+    expect(mockService.getBillingStatus).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
     expect(mockService.getLedgerCsv).toHaveBeenCalledWith(TEST_USER.userId);
   });
 
