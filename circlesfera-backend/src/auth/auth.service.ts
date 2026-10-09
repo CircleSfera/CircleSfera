@@ -48,6 +48,8 @@ import {
 // And password reset flows. Supports legacy bcrypt migration on login.
 
 const LOGIN_USER_OMIT = { password: false, twoFactorSecret: false } as const;
+// What signing in with a password needs from the sign-in.
+const LOGIN_SIGN_IN_OMIT = { password: false } as const;
 
 @Injectable()
 export class AuthService {
@@ -204,13 +206,17 @@ export class AuthService {
   // Returns Success message
   // Throws BadRequestException if token is invalid or expired
   async verifyEmail(dto: VerifyEmailDto) {
-    const user = await this.prisma.user.findUnique({
+    // The token is looked for on the sign-in; the account is written, and
+    // the database copies the change to the sign-in in the same transaction.
+    const signIn = await this.prisma.signIn.findUnique({
       where: { verificationToken: dto.token },
+      select: { userId: true },
     });
 
-    if (!user) {
+    if (!signIn) {
       throw new BadRequestException('Invalid or expired verification token');
     }
+    const user = { id: signIn.userId };
 
     await this.prisma.user.update({
       where: { id: user.id },
@@ -232,8 +238,10 @@ export class AuthService {
   }
 
   async resendVerification(userId: string): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+    // The first sign-in of the account: the one its Profiles share.
+    const user = await this.prisma.signIn.findFirst({
+      where: { userId },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
       select: { email: true, emailVerified: true },
     });
     if (!user) {
@@ -259,9 +267,11 @@ export class AuthService {
   // Param dto: Contains the user's email
   // Returns Generic success message
   async requestPasswordReset(dto: RequestResetDto) {
-    const user = await this.prisma.user.findUnique({
+    const signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.email },
+      select: { userId: true, email: true },
     });
+    const user = signIn && { id: signIn.userId, email: signIn.email };
 
     if (!user) {
       // Return success even if user not found for security (silent fail)
@@ -290,16 +300,18 @@ export class AuthService {
   // Returns Success message
   // Throws BadRequestException if token is invalid or expired
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({
+    const signIn = await this.prisma.signIn.findUnique({
       where: { resetToken: dto.token },
+      select: { userId: true, resetTokenExpires: true },
     });
 
     if (
-      !user ||
-      (user.resetTokenExpires && user.resetTokenExpires < new Date())
+      !signIn ||
+      (signIn.resetTokenExpires && signIn.resetTokenExpires < new Date())
     ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
+    const user = { id: signIn.userId };
 
     const hashedPassword = await argon2.hash(dto.newPassword);
 
@@ -339,25 +351,38 @@ export class AuthService {
     // Find user by email or username
     // Login is one of the few readers that needs the secrets the client omits
     // by default (see USER_SECRET_OMIT).
-    let user = await this.prisma.user.findUnique({
+    // The password is the one of the sign-in: found by its email, or through
+    // the Profile with that username. The account behind it says who the
+    // person is and whether they may come in.
+    const withAccount = {
+      omit: LOGIN_SIGN_IN_OMIT,
+      include: { user: { omit: LOGIN_USER_OMIT } },
+    } as const;
+    let signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.identifier },
-      omit: LOGIN_USER_OMIT,
+      ...withAccount,
     });
 
-    if (!user) {
+    if (!signIn) {
       // Try finding by username in profile
       const profile = await this.prisma.profile.findFirst({
         where: { username: { equals: dto.identifier, mode: 'insensitive' } },
-        include: { user: { omit: LOGIN_USER_OMIT } },
+        select: { signIn: withAccount },
       });
-      if (profile) {
-        user = profile.user;
-      }
+      signIn = profile?.signIn ?? null;
     }
 
-    if (!user) {
+    // A Profile without a sign-in, or a sign-in without its account, is
+    // answered like an unknown identifier.
+    if (!signIn?.user) {
       throw new UnauthorizedException('Invalid email, username or password');
     }
+    const user = {
+      ...signIn.user,
+      email: signIn.email,
+      password: signIn.password,
+      passwordResetRequiredAt: signIn.passwordResetRequiredAt,
+    };
 
     // Verify password
     let isPasswordValid = false;

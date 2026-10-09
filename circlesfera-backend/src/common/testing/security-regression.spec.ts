@@ -40,6 +40,24 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           findFirst: vi.fn(),
           update: vi.fn().mockResolvedValue({}),
         },
+        // The sign-in holds a copy of the credentials of the account each
+        // test describes, with the account behind it.
+        signIn: {
+          findUnique: vi.fn(async (args?: unknown) => {
+            const account = await mockPrisma.user.findUnique(args);
+            return account
+              ? {
+                  id: `sign-in-${account.id}`,
+                  userId: account.id,
+                  email: account.email,
+                  password: account.password,
+                  passwordResetRequiredAt:
+                    account.passwordResetRequiredAt ?? null,
+                  user: account,
+                }
+              : null;
+          }),
+        },
         profile: {
           findFirst: vi.fn().mockResolvedValue(null),
           findUnique: vi.fn(),
