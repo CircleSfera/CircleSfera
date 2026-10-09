@@ -22,4 +22,10 @@ export class AgentTicketsQueryDto extends PaginationDto {
   @IsString()
   @IsIn(['mine', 'unassigned'])
   assignment?: string;
+
+  // past: only the open tickets past their target.
+  @IsOptional()
+  @IsString()
+  @IsIn(['past'])
+  target?: string;
 }

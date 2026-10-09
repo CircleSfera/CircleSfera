@@ -2652,6 +2652,16 @@
       "assignee_former": "Former agent",
       "assignee_me_named": "{{name}} (you)",
       "assign_to": "Assign to",
+      "target": {
+        "label": "Target",
+        "filter": "Target",
+        "filter_all": "On time or late",
+        "filter_past": "Past target",
+        "first_response": "First response",
+        "resolution": "Resolution",
+        "near": "{{target}}: {{time}} left",
+        "past": "{{target}}: past target by {{time}}"
+      },
       "by_email": "by email",
       "saved_replies": {
         "title": "Saved replies",

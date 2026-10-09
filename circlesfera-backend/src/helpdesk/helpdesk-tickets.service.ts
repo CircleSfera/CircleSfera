@@ -387,7 +387,13 @@ export class HelpdeskTicketsService {
     status?: string,
     category?: string,
     // Whose tickets: the agent's own, the ones nobody has, or all.
-    team: { priority?: string; assignment?: string; agentRef?: string } = {},
+    team: {
+      priority?: string;
+      assignment?: string;
+      agentRef?: string;
+      // past: only the open tickets past their target.
+      target?: string;
+    } = {},
   ) {
     const filters: {
       status?: TicketStatus;
@@ -416,12 +422,15 @@ export class HelpdeskTicketsService {
       filters.category = category as TicketCategory;
     }
 
-    // Open tickets: the one waiting longest first. Any other list: newest first.
+    // Past target is a list of open tickets, whatever state was asked for.
+    const pastTarget = team.target === 'past';
+    if (pastTarget) filters.status = 'OPEN';
     const { tickets, total } = await this.store.listTickets(
       filters,
       page,
       limit,
       filters.status === 'OPEN',
+      ...(pastTarget ? [new Date()] : []),
     );
 
     const present = (values: (string | null)[]) => [

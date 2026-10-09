@@ -483,6 +483,11 @@ export interface AdminSupportTicket {
   // Only agents see these two.
   priority?: 'LOW' | 'NORMAL' | 'HIGH';
   assignedAgentRef?: string | null;
+  // What the ticket is measured by. Empty for a ticket that is not measured.
+  serviceLevel?: 'STANDARD' | 'PRIORITY';
+  firstResponseDueAt?: string | null;
+  firstRespondedAt?: string | null;
+  resolutionDueAt?: string | null;
   // What the ticket is about, chosen by who wrote it.
   category: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
   escalatedReport?: { id: string; status: string } | null;
@@ -1137,7 +1142,12 @@ export const adminApi = {
     status?: string,
     category?: string,
     // Whose tickets and of which priority.
-    team: { assignment?: 'mine' | 'unassigned'; priority?: string } = {},
+    team: {
+      assignment?: 'mine' | 'unassigned';
+      priority?: string;
+      // Only the open tickets past their target.
+      target?: 'past';
+    } = {},
   ) =>
     apiClient.get<PaginatedResponse<AdminSupportTicket>>(
       'admin/support/tickets',
