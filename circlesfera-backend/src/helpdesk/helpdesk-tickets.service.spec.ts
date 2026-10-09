@@ -19,7 +19,7 @@ describe('HelpdeskTicketsService', () => {
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
   const handover = { open: vi.fn(), withdraw: vi.fn(), cases: vi.fn() };
-  const notifier = { answer: vi.fn() };
+  const notifier = { answer: vi.fn(), remind: vi.fn() };
   const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
   const staffLog = { record: vi.fn() };
   let service: HelpdeskTicketsService;

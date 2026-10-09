@@ -227,6 +227,27 @@ export class EmailService {
     );
   }
 
+  // The team is waiting for the requester's answer in a request.
+  async sendSupportReminderEmail(
+    email: string,
+    originalSubject: string,
+    reference: number,
+    ticketId: string,
+    solvedInDays: number,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.supportReminder(
+        ctx,
+        originalSubject,
+        reference,
+        solvedInDays,
+        `${ctx.frontendUrl}/support/requests/${encodeURIComponent(ticketId)}`,
+      ),
+    );
+  }
+
   // Receipt for a platform subscription.
   async sendSubscriptionReceipt(
     email: string,

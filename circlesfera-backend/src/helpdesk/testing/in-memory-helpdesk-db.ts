@@ -47,6 +47,13 @@ export class InMemoryHelpdeskDb {
         const ticket = this.tickets.find((t) => t.id === row.ticketId);
         return !!ticket && this.matches(ticket, condition as Where);
       }
+      // A ticket is filtered by what it has none of.
+      if (key === 'messages' || key === 'events') {
+        const { none } = condition as { none: Where };
+        return !this[key].some(
+          (one) => one.ticketId === row.id && this.matches(one, none),
+        );
+      }
       const value = row[key];
       if (!isPlainObject(condition)) return same(value, condition);
       return Object.entries(condition).every(([operator, operand]) => {

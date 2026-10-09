@@ -30,4 +30,20 @@ describe('HelpdeskScheduler', () => {
       new HelpdeskScheduler(tickets as never).closeSolvedTickets(),
     ).resolves.toBeUndefined();
   });
+
+  it('solves the tickets nobody answered and reminds the ones still waiting, and survives a failed run', async () => {
+    const tickets = {
+      solveUnansweredTickets: vi.fn().mockResolvedValue(1),
+      remindWaitingTickets: vi.fn().mockResolvedValue(0),
+    };
+    await new HelpdeskScheduler(tickets as never).followUpWaitingTickets();
+    expect(tickets.solveUnansweredTickets).toHaveBeenCalledTimes(1);
+    expect(tickets.remindWaitingTickets).toHaveBeenCalledTimes(1);
+
+    tickets.solveUnansweredTickets.mockResolvedValue(0);
+    tickets.remindWaitingTickets.mockRejectedValue('db down');
+    await expect(
+      new HelpdeskScheduler(tickets as never).followUpWaitingTickets(),
+    ).resolves.toBeUndefined();
+  });
 });

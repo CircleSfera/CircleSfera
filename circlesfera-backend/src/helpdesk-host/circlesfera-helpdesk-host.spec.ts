@@ -180,7 +180,10 @@ describe('CircleSfera as the host of the Help Desk', () => {
   });
 
   describe('telling the requester', () => {
-    const email = { sendSupportReplyEmail: vi.fn() };
+    const email = {
+      sendSupportReplyEmail: vi.fn(),
+      sendSupportReminderEmail: vi.fn(),
+    };
     const eventEmitter = { emit: vi.fn() };
     const notifier = new CircleSferaRequesterNotifier(
       email as never,
@@ -194,6 +197,18 @@ describe('CircleSfera as the host of the Help Desk', () => {
       email: 'ana@example.com',
       requesterRef: 'u-1',
     };
+
+    it('reminds by email, with the number of the request and the days left', async () => {
+      await notifier.remind(ticket, 7);
+
+      expect(email.sendSupportReminderEmail).toHaveBeenCalledWith(
+        'ana@example.com',
+        'Help',
+        42,
+        't-1',
+        7,
+      );
+    });
 
     it('sends the answer by email with the request it belongs to, and a notice in the app on their main Profile', async () => {
       prisma.profile.findFirst.mockResolvedValue({ id: 'p-1' });

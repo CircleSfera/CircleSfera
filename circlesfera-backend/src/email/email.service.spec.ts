@@ -297,6 +297,26 @@ describe('EmailService', () => {
       expect(job.html).toContain('/support/requests/t-1');
     });
 
+    it('reminds a requester the team is waiting, with a link to the request', async () => {
+      await service.sendSupportReminderEmail(
+        'support-asker@example.com',
+        'Billing inquiry',
+        42,
+        't-1',
+        7,
+      );
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { to: string; subject: string; html: string },
+      ];
+      expect(job.to).toBe('support-asker@example.com');
+      expect(job.subject).toBe(
+        '¿Sigues necesitando ayuda? Billing inquiry - Soporte de CircleSfera',
+      );
+      expect(job.html).toContain('/support/requests/t-1');
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',

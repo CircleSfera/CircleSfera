@@ -127,6 +127,83 @@ export class HelpdeskStore {
     });
   }
 
+  /**
+   * The tickets that have waited for their requester since before a moment
+   * and were not reminded yet. A wait starts with the last public message
+   * or with the change to waiting, whichever came later.
+   */
+  ticketsWaitingSinceBefore(moment: Date, limit: number) {
+    return this.prisma.supportTicket.findMany({
+      where: {
+        organizationId: this.organizationId,
+        status: 'WAITING',
+        waitingRemindedAt: null,
+        messages: {
+          none: { visibility: 'PUBLIC', createdAt: { gte: moment } },
+        },
+        events: {
+          none: {
+            kind: 'STATE',
+            toValue: 'WAITING',
+            createdAt: { gte: moment },
+          },
+        },
+      },
+      orderBy: { updatedAt: 'asc' },
+      take: limit,
+      select: {
+        id: true,
+        reference: true,
+        subject: true,
+        email: true,
+        userId: true,
+      },
+    });
+  }
+
+  /**
+   * Marks a waiting ticket as reminded at a moment. False when it no longer
+   * waits or was reminded already, so that one wait gets one reminder.
+   */
+  async claimReminder(id: string, moment: Date): Promise<boolean> {
+    const { count } = await this.prisma.supportTicket.updateMany({
+      where: {
+        id,
+        organizationId: this.organizationId,
+        status: 'WAITING',
+        waitingRemindedAt: null,
+      },
+      data: { waitingRemindedAt: moment },
+    });
+    return count === 1;
+  }
+
+  /** Takes back the mark of a reminder that could not be sent. */
+  async releaseReminder(id: string, moment: Date): Promise<void> {
+    await this.prisma.supportTicket.updateMany({
+      where: {
+        id,
+        organizationId: this.organizationId,
+        waitingRemindedAt: moment,
+      },
+      data: { waitingRemindedAt: null },
+    });
+  }
+
+  /** The tickets still waiting whose reminder was sent before a moment. */
+  ticketsRemindedBefore(moment: Date, limit: number) {
+    return this.prisma.supportTicket.findMany({
+      where: {
+        organizationId: this.organizationId,
+        status: 'WAITING',
+        waitingRemindedAt: { lt: moment },
+      },
+      orderBy: { waitingRemindedAt: 'asc' },
+      take: limit,
+      select: { id: true, status: true },
+    });
+  }
+
   /** A requester's tickets with their public messages, for a data export. */
   requesterExport(requesterRef: string) {
     return this.prisma.supportTicket.findMany({

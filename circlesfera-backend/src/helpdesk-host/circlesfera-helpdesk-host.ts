@@ -219,6 +219,16 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       targetId: ticket.id,
     });
   }
+
+  async remind(ticket: TicketNotice, solvedInDays: number) {
+    await this.email.sendSupportReminderEmail(
+      ticket.email,
+      ticket.subject,
+      ticket.reference,
+      ticket.id,
+      solvedInDays,
+    );
+  }
 }
 
 // The team hears about a new ticket through the event the internal channel

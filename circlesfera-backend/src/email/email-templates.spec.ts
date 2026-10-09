@@ -141,4 +141,22 @@ describe('fill and escapeHtml', () => {
     expect(withLink).toContain('See your request');
     expect(without).not.toContain('See your request');
   });
+
+  it('the reminder of a request names it, says when it will be solved and links to it, in both languages', () => {
+    const url = 'https://circlesfera.com/support/requests/t-1';
+    const inEnglish = EmailTemplates.supportReminder(en, 'A <b>', 42, 7, url);
+    const inSpanish = EmailTemplates.supportReminder(es, 'Ayuda', 42, 7, url);
+
+    expect(inEnglish.subject).toBe(
+      'Do you still need help? A <b> - CircleSfera Support',
+    );
+    expect(inEnglish.html).toContain('request #42, <strong>A &lt;b&gt;');
+    expect(inEnglish.html).toContain('in 7 days');
+    expect(inEnglish.html).toContain(url);
+    expect(inSpanish.subject).toBe(
+      '¿Sigues necesitando ayuda? Ayuda - Soporte de CircleSfera',
+    );
+    expect(inSpanish.html).toContain('solicitud n.º 42');
+    expect(inSpanish.html).toContain('en 7 días');
+  });
 });

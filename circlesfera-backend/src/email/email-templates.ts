@@ -299,6 +299,28 @@ export const EmailTemplates = {
     };
   },
 
+  supportReminder: (
+    ctx: EmailContext,
+    originalSubject: string,
+    reference: number,
+    solvedInDays: number,
+    requestUrl: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: fill(copy.supportReminder.subject, { subject: originalSubject }),
+      html: layout(ctx, copy, {
+        title: copy.supportReminder.title,
+        content: fill(copy.supportReminder.body, {
+          subject: escapeHtml(originalSubject),
+          reference: String(reference),
+          days: String(solvedInDays),
+        }),
+        button: { text: copy.supportReminder.button, url: requestUrl },
+      }),
+    };
+  },
+
   subscriptionReceipt: (
     ctx: EmailContext,
     planName: string,

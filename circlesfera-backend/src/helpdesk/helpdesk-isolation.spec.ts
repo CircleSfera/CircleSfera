@@ -23,11 +23,18 @@ describe('Help Desk: isolation between two organizations', () => {
     withdraw: vi.fn(),
     cases: vi.fn(),
   };
-  const notifier = { answer: vi.fn() };
+  const notifier = { answer: vi.fn(), remind: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
 
   // What belongs to the first organization, by name.
-  let a: { open: string; shared: string; solved: string; handed: string };
+  let a: {
+    open: string;
+    shared: string;
+    solved: string;
+    handed: string;
+    waiting: string;
+    reminded: string;
+  };
 
   const as = (organization: 'org-a' | 'org-b') => {
     current = organization;
@@ -92,6 +99,8 @@ describe('Help Desk: isolation between two organizations', () => {
       shared: await open('shared', 'A of the shared person'),
       solved: await open('ana', 'A solved long ago'),
       handed: await open('ana', 'A with another team'),
+      waiting: await open('ana', 'A waiting for its requester'),
+      reminded: await open('ana', 'A reminded long ago'),
     };
     await tickets.addMessage('agent-a', a.open, {
       body: 'internal note of org a',
@@ -104,6 +113,11 @@ describe('Help Desk: isolation between two organizations', () => {
     Object.assign(ticket(a.handed) as object, {
       status: 'ESCALATED',
       escalatedReportId: 'case-a',
+    });
+    Object.assign(ticket(a.waiting) as object, { status: 'WAITING' });
+    Object.assign(ticket(a.reminded) as object, {
+      status: 'WAITING',
+      waitingRemindedAt: new Date('2025-01-01T00:00:00Z'),
     });
 
     as('org-b');
@@ -211,6 +225,14 @@ describe('Help Desk: isolation between two organizations', () => {
         leaked: closed !== 1 || ticket(a.solved)?.status !== 'RESOLVED',
       };
     },
+    remindWaitingTickets: async () => ({
+      leaked:
+        (await tickets.remindWaitingTickets()) !== 0 ||
+        notifier.remind.mock.calls.length !== 0,
+    }),
+    solveUnansweredTickets: async () => ({
+      leaked: (await tickets.solveUnansweredTickets()) !== 0,
+    }),
     returnDecidedHandovers: async () => ({
       leaked:
         (await tickets.returnDecidedHandovers()) !== 0 ||
@@ -308,7 +330,7 @@ describe('Help Desk: isolation between two organizations', () => {
   it('is not passing by returning nothing: the first organization sees its own', async () => {
     as('org-a');
 
-    expect((await tickets.listTickets(1, 100)).data).toHaveLength(4);
+    expect((await tickets.listTickets(1, 100)).data).toHaveLength(6);
     const own = await tickets.getTicket(a.open);
     expect(own.messages.map((m) => m.visibility)).toEqual([
       'PUBLIC',
@@ -321,6 +343,8 @@ describe('Help Desk: isolation between two organizations', () => {
     expect((await port.openTickets(100)).total).toBe(2);
     expect(await tickets.returnDecidedHandovers()).toBe(1);
     expect(await tickets.closeSolvedTickets()).toBe(1);
+    expect(await tickets.solveUnansweredTickets()).toBe(1);
+    expect(await tickets.remindWaitingTickets()).toBe(1);
   });
 
   it('would catch a query that forgets the organization', async () => {
