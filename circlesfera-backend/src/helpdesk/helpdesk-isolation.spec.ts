@@ -123,6 +123,7 @@ describe('Help Desk: isolation between two organizations', () => {
       { record: vi.fn() },
       agents,
       { for: () => undefined } as never,
+      { levelOf: async () => 'STANDARD' as const },
     );
     inbound = new HelpdeskInboundService(
       store,
@@ -411,6 +412,7 @@ describe('Help Desk: isolation between two organizations', () => {
       'isHeldByOtherTeam',
       'agentNames',
       'addRequesterMessage',
+      'measuresFor',
     ]);
     const all = [
       ...publicMethods(HelpdeskTicketsService.prototype),

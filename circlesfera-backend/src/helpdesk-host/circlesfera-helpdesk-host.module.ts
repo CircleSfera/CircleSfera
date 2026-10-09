@@ -8,6 +8,7 @@ import {
   ORGANIZATION_SCOPE,
   REQUESTER_DIRECTORY,
   REQUESTER_NOTIFIER,
+  SERVICE_LEVEL_PROVIDER,
   STAFF_ACTION_LOG,
   TEAM_CHANNEL,
 } from '../helpdesk/helpdesk-host.contracts.js';
@@ -25,6 +26,7 @@ import {
   CircleSferaRequesterNotifier,
   CircleSferaTeamChannel,
   ModerationHandover,
+  PlanServiceLevel,
   StaffAgentDirectory,
 } from './circlesfera-helpdesk-host.js';
 
@@ -37,6 +39,7 @@ const contracts = [
   { provide: TEAM_CHANNEL, useClass: CircleSferaTeamChannel },
   { provide: STAFF_ACTION_LOG, useClass: AdminAuditStaffActionLog },
   { provide: AGENT_DIRECTORY, useClass: StaffAgentDirectory },
+  { provide: SERVICE_LEVEL_PROVIDER, useClass: PlanServiceLevel },
 ];
 
 /** CircleSfera's side of the Help Desk contracts. */

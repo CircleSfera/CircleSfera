@@ -53,6 +53,11 @@ export class HelpdeskStore {
     previousTicketId?: string;
     // How the first message arrived; in the product unless said.
     channel?: 'PRODUCT' | 'EMAIL';
+    // What the ticket is measured by. Without due times it is not measured.
+    serviceLevel?: 'STANDARD' | 'PRIORITY';
+    priority?: 'LOW' | 'NORMAL' | 'HIGH';
+    firstResponseDueAt?: Date;
+    resolutionDueAt?: Date;
   }) {
     return this.prisma.supportTicket.create({
       data: {
@@ -64,6 +69,10 @@ export class HelpdeskStore {
         message: ticket.message,
         category: ticket.category,
         previousTicketId: ticket.previousTicketId,
+        serviceLevel: ticket.serviceLevel,
+        priority: ticket.priority,
+        firstResponseDueAt: ticket.firstResponseDueAt,
+        resolutionDueAt: ticket.resolutionDueAt,
         messages: {
           create: {
             authorKind: 'REQUESTER',
@@ -111,7 +120,12 @@ export class HelpdeskStore {
       where: { organizationId: this.organizationId, status: 'ESCALATED' },
       orderBy: { updatedAt: 'asc' },
       take: limit,
-      select: { id: true, escalatedReportId: true },
+      select: {
+        id: true,
+        escalatedReportId: true,
+        resolutionDueAt: true,
+        pausedAt: true,
+      },
     });
   }
 
@@ -606,6 +620,19 @@ export class HelpdeskStore {
         outcome: 'RECEIVED',
         receivedAt: { lt: moment },
       },
+    });
+  }
+
+  /** The targets of the organization for a service level, or nothing. */
+  serviceTarget(serviceLevel: 'STANDARD' | 'PRIORITY') {
+    return this.prisma.helpdeskServiceTarget.findUnique({
+      where: {
+        organizationId_serviceLevel: {
+          organizationId: this.organizationId,
+          serviceLevel,
+        },
+      },
+      select: { firstResponseMinutes: true, resolutionMinutes: true },
     });
   }
 }

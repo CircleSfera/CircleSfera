@@ -17,6 +17,7 @@ import type {
   RequesterDirectory,
   RequesterNotifier,
   RequesterSummary,
+  ServiceLevelProvider,
   StaffActionLog,
   TeamChannel,
   TicketNotice,
@@ -236,6 +237,20 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
 
   async unmatchedSender(address: string) {
     await this.email.sendSupportUnmatchedEmail(address);
+  }
+}
+
+// A requester has preference when any of their Profiles is on a paid plan.
+// The level of a Profile is the one sign of its plan.
+@Injectable()
+export class PlanServiceLevel implements ServiceLevelProvider {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async levelOf(requesterRef: string) {
+    const paid = await this.prisma.profile.count({
+      where: { userId: requesterRef, verificationLevel: { not: 'BASIC' } },
+    });
+    return paid > 0 ? ('PRIORITY' as const) : ('STANDARD' as const);
   }
 }
 
