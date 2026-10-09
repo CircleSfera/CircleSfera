@@ -288,6 +288,26 @@ export class InMemoryHelpdeskDb {
   };
 
   readonly helpdeskInboundEmail = {
+    findFirst: async ({ where }: { where?: Where }) => {
+      const found = this.inboundEmails.find((e) => this.matches(e, where));
+      return found ? { ...found } : null;
+    },
+
+    findMany: async (args: { where?: Where; take?: number }) =>
+      this.inboundEmails
+        .filter((e) => this.matches(e, args.where))
+        .slice(0, args.take)
+        .map((e) => ({ id: e.id })),
+
+    count: async ({ where }: { where?: Where }) =>
+      this.inboundEmails.filter((e) => this.matches(e, where)).length,
+
+    updateMany: async ({ where, data }: { where?: Where; data: Row }) => {
+      const rows = this.inboundEmails.filter((e) => this.matches(e, where));
+      for (const email of rows) Object.assign(email, data);
+      return { count: rows.length };
+    },
+
     findUnique: async ({ where }: { where: Where }) => {
       const key = where.organizationId_messageId as Where | undefined;
       const found = this.inboundEmails.find((e) =>

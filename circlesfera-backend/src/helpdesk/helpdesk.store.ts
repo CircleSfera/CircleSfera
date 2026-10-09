@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type {
+  HelpdeskInboundOutcome,
   HelpdeskMessageVisibility,
   Prisma,
   TicketCategory,
@@ -42,13 +43,16 @@ export class HelpdeskStore {
   }
 
   openTicket(ticket: {
-    requesterRef: string;
+    // Nobody when the requester no longer exists for the host.
+    requesterRef: string | null;
     email: string;
     subject: string;
     message: string;
     category?: TicketCategory;
     // The closed ticket this one continues.
     previousTicketId?: string;
+    // How the first message arrived; in the product unless said.
+    channel?: 'PRODUCT' | 'EMAIL';
   }) {
     return this.prisma.supportTicket.create({
       data: {
@@ -65,6 +69,7 @@ export class HelpdeskStore {
             authorKind: 'REQUESTER',
             authorRef: ticket.requesterRef,
             body: ticket.message,
+            ...(ticket.channel && { channel: ticket.channel }),
           },
         },
       },
@@ -340,6 +345,8 @@ export class HelpdeskStore {
       authorRef: string | null;
       visibility: HelpdeskMessageVisibility;
       body: string;
+      // How it arrived; in the product unless said.
+      channel?: 'PRODUCT' | 'EMAIL';
     },
     // What changed and who changed it, written with the change.
     events: TicketEventInput[] = [],
@@ -505,5 +512,72 @@ export class HelpdeskStore {
       },
     });
     return count;
+  }
+
+  /** The ticket of the organization with this number, or nothing. */
+  findTicketByReference(reference: number) {
+    return this.prisma.supportTicket.findFirst({
+      where: { reference, organizationId: this.organizationId },
+    });
+  }
+
+  /** A kept email of the organization, or nothing. */
+  findInboundEmail(id: string) {
+    return this.prisma.helpdeskInboundEmail.findFirst({
+      where: { id, organizationId: this.organizationId },
+    });
+  }
+
+  /** The kept emails nobody has looked at yet, the oldest first. */
+  pendingInboundEmails(limit: number) {
+    return this.prisma.helpdeskInboundEmail.findMany({
+      where: { organizationId: this.organizationId, outcome: 'RECEIVED' },
+      orderBy: { receivedAt: 'asc' },
+      take: limit,
+      select: { id: true },
+    });
+  }
+
+  /**
+   * Says what became of a kept email, once: false when it already had an
+   * outcome, so that two runs do not both act on it.
+   */
+  async decideInboundEmail(
+    id: string,
+    outcome: Exclude<HelpdeskInboundOutcome, 'RECEIVED'>,
+    ticketId?: string,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskInboundEmail.updateMany({
+      where: { id, organizationId: this.organizationId, outcome: 'RECEIVED' },
+      data: { outcome, ...(ticketId && { ticketId }) },
+    });
+    return count === 1;
+  }
+
+  /** Takes back a match whose message could not be written. */
+  async undoInboundMatch(id: string): Promise<void> {
+    await this.prisma.helpdeskInboundEmail.updateMany({
+      where: { id, organizationId: this.organizationId, outcome: 'MATCHED' },
+      data: { outcome: 'RECEIVED', ticketId: null },
+    });
+  }
+
+  /** Whether a sender was already told, since a moment, that an email of theirs matched nothing. */
+  async senderToldSince(fromAddress: string, moment: Date): Promise<boolean> {
+    const told = await this.prisma.helpdeskInboundEmail.count({
+      where: {
+        organizationId: this.organizationId,
+        fromAddress,
+        noticeSentAt: { gte: moment },
+      },
+    });
+    return told > 0;
+  }
+
+  async markSenderTold(id: string, moment: Date): Promise<void> {
+    await this.prisma.helpdeskInboundEmail.updateMany({
+      where: { id, organizationId: this.organizationId },
+      data: { noticeSentAt: moment },
+    });
   }
 }

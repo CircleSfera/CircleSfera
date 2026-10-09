@@ -2652,6 +2652,7 @@
       "assignee_former": "Former agent",
       "assignee_me_named": "{{name}} (you)",
       "assign_to": "Assign to",
+      "by_email": "by email",
       "saved_replies": {
         "title": "Saved replies",
         "insert": "Insert a saved reply",
@@ -2698,7 +2699,9 @@
       "system": {
         "handover_RESOLVED": "Moderation resolved the report. The ticket is back with support.",
         "handover_REJECTED": "Moderation dismissed the report. The ticket is back with support.",
-        "handover_GONE": "The report no longer exists. The ticket is back with support."
+        "handover_GONE": "The report no longer exists. The ticket is back with support.",
+        "attachments_left_out_one": "The email had {{count}} attachment, which was not received.",
+        "attachments_left_out_other": "The email had {{count}} attachments, which were not received."
       },
       "conversation": "Conversation",
       "kind_answer": "Answer",

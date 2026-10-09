@@ -56,3 +56,44 @@ export function isAutomatedMail(email: InboundEmail): boolean {
     sender,
   );
 }
+
+// Where the mail apps start the email being answered.
+const WROTE = /^(on|el)\b.*\b(wrote|escribió)\s*:\s*$/i;
+const ORIGINAL =
+  /^-{2,}\s*(original message|mensaje original|forwarded message|mensaje reenviado)\s*-{2,}$/i;
+const HEADER_FROM = /^\*{0,2}(from|de)\s*:\*{0,2}\s+\S/i;
+const HEADER_SENT =
+  /^\*{0,2}(sent|enviado|date|fecha)(\s+el)?\s*:\*{0,2}\s+\S/i;
+const RULE = /^_{10,}$/;
+
+/**
+ * What the sender wrote, without the email they were answering and without
+ * their signature. It stops at the first line that starts a quoted email:
+ * the "wrote:" line of the common mail apps, in English and Spanish, even
+ * when it is split in two; an "Original Message" separator; a block of
+ * headers; a quoted line; or the "-- " that opens a signature.
+ */
+export function cutQuotedText(text: string): string {
+  const lines = text.replace(/\r\n?/g, '\n').split('\n');
+  let end = lines.length;
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i].trim();
+    const next = (lines[i + 1] ?? '').trim();
+    const startsQuote =
+      line.startsWith('>') ||
+      line === '--' ||
+      lines[i] === '-- ' ||
+      WROTE.test(line) ||
+      // The "wrote:" line of a long sender, broken in two by the mail app.
+      (/^(on|el)\b/i.test(line) && WROTE.test(`${line} ${next}`)) ||
+      ORIGINAL.test(line) ||
+      RULE.test(line) ||
+      (HEADER_FROM.test(line) &&
+        lines.slice(i + 1, i + 4).some((one) => HEADER_SENT.test(one.trim())));
+    if (startsQuote) {
+      end = i;
+      break;
+    }
+  }
+  return lines.slice(0, end).join('\n').trim();
+}

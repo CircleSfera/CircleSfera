@@ -16,6 +16,21 @@ export class HelpdeskScheduler {
     private readonly inbound: HelpdeskInboundService,
   ) {}
 
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async processPendingInboundEmails(): Promise<void> {
+    try {
+      if (!this.inbound.enabled) return;
+      const processed = await this.inbound.processPending();
+      if (processed > 0) {
+        this.logger.log(`Kept emails processed late: ${processed}`);
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Processing kept emails failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_4AM)
   async deleteOldInboundEmails(): Promise<void> {
     try {

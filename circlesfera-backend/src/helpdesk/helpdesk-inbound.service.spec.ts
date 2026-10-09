@@ -35,6 +35,16 @@ describe('Help Desk: keeping email that arrives', () => {
         { get: (key: string) => settings[key] } as never,
         scope,
       ),
+      // What becomes of a kept email has its own tests.
+      {
+        replyByEmail: async () => null,
+        addSystemNote: async () => {},
+      } as never,
+      {
+        answer: async () => {},
+        remind: async () => {},
+        unmatchedSender: async () => {},
+      },
     );
   });
 
@@ -54,8 +64,6 @@ describe('Help Desk: keeping email that arrives', () => {
         spamScore: 1.2,
         attachmentCount: 2,
         automated: false,
-        outcome: 'RECEIVED',
-        ticketId: null,
       }),
     ]);
   });
