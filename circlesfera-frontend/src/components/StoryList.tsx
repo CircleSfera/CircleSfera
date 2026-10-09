@@ -181,7 +181,7 @@ export default function StoryList() {
             <Link
               to="/create?mode=story"
               className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
-              style={{ width: 52 }}
+              style={{ minWidth: 52 }}
             >
               <div
                 className="relative transition-transform duration-200 group-hover:scale-105"
@@ -229,7 +229,7 @@ export default function StoryList() {
                 )}
               </div>
               <span
-                className="text-gray-400 group-hover:text-white transition-colors text-center w-full truncate"
+                className="text-gray-400 group-hover:text-white transition-colors text-center whitespace-nowrap"
                 style={{ fontSize: 'var(--text-badge, 11px)' }}
               >
                 {t('story.yours')}
