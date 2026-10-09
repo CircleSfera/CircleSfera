@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TicketStateChangedError } from './helpdesk.store.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
 // Tickets of the Help Desk. The database is behind the store and the host
@@ -854,6 +855,8 @@ describe('HelpdeskTicketsService', () => {
             actorRef: 'admin-1',
           },
         ],
+        // Only while it is still open.
+        'OPEN',
       );
       expect(result.status).toBe('ESCALATED');
       expect(result.escalatedReport).toEqual({ id: 'r-1', status: 'PENDING' });
@@ -873,6 +876,18 @@ describe('HelpdeskTicketsService', () => {
         'db down',
       );
       expect(handover.withdraw).toHaveBeenCalledWith('r-1');
+      expect(staffLog.record).not.toHaveBeenCalled();
+    });
+
+    it('refuses and takes its case back when another agent handed it over first', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      handover.open.mockResolvedValue({ caseRef: 'r-2' });
+      store.updateTicket.mockRejectedValue(new TicketStateChangedError());
+
+      await expect(service.handOver('admin-2', 't-1')).rejects.toMatchObject({
+        status: 409,
+      });
+      expect(handover.withdraw).toHaveBeenCalledWith('r-2');
       expect(staffLog.record).not.toHaveBeenCalled();
     });
 
@@ -1092,6 +1107,27 @@ describe('HelpdeskTicketsService', () => {
         expect(notifier.answer).not.toHaveBeenCalled();
       },
     );
+
+    it('is solved by an answer alone once its case is decided, like an open one', async () => {
+      store.findTicket.mockResolvedValue(escalated);
+      handover.cases.mockResolvedValue(caseOf('RESOLVED'));
+      store.updateTicket.mockResolvedValue({
+        ...escalated,
+        status: 'RESOLVED',
+      });
+
+      await service.updateTicket('admin-1', 't-1', {
+        reply: 'Moderation has acted on it.',
+      });
+
+      expect(store.updateTicket.mock.calls[0][1]).toMatchObject({
+        status: 'RESOLVED',
+        resolvedAt: expect.any(Date),
+      });
+      expect(store.updateTicket.mock.calls[0][3]).toContainEqual(
+        stateEvent('ESCALATED', 'RESOLVED', 'AGENT', 'admin-1'),
+      );
+    });
 
     it.each(['RESOLVED', 'REJECTED'])(
       'goes back to support once its case is %s',

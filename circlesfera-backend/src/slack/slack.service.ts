@@ -14,6 +14,16 @@ import { EmailService } from '../email/email.service.js';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
+// What a requester wrote, made safe for a Slack text: the three characters
+// Slack reads as the start of a link, a mention or an entity are escaped, so
+// the words show as written and cannot build a link or call a channel.
+export function slackPlainText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 @Injectable()
 export class SlackService {
   private readonly logger = new Logger(SlackService.name);
@@ -316,14 +326,23 @@ export class SlackService {
         {
           type: 'section',
           fields: [
-            { type: 'mrkdwn', text: `*Email:*\n${ticket.email}` },
-            { type: 'mrkdwn', text: `*Asunto:*\n${ticket.subject}` },
+            {
+              type: 'mrkdwn',
+              text: `*Email:*\n${slackPlainText(ticket.email)}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Asunto:*\n${slackPlainText(ticket.subject)}`,
+            },
             { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
           ],
         },
         {
           type: 'section',
-          text: { type: 'mrkdwn', text: `*Mensaje:*\n${ticket.message}` },
+          text: {
+            type: 'mrkdwn',
+            text: `*Mensaje:*\n${slackPlainText(ticket.message)}`,
+          },
         },
         {
           type: 'actions',
@@ -359,7 +378,10 @@ export class SlackService {
           type: 'section',
           fields: [
             { type: 'mrkdwn', text: `*Ticket:*\n#${ticket.reference}` },
-            { type: 'mrkdwn', text: `*Asunto:*\n${ticket.subject}` },
+            {
+              type: 'mrkdwn',
+              text: `*Asunto:*\n${slackPlainText(ticket.subject)}`,
+            },
             { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
           ],
         },
