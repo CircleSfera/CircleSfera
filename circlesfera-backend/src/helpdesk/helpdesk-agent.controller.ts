@@ -18,7 +18,9 @@ import {
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
+import { AgentAssignmentDto } from './dto/agent-assignment.dto.js';
 import { AgentMessageDto } from './dto/agent-message.dto.js';
+import { AgentTicketChangesDto } from './dto/agent-ticket-changes.dto.js';
 import { AgentTicketsQueryDto } from './dto/agent-tickets-query.dto.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
@@ -61,10 +63,26 @@ export class HelpdeskAgentController {
   @Patch(':id')
   async updateTicket(
     @Param('id') id: string,
-    @Body() body: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
+    @Body() body: AgentTicketChangesDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.tickets.updateTicket(admin.adminId, id, body);
+  }
+
+  // Takes the ticket, lets go of it, or gives it to someone.
+  @Post(':id/assignment')
+  async assign(
+    @Param('id') id: string,
+    @Body() dto: AgentAssignmentDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.tickets.assign(
+      // Assigning to someone else needs the permission of who manages the
+      // team, which does not exist yet: every agent takes and lets go only.
+      { ref: admin.adminId, canManage: false },
+      id,
+      dto.agentRef ?? null,
+    );
   }
 
   // Hands the ticket to another team; in CircleSfera, to moderation.

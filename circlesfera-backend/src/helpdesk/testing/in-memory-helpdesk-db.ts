@@ -20,6 +20,7 @@ const time = (value: unknown) =>
 export class InMemoryHelpdeskDb {
   tickets: Row[] = [];
   messages: Row[] = [];
+  events: Row[] = [];
   private sequence = 0;
   private clock = Date.parse('2026-01-01T00:00:00Z');
 
@@ -122,6 +123,9 @@ export class InMemoryHelpdeskDb {
         resolvedAt: null,
         escalatedReportId: null,
         previousTicketId: null,
+        priority: 'NORMAL',
+        assignedAgentRef: null,
+        waitingRemindedAt: null,
         createdAt: moment,
         updatedAt: moment,
         ...fields,
@@ -165,12 +169,21 @@ export class InMemoryHelpdeskDb {
           code: 'P2025',
         });
       }
-      const { messages, ...fields } = data as Row & {
+      const { messages, events, ...fields } = data as Row & {
         messages?: { create: Row };
+        events?: { create: Row[] };
       };
       Object.assign(ticket, fields, { updatedAt: this.now() });
       if (messages?.create)
         this.addMessage(ticket.id as string, messages.create);
+      for (const event of events?.create ?? []) {
+        this.events.push({
+          id: this.next('e'),
+          ticketId: ticket.id,
+          createdAt: this.now(),
+          ...event,
+        });
+      }
       return { ...ticket };
     },
 
@@ -188,6 +201,7 @@ export class InMemoryHelpdeskDb {
       this.tickets = this.tickets.filter((t) => !ids.has(t.id));
       // Messages go with their ticket.
       this.messages = this.messages.filter((m) => !ids.has(m.ticketId));
+      this.events = this.events.filter((e) => !ids.has(e.ticketId));
       return { count: gone.length };
     },
   };

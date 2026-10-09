@@ -347,4 +347,39 @@ describe('SupportTicketsTab', () => {
       screen.getByText(i18n.t('admin.support.author_system')),
     ).toBeInTheDocument();
   });
+
+  it('sends an answer that leaves the ticket waiting for the requester', async () => {
+    vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
+      data: ticket(),
+    } as never);
+    const i18n = await open([ticket()]);
+
+    fireEvent.change(
+      screen.getByPlaceholderText(i18n.t('admin.support.reply_placeholder')),
+      { target: { value: 'Which day was it?' } },
+    );
+    fireEvent.change(
+      screen.getByRole('combobox', { name: i18n.t('admin.support.leave_as') }),
+      { target: { value: 'WAITING' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n.t('admin.support.send_answer') }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.addSupportMessage).toHaveBeenCalledWith('t-1', {
+        body: 'Which day was it?',
+        visibility: 'PUBLIC',
+        status: 'WAITING',
+      }),
+    );
+  });
+
+  it('names the waiting state in the list', async () => {
+    const i18n = await open([ticket({ status: 'WAITING' })]);
+
+    expect(
+      screen.getAllByText(i18n.t('admin.support.status_waiting')).length,
+    ).toBeGreaterThan(0);
+  });
 });

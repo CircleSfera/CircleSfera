@@ -34,7 +34,7 @@ interface Props {
 }
 
 type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
-type ShownStatus = TicketStatus | 'ESCALATED';
+type ShownStatus = TicketStatus | 'ESCALATED' | 'WAITING';
 
 function statusBadgeClass(status: ShownStatus) {
   switch (status) {
@@ -46,6 +46,8 @@ function statusBadgeClass(status: ShownStatus) {
       return 'bg-white/10 text-white/50';
     case 'ESCALATED':
       return 'bg-brand-primary/20 text-brand-primary';
+    case 'WAITING':
+      return 'bg-white/10 text-white/80';
   }
 }
 
@@ -131,7 +133,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   const [draftKind, setDraftKind] = useState<'PUBLIC' | 'INTERNAL'>('PUBLIC');
-  const [leaveAs, setLeaveAs] = useState<'RESOLVED' | 'OPEN'>('RESOLVED');
+  const [leaveAs, setLeaveAs] = useState<'RESOLVED' | 'WAITING' | 'OPEN'>(
+    'RESOLVED',
+  );
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmEscalate, setConfirmEscalate] = useState(false);
 
@@ -272,6 +276,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
               { value: 'RESOLVED', label: t('admin.support.status_resolved') },
               { value: 'CLOSED', label: t('admin.support.status_closed') },
               {
+                value: 'WAITING',
+                label: t('admin.support.status_waiting'),
+              },
+              {
                 value: 'ESCALATED',
                 label: t('admin.support.status_escalated'),
               },
@@ -341,7 +349,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       >
                         {ticket.status === 'ESCALATED'
                           ? t('admin.support.status_escalated')
-                          : ticket.status}
+                          : ticket.status === 'WAITING'
+                            ? t('admin.support.status_waiting')
+                            : ticket.status}
                       </span>
                     }
                     meta={
@@ -466,7 +476,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         >
                           {selectedTicket.status === 'ESCALATED'
                             ? t('admin.support.status_escalated')
-                            : selectedTicket.status}
+                            : selectedTicket.status === 'WAITING'
+                              ? t('admin.support.status_waiting')
+                              : selectedTicket.status}
                         </span>
                       </dd>
                     </div>
@@ -627,12 +639,16 @@ export default function SupportTicketsTab({ onToast }: Props) {
                             label={t('admin.support.leave_as')}
                             value={leaveAs}
                             onChange={(value) =>
-                              setLeaveAs(value as 'RESOLVED' | 'OPEN')
+                              setLeaveAs(value as typeof leaveAs)
                             }
                             options={[
                               {
                                 value: 'RESOLVED',
                                 label: t('admin.support.leave_resolved'),
+                              },
+                              {
+                                value: 'WAITING',
+                                label: t('admin.support.leave_waiting'),
                               },
                               {
                                 value: 'OPEN',

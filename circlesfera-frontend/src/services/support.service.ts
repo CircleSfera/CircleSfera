@@ -1,7 +1,13 @@
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
-export type SupportRequestStatus = 'OPEN' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+export type SupportRequestStatus =
+  | 'OPEN'
+  // The team asked something and waits for the reply.
+  | 'WAITING'
+  | 'RESOLVED'
+  | 'CLOSED'
+  | 'ESCALATED';
 
 /** A request for help, as the person who wrote it sees it. */
 export interface SupportRequest {
