@@ -378,6 +378,29 @@ export interface UserExperiment {
 }
 
 // What support sees about who wrote a ticket. It is read-only.
+export interface AdminPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  priceCents: number;
+  yearlyPriceCents: number | null;
+  currency: string;
+  interval: string;
+  features: string[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AdminPlanCatalogue {
+  plans: AdminPlan[];
+  /** The features the code acts on; a plan can only include these. */
+  featureKeys: string[];
+}
+
+export type AdminPlanChanges = Partial<
+  Pick<AdminPlan, 'features' | 'isActive'> & { description: string }
+>;
+
 export interface AdminSupportAccount {
   userId: string;
   isActive: boolean;
@@ -1030,6 +1053,13 @@ export const adminApi = {
     apiClient.get<AdminSupportAccount | null>(
       `admin/support/tickets/${id}/account`,
     ),
+
+  // Plan catalogue: what each platform plan includes. Prices are read-only.
+  getPlans: () => apiClient.get<AdminPlanCatalogue>('admin/plans'),
+
+  // Saving asks for a recent identity confirmation (authenticator code).
+  updatePlan: (id: string, changes: AdminPlanChanges) =>
+    apiClient.patch<AdminPlan>(`admin/plans/${id}`, changes),
 
   // Feature flags
   getFeatureFlags: () =>

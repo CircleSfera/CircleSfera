@@ -40,6 +40,7 @@ export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
 export { default as PayoutsTab } from './PayoutsTab';
+export { default as PlansTab } from './PlansTab';
 export { default as PostDetailPanel } from './PostDetailPanel';
 export { default as PostsTab } from './PostsTab';
 export { default as PromotionsTab } from './PromotionsTab';
