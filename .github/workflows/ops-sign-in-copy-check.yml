@@ -1,0 +1,72 @@
+name: Ops — sign-in copy check
+
+# Compares, account by account, the credentials held on the account with the
+# copy held on its sign-in, and counts Profiles and accounts without a sign-in.
+# Read-only: it runs SELECT statements and changes nothing.
+# Actions logs are public, so it prints only counts and PASS/FAIL lines: no
+# email, no identifier and no credential.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: do not merge while it is pending.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Compare accounts with their sign-ins
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Run the comparison on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            DC="docker compose -f docker-compose.prod.yml --env-file .env.production"
+            count() {
+              $DC exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -v ON_ERROR_STOP=1 -c "$1"' sh "$1"
+            }
+            ACCOUNTS=$(count 'SELECT count(*) FROM users')
+            SIGN_INS=$(count 'SELECT count(*) FROM sign_ins')
+            WITHOUT=$(count 'SELECT count(*) FROM users u WHERE NOT EXISTS (SELECT 1 FROM sign_ins s WHERE s."userId" = u.id)')
+            SEVERAL=$(count 'SELECT count(*) FROM (SELECT "userId" FROM sign_ins GROUP BY "userId" HAVING count(*) > 1) t')
+            DIFFERENT=$(count 'SELECT count(*) FROM users u JOIN sign_ins s ON s."userId" = u.id WHERE s.email IS DISTINCT FROM u.email OR s.password IS DISTINCT FROM u.password OR s."emailVerified" IS DISTINCT FROM u."emailVerified" OR s."verificationToken" IS DISTINCT FROM u."verificationToken" OR s."resetToken" IS DISTINCT FROM u."resetToken" OR s."resetTokenExpires" IS DISTINCT FROM u."resetTokenExpires" OR s."passwordResetRequiredAt" IS DISTINCT FROM u."passwordResetRequiredAt" OR s."isTwoFactorEnabled" IS DISTINCT FROM u."isTwoFactorEnabled" OR s."twoFactorSecret" IS DISTINCT FROM u."twoFactorSecret"')
+            PROFILES_WITHOUT=$(count 'SELECT count(*) FROM profiles WHERE "signInId" IS NULL')
+            PROFILES_ELSEWHERE=$(count 'SELECT count(*) FROM profiles p JOIN sign_ins s ON s.id = p."signInId" WHERE s."userId" <> p."userId"')
+            echo "Accounts: $ACCOUNTS"
+            echo "Sign-ins: $SIGN_INS"
+            echo "Accounts without a sign-in: $WITHOUT"
+            echo "Accounts with more than one sign-in: $SEVERAL"
+            echo "Accounts whose sign-in differs from them: $DIFFERENT"
+            echo "Profiles without a sign-in: $PROFILES_WITHOUT"
+            echo "Profiles pointing to a sign-in of another account: $PROFILES_ELSEWHERE"
+            if [ "$WITHOUT" = "0" ] && [ "$DIFFERENT" = "0" ] && [ "$PROFILES_WITHOUT" = "0" ] && [ "$PROFILES_ELSEWHERE" = "0" ]; then
+              echo "PASS: every account has a sign-in equal to it, and every Profile enters with one of its own account."
+            else
+              echo "FAIL: the sign-in copy does not match the accounts."
+              exit 1
+            fi
