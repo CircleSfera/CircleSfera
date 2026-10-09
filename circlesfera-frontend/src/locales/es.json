@@ -4488,6 +4488,13 @@
     "uploading": "Subiendo nota de voz..."
   },
   "helpCentre": {
+    "feedback": {
+      "question": "¿Te ha servido este artículo?",
+      "yes": "Sí",
+      "no": "No",
+      "thanks": "Gracias por decírnoslo.",
+      "error": "No se ha podido enviar tu respuesta. Inténtalo de nuevo."
+    },
     "topic_general": "General",
     "badge": "Centro de ayuda",
     "title": "¿En qué podemos ayudarte?",

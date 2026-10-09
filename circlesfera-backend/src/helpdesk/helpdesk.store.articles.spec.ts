@@ -5,6 +5,7 @@ import { HelpdeskStore } from './helpdesk.store.js';
 // the ones anyone can ask return published articles only.
 describe('HelpdeskStore: articles', () => {
   const prisma = {
+    $executeRaw: vi.fn(),
     helpdeskOrganization: { findUnique: vi.fn() },
     helpdeskArticle: {
       findMany: vi.fn().mockResolvedValue([]),
@@ -202,19 +203,27 @@ describe('HelpdeskStore: articles', () => {
     ]);
   });
 
-  it('counts a reader who found a published article useful, or not, in one statement', async () => {
+  it('counts a reader who found a published article useful, or not, in one statement that leaves the date of the article alone', async () => {
+    prisma.$executeRaw.mockResolvedValue(1);
     expect(await store.countArticleFeedback('hola', true)).toBe(true);
     expect(await store.countArticleFeedback('hola', false)).toBe(true);
-    prisma.helpdeskArticle.updateMany.mockResolvedValue({ count: 0 });
+    prisma.$executeRaw.mockResolvedValue(0);
     expect(await store.countArticleFeedback('draft', true)).toBe(false);
 
-    const [yes, no] = prisma.helpdeskArticle.updateMany.mock.calls.map(
-      (c) => c[0],
+    const [yes, no] = prisma.$executeRaw.mock.calls.map(
+      ([text, ...values]: unknown[]) => ({
+        text: (text as string[]).join('?').replace(/\s+/g, ' ').trim(),
+        values,
+      }),
     );
+    // The address and the organization travel as values, never as text.
     expect(yes).toEqual({
-      where: { slug: 'hola', organizationId: 'org-1', status: 'PUBLISHED' },
-      data: { usefulYes: { increment: 1 } },
+      text: `UPDATE "helpdesk_articles" SET "usefulYes" = "usefulYes" + 1 WHERE "slug" = ? AND "organizationId" = ? AND "status" = 'PUBLISHED'`,
+      values: ['hola', 'org-1'],
     });
-    expect(no.data).toEqual({ usefulNo: { increment: 1 } });
+    expect(no.text).toContain('SET "usefulNo" = "usefulNo" + 1 WHERE');
+    expect(no.values).toEqual(['hola', 'org-1']);
+    expect(yes.text).not.toContain('updatedAt');
+    expect(prisma.helpdeskArticle.updateMany).not.toHaveBeenCalled();
   });
 });

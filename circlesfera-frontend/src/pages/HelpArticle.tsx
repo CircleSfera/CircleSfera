@@ -5,6 +5,7 @@ import { Link, useParams } from 'react-router-dom';
 import SEO from '../components/common/SEO';
 import { MarketingCTA, MarketingPage } from '../components/marketing';
 import { ArticleBody } from '../components/support/ArticleBody';
+import { ArticleFeedback } from '../components/support/ArticleFeedback';
 import { helpCentreApi } from '../services/helpCentre.service';
 import { helpTopicLabel } from '../utils/helpTopic';
 
@@ -57,6 +58,7 @@ export default function HelpArticle() {
               {article.title}
             </h1>
             <ArticleBody body={article.body} />
+            <ArticleFeedback key={article.slug} slug={article.slug} />
           </>
         ) : (
           <div className="mt-6" role="alert">

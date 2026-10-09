@@ -17,7 +17,7 @@ import { HelpdeskHelpCentreService } from './helpdesk-help-centre.service.js';
 
 describe('HelpdeskHelpCentreController', () => {
   let app: INestApplication;
-  const service = { list: vi.fn(), article: vi.fn() };
+  const service = { list: vi.fn(), article: vi.fn(), feedback: vi.fn() };
   const base = '/api/v1/help/articles';
 
   beforeAll(async () => {
@@ -71,7 +71,33 @@ describe('HelpdeskHelpCentreController', () => {
     expect(service.list).not.toHaveBeenCalled();
   });
 
-  it('has no way to write: the routes of who writes articles are not here', async () => {
+  it.each([true, false])(
+    'takes whether an article helped from anyone, with no session: %s',
+    async (useful) => {
+      await request(app.getHttpServer())
+        .post(`${base}/refunds/feedback`)
+        .send({ useful })
+        .expect(204);
+
+      expect(service.feedback).toHaveBeenCalledWith('refunds', useful);
+    },
+  );
+
+  it.each([
+    ['nothing', {}],
+    ['a word instead of yes or no', { useful: 'yes' }],
+    ['a number', { useful: 1 }],
+    ['something more than the answer', { useful: true, usefulYes: 100 }],
+    ['who answers', { useful: true, email: 'a@example.com' }],
+  ])('rejects an answer with %s', async (_case, body) => {
+    await request(app.getHttpServer())
+      .post(`${base}/refunds/feedback`)
+      .send(body)
+      .expect(400);
+    expect(service.feedback).not.toHaveBeenCalled();
+  });
+
+  it('has no way to write an article: the routes of who writes them are not here', async () => {
     await request(app.getHttpServer()).post(base).send({}).expect(404);
     await request(app.getHttpServer())
       .patch(`${base}/refunds`)
