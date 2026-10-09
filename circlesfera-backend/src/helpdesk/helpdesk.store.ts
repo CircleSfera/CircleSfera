@@ -715,4 +715,179 @@ export class HelpdeskStore {
       select: { score: true, ticket: { select: { serviceLevel: true } } },
     });
   }
+
+  // --- the help centre ---
+
+  /** The languages an article must have to be published. */
+  async organizationLocales(): Promise<string[]> {
+    const organization = await this.prisma.helpdeskOrganization.findUnique({
+      where: { id: this.organizationId },
+      select: { locales: true },
+    });
+    return organization?.locales ?? [];
+  }
+
+  /** Every article of the organization, drafts included, for who writes them. */
+  articles() {
+    return this.prisma.helpdeskArticle.findMany({
+      where: { organizationId: this.organizationId },
+      orderBy: [{ topic: 'asc' }, { position: 'asc' }, { createdAt: 'asc' }],
+      include: { texts: { select: { locale: true, title: true } } },
+    });
+  }
+
+  /** One article of the organization with all its texts, or nothing. */
+  findArticle(id: string) {
+    return this.prisma.helpdeskArticle.findFirst({
+      where: { id, organizationId: this.organizationId },
+      include: {
+        texts: { select: { locale: true, title: true, body: true } },
+      },
+    });
+  }
+
+  createArticle(article: {
+    slug: string;
+    topic: TicketCategory;
+    position: number;
+    authorRef: string;
+    texts: { locale: string; title: string; body: string }[];
+  }) {
+    return this.prisma.helpdeskArticle.create({
+      data: {
+        organizationId: this.organizationId,
+        slug: article.slug,
+        topic: article.topic,
+        position: article.position,
+        authorRef: article.authorRef,
+        texts: { create: article.texts },
+      },
+      select: { id: true },
+    });
+  }
+
+  /**
+   * Changes the topic and the place of an article and writes the texts
+   * given, each in its language. Never its address, its organization or its
+   * state. False when the article is not of the organization.
+   */
+  async updateArticle(
+    id: string,
+    changes: { topic?: TicketCategory; position?: number },
+    texts: { locale: string; title: string; body: string }[],
+  ): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskArticle.updateMany({
+      where: { id, organizationId: this.organizationId },
+      data: {
+        ...(changes.topic !== undefined && { topic: changes.topic }),
+        ...(changes.position !== undefined && { position: changes.position }),
+        // The article changed even when only a text did.
+        updatedAt: new Date(),
+      },
+    });
+    if (count !== 1) return false;
+    for (const text of texts) {
+      await this.prisma.helpdeskArticleText.upsert({
+        where: { articleId_locale: { articleId: id, locale: text.locale } },
+        create: { articleId: id, ...text },
+        update: { title: text.title, body: text.body },
+      });
+    }
+    return true;
+  }
+
+  /** Publishes an article or takes it back. False when it is not of the organization. */
+  async setArticleStatus(
+    id: string,
+    status: 'DRAFT' | 'PUBLISHED',
+    moment: Date,
+  ): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskArticle.updateMany({
+      where: { id, organizationId: this.organizationId },
+      data: {
+        status,
+        ...(status === 'PUBLISHED' && { publishedAt: moment }),
+      },
+    });
+    return count === 1;
+  }
+
+  /** Deletes a draft with its texts. False when there is no such draft. */
+  async deleteDraftArticle(id: string): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskArticle.deleteMany({
+      where: { id, organizationId: this.organizationId, status: 'DRAFT' },
+    });
+    return count === 1;
+  }
+
+  /**
+   * The published articles in one language, for anyone: the address, the
+   * topic and the title. With words to look for, the ones that have them in
+   * the title or the body.
+   */
+  publishedArticles(
+    locale: string,
+    filters: { search?: string; topic?: TicketCategory },
+    limit: number,
+  ) {
+    const words = filters.search;
+    return this.prisma.helpdeskArticle.findMany({
+      where: {
+        organizationId: this.organizationId,
+        status: 'PUBLISHED',
+        ...(filters.topic && { topic: filters.topic }),
+        texts: {
+          some: {
+            locale,
+            ...(words && {
+              OR: [
+                { title: { contains: words, mode: 'insensitive' } },
+                { body: { contains: words, mode: 'insensitive' } },
+              ],
+            }),
+          },
+        },
+      },
+      orderBy: [{ topic: 'asc' }, { position: 'asc' }, { createdAt: 'asc' }],
+      take: limit,
+      select: {
+        slug: true,
+        topic: true,
+        texts: { where: { locale }, select: { title: true } },
+      },
+    });
+  }
+
+  /** One published article in one language, by its address, or nothing. */
+  publishedArticle(slug: string, locale: string) {
+    return this.prisma.helpdeskArticle.findFirst({
+      where: {
+        slug,
+        organizationId: this.organizationId,
+        status: 'PUBLISHED',
+        texts: { some: { locale } },
+      },
+      select: {
+        slug: true,
+        topic: true,
+        updatedAt: true,
+        texts: { where: { locale }, select: { title: true, body: true } },
+      },
+    });
+  }
+
+  /**
+   * Adds one to the readers who found a published article useful, or not.
+   * In one statement, so two answers at once are both counted. False when
+   * there is no such published article.
+   */
+  async countArticleFeedback(slug: string, useful: boolean): Promise<boolean> {
+    const { count } = await this.prisma.helpdeskArticle.updateMany({
+      where: { slug, organizationId: this.organizationId, status: 'PUBLISHED' },
+      data: useful
+        ? { usefulYes: { increment: 1 } }
+        : { usefulNo: { increment: 1 } },
+    });
+    return count === 1;
+  }
 }

@@ -1694,6 +1694,7 @@ model HelpdeskOrganization {
   inboundEmails  HelpdeskInboundEmail[]
   serviceTargets HelpdeskServiceTarget[]
   ratings        HelpdeskRating[]
+  articles       HelpdeskArticle[]
 
   @@map("helpdesk_organizations")
 }
@@ -1737,6 +1738,55 @@ enum HelpdeskPriority {
   LOW
   NORMAL
   HIGH
+}
+
+enum HelpdeskArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// An article of the help centre: it answers one question for anyone,
+// without a ticket. Its words are in HelpdeskArticleText, one per language.
+model HelpdeskArticle {
+  id             String                @id @default(uuid())
+  organizationId String
+  // Its name in its address; the same in every language
+  slug           String                @db.VarChar(120)
+  topic          TicketCategory        @default(OTHER)
+  status         HelpdeskArticleStatus @default(DRAFT)
+  // Its place inside its topic
+  position       Int                   @default(0)
+  // How many readers said it helped, and how many said it did not
+  usefulYes      Int                   @default(0)
+  usefulNo       Int                   @default(0)
+  // Who of the staff wrote it, as the host names them
+  authorRef      String?
+  publishedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization HelpdeskOrganization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  texts        HelpdeskArticleText[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status, topic, position])
+  @@map("helpdesk_articles")
+}
+
+// The title and the body of an article in one language. The body is text,
+// never HTML.
+model HelpdeskArticleText {
+  id        String   @id @default(uuid())
+  articleId String
+  locale    String   @db.VarChar(10)
+  title     String   @db.VarChar(150)
+  body      String
+  updatedAt DateTime @updatedAt
+
+  article HelpdeskArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@map("helpdesk_article_texts")
 }
 
 // How fast a requester is to be answered.
