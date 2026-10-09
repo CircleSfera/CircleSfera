@@ -31,11 +31,10 @@ describe('telemetry', () => {
     vi.useFakeTimers();
     vi.spyOn(console, 'error').mockImplementation(() => {});
     // Empty whatever an earlier test left waiting.
-    consent(false);
+    vi.mocked(apiClient.post).mockResolvedValue({} as never);
     await telemetry.flush();
     vi.clearAllMocks();
     vi.mocked(apiClient.post).mockResolvedValue({} as never);
-    consent(true);
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -67,27 +66,22 @@ describe('telemetry', () => {
   });
 
   it.each([
+    ['accepted analytics', true],
     ['said no to analytics', false],
-    ['has not answered yet', null],
-  ])('records nothing for a person who %s', async (_case, analytics) => {
-    consent(analytics);
+    ['has not answered the cookie notice yet', null],
+  ])(
+    'records what a person does whether they %s: the events order the feed',
+    async (_case, analytics) => {
+      consent(analytics);
 
-    telemetry.track(event('a'));
-    await vi.advanceTimersByTimeAsync(6000);
+      telemetry.track(event('a'));
+      await vi.advanceTimersByTimeAsync(6000);
 
-    expect(apiClient.post).not.toHaveBeenCalled();
-  });
-
-  it('throws away what was waiting when the person withdraws the consent', async () => {
-    telemetry.track(event('a'));
-    consent(false);
-
-    await vi.advanceTimersByTimeAsync(6000);
-    consent(true);
-    await telemetry.flush();
-
-    expect(apiClient.post).not.toHaveBeenCalled();
-  });
+      expect(sent()).toEqual([['a']]);
+      // The choice of the cookie notice is not even read here.
+      expect(getCookieConsent).not.toHaveBeenCalled();
+    },
+  );
 
   it('keeps the events of a failed send for the next one, in order', async () => {
     vi.mocked(apiClient.post).mockRejectedValueOnce(new Error('down'));

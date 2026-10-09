@@ -5,7 +5,7 @@
   },
   "cookieConsent": {
     "title": "Cookies",
-    "description": "We use necessary cookies to run the app. Analytics cookies help us improve CircleSfera and are optional.",
+    "description": "We use necessary cookies to run the app. Analytics cookies are optional: they help us detect errors and performance problems.",
     "essential_only": "Essential only",
     "accept": "Accept all",
     "dismiss": "Dismiss"

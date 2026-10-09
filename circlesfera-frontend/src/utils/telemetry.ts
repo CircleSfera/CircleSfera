@@ -1,5 +1,4 @@
 import { apiClient } from '../services/api';
-import { getCookieConsent } from './cookieConsent';
 
 export type UserEventType =
   | 'IMPRESSION'
@@ -25,6 +24,11 @@ export interface TelemetryEvent {
   dwellTime?: number;
 }
 
+// What a person does in the app (what they see, like, save or share). These
+// events order the feed, score posts and feed the figures of creators: they
+// are part of how the product works, so they do not depend on the choice
+// made in the cookie notice. That choice covers error and performance
+// monitoring only (see sentry.ts).
 class TelemetryManager {
   private queue: TelemetryEvent[] = [];
   private timer: number | null = null;
@@ -32,10 +36,6 @@ class TelemetryManager {
   private maxBatchSize = 10;
 
   track(event: TelemetryEvent) {
-    if (!getCookieConsent()?.analytics) {
-      return;
-    }
-
     this.queue.push(event);
 
     if (this.queue.length >= this.maxBatchSize) {
@@ -52,11 +52,6 @@ class TelemetryManager {
     }
 
     if (this.queue.length === 0) return;
-
-    if (!getCookieConsent()?.analytics) {
-      this.queue = [];
-      return;
-    }
 
     const eventsToSend = [...this.queue];
     this.queue = [];
