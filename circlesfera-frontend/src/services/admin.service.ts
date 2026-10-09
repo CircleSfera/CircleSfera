@@ -522,6 +522,8 @@ export interface AdminSupportTicketDetail extends AdminSupportTicket {
   events?: AdminSupportEvent[];
   // The names of the agents the ticket mentions, by reference.
   agents?: Record<string, string>;
+  // What the requester thought of the answer, when they said.
+  rating?: { score: 'GOOD' | 'BAD'; comment: string | null } | null;
 }
 
 // An answer kept for a repeated question: the agent's own, or shared.

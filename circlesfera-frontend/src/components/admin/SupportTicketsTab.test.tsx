@@ -366,6 +366,32 @@ describe('SupportTicketsTab', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the agent what the requester thought of the answer, with their comment', async () => {
+    vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
+      data: {
+        ...ticket({ status: 'RESOLVED' }),
+        messages: conversation,
+        rating: { score: 'BAD', comment: 'It is still charged twice' },
+      },
+    } as never);
+    const i18n = await open([ticket({ status: 'RESOLVED' })]);
+
+    expect(
+      await screen.findByText(i18n.t('admin.support.rating.label')),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(i18n.t('admin.support.rating.BAD')),
+    ).toBeInTheDocument();
+    expect(screen.getByText('It is still charged twice')).toBeInTheDocument();
+  });
+
+  it('shows no rating where none was given', async () => {
+    const i18n = await open([ticket()]);
+    await screen.findByText('Third time they write about this.');
+
+    expect(screen.queryByText(i18n.t('admin.support.rating.label'))).toBeNull();
+  });
+
   describe('targets', () => {
     const HOUR = 3_600_000;
     const ago = (hours: number) =>

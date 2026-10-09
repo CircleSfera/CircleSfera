@@ -26,6 +26,7 @@ describe('HelpdeskRequesterController', () => {
     listMyTickets: vi.fn(),
     getMyTicket: vi.fn(),
     replyToMyTicket: vi.fn(),
+    rateMyTicket: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -118,7 +119,12 @@ describe('HelpdeskRequesterController', () => {
       .post('/api/v1/support/tickets/t-1/messages')
       .send({ body: 'Hello' })
       .expect(401);
+    await request(app.getHttpServer())
+      .put('/api/v1/support/tickets/t-1/rating')
+      .send({ score: 'GOOD' })
+      .expect(401);
 
+    expect(mockService.rateMyTicket).not.toHaveBeenCalled();
     expect(mockService.listMyTickets).not.toHaveBeenCalled();
     expect(mockService.getMyTicket).not.toHaveBeenCalled();
     expect(mockService.replyToMyTicket).not.toHaveBeenCalled();
@@ -175,5 +181,41 @@ describe('HelpdeskRequesterController', () => {
         .expect(400);
     }
     expect(mockService.replyToMyTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it('rates a ticket as the signed-in person', async () => {
+    mockService.rateMyTicket.mockResolvedValue({ id: 't-1' });
+
+    await request(app.getHttpServer())
+      .put('/api/v1/support/tickets/t-1/rating')
+      .set(BEARER)
+      .send({ score: 'BAD', comment: 'Still broken' })
+      .expect(200);
+
+    expect(mockService.rateMyTicket).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      't-1',
+      {
+        score: 'BAD',
+        comment: 'Still broken',
+      },
+    );
+  });
+
+  it.each([
+    ['no score', {}],
+    ['a score that is neither good nor bad', { score: 'FINE' }],
+    [
+      'a comment over 500 characters',
+      { score: 'GOOD', comment: 'x'.repeat(501) },
+    ],
+    ['who rates', { score: 'GOOD', userId: 'someone-else' }],
+  ])('rejects a rating with %s', async (_case, body) => {
+    await request(app.getHttpServer())
+      .put('/api/v1/support/tickets/t-1/rating')
+      .set(BEARER)
+      .send(body)
+      .expect(400);
+    expect(mockService.rateMyTicket).not.toHaveBeenCalled();
   });
 });

@@ -758,6 +758,29 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         </span>
                       </dd>
                     </div>
+                    {detail?.rating && (
+                      <div className="py-2.5 border-b border-white/5">
+                        <div className="flex items-center justify-between gap-3">
+                          <dt className="text-xs font-medium text-white/40">
+                            {t('admin.support.rating.label')}
+                          </dt>
+                          <dd
+                            className={`text-sm font-semibold ${
+                              detail.rating.score === 'GOOD'
+                                ? 'text-green-400'
+                                : 'text-red-400'
+                            }`}
+                          >
+                            {t(`admin.support.rating.${detail.rating.score}`)}
+                          </dd>
+                        </div>
+                        {detail.rating.comment && (
+                          <p className="mt-1 text-sm text-white/80 whitespace-pre-wrap wrap-break-word">
+                            {detail.rating.comment}
+                          </p>
+                        )}
+                      </div>
+                    )}
                     {targetState(selectedTicket, now) && (
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
                         <dt className="text-xs font-medium text-white/40">
