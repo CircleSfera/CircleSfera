@@ -61,6 +61,15 @@ export const CallOverlay: React.FC = () => {
     }
   };
 
+  // Hanging up ends the call on this side too: the connection is closed and
+  // the camera, the microphone and a shared screen are stopped before the
+  // line is freed. Freeing the line alone would leave the camera on when the
+  // screen was being shared.
+  const hangUp = () => {
+    webrtcService.cleanup();
+    endCall();
+  };
+
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
       await webrtcService.stopScreenShare();
@@ -200,7 +209,8 @@ export const CallOverlay: React.FC = () => {
             {/* End Call Button */}
             <button
               type="button"
-              onClick={endCall}
+              onClick={hangUp}
+              aria-label={t('chat.end_call')}
               className="p-5 rounded-full bg-red-600 text-white hover:bg-red-700 hover:scale-110 active:scale-95 transition-all duration-300 shadow-xl shadow-red-600/30"
             >
               <PhoneOff size={28} strokeWidth={2.5} />
