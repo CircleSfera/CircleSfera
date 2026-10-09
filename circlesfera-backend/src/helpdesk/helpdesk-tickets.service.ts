@@ -1,16 +1,21 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { TicketCategory, TicketStatus } from '@prisma/client';
+import type {
+  HelpdeskPriority,
+  TicketCategory,
+  TicketStatus,
+} from '@prisma/client';
 import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import type { AgentMessageDto } from './dto/agent-message.dto.js';
 import type { CreateTicketDto } from './dto/create-ticket.dto.js';
 import type { RequesterMessageDto } from './dto/requester-message.dto.js';
-import { HelpdeskStore } from './helpdesk.store.js';
+import { HelpdeskStore, type TicketEventInput } from './helpdesk.store.js';
 import {
   ACCOUNT_CARD_PROVIDER,
   type AccountCardProvider,
@@ -103,6 +108,52 @@ export class HelpdeskTicketsService {
     };
   }
 
+  // Changes a ticket and records, with the change, each thing that became
+  // different and who made it so.
+  private change(
+    before: {
+      id: string;
+      status?: TicketStatus;
+      category?: TicketCategory;
+      priority?: HelpdeskPriority;
+      assignedAgentRef?: string | null;
+      escalatedReportId?: string | null;
+    },
+    changes: {
+      status?: TicketStatus;
+      category?: TicketCategory;
+      priority?: HelpdeskPriority;
+      assignedAgentRef?: string | null;
+      escalatedReportId?: string;
+      resolvedAt?: Date | null;
+      waitingRemindedAt?: Date | null;
+    },
+    actor: { kind: TicketEventInput['actorKind']; ref: string | null },
+    message?: Parameters<HelpdeskStore['updateTicket']>[2],
+  ) {
+    const events: TicketEventInput[] = [];
+    const record = (
+      kind: TicketEventInput['kind'],
+      from: string | null | undefined,
+      to: string | null | undefined,
+    ) => {
+      if (to === undefined || (from ?? null) === (to ?? null)) return;
+      events.push({
+        kind,
+        fromValue: from ?? null,
+        toValue: to ?? null,
+        actorKind: actor.kind,
+        actorRef: actor.ref,
+      });
+    };
+    record('STATE', before.status, changes.status);
+    record('TOPIC', before.category, changes.category);
+    record('PRIORITY', before.priority, changes.priority);
+    record('ASSIGNMENT', before.assignedAgentRef, changes.assignedAgentRef);
+    record('HANDOVER', before.escalatedReportId, changes.escalatedReportId);
+    return this.store.updateTicket(before.id, changes, message, events);
+  }
+
   private async requesterTicketOrFail(id: string, requesterRef: string) {
     const ticket = await this.store.findRequesterTicket(id, requesterRef);
     // A ticket of someone else does not exist for this requester.
@@ -175,10 +226,15 @@ export class HelpdeskTicketsService {
       return this.getMyTicket(requesterRef, continued.id);
     }
 
-    const reopened = ticket.status === 'RESOLVED';
-    await this.store.updateTicket(
-      id,
-      reopened ? { status: 'OPEN', resolvedAt: null } : {},
+    // Their reply ends a wait and reopens a solved ticket.
+    const reopened =
+      ticket.status === 'RESOLVED' || ticket.status === 'WAITING';
+    await this.change(
+      ticket,
+      reopened
+        ? { status: 'OPEN', resolvedAt: null, waitingRemindedAt: null }
+        : {},
+      { kind: 'REQUESTER', ref: requesterRef },
       {
         authorKind: 'REQUESTER',
         authorRef: requesterRef,
@@ -330,9 +386,17 @@ export class HelpdeskTicketsService {
       ['RESOLVED', 'CLOSED'],
       'OPEN',
     );
-    const updated = await this.store.updateTicket(
-      id,
-      { status, ...(resolvedAt !== undefined && { resolvedAt }) },
+    const updated = await this.change(
+      ticket,
+      {
+        status,
+        ...(resolvedAt !== undefined && { resolvedAt }),
+        // A wait starts with no reminder sent.
+        waitingRemindedAt: null,
+        // Answering a ticket nobody has makes it theirs.
+        ...(!ticket.assignedAgentRef && { assignedAgentRef: agentRef }),
+      },
+      { kind: 'AGENT', ref: agentRef },
       { authorKind: 'AGENT', authorRef: agentRef, visibility: 'PUBLIC', body },
     );
 
@@ -367,9 +431,10 @@ export class HelpdeskTicketsService {
       ['RESOLVED', 'CLOSED'],
       'OPEN',
     );
-    const updated = await this.store.updateTicket(
-      id,
+    const updated = await this.change(
+      ticket,
       { status: 'RESOLVED', ...(resolvedAt !== undefined && { resolvedAt }) },
+      { kind: 'AGENT', ref: null },
       { authorKind: 'AGENT', authorRef: null, visibility: 'PUBLIC', body },
     );
     await this.notifier.answer(this.noticeOf(updated), body);
@@ -379,7 +444,12 @@ export class HelpdeskTicketsService {
   async updateTicket(
     agentRef: string,
     id: string,
-    data: { status?: TicketStatus; reply?: string },
+    data: {
+      status?: TicketStatus;
+      reply?: string;
+      priority?: HelpdeskPriority;
+      category?: TicketCategory;
+    },
   ) {
     const existing = await this.ticketOrFail(id);
 
@@ -396,7 +466,10 @@ export class HelpdeskTicketsService {
       data.status ??
       (answer && existing.status === 'OPEN' ? 'RESOLVED' : undefined);
 
-    const changes: { status?: TicketStatus; resolvedAt?: Date | null } = {};
+    const changes: Parameters<HelpdeskTicketsService['change']>[1] = {
+      ...(data.priority && { priority: data.priority }),
+      ...(data.category && { category: data.category }),
+    };
     if (effectiveStatus) {
       changes.status = effectiveStatus;
       const resolvedAt = resolvedAtOnStatusChange(
@@ -412,9 +485,10 @@ export class HelpdeskTicketsService {
 
     // An answer sent this way is a message of the conversation, like any
     // other; the ticket's own reply field is no longer written.
-    const ticket = await this.store.updateTicket(
-      id,
+    const ticket = await this.change(
+      existing,
       changes,
+      { kind: 'AGENT', ref: agentRef },
       answer
         ? {
             authorKind: 'AGENT',
@@ -436,6 +510,40 @@ export class HelpdeskTicketsService {
     );
 
     return ticket;
+  }
+
+  // Who has the ticket. An agent takes a ticket nobody has and lets go of
+  // their own; giving a ticket to someone else, or taking it from them, is
+  // for who manages the team.
+  async assign(
+    actor: { ref: string; canManage: boolean },
+    id: string,
+    agentRef: string | null,
+  ) {
+    const ticket = await this.ticketOrFail(id);
+    const current = ticket.assignedAgentRef;
+    const allowed =
+      actor.canManage ||
+      (agentRef === actor.ref && !current) ||
+      (agentRef === null && current === actor.ref);
+    if (!allowed && agentRef !== current) {
+      throw new ForbiddenException(
+        'Only who manages the team can assign a ticket to someone else',
+      );
+    }
+    const updated = await this.change(
+      ticket,
+      { assignedAgentRef: agentRef },
+      { kind: 'AGENT', ref: actor.ref },
+    );
+    if (agentRef !== current) {
+      await this.staffLog.record(
+        actor.ref,
+        id,
+        `Assigned ticket ${id} to ${agentRef ?? 'nobody'}`,
+      );
+    }
+    return updated;
   }
 
   // Hands a ticket to another team: a case is opened there, linked to the
@@ -460,10 +568,11 @@ export class HelpdeskTicketsService {
 
     let updated: Awaited<ReturnType<HelpdeskStore['updateTicket']>>;
     try {
-      updated = await this.store.updateTicket(id, {
-        status: 'ESCALATED',
-        escalatedReportId: opened.caseRef,
-      });
+      updated = await this.change(
+        ticket,
+        { status: 'ESCALATED', escalatedReportId: opened.caseRef },
+        { kind: 'AGENT', ref: agentRef },
+      );
     } catch (error) {
       // The case must not stay open with no ticket pointing at it.
       await this.handover.withdraw(opened.caseRef);
@@ -487,9 +596,17 @@ export class HelpdeskTicketsService {
   // Closes the tickets that were solved some days ago and got no reply. A
   // reply reopens a ticket, so a solved one is one nobody answered. Safe to
   // run again.
-  async closeSolvedTickets(afterDays = 7): Promise<number> {
+  async closeSolvedTickets(afterDays = 7, limit = 500): Promise<number> {
     const before = new Date(Date.now() - afterDays * 24 * 60 * 60 * 1000);
-    return this.store.closeSolvedBefore(before);
+    const solved = await this.store.ticketsSolvedBefore(before, limit);
+    for (const ticket of solved) {
+      await this.change(
+        ticket,
+        { status: 'CLOSED' },
+        { kind: 'SYSTEM', ref: null },
+      );
+    }
+    return solved.length;
   }
 
   // Brings back to support the tickets whose case with another team is
@@ -513,9 +630,10 @@ export class HelpdeskTicketsService {
         ? cases.get(ticket.escalatedReportId)
         : undefined;
       if (handed?.pending) continue;
-      await this.store.updateTicket(
-        ticket.id,
+      await this.change(
+        { id: ticket.id, status: 'ESCALATED' },
         { status: 'OPEN', resolvedAt: null },
+        { kind: 'SYSTEM', ref: null },
         {
           authorKind: 'SYSTEM',
           authorRef: null,

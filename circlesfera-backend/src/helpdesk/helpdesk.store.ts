@@ -10,6 +10,15 @@ import {
   type OrganizationScope,
 } from './helpdesk-host.contracts.js';
 
+/** One change of a ticket and who made it. */
+export interface TicketEventInput {
+  kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
+  fromValue: string | null;
+  toValue: string | null;
+  actorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
+  actorRef: string | null;
+}
+
 type TicketChanges = Omit<
   Prisma.SupportTicketUncheckedUpdateInput,
   'id' | 'organizationId'
@@ -102,19 +111,20 @@ export class HelpdeskStore {
   }
 
   /**
-   * Closes the tickets solved before a moment. A ticket that is with
-   * another team, or was reopened, is not solved and is not touched.
+   * The tickets solved before a moment. A ticket that is with another team,
+   * or was reopened, is not solved and is not among them.
    */
-  async closeSolvedBefore(moment: Date): Promise<number> {
-    const { count } = await this.prisma.supportTicket.updateMany({
+  ticketsSolvedBefore(moment: Date, limit: number) {
+    return this.prisma.supportTicket.findMany({
       where: {
         organizationId: this.organizationId,
         status: 'RESOLVED',
         resolvedAt: { lt: moment },
       },
-      data: { status: 'CLOSED' },
+      orderBy: { resolvedAt: 'asc' },
+      take: limit,
+      select: { id: true, status: true },
     });
-    return count;
   }
 
   /** A requester's tickets with their public messages, for a data export. */
@@ -251,6 +261,8 @@ export class HelpdeskStore {
       visibility: HelpdeskMessageVisibility;
       body: string;
     },
+    // What changed and who changed it, written with the change.
+    events: TicketEventInput[] = [],
   ) {
     // A ticket never changes identity or organization, whatever is passed.
     const {
@@ -263,6 +275,7 @@ export class HelpdeskStore {
       data: {
         ...safeChanges,
         ...(message && { messages: { create: message } }),
+        ...(events.length > 0 && { events: { create: events } }),
       },
     });
   }

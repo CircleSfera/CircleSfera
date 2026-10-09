@@ -1634,27 +1634,36 @@ model SupportTicket {
   updatedAt  DateTime       @updatedAt
 
   // The Help Desk organization the ticket belongs to
-  organizationId   String
+  organizationId    String
   // Short number shown to requester and agent
-  reference        Int     @unique @default(autoincrement())
+  reference         Int              @unique @default(autoincrement())
+  // Only agents see it
+  priority          HelpdeskPriority @default(NORMAL)
+  // Who of the team has the ticket, as the host names them; empty when
+  // nobody has it
+  assignedAgentRef  String?
+  // When the one reminder of the current wait was sent
+  waitingRemindedAt DateTime?
   // The closed ticket this one continues, when it was opened by replying
   // to it
-  previousTicketId String?
+  previousTicketId  String?
 
-  user              User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
-  escalatedReportId String?              @unique
-  escalatedReport   Report?              @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
-  organization      HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  escalatedReportId String?               @unique
+  escalatedReport   Report?               @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  organization      HelpdeskOrganization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   messages          HelpdeskMessage[]
-  previousTicket    SupportTicket?       @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
-  continuations     SupportTicket[]      @relation("TicketContinuation")
+  events            HelpdeskTicketEvent[]
+  previousTicket    SupportTicket?        @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
+  continuations     SupportTicket[]       @relation("TicketContinuation")
 
   @@index([userId])
   @@index([status])
   @@index([resolvedAt])
   @@index([organizationId, status, createdAt])
   @@index([previousTicketId])
+  @@index([organizationId, assignedAgentRef, status])
   @@map("support_tickets")
 }
 
@@ -1687,6 +1696,38 @@ enum HelpdeskMessageVisibility {
 enum HelpdeskMessageChannel {
   PRODUCT
   EMAIL
+}
+
+enum HelpdeskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum HelpdeskEventKind {
+  STATE
+  TOPIC
+  PRIORITY
+  ASSIGNMENT
+  HANDOVER
+}
+
+// One change of a ticket and who made it. Append-only; the history agents
+// see.
+model HelpdeskTicketEvent {
+  id        String             @id @default(uuid())
+  ticketId  String
+  kind      HelpdeskEventKind
+  fromValue String?
+  toValue   String?
+  actorKind HelpdeskAuthorKind
+  actorRef  String?
+  createdAt DateTime           @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("helpdesk_ticket_events")
 }
 
 // One thing said in a ticket. Append-only.
@@ -2221,6 +2262,8 @@ enum TicketStatus {
   CLOSED
   // Handed to moderation: a report in the trust queues decides it
   ESCALATED
+  // The team asked something and waits for the requester
+  WAITING
 }
 
 enum TransactionStatus {

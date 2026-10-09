@@ -2635,6 +2635,8 @@
       "load_failed": "The subscriptions could not be loaded"
     },
     "support": {
+      "status_waiting": "Waiting for requester",
+      "leave_waiting": "Leave waiting for requester",
       "system": {
         "handover_RESOLVED": "Moderation resolved the report. The ticket is back with support.",
         "handover_REJECTED": "Moderation dismissed the report. The ticket is back with support.",
@@ -3507,6 +3509,7 @@
       "write_again": "Write again about this",
       "not_found": "We could not find this request.",
       "status": {
+        "WAITING": "Waiting for your reply",
         "OPEN": "Open",
         "ESCALATED": "Under review",
         "RESOLVED": "Solved",

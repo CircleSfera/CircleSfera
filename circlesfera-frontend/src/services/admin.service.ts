@@ -479,7 +479,10 @@ export interface AdminSupportTicket {
   subject: string;
   message: string;
   // ESCALATED: handed to moderation, which decides its report.
-  status: 'OPEN' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  status: 'OPEN' | 'WAITING' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  // Only agents see these two.
+  priority?: 'LOW' | 'NORMAL' | 'HIGH';
+  assignedAgentRef?: string | null;
   // What the ticket is about, chosen by who wrote it.
   category: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
   escalatedReport?: { id: string; status: string } | null;
@@ -1120,7 +1123,7 @@ export const adminApi = {
     data: {
       body: string;
       visibility: 'PUBLIC' | 'INTERNAL';
-      status?: 'OPEN' | 'RESOLVED';
+      status?: 'OPEN' | 'WAITING' | 'RESOLVED';
     },
   ) =>
     apiClient.post<AdminSupportTicketDetail>(

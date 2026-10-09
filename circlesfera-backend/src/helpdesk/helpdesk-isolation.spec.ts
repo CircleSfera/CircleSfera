@@ -36,6 +36,9 @@ describe('Help Desk: isolation between two organizations', () => {
   const snapshot = () =>
     JSON.stringify({
       tickets: db.tickets.filter((t) => t.organizationId === 'org-a'),
+      events: db.events.filter((e) =>
+        Object.values(a).includes(e.ticketId as string),
+      ),
       messages: db.messages.filter((m) =>
         Object.values(a).includes(m.ticketId as string),
       ),
@@ -163,6 +166,14 @@ describe('Help Desk: isolation between two organizations', () => {
         leaked: !refused || accountCards.accountCard.mock.calls.length > 0,
       };
     },
+    assign: async () => ({
+      leaked: await tickets
+        .assign({ ref: 'agent-b', canManage: true }, a.open, 'agent-b')
+        .then(
+          () => true,
+          (error) => error.status !== 404,
+        ),
+    }),
     answerFromTeamChannel: async () => ({
       leaked:
         (await tickets.answerFromTeamChannel(a.open, 'hello')) ||
@@ -279,6 +290,7 @@ describe('Help Desk: isolation between two organizations', () => {
     // service keeps for itself are named here, so a new public operation
     // without a case above fails this test.
     const internal = new Set([
+      'change',
       'requesterView',
       'noticeOf',
       'requesterTicketOrFail',
