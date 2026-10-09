@@ -57,6 +57,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
                 }
               : null;
           }),
+          findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }),
         },
         profile: {
           findFirst: vi.fn().mockResolvedValue(null),
@@ -374,6 +375,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           update: vi.fn().mockResolvedValue({}),
           create: vi.fn().mockResolvedValue({ id: 'rt-new', token: 'hash' }),
         },
+        signIn: { findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }) },
         user: {
           findUnique: vi.fn().mockResolvedValue({
             id: 'user-legit',

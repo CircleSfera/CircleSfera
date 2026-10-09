@@ -95,6 +95,8 @@ export class ProfilesController {
       ip,
       undefined,
       activeProfile.id,
+      // Switching asks for no password: the session keeps its sign-in.
+      user.signInId,
     );
 
     res.cookie(

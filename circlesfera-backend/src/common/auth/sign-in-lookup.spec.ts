@@ -3,11 +3,27 @@ import { sessionEmailVerified } from './sign-in-lookup.js';
 
 describe('sessionEmailVerified', () => {
   const prisma = { signIn: { findFirst: vi.fn() } };
-  const ask = (owner: { userId: string; profileId?: string | null }) =>
-    sessionEmailVerified(prisma as never, owner);
+  const ask = (owner: {
+    userId: string;
+    signInId?: string | null;
+    profileId?: string | null;
+  }) => sessionEmailVerified(prisma as never, owner);
 
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('looks at the sign-in that opened the session, inside its account, before anything else', async () => {
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: new Date() });
+
+    await expect(
+      ask({ userId: 'u-1', signInId: 's-1', profileId: 'p-1' }),
+    ).resolves.toBe(true);
+
+    expect(prisma.signIn.findFirst.mock.calls[0][0].where).toEqual({
+      userId: 'u-1',
+      id: 's-1',
+    });
   });
 
   it('looks at the sign-in of the Profile in use, inside the account of the session', async () => {

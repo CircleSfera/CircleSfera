@@ -27,15 +27,16 @@ export class EmailVerifiedGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user as
-      | { userId?: string; profileId?: string | null }
+      | { userId?: string; signInId?: string; profileId?: string | null }
       | undefined;
     if (!user?.userId) {
       throw new ForbiddenException(ApiErrorCode.EMAIL_NOT_VERIFIED);
     }
 
-    // The email that counts is the one of the sign-in of the Profile in use.
+    // The email that counts is the one of the sign-in of the session.
     const verified = await sessionEmailVerified(this.prisma, {
       userId: user.userId,
+      signInId: user.signInId,
       profileId: user.profileId,
     });
     if (verified) return true;

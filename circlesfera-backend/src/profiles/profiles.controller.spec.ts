@@ -181,6 +181,8 @@ describe('ProfilesController', () => {
       expect.stringMatching(/127\.0\.0\.1$/),
       undefined,
       'profile-2',
+      // The session keeps the sign-in that opened it.
+      TEST_USER.signInId,
     );
     const rawCookies = res.headers['set-cookie'];
     const cookies: string[] = Array.isArray(rawCookies)

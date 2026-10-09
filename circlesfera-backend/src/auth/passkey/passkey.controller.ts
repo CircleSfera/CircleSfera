@@ -98,6 +98,7 @@ export class PasskeyController {
       const tokens = await this.authService.loginById(
         result.userId,
         this.abuseMeta(req),
+        result.signInId,
       );
       res.cookie(
         ACCESS_TOKEN_COOKIE,
