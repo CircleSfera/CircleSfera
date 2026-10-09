@@ -23,6 +23,8 @@ import { AgentAssignmentDto } from './dto/agent-assignment.dto.js';
 import { AgentMessageDto } from './dto/agent-message.dto.js';
 import { AgentTicketChangesDto } from './dto/agent-ticket-changes.dto.js';
 import { AgentTicketsQueryDto } from './dto/agent-tickets-query.dto.js';
+import { FiguresQueryDto } from './dto/figures-query.dto.js';
+import { HelpdeskFiguresService } from './helpdesk-figures.service.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
 // What an agent does, behind the staff session and the support permission.
@@ -33,6 +35,8 @@ export class HelpdeskAgentController {
   constructor(
     @Inject(HelpdeskTicketsService)
     private readonly tickets: HelpdeskTicketsService,
+    @Inject(HelpdeskFiguresService)
+    private readonly figuresService: HelpdeskFiguresService,
   ) {}
 
   @Get()
@@ -53,6 +57,13 @@ export class HelpdeskAgentController {
         agentRef: admin.adminId,
       },
     );
+  }
+
+  // How fast and how well support answered, for who leads the team.
+  @Get('figures')
+  @RequireStaffPermissions('support.manage')
+  async figures(@Query() query: FiguresQueryDto) {
+    return this.figuresService.figures(query.days === '30' ? 30 : 7);
   }
 
   // The agents a ticket can be given to.
