@@ -2,7 +2,7 @@ import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { forwardRef, type VideoHTMLAttributes } from 'react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { bookmarksApi, followsApi, postsApi } from '../services';
+import { bookmarksApi, followsApi, likesApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
 import { useFrameStore } from '../stores/frameStore';
@@ -28,7 +28,8 @@ vi.mock('../stores/authStore', () => ({
 vi.mock('../services', () => ({
   bookmarksApi: { check: vi.fn() },
   followsApi: { toggle: vi.fn() },
-  postsApi: { delete: vi.fn() },
+  likesApi: { check: vi.fn(), toggle: vi.fn() },
+  postsApi: { delete: vi.fn(), update: vi.fn() },
 }));
 
 vi.mock('../services/creator.service', () => ({
@@ -173,6 +174,12 @@ describe('FrameItem', () => {
     useFrameStore.setState({ isMuted: true });
     vi.mocked(bookmarksApi.check).mockResolvedValue({
       data: { bookmarked: false },
+    } as never);
+    vi.mocked(likesApi.check).mockResolvedValue({
+      data: { liked: false },
+    } as never);
+    vi.mocked(likesApi.toggle).mockResolvedValue({
+      data: { liked: true },
     } as never);
 
     play = vi.fn(function (this: HTMLMediaElement) {
@@ -377,6 +384,80 @@ describe('FrameItem', () => {
     });
   });
 
+  describe('two taps', () => {
+    const area = () =>
+      screen.getByRole('button', { name: 'Video playback area' });
+    const twoTaps = () => {
+      fireEvent.click(area());
+      fireEvent.click(area());
+    };
+    const liked = (queryClient: {
+      getQueryData: (key: unknown[]) => unknown;
+    }) =>
+      (queryClient.getQueryData(['like', 'f1']) as { data: { liked: boolean } })
+        ?.data.liked;
+
+    it('like the frame: the count goes up and the like control turns on', async () => {
+      const { queryClient } = show(frame());
+
+      twoTaps();
+
+      await waitFor(() => expect(likesApi.toggle).toHaveBeenCalledWith('f1'));
+      expect(likesApi.toggle).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('likes')).toHaveTextContent('4');
+      expect(liked(queryClient)).toBe(true);
+    });
+
+    it('never take a like away', async () => {
+      vi.mocked(likesApi.check).mockResolvedValue({
+        data: { liked: true },
+      } as never);
+      show(frame());
+
+      twoTaps();
+
+      await waitFor(() => expect(likesApi.check).toHaveBeenCalled());
+      await act(async () => {});
+      expect(likesApi.toggle).not.toHaveBeenCalled();
+      expect(screen.getByTestId('likes')).toHaveTextContent('3');
+    });
+
+    it('give one like, however many times they are repeated', async () => {
+      const { queryClient } = show(frame());
+
+      twoTaps();
+      await waitFor(() => expect(liked(queryClient)).toBe(true));
+      twoTaps();
+      await act(async () => {});
+
+      expect(likesApi.toggle).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('likes')).toHaveTextContent('4');
+    });
+
+    it('put the like back when it was there and the screen did not know', async () => {
+      vi.mocked(likesApi.toggle)
+        .mockResolvedValueOnce({ data: { liked: false } } as never)
+        .mockResolvedValueOnce({ data: { liked: true } } as never);
+      show(frame());
+
+      twoTaps();
+
+      await waitFor(() => expect(likesApi.toggle).toHaveBeenCalledTimes(2));
+    });
+
+    it('undo the like on screen when it cannot be saved', async () => {
+      vi.mocked(likesApi.toggle).mockRejectedValue(new Error('offline'));
+      show(frame());
+
+      twoTaps();
+
+      await waitFor(() => expect(likesApi.toggle).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(screen.getByTestId('likes')).toHaveTextContent('3'),
+      );
+    });
+  });
+
   describe('what the creator learns', () => {
     it('reports the time watched when the viewer moves on', () => {
       vi.useFakeTimers();
@@ -480,6 +561,16 @@ describe('FrameItem', () => {
       show(locked());
 
       expect(screen.getByText('unlock for 4.99')).toBeInTheDocument();
+    });
+
+    it('keeps the unlock outside the playback button', () => {
+      show(locked());
+
+      expect(
+        screen
+          .getByRole('button', { name: 'Video playback area' })
+          .contains(screen.getByText('unlock for 4.99')),
+      ).toBe(false);
     });
 
     it('refreshes the lists when it unlocks without a payment page', async () => {
@@ -638,6 +729,68 @@ describe('FrameItem', () => {
       await waitFor(() => expect(postsApi.delete).toHaveBeenCalledWith('f1'));
       await waitFor(() =>
         expect(invalidate).toHaveBeenCalledWith({ queryKey: ['frames'] }),
+      );
+    });
+
+    it('edits the caption, starting from the one the frame has', async () => {
+      vi.mocked(postsApi.update).mockResolvedValue({} as never);
+      const { actions, queryClient } = withMenu(
+        frame({ profileId: 'me', caption: 'First take' }),
+      );
+      const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+      act(() => actions()?.onEdit());
+      const field = await screen.findByPlaceholderText('Write a caption...');
+      expect(field).toHaveValue('First take');
+      expect(field).toHaveAttribute('maxlength', '2200');
+
+      fireEvent.change(field, { target: { value: 'Second take' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() =>
+        expect(postsApi.update).toHaveBeenCalledWith('f1', 'Second take'),
+      );
+      await waitFor(() =>
+        expect(invalidate).toHaveBeenCalledWith({ queryKey: ['frames'] }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.queryByPlaceholderText('Write a caption...'),
+        ).not.toBeInTheDocument(),
+      );
+    });
+
+    it('changes nothing when the caption is cancelled', async () => {
+      const { actions } = withMenu(frame({ profileId: 'me', caption: 'Kept' }));
+
+      act(() => actions()?.onEdit());
+      const field = await screen.findByPlaceholderText('Write a caption...');
+      fireEvent.change(field, { target: { value: 'Dropped' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      act(() => actions()?.onEdit());
+
+      expect(postsApi.update).not.toHaveBeenCalled();
+      expect(
+        await screen.findByPlaceholderText('Write a caption...'),
+      ).toHaveValue('Kept');
+    });
+
+    it('says so and keeps the text when the caption cannot be saved', async () => {
+      vi.mocked(postsApi.update).mockRejectedValue(new Error('down'));
+      const { actions } = withMenu(frame({ profileId: 'me', caption: 'Old' }));
+
+      act(() => actions()?.onEdit());
+      const field = await screen.findByPlaceholderText('Write a caption...');
+      fireEvent.change(field, { target: { value: 'New' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'Could not save the caption. Try again.',
+        ),
+      );
+      expect(screen.getByPlaceholderText('Write a caption...')).toHaveValue(
+        'New',
       );
     });
 

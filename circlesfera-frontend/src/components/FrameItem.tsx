@@ -6,7 +6,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
-import { bookmarksApi, followsApi, postsApi } from '../services';
+import { bookmarksApi, followsApi, likesApi, postsApi } from '../services';
 import { creatorApi } from '../services/creator.service';
 import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
@@ -22,6 +22,7 @@ import FrameOverlayInfo from './frames/FrameOverlayInfo';
 import ConfirmModal from './modals/ConfirmModal';
 import ReportModal from './modals/ReportModal';
 import PaywallOverlay from './monetization/PaywallOverlay';
+import EditCaptionDialog from './post/EditCaptionDialog';
 
 const PromoteModal = lazy(() => import('./creator/PromoteModal'));
 
@@ -66,6 +67,8 @@ export default function FrameItem({
   const [showReportModal, setShowReportModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editCaption, setEditCaption] = useState(post.caption || '');
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const [progress, setProgress] = useState(0);
@@ -100,6 +103,29 @@ export default function FrameItem({
     },
   });
 
+  // Only the caption of a published frame can be changed here; its video
+  // cannot.
+  const captionMutation = useMutation({
+    mutationFn: (caption: string) => postsApi.update(post.id, caption),
+    onSuccess: () => {
+      setShowEditModal(false);
+      queryClient.invalidateQueries({ queryKey: ['frames'] });
+      queryClient.invalidateQueries({ queryKey: ['userFrames'] });
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['posts'] });
+      queryClient.invalidateQueries({ queryKey: ['post', post.id] });
+    },
+    onError: () => {
+      toast.error(t('frames.caption_error'));
+    },
+  });
+
+  // The menu opens the caption with the text the frame has at that moment.
+  const captionRef = useRef(post.caption);
+  useEffect(() => {
+    captionRef.current = post.caption;
+  }, [post.caption]);
+
   // The page passes a new save handler on every render. The menu reaches the
   // latest one through this ref, so that a new handler alone does not hand
   // the menu over again: handing it over makes the page render.
@@ -112,7 +138,10 @@ export default function FrameItem({
     if (!isActive || !onRegisterMenuActions) return;
 
     onRegisterMenuActions({
-      onEdit: () => {},
+      onEdit: () => {
+        setEditCaption(captionRef.current || '');
+        setShowEditModal(true);
+      },
       onDelete: () => setShowDeleteModal(true),
       onReport: () => setShowReportModal(true),
       onSave: () => onSaveOpenRef.current?.(),
@@ -292,12 +321,47 @@ export default function FrameItem({
     }
   };
 
+  // Two taps give a like and never take one away: on a frame already
+  // liked they only show the heart.
+  const likeFromTaps = async () => {
+    const likeKey = ['like', post.id];
+    type LikeCheck = Awaited<ReturnType<typeof likesApi.check>>;
+    try {
+      const known = await queryClient.ensureQueryData<LikeCheck>({
+        queryKey: likeKey,
+        queryFn: () => likesApi.check(post.id),
+      });
+      if (known?.data?.liked) return;
+
+      await queryClient.cancelQueries({ queryKey: likeKey });
+      queryClient.setQueryData<LikeCheck>(
+        likeKey,
+        (old) => ({ ...old, data: { liked: true } }) as LikeCheck,
+      );
+      setLikesCount((prev) => prev + 1);
+      try {
+        const result = await likesApi.toggle(post.id);
+        // The like was already there and the screen did not know: put it back.
+        if (result?.data?.liked === false) await likesApi.toggle(post.id);
+      } catch (error) {
+        queryClient.setQueryData(likeKey, known);
+        setLikesCount((prev) => prev - 1);
+        throw error;
+      }
+    } catch (error) {
+      logger.error('Failed to like the frame', error);
+    } finally {
+      queryClient.invalidateQueries({ queryKey: likeKey });
+    }
+  };
+
   const handleDoubleTap = async () => {
+    setShowHeartAnim(true);
+    setTimeout(() => setShowHeartAnim(false), 1000);
+    if (!post.isLocked) void likeFromTaps();
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
     }
-    setShowHeartAnim(true);
-    setTimeout(() => setShowHeartAnim(false), 1000);
   };
 
   const isOwner = profile?.id === post.profileId;
@@ -331,14 +395,6 @@ export default function FrameItem({
           <track kind="captions" />
         </HlsVideoPlayer>
 
-        {post.isLocked && (
-          <PaywallOverlay
-            price={post.priceCents ? post.priceCents / 100 : 0}
-            onUnlock={() => unlockMutation.mutate()}
-            isLoading={unlockMutation.isPending}
-          />
-        )}
-
         {showHeartAnim && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
             <Heart
@@ -360,6 +416,16 @@ export default function FrameItem({
           </div>
         )}
       </button>
+
+      {/* Beside the playback button, not inside it: pressing Unlock is not a
+          tap on the video. */}
+      {post.isLocked && (
+        <PaywallOverlay
+          price={post.priceCents ? post.priceCents / 100 : 0}
+          onUnlock={() => unlockMutation.mutate()}
+          isLoading={unlockMutation.isPending}
+        />
+      )}
 
       <div className="absolute top-4 right-4 z-30 pointer-events-auto">
         <button
@@ -424,6 +490,17 @@ export default function FrameItem({
         onClose={() => setShowReportModal(false)}
         targetType="POST"
         targetId={post.id}
+      />
+      <EditCaptionDialog
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        caption={editCaption}
+        onCaptionChange={setEditCaption}
+        onSubmit={(e) => {
+          e.preventDefault();
+          captionMutation.mutate(editCaption);
+        }}
+        isSaving={captionMutation.isPending}
       />
       <ConfirmModal
         isOpen={showDeleteModal}

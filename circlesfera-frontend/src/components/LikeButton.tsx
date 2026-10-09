@@ -2,7 +2,6 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { likesApi } from '../services';
 
@@ -21,24 +20,29 @@ export default function LikeButton({
 }: LikeButtonProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const [isLiked, setIsLiked] = useState<boolean | null>(null);
+  // The like lives in the shared query, not in this button: a like given
+  // elsewhere on the screen (two taps on a frame) shows here too.
+  const likeKey = ['like', postId];
+  type LikeCheck = Awaited<ReturnType<typeof likesApi.check>>;
 
   const { data } = useQuery({
-    queryKey: ['like', postId],
+    queryKey: likeKey,
     queryFn: () => likesApi.check(postId),
   });
 
   const likeMutation = useMutation({
     mutationFn: (id: string) => likesApi.toggle(id),
     onMutate: async () => {
-      await queryClient.cancelQueries({ queryKey: ['like', postId] });
-      const previousLike = queryClient.getQueryData(['like', postId]);
+      await queryClient.cancelQueries({ queryKey: likeKey });
+      const previousLike = queryClient.getQueryData<LikeCheck>(likeKey);
 
-      const currentLiked =
-        isLiked !== null ? isLiked : data?.data?.liked || false;
+      const currentLiked = previousLike?.data?.liked || false;
       const newLiked = !currentLiked;
 
-      setIsLiked(newLiked);
+      queryClient.setQueryData<LikeCheck>(
+        likeKey,
+        (old) => ({ ...old, data: { liked: newLiked } }) as LikeCheck,
+      );
       onToggle?.(newLiked);
 
       return { previousLike, currentLiked };
@@ -46,12 +50,12 @@ export default function LikeButton({
     onError: (err, variables, context) => {
       console.error('Failed to toggle like:', err, 'for post:', variables);
       if (context) {
-        setIsLiked(context.currentLiked);
+        queryClient.setQueryData(likeKey, context.previousLike);
         onToggle?.(context.currentLiked);
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['like', postId] });
+      queryClient.invalidateQueries({ queryKey: likeKey });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       queryClient.invalidateQueries({ queryKey: ['explore'] });
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
@@ -67,7 +71,7 @@ export default function LikeButton({
     likeMutation.mutate(postId);
   };
 
-  const liked = isLiked !== null ? isLiked : data?.data.liked || false;
+  const liked = data?.data?.liked || false;
 
   return (
     <motion.button

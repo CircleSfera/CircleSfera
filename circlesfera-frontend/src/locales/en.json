@@ -4307,6 +4307,7 @@
     "options": "Options",
     "caption_more": "more",
     "caption_less": "less",
+    "caption_error": "Could not save the caption. Try again.",
     "original_audio": "{{username}} • Original audio",
     "artist_fallback": "Artist",
     "audio_disc": "Audio disc",
