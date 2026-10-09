@@ -8,17 +8,25 @@ import type { Page } from '@playwright/test';
 const MIN_CONTROL = 44;
 const MIN_TEXT_FIELD = 48;
 
-/** Visible controls on the screen that are under the minimum size. */
-export async function undersizedControls(page: Page): Promise<string[]> {
+/**
+ * Visible controls on the screen that are under the minimum size. Links
+ * that are part of a running text (`inlineLinks`, a selector) are text, not
+ * controls of their own, and are left out.
+ */
+export async function undersizedControls(
+  page: Page,
+  { inlineLinks }: { inlineLinks?: string } = {},
+): Promise<string[]> {
   // Let entry animations finish; a control measured mid-animation is smaller.
   await page.waitForTimeout(900);
   return page.evaluate(
-    ({ minControl, minTextField }) =>
+    ({ minControl, minTextField, inlineLinks }) =>
       Array.from(
         document.querySelectorAll<HTMLElement>(
           'button, a[href], [role="tab"], input:not([type=file]):not([type=checkbox]), textarea',
         ),
       )
+        .filter((element) => !inlineLinks || !element.matches(inlineLinks))
         .map((element) => ({ element, box: element.getBoundingClientRect() }))
         .filter(
           ({ box }) =>
@@ -49,6 +57,6 @@ export async function undersizedControls(page: Page): Promise<string[]> {
             .slice(0, 30);
           return `${element.tagName.toLowerCase()} ${Math.round(box.width)}x${Math.round(box.height)} "${name}"`;
         }),
-    { minControl: MIN_CONTROL, minTextField: MIN_TEXT_FIELD },
+    { minControl: MIN_CONTROL, minTextField: MIN_TEXT_FIELD, inlineLinks },
   );
 }
