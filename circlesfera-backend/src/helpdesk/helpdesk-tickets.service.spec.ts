@@ -23,6 +23,7 @@ describe('HelpdeskTicketsService', () => {
   const notifier = { answer: vi.fn(), remind: vi.fn() };
   const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
   const staffLog = { record: vi.fn() };
+  const agents = { describe: vi.fn(), assignable: vi.fn() };
   let service: HelpdeskTicketsService;
 
   const ticket = {
@@ -70,6 +71,11 @@ describe('HelpdeskTicketsService', () => {
     requesters.describe.mockResolvedValue(new Map());
     handover.cases.mockResolvedValue(new Map());
     teamChannel.requesterReplied.mockResolvedValue(undefined);
+    agents.describe.mockResolvedValue(new Map());
+    agents.assignable.mockResolvedValue([
+      { ref: 'admin-1', name: 'Ana' },
+      { ref: 'admin-3', name: 'Carla' },
+    ]);
     service = new HelpdeskTicketsService(
       store as never,
       requesters,
@@ -78,6 +84,7 @@ describe('HelpdeskTicketsService', () => {
       notifier,
       teamChannel,
       staffLog,
+      agents,
     );
   });
 
@@ -1178,6 +1185,108 @@ describe('HelpdeskTicketsService', () => {
       expect(store.updateTicket.mock.calls[0][3]).toEqual([
         assignment('admin-2', 'admin-3'),
       ]);
+    });
+
+    it('gives a ticket only to someone who can answer it', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+
+      await expect(
+        service.assign({ ref: 'admin-1', canManage: true }, 't-1', 'u-1'),
+      ).rejects.toMatchObject({ status: 400 });
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('lets go of a ticket without asking who can be given tickets', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-1',
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.assign(agent, 't-1', null);
+
+      expect(agents.assignable).not.toHaveBeenCalled();
+    });
+
+    it('lists the agents a ticket can be given to, as the host names them', async () => {
+      expect(await service.assignableAgents()).toEqual([
+        { ref: 'admin-1', name: 'Ana' },
+        { ref: 'admin-3', name: 'Carla' },
+      ]);
+    });
+
+    it('names the agents of a list of tickets, each asked once', async () => {
+      store.listTickets.mockResolvedValue({
+        tickets: [
+          { ...ticket, id: 't-1', assignedAgentRef: 'admin-1' },
+          { ...ticket, id: 't-2', assignedAgentRef: 'admin-1' },
+          { ...ticket, id: 't-3', assignedAgentRef: null },
+        ],
+        total: 3,
+      });
+      agents.describe.mockResolvedValue(new Map([['admin-1', 'Ana']]));
+
+      const result = await service.listTickets();
+
+      expect(agents.describe).toHaveBeenCalledWith(['admin-1']);
+      expect(result.agents).toEqual({ 'admin-1': 'Ana' });
+    });
+
+    it('names every agent a ticket mentions: who has it, who wrote and who changed it; one who is gone has no name', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-3',
+      });
+      store.messages.mockResolvedValue([
+        { id: 'm-1', authorKind: 'REQUESTER', authorRef: 'u-1' },
+        { id: 'm-2', authorKind: 'AGENT', authorRef: 'admin-1' },
+        { id: 'm-3', authorKind: 'AGENT', authorRef: null },
+      ]);
+      store.events.mockResolvedValue([
+        {
+          kind: 'ASSIGNMENT',
+          fromValue: 'admin-gone',
+          toValue: 'admin-3',
+          actorKind: 'AGENT',
+          actorRef: 'admin-2',
+        },
+        {
+          kind: 'STATE',
+          fromValue: 'WAITING',
+          toValue: 'OPEN',
+          actorKind: 'REQUESTER',
+          actorRef: 'u-1',
+        },
+      ]);
+      agents.describe.mockResolvedValue(
+        new Map([
+          ['admin-1', 'Ana'],
+          ['admin-2', 'Ben'],
+          ['admin-3', 'Carla'],
+        ]),
+      );
+
+      const result = await service.getTicket('t-1');
+
+      // The requester is never asked of the agent directory.
+      expect(agents.describe).toHaveBeenCalledWith([
+        'admin-3',
+        'admin-1',
+        'admin-2',
+        'admin-gone',
+      ]);
+      expect(result.agents).toEqual({
+        'admin-1': 'Ana',
+        'admin-2': 'Ben',
+        'admin-3': 'Carla',
+      });
+    });
+
+    it('asks nobody for names when a ticket mentions no agent', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+
+      expect((await service.getTicket('t-1')).agents).toEqual({});
+      expect(agents.describe).not.toHaveBeenCalled();
     });
 
     it('says so when the ticket does not exist', async () => {

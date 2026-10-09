@@ -43,6 +43,7 @@ export const TEST_ADMIN: CurrentAdminData = {
     'system',
     'experiments',
     'support',
+    'support.manage',
     'audit',
     'live',
     'content',

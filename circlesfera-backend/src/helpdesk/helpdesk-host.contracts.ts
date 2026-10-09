@@ -21,6 +21,19 @@ export interface RequesterDirectory {
   describe(requesterRefs: string[]): Promise<Map<string, RequesterSummary>>;
 }
 
+/** An agent of the team, as far as a ticket needs to show. */
+export interface AgentSummary {
+  ref: string;
+  name: string;
+}
+
+export interface AgentDirectory {
+  /** The names of these agents; the ones the host no longer knows are left out. */
+  describe(agentRefs: string[]): Promise<Map<string, string>>;
+  /** The agents a ticket can be given to: active, and allowed to answer. */
+  assignable(): Promise<AgentSummary[]>;
+}
+
 export interface AccountCardProvider {
   /**
    * Read-only facts about a requester for whoever answers them, or null when
@@ -97,6 +110,7 @@ export interface OrganizationScope {
 
 export const ORGANIZATION_SCOPE = Symbol('helpdesk.organizationScope');
 export const REQUESTER_DIRECTORY = Symbol('helpdesk.requesterDirectory');
+export const AGENT_DIRECTORY = Symbol('helpdesk.agentDirectory');
 export const ACCOUNT_CARD_PROVIDER = Symbol('helpdesk.accountCardProvider');
 export const HANDOVER_GATEWAY = Symbol('helpdesk.handoverGateway');
 export const REQUESTER_NOTIFIER = Symbol('helpdesk.requesterNotifier');
