@@ -1130,6 +1130,78 @@ describe('PasskeyService', () => {
     });
   });
 
+  describe('provesSignIn', () => {
+    const session = {
+      userId: 'user-1',
+      signInId: 'sign-in-1',
+      email: 'me@example.com',
+    };
+    const proven = {
+      verified: true,
+      userId: 'user-1',
+      signInId: 'sign-in-1',
+      userVerified: true,
+    };
+
+    it('is a yes for a verified answer, with user verification, of a passkey of that sign-in', async () => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue(proven);
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(true);
+      expect(verify).toHaveBeenCalledWith('me@example.com', { id: 'cred-1' });
+      verify.mockRestore();
+    });
+
+    it.each([
+      ['not verified', { ...proven, verified: false }],
+      ['without user verification', { ...proven, userVerified: false }],
+      ['of another account', { ...proven, userId: 'user-2' }],
+      ['of another sign-in of the same person', { ...proven, signInId: 's-2' }],
+    ])('is a no for an answer %s', async (_case, result) => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue(result);
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(false);
+      verify.mockRestore();
+    });
+
+    it('is a no, not an error, when the answer cannot be verified', async () => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockRejectedValue(new Error('Challenge not found'));
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(false);
+      verify.mockRestore();
+    });
+
+    it('asks the step-up of the sign-in of the session, looked for inside its account', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-own',
+        email: 'own@example.com',
+      });
+      const options = vi
+        .spyOn(service, 'generateAuthenticationOptions')
+        .mockResolvedValue({ challenge: 'c' } as never);
+
+      await service.generateStepUpOptions('user-1', 'sign-in-own');
+
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { id: 'sign-in-own', userId: 'user-1' },
+        select: { id: true, email: true },
+      });
+      expect(options).toHaveBeenCalledWith('own@example.com', 'sensitive');
+      options.mockRestore();
+    });
+  });
+
   describe('deletePasskey', () => {
     const assertion = { id: 'cred-1' };
 

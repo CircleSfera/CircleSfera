@@ -114,7 +114,10 @@ describe('ProfilesController', () => {
       .expect(200);
 
     expect(mockService.getMyReferrals).toHaveBeenCalledWith(TEST_USER.userId);
-    expect(mockService.getMyProfile).toHaveBeenCalledWith(TEST_USER.profileId);
+    expect(mockService.getMyProfile).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      TEST_USER.signInId,
+    );
   });
 
   it('loads all profiles for the authenticated user', async () => {

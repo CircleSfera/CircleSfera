@@ -226,6 +226,7 @@ describe('PasskeyController', () => {
 
     expect(mockPasskey.generateStepUpOptions).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.signInId,
     );
   });
 });

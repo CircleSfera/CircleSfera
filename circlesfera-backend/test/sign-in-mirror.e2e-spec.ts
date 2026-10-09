@@ -239,6 +239,46 @@ describe('Sign-in copy of the account credentials (e2e)', () => {
     await prisma.signIn.delete({ where: { id: second.id } });
   });
 
+  it('the database refuses a Profile on a sign-in of another account', async () => {
+    const { user } = await bothCopies();
+    const stranger = await prisma.user.create({
+      data: {
+        email: `signin_stranger_${id}@example.com`,
+        password: 'hash-of-the-stranger',
+        dateOfBirth: new Date('1990-01-15'),
+        inviteCode: `S${id}`.slice(0, 12).toUpperCase(),
+      },
+      select: { id: true, signIns: { select: { id: true } } },
+    });
+    const mine = await prisma.profile.findFirstOrThrow({
+      where: { userId: user.id },
+      select: { id: true, signInId: true },
+    });
+
+    await expect(
+      prisma.profile.update({
+        where: { id: mine.id },
+        data: { signInId: stranger.signIns[0].id },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.profile.create({
+        data: {
+          userId: user.id,
+          username: `signin_c_${id}`,
+          signInId: stranger.signIns[0].id,
+        },
+      }),
+    ).rejects.toThrow();
+
+    const after = await prisma.profile.findUniqueOrThrow({
+      where: { id: mine.id },
+      select: { signInId: true },
+    });
+    expect(after.signInId).toBe(mine.signInId);
+    await prisma.user.delete({ where: { id: stranger.id } });
+  });
+
   it('no account is left without a sign-in, and no Profile without one', async () => {
     const [accountsWithout, profilesWithout] = await Promise.all([
       prisma.user.count({ where: { signIns: { none: {} } } }),

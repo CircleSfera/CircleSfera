@@ -59,11 +59,17 @@ describe('AuthService', () => {
     },
     signIn: {
       update: vi.fn().mockResolvedValue({}),
-      findUnique: vi.fn(async (args?: unknown) =>
-        signInOf(
+      findUnique: vi.fn(async (args?: unknown) => {
+        // Signing up asks only whether a sign-in holds the email. No test
+        // account has a sign-in with an email of its own, so none does.
+        const asked = args as { select?: Record<string, boolean> };
+        if (asked?.select && Object.keys(asked.select).join() === 'id') {
+          return null;
+        }
+        return signInOf(
           (await mockPrismaService.user.findUnique(args)) as AccountDouble,
-        ),
-      ),
+        );
+      }),
       findFirst: vi.fn(async (args?: unknown) => {
         // Opening a session asks only for the id of its sign-in, inside the
         // account: the one named, or the one of the account.
@@ -269,6 +275,22 @@ describe('AuthService', () => {
     it('should throw ConflictException if email exists', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ id: '1' });
       await expect(service.register(dto)).rejects.toThrow(ConflictException);
+    });
+
+    it('refuses an email that a sign-in of some Profile already holds', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-of-a-profile',
+      } as never);
+
+      await expect(service.register(dto)).rejects.toThrow(
+        new ConflictException('Email already registered'),
+      );
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
+        where: { email: dto.email },
+        select: { id: true },
+      });
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
     });
   });
 
@@ -1435,12 +1457,47 @@ describe('AuthService', () => {
             username: { equals: 'my_cool_handle', mode: 'insensitive' },
           },
           select: {
+            id: true,
             signIn: expect.objectContaining({
               omit: { password: false, twoFactorSecret: false },
             }),
           },
         }),
       );
+    });
+
+    it('opens the session on the Profile named, among those its sign-in serves', async () => {
+      const hashedPassword = await argon2.hash('MySecretPassword!');
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'prof-named',
+        signIn: signInOf({
+          id: 'u-two',
+          email: 'shop@example.com',
+          password: hashedPassword,
+          isActive: true,
+        }),
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'prof-older', isAccountBanned: false, suspendedUntil: null },
+        { id: 'prof-named', isAccountBanned: false, suspendedUntil: null },
+      ]);
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      await service.login({
+        identifier: 'the_shop',
+        password: 'MySecretPassword!',
+      });
+
+      // Only the Profiles that sign in with this sign-in are candidates.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u-two', signInId: 'sign-in-u-two' },
+        }),
+      );
+      expect(issue.mock.calls[0][5]).toBe('prof-named');
+      expect(issue.mock.calls[0][6]).toBe('sign-in-u-two');
+      issue.mockRestore();
     });
 
     it('answers a Profile that has no sign-in like an unknown identifier', async () => {

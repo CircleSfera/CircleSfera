@@ -127,7 +127,7 @@ export class ProfilesController {
   @Get('me')
   @UseGuards(JwtAuthGuard)
   async getMyProfile(@CurrentUser() user: CurrentUserData) {
-    return this.profilesService.getMyProfile(user.profileId);
+    return this.profilesService.getMyProfile(user.profileId, user.signInId);
   }
 
   // Check if a username is available and valid.

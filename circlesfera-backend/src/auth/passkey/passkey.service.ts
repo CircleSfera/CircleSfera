@@ -594,6 +594,29 @@ export class PasskeyService {
     }
   }
 
+  // Whether a passkey answer proves the person behind a session: verified,
+  // with user verification (biometric or PIN), by a passkey of that same
+  // sign-in. Anything else, and any failure, is a no.
+  async provesSignIn(
+    session: { userId: string; signInId: string; email: string },
+    authenticationResponse: unknown,
+  ): Promise<boolean> {
+    try {
+      const stepUp = await this.verifyAuthentication(
+        session.email,
+        authenticationResponse,
+      );
+      return (
+        stepUp.verified === true &&
+        stepUp.userId === session.userId &&
+        stepUp.signInId === session.signInId &&
+        stepUp.userVerified === true
+      );
+    } catch {
+      return false;
+    }
+  }
+
   // List all registered passkeys for a user (returns safe fields only).
   async getUserPasskeys(userId: string) {
     // Those of the sign-in the person uses: the first of the account.
@@ -613,15 +636,25 @@ export class PasskeyService {
 
   // Step-up for a signed-in user: sensitive authentication options (biometric
   // or PIN required) bound to that user's own passkeys.
-  async generateStepUpOptions(userId: string) {
+  async generateStepUpOptions(userId: string, signInId?: string) {
     return this.generateAuthenticationOptions(
-      await this.getEmailForStepUp(userId),
+      await this.getEmailForStepUp(userId, signInId),
       'sensitive',
     );
   }
 
-  private async getEmailForStepUp(userId: string): Promise<string> {
-    const signIn = await this.firstSignInOf(userId);
+  // The email of the sign-in of the session, looked for inside its account;
+  // the first sign-in of the account for a session that names none.
+  private async getEmailForStepUp(
+    userId: string,
+    signInId?: string,
+  ): Promise<string> {
+    const signIn = signInId
+      ? await this.prisma.signIn.findFirst({
+          where: { id: signInId, userId },
+          select: { id: true, email: true },
+        })
+      : await this.firstSignInOf(userId);
     if (!signIn?.email) {
       throw new NotFoundException('User not found');
     }

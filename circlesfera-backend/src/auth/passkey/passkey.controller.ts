@@ -121,7 +121,10 @@ export class PasskeyController {
   @UseGuards(JwtAuthGuard)
   @Post('step-up-options')
   async generateStepUpOptions(@CurrentUser() user: CurrentUserData) {
-    return this.passkeyService.generateStepUpOptions(user.userId);
+    return this.passkeyService.generateStepUpOptions(
+      user.userId,
+      user.signInId,
+    );
   }
 
   // Delete a registered passkey (requires auth and a fresh step-up assertion).
