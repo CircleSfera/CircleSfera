@@ -27,6 +27,23 @@ export class HelpdeskScheduler {
     }
   }
 
+  @Cron(CronExpression.EVERY_HOUR)
+  async followUpWaitingTickets(): Promise<void> {
+    try {
+      const solved = await this.tickets.solveUnansweredTickets();
+      const reminded = await this.tickets.remindWaitingTickets();
+      if (solved > 0 || reminded > 0) {
+        this.logger.log(
+          `Waiting tickets: ${reminded} reminded, ${solved} solved without an answer`,
+        );
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Following up waiting tickets failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
+    }
+  }
+
   @Cron(CronExpression.EVERY_5_MINUTES)
   async returnDecidedHandovers(): Promise<void> {
     try {

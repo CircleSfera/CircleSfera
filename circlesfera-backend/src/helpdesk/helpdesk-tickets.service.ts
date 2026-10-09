@@ -4,6 +4,7 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import type {
@@ -31,12 +32,16 @@ import {
   type TeamChannel,
 } from './helpdesk-host.contracts.js';
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 // Tickets of the Help Desk: opened by a requester, listed, answered and
 // handed to another team by an agent. Its data comes through the store,
 // which applies the organization; everything it needs from the product
 // around it comes through the host contracts.
 @Injectable()
 export class HelpdeskTicketsService {
+  private readonly logger = new Logger(HelpdeskTicketsService.name);
+
   constructor(
     @Inject(HelpdeskStore) private readonly store: HelpdeskStore,
     @Inject(REQUESTER_DIRECTORY)
@@ -617,7 +622,7 @@ export class HelpdeskTicketsService {
   // reply reopens a ticket, so a solved one is one nobody answered. Safe to
   // run again.
   async closeSolvedTickets(afterDays = 7, limit = 500): Promise<number> {
-    const before = new Date(Date.now() - afterDays * 24 * 60 * 60 * 1000);
+    const before = new Date(Date.now() - afterDays * DAY_MS);
     const solved = await this.store.ticketsSolvedBefore(before, limit);
     for (const ticket of solved) {
       await this.change(
@@ -627,6 +632,54 @@ export class HelpdeskTicketsService {
       );
     }
     return solved.length;
+  }
+
+  // Reminds, once per wait, the requesters the team has been waiting for.
+  // The reminder is marked on the ticket before it is sent, so two runs at
+  // once send one; a reminder that could not be sent is unmarked and left
+  // for the next run.
+  async remindWaitingTickets(
+    afterDays = 7,
+    solvedInDays = 7,
+    limit = 200,
+  ): Promise<number> {
+    const now = new Date();
+    const waiting = await this.store.ticketsWaitingSinceBefore(
+      new Date(now.getTime() - afterDays * DAY_MS),
+      limit,
+    );
+    let reminded = 0;
+    for (const ticket of waiting) {
+      if (!(await this.store.claimReminder(ticket.id, now))) continue;
+      try {
+        await this.notifier.remind(this.noticeOf(ticket), solvedInDays);
+        reminded += 1;
+      } catch (err: unknown) {
+        await this.store.releaseReminder(ticket.id, now);
+        this.logger.warn(
+          `Reminder of ticket ${ticket.id} not sent: ${err instanceof Error ? err.message : 'unknown error'}`,
+        );
+      }
+    }
+    return reminded;
+  }
+
+  // Solves the tickets whose requester did not answer the reminder either.
+  // Safe to run again: a solved ticket no longer waits.
+  async solveUnansweredTickets(afterDays = 7, limit = 200): Promise<number> {
+    const now = new Date();
+    const unanswered = await this.store.ticketsRemindedBefore(
+      new Date(now.getTime() - afterDays * DAY_MS),
+      limit,
+    );
+    for (const ticket of unanswered) {
+      await this.change(
+        ticket,
+        { status: 'RESOLVED', resolvedAt: now },
+        { kind: 'SYSTEM', ref: null },
+      );
+    }
+    return unanswered.length;
   }
 
   // Brings back to support the tickets whose case with another team is
