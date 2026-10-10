@@ -378,6 +378,24 @@ export interface UserExperiment {
 }
 
 // What support sees about who wrote a ticket. It is read-only.
+export interface AdminDispute {
+  id: string;
+  stripeDisputeId: string;
+  amountCents: number;
+  currency: string;
+  // The provider's own values (e.g. fraudulent; needs_response, won, lost).
+  reason: string;
+  status: string;
+  evidenceDueBy: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  transaction: {
+    id: string;
+    type: string;
+    sender: { id: string; email: string } | null;
+  } | null;
+}
+
 export interface AdminSubscription {
   id: string;
   status:
@@ -1077,6 +1095,16 @@ export const adminApi = {
     apiClient.get<AdminSupportAccount | null>(
       `admin/support/tickets/${id}/account`,
     ),
+
+  // Disputes mirrored from the payment provider. Read only.
+  getDisputes: (params: {
+    page?: number;
+    limit?: number;
+    state?: 'open' | 'closed';
+  }) =>
+    apiClient.get<
+      PaginatedResponse<AdminDispute> & { meta: { openCount: number } }
+    >('admin/disputes', { params }),
 
   // Platform plan subscriptions. Read only.
   getSubscriptions: (params: {

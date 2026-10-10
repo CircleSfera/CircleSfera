@@ -6,6 +6,7 @@ import {
   LifeBuoy,
   type LucideIcon,
   Megaphone,
+  ShieldAlert,
   TrendingUp,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -90,6 +91,14 @@ export default function OverviewTab() {
     queryFn: () => adminApi.getPayoutStats().then((res) => res.data),
     enabled: payments,
   });
+  const { data: openDisputes } = useQuery({
+    queryKey: ['admin', 'overview', 'disputes'],
+    queryFn: () =>
+      adminApi
+        .getDisputes({ page: 1, limit: 1, state: 'open' })
+        .then((res) => res.data.meta.openCount),
+    enabled: payments,
+  });
   const { data: openTickets } = useQuery({
     queryKey: ['admin', 'overview', 'tickets', 'OPEN'],
     queryFn: () => adminApi.getSupportTickets(1, 1, 'OPEN').then(totalOf),
@@ -156,6 +165,14 @@ export default function OverviewTab() {
                 })
               }
               attention={!!payouts && payouts.failed > 0}
+            />
+            <Figure
+              to="disputes"
+              icon={ShieldAlert}
+              label={t('backoffice.overview.open_disputes')}
+              value={count(openDisputes)}
+              hint={t('backoffice.overview.open_disputes_hint')}
+              attention={!!openDisputes && openDisputes > 0}
             />
           </>
         )}
