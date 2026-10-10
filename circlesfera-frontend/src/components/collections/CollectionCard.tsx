@@ -175,10 +175,10 @@ export default function CollectionCard({
                 setRenaming(true);
               }
             }}
-            className="p-1.5 rounded-lg bg-black/60 border border-white/10 text-white hover:bg-white/10"
+            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg bg-black/60 border border-white/10 text-white hover:bg-white/10"
             aria-label={t('collections.rename')}
           >
-            <Pencil size={14} />
+            <Pencil size={16} aria-hidden />
           </button>
           <button
             type="button"
@@ -187,10 +187,10 @@ export default function CollectionCard({
               e.stopPropagation();
               void handleDelete();
             }}
-            className="p-1.5 rounded-lg bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
+            className="min-h-11 min-w-11 inline-flex items-center justify-center rounded-lg bg-black/60 border border-white/10 text-red-400 hover:bg-red-500/20"
             aria-label={t('collections.delete')}
           >
-            <Trash2 size={14} />
+            <Trash2 size={16} aria-hidden />
           </button>
         </div>
       )}
