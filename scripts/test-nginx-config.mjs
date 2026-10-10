@@ -15,6 +15,7 @@
  *    - Media uploads (/api/v1/uploads): up to 100m, proxy_request_buffering off, extended timeout.
  *    - WebSockets (/socket.io/): proxy_buffering off, extended keepalive timeout (>= 3600s).
  *    - GDPR downloads (/api/v1/users/gdpr/exports/:id/download): proxy_buffering off.
+ * 4. The web app's page policy is not added to API answers.
  *
  * Usage:
  *   node scripts/test-nginx-config.mjs
@@ -169,6 +170,25 @@ function verifyTrafficPolicies(content) {
     details: hasBoundedTimeout
       ? 'Default REST API routes bounded to 60s timeout'
       : 'Default proxy_read_timeout is not bounded to 60s',
+  });
+
+  // Check 7: API answers do not carry the web app's page policy. Every
+  // header this proxy adds counts against the response header buffer of the
+  // server in front of it, and a sign-in answer already carries two session
+  // cookies: over that buffer, the answer is turned into a 502.
+  const policyOnlyThroughMap =
+    !/add_header\s+Content-Security-Policy-Report-Only\s+"/.test(content);
+  const mapSkipsApi =
+    /map\s+\$uri\s+\$web_app_csp_report_only\s*\{\s*~\^\/api\/\s+"";/.test(
+      content,
+    );
+  findings.push({
+    rule: 'Page Policy Not Sent With API Answers',
+    passed: policyOnlyThroughMap && mapSkipsApi,
+    details:
+      policyOnlyThroughMap && mapSkipsApi
+        ? 'The report-only page policy is skipped for /api/ answers'
+        : 'The report-only page policy is added to API answers too',
   });
 
   return findings;
