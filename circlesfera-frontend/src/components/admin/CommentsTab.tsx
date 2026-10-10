@@ -64,6 +64,8 @@ export default function CommentsTab({ onToast }: Props) {
   });
 
   const comments = data?.data ?? [];
+  // A comment that left the list (hidden, another page) is no longer open.
+  const selected = comments.find((c) => c.id === selectedId) ?? null;
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
@@ -150,7 +152,7 @@ export default function CommentsTab({ onToast }: Props) {
       </AdminFilterBar>
 
       <AdminSplitView
-        hasSelection={!!selectedId}
+        hasSelection={!!selected}
         onBack={() => setSelectedId(null)}
         onClearSelection={() => setSelectedId(null)}
         listTitle={t('admin.comments.title')}
@@ -242,41 +244,38 @@ export default function CommentsTab({ onToast }: Props) {
           </div>
         }
         detail={
-          selectedId ? (
+          selected ? (
             <div className="p-3 sm:p-4">
               <h3 className="text-xl font-bold text-white mb-4">
                 {t('admin.comments.detail_title')}
               </h3>
-              {comments.find((c) => c.id === selectedId) && (
-                <div className="space-y-2.5">
-                  <div className="p-4 bg-white/5 rounded-xl border border-white/10">
-                    <p className="text-white/70">
-                      {comments.find((c) => c.id === selectedId)?.content ||
-                        noContent}
-                    </p>
-                  </div>
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        mutation.mutate({ id: selectedId, action: 'hide' })
-                      }
-                      disabled={mutation.isPending}
-                    >
-                      <Ban size={16} className="mr-2" />
-                      {t('admin.comments.action_hide')}
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => setConfirmDelete(selectedId)}
-                      disabled={mutation.isPending}
-                    >
-                      <Trash2 size={16} className="mr-2" />
-                      {t('admin.comments.action_delete')}
-                    </Button>
-                  </div>
+              <div className="space-y-2.5">
+                <div className="p-4 bg-white/5 rounded-xl border border-white/10">
+                  <p className="text-white/70">
+                    {selected.content || noContent}
+                  </p>
                 </div>
-              )}
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() =>
+                      mutation.mutate({ id: selected.id, action: 'hide' })
+                    }
+                    disabled={mutation.isPending}
+                  >
+                    <Ban size={16} className="mr-2" />
+                    {t('admin.comments.action_hide')}
+                  </Button>
+                  <Button
+                    variant="danger"
+                    onClick={() => setConfirmDelete(selected.id)}
+                    disabled={mutation.isPending}
+                  >
+                    <Trash2 size={16} className="mr-2" />
+                    {t('admin.comments.action_delete')}
+                  </Button>
+                </div>
+              </div>
             </div>
           ) : (
             <AdminEmptyState

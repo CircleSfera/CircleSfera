@@ -296,6 +296,7 @@ export default function PostsTab({ onToast }: Props) {
                           window.open(
                             `${platformOrigin()}/post/${post.id}`,
                             '_blank',
+                            'noopener,noreferrer',
                           ),
                       },
                     ]}

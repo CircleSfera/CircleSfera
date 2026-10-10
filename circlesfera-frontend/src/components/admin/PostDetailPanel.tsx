@@ -1,6 +1,7 @@
 import { ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AdminPost } from '../../services/admin.service';
+import { platformOrigin } from '../../utils/adminPanel';
 import { formatDateTime } from '../../utils/format';
 import UserAvatar from '../UserAvatar';
 
@@ -30,10 +31,10 @@ export default function PostDetailPanel({ post }: Props) {
             </p>
           </div>
           <a
-            href={`/post/${post.id}`}
+            href={`${platformOrigin()}/post/${post.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto inline-flex items-center gap-1.5 min-h-9 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 shrink-0"
+            className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 shrink-0"
           >
             <ExternalLink size={13} />
             {t('admin.posts.action_view_platform')}
