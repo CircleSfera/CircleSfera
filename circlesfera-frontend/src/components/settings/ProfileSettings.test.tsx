@@ -106,8 +106,12 @@ describe('ProfileSettings', () => {
     device.biometric = true;
     security.enabled = false;
     picker.handled = false;
-    api.profile.updateProfile.mockImplementation(((data: object) =>
-      Promise.resolve({ data: { ...mine(), ...data } })) as never);
+    // The server keeps what was saved: asked again, it answers it.
+    api.profile.updateProfile.mockImplementation(((data: object) => {
+      const saved = { ...mine(), ...data };
+      api.profile.getMyProfile.mockResolvedValue({ data: saved } as never);
+      return Promise.resolve({ data: saved });
+    }) as never);
     api.profile.checkUsername.mockResolvedValue({
       data: { available: true },
     } as never);
@@ -169,6 +173,32 @@ describe('ProfileSettings', () => {
         expect.objectContaining({ website: null }),
       ),
     );
+  });
+
+  it('does not take the email for unverified after a save, whose answer does not say', async () => {
+    // The save answers the fields of the Profile only.
+    api.profile.updateProfile.mockResolvedValue({
+      data: { id: 'p-1', username: 'ana', fullName: 'Ana R.', bio: '' },
+    } as never);
+    const { queryClient } = await show();
+    // Nothing more arrives from the server for the rest of this case.
+    api.profile.getMyProfile.mockReturnValue(new Promise(() => {}) as never);
+
+    type('Display Name', 'Ana R.');
+    fireEvent.click(save());
+
+    await waitFor(() =>
+      expect(session.setProfile).toHaveBeenCalledWith(
+        expect.objectContaining({ fullName: 'Ana R.', emailConfirmed: true }),
+      ),
+    );
+    expect(
+      (
+        queryClient.getQueryData(['myProfile']) as {
+          data: { emailConfirmed?: boolean };
+        }
+      ).data.emailConfirmed,
+    ).toBe(true);
   });
 
   it('warns when the bio is near its limit', async () => {
