@@ -413,4 +413,16 @@ describe('CircleSfera as the host of the Help Desk', () => {
       expect(await levels.levelOf('u-1')).toBe('STANDARD');
     });
   });
+
+  it('records what staff did to an article apart from what they did to a ticket', async () => {
+    const log = new AdminAuditStaffActionLog(prisma as never);
+
+    await log.record('admin-1', 'a-1', 'Published article refunds', 'article');
+    await log.record('admin-1', 't-1', 'Answered ticket t-1');
+
+    const targets = prisma.adminAuditLog.create.mock.calls.map(
+      (call) => call[0].data.targetType,
+    );
+    expect(targets).toEqual(['helpdesk_article', 'support_ticket']);
+  });
 });

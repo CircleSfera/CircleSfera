@@ -558,6 +558,31 @@ export interface AdminSupportFigures {
   priority: AdminServiceFigures;
 }
 
+// An article of the help centre, in the list of who writes them.
+export interface AdminArticleSummary {
+  id: string;
+  slug: string;
+  topic: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
+  status: 'DRAFT' | 'PUBLISHED';
+  position: number;
+  usefulYes: number;
+  usefulNo: number;
+  updatedAt: string;
+  // Its title in each language it has one.
+  titles: Record<string, string>;
+  // The languages it still lacks a title in.
+  missing: string[];
+}
+
+export interface AdminArticle
+  extends Omit<AdminArticleSummary, 'titles' | 'missing'> {
+  // The languages an article is written in here.
+  locales: string[];
+  texts: { locale: string; title: string; body: string }[];
+}
+
+type ArticleTexts = { locale: string; title: string; body: string }[];
+
 // An agent a ticket can be given to.
 export interface AdminSupportAgent {
   ref: string;
@@ -1194,6 +1219,32 @@ export const adminApi = {
     apiClient.get<AdminSupportFigures>('admin/support/tickets/figures', {
       params: { days },
     }),
+
+  // The help centre, for who leads support.
+  getArticles: () =>
+    apiClient.get<AdminArticleSummary[]>('admin/support/articles'),
+  getArticle: (id: string) =>
+    apiClient.get<AdminArticle>(`admin/support/articles/${id}`),
+  createArticle: (data: {
+    slug: string;
+    topic: AdminArticle['topic'];
+    position: number;
+    texts: ArticleTexts;
+  }) => apiClient.post<AdminArticle>('admin/support/articles', data),
+  updateArticle: (
+    id: string,
+    data: {
+      topic?: AdminArticle['topic'];
+      position?: number;
+      texts?: ArticleTexts;
+    },
+  ) => apiClient.patch<AdminArticle>(`admin/support/articles/${id}`, data),
+  publishArticle: (id: string) =>
+    apiClient.post<AdminArticle>(`admin/support/articles/${id}/publish`),
+  takeBackArticle: (id: string) =>
+    apiClient.post<AdminArticle>(`admin/support/articles/${id}/take-back`),
+  deleteArticle: (id: string) =>
+    apiClient.delete<{ deleted: boolean }>(`admin/support/articles/${id}`),
 
   // The agents a ticket can be given to.
   getSupportAgents: () =>
