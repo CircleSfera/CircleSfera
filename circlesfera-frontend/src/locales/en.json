@@ -122,6 +122,7 @@
       "uploading": "Uploading...",
       "upload_new": "Upload New",
       "avatar_desc": "Update your profile picture to personalize your CircleSfera experience.",
+      "avatar_error": "The picture could not be uploaded. Try again.",
       "public_identity": "Public Identity",
       "username": "Username",
       "display_name": "Display Name",

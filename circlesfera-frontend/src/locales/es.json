@@ -122,6 +122,7 @@
       "uploading": "Subiendo...",
       "upload_new": "Subir Nueva",
       "avatar_desc": "Actualiza tu foto de perfil para personalizar tu experiencia en CircleSfera.",
+      "avatar_error": "No se pudo subir la foto. Inténtalo de nuevo.",
       "public_identity": "Identidad Pública",
       "username": "Nombre de usuario",
       "display_name": "Nombre visible",
