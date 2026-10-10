@@ -30,6 +30,9 @@ export const ActiveSessionsSettings: React.FC = () => {
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [revokingOthers, setRevokingOthers] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A list that could not be read is not shown; one that could stays on
+  // screen when closing a session fails.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -41,9 +44,11 @@ export const ActiveSessionsSettings: React.FC = () => {
         throw new Error('The list of sessions is not a list');
       }
       setSessions(res.data);
+      setLoadFailed(false);
     } catch (err) {
       logger.error('Failed to load active sessions:', err);
-      setError(t('settings.security.sessions_subtitle'));
+      setLoadFailed(true);
+      setError(t('settings.security.sessions_load_error'));
     } finally {
       setLoading(false);
     }
@@ -56,10 +61,12 @@ export const ActiveSessionsSettings: React.FC = () => {
   const handleRevokeSingle = async (id: string) => {
     try {
       setRevokingId(id);
+      setError(null);
       await authApi.revokeSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       logger.error('Failed to revoke session:', err);
+      setError(t('settings.security.revoke_error'));
     } finally {
       setRevokingId(null);
     }
@@ -72,6 +79,7 @@ export const ActiveSessionsSettings: React.FC = () => {
       await fetchSessions();
     } catch (err) {
       logger.error('Failed to revoke other sessions:', err);
+      setError(t('settings.security.revoke_error'));
     } finally {
       setRevokingOthers(false);
     }
@@ -118,7 +126,7 @@ export const ActiveSessionsSettings: React.FC = () => {
           </div>
         </div>
 
-        {sessions.length > 1 && (
+        {!loadFailed && sessions.length > 1 && (
           <button
             type="button"
             onClick={handleRevokeOthers}
@@ -136,7 +144,10 @@ export const ActiveSessionsSettings: React.FC = () => {
       </div>
 
       {error && (
-        <div className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl">
+        <div
+          role="alert"
+          className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl"
+        >
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -149,7 +160,7 @@ export const ActiveSessionsSettings: React.FC = () => {
             {t('settings.security.loading_sessions')}
           </span>
         </div>
-      ) : error ? null : sessions.length === 0 ? (
+      ) : loadFailed ? null : sessions.length === 0 ? (
         <p className="text-xs text-gray-500 italic py-2">
           {t('settings.security.no_other_sessions')}
         </p>
@@ -178,7 +189,7 @@ export const ActiveSessionsSettings: React.FC = () => {
                       )}
                     </div>
                     <div className="flex items-center space-x-2 text-xs text-gray-400 mt-0.5">
-                      <span>IP: {session.ipAddress || '127.0.0.1'}</span>
+                      <span>IP: {session.ipAddress || '—'}</span>
                       <span>•</span>
                       <span>
                         {formatDate(session.createdAt, i18n.language)}
