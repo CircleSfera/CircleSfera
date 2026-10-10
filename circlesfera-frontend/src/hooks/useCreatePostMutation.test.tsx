@@ -7,6 +7,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { interactiveApi, postsApi, storiesApi } from '../services';
 import { createTestI18n, createTestQueryClient } from '../test/test-utils';
+import { exportEditedImage } from '../utils/imageExport';
 import { useCreatePostMutation } from './useCreatePostMutation';
 import type { MediaFile } from './useCreatePostState';
 
@@ -23,8 +24,6 @@ vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
   useNavigate: () => navigate,
 }));
-
-import { exportEditedImage } from '../utils/imageExport';
 
 const i18n = createTestI18n('en');
 const image = (name = 'a.jpg', size = 1000): MediaFile => ({
@@ -224,6 +223,39 @@ describe('useCreatePostMutation', () => {
       storyId: 'story-1',
     });
     expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  describe('a photo that already has an uploaded copy', () => {
+    const copy = 'https://cdn.example.com/before-the-edit.jpg';
+
+    it('is uploaded again when publishing applies its edit', async () => {
+      const edited = new File(['edited'], 'edited.jpg', { type: 'image/jpeg' });
+      vi.mocked(exportEditedImage).mockResolvedValue(edited);
+      const { deps, submit } = setup({
+        mediaFiles: [
+          {
+            ...image(),
+            cropData: { x: 0, y: 0, width: 10, height: 10 },
+            remoteUrl: copy,
+          },
+        ],
+      });
+      await submit();
+
+      const [files] = deps.uploadFiles.mock.calls[0];
+      expect(files[0].file).toBe(edited);
+      // The copy uploaded before the edit must not be the one published.
+      expect(files[0].remoteUrl).toBeUndefined();
+    });
+
+    it('is used as it is when the photo has no edit', async () => {
+      const { deps, submit } = setup({
+        mediaFiles: [{ ...image(), remoteUrl: copy }],
+      });
+      await submit();
+
+      expect(deps.uploadFiles.mock.calls[0][0][0].remoteUrl).toBe(copy);
+    });
   });
 
   it('says the edit could not be applied, in the app language', async () => {

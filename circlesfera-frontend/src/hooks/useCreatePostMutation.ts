@@ -153,6 +153,9 @@ export function useCreatePostMutation(deps: MutationDeps) {
           return {
             ...m,
             file: exportedFile,
+            // A copy uploaded before the edit (to write its description) is
+            // not this file: the edited one is what gets uploaded.
+            remoteUrl: undefined,
           };
         } catch (e) {
           logger.error('Error exporting file, failing submission', e);
