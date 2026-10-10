@@ -9,6 +9,7 @@ import type { TicketCategory, TicketStatus } from '@prisma/client';
 import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import type { AgentMessageDto } from './dto/agent-message.dto.js';
 import type { CreateTicketDto } from './dto/create-ticket.dto.js';
+import type { RequesterMessageDto } from './dto/requester-message.dto.js';
 import { HelpdeskStore } from './helpdesk.store.js';
 import {
   ACCOUNT_CARD_PROVIDER,
@@ -59,6 +60,100 @@ export class HelpdeskTicketsService {
       message: 'Support ticket created successfully',
       ticketId: ticket.id,
     };
+  }
+
+  // What a requester may know of their own ticket. Never the organization,
+  // the case with another team, or who is assigned.
+  private requesterView(ticket: {
+    id: string;
+    reference: number;
+    subject: string;
+    category: TicketCategory;
+    status: TicketStatus;
+    createdAt: Date;
+    updatedAt: Date;
+  }) {
+    return {
+      id: ticket.id,
+      reference: ticket.reference,
+      subject: ticket.subject,
+      category: ticket.category,
+      status: ticket.status,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+    };
+  }
+
+  private async requesterTicketOrFail(id: string, requesterRef: string) {
+    const ticket = await this.store.findRequesterTicket(id, requesterRef);
+    // A ticket of someone else does not exist for this requester.
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+    return ticket;
+  }
+
+  async listMyTickets(requesterRef: string, page = 1, limit = 20) {
+    const { tickets, total } = await this.store.listRequesterTickets(
+      requesterRef,
+      page,
+      limit,
+    );
+    return {
+      data: tickets.map((ticket) => this.requesterView(ticket)),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
+  // The requester's view of their ticket: its public messages only.
+  async getMyTicket(requesterRef: string, id: string) {
+    const ticket = await this.requesterTicketOrFail(id, requesterRef);
+    const messages = await this.store.messages(ticket.id, 'PUBLIC');
+    return {
+      ...this.requesterView(ticket),
+      messages: messages.map((message) => ({
+        id: message.id,
+        // Who of the team answered is not told to the requester.
+        authorKind: message.authorKind,
+        body: message.body,
+        createdAt: message.createdAt,
+      })),
+    };
+  }
+
+  // The requester answers in their own ticket. A solved ticket opens again;
+  // a closed one cannot be answered.
+  async replyToMyTicket(
+    requesterRef: string,
+    id: string,
+    dto: RequesterMessageDto,
+  ) {
+    const body = dto.body.trim();
+    if (!body) {
+      throw new BadRequestException('The message is empty');
+    }
+    const ticket = await this.requesterTicketOrFail(id, requesterRef);
+    if (ticket.status === 'CLOSED') {
+      throw new ConflictException('A closed ticket cannot be answered');
+    }
+
+    const reopened = ticket.status === 'RESOLVED';
+    await this.store.updateTicket(
+      id,
+      reopened ? { status: 'OPEN', resolvedAt: null } : {},
+      {
+        authorKind: 'REQUESTER',
+        authorRef: requesterRef,
+        visibility: 'PUBLIC',
+        body,
+      },
+    );
+    return this.getMyTicket(requesterRef, id);
   }
 
   async listTickets(page = 1, limit = 20, status?: string, category?: string) {

@@ -23,6 +23,9 @@ describe('HelpdeskRequesterController', () => {
 
   const mockService = {
     createTicket: vi.fn(),
+    listMyTickets: vi.fn(),
+    getMyTicket: vi.fn(),
+    replyToMyTicket: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -102,5 +105,75 @@ describe('HelpdeskRequesterController', () => {
       email: TEST_USER.email,
       userId: TEST_USER.userId,
     });
+  });
+
+  it('answers 401 without a session on every route of a requester', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/support/tickets')
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/support/tickets/t-1')
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/support/tickets/t-1/messages')
+      .send({ body: 'Hello' })
+      .expect(401);
+
+    expect(mockService.listMyTickets).not.toHaveBeenCalled();
+    expect(mockService.getMyTicket).not.toHaveBeenCalled();
+    expect(mockService.replyToMyTicket).not.toHaveBeenCalled();
+  });
+
+  it('lists and reads tickets as the signed-in person', async () => {
+    mockService.listMyTickets.mockResolvedValue({ data: [] });
+    mockService.getMyTicket.mockResolvedValue({ id: 't-1' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/support/tickets?page=2&limit=5')
+      .set(BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/support/tickets/t-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.listMyTickets).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      2,
+      5,
+    );
+    expect(mockService.getMyTicket).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      't-1',
+    );
+  });
+
+  it('adds a reply as the signed-in person, and takes no author from the request', async () => {
+    mockService.replyToMyTicket.mockResolvedValue({ id: 't-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/support/tickets/t-1/messages')
+      .set(BEARER)
+      .send({ body: 'On the 2nd.' })
+      .expect(201);
+    expect(mockService.replyToMyTicket).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      't-1',
+      { body: 'On the 2nd.' },
+    );
+
+    for (const body of [
+      { body: 'Hello', userId: 'someone-else' },
+      { body: 'Hello', visibility: 'INTERNAL' },
+      { body: '' },
+      { body: 'x'.repeat(5001) },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/support/tickets/t-1/messages')
+        .set(BEARER)
+        .send(body)
+        .expect(400);
+    }
+    expect(mockService.replyToMyTicket).toHaveBeenCalledTimes(1);
   });
 });
