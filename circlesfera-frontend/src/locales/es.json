@@ -3281,7 +3281,22 @@
       "rule_delete_error": "Error borrando regla",
       "delete_desc": "Esto elimina la regla de palabra clave de forma permanente.",
       "delete_title": "¿Eliminar regla del firewall?",
-      "keyword_placeholder": "ej. spamcasino.com"
+      "keyword_placeholder": "ej. spamcasino.com",
+      "search_rules": "Buscar reglas",
+      "label_keyword": "Palabra clave o frase",
+      "label_action": "Acción",
+      "option_flag": "FLAG (enviar a la cola de revisión)",
+      "option_block": "BLOCK (prohibir la publicación inmediatamente)",
+      "option_mute": "MUTE (publicar pero ocultar a otros usuarios)",
+      "intercepted_keyword": "Palabra clave interceptada",
+      "current_action": "Acción actual",
+      "created_on": "Creado el",
+      "change_action": "Cambiar acción",
+      "set_flag": "FLAG - Enviar a la cola de revisión",
+      "set_block": "BLOCK - Prohibir la publicación",
+      "set_mute": "MUTE - Ocultar el contenido a los demás",
+      "select_rule_title": "Selecciona una regla",
+      "select_rule_description": "Elige una regla de la lista para ver sus detalles o añade una nueva para interceptar texto."
     },
     "whitelist": {
       "title": "Whitelist de Interesados",
