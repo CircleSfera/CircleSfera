@@ -2,7 +2,14 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart, Pause, Play, Volume2, VolumeX } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
@@ -190,6 +197,24 @@ export default function FrameItem({
     };
   }, []);
 
+  // The short timers that end a tap animation. They are cancelled when the
+  // frame leaves the screen, so none of them runs on a frame that is gone.
+  const animationTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const later = useCallback((run: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      animationTimers.current.delete(id);
+      run();
+    }, ms);
+    animationTimers.current.add(id);
+  }, []);
+  useEffect(() => {
+    const timers = animationTimers.current;
+    return () => {
+      for (const id of timers) clearTimeout(id);
+      timers.clear();
+    };
+  }, []);
+
   const viewRecorded = useRef(false);
   useEffect(() => {
     if (!post.isPromoted || !post.promotionId || viewRecorded.current) return;
@@ -237,7 +262,7 @@ export default function FrameItem({
             videoRef.current.pause();
             setShowPlayAnim('pause');
           }
-          setTimeout(() => setShowPlayAnim(null), 800);
+          later(() => setShowPlayAnim(null), 800);
         }
       } else if (e.key.toLowerCase() === 'm') {
         e.preventDefault();
@@ -247,7 +272,7 @@ export default function FrameItem({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, toggleMute]);
+  }, [isActive, toggleMute, later]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
@@ -316,7 +341,7 @@ export default function FrameItem({
           videoRef.current.pause();
           setShowPlayAnim('pause');
         }
-        setTimeout(() => setShowPlayAnim(null), 800);
+        later(() => setShowPlayAnim(null), 800);
       }, 180);
     }
   };
@@ -357,7 +382,7 @@ export default function FrameItem({
 
   const handleDoubleTap = async () => {
     setShowHeartAnim(true);
-    setTimeout(() => setShowHeartAnim(false), 1000);
+    later(() => setShowHeartAnim(false), 1000);
     if (!post.isLocked) void likeFromTaps();
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
