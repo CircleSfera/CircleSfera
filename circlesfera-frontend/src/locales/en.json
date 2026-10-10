@@ -213,6 +213,8 @@
       "muted_empty": "No muted users",
       "expires_forever": "Forever",
       "expires_on": "Until {{date}}",
+      "unblock_error": "The account could not be unblocked. Try again.",
+      "unmute_error": "The account could not be unmuted. Try again.",
       "change_duration": "Duration"
     },
     "account": {
@@ -250,6 +252,7 @@
       "delete_scheduled": "Account scheduled for deletion. Log in within 30 days to restore it.",
       "delete_cancelled": "Account deletion cancelled. Your account is active again.",
       "delete_cancel_error": "Could not cancel deletion. Try logging in again within the grace period.",
+      "delete_error": "The account could not be scheduled for deletion. Nothing has changed.",
       "verification": {
         "title": "Identity verification",
         "success": "Your identity has been verified!",
@@ -2188,6 +2191,7 @@
     "description": "CircleSfera Management and Moderation",
     "connected_as": "Admin",
     "back_to_app": "Back to CircleSfera",
+    "account_menu": "Account of {{name}}",
     "back_short": "App",
     "open_nav": "Open navigation",
     "mobile_nav_title": "Navigation",
@@ -2612,7 +2616,17 @@
       "kpi_traffic_normal": "Normal",
       "status_live_now": "Live now",
       "gifts": "Gifts",
-      "viewers": "Viewers"
+      "viewers": "Viewers",
+      "badge_live": "Live",
+      "badge_ended": "Ended",
+      "participants": "Participants",
+      "role_host": "Host",
+      "role_cohost": "Guest co-host",
+      "moderation_actions": "Moderation actions",
+      "warn_title": "Send a warning",
+      "warn_description": "The user will receive an official notice.",
+      "force_end_title": "Force the broadcast to end",
+      "force_end_description": "The live will end immediately."
     },
     "plans": {
       "title": "Plans",
@@ -3270,7 +3284,22 @@
       "rule_delete_error": "Error deleting rule",
       "delete_desc": "This removes the keyword rule permanently.",
       "delete_title": "Delete firewall rule?",
-      "keyword_placeholder": "e.g. spamcasino.com"
+      "keyword_placeholder": "e.g. spamcasino.com",
+      "search_rules": "Search rules",
+      "label_keyword": "Keyword or phrase",
+      "label_action": "Action",
+      "option_flag": "FLAG (send to the review queue)",
+      "option_block": "BLOCK (refuse publication at once)",
+      "option_mute": "MUTE (publish but hide from other users)",
+      "intercepted_keyword": "Intercepted keyword",
+      "current_action": "Current action",
+      "created_on": "Created on",
+      "change_action": "Change action",
+      "set_flag": "FLAG - Send to the review queue",
+      "set_block": "BLOCK - Refuse publication",
+      "set_mute": "MUTE - Hide the content from others",
+      "select_rule_title": "Select a rule",
+      "select_rule_description": "Choose a rule from the list to see its details, or add a new one to intercept text."
     },
     "whitelist": {
       "title": "Interest Whitelist",
@@ -3299,7 +3328,13 @@
       "create_title": "Add to whitelist",
       "create_message": "Enter the invited email.",
       "email_placeholder": "email@example.com",
-      "name_placeholder": "Name (optional)"
+      "name_placeholder": "Name (optional)",
+      "toast_added": "Added to the whitelist",
+      "toast_add_error": "Could not add to the whitelist",
+      "toast_saved": "Entry saved",
+      "toast_save_error": "Could not save the entry",
+      "toast_deleted": "Entry deleted",
+      "toast_delete_error": "Could not delete the entry"
     },
     "verification": {
       "title": "KYC & Verification",
@@ -3415,7 +3450,15 @@
       "tab_experiments": "A/B Experiments",
       "user_search_placeholder": "Search user by name or email...",
       "searching_users": "Searching users...",
-      "no_users_found": "No users found."
+      "no_users_found": "No users found.",
+      "toast_flag_saved": "Flag saved",
+      "toast_flag_save_error": "The flag could not be saved",
+      "toast_flag_deleted": "Flag deleted",
+      "toast_flag_delete_error": "The flag could not be deleted",
+      "toast_assigned": "Assignment saved",
+      "toast_assign_error": "The assignment could not be saved",
+      "toast_removed": "Assignment removed",
+      "toast_remove_error": "The assignment could not be removed"
     },
     "health": {
       "title": "System Status",
@@ -3455,7 +3498,8 @@
       "provider": "Provider",
       "external_id": "External ID",
       "status": "Status",
-      "processed_at": "Processed"
+      "processed_at": "Processed",
+      "replay_error": "The event could not be replayed"
     },
     "user_preview": {
       "title": "User Record",
@@ -3873,7 +3917,11 @@
     "save_error_short": "Save failed",
     "zoom": "Timeline zoom",
     "playhead": "Playhead",
-    "clip_types": { "video": "Video", "image": "Image", "audio": "Audio" },
+    "clip_types": {
+      "video": "Video",
+      "image": "Image",
+      "audio": "Audio"
+    },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
     "mute": "Mute track",

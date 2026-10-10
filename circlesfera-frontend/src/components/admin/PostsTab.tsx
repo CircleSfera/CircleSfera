@@ -294,8 +294,9 @@ export default function PostsTab({ onToast }: Props) {
                         icon: ExternalLink,
                         onClick: () =>
                           window.open(
-                            `${platformOrigin()}/post/${post.id}`,
+                            `${platformOrigin()}/p/${post.id}`,
                             '_blank',
+                            'noopener,noreferrer',
                           ),
                       },
                     ]}
