@@ -41,9 +41,13 @@ export class TwoFactorService {
     twoFactorAuthenticationCode: string,
     user: { id: string },
   ) {
-    const userData = await this.prisma.user.findUnique({
-      where: { id: user.id },
-      omit: { twoFactorSecret: false },
+    // The secret is the one of the sign-in: the first of the account, which
+    // its Profiles share. It is written through the account, and the
+    // database copies it to the sign-in in the same transaction.
+    const userData = await this.prisma.signIn.findFirst({
+      where: { userId: user.id },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { twoFactorSecret: true },
     });
 
     if (!userData?.twoFactorSecret) {

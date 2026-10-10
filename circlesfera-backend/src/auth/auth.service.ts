@@ -47,9 +47,9 @@ import {
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
 // And password reset flows. Supports legacy bcrypt migration on login.
 
-const LOGIN_USER_OMIT = { password: false, twoFactorSecret: false } as const;
-// What signing in with a password needs from the sign-in.
-const LOGIN_SIGN_IN_OMIT = { password: false } as const;
+// What signing in with a password needs from the sign-in: the password and
+// the secret of its second step.
+const LOGIN_SIGN_IN_OMIT = { password: false, twoFactorSecret: false } as const;
 
 @Injectable()
 export class AuthService {
@@ -356,7 +356,7 @@ export class AuthService {
     // person is and whether they may come in.
     const withAccount = {
       omit: LOGIN_SIGN_IN_OMIT,
-      include: { user: { omit: LOGIN_USER_OMIT } },
+      include: { user: true },
     } as const;
     let signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.identifier },
@@ -382,6 +382,8 @@ export class AuthService {
       email: signIn.email,
       password: signIn.password,
       passwordResetRequiredAt: signIn.passwordResetRequiredAt,
+      isTwoFactorEnabled: signIn.isTwoFactorEnabled,
+      twoFactorSecret: signIn.twoFactorSecret,
     };
 
     // Verify password

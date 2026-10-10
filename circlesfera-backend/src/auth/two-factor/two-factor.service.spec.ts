@@ -25,10 +25,17 @@ describe('TwoFactorService', () => {
   let service: TwoFactorService;
   let cryptoService: CryptoService;
 
+  // The sign-in holds a copy of the secret of the account each test
+  // describes; the database keeps it equal.
   const mockPrismaService = {
     user: {
       findUnique: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
+    },
+    signIn: {
+      findFirst: vi.fn(async (args?: unknown) =>
+        mockPrismaService.user.findUnique(args),
+      ),
     },
   };
 
@@ -138,6 +145,35 @@ describe('TwoFactorService', () => {
       expect(isValid).toBe(true);
       // Already encrypted, so no opportunistic migration needed
       expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+    });
+
+    it('reads the secret of the first sign-in of the account, not the one of the account', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        twoFactorSecret: cryptoService.encrypt('SECRET_OF_THE_SIGN_IN'),
+      });
+      vi.mocked(verifySync).mockReturnValue({ valid: true, delta: 0 });
+
+      await service.isTwoFactorAuthenticationCodeValid('123456', {
+        id: 'user-1',
+      });
+
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { twoFactorSecret: true },
+      });
+      expect(mockPrismaService.user.findUnique).not.toHaveBeenCalled();
+      expect(verifySync).toHaveBeenCalledWith(
+        expect.objectContaining({ secret: 'SECRET_OF_THE_SIGN_IN' }),
+      );
+    });
+
+    it('refuses any code for an account without a sign-in', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.isTwoFactorAuthenticationCodeValid('123456', { id: 'user-1' }),
+      ).resolves.toBe(false);
     });
 
     it('supports legacy unencrypted plaintext secrets and triggers opportunistic migration', async () => {

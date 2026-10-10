@@ -95,6 +95,59 @@ export class PasskeyService {
     this.origin = config.origin;
   }
 
+  // The first sign-in of an account: the one its Profiles share, and the one
+  // the passkeys of a signed-in person belong to.
+  private async firstSignInOf(
+    userId: string,
+  ): Promise<{ id: string; email: string } | null> {
+    return this.prisma.signIn.findFirst({
+      where: { userId },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, email: true },
+    });
+  }
+
+  // The sign-in an identifier names, by its email or through the Profile
+  // with that username, with its own passkeys and the account behind it.
+  // Nothing when there is no such sign-in or its account is missing.
+  private async signInFor(identifier: string): Promise<{
+    id: string;
+    signInId: string;
+    passkeys: {
+      id: string;
+      credentialID: string;
+      publicKey: Buffer;
+      counter: bigint | number;
+      transports: AuthenticatorTransport[];
+    }[];
+    currentChallenge?: string | null;
+  } | null> {
+    const withPasskeys = {
+      include: {
+        passkeys: true,
+        user: { omit: { currentChallenge: false } },
+      },
+    } as const;
+    let signIn = await this.prisma.signIn.findUnique({
+      where: { email: identifier },
+      ...withPasskeys,
+    });
+    if (!signIn) {
+      const profile = await this.prisma.profile.findFirst({
+        where: { username: identifier },
+        select: { signIn: withPasskeys },
+      });
+      signIn = profile?.signIn ?? null;
+    }
+    if (!signIn?.user) return null;
+    return {
+      id: signIn.userId,
+      signInId: signIn.id,
+      passkeys: signIn.passkeys as never,
+      currentChallenge: signIn.user.currentChallenge,
+    };
+  }
+
   private async consumeChallenge(
     challenge: string,
     expectedUserId: string,
@@ -185,11 +238,13 @@ export class PasskeyService {
     userId: string,
     sensitivity: PasskeySensitivity = 'sensitive',
   ) {
+    const signIn = await this.firstSignInOf(userId);
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
         profiles: true,
-        passkeys: true,
+        // Those of the sign-in: what it may not register twice, and its limit.
+        passkeys: { where: { signInId: signIn?.id ?? null } },
       },
     })) as unknown as {
       id: string;
@@ -205,7 +260,7 @@ export class PasskeyService {
       currentChallenge?: string | null;
     } | null;
 
-    if (!user) {
+    if (!user || !signIn) {
       throw new NotFoundException('User not found');
     }
     if (user.passkeys.length >= MAX_PASSKEYS_PER_ACCOUNT) {
@@ -219,8 +274,8 @@ export class PasskeyService {
       rpName: this.rpName,
       rpID: this.rpID,
       userID: Buffer.from(user.id),
-      userName: primaryProfile?.username || user.email,
-      userDisplayName: primaryProfile?.fullName || user.email,
+      userName: primaryProfile?.username || signIn.email,
+      userDisplayName: primaryProfile?.fullName || signIn.email,
       attestationType: 'none',
       excludeCredentials: user.passkeys.map((pk) => ({
         id: pk.credentialID,
@@ -242,6 +297,7 @@ export class PasskeyService {
       await prisma.passkeyChallenge.create({
         data: {
           userId,
+          signInId: signIn.id,
           scope,
           challenge: registrationOptions.challenge,
           expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
@@ -310,8 +366,13 @@ export class PasskeyService {
           );
         }
 
+        const signIn = await this.firstSignInOf(userId);
+        if (!signIn) {
+          throw new BadRequestException('Sign-in not found');
+        }
         await this.storePasskeyWithinLimit(userId, {
           userId,
+          signInId: signIn.id,
           credentialID: id,
           publicKey: Buffer.from(publicKey),
           counter: BigInt(counter),
@@ -341,6 +402,7 @@ export class PasskeyService {
     userId: string,
     data: {
       userId: string;
+      signInId: string;
       credentialID: string;
       publicKey: Buffer;
       counter: bigint;
@@ -353,7 +415,9 @@ export class PasskeyService {
         where: { id: userId },
         data: { currentChallenge: null },
       });
-      const registered = await tx.passkey.count({ where: { userId } });
+      const registered = await tx.passkey.count({
+        where: { signInId: data.signInId },
+      });
       if (registered >= MAX_PASSKEYS_PER_ACCOUNT) {
         throw passkeyLimitReached();
       }
@@ -374,24 +438,7 @@ export class PasskeyService {
     identifier: string,
     sensitivity: PasskeySensitivity = 'standard',
   ) {
-    const user = (await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: identifier },
-          { profiles: { some: { username: identifier } } },
-        ],
-      },
-      include: {
-        passkeys: true,
-      },
-    })) as unknown as {
-      id: string;
-      passkeys: {
-        credentialID: string;
-        transports?: AuthenticatorTransport[];
-      }[];
-      currentChallenge?: string | null;
-    } | null;
+    const user = await this.signInFor(identifier);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -421,6 +468,7 @@ export class PasskeyService {
       await prisma.passkeyChallenge.create({
         data: {
           userId: user.id,
+          signInId: user.signInId,
           scope,
           challenge: authenticationOptions.challenge,
           expiresAt: new Date(Date.now() + PASSKEY_CHALLENGE_TTL_MS),
@@ -444,27 +492,7 @@ export class PasskeyService {
   // Returns `{ verified: boolean, userId?: string, userVerified?: boolean }`
   // Throws BadRequestException if challenge missing, passkey not found, or verification fails
   async verifyAuthentication(identifier: string, body: unknown) {
-    const user = (await this.prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: identifier },
-          { profiles: { some: { username: identifier } } },
-        ],
-      },
-      include: {
-        passkeys: true,
-      },
-      omit: { currentChallenge: false },
-    })) as unknown as {
-      id: string;
-      passkeys: {
-        credentialID: string;
-        publicKey: Buffer;
-        counter: bigint | number;
-        transports: AuthenticatorTransport[];
-      }[];
-      currentChallenge?: string | null;
-    } | null;
+    const user = await this.signInFor(identifier);
 
     if (!user) {
       throw new NotFoundException('User not found');
@@ -567,30 +595,11 @@ export class PasskeyService {
 
   // List all registered passkeys for a user (returns safe fields only).
   async getUserPasskeys(userId: string) {
-    const passkeys = await (
-      this.prisma as unknown as {
-        passkey: {
-          findMany: (args: {
-            where: { userId: string };
-            select: {
-              id: boolean;
-              credentialID: boolean;
-              transports: boolean;
-              createdAt: boolean;
-            };
-            orderBy: { createdAt: 'desc' };
-          }) => Promise<
-            {
-              id: string;
-              credentialID: string;
-              transports: string[];
-              createdAt: Date;
-            }[]
-          >;
-        };
-      }
-    ).passkey.findMany({
-      where: { userId },
+    // Those of the sign-in the person uses: the first of the account.
+    const signIn = await this.firstSignInOf(userId);
+    if (!signIn) return [];
+    return this.prisma.passkey.findMany({
+      where: { userId, signInId: signIn.id },
       select: {
         id: true,
         credentialID: true,
@@ -599,8 +608,6 @@ export class PasskeyService {
       },
       orderBy: { createdAt: 'desc' },
     });
-
-    return passkeys;
   }
 
   // Step-up for a signed-in user: sensitive authentication options (biometric
@@ -613,14 +620,11 @@ export class PasskeyService {
   }
 
   private async getEmailForStepUp(userId: string): Promise<string> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true },
-    });
-    if (!user?.email) {
+    const signIn = await this.firstSignInOf(userId);
+    if (!signIn?.email) {
       throw new NotFoundException('User not found');
     }
-    return user.email;
+    return signIn.email;
   }
 
   // Delete a passkey by its ID (only if it belongs to the user). Requires a

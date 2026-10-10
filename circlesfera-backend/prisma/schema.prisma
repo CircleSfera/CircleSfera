@@ -146,8 +146,10 @@ model SignIn {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profiles Profile[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profiles          Profile[]
+  passkeys          Passkey[]
+  passkeyChallenges PasskeyChallenge[]
 
   @@index([userId])
   @@map("sign_ins")
@@ -175,29 +177,36 @@ model RefreshToken {
 model Passkey {
   id           String   @id @default(uuid())
   userId       String
+  // The sign-in it signs in to; the database fills it when it is not named
+  signInId     String?
   credentialID String   @unique
   publicKey    Bytes
   counter      BigInt
   transports   String[] @default([])
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([signInId])
   @@map("passkeys")
 }
 
 model PasskeyChallenge {
   id        String   @id @default(uuid())
   userId    String
+  signInId  String?
   scope     String // "REGISTRATION" | "AUTHENTICATION"
   challenge String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope])
+  @@index([signInId])
   @@index([expiresAt])
   @@map("passkey_challenges")
 }
