@@ -90,7 +90,10 @@ export default function FirewallRulesTab({ onToast }: Props) {
 
   const addMutation = useMutation({
     mutationFn: () =>
-      adminApi.createFirewallRule({ keyword: newKeyword, action: newAction }),
+      adminApi.createFirewallRule({
+        keyword: newKeyword.trim(),
+        action: newAction,
+      }),
     onSuccess: () => {
       onToast(t('admin.firewall.rule_added'), 'success');
       clearSelection();
@@ -130,18 +133,25 @@ export default function FirewallRulesTab({ onToast }: Props) {
     <>
       <AdminSplitView
         hasSelection={hasSelection}
+        onBack={clearSelection}
+        onClearSelection={clearSelection}
         list={
           <div className="flex flex-col h-full">
             <div className="flex items-center gap-3 p-4 border-b border-white/5">
               <input
                 type="text"
                 placeholder={t('admin.shared.search')}
+                aria-label={t('admin.firewall.search_rules')}
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
               />
               <Button
                 onClick={openCreate}
+                aria-label={t('admin.shared.add')}
                 variant="primary"
                 className="gap-2 shrink-0 px-4 min-h-10"
               >
@@ -219,7 +229,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       htmlFor="ruleKeyword"
                       className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                     >
-                      Palabra Clave o Frase
+                      {t('admin.firewall.label_keyword')}
                     </label>
                     <input
                       id="ruleKeyword"
@@ -235,7 +245,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       htmlFor="ruleAction"
                       className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
                     >
-                      Acción
+                      {t('admin.firewall.label_action')}
                     </label>
                     <select
                       id="ruleAction"
@@ -244,13 +254,13 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
                     >
                       <option value="FLAG" className="bg-surface-raised">
-                        FLAG (Enviar a Cola AI para revisión)
+                        {t('admin.firewall.option_flag')}
                       </option>
                       <option value="BLOCK" className="bg-surface-raised">
-                        BLOCK (Prohibir publicación inmediatamente)
+                        {t('admin.firewall.option_block')}
                       </option>
                       <option value="MUTE" className="bg-surface-raised">
-                        MUTE (Publicar pero ocultar a otros usuarios)
+                        {t('admin.firewall.option_mute')}
                       </option>
                     </select>
                   </div>
@@ -280,7 +290,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                 <div className="space-y-8">
                   <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 sm:p-3">
                     <h4 className="text-sm font-medium text-white/50 mb-2">
-                      Palabra Clave Interceptada
+                      {t('admin.firewall.intercepted_keyword')}
                     </h4>
                     <p className="text-lg text-white font-mono bg-black/20 p-3 rounded-lg border border-white/5">
                       {selectedItem.keyword}
@@ -290,7 +300,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   <div className="grid grid-cols-2 gap-2 sm:gap-3">
                     <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
                       <p className="text-xs font-medium text-white/50 mb-1">
-                        Acción Actual
+                        {t('admin.firewall.current_action')}
                       </p>
                       <div className="mt-1">
                         <ActionBadge action={selectedItem.action} />
@@ -298,7 +308,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                     </div>
                     <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
                       <p className="text-xs font-medium text-white/50 mb-1">
-                        Creado el
+                        {t('admin.firewall.created_on')}
                       </p>
                       <p className="text-sm text-white/80">
                         {formatCreatedAt(selectedItem.createdAt)}
@@ -308,7 +318,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
 
                   <div className="space-y-2.5 sm:space-y-3 pt-3 border-t border-white/10">
                     <h4 className="text-sm font-semibold text-white">
-                      Cambiar Acción
+                      {t('admin.firewall.change_action')}
                     </h4>
                     <div className="flex flex-col gap-2">
                       <Button
@@ -329,7 +339,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                           selectedItem.action === 'FLAG'
                         }
                       >
-                        FLAG - Enviar a Cola de Revisión
+                        {t('admin.firewall.set_flag')}
                       </Button>
                       <Button
                         variant={
@@ -349,7 +359,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                           selectedItem.action === 'BLOCK'
                         }
                       >
-                        BLOCK - Prohibir Publicación
+                        {t('admin.firewall.set_block')}
                       </Button>
                       <Button
                         variant={
@@ -369,7 +379,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                           selectedItem.action === 'MUTE'
                         }
                       >
-                        MUTE - Shadowban de contenido
+                        {t('admin.firewall.set_mute')}
                       </Button>
                     </div>
                   </div>
@@ -383,11 +393,10 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   <ShieldAlert className="w-6 h-6 text-white/50" />
                 </div>
                 <h3 className="text-lg font-semibold text-white">
-                  Selecciona una Regla
+                  {t('admin.firewall.select_rule_title')}
                 </h3>
                 <p className="text-sm text-white/50 leading-relaxed">
-                  Elige una regla de la lista para ver sus detalles o añade una
-                  nueva para interceptar texto.
+                  {t('admin.firewall.select_rule_description')}
                 </p>
               </div>
             </div>
