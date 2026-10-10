@@ -391,4 +391,66 @@ describe('SeoService', () => {
       expect(svg).toContain('CircleSfera User');
     });
   });
+
+  // Public routes nobody signs in to: the number of database reads of each
+  // is fixed here, so that a read inside a loop cannot come back unnoticed.
+  describe('how much each public page reads', () => {
+    const reads = () =>
+      [
+        mockPrismaService.user.findMany,
+        mockPrismaService.profile.findMany,
+        mockPrismaService.profile.findFirst,
+        mockPrismaService.post.findMany,
+        mockPrismaService.post.findFirst,
+      ].reduce((total, read) => total + read.mock.calls.length, 0);
+
+    it('reads nothing for robots.txt', () => {
+      service.generateRobotsTxt();
+
+      expect(reads()).toBe(0);
+    });
+
+    it.each([
+      ['a post page', '/p/post-1', 1],
+      ['a profile page', '/ana', 1],
+      ['the home page', '/', 0],
+      ['a page of the app', '/explore', 0],
+      ['a path that is not of this site', '//evil.example/p/1', 0],
+    ])('reads at most once for %s', async (_what, path, most) => {
+      mockPrismaService.post.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+
+      await service.generateOpenGraphHtml(path);
+
+      expect(reads()).toBeLessThanOrEqual(most);
+    });
+
+    it('reads the sitemap in two bounded queries, whatever it holds', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue(
+        Array.from({ length: 300 }, (_, i) => ({
+          username: `user${i}`,
+          updatedAt: new Date('2026-01-01'),
+        })),
+      );
+      mockPrismaService.post.findMany.mockResolvedValue(
+        Array.from({ length: 300 }, (_, i) => ({
+          id: `post-${i}`,
+          createdAt: new Date('2026-01-01'),
+        })),
+      );
+
+      await service.generateSitemap();
+
+      expect(reads()).toBe(2);
+      expect(mockPrismaService.profile.findMany.mock.calls[0][0]).toMatchObject(
+        {
+          take: 45_000,
+          orderBy: { updatedAt: 'desc' },
+        },
+      );
+      expect(mockPrismaService.post.findMany.mock.calls[0][0]).toMatchObject({
+        take: 1000,
+      });
+    });
+  });
 });

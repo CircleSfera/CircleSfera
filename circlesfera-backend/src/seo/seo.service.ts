@@ -24,6 +24,12 @@ const PUBLIC_POST_WHERE = {
   profile: PUBLIC_PROFILE_WHERE,
 } satisfies Prisma.PostWhereInput;
 
+// A sitemap may hold 50,000 addresses. With its fixed pages and its posts,
+// this keeps it under that, and keeps a public route from reading every
+// Profile there is.
+const SITEMAP_MAX_PROFILES = 45_000;
+const SITEMAP_MAX_POSTS = 1000;
+
 function escapeMarkup(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -55,13 +61,15 @@ export class SeoService {
     const publicProfiles = await this.prisma.profile.findMany({
       where: PUBLIC_PROFILE_WHERE,
       select: { username: true, updatedAt: true },
+      take: SITEMAP_MAX_PROFILES,
+      orderBy: { updatedAt: 'desc' },
     });
 
     // Fetch public posts (not locked/premium)
     const publicPosts = await this.prisma.post.findMany({
       where: PUBLIC_POST_WHERE,
       select: { id: true, createdAt: true },
-      take: 1000,
+      take: SITEMAP_MAX_POSTS,
       orderBy: { createdAt: 'desc' },
     });
 
