@@ -231,32 +231,30 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
         const newStartAt = Math.max(0, orig.startAt + deltaSeconds);
         updateClip(clip.id, { startAt: newStartAt });
       } else if (isTrimming === 'left') {
-        let newDuration = orig.duration - deltaSeconds;
-        let newStartAt = orig.startAt + deltaSeconds;
-        let newMediaStart =
+        // The edge moves by a stretch of timeline; the end of the clip stays
+        // where it is. A clip that plays faster or slower than its file
+        // takes more or less of the file for the same stretch.
+        const speed =
+          orig.type !== 'text' ? ((orig as MediaClip).speed ?? 1) : 1;
+        // It cannot start before the timeline does, show what is before the
+        // start of its file, or be left shorter than half a second.
+        const earliest = Math.max(
+          -orig.startAt,
           orig.type !== 'text'
-            ? (orig as MediaClip).mediaStart + deltaSeconds
-            : 0;
-
-        if (newDuration < 0.5) {
-          const over = 0.5 - newDuration;
-          newDuration = 0.5;
-          newStartAt -= over;
-          newMediaStart -= over;
-        }
-        if (orig.type !== 'text' && newMediaStart < 0) {
-          const over = 0 - newMediaStart;
-          newMediaStart = 0;
-          newStartAt += over;
-          newDuration += over;
-        }
+            ? -(orig as MediaClip).mediaStart / speed
+            : -Infinity,
+        );
+        const moved = Math.min(
+          Math.max(deltaSeconds, earliest),
+          orig.duration - 0.5,
+        );
 
         const updates: Partial<MediaClip> = {
-          startAt: Math.max(0, newStartAt),
-          duration: newDuration,
+          startAt: orig.startAt + moved,
+          duration: orig.duration - moved,
         };
         if (orig.type !== 'text') {
-          updates.mediaStart = newMediaStart;
+          updates.mediaStart = (orig as MediaClip).mediaStart + moved * speed;
         }
         updateClip(clip.id, updates);
       } else if (isTrimming === 'right') {
