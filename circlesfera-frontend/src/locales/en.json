@@ -2612,7 +2612,17 @@
       "kpi_traffic_normal": "Normal",
       "status_live_now": "Live now",
       "gifts": "Gifts",
-      "viewers": "Viewers"
+      "viewers": "Viewers",
+      "badge_live": "Live",
+      "badge_ended": "Ended",
+      "participants": "Participants",
+      "role_host": "Host",
+      "role_cohost": "Guest co-host",
+      "moderation_actions": "Moderation actions",
+      "warn_title": "Send a warning",
+      "warn_description": "The user will receive an official notice.",
+      "force_end_title": "Force the broadcast to end",
+      "force_end_description": "The live will end immediately."
     },
     "plans": {
       "title": "Plans",
@@ -3455,7 +3465,8 @@
       "provider": "Provider",
       "external_id": "External ID",
       "status": "Status",
-      "processed_at": "Processed"
+      "processed_at": "Processed",
+      "replay_error": "The event could not be replayed"
     },
     "user_preview": {
       "title": "User Record",
@@ -3873,7 +3884,11 @@
     "save_error_short": "Save failed",
     "zoom": "Timeline zoom",
     "playhead": "Playhead",
-    "clip_types": { "video": "Video", "image": "Image", "audio": "Audio" },
+    "clip_types": {
+      "video": "Video",
+      "image": "Image",
+      "audio": "Audio"
+    },
     "trim_start": "Trim start",
     "trim_end": "Trim end",
     "mute": "Mute track",
