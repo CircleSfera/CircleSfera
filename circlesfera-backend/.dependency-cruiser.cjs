@@ -26,6 +26,26 @@ module.exports = {
       },
     },
     {
+      name: 'helpdesk-boundary',
+      severity: 'error',
+      comment:
+        'The Help Desk knows the product around it only through its host ' +
+        'contracts. It may use the platform (common, prisma, auth guards) and ' +
+        'nothing else; the host side lives in src/helpdesk-host/.',
+      from: {
+        path: '^src/helpdesk/',
+      },
+      to: {
+        path: '^src/',
+        pathNot: [
+          '^src/helpdesk/',
+          '^src/common/',
+          '^src/prisma/',
+          '^src/auth/',
+        ],
+      },
+    },
+    {
       name: 'no-frontend-import',
       severity: 'error',
       comment:

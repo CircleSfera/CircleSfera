@@ -6,6 +6,7 @@ import { ConfigService } from '@nestjs/config';
 import { ZipArchive } from 'archiver';
 import { type Job, UnrecoverableError } from 'bullmq';
 import { EmailService } from '../email/email.service.js';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
 import { DataExportService } from './data-export.service.js';
@@ -21,6 +22,7 @@ export class DataExportProcessor extends WorkerHost {
     private readonly usersService: UsersService,
     private readonly emailService: EmailService,
     private readonly dataExportService: DataExportService,
+    private readonly helpdeskData: HelpdeskDataPort,
   ) {
     super();
   }
@@ -151,7 +153,12 @@ export class DataExportProcessor extends WorkerHost {
     });
 
     try {
-      const userData = await this.usersService.exportUserData(userId);
+      const userData = {
+        ...(await this.usersService.exportUserData(userId)),
+        // What they wrote to support and what they were answered; the Help
+        // Desk leaves the team's internal notes out.
+        supportTickets: await this.helpdeskData.exportForRequester(userId),
+      };
 
       const user = await this.prisma.user.findUnique({
         where: { id: userId },

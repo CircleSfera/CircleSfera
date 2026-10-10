@@ -56,7 +56,7 @@ describe('AbuseHashService', () => {
 });
 
 describe('assertEmailVerifiedForWrite', () => {
-  const prisma = { user: { findUnique: vi.fn() } };
+  const prisma = { signIn: { findFirst: vi.fn() } };
   const settings = { isEnabled: vi.fn() };
   const turnstile = { incrementEmailForbidden: vi.fn() };
   const run = () =>
@@ -75,16 +75,16 @@ describe('assertEmailVerifiedForWrite', () => {
   it('does nothing when verification is not required', async () => {
     settings.isEnabled.mockResolvedValue(false);
     await expect(run()).resolves.toBeUndefined();
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.signIn.findFirst).not.toHaveBeenCalled();
   });
 
   it('lets a verified account write', async () => {
-    prisma.user.findUnique.mockResolvedValue({ emailVerified: new Date() });
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: new Date() });
     await expect(run()).resolves.toBeUndefined();
   });
 
   it('refuses an unverified account and counts it', async () => {
-    prisma.user.findUnique.mockResolvedValue({ emailVerified: null });
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: null });
     const error = await run().catch((e) => e);
     expect(error.getResponse()).toMatchObject({
       errorCode: 'EMAIL_NOT_VERIFIED',

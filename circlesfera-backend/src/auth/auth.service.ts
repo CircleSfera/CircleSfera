@@ -22,6 +22,10 @@ import {
   DeviceSignalService,
 } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import {
+  FIRST_SIGN_IN_ORDER,
+  sessionSignInWhere,
+} from '../common/auth/sign-in-lookup.js';
 import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -47,7 +51,9 @@ import {
 // Handles password hashing (Argon2), JWT token generation/rotation, email verification,
 // And password reset flows. Supports legacy bcrypt migration on login.
 
-const LOGIN_USER_OMIT = { password: false, twoFactorSecret: false } as const;
+// What signing in with a password needs from the sign-in: the password and
+// the secret of its second step.
+const LOGIN_SIGN_IN_OMIT = { password: false, twoFactorSecret: false } as const;
 
 @Injectable()
 export class AuthService {
@@ -113,11 +119,17 @@ export class AuthService {
     }
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    // An email is taken when an account or any sign-in holds it: a Profile
+    // may sign in with an email of its own.
+    const [existingUser, existingSignIn] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email: dto.email } }),
+      this.prisma.signIn.findUnique({
+        where: { email: dto.email },
+        select: { id: true },
+      }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || existingSignIn) {
       throw new ConflictException('Email already registered');
     }
 
@@ -204,16 +216,19 @@ export class AuthService {
   // Returns Success message
   // Throws BadRequestException if token is invalid or expired
   async verifyEmail(dto: VerifyEmailDto) {
-    const user = await this.prisma.user.findUnique({
+    // The token is looked for, and the verification written, on the sign-in.
+    const signIn = await this.prisma.signIn.findUnique({
       where: { verificationToken: dto.token },
+      select: { id: true, userId: true },
     });
 
-    if (!user) {
+    if (!signIn) {
       throw new BadRequestException('Invalid or expired verification token');
     }
+    const user = { id: signIn.userId };
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn.id },
       data: {
         emailVerified: new Date(),
         verificationToken: null,
@@ -231,10 +246,16 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  async resendVerification(userId: string): Promise<{ message: string }> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { email: true, emailVerified: true },
+  async resendVerification(
+    userId: string,
+    signInId?: string,
+  ): Promise<{ message: string }> {
+    // The sign-in of the session; the first of the account for a session
+    // that names none.
+    const user = await this.prisma.signIn.findFirst({
+      where: sessionSignInWhere({ userId, signInId }),
+      orderBy: FIRST_SIGN_IN_ORDER,
+      select: { id: true, email: true, emailVerified: true },
     });
     if (!user) {
       throw new BadRequestException('User not found');
@@ -243,8 +264,8 @@ export class AuthService {
       return { message: 'Email already verified' };
     }
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    await this.prisma.user.update({
-      where: { id: userId },
+    await this.prisma.signIn.update({
+      where: { id: user.id },
       data: { verificationToken },
     });
     await this.emailService.sendVerificationEmail(
@@ -259,9 +280,11 @@ export class AuthService {
   // Param dto: Contains the user's email
   // Returns Generic success message
   async requestPasswordReset(dto: RequestResetDto) {
-    const user = await this.prisma.user.findUnique({
+    const signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.email },
+      select: { id: true, userId: true, email: true },
     });
+    const user = signIn && { id: signIn.userId, email: signIn.email };
 
     if (!user) {
       // Return success even if user not found for security (silent fail)
@@ -271,8 +294,8 @@ export class AuthService {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn!.id },
       data: {
         resetToken,
         resetTokenExpires,
@@ -290,21 +313,23 @@ export class AuthService {
   // Returns Success message
   // Throws BadRequestException if token is invalid or expired
   async resetPassword(dto: ResetPasswordDto) {
-    const user = await this.prisma.user.findUnique({
+    const signIn = await this.prisma.signIn.findUnique({
       where: { resetToken: dto.token },
+      select: { id: true, userId: true, resetTokenExpires: true },
     });
 
     if (
-      !user ||
-      (user.resetTokenExpires && user.resetTokenExpires < new Date())
+      !signIn ||
+      (signIn.resetTokenExpires && signIn.resetTokenExpires < new Date())
     ) {
       throw new BadRequestException('Invalid or expired reset token');
     }
+    const user = { id: signIn.userId };
 
     const hashedPassword = await argon2.hash(dto.newPassword);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn.id },
       data: {
         password: hashedPassword,
         resetToken: null,
@@ -313,9 +338,13 @@ export class AuthService {
       },
     });
 
-    // Revoke all existing sessions to prevent hijack persistence
+    // Revoke the sessions of this sign-in to prevent hijack persistence. A
+    // stored token that names no sign-in is revoked too, never spared.
     await this.prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        OR: [{ signInId: signIn.id }, { signInId: null }],
+      },
     });
 
     return { message: 'Password reset successfully' };
@@ -339,25 +368,43 @@ export class AuthService {
     // Find user by email or username
     // Login is one of the few readers that needs the secrets the client omits
     // by default (see USER_SECRET_OMIT).
-    let user = await this.prisma.user.findUnique({
+    // The password is the one of the sign-in: found by its email, or through
+    // the Profile with that username. The account behind it says who the
+    // person is and whether they may come in.
+    const withAccount = {
+      omit: LOGIN_SIGN_IN_OMIT,
+      include: { user: true },
+    } as const;
+    let signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.identifier },
-      omit: LOGIN_USER_OMIT,
+      ...withAccount,
     });
+    // Signing in by username opens the session on that Profile.
+    let namedProfileId: string | undefined;
 
-    if (!user) {
+    if (!signIn) {
       // Try finding by username in profile
       const profile = await this.prisma.profile.findFirst({
         where: { username: { equals: dto.identifier, mode: 'insensitive' } },
-        include: { user: { omit: LOGIN_USER_OMIT } },
+        select: { id: true, signIn: withAccount },
       });
-      if (profile) {
-        user = profile.user;
-      }
+      signIn = profile?.signIn ?? null;
+      namedProfileId = profile?.id;
     }
 
-    if (!user) {
+    // A Profile without a sign-in, or a sign-in without its account, is
+    // answered like an unknown identifier.
+    if (!signIn?.user) {
       throw new UnauthorizedException('Invalid email, username or password');
     }
+    const user = {
+      ...signIn.user,
+      email: signIn.email,
+      password: signIn.password,
+      passwordResetRequiredAt: signIn.passwordResetRequiredAt,
+      isTwoFactorEnabled: signIn.isTwoFactorEnabled,
+      twoFactorSecret: signIn.twoFactorSecret,
+    };
 
     // Verify password
     let isPasswordValid = false;
@@ -377,8 +424,8 @@ export class AuthService {
         // If valid, migrate to argon2
         if (isPasswordValid) {
           const newHashedPassword = await argon2.hash(dto.password);
-          await this.prisma.user.update({
-            where: { id: user.id },
+          await this.prisma.signIn.update({
+            where: { id: signIn.id },
             data: { password: newHashedPassword },
           });
         }
@@ -477,8 +524,13 @@ export class AuthService {
       });
     }
 
-    // Profile-level bans and suspensions: sign in with a usable Profile.
-    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
+    // Profile-level bans and suspensions: sign in with a usable Profile,
+    // among those this sign-in serves.
+    const loginProfile = await this.resolveLoginProfileOrThrow(
+      user.id,
+      signIn.id,
+      namedProfileId,
+    );
 
     if (user.isTwoFactorEnabled) {
       if (!dto.twoFactorCode) {
@@ -505,9 +557,9 @@ export class AuthService {
 
         // Opportunistic rolling migration for legacy plaintext secrets
         if (!rawSecret.includes(':')) {
-          void this.prisma.user
+          void this.prisma.signIn
             .update({
-              where: { id: user.id },
+              where: { id: signIn.id },
               data: { twoFactorSecret: this.cryptoService.encrypt(secret) },
             })
             .catch(() => undefined);
@@ -530,6 +582,7 @@ export class AuthService {
       meta.ip || undefined,
       undefined,
       loginProfile?.id,
+      signIn.id,
     );
   }
 
@@ -537,9 +590,11 @@ export class AuthService {
   // Param userId: The user's unique identifier
   // Returns Access and refresh token pair
   // Throws UnauthorizedException if user not found or inactive
+  // Param signInId: the sign-in the passkey belongs to
   async loginById(
     userId: string,
     meta: AbuseRequestMeta = {},
+    signInId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -616,7 +671,10 @@ export class AuthService {
       });
     }
 
-    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
+    const loginProfile = await this.resolveLoginProfileOrThrow(
+      user.id,
+      signInId,
+    );
 
     return this.generateTokens(
       user.id,
@@ -625,6 +683,7 @@ export class AuthService {
       meta.ip || undefined,
       undefined,
       loginProfile?.id,
+      signInId,
     );
   }
 
@@ -650,6 +709,7 @@ export class AuthService {
       sub: string;
       email: string;
       profileId?: string;
+      signInId?: string;
       familyId?: string;
       jti?: string;
     };
@@ -659,6 +719,7 @@ export class AuthService {
         sub: string;
         email: string;
         profileId?: string;
+        signInId?: string;
         familyId?: string;
         jti?: string;
       }>(refreshToken, {
@@ -736,6 +797,21 @@ export class AuthService {
       throw error;
     }
 
+    // The session keeps the sign-in that opened it: the stored token says
+    // which. A token that names another one is not this session's.
+    if (
+      payload.signInId &&
+      storedToken.signInId &&
+      payload.signInId !== storedToken.signInId
+    ) {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const sessionSignInId =
+      storedToken.signInId ?? payload.signInId ?? undefined;
+
     // Legitimate rotation: mark current token as revoked and issue a new token within the same family
     const currentFamilyId =
       storedToken.familyId || payload.familyId || randomUUID();
@@ -755,6 +831,7 @@ export class AuthService {
       meta.ip || undefined,
       currentFamilyId,
       profile?.id,
+      sessionSignInId,
     );
   }
 
@@ -849,13 +926,21 @@ export class AuthService {
   // Picks the Profile to sign in with: the oldest one that is not banned or
   // suspended. Access is refused only when every Profile of the account is
   // banned or suspended, with the reason of the oldest one.
-  private async resolveLoginProfileOrThrow(userId: string) {
+  // The Profile a new session opens on: one of those the sign-in serves. The
+  // one named when signing in by username, otherwise the oldest usable one.
+  // Without a sign-in named (a session opened the old way), any Profile of
+  // the account.
+  private async resolveLoginProfileOrThrow(
+    userId: string,
+    signInId?: string,
+    namedProfileId?: string,
+  ) {
     const profiles = await this.prisma.profile.findMany({
-      where: { userId },
+      where: { userId, ...(signInId && { signInId }) },
       orderBy: SESSION_PROFILE_ORDER,
       select: SESSION_PROFILE_SELECT,
     });
-    const loginProfile = pickSessionProfile(profiles);
+    const loginProfile = pickSessionProfile(profiles, namedProfileId);
 
     if (loginProfile?.isAccountBanned) {
       throw new UnauthorizedException({
@@ -896,6 +981,7 @@ export class AuthService {
   // Param ipAddress: Optional client IP address
   // Param familyId: Optional token family identifier for session rotation lineage
   // Param profileId: Optional active profile identifier bound to the session
+  // Param signInId: Optional sign-in that opens the session; the first of the account when absent
   // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
@@ -904,12 +990,26 @@ export class AuthService {
     ipAddress?: string,
     familyId?: string,
     profileId?: string,
+    signInId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // The sign-in that opens the session, inside this account: the one
+    // named, or the first of the account when none is. A sign-in of another
+    // account, or none at all, opens no session.
+    const sessionSignIn = await this.prisma.signIn.findFirst({
+      where: { userId, ...(signInId && { id: signInId }) },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    if (!sessionSignIn) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const tokenFamilyId = familyId || randomUUID();
     const payload = {
       sub: userId,
       email,
       ...(profileId ? { profileId } : {}),
+      signInId: sessionSignIn.id,
       jti: randomUUID(),
       familyId: tokenFamilyId,
     };
@@ -919,6 +1019,7 @@ export class AuthService {
         sub: userId,
         email,
         ...(profileId ? { profileId } : {}),
+        signInId: sessionSignIn.id,
         jti: randomUUID(),
       },
       {
@@ -942,6 +1043,7 @@ export class AuthService {
         data: {
           token: hashedToken,
           userId,
+          signInId: sessionSignIn.id,
           familyId: tokenFamilyId,
           isRevoked: false,
           userAgent: userAgent || null,

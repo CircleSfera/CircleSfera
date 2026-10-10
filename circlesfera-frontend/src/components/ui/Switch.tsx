@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react';
+import React, { forwardRef, useId } from 'react';
 
 export interface SwitchProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
@@ -23,6 +23,13 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
     },
     ref,
   ) => {
+    // The visible label and description name and describe the control for
+    // assistive technology, unless the caller names it itself.
+    const baseId = useId();
+    const labelId = label ? `${baseId}-label` : undefined;
+    const descriptionId = description ? `${baseId}-description` : undefined;
+    const named = props['aria-label'] || props['aria-labelledby'];
+
     return (
       <div
         className={`flex items-center justify-between ${compact ? 'gap-3' : 'gap-4'} ${className}`}
@@ -31,6 +38,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           <div className={`flex flex-col min-w-0 ${compact ? 'gap-0.5' : ''}`}>
             {label && (
               <span
+                id={labelId}
                 className={`font-medium text-white ${compact ? 'text-[13px] leading-snug' : 'text-sm'}`}
               >
                 {label}
@@ -38,6 +46,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             )}
             {description && (
               <span
+                id={descriptionId}
                 className={`text-white/45 ${compact ? 'text-[11px] leading-snug' : 'text-xs text-gray-300'}`}
               >
                 {description}
@@ -46,7 +55,7 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
           </div>
         )}
         <label
-          className={`relative inline-flex items-center cursor-pointer shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`relative inline-flex min-h-11 min-w-11 items-center justify-end cursor-pointer shrink-0 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           <input
             type="checkbox"
@@ -56,6 +65,8 @@ export const Switch = forwardRef<HTMLInputElement, SwitchProps>(
             disabled={disabled}
             ref={ref}
             id={id}
+            aria-labelledby={named ? undefined : labelId}
+            aria-describedby={descriptionId}
             {...props}
           />
           <div

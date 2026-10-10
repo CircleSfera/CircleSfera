@@ -30,12 +30,60 @@ vi.mock('otplib', () => ({
 describe('AuthService', () => {
   let service: AuthService;
 
+  // The sign-in of an account holds a copy of its credentials; the database
+  // keeps it equal. Tests describe the account, and its sign-in is read from
+  // that description, with the account behind it.
+  type AccountDouble = Record<string, unknown> & { id?: string };
+  const signInOf = (account: AccountDouble | null | undefined) =>
+    account
+      ? {
+          id: `sign-in-${account.id}`,
+          userId: account.id,
+          email: account.email,
+          password: account.password,
+          emailVerified: account.emailVerified ?? null,
+          passwordResetRequiredAt: account.passwordResetRequiredAt ?? null,
+          resetTokenExpires: account.resetTokenExpires ?? null,
+          isTwoFactorEnabled: account.isTwoFactorEnabled ?? false,
+          twoFactorSecret: account.twoFactorSecret ?? null,
+          user: account,
+        }
+      : null;
+
   const mockPrismaService = {
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
+    },
+    signIn: {
+      update: vi.fn().mockResolvedValue({}),
+      findUnique: vi.fn(async (args?: unknown) => {
+        // Signing up asks only whether a sign-in holds the email. No test
+        // account has a sign-in with an email of its own, so none does.
+        const asked = args as { select?: Record<string, boolean> };
+        if (asked?.select && Object.keys(asked.select).join() === 'id') {
+          return null;
+        }
+        return signInOf(
+          (await mockPrismaService.user.findUnique(args)) as AccountDouble,
+        );
+      }),
+      findFirst: vi.fn(async (args?: unknown) => {
+        // Opening a session asks only for the id of its sign-in, inside the
+        // account: the one named, or the one of the account.
+        const asked = args as {
+          where: { userId: string; id?: string };
+          select?: Record<string, boolean>;
+        };
+        if (asked?.select && Object.keys(asked.select).join() === 'id') {
+          return { id: asked.where.id ?? `sign-in-${asked.where.userId}` };
+        }
+        return signInOf(
+          (await mockPrismaService.user.findUnique(args)) as AccountDouble,
+        );
+      }),
     },
     profile: {
       findUnique: vi.fn(),
@@ -228,6 +276,22 @@ describe('AuthService', () => {
       mockPrismaService.user.findUnique.mockResolvedValue({ id: '1' });
       await expect(service.register(dto)).rejects.toThrow(ConflictException);
     });
+
+    it('refuses an email that a sign-in of some Profile already holds', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-of-a-profile',
+      } as never);
+
+      await expect(service.register(dto)).rejects.toThrow(
+        new ConflictException('Email already registered'),
+      );
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
+        where: { email: dto.email },
+        select: { id: true },
+      });
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('login', () => {
@@ -290,10 +354,11 @@ describe('AuthService', () => {
 
       const result = await service.login(dto);
 
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
-      const updateArgs = mockPrismaService.user.update.mock.calls[0][0] as {
-        data: { password: string };
-      };
+      // The new format is written on the sign-in that signed in.
+      const updateArgs = mockPrismaService.signIn.update.mock.calls.at(
+        -1,
+      )?.[0] as { where: { id: string }; data: { password: string } };
+      expect(updateArgs.where).toEqual({ id: 'sign-in-1' });
       expect(updateArgs.data.password).toContain('$argon2');
       expect(result).toHaveProperty('accessToken');
     });
@@ -493,8 +558,8 @@ describe('AuthService', () => {
       expect(mockCryptoService.encrypt).toHaveBeenCalledWith(
         'totp-base32-secret',
       );
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '2fa-legacy-user' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-2fa-legacy-user' },
         data: { twoFactorSecret: 'enc:totp-base32-secret' },
       });
       expect(result).toHaveProperty('accessToken');
@@ -563,7 +628,7 @@ describe('AuthService', () => {
         isTwoFactorEnabled: true,
         twoFactorSecret: 'totp-base32-secret',
       });
-      mockPrismaService.user.update.mockRejectedValueOnce(
+      mockPrismaService.signIn.update.mockRejectedValueOnce(
         new Error('DB write collision'),
       );
 
@@ -639,6 +704,7 @@ describe('AuthService', () => {
         undefined,
         undefined,
         'prof-ok',
+        'sign-in-multi-profile-user',
       );
       issue.mockRestore();
     });
@@ -687,7 +753,15 @@ describe('AuthService', () => {
         username: 'bob',
       });
       const result = await service.verifyEmail({ token: 'token' });
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
+      // The token is looked for, and the verification written, on the sign-in.
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
+        where: { verificationToken: 'token' },
+        select: { id: true, userId: true },
+      });
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
+        data: { emailVerified: expect.any(Date), verificationToken: null },
+      });
       expect(result.message).toContain('successfully');
     });
 
@@ -708,7 +782,17 @@ describe('AuthService', () => {
       const result = await service.requestPasswordReset({
         email: 'test@example.com',
       });
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
+        select: { id: true, userId: true, email: true },
+      });
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
+        data: {
+          resetToken: expect.any(String),
+          resetTokenExpires: expect.any(Date),
+        },
+      });
       expect(result.message).toContain('email has been sent');
     });
   });
@@ -723,11 +807,15 @@ describe('AuthService', () => {
         token: 'token',
         newPassword: 'newPassword123',
       });
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
+        where: { resetToken: 'token' },
+        select: { id: true, userId: true, resetTokenExpires: true },
+      });
+      expect(mockPrismaService.signIn.update).toHaveBeenCalled();
       expect(result.message).toContain('successfully');
 
-      const updateArgs = mockPrismaService.user.update.mock.calls[
-        mockPrismaService.user.update.mock.calls.length - 1
+      const updateArgs = mockPrismaService.signIn.update.mock.calls[
+        mockPrismaService.signIn.update.mock.calls.length - 1
       ][0] as {
         data: { password: string; passwordResetRequiredAt: null };
       };
@@ -847,6 +935,148 @@ describe('AuthService', () => {
           refreshToken: 'mock-refresh',
         }),
       ).rejects.toThrow(UnauthorizedException);
+    });
+  });
+
+  describe('the sign-in of a session', () => {
+    it('is written in both tokens and in the stored refresh token', async () => {
+      mockPrismaService.refreshToken.create.mockClear();
+      mockJwtService.sign.mockClear();
+
+      await service.generateTokens(
+        'user-1',
+        'own@example.com',
+        undefined,
+        undefined,
+        undefined,
+        'prof-1',
+        'sign-in-own',
+      );
+
+      // Looked for inside the account that opens the session.
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1', id: 'sign-in-own' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true },
+      });
+      const [access, refresh] = mockJwtService.sign.mock.calls.map(
+        (call) => (call as unknown[])[0] as Record<string, unknown>,
+      );
+      expect(access.signInId).toBe('sign-in-own');
+      expect(refresh.signInId).toBe('sign-in-own');
+      expect(
+        mockPrismaService.refreshToken.create.mock.calls[0][0].data.signInId,
+      ).toBe('sign-in-own');
+    });
+
+    it('is the first of the account when none is named', async () => {
+      mockPrismaService.refreshToken.create.mockClear();
+
+      await service.generateTokens('user-1', 'user@example.com');
+
+      expect(
+        mockPrismaService.signIn.findFirst.mock.calls.at(-1)?.[0],
+      ).toMatchObject({ where: { userId: 'user-1' } });
+      expect(
+        mockPrismaService.refreshToken.create.mock.calls[0][0].data.signInId,
+      ).toBe('sign-in-user-1');
+    });
+
+    it('opens no session for a sign-in of another account, or for an account without one', async () => {
+      mockPrismaService.refreshToken.create.mockClear();
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null as never);
+
+      await expect(
+        service.generateTokens(
+          'user-1',
+          'user@example.com',
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          'sign-in-of-another',
+        ),
+      ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
+      expect(mockPrismaService.refreshToken.create).not.toHaveBeenCalled();
+    });
+
+    const renewable = (stored: object, token: object) => {
+      mockJwtService.verify.mockReturnValue({
+        sub: '1',
+        email: 'test@example.com',
+        familyId: 'family-1',
+        ...token,
+      });
+      mockPrismaService.refreshToken.findUnique.mockResolvedValue({
+        id: 'token-id',
+        userId: '1',
+        familyId: 'family-1',
+        isRevoked: false,
+        expiresAt: new Date(Date.now() + 100000),
+        ...stored,
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        isActive: true,
+        isRootBanned: false,
+        profiles: [{ id: 'p-1', isAccountBanned: false, suspendedUntil: null }],
+      });
+    };
+
+    it('is kept when the session is renewed: the stored token says which', async () => {
+      renewable({ signInId: 'sign-in-own' }, { signInId: 'sign-in-own' });
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      await service.refreshToken({ refreshToken: 'mock-refresh' });
+
+      expect(issue.mock.calls[0][6]).toBe('sign-in-own');
+      issue.mockRestore();
+    });
+
+    it('is the first of the account when a session opened before this is renewed', async () => {
+      renewable({ signInId: null }, {});
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      await service.refreshToken({ refreshToken: 'mock-refresh' });
+
+      expect(issue.mock.calls[0][6]).toBeUndefined();
+      issue.mockRestore();
+    });
+
+    it('refuses to renew with a token that names another sign-in than the stored one, and ends that session', async () => {
+      renewable({ signInId: 'sign-in-own' }, { signInId: 'sign-in-other' });
+      mockPrismaService.refreshToken.delete.mockClear();
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      await expect(
+        service.refreshToken({ refreshToken: 'mock-refresh' }),
+      ).rejects.toThrow(new UnauthorizedException('Invalid refresh token'));
+
+      expect(mockPrismaService.refreshToken.delete).toHaveBeenCalledWith({
+        where: { id: 'token-id' },
+      });
+      expect(issue).not.toHaveBeenCalled();
+      issue.mockRestore();
+    });
+
+    it('a password reset revokes the sessions of that sign-in, and any that names none', async () => {
+      mockPrismaService.refreshToken.deleteMany.mockClear();
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: '1',
+        resetTokenExpires: new Date(Date.now() + 100000),
+      });
+
+      await service.resetPassword({
+        token: 'token',
+        newPassword: 'newPassword123',
+      });
+
+      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+        where: {
+          userId: '1',
+          OR: [{ signInId: 'sign-in-1' }, { signInId: null }],
+        },
+      });
     });
   });
 
@@ -970,14 +1200,15 @@ describe('AuthService', () => {
 
     it('updates token and sends email when user is unverified', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-unverified',
         email: 'unv@example.com',
         emailVerified: null,
       });
       const result = await service.resendVerification('u-unverified');
       expect(result).toEqual({ message: 'Verification email sent' });
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'u-unverified' },
+          where: { id: 'sign-in-u-unverified' },
           data: expect.objectContaining({
             verificationToken: expect.any(String),
           }),
@@ -1204,14 +1435,14 @@ describe('AuthService', () => {
       const hashedPassword = await argon2.hash('MySecretPassword!');
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       mockPrismaService.profile.findFirst.mockResolvedValue({
-        user: {
+        signIn: signInOf({
           id: 'u-by-username',
           email: 'user@example.com',
           password: hashedPassword,
           isActive: true,
           isRootBanned: false,
           isTwoFactorEnabled: false,
-        },
+        }),
       });
 
       const result = await service.login({
@@ -1219,6 +1450,149 @@ describe('AuthService', () => {
         password: 'MySecretPassword!',
       });
       expect(result).toHaveProperty('accessToken');
+      // The password checked is the one of the sign-in of that Profile.
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            username: { equals: 'my_cool_handle', mode: 'insensitive' },
+          },
+          select: {
+            id: true,
+            signIn: expect.objectContaining({
+              omit: { password: false, twoFactorSecret: false },
+            }),
+          },
+        }),
+      );
+    });
+
+    it('opens the session on the Profile named, among those its sign-in serves', async () => {
+      const hashedPassword = await argon2.hash('MySecretPassword!');
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'prof-named',
+        signIn: signInOf({
+          id: 'u-two',
+          email: 'shop@example.com',
+          password: hashedPassword,
+          isActive: true,
+        }),
+      });
+      mockPrismaService.profile.findMany.mockResolvedValueOnce([
+        { id: 'prof-older', isAccountBanned: false, suspendedUntil: null },
+        { id: 'prof-named', isAccountBanned: false, suspendedUntil: null },
+      ]);
+      const issue = vi.spyOn(service, 'generateTokens');
+
+      await service.login({
+        identifier: 'the_shop',
+        password: 'MySecretPassword!',
+      });
+
+      // Only the Profiles that sign in with this sign-in are candidates.
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u-two', signInId: 'sign-in-u-two' },
+        }),
+      );
+      expect(issue.mock.calls[0][5]).toBe('prof-named');
+      expect(issue.mock.calls[0][6]).toBe('sign-in-u-two');
+      issue.mockRestore();
+    });
+
+    it('answers a Profile that has no sign-in like an unknown identifier', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue({ signIn: null });
+
+      await expect(
+        service.login({ identifier: 'orphan', password: 'Password123!' }),
+      ).rejects.toThrow(
+        new UnauthorizedException('Invalid email, username or password'),
+      );
+    });
+
+    it('answers a sign-in whose account is missing like an unknown identifier', async () => {
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-1',
+        userId: 'gone',
+        email: 'gone@example.com',
+        password: await argon2.hash('Password123!'),
+        user: null,
+      } as never);
+
+      await expect(
+        service.login({
+          identifier: 'gone@example.com',
+          password: 'Password123!',
+        }),
+      ).rejects.toThrow(
+        new UnauthorizedException('Invalid email, username or password'),
+      );
+    });
+
+    it('asks for the two-factor code when the sign-in has it on, whatever the account says', async () => {
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-1',
+        userId: 'u-1',
+        email: 'own@example.com',
+        password: await argon2.hash('SignInPassword1!'),
+        passwordResetRequiredAt: null,
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'secret-of-the-sign-in',
+        user: {
+          id: 'u-1',
+          email: 'own@example.com',
+          isActive: true,
+          isTwoFactorEnabled: false,
+          twoFactorSecret: null,
+        },
+      } as never);
+
+      await expect(
+        service.login({
+          identifier: 'own@example.com',
+          password: 'SignInPassword1!',
+        }),
+      ).rejects.toThrow(
+        new UnauthorizedException(ApiErrorCode.TWO_FA_REQUIRED),
+      );
+    });
+
+    it('checks the password and the required reset of the sign-in, not those of the account', async () => {
+      // The hash the sign-in holds; the account below holds another one.
+      const password = await argon2.hash('SignInPassword1!');
+      mockPrismaService.signIn.findUnique.mockResolvedValueOnce({
+        id: 'sign-in-1',
+        userId: 'u-1',
+        email: 'own@example.com',
+        password,
+        passwordResetRequiredAt: null,
+        user: {
+          id: 'u-1',
+          email: 'account@example.com',
+          password: await argon2.hash('AccountPassword1!'),
+          passwordResetRequiredAt: new Date(),
+          isActive: true,
+        },
+      } as never);
+
+      await expect(
+        service.login({
+          identifier: 'own@example.com',
+          password: 'SignInPassword1!',
+        }),
+      ).resolves.toHaveProperty('accessToken');
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { email: 'own@example.com' },
+          omit: { password: false, twoFactorSecret: false },
+        }),
+      );
+      // The session is opened for the email of the sign-in.
+      expect(mockJwtService.sign).toHaveBeenCalledWith(
+        expect.objectContaining({ email: 'own@example.com' }),
+        expect.anything(),
+      );
     });
 
     it('throws UnauthorizedException when identifier matches neither email nor username', async () => {

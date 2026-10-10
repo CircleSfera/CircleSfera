@@ -7,7 +7,6 @@ import {
   HttpStatus,
   Inject,
   Param,
-  Patch,
   Post,
   Put,
   Query,
@@ -97,26 +96,6 @@ export class AdminOpsController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminOpsService.removeUserExperiment(admin.adminId, id);
-  }
-
-  @RequireStaffPermissions('support')
-  @Get('support/tickets')
-  async getSupportTickets(@Query() query: AdminQueryDto) {
-    return this.adminOpsService.getSupportTickets(
-      query.page ?? 1,
-      query.limit ?? 20,
-      query.status,
-    );
-  }
-
-  @RequireStaffPermissions('support')
-  @Patch('support/tickets/:id')
-  async updateSupportTicket(
-    @Param('id') id: string,
-    @Body() body: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
-    @CurrentAdmin() admin: CurrentAdminData,
-  ) {
-    return this.adminOpsService.updateSupportTicket(admin.adminId, id, body);
   }
 
   @Get('feature-flags')

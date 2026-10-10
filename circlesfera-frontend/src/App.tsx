@@ -27,14 +27,20 @@ import LandingPage from './pages/LandingPage';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import { Support } from './pages/Support';
+import { SupportRequest } from './pages/SupportRequest';
 import { useAdminAuthStore } from './stores/adminAuthStore';
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
-import { adminPanelOrigin, isAdminPanelHost } from './utils/adminPanel';
+import {
+  adminPanelOrigin,
+  isAdminPanelHost,
+  isBackofficeHost,
+} from './utils/adminPanel';
 
 // Loaded on demand, so the first visit downloads only the entry pages.
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminPanelLogin = lazy(() => import('./pages/AdminPanelLogin'));
+const BackofficeApp = lazy(() => import('./pages/backoffice/BackofficeApp'));
 const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'));
 const ContentComposerPage = lazy(
@@ -44,7 +50,8 @@ const Creator = lazy(() => import('./pages/Creator'));
 const EditsStudio = lazy(() => import('./pages/EditsStudio'));
 const Explore = lazy(() => import('./pages/Explore'));
 const ExploreMapPage = lazy(() => import('./pages/explore-map/ExploreMapPage'));
-const FaqPage = lazy(() => import('./pages/FaqPage'));
+const HelpArticle = lazy(() => import('./pages/HelpArticle'));
+const HelpCentre = lazy(() => import('./pages/HelpCentre'));
 const FeaturesPage = lazy(() => import('./pages/FeaturesPage'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Frames = lazy(() => import('./pages/Frames'));
@@ -191,7 +198,9 @@ function App() {
   const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const checkSession = useAuthStore((state) => state.checkSession);
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
-  const adminPanel = isAdminPanelHost();
+  const backoffice = isBackofficeHost();
+  // Staff sites have their own session; the participant one is not checked.
+  const adminPanel = backoffice || isAdminPanelHost();
 
   usePushNotifications();
   useNativeApp();
@@ -208,6 +217,14 @@ function App() {
       fetchFlags();
     }
   }, [fetchFlags, isAuthenticated, adminPanel]);
+
+  if (backoffice) {
+    return (
+      <Suspense fallback={null}>
+        <BackofficeApp />
+      </Suspense>
+    );
+  }
 
   if (adminPanel) {
     return <AdminPanelApp />;
@@ -492,10 +509,21 @@ function App() {
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/guidelines" element={<CommunityGuidelines />} />
         <Route path="/support" element={<Support />} />
+        <Route
+          path="/support/requests/:id"
+          element={
+            <AuthGuard>
+              <SupportRequest />
+            </AuthGuard>
+          }
+        />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/features/:slug" element={<FeatureDetailPage />} />
         <Route path="/principles" element={<PrinciplesPage />} />
-        <Route path="/faq" element={<FaqPage />} />
+        <Route path="/help" element={<HelpCentre />} />
+        <Route path="/help/:slug" element={<HelpArticle />} />
+        {/* The questions that lived here are articles of the help centre */}
+        <Route path="/faq" element={<Navigate to="/help" replace />} />
 
         {/* User profile (after static routes to avoid conflicts) */}
         <Route

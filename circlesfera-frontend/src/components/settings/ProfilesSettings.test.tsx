@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import toast from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type OwnedProfile, profileApi } from '../../services';
+import { signInsApi } from '../../services/signIns.service';
 import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import ProfilesSettings from './ProfilesSettings';
@@ -18,6 +19,15 @@ vi.mock('../../services', async (importOriginal) => {
     },
   };
 });
+
+vi.mock('../../services/signIns.service', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/signIns.service')>()),
+  signInsApi: {
+    list: vi.fn().mockResolvedValue({ data: [] }),
+    giveOwn: vi.fn(),
+    share: vi.fn(),
+  },
+}));
 
 vi.mock('react-hot-toast', () => ({
   default: { error: vi.fn(), success: vi.fn() },
@@ -244,6 +254,85 @@ describe('ProfilesSettings', () => {
           name: i18n.t('settings.profiles.form.submit'),
         }),
       ).toBeDisabled();
+    });
+
+    const createWithOwnSignIn = async () => {
+      vi.mocked(profileApi.checkUsername).mockResolvedValue({
+        data: { available: true, message: '' },
+      } as never);
+      vi.mocked(profileApi.createProfile).mockResolvedValue({
+        data: owned({ id: 'p-new', username: 'ana.art' }),
+      } as never);
+      const { user, username, i18n } = await openForm();
+      await user.type(username, 'ana.art');
+      await screen.findByText(
+        i18n.t('settings.profiles.form.username_available', {
+          username: 'ana.art',
+        }),
+      );
+      const submit = screen.getByRole('button', {
+        name: i18n.t('settings.profiles.form.submit'),
+      });
+
+      await user.click(
+        screen.getByRole('radio', {
+          name: new RegExp(i18n.t('settings.signIns.create.own')),
+        }),
+      );
+      // Its own sign-in needs its email, its password and the current one.
+      expect(submit).toBeDisabled();
+      await user.type(
+        screen.getByLabelText(i18n.t('settings.signIns.own_form.email')),
+        'art@example.com',
+      );
+      await user.type(
+        screen.getByLabelText(i18n.t('settings.signIns.own_form.password')),
+        'New-Password-1',
+      );
+      await user.type(
+        screen.getByLabelText(i18n.t('settings.signIns.current_password')),
+        'Current-Password-1',
+      );
+      expect(submit).toBeEnabled();
+      await user.click(submit);
+      return i18n;
+    };
+
+    it('shares the sign-in unless the person chooses otherwise', async () => {
+      const { i18n } = await openForm();
+
+      expect(
+        screen.getByRole('radio', {
+          name: new RegExp(i18n.t('settings.signIns.create.share')),
+        }),
+      ).toBeChecked();
+      expect(
+        screen.queryByLabelText(i18n.t('settings.signIns.own_form.email')),
+      ).not.toBeInTheDocument();
+    });
+
+    it('gives the new profile its own sign-in when chosen, once the profile exists', async () => {
+      vi.mocked(signInsApi.giveOwn).mockResolvedValue({ data: [] } as never);
+      await createWithOwnSignIn();
+
+      await waitFor(() => expect(assign).toHaveBeenCalledWith('/'));
+      expect(signInsApi.giveOwn).toHaveBeenCalledWith({
+        profileId: 'p-new',
+        email: 'art@example.com',
+        password: 'New-Password-1',
+        currentPassword: 'Current-Password-1',
+      });
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    it('keeps the profile, sharing, and says how to finish when its own sign-in is refused', async () => {
+      vi.mocked(signInsApi.giveOwn).mockRejectedValue(new Error('refused'));
+      const i18n = await createWithOwnSignIn();
+
+      await waitFor(() => expect(assign).toHaveBeenCalledWith('/'));
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n.t('settings.signIns.create.own_failed'),
+      );
     });
 
     it('creates the profile with the chosen type and switches to it', async () => {

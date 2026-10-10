@@ -30,5 +30,6 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0024](./0024-vps-resource-budgets-and-scaling-triggers.md) | VPS resource budgets and scaling triggers — per-resource WARN/ALERT thresholds and escalation path (queue/media automatic, disk/RAM/DB/Redis pull-only, CPU absent) | Accepted |
 | [0025](./0025-sign-in-per-profile-one-identity.md) | Sign-in per Profile, one identity behind — `User` stays the identity, credentials move to a `SignIn` that serves one or more Profiles; order of the changes | Accepted |
 | [0026](./0026-backoffice-second-staff-site.md) | Backoffice — a second staff site on the same app, chosen by host, with the staff identity and sessions per site | Accepted |
+| [0027](./0027-help-desk-module-with-host-contracts.md) | Help Desk — a module of the monolith behind host contracts, no imports from the social modules, every record per organization | Accepted |
 
 When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from Notion → Architecture Decisions.

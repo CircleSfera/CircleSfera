@@ -1,4 +1,4 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 // Debounce a callback by `delay` ms.
 export function useDebounce<T extends (...args: Parameters<T>) => void>(
@@ -6,6 +6,15 @@ export function useDebounce<T extends (...args: Parameters<T>) => void>(
   delay: number,
 ): (...args: Parameters<T>) => void {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // A call still waiting when the screen goes away is dropped: it would run
+  // against a screen that is no longer there.
+  useEffect(
+    () => () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    },
+    [],
+  );
 
   return useCallback(
     (...args: Parameters<T>) => {

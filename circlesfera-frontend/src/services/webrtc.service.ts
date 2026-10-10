@@ -188,6 +188,10 @@ class WebRTCService {
         this.pc.connectionState === 'failed' ||
         this.pc.connectionState === 'closed'
       ) {
+        // The call is over, however it ended: close the connection and stop
+        // the camera, the microphone and any screen being shared, then free
+        // the line.
+        this.cleanup();
         useCallStore.getState().resetCall();
       }
     };
@@ -196,17 +200,20 @@ class WebRTCService {
   async startScreenShare() {
     if (!this.pc || !this.localStream) return;
 
+    // The screen takes the place of the camera in the call. Without a camera
+    // to replace (an audio call) there is nowhere to send it, so the browser
+    // is not asked for the screen at all.
+    const sender = this.pc.getSenders().find((s) => s.track?.kind === 'video');
+    if (!sender) return;
+
     try {
       this.screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
       });
 
       const screenVideoTrack = this.screenStream.getVideoTracks()[0];
-      const sender = this.pc
-        .getSenders()
-        .find((s) => s.track?.kind === 'video');
 
-      if (sender && screenVideoTrack) {
+      if (screenVideoTrack) {
         await sender.replaceTrack(screenVideoTrack);
 
         // Listen for browser "stop sharing" button

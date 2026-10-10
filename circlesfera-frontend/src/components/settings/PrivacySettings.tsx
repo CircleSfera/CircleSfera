@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { profileApi } from '../../services';
 import type { UpdateProfileDto } from '../../types';
 import { logger } from '../../utils/logger';
+import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
 import { Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
@@ -35,7 +36,7 @@ export default function PrivacySettings() {
   const updateProfileMutation = useMutation({
     mutationFn: (data: UpdateProfileDto) => profileApi.updateProfile(data),
     onSuccess: (response) => {
-      queryClient.setQueryData(['myProfile'], response);
+      keepSavedOwnProfile(queryClient, response);
     },
   });
 

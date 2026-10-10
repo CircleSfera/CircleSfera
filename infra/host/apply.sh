@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Apply the versioned host hardening to the production VPS: ufw firewall,
-# fail2ban and SSH. Safe to run again; every step converges to the same state.
+# Apply the versioned host configuration to the production VPS: ufw firewall,
+# fail2ban, SSH and the response buffers of the host nginx. Safe to run again;
+# every step converges to the same state.
 #
 # Usage (on the VPS, from a session that stays open until a second session
 # has logged in):
@@ -14,6 +15,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 SSH_DROPIN=/etc/ssh/sshd_config.d/00-circlesfera-hardening.conf
 JAIL=/etc/fail2ban/jail.d/circlesfera.local
+NGINX_DROPIN=/etc/nginx/conf.d/00-circlesfera-proxy-buffers.conf
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "Run with sudo." >&2
@@ -68,6 +70,25 @@ systemctl enable --now fail2ban > /dev/null 2>&1
 systemctl restart fail2ban
 sleep 2
 fail2ban-client status
+
+echo "== Host nginx response buffers"
+# The drop-in is removed again if nginx rejects it (for instance when the
+# same directives are already set in the http block), so nginx never reloads
+# a configuration that does not pass its own test.
+if command -v nginx > /dev/null && [ -d /etc/nginx/conf.d ]; then
+  install -m 0644 "${HERE}/nginx/00-circlesfera-proxy-buffers.conf" "${NGINX_DROPIN}"
+  if ! nginx -t 2> /dev/null; then
+    rm -f "${NGINX_DROPIN}"
+    echo "nginx rejected the configuration; it was removed and nginx is unchanged." >&2
+    exit 1
+  fi
+  systemctl reload nginx
+  # Every place the value is set: a site with its own, smaller value still
+  # needs it raised or removed by hand.
+  nginx -T 2> /dev/null | grep -E '^\s*proxy_buffer_size\s' | sort | uniq -c
+else
+  echo "nginx is not installed on the host; nothing to do."
+fi
 
 echo "== Container ports published on every interface (ufw does not cover these)"
 PUBLIC_PORTS="$(ss -tlnHp | grep docker-proxy | awk '{print $4}' | grep -vE '^(127\.0\.0\.1|\[::1\]):' || true)"
