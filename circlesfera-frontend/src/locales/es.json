@@ -309,6 +309,8 @@
         "qr_alt": "Código QR del autenticador",
         "verify_btn": "Verificar",
         "confirm_disable": "¿Seguro que quieres desactivar el 2FA? Tu cuenta quedará menos protegida.",
+        "disable_instructions": "Introduce un código de tu app autenticadora para desactivarlo.",
+        "code_label": "Código de 6 dígitos",
         "disabling": "Desactivando...",
         "disable_btn": "Desactivar 2FA",
         "generate_error": "No se pudo generar el secreto 2FA",
