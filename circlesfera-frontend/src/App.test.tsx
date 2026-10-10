@@ -2,8 +2,9 @@ import { screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import App from './App';
 import {
+  FeatureShowcase,
   GuestAppChrome,
-  GuestSurfaceMedia,
+  LandingCta,
   LandingHero,
   LandingPrinciples,
 } from './components/marketing';
@@ -70,11 +71,33 @@ describe('Landing product surface', () => {
     ).toBeInTheDocument();
   });
 
-  it('hero product window is labelled as Home', () => {
+  it("hero says what the motto means in the reader's language", () => {
     const { i18n } = renderWithProviders(<LandingHero />);
+    expect(screen.getByText(i18n!.t('landing.hero.lead'))).toBeInTheDocument();
+  });
+
+  it('shows one block per feature, each linking to its page', () => {
+    renderWithProviders(<FeatureShowcase />);
+    const links = screen
+      .getAllByRole('link')
+      .map((link) => link.getAttribute('href'));
+    expect(links).toEqual([
+      '/features/feed',
+      '/features/frames',
+      '/features/direct',
+      '/features/live',
+      '/features/creator',
+    ]);
+  });
+
+  it('closing block links to signup and explore', () => {
+    const { i18n } = renderWithProviders(<LandingCta />);
     expect(
-      screen.getByRole('figure', { name: i18n!.t('landing.preview.home') }),
-    ).toBeInTheDocument();
+      screen.getByRole('link', { name: i18n!.t('landing.cta.button') }),
+    ).toHaveAttribute('href', '/accounts/signup');
+    expect(
+      screen.getByRole('link', { name: i18n!.t('landing.hero.explore_demo') }),
+    ).toHaveAttribute('href', '/explore');
   });
 });
 
@@ -91,20 +114,5 @@ describe('Guest chrome', () => {
     expect(
       screen.getByRole('link', { name: i18n!.t('landing.nav.sign_up') }),
     ).toHaveAttribute('href', '/accounts/signup');
-  });
-
-  it('renders a labelled product window for each surface', () => {
-    const { i18n } = renderWithProviders(
-      <GuestSurfaceMedia surface="frames" />,
-    );
-    expect(
-      screen.getByRole('figure', { name: i18n!.t('landing.preview.frames') }),
-    ).toBeInTheDocument();
-  });
-
-  it('home mock shows For You / Following feed tabs', () => {
-    const { i18n } = renderWithProviders(<GuestSurfaceMedia surface="home" />);
-    expect(screen.getByText(i18n!.t('feed.for_you'))).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('feed.following'))).toBeInTheDocument();
   });
 });

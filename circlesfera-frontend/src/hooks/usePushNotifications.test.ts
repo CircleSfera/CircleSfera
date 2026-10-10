@@ -1,12 +1,16 @@
+import { PushNotifications } from '@capacitor/push-notifications';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../services';
 import { usePushNotifications } from './usePushNotifications';
 
+// Whether the tests run as the app on a phone; the web by default.
+const platform = vi.hoisted(() => ({ native: false }));
+
 vi.mock('@capacitor/core', () => ({
   Capacitor: {
-    isNativePlatform: () => false,
-    getPlatform: () => 'web',
+    isNativePlatform: () => platform.native,
+    getPlatform: () => (platform.native ? 'ios' : 'web'),
   },
 }));
 
@@ -160,5 +164,57 @@ describe('usePushNotifications (web)', () => {
       '/push/unsubscribe?endpoint=https%3A%2F%2Fpush.example.com%2Fabc',
     );
     expect(result.current.isSubscribed).toBe(false);
+  });
+});
+
+describe('usePushNotifications (on a phone)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    platform.native = true;
+    vi.mocked(PushNotifications.addListener).mockResolvedValue({
+      remove: vi.fn(),
+    } as never);
+  });
+
+  afterEach(() => {
+    platform.native = false;
+  });
+
+  it.each([
+    ['granted', 'granted'],
+    ['denied', 'denied'],
+    ['prompt', 'default'],
+    ['prompt-with-rationale', 'default'],
+  ])('reads "%s" from the phone as "%s"', async (receive, expected) => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive,
+    } as never);
+
+    const { result } = renderHook(() => usePushNotifications());
+
+    await waitFor(() => expect(result.current.permission).toBe(expected));
+    expect(result.current.isSubscribed).toBe(receive === 'granted');
+  });
+
+  it('says blocked, not undecided, when the person refuses the question of the phone', async () => {
+    vi.mocked(PushNotifications.checkPermissions).mockResolvedValue({
+      receive: 'prompt',
+    } as never);
+    vi.mocked(PushNotifications.requestPermissions).mockResolvedValue({
+      receive: 'denied',
+    } as never);
+    const { result } = renderHook(() => usePushNotifications());
+    await waitFor(() =>
+      expect(PushNotifications.checkPermissions).toHaveBeenCalled(),
+    );
+
+    let subscribed: boolean | undefined;
+    await act(async () => {
+      subscribed = await result.current.requestPermission();
+    });
+
+    expect(subscribed).toBe(false);
+    expect(result.current.permission).toBe('denied');
+    expect(PushNotifications.register).not.toHaveBeenCalled();
   });
 });

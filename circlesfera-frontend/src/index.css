@@ -230,6 +230,9 @@
 
   /* Brand palette — CircleSfera official */
   --brand-primary: #884cff; /* Vivid purple — canonical; never #833ab4 */
+  /* What is drawn over a fill of the brand colour; a profile that chose a
+     light colour changes it to a dark tone. */
+  --on-brand-primary: #ffffff;
   --brand-primary-rgb: 136, 76, 255; /* For rgba(var(--brand-primary-rgb), a) */
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */
@@ -281,7 +284,7 @@
   --text-body: 16px; /* Body */
   --text-body-sm: 14px; /* Body Small */
   --text-caption: 12px; /* Caption */
-  --text-badge: 11px; /* Badge */
+  --text-badge: 12px; /* Badge */
 
   /* Line heights */
   --lh-display: 1.1; /* 110% */
@@ -310,7 +313,7 @@
   /* Inputs */
   --input-height-standard: 48px;
   --input-height-compact: 44px;
-  --input-height-search: 44px;
+  --input-height-search: 48px;
 
   /* Navigation */
   --nav-top-height: 52px; /* 48-52px for high density mobile UI */

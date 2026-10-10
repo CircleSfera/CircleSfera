@@ -22,8 +22,13 @@ import LiveQnAPanel, {
 import { apiClient as api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
+import { hasElitePlan } from '../../utils/plans';
 
 const REACTION_EMOJIS = ['🔥', '❤️', '👏', '🚀', '⭐'];
+// The reactions of the Elite Creator and Business plans. Everyone sees them
+// float; the server only lets a profile on one of those plans send them.
+const ELITE_REACTION_EMOJIS = ['💎', '👑', '⚡', '🎉', '💯'];
 
 interface FloatingReaction {
   id: string;
@@ -32,14 +37,14 @@ interface FloatingReaction {
 }
 
 /** A neutral picture with the person's initials, for someone without one. */
-const fallbackAvatar = (username: string) =>
-  `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}`;
+const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveViewer() {
   const { t } = useTranslation();
   const { streamId } = useParams<{ streamId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const profile = useAuthStore((state) => state.profile);
+  const canSendEliteReactions = hasElitePlan(profile?.verificationLevel);
   const [token, setToken] = useState('');
   const [coHostToken, setCoHostToken] = useState<string | null>(null);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
@@ -431,6 +436,23 @@ export default function LiveViewer() {
             </AnimatePresence>
             <div ref={chatEndRef} />
           </div>
+
+          {/* The plan reactions, on a row of their own above the others */}
+          {canSendEliteReactions && (
+            <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar pointer-events-auto">
+              {ELITE_REACTION_EMOJIS.map((emoji) => (
+                <button
+                  type="button"
+                  key={emoji}
+                  onClick={() => sendQuickReaction(emoji)}
+                  className="w-11 h-11 shrink-0 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-lg transition-all backdrop-blur-xl border border-white/10"
+                  aria-label={t('live.send_reaction', { emoji })}
+                >
+                  <span aria-hidden>{emoji}</span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Reactions on their own row, so the comment field keeps its width */}
           <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar pointer-events-auto">

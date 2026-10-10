@@ -15,6 +15,21 @@ export class LiveRealtimeService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
   /**
+   * Whether this Profile is on the Elite Creator or Business plan, which is
+   * what the plan reactions of a broadcast need.
+   */
+  async hasElitePlan(profileId: string): Promise<boolean> {
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: profileId },
+      select: { verificationLevel: true },
+    });
+    return (
+      profile?.verificationLevel === 'ELITE' ||
+      profile?.verificationLevel === 'BUSINESS'
+    );
+  }
+
+  /**
    * Increments viewer count in the database for an active stream.
    */
   async incrementViewerCount(streamId: string): Promise<number> {

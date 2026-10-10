@@ -18,7 +18,7 @@ export default function SettingsShell({
   children,
 }: SettingsShellProps) {
   const { t } = useTranslation();
-  const mainRef = useRef<HTMLElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
   const navItem = section ? findSettingsNavItem(section) : null;
   const title = navItem ? t(navItem.labelKey) : t('settings.hub.title');
   const isHub = section === null;
@@ -68,7 +68,7 @@ export default function SettingsShell({
               <div className="sticky top-24 space-y-5">
                 {SETTINGS_NAV_GROUPS.map((group) => (
                   <div key={group.id}>
-                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-1.5 px-2">
+                    <p className="text-xs font-semibold text-white/45 mb-1.5 px-2">
                       {t(group.labelKey)}
                     </p>
                     <ul className="space-y-0.5">
@@ -113,14 +113,14 @@ export default function SettingsShell({
             </nav>
           )}
 
-          <main
+          <div
             ref={mainRef}
             tabIndex={-1}
             id="settings-main"
             className="flex-1 min-w-0 outline-none"
           >
             {children}
-          </main>
+          </div>
         </div>
       </div>
     </div>

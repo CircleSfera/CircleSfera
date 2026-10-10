@@ -58,6 +58,10 @@ export default function LayoutWrapper({
     '/explore',
     '/guidelines',
   ];
+  // Inside a conversation the phone shows the conversation alone: no top
+  // bar and no bottom bar, so the message field sits at the bottom.
+  const isConversationRoute = location.pathname.includes('/direct/inbox/t/');
+
   const isMarketingRoute = marketingRoutes.some(
     (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
   );
@@ -133,16 +137,14 @@ export default function LayoutWrapper({
 
       <BrandAmbientBackground />
 
-      {shouldShowNav &&
-        !location.pathname.includes('/direct/inbox/t/') &&
-        !hideTopNavRoute && <TopNav />}
+      {shouldShowNav && !isConversationRoute && !hideTopNavRoute && <TopNav />}
 
       {shouldShowNav && <EmailVerificationBanner immersive={hideTopNavRoute} />}
 
       {shouldShowNav && (
         <>
           {showAppSidebar && <Sidebar compact={isEditsRoute} />}
-          {!hideBottomNavRoute && <BottomNav />}
+          {!hideBottomNavRoute && !isConversationRoute && <BottomNav />}
         </>
       )}
 
@@ -156,6 +158,7 @@ export default function LayoutWrapper({
             : ''
         } ${
           shouldShowNav &&
+          !isConversationRoute &&
           (isFramesRoute || location.pathname.startsWith('/direct'))
             ? 'max-md:pb-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))]'
             : ''
@@ -163,17 +166,15 @@ export default function LayoutWrapper({
         data-content-shell={shell}
         data-create-composer={isCreateComposer ? 'true' : undefined}
       >
-        {shouldShowNav &&
-          !location.pathname.includes('/direct/inbox/t/') &&
-          !hideTopNavRoute && (
-            <div
-              className="md:hidden shrink-0"
-              style={{
-                height:
-                  'calc(var(--nav-top-height) + env(safe-area-inset-top, 0px))',
-              }}
-            />
-          )}
+        {shouldShowNav && !isConversationRoute && !hideTopNavRoute && (
+          <div
+            className="md:hidden shrink-0"
+            style={{
+              height:
+                'calc(var(--nav-top-height) + env(safe-area-inset-top, 0px))',
+            }}
+          />
+        )}
 
         <div
           className={`w-full flex flex-col flex-1 min-h-0 ${

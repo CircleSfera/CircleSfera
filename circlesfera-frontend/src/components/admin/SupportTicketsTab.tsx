@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CheckCircle, LifeBuoy, Mail, XCircle } from 'lucide-react';
+import {
+  CheckCircle,
+  ExternalLink,
+  LifeBuoy,
+  Mail,
+  ShieldAlert,
+  XCircle,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminSupportTicket } from '../../services/admin.service';
@@ -16,14 +23,16 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination } from './AdminTable';
+import { staffTabHref } from './adminNav';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
 type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
+type ShownStatus = TicketStatus | 'ESCALATED';
 
-function statusBadgeClass(status: TicketStatus) {
+function statusBadgeClass(status: ShownStatus) {
   switch (status) {
     case 'OPEN':
       return 'bg-yellow-500/20 text-yellow-500';
@@ -31,6 +40,8 @@ function statusBadgeClass(status: TicketStatus) {
       return 'bg-green-500/20 text-green-500';
     case 'CLOSED':
       return 'bg-white/10 text-white/50';
+    case 'ESCALATED':
+      return 'bg-brand-primary/20 text-brand-primary';
   }
 }
 
@@ -42,6 +53,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [reply, setReply] = useState('');
   const [confirmClose, setConfirmClose] = useState(false);
+  const [confirmEscalate, setConfirmEscalate] = useState(false);
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminSupportTicket>>({
     queryKey: ['admin', 'support-tickets', page, statusFilter],
@@ -79,6 +91,32 @@ export default function SupportTicketsTab({ onToast }: Props) {
       onToast(t('admin.support.toast_updated'), 'success');
     },
     onError: () => onToast(t('admin.support.toast_error'), 'error'),
+  });
+
+  const escalateMutation = useMutation({
+    mutationFn: (id: string) => adminApi.escalateSupportTicket(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'support-tickets'] });
+      onToast(t('admin.support.toast_escalated'), 'success');
+    },
+    onError: () => onToast(t('admin.support.toast_error'), 'error'),
+  });
+
+  // With moderation: handed over, and its report not decided yet. Support
+  // cannot answer or close it meanwhile.
+  const withModeration =
+    selectedTicket?.status === 'ESCALATED' &&
+    ['PENDING', 'REVIEWING'].includes(
+      selectedTicket.escalatedReport?.status ?? 'PENDING',
+    );
+
+  const { data: account } = useQuery({
+    queryKey: ['admin', 'support-account', selectedTicket?.id],
+    queryFn: () =>
+      adminApi
+        .getSupportTicketAccount(selectedTicket?.id as string)
+        .then((res) => res.data),
+    enabled: !!selectedTicket?.id,
   });
 
   const handleStatusChange = (status: TicketStatus) => {
@@ -127,6 +165,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
             { value: 'OPEN', label: t('admin.support.status_open') },
             { value: 'RESOLVED', label: t('admin.support.status_resolved') },
             { value: 'CLOSED', label: t('admin.support.status_closed') },
+            {
+              value: 'ESCALATED',
+              label: t('admin.support.status_escalated'),
+            },
           ]}
         />
       </AdminFilterBar>
@@ -172,7 +214,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       <span
                         className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${statusBadgeClass(ticket.status)}`}
                       >
-                        {ticket.status}
+                        {ticket.status === 'ESCALATED'
+                          ? t('admin.support.status_escalated')
+                          : ticket.status}
                       </span>
                     }
                     meta={formatDate(ticket.createdAt, i18n.language)}
@@ -205,7 +249,24 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       ID: {selectedTicket.id}
                     </p>
                   </div>
-                  {selectedTicket.status !== 'CLOSED' && (
+                  {withModeration && (
+                    <div className="rounded-xl border border-brand-primary/30 bg-brand-primary/10 p-3 text-sm text-white/85">
+                      <p>{t('admin.support.with_moderation_notice')}</p>
+                      <a
+                        href={staffTabHref('reports')}
+                        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-brand-primary hover:underline"
+                      >
+                        {t('admin.support.view_reports')}
+                        <ExternalLink size={14} aria-hidden />
+                      </a>
+                    </div>
+                  )}
+                  {selectedTicket.status === 'ESCALATED' && !withModeration && (
+                    <p className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm text-white/85">
+                      {t('admin.support.moderation_decided')}
+                    </p>
+                  )}
+                  {selectedTicket.status !== 'CLOSED' && !withModeration && (
                     <div className="flex flex-wrap gap-2">
                       <Button
                         onClick={() => handleStatusChange('RESOLVED')}
@@ -224,6 +285,17 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         <XCircle size={16} className="mr-2 shrink-0" />
                         {t('admin.support.mark_closed')}
                       </Button>
+                      {selectedTicket.status === 'OPEN' && (
+                        <Button
+                          onClick={() => setConfirmEscalate(true)}
+                          isLoading={escalateMutation.isPending}
+                          variant="secondary"
+                          className="text-xs sm:text-sm font-semibold border-white/5 min-h-10 sm:min-h-11"
+                        >
+                          <ShieldAlert size={16} className="mr-2 shrink-0" />
+                          {t('admin.support.hand_to_moderation')}
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -252,7 +324,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         <span
                           className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${statusBadgeClass(selectedTicket.status)}`}
                         >
-                          {selectedTicket.status}
+                          {selectedTicket.status === 'ESCALATED'
+                            ? t('admin.support.status_escalated')
+                            : selectedTicket.status}
                         </span>
                       </dd>
                     </div>
@@ -265,6 +339,76 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       ),
                     })}
                   </p>
+
+                  {account && (
+                    <section
+                      aria-label={t('admin.support.account.title')}
+                      className="rounded-xl border border-white/10 bg-white/3 p-3"
+                    >
+                      <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
+                        {t('admin.support.account.title')}
+                      </p>
+                      <dl className="space-y-1.5 text-sm">
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-white/50">
+                            {t('admin.support.account.plan')}
+                          </dt>
+                          <dd className="font-semibold text-white">
+                            {account.plan
+                              ? account.plan.name
+                              : t('admin.support.account.no_plan')}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-white/50">
+                            {t('admin.support.account.identity')}
+                          </dt>
+                          <dd className="font-semibold text-white">
+                            {account.identityVerified
+                              ? t('admin.support.account.yes')
+                              : t('admin.support.account.no')}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-3">
+                          <dt className="text-white/50">
+                            {t('admin.support.account.payouts')}
+                          </dt>
+                          <dd className="font-semibold text-white">
+                            {account.payouts.enabled
+                              ? t('admin.support.account.payouts_enabled')
+                              : account.payouts.connected
+                                ? t('admin.support.account.payouts_pending')
+                                : t('admin.support.account.payouts_none')}
+                          </dd>
+                        </div>
+                      </dl>
+                      <ul className="mt-2 space-y-1 border-t border-white/5 pt-2 text-sm">
+                        {account.profiles.map((profile) => (
+                          <li
+                            key={profile.id}
+                            className="flex justify-between gap-3"
+                          >
+                            <span className="truncate text-white/70">
+                              @{profile.username}
+                            </span>
+                            <span
+                              className={
+                                profile.banned || profile.suspended
+                                  ? 'font-semibold text-brand-secondary'
+                                  : 'font-semibold text-white'
+                              }
+                            >
+                              {profile.banned
+                                ? t('admin.support.account.banned')
+                                : profile.suspended
+                                  ? t('admin.support.account.suspended')
+                                  : t('admin.support.account.in_good_standing')}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
 
                   <div>
                     <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
@@ -284,9 +428,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       onChange={(e) => setReply(e.target.value)}
                       placeholder={t('admin.support.reply_placeholder')}
                       rows={5}
-                      disabled={selectedTicket.status === 'CLOSED'}
+                      disabled={
+                        selectedTicket.status === 'CLOSED' || withModeration
+                      }
                     />
-                    {selectedTicket.status !== 'CLOSED' && (
+                    {selectedTicket.status !== 'CLOSED' && !withModeration && (
                       <Button
                         onClick={handleSaveReply}
                         isLoading={updateMutation.isPending}
@@ -337,6 +483,19 @@ export default function SupportTicketsTab({ onToast }: Props) {
         title={t('admin.support.confirm_close_title')}
         message={t('admin.support.confirm_close_message')}
         confirmText={t('admin.shared.confirm')}
+        cancelText={t('admin.shared.cancel')}
+        isDestructive={false}
+      />
+      <ConfirmModal
+        isOpen={confirmEscalate}
+        onClose={() => setConfirmEscalate(false)}
+        onConfirm={() => {
+          if (selectedTicket) escalateMutation.mutate(selectedTicket.id);
+          setConfirmEscalate(false);
+        }}
+        title={t('admin.support.confirm_escalate_title')}
+        message={t('admin.support.confirm_escalate_message')}
+        confirmText={t('admin.support.hand_to_moderation')}
         cancelText={t('admin.shared.cancel')}
         isDestructive={false}
       />

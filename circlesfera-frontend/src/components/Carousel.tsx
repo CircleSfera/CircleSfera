@@ -1,4 +1,4 @@
-import { Volume2, VolumeX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
@@ -27,9 +27,21 @@ interface CarouselProps {
   onActiveIndexChange?: (index: number) => void;
   libraryAudioUrl?: string | null;
   libraryAudioStartMs?: number | null;
+  /** Leave the counter out where the screen already shows the position. */
+  hideCounter?: boolean;
 }
 
 const IMAGE_AUDIO_WINDOW_MS = 15_000;
+
+// A finger has to travel this far before the gesture counts as a swipe, and
+// this far along the carousel to change the item on show.
+const SWIPE_SLOP_PX = 8;
+const SWIPE_CHANGE_PX = 48;
+// More dots than this say nothing at a glance; the counter carries the place.
+const MAX_DOTS = 10;
+
+const ARROW_CLASS =
+  'absolute top-1/2 -translate-y-1/2 w-11 h-11 hidden [@media(hover:hover)]:flex items-center justify-center rounded-full bg-black/55 backdrop-blur-md border border-white/12 text-white shadow-lg z-30 transition-transform active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/40';
 
 export default function Carousel({
   media,
@@ -42,6 +54,7 @@ export default function Carousel({
   onActiveIndexChange,
   libraryAudioUrl,
   libraryAudioStartMs = 0,
+  hideCounter = false,
 }: CarouselProps) {
   const { t } = useTranslation();
   const [internalIndex, setInternalIndex] = useState(0);
@@ -60,6 +73,13 @@ export default function Carousel({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
   const activeVideoRef = useRef<HTMLVideoElement | null>(null);
+  const swipeRef = useRef<{
+    x: number;
+    y: number;
+    axis: 'x' | 'y' | null;
+  } | null>(null);
+  const [dragPx, setDragPx] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   const hasLibraryAudio = Boolean(libraryAudioUrl);
   const activeIsVideo = media[currentIndex]?.type === 'video';
@@ -244,6 +264,11 @@ export default function Carousel({
     setCurrentIndex((prev) => (prev + 1) % media.length);
   };
 
+  const position = t('post.media.position', {
+    n: currentIndex + 1,
+    total: media.length,
+  });
+
   const prevSlide = (e?: React.MouseEvent) => {
     e?.preventDefault();
     e?.stopPropagation();
@@ -255,17 +280,64 @@ export default function Carousel({
     if (e.key === 'ArrowLeft') prevSlide();
   };
 
+  // Swipe with a finger: the strip follows it, and on release it settles on
+  // the next or previous item. A vertical gesture is left to the page scroll.
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    swipeRef.current = { x: touch.clientX, y: touch.clientY, axis: null };
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const swipe = swipeRef.current;
+    if (!swipe) return;
+    const touch = e.touches[0];
+    const dx = touch.clientX - swipe.x;
+    const dy = touch.clientY - swipe.y;
+    if (!swipe.axis) {
+      if (Math.abs(dx) < SWIPE_SLOP_PX && Math.abs(dy) < SWIPE_SLOP_PX) return;
+      swipe.axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      if (swipe.axis === 'x') setIsDragging(true);
+    }
+    if (swipe.axis !== 'x') return;
+    const atEdge =
+      (dx > 0 && currentIndex === 0) ||
+      (dx < 0 && currentIndex === media.length - 1);
+    // Past the first or the last item the strip gives a little and comes back.
+    setDragPx(atEdge ? dx / 3 : dx);
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    const swipe = swipeRef.current;
+    swipeRef.current = null;
+    setIsDragging(false);
+    setDragPx(0);
+    if (swipe?.axis !== 'x') return;
+    const dx = e.changedTouches[0].clientX - swipe.x;
+    if (dx <= -SWIPE_CHANGE_PX && currentIndex < media.length - 1) {
+      setCurrentIndex(currentIndex + 1);
+    } else if (dx >= SWIPE_CHANGE_PX && currentIndex > 0) {
+      setCurrentIndex(currentIndex - 1);
+    }
+  };
+
   return (
     <section
       ref={rootRef}
-      className={`relative w-full overflow-hidden group ${ratioClass} bg-black ${className}`}
+      className={`relative w-full overflow-hidden ${ratioClass} bg-black ${className}`}
       onKeyDown={handleKeyDown}
       aria-label={t('post.media.carousel')}
     >
       <div
-        className="flex transition-transform duration-300 ease-out h-full"
-        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
-        aria-live="polite"
+        className={`flex h-full touch-pan-y ${
+          isDragging ? '' : 'transition-transform duration-300 ease-out'
+        }`}
+        style={{
+          transform: `translateX(calc(-${currentIndex * 100}% + ${dragPx}px))`,
+        }}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
       >
         {media.map((item, index) => (
           <div
@@ -278,27 +350,15 @@ export default function Carousel({
         ))}
       </div>
 
+      {/* Arrows for a pointer; on a touch screen the carousel is swiped. */}
       {currentIndex > 0 && (
         <button
           type="button"
           onClick={prevSlide}
           aria-label={t('post.media.previous_slide')}
-          className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-30 focus:opacity-100 outline-none focus:ring-2 focus:ring-primary"
+          className={`${ARROW_CLASS} left-2`}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <ChevronLeft size={20} strokeWidth={2.25} aria-hidden="true" />
         </button>
       )}
 
@@ -307,55 +367,39 @@ export default function Carousel({
           type="button"
           onClick={nextSlide}
           aria-label={t('post.media.next_slide')}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/70 z-30 focus:opacity-100 outline-none focus:ring-2 focus:ring-primary"
+          className={`${ARROW_CLASS} right-2`}
         >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 5l7 7-7 7"
-            />
-          </svg>
+          <ChevronRight size={20} strokeWidth={2.25} aria-hidden="true" />
         </button>
       )}
 
-      <div
-        className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1 shadow-sm z-30"
-        role="tablist"
-      >
-        {media.map((item, i) => (
-          <button
-            key={item.id}
-            type="button"
-            role="tab"
-            aria-selected={i === currentIndex}
-            aria-label={t('post.media.go_to_slide', { n: i + 1 })}
-            onClick={(e) => {
-              e.stopPropagation();
-              setCurrentIndex(i);
-            }}
-            className={`w-2 h-2 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary ${
-              i === currentIndex
-                ? 'bg-white scale-110'
-                : 'bg-white/50 hover:bg-white/70 shadow-sm'
-            }`}
-          />
-        ))}
-      </div>
-
-      <div
-        className="absolute top-4 right-4 bg-black/60 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-30"
-        aria-hidden="true"
-      >
-        {currentIndex + 1}/{media.length}
-      </div>
+      {/* Where you are: read out as text, shown as a counter and as dots. */}
+      <p className="sr-only" aria-live="polite">
+        {position}
+      </p>
+      {!hideCounter && (
+        <div
+          className="absolute top-3 right-3 min-h-7 px-2.5 inline-flex items-center rounded-full bg-black/55 backdrop-blur-md border border-white/12 text-xs font-semibold text-white/90 tabular-nums z-30 pointer-events-none"
+          aria-hidden="true"
+        >
+          {currentIndex + 1}/{media.length}
+        </div>
+      )}
+      {media.length <= MAX_DOTS && (
+        <div
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2 py-1.5 rounded-full bg-black/35 backdrop-blur-sm z-30 pointer-events-none"
+          aria-hidden="true"
+        >
+          {media.map((item, i) => (
+            <span
+              key={item.id}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                i === currentIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/50'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </section>
   );
 }

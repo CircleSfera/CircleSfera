@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BarChart3,
+  Building2,
   Camera,
   Check,
   Loader2,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDebounce } from '../../hooks/useDebounce';
 import { authApi, profileApi, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -23,6 +24,8 @@ import type { UpdateProfileDto } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
+import { hasElitePlan } from '../../utils/plans';
+import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Textarea } from '../ui';
 import SettingsRow from './SettingsRow';
@@ -66,6 +69,8 @@ export default function ProfileSettings() {
   const [accountType, setAccountType] = useState<
     'PERSONAL' | 'CREATOR' | 'BUSINESS'
   >('PERSONAL');
+  // Colour of the profile page; null is the colour of the app.
+  const [accentColor, setAccentColor] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{
     checking: boolean;
@@ -98,6 +103,7 @@ export default function ProfileSettings() {
       setBio(profile.bio || '');
       setWebsite(profile.website || '');
       setAccountType(profile.accountType || 'PERSONAL');
+      setAccentColor(profile.accentColor ?? null);
       setInitialized(true);
     }
   }, [profile, initialized]);
@@ -177,13 +183,16 @@ export default function ProfileSettings() {
     }
   };
 
+  const canChooseColour = hasElitePlan(profile?.verificationLevel);
+
   const isDirty =
     initialized &&
     (fullName !== (profile?.fullName || '') ||
       username !== (profile?.username || '') ||
       bio !== (profile?.bio || '') ||
       website !== (profile?.website || '') ||
-      accountType !== (profile?.accountType || 'PERSONAL'));
+      accountType !== (profile?.accountType || 'PERSONAL') ||
+      accentColor !== (profile?.accentColor ?? null));
 
   const canSubmit =
     isDirty &&
@@ -205,6 +214,11 @@ export default function ProfileSettings() {
     }
     if (username !== profile?.username && usernameStatus.available) {
       data.username = username;
+    }
+    // Sent only when it changes: choosing a colour needs a plan, and a
+    // profile without one must still be able to save everything else.
+    if (accentColor !== (profile?.accentColor ?? null)) {
+      data.accentColor = accentColor;
     }
     updateProfileMutation.mutate(data);
   };
@@ -416,6 +430,86 @@ export default function ProfileSettings() {
           />
         </div>
       </SettingsSection>
+
+      <SettingsSection title={t('settings.profile.colour.title')}>
+        <div className="p-4">
+          <p className="mb-3 text-sm text-white/60">
+            {canChooseColour
+              ? t('settings.profile.colour.hint')
+              : t('settings.profile.colour.plan_hint')}
+          </p>
+          <div
+            role="radiogroup"
+            aria-label={t('settings.profile.colour.title')}
+            className="flex flex-wrap gap-2"
+          >
+            {[null, ...PROFILE_COLOR_KEYS].map((key) => {
+              const selected = accentColor === key;
+              return (
+                // biome-ignore lint/a11y/useSemanticElements: a swatch, not a native radio
+                <button
+                  key={key ?? 'default'}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={t(
+                    `settings.profile.colour.options.${key ?? 'default'}`,
+                  )}
+                  disabled={!canChooseColour && key !== null}
+                  onClick={() => setAccentColor(key)}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-35 ${
+                    selected ? 'border-white' : 'border-transparent'
+                  }`}
+                >
+                  <span
+                    className="h-8 w-8 rounded-full"
+                    style={{
+                      background: key ? PROFILE_COLORS[key].hex : '#884cff',
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          {!canChooseColour && (
+            <Link
+              to="/pricing"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary hover:underline"
+            >
+              {t('creator.advanced.plan_cta')}
+            </Link>
+          )}
+        </div>
+      </SettingsSection>
+
+      {profile?.verificationLevel === 'BUSINESS' && (
+        <SettingsSection title={t('settings.profile.company.title')}>
+          <div className="p-4">
+            {profile.companyVerified ? (
+              <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Building2
+                  size={18}
+                  className="text-brand-primary"
+                  aria-hidden
+                />
+                {t('profile.company_verified')}
+              </p>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-white/60">
+                  {t('settings.profile.company.hint')}
+                </p>
+                <Link
+                  to="/creator/monetization"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-primary/30 px-5 text-sm font-semibold text-white btn-gradient-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+                >
+                  {t('settings.profile.company.verify')}
+                </Link>
+              </>
+            )}
+          </div>
+        </SettingsSection>
+      )}
 
       <SettingsSection title={t('settings.profile.account_type')}>
         {accountTypes.map((type) => {

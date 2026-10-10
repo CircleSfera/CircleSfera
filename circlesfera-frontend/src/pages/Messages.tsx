@@ -22,7 +22,8 @@ export default function Messages() {
     <div
       className={`w-full flex flex-col overflow-hidden bg-transparent max-md:fixed max-md:inset-x-0 max-md:z-30 ${
         isThreadView
-          ? 'max-md:top-0 max-md:bottom-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))]'
+          ? // A conversation has the phone screen to itself: no bottom bar.
+            'max-md:top-0 max-md:bottom-0'
           : 'max-md:top-[calc(var(--nav-top-height)+env(safe-area-inset-top,0px))] max-md:bottom-[calc(var(--nav-bottom-height)+env(safe-area-inset-bottom,0px))]'
       } md:relative md:inset-auto md:flex-1 md:min-h-0 md:h-full md:items-center md:justify-center md:px-6 lg:px-10 md:py-8`}
     >

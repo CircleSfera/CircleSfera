@@ -32,6 +32,8 @@ import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import { useUIStore } from '../stores/uiStore';
 import type { Collection, ProfileWithUser } from '../types';
+import { asList } from '../utils/asList';
+import { profileColor, profileColorStyle } from '../utils/profileColors';
 
 const CreateCollectionModal = lazy(
   () => import('../components/collections/CreateCollectionModal'),
@@ -487,7 +489,7 @@ export default function Profile() {
               </span>
             </button>
 
-            {collections?.data.map((collection: Collection) => (
+            {asList<Collection>(collections?.data).map((collection) => (
               <CollectionCard
                 key={collection.id}
                 collection={collection}
@@ -529,7 +531,21 @@ export default function Profile() {
         }
         ogImage={profile.data.avatar || undefined}
       />
-      <div className="max-w-3xl mx-auto px-4 md:px-5">
+      <div
+        className="relative isolate max-w-3xl mx-auto px-4 md:px-5"
+        style={profileColorStyle(profile.data.accentColor)}
+      >
+        {/* The colour the profile chose: a soft wash at the top. The main
+            button and the link of the bio follow it through the style above.
+            It starts above this block, where the page begins, so no strip
+            of the app colour is left under the header. */}
+        {profileColor(profile.data.accentColor) && (
+          <div
+            aria-hidden
+            data-testid="profile-colour-wash"
+            className="pointer-events-none absolute left-1/2 -top-2 -z-10 h-80 w-screen -translate-x-1/2 bg-linear-to-b from-brand-primary/25 to-transparent md:-top-4"
+          />
+        )}
         {/* Profile Card */}
         <ProfileHeader
           profile={profile}

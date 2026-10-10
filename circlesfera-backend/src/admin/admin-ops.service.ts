@@ -1,6 +1,7 @@
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import {
   BadRequestException,
+  ConflictException,
   Inject,
   Injectable,
   NotFoundException,
@@ -206,7 +207,10 @@ export class AdminOpsService {
   async getSupportTickets(page = 1, limit = 20, status?: string) {
     const skip = (page - 1) * limit;
     const where: Prisma.SupportTicketWhereInput = {};
-    if (status && ['OPEN', 'RESOLVED', 'CLOSED'].includes(status)) {
+    if (
+      status &&
+      ['OPEN', 'RESOLVED', 'CLOSED', 'ESCALATED'].includes(status)
+    ) {
       where.status = status as TicketStatus;
     }
 
@@ -226,6 +230,8 @@ export class AdminOpsService {
               },
             },
           },
+          // Where the ticket stands with moderation, when it was handed over
+          escalatedReport: { select: { id: true, status: true } },
         },
       }),
       this.prisma.supportTicket.count({ where }),
@@ -255,6 +261,20 @@ export class AdminOpsService {
     });
     if (!existing) {
       throw new NotFoundException('Support ticket not found');
+    }
+
+    // A ticket handed to moderation is theirs until they decide its report;
+    // support cannot answer or close it meanwhile.
+    if (existing.status === 'ESCALATED' && existing.escalatedReportId) {
+      const report = await this.prisma.report.findUnique({
+        where: { id: existing.escalatedReportId },
+        select: { status: true },
+      });
+      if (report && ['PENDING', 'REVIEWING'].includes(report.status)) {
+        throw new ConflictException(
+          'This ticket is with moderation until its report is decided',
+        );
+      }
     }
 
     const updateData: Prisma.SupportTicketUpdateInput = {};
@@ -301,6 +321,136 @@ export class AdminOpsService {
     );
 
     return ticket;
+  }
+
+  // Hands a ticket to moderation: a report in the trust queues, linked to the
+  // ticket, and the ticket marked as being there.
+  async escalateSupportTicket(adminId: string, id: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id },
+    });
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+    if (ticket.status !== 'OPEN') {
+      throw new ConflictException('Only an open ticket can be handed over');
+    }
+    // A report is filed by a Profile: the first one of whoever wrote in.
+    const reporter = ticket.userId
+      ? await this.prisma.profile.findFirst({
+          where: { userId: ticket.userId },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        })
+      : null;
+    if (!reporter) {
+      throw new ConflictException(
+        'The account that wrote this ticket no longer exists',
+      );
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const report = await tx.report.create({
+        data: {
+          reporterId: reporter.id,
+          reason: 'OTHER',
+          targetType: 'SYSTEM',
+          targetId: ticket.id,
+          details: `Support ticket: ${ticket.subject}\n\n${ticket.message}`,
+        },
+        select: { id: true, status: true },
+      });
+      return tx.supportTicket.update({
+        where: { id },
+        data: { status: 'ESCALATED', escalatedReportId: report.id },
+        include: { escalatedReport: { select: { id: true, status: true } } },
+      });
+    });
+
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'support_ticket',
+      id,
+      `Handed ticket ${id} to moderation (report ${updated.escalatedReportId})`,
+    );
+
+    return updated;
+  }
+
+  // What support needs to know about who wrote a ticket: plan, payout
+  // account and standing of each Profile. It reads; it changes nothing.
+  async getSupportTicketAccount(id: string) {
+    const ticket = await this.prisma.supportTicket.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+    if (!ticket) {
+      throw new NotFoundException('Support ticket not found');
+    }
+    if (!ticket.userId) return null;
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: ticket.userId },
+      select: {
+        id: true,
+        isActive: true,
+        createdAt: true,
+        identityVerifiedAt: true,
+        stripeConnectAccountId: true,
+        monetization: { select: { transfersEnabled: true } },
+        profiles: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            username: true,
+            accountType: true,
+            verificationLevel: true,
+            isAccountBanned: true,
+            suspendedUntil: true,
+          },
+        },
+        platformSubscriptions: {
+          where: { status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            currentPeriodEnd: true,
+            cancelAtPeriodEnd: true,
+            plan: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!user) return null;
+
+    const [subscription] = user.platformSubscriptions;
+    const now = new Date();
+    return {
+      userId: user.id,
+      isActive: user.isActive,
+      memberSince: user.createdAt,
+      identityVerified: !!user.identityVerifiedAt,
+      plan: subscription
+        ? {
+            name: subscription.plan.name,
+            renewsAt: subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+          }
+        : null,
+      payouts: {
+        connected: !!user.stripeConnectAccountId,
+        enabled: !!user.monetization?.transfersEnabled,
+      },
+      profiles: user.profiles.map((profile) => ({
+        id: profile.id,
+        username: profile.username,
+        accountType: profile.accountType,
+        verificationLevel: profile.verificationLevel,
+        banned: profile.isAccountBanned,
+        suspended: !!profile.suspendedUntil && profile.suspendedUntil > now,
+      })),
+    };
   }
 
   // Feature flags

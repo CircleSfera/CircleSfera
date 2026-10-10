@@ -6,9 +6,14 @@ import { Button } from './ui';
 
 interface FollowButtonProps {
   username: string;
+  // Fills the width it is given, for a row it shares with other buttons.
+  fill?: boolean;
 }
 
-export default function FollowButton({ username }: FollowButtonProps) {
+export default function FollowButton({
+  username,
+  fill = false,
+}: FollowButtonProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
 
@@ -72,7 +77,7 @@ export default function FollowButton({ username }: FollowButtonProps) {
       onClick={() => followMutation.mutate(username)}
       isLoading={followMutation.isPending}
       variant={getButtonVariant()}
-      className="px-6 h-11 font-semibold"
+      className={`h-11 font-semibold ${fill ? 'w-full min-w-0 px-3' : 'px-6'}`}
     >
       {getButtonText()}
     </Button>

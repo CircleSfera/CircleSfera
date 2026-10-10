@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -61,5 +61,42 @@ describe('ErrorBoundary', () => {
     );
 
     expect(screen.getByText('custom fallback')).toBeInTheDocument();
+  });
+
+  it('fills the window for the whole app and only its own area for one screen', () => {
+    const { unmount } = render(
+      <ErrorBoundary>
+        <Broken />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByRole('alert').className).toContain('min-h-dvh');
+    unmount();
+
+    render(
+      <ErrorBoundary scope="page">
+        <Broken />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByRole('alert').className).not.toContain('min-h-dvh');
+  });
+
+  it('shows the screen again after trying again, once it no longer fails', () => {
+    let broken = true;
+    function Flaky() {
+      if (broken) throw new Error('down for a moment');
+      return <p>back</p>;
+    }
+    render(
+      <ErrorBoundary scope="page">
+        <Flaky />
+      </ErrorBoundary>,
+    );
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+
+    broken = false;
+    fireEvent.click(screen.getAllByRole('button')[0]);
+
+    expect(screen.getByText('back')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

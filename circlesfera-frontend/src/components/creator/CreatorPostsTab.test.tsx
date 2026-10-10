@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
@@ -9,15 +9,6 @@ vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     getPosts: vi.fn(),
   },
-}));
-
-vi.mock('../../stores/authStore', () => ({
-  useAuthStore: (selector: (s: { profile: unknown }) => unknown) =>
-    selector({
-      profile: {
-        user: { verificationLevel: 'ELITE' },
-      },
-    }),
 }));
 
 const post: CreatorPost = {
@@ -92,5 +83,26 @@ describe('CreatorPostsTab', () => {
     ).toBeInTheDocument();
     expect(i18n!.t('creator.posts.boost')).toBe('Impulsar');
     expect(screen.queryByText('Boost')).not.toBeInTheDocument();
+  });
+
+  it('lets a creator promote a post without any paid plan', async () => {
+    vi.mocked(creatorApi.getPosts).mockResolvedValue({
+      data: {
+        data: [post],
+        meta: { total: 1, page: 1, limit: 10, totalPages: 1 },
+      },
+    } as never);
+
+    const { i18n } = renderWithProviders(
+      <CreatorPostsTab onPromote={onPromote} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: i18n!.t('creator.posts.boost'),
+      }),
+    );
+
+    expect(onPromote).toHaveBeenCalledWith(post);
   });
 });

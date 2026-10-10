@@ -139,7 +139,7 @@ export default function Sidebar({ compact = false }: { compact?: boolean }) {
       >
         <Link
           to="/"
-          className="block focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+          className="-m-2 min-h-11 min-w-11 flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
         >
           <img
             src={logoSrc}

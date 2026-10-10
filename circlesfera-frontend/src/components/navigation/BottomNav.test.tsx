@@ -1,6 +1,7 @@
 import { Haptics } from '@capacitor/haptics';
 import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import BottomNav from './BottomNav';
 
@@ -41,6 +42,33 @@ describe('BottomNav', () => {
     expect(
       screen.getByRole('link', { name: i18n!.t('nav.frames') }),
     ).toHaveAttribute('href', '/frames');
+  });
+
+  it('shows the creator entries only to an account with creator tools', () => {
+    const withAccount = (accountType: string) =>
+      useAuthStore.setState({
+        isCreatorModeActive: true,
+        profile: { username: 'alice', accountType } as never,
+      });
+
+    withAccount('CREATOR');
+    const { i18n, unmount } = renderWithProviders(<BottomNav />);
+    expect(
+      screen.getByRole('link', { name: i18n!.t('nav.creator_studio') }),
+    ).toHaveAttribute('href', '/creator');
+    unmount();
+
+    // The mode was left on, and the account is personal now.
+    withAccount('PERSONAL');
+    renderWithProviders(<BottomNav />);
+    expect(
+      screen.queryByRole('link', { name: i18n!.t('nav.creator_studio') }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: i18n!.t('nav.search') }),
+    ).toHaveAttribute('href', '/explore');
+
+    useAuthStore.setState({ isCreatorModeActive: false, profile: null });
   });
 
   it('handles the rejected haptics call when the platform cannot vibrate', async () => {
