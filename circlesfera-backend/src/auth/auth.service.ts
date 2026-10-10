@@ -302,7 +302,7 @@ export class AuthService {
   async resetPassword(dto: ResetPasswordDto) {
     const signIn = await this.prisma.signIn.findUnique({
       where: { resetToken: dto.token },
-      select: { userId: true, resetTokenExpires: true },
+      select: { id: true, userId: true, resetTokenExpires: true },
     });
 
     if (
@@ -325,9 +325,13 @@ export class AuthService {
       },
     });
 
-    // Revoke all existing sessions to prevent hijack persistence
+    // Revoke the sessions of this sign-in to prevent hijack persistence. A
+    // stored token that names no sign-in is revoked too, never spared.
     await this.prisma.refreshToken.deleteMany({
-      where: { userId: user.id },
+      where: {
+        userId: user.id,
+        OR: [{ signInId: signIn.id }, { signInId: null }],
+      },
     });
 
     return { message: 'Password reset successfully' };
@@ -557,6 +561,7 @@ export class AuthService {
       meta.ip || undefined,
       undefined,
       loginProfile?.id,
+      signIn.id,
     );
   }
 
@@ -564,9 +569,11 @@ export class AuthService {
   // Param userId: The user's unique identifier
   // Returns Access and refresh token pair
   // Throws UnauthorizedException if user not found or inactive
+  // Param signInId: the sign-in the passkey belongs to
   async loginById(
     userId: string,
     meta: AbuseRequestMeta = {},
+    signInId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -652,6 +659,7 @@ export class AuthService {
       meta.ip || undefined,
       undefined,
       loginProfile?.id,
+      signInId,
     );
   }
 
@@ -677,6 +685,7 @@ export class AuthService {
       sub: string;
       email: string;
       profileId?: string;
+      signInId?: string;
       familyId?: string;
       jti?: string;
     };
@@ -686,6 +695,7 @@ export class AuthService {
         sub: string;
         email: string;
         profileId?: string;
+        signInId?: string;
         familyId?: string;
         jti?: string;
       }>(refreshToken, {
@@ -763,6 +773,21 @@ export class AuthService {
       throw error;
     }
 
+    // The session keeps the sign-in that opened it: the stored token says
+    // which. A token that names another one is not this session's.
+    if (
+      payload.signInId &&
+      storedToken.signInId &&
+      payload.signInId !== storedToken.signInId
+    ) {
+      await this.prisma.refreshToken.delete({
+        where: { id: storedToken.id },
+      });
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+    const sessionSignInId =
+      storedToken.signInId ?? payload.signInId ?? undefined;
+
     // Legitimate rotation: mark current token as revoked and issue a new token within the same family
     const currentFamilyId =
       storedToken.familyId || payload.familyId || randomUUID();
@@ -782,6 +807,7 @@ export class AuthService {
       meta.ip || undefined,
       currentFamilyId,
       profile?.id,
+      sessionSignInId,
     );
   }
 
@@ -923,6 +949,7 @@ export class AuthService {
   // Param ipAddress: Optional client IP address
   // Param familyId: Optional token family identifier for session rotation lineage
   // Param profileId: Optional active profile identifier bound to the session
+  // Param signInId: Optional sign-in that opens the session; the first of the account when absent
   // Returns Signed access and refresh token pair
   public async generateTokens(
     userId: string,
@@ -931,12 +958,26 @@ export class AuthService {
     ipAddress?: string,
     familyId?: string,
     profileId?: string,
+    signInId?: string,
   ): Promise<{ accessToken: string; refreshToken: string }> {
+    // The sign-in that opens the session, inside this account: the one
+    // named, or the first of the account when none is. A sign-in of another
+    // account, or none at all, opens no session.
+    const sessionSignIn = await this.prisma.signIn.findFirst({
+      where: { userId, ...(signInId && { id: signInId }) },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    if (!sessionSignIn) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
     const tokenFamilyId = familyId || randomUUID();
     const payload = {
       sub: userId,
       email,
       ...(profileId ? { profileId } : {}),
+      signInId: sessionSignIn.id,
       jti: randomUUID(),
       familyId: tokenFamilyId,
     };
@@ -946,6 +987,7 @@ export class AuthService {
         sub: userId,
         email,
         ...(profileId ? { profileId } : {}),
+        signInId: sessionSignIn.id,
         jti: randomUUID(),
       },
       {
@@ -969,6 +1011,7 @@ export class AuthService {
         data: {
           token: hashedToken,
           userId,
+          signInId: sessionSignIn.id,
           familyId: tokenFamilyId,
           isRevoked: false,
           userAgent: userAgent || null,

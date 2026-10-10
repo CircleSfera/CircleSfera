@@ -150,6 +150,7 @@ model SignIn {
   profiles          Profile[]
   passkeys          Passkey[]
   passkeyChallenges PasskeyChallenge[]
+  refreshTokens     RefreshToken[]
 
   @@index([userId])
   @@map("sign_ins")
@@ -159,6 +160,8 @@ model RefreshToken {
   id        String    @id @default(uuid())
   token     String    @unique
   userId    String
+  // The sign-in that opened the session
+  signInId  String?
   familyId  String?
   isRevoked Boolean   @default(false)
   revokedAt DateTime?
@@ -167,9 +170,11 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([signInId])
   @@index([familyId])
   @@map("refresh_tokens")
 }

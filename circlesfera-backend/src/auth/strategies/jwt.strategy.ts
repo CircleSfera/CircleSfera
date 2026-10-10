@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import type { Request } from 'express';
@@ -16,6 +16,9 @@ export interface JwtPayload {
   sub: string;
   email: string;
   profileId?: string;
+  // The sign-in that opened the session. Absent in tokens issued before
+  // sessions carried it.
+  signInId?: string;
   jti?: string;
 }
 
@@ -52,6 +55,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     email: string;
     role: string;
     profileId: string;
+    signInId: string;
     isTestAccount: boolean;
   }> {
     const user = await this.prisma.user.findUnique({
@@ -73,13 +77,30 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     this.accountStateService.assertOperational(user, profile);
 
+    // The sign-in of the session, inside this account. A token that names
+    // none was issued before sessions carried it and is read with the first
+    // sign-in of the account. One that names a sign-in of another account,
+    // or one that is gone, is refused.
+    const signIn = await this.prisma.signIn.findFirst({
+      where: {
+        userId: user!.id,
+        ...(payload.signInId && { id: payload.signInId }),
+      },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true, email: true },
+    });
+    if (!signIn) {
+      throw new UnauthorizedException();
+    }
+
     const role = (user as { role?: string }).role || 'USER';
 
     return {
       userId: user!.id,
-      email: user!.email,
+      email: signIn.email,
       role: role,
       profileId: profile?.id || '',
+      signInId: signIn.id,
       isTestAccount: user!.isTestAccount === true,
     };
   }

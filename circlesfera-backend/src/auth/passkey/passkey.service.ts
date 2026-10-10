@@ -578,6 +578,7 @@ export class PasskeyService {
         return {
           verified: true,
           userId: user.id,
+          signInId: user.signInId,
           userVerified,
         };
       }
