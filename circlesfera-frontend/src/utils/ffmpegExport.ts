@@ -14,6 +14,7 @@ import {
   textClipsOnTracks,
   visualClipsOnVideoTracks,
 } from './studioExportHelpers';
+import { projectContentEnd } from './studioProject';
 
 // Same-origin core copied by vite plugin into public/ffmpeg
 const FFMPEG_BASE = '/ffmpeg';
@@ -153,7 +154,13 @@ export async function exportStudioProject(
     );
     const w = scaled.width;
     const h = scaled.height;
-    const duration = Math.max(project.duration, 1);
+    // The video ends with its last clip. The length kept by the project is
+    // the one of its timeline, which is never shorter than a few seconds.
+    const contentEnd = projectContentEnd(project, { visibleOnly: true });
+    const duration = Math.max(
+      contentEnd > 0 ? contentEnd : project.duration,
+      1,
+    );
     const fps = project.fps || 30;
 
     const cliInputs: string[] = [];
