@@ -5,8 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
-  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
+  canOpenTab,
   currentStaffSite,
   navGroupsFor,
 } from './adminNav';
@@ -59,7 +59,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
       <div className="flex-1 overflow-y-auto space-y-4 pr-0.5 custom-scrollbar">
         {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) =>
-            hasPermission(ADMIN_TAB_PERMISSIONS[item.id]),
+            canOpenTab(hasPermission, item.id),
           );
 
           if (visibleItems.length === 0) return null;

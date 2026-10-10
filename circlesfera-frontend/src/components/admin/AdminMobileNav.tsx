@@ -13,8 +13,8 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
-  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
+  canOpenTab,
   currentStaffSite,
   navGroupsFor,
 } from './adminNav';
@@ -179,7 +179,7 @@ export function AdminMobileDrawer({
         <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-4">
           {navGroups.map((group) => {
             const visibleItems = group.items.filter((item) => {
-              return hasPermission(ADMIN_TAB_PERMISSIONS[item.id]);
+              return canOpenTab(hasPermission, item.id);
             });
 
             if (visibleItems.length === 0) return null;

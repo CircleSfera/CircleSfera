@@ -39,6 +39,7 @@ export { default as LiveStreamsTab } from './LiveStreamsTab';
 export { default as ModerationTab } from './ModerationTab';
 export { default as MonetizationTab } from './MonetizationTab';
 export { default as NewsletterTab } from './NewsletterTab';
+export { default as OverviewTab } from './OverviewTab';
 export { default as PayoutsTab } from './PayoutsTab';
 export { default as PlansTab } from './PlansTab';
 export { default as PostDetailPanel } from './PostDetailPanel';
