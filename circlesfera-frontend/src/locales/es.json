@@ -1141,6 +1141,8 @@
     "reply_placeholder": "Responder...",
     "send_reply": "Enviar respuesta",
     "close_viewer": "Cerrar visor de historia",
+    "like": "Me gusta esta historia",
+    "position": "Historia {{current}} de {{total}} de {{username}}",
     "delete_this": "Eliminar esta historia",
     "you": "Tú",
     "yours": "Tu historia",

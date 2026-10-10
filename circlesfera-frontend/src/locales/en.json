@@ -1141,6 +1141,8 @@
     "reply_placeholder": "Reply...",
     "send_reply": "Send reply",
     "close_viewer": "Close story viewer",
+    "like": "Like story",
+    "position": "Story {{current}} of {{total}} from {{username}}",
     "delete_this": "Delete this story",
     "you": "You",
     "yours": "Your story",

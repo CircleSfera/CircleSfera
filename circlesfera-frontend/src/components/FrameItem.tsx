@@ -262,16 +262,23 @@ export default function FrameItem({
     },
   });
 
-  let clickTimeout: ReturnType<typeof setTimeout> | null = null;
+  // Kept across renders: the player reports its position several times a
+  // second, and each report redraws the frame between one tap and the next.
+  const clickTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (clickTimeout.current !== null) clearTimeout(clickTimeout.current);
+    };
+  }, []);
 
   const handleVideoClick = () => {
-    if (clickTimeout !== null) {
-      clearTimeout(clickTimeout);
-      clickTimeout = null;
+    if (clickTimeout.current !== null) {
+      clearTimeout(clickTimeout.current);
+      clickTimeout.current = null;
       handleDoubleTap();
     } else {
-      clickTimeout = setTimeout(() => {
-        clickTimeout = null;
+      clickTimeout.current = setTimeout(() => {
+        clickTimeout.current = null;
         if (!videoRef.current) return;
         if (videoRef.current.paused) {
           videoRef.current.play().catch(console.error);
