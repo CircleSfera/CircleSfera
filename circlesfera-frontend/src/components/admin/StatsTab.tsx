@@ -54,8 +54,11 @@ export default function StatsTab() {
     queryFn: () => adminApi.getTopUsers().then((r) => r.data),
   });
 
+  // Same wording as the audit log, which names every staff action.
   const formatAction = (action: string) =>
-    t(`admin.stats.actions.${action}`, action);
+    t(`admin.audit.actions.${action}`, {
+      defaultValue: action.replace(/_/g, ' ').toLowerCase(),
+    });
 
   if (isLoading) {
     return (
@@ -309,7 +312,7 @@ export default function StatsTab() {
                   <div className="min-w-0">
                     <p className="text-white text-sm font-medium">
                       <span className="text-brand-primary">
-                        @{log.adminUsername}
+                        {log.adminUsername}
                       </span>{' '}
                       <span className="text-white/70">
                         {formatAction(log.action)}
