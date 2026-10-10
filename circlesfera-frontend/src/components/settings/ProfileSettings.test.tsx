@@ -383,13 +383,16 @@ describe('ProfileSettings', () => {
       expect(screen.getByRole('button', { name: 'Upload New' })).toBeEnabled(),
     );
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    // The chosen picture itself, as read from the device.
-    expect(
-      screen
-        .getByRole('button', { name: 'Change' })
-        .querySelector('img')
-        ?.getAttribute('src'),
-    ).toMatch(/^data:image\/png;base64,/);
+    // The chosen picture itself, as read from the device. Reading it has
+    // its own pace: it can end after the upload has.
+    await waitFor(() =>
+      expect(
+        screen
+          .getByRole('button', { name: 'Change' })
+          .querySelector('img')
+          ?.getAttribute('src'),
+      ).toMatch(/^data:image\/png;base64,/),
+    );
   });
 
   it('says so when the picture could not be uploaded, until the next try', async () => {
