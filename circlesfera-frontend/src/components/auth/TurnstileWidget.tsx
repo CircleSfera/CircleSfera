@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 declare global {
   interface Window {
@@ -26,9 +27,13 @@ function loadScript(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
   const existing = document.getElementById(SCRIPT_ID);
   if (existing) {
-    return new Promise((resolve) => {
+    // Another form is already loading it. It may also have failed there:
+    // without the error path this would wait for ever.
+    return new Promise((resolve, reject) => {
       existing.addEventListener('load', () => resolve());
-      if (window.turnstile) resolve();
+      existing.addEventListener('error', () =>
+        reject(new Error('Turnstile script failed')),
+      );
     });
   }
   return new Promise((resolve, reject) => {
@@ -38,7 +43,12 @@ function loadScript(): Promise<void> {
       'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error('Turnstile script failed'));
+    script.onerror = () => {
+      // Taken out so that the next form tries again instead of waiting on a
+      // script that will never load.
+      script.remove();
+      reject(new Error('Turnstile script failed'));
+    };
     document.head.appendChild(script);
   });
 }
@@ -49,6 +59,7 @@ export default function TurnstileWidget({
 }: {
   onToken: (token: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -97,8 +108,7 @@ export default function TurnstileWidget({
     if (import.meta.env.PROD) {
       return (
         <p className="text-amber-400/90 text-xs text-center px-2">
-          Security check unavailable. Refresh the page in a minute or try again
-          after the latest deploy finishes.
+          {t('auth.security_check.unavailable')}
         </p>
       );
     }
@@ -109,7 +119,7 @@ export default function TurnstileWidget({
     <div className="flex justify-center min-h-16" data-ready={ready}>
       <div ref={containerRef} />
       <button type="button" className="sr-only" onClick={reset}>
-        Reset captcha
+        {t('auth.security_check.reset')}
       </button>
     </div>
   );

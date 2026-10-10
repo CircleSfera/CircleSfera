@@ -162,7 +162,7 @@ export default function PostOverlays({
         onClose={() => setShowTipModal(false)}
         receiverId={post.profileId}
         postId={post.id}
-        receiverName={post.profile?.username || 'Usuario'}
+        receiverName={post.profile?.username || t('common.default_user')}
       />
 
       {showMuteModal && post.profile?.username ? (

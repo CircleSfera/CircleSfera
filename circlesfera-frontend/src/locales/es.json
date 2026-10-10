@@ -575,6 +575,10 @@
     }
   },
   "auth": {
+    "security_check": {
+      "unavailable": "La comprobación de seguridad no está disponible. Recarga la página en un minuto e inténtalo de nuevo.",
+      "reset": "Reiniciar la comprobación de seguridad"
+    },
     "login": {
       "title": "CircleSfera",
       "welcome": "Bienvenido de nuevo, creador.",
@@ -1091,7 +1095,8 @@
       "previous_slide": "Foto o vídeo anterior",
       "next_slide": "Foto o vídeo siguiente",
       "position": "{{n}} de {{total}}",
-      "sensitive": "Contenido sensible difuminado"
+      "sensitive": "Contenido sensible difuminado",
+      "sensitive_reveal": "Toca para ver"
     },
     "menu": {
       "edit": "Editar",
@@ -4125,6 +4130,7 @@
     "search": "Buscar"
   },
   "common": {
+    "default_user": "Usuario",
     "cancel": "Cancelar",
     "loading": "Cargando...",
     "close": "Cerrar",
