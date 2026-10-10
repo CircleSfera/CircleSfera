@@ -51,6 +51,7 @@ export { default as SpamReviewTab } from './SpamReviewTab';
 export { default as StatCard } from './StatCard';
 export { default as StatsTab } from './StatsTab';
 export { default as StoriesTab } from './StoriesTab';
+export { default as SubscriptionsTab } from './SubscriptionsTab';
 export { default as SupportTicketsTab } from './SupportTicketsTab';
 export { default as SystemHealthTab } from './SystemHealthTab';
 export { default as TrustTab } from './TrustTab';

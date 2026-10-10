@@ -35,6 +35,7 @@ describe('the two staff sites', () => {
     expect(backoffice).toEqual([
       'support',
       'plans',
+      'subscriptions',
       'promotions',
       'payouts',
       'monetization',
@@ -53,7 +54,7 @@ describe('the two staff sites', () => {
 
   it('opens the Backoffice on the first section the operator may see', () => {
     expect(getAdminHomeTab((key) => key === 'payments', 'backoffice')).toBe(
-      'payouts',
+      'subscriptions',
     );
     expect(getAdminHomeTab(() => true, 'backoffice')).toBe('support');
   });

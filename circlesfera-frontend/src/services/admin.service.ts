@@ -378,6 +378,30 @@ export interface UserExperiment {
 }
 
 // What support sees about who wrote a ticket. It is read-only.
+export interface AdminSubscription {
+  id: string;
+  status:
+    | 'ACTIVE'
+    | 'TRIALING'
+    | 'PAST_DUE'
+    | 'INCOMPLETE'
+    | 'CANCELLED'
+    | 'EXPIRED';
+  stripeSubscriptionId: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+  plan: { id: string; name: string; priceCents: number; currency: string };
+  profile: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    avatar: string | null;
+  } | null;
+  // Null once the account was deleted; the row is kept for tax records.
+  user: { id: string; email: string } | null;
+}
+
 export interface AdminPlan {
   id: string;
   name: string;
@@ -1053,6 +1077,18 @@ export const adminApi = {
     apiClient.get<AdminSupportAccount | null>(
       `admin/support/tickets/${id}/account`,
     ),
+
+  // Platform plan subscriptions. Read only.
+  getSubscriptions: (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    planId?: string;
+    search?: string;
+  }) =>
+    apiClient.get<PaginatedResponse<AdminSubscription>>('admin/subscriptions', {
+      params,
+    }),
 
   // Plan catalogue: what each platform plan includes. Prices are read-only.
   getPlans: () => apiClient.get<AdminPlanCatalogue>('admin/plans'),

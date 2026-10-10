@@ -4,6 +4,7 @@ import {
   Bot,
   Briefcase,
   Clock,
+  CreditCard,
   DollarSign,
   Flag,
   FlaskConical,
@@ -56,6 +57,7 @@ export type AdminTab =
   | 'spam-review'
   | 'support'
   | 'plans'
+  | 'subscriptions'
   | 'roles'
   | 'trust'
   | 'live'
@@ -103,6 +105,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   'spam-review': 'users.read',
   support: 'support',
   plans: 'plans',
+  subscriptions: 'payments',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -264,6 +267,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.plans',
         icon: BadgeCheck,
       },
+      {
+        id: 'subscriptions',
+        labelKey: 'admin.nav.subscriptions',
+        icon: CreditCard,
+      },
     ],
   },
 ];
@@ -276,6 +284,7 @@ export type StaffSite = 'admin' | 'backoffice';
 const BACKOFFICE_TABS: readonly AdminTab[] = [
   'support',
   'plans',
+  'subscriptions',
   'promotions',
   'payouts',
   'monetization',
