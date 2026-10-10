@@ -492,7 +492,11 @@ export interface AdminSupportTicket {
   user?: {
     id: string;
     email: string;
-    profile?: { username: string; avatar: string | null } | null;
+    profile?: {
+      username: string;
+      avatar: string | null;
+      fullName?: string | null;
+    } | null;
   } | null;
 }
 
@@ -513,6 +517,15 @@ export interface AdminSupportTicketDetail extends AdminSupportTicket {
   events?: AdminSupportEvent[];
   // The names of the agents the ticket mentions, by reference.
   agents?: Record<string, string>;
+}
+
+// An answer kept for a repeated question: the agent's own, or shared.
+export interface AdminSavedReply {
+  id: string;
+  title: string;
+  body: string;
+  shared: boolean;
+  updatedAt: string;
 }
 
 // An agent a ticket can be given to.
@@ -1130,6 +1143,16 @@ export const adminApi = {
       'admin/support/tickets',
       { params: { page, limit, status, category, ...team } },
     ),
+
+  // Saved replies: the shared ones and the agent's own.
+  getSavedReplies: () =>
+    apiClient.get<AdminSavedReply[]>('admin/support/saved-replies'),
+  createSavedReply: (data: { title: string; body: string; shared?: boolean }) =>
+    apiClient.post<AdminSavedReply>('admin/support/saved-replies', data),
+  updateSavedReply: (id: string, data: { title?: string; body?: string }) =>
+    apiClient.patch<AdminSavedReply>(`admin/support/saved-replies/${id}`, data),
+  deleteSavedReply: (id: string) =>
+    apiClient.delete<{ deleted: boolean }>(`admin/support/saved-replies/${id}`),
 
   // The agents a ticket can be given to.
   getSupportAgents: () =>

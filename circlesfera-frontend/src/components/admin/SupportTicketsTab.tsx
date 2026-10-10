@@ -19,6 +19,11 @@ import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatDateTime } from '../../utils/format';
+import {
+  addToDraft,
+  fillSavedReply,
+  requesterGreetingName,
+} from '../../utils/savedReply';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -30,6 +35,7 @@ import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination } from './AdminTable';
 import { staffTabHref } from './adminNav';
+import { SavedReplies } from './SavedReplies';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -927,6 +933,32 @@ export default function SupportTicketsTab({ onToast }: Props) {
                             label: t('admin.support.kind_note'),
                           },
                         ]}
+                      />
+                    )}
+                    {kind === 'PUBLIC' && (
+                      <SavedReplies
+                        leadsTeam={leadsTeam}
+                        onToast={onToast}
+                        onInsert={(body) => {
+                          if (!draft.trim()) {
+                            setWritingFrom({
+                              ticketId: selectedTicket.id,
+                              lastId: lastMessageId,
+                            });
+                          }
+                          setDraft(
+                            addToDraft(
+                              draft,
+                              fillSavedReply(body, {
+                                name: requesterGreetingName(
+                                  selectedTicket.user?.profile,
+                                ),
+                                subject: selectedTicket.subject,
+                                reference: selectedTicket.reference,
+                              }),
+                            ),
+                          );
+                        }}
                       />
                     )}
                     <Textarea
