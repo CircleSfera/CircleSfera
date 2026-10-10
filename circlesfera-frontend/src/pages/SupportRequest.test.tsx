@@ -7,7 +7,12 @@ import { renderWithProviders } from '../test/test-utils';
 import { SupportRequest } from './SupportRequest';
 
 vi.mock('../services/support.service', () => ({
-  supportApi: { myRequests: vi.fn(), myRequest: vi.fn(), reply: vi.fn() },
+  supportApi: {
+    myRequests: vi.fn(),
+    myRequest: vi.fn(),
+    reply: vi.fn(),
+    rate: vi.fn(),
+  },
 }));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 
@@ -194,5 +199,110 @@ describe('MyRequests', () => {
 
     await waitFor(() => expect(supportApi.myRequests).toHaveBeenCalled());
     expect(container).toBeEmptyDOMElement();
+  });
+
+  describe('rating the answer', () => {
+    const question = 'Did the answer help?';
+
+    it('is offered on a solved request, and not on an open or waiting one', async () => {
+      for (const status of ['OPEN', 'WAITING', 'ESCALATED']) {
+        const { unmount } = open(request({ status }));
+        await screen.findByText('Which days were they?');
+        expect(screen.queryByText(question)).not.toBeInTheDocument();
+        unmount();
+      }
+
+      open(request({ status: 'RESOLVED' }));
+      expect(await screen.findByText(question)).toBeInTheDocument();
+      // Nothing to send until they choose.
+      expect(screen.queryByRole('button', { name: 'Send rating' })).toBeNull();
+    });
+
+    it('sends the choice and the comment, and thanks them', async () => {
+      const rated = request({
+        status: 'RESOLVED',
+        rating: { score: 'BAD', comment: 'It is still charged twice' },
+      });
+      vi.mocked(supportApi.rate).mockResolvedValue({ data: rated } as never);
+      open(request({ status: 'RESOLVED' }));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'No' }));
+      expect(screen.getByRole('button', { name: 'No' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      fireEvent.change(
+        screen.getByLabelText('Anything else you want to tell us? (optional)'),
+        { target: { value: '  It is still charged twice  ' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Send rating' }));
+
+      await waitFor(() =>
+        expect(supportApi.rate).toHaveBeenCalledWith(
+          't-1',
+          'BAD',
+          'It is still charged twice',
+        ),
+      );
+      expect(
+        await screen.findByText('Thank you for your rating.'),
+      ).toBeInTheDocument();
+    });
+
+    it('shows the rating they gave and lets them change it, without a comment if they leave it empty', async () => {
+      vi.mocked(supportApi.rate).mockResolvedValue({
+        data: request({
+          status: 'RESOLVED',
+          rating: { score: 'GOOD', comment: null },
+        }),
+      } as never);
+      open(
+        request({
+          status: 'RESOLVED',
+          rating: { score: 'BAD', comment: null },
+        }),
+      );
+
+      expect(await screen.findByRole('button', { name: 'No' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Yes' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Change rating' }));
+
+      await waitFor(() =>
+        expect(supportApi.rate).toHaveBeenCalledWith('t-1', 'GOOD', undefined),
+      );
+    });
+
+    it('says so when it cannot be saved, and keeps the choice', async () => {
+      vi.mocked(supportApi.rate).mockRejectedValue(new Error('down'));
+      open(request({ status: 'RESOLVED' }));
+
+      fireEvent.click(await screen.findByRole('button', { name: 'Yes' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Send rating' }));
+
+      expect(await screen.findByRole('alert')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Yes' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+    });
+
+    it('only shows the rating once the request is closed, and nothing if there was none', async () => {
+      const { unmount } = open(
+        request({ status: 'CLOSED', rating: { score: 'GOOD', comment: null } }),
+      );
+      expect(
+        await screen.findByText('Your rating of the answer: Yes'),
+      ).toBeInTheDocument();
+      expect(screen.queryByText(question)).not.toBeInTheDocument();
+      unmount();
+
+      open(request({ status: 'CLOSED' }));
+      await screen.findByText('Which days were they?');
+      expect(screen.queryByText(/Your rating of the answer/)).toBeNull();
+      expect(screen.queryByText(question)).not.toBeInTheDocument();
+    });
   });
 });

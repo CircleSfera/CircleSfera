@@ -29,8 +29,15 @@ export interface SupportRequestMessage {
   createdAt: string;
 }
 
+/** What the person thought of the answer. */
+export interface SupportRequestRating {
+  score: 'GOOD' | 'BAD';
+  comment: string | null;
+}
+
 export interface SupportRequestDetail extends SupportRequest {
   messages: SupportRequestMessage[];
+  rating?: SupportRequestRating | null;
 }
 
 export const supportApi = {
@@ -42,6 +49,13 @@ export const supportApi = {
 
   myRequest: (id: string) =>
     apiClient.get<SupportRequestDetail>(`/support/tickets/${id}`),
+
+  // Whether the answer of a solved request was good or bad.
+  rate: (id: string, score: 'GOOD' | 'BAD', comment?: string) =>
+    apiClient.put<SupportRequestDetail>(`/support/tickets/${id}/rating`, {
+      score,
+      ...(comment && { comment }),
+    }),
 
   reply: (id: string, body: string) =>
     apiClient.post<SupportRequestDetail>(`/support/tickets/${id}/messages`, {

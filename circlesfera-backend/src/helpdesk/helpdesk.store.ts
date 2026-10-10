@@ -237,6 +237,8 @@ export class HelpdeskStore {
         createdAt: true,
         updatedAt: true,
         resolvedAt: true,
+        // What they thought of the answer is theirs too.
+        rating: { select: { score: true, comment: true, updatedAt: true } },
         messages: {
           where: { visibility: 'PUBLIC' },
           orderBy: { createdAt: 'asc' },
@@ -648,6 +650,29 @@ export class HelpdeskStore {
         },
       },
       select: { firstResponseMinutes: true, resolutionMinutes: true },
+    });
+  }
+
+  /** What the requester thought of the answer of a ticket, or nothing. */
+  rating(ticketId: string) {
+    return this.prisma.helpdeskRating.findFirst({
+      where: { ticketId, organizationId: this.organizationId },
+      select: { score: true, comment: true, updatedAt: true },
+    });
+  }
+
+  /** Stores the rating of a ticket: one per ticket, the last one given. */
+  rate(ticketId: string, score: 'GOOD' | 'BAD', comment: string | null) {
+    return this.prisma.helpdeskRating.upsert({
+      where: { ticketId },
+      create: {
+        organizationId: this.organizationId,
+        ticketId,
+        score,
+        comment,
+      },
+      update: { score, comment },
+      select: { score: true, comment: true, updatedAt: true },
     });
   }
 }

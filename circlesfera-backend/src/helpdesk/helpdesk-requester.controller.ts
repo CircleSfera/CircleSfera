@@ -5,6 +5,7 @@ import {
   Inject,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -15,6 +16,7 @@ import {
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
+import { RateTicketDto } from './dto/rate-ticket.dto.js';
 import { RequesterMessageDto } from './dto/requester-message.dto.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
@@ -72,5 +74,16 @@ export class HelpdeskRequesterController {
     @Body() dto: RequesterMessageDto,
   ) {
     return this.tickets.replyToMyTicket(user.userId, id, dto);
+  }
+
+  // Whether the answer of one of their solved tickets was good or bad.
+  @Put('tickets/:id/rating')
+  @UseGuards(JwtAuthGuard)
+  async rateMyTicket(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id') id: string,
+    @Body() dto: RateTicketDto,
+  ) {
+    return this.tickets.rateMyTicket(user.userId, id, dto);
   }
 }

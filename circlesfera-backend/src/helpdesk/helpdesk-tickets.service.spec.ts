@@ -17,6 +17,8 @@ describe('HelpdeskTicketsService', () => {
     messages: vi.fn(),
     events: vi.fn(),
     serviceTarget: vi.fn(),
+    rating: vi.fn(),
+    rate: vi.fn(),
   };
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
@@ -86,6 +88,7 @@ describe('HelpdeskTicketsService', () => {
     agents.describe.mockResolvedValue(new Map());
     serviceLevels.levelOf.mockResolvedValue('STANDARD');
     store.serviceTarget.mockResolvedValue(null);
+    store.rating.mockResolvedValue(null);
     agents.assignable.mockResolvedValue([
       { ref: 'admin-1', name: 'Ana' },
       { ref: 'admin-3', name: 'Carla' },
@@ -637,6 +640,7 @@ describe('HelpdeskTicketsService', () => {
       expect(store.events).not.toHaveBeenCalled();
       expect(result).toEqual({
         ...shown,
+        rating: null,
         messages: [
           {
             id: 'm-1',
