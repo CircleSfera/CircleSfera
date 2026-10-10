@@ -1470,6 +1470,7 @@
       "frame_desc": "Video corto",
       "frame_hint": "MP4, MOV · Elige 15–90s · Máx 100MB",
       "frame_video_only": "Los Frames solo admiten video.",
+      "unsupported_file": "Solo se pueden añadir fotos y vídeos.",
       "frame_duration": "Los videos de Frame deben durar entre {{min}} y {{max}} segundos.",
       "frame_too_short": "Los videos de Frame deben durar al menos {{min}} segundos. Elige un clip más largo.",
       "frame_duration_probe_failed": "No se pudo leer la duración de este video. Prueba con otro archivo.",

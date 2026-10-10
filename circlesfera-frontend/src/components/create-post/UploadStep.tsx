@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ChangeEvent, MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { CreateMode } from '../../hooks/useCreatePost';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
@@ -51,6 +52,14 @@ const MODE_CONFIG = {
     accept: 'video/*',
   },
 } as const;
+
+// Some systems hand phone photos over with no type: those go by extension.
+const PHONE_PHOTO = /\.(heic|heif)$/i;
+
+const isPhotoOrVideo = (file: File) =>
+  file.type.startsWith('image/') ||
+  file.type.startsWith('video/') ||
+  (file.type === '' && PHONE_PHOTO.test(file.name));
 
 export default function UploadStep({
   fileInputRef,
@@ -115,12 +124,22 @@ export default function UploadStep({
         if (input) {
           const dt = new DataTransfer();
           const list = Array.from(files);
+          // A drop is not limited by the file dialog: only photos and
+          // videos enter the composer, whichever way they come.
           const accepted =
             mode === 'FRAME'
               ? list.filter((f) => f.type.startsWith('video/')).slice(0, 1)
-              : list;
-          if (mode === 'FRAME' && accepted.length === 0) {
+              : list.filter(isPhotoOrVideo);
+          if (accepted.length === 0) {
+            toast.error(
+              mode === 'FRAME'
+                ? t('createPost.upload.frame_video_only')
+                : t('createPost.upload.unsupported_file'),
+            );
             return;
+          }
+          if (mode !== 'FRAME' && accepted.length < list.length) {
+            toast.error(t('createPost.upload.unsupported_file'));
           }
           for (const file of accepted) {
             dt.items.add(file);
@@ -130,7 +149,7 @@ export default function UploadStep({
         }
       }
     },
-    [fileInputRef, mode],
+    [fileInputRef, mode, t],
   );
 
   const openCamera = async (e: React.MouseEvent) => {

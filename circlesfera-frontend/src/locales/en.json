@@ -1470,6 +1470,7 @@
       "frame_desc": "Short-form video",
       "frame_hint": "MP4, MOV · Choose 15–90s · Max 100MB",
       "frame_video_only": "Frames only accept video.",
+      "unsupported_file": "Only photos and videos can be added.",
       "frame_duration": "Frame videos must be between {{min}} and {{max}} seconds.",
       "frame_too_short": "Frame videos must be at least {{min}} seconds. Pick a longer clip.",
       "frame_duration_probe_failed": "Could not read this video’s duration. Try another file.",

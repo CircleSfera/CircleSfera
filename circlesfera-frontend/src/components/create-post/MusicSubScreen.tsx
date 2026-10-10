@@ -59,6 +59,9 @@ export default function MusicSubScreen({
   const [trimTrack, setTrimTrack] = useState<Audio | null>(null);
   const [trimStartMs, setTrimStartMs] = useState(0);
   const [isTrimPreviewPlaying, setIsTrimPreviewPlaying] = useState(false);
+  // The track of the list being listened to, where the clean-up can reach
+  // it: a screen that is going away no longer runs state updates.
+  const listAudioRef = useRef<HTMLAudioElement | null>(null);
   const trimAudioRef = useRef<HTMLAudioElement | null>(null);
   const trimStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -92,10 +95,8 @@ export default function MusicSubScreen({
 
   useEffect(() => {
     return () => {
-      setAudioElement((prev) => {
-        prev?.pause();
-        return null;
-      });
+      listAudioRef.current?.pause();
+      listAudioRef.current = null;
       if (trimStopTimerRef.current) {
         clearTimeout(trimStopTimerRef.current);
         trimStopTimerRef.current = null;
@@ -127,6 +128,7 @@ export default function MusicSubScreen({
 
   const stopListPreview = () => {
     audioElement?.pause();
+    listAudioRef.current = null;
     setPlayingAudioId(null);
     setAudioElement(null);
   };
@@ -150,6 +152,7 @@ export default function MusicSubScreen({
       stopListPreview();
       const newAudio = new window.Audio(audio.url);
       newAudio.play().catch(() => {});
+      listAudioRef.current = newAudio;
       setPlayingAudioId(audio.id);
       setAudioElement(newAudio);
       newAudio.onended = () => setPlayingAudioId(null);
