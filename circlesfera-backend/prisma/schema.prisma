@@ -1675,17 +1675,16 @@ model SupportTicket {
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 
-  // The Help Desk organization the ticket belongs to. Filled for every
-  // ticket; not null in a later change.
-  organizationId String?
+  // The Help Desk organization the ticket belongs to
+  organizationId String
   // Short number shown to requester and agent
-  reference      Int     @unique @default(autoincrement())
+  reference      Int    @unique @default(autoincrement())
 
-  user              User?                 @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
-  escalatedReportId String?               @unique
-  escalatedReport   Report?               @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
-  organization      HelpdeskOrganization? @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  escalatedReportId String?              @unique
+  escalatedReport   Report?              @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  organization      HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   messages          HelpdeskMessage[]
 
   @@index([userId])

@@ -32,6 +32,8 @@ describe('HelpdeskAgentController', () => {
     updateTicket: vi.fn(),
     handOver: vi.fn(),
     accountCard: vi.fn(),
+    getTicket: vi.fn(),
+    addMessage: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -139,5 +141,63 @@ describe('HelpdeskAgentController', () => {
       .get('/api/v1/admin/support/tickets?category=BILLING')
       .set(ADMIN_BEARER)
       .expect(400);
+  });
+
+  it('reads one ticket with its conversation', async () => {
+    mockService.getTicket.mockResolvedValue({ id: 't-1', messages: [] });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets/t-1')
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(mockService.getTicket).toHaveBeenCalledWith('t-1');
+    expect(res.body).toEqual({ id: 't-1', messages: [] });
+  });
+
+  it('adds an answer or a note as the agent', async () => {
+    mockService.addMessage.mockResolvedValue({ id: 't-1' });
+    const note = { body: 'Checked the payment.', visibility: 'INTERNAL' };
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/support/tickets/t-1/messages')
+      .set(ADMIN_BEARER)
+      .send(note)
+      .expect(201);
+
+    expect(mockService.addMessage).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      't-1',
+      note,
+    );
+  });
+
+  it.each([
+    ['no visibility', { body: 'Hello' }],
+    [
+      'a visibility that does not exist',
+      { body: 'Hello', visibility: 'SECRET' },
+    ],
+    ['an empty body', { body: '', visibility: 'PUBLIC' }],
+    [
+      'a body over 5000 characters',
+      { body: 'x'.repeat(5001), visibility: 'PUBLIC' },
+    ],
+    [
+      'a state an answer cannot leave',
+      { body: 'Hello', visibility: 'PUBLIC', status: 'CLOSED' },
+    ],
+    [
+      'an author sent by the client',
+      { body: 'Hello', visibility: 'PUBLIC', authorRef: 'someone-else' },
+    ],
+  ])('rejects a message with %s', async (_case, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/support/tickets/t-1/messages')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.addMessage).not.toHaveBeenCalled();
   });
 });

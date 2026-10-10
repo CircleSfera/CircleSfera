@@ -1,0 +1,139 @@
+import { Inject, Injectable } from '@nestjs/common';
+import type {
+  HelpdeskMessageVisibility,
+  Prisma,
+  TicketCategory,
+} from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  ORGANIZATION_SCOPE,
+  type OrganizationScope,
+} from './helpdesk-host.contracts.js';
+
+type TicketChanges = Omit<
+  Prisma.SupportTicketUncheckedUpdateInput,
+  'id' | 'organizationId'
+>;
+
+/**
+ * The only place of the Help Desk that talks to the database. Every read and
+ * every write carries the organization of the current request, so a service
+ * cannot reach a ticket of another organization by forgetting a filter.
+ */
+@Injectable()
+export class HelpdeskStore {
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(ORGANIZATION_SCOPE)
+    private readonly organization: OrganizationScope,
+  ) {}
+
+  private get organizationId() {
+    return this.organization.current();
+  }
+
+  openTicket(ticket: {
+    requesterRef: string;
+    email: string;
+    subject: string;
+    message: string;
+    category?: TicketCategory;
+  }) {
+    return this.prisma.supportTicket.create({
+      data: {
+        organizationId: this.organizationId,
+        userId: ticket.requesterRef,
+        email: ticket.email,
+        subject: ticket.subject,
+        // Kept while the column exists; the conversation is the messages.
+        message: ticket.message,
+        category: ticket.category,
+        messages: {
+          create: {
+            authorKind: 'REQUESTER',
+            authorRef: ticket.requesterRef,
+            body: ticket.message,
+          },
+        },
+      },
+    });
+  }
+
+  findTicket(id: string) {
+    return this.prisma.supportTicket.findFirst({
+      where: { id, organizationId: this.organizationId },
+    });
+  }
+
+  async listTickets(
+    filters: Pick<Prisma.SupportTicketWhereInput, 'status' | 'category'>,
+    page: number,
+    limit: number,
+    oldestFirst: boolean,
+  ) {
+    const where: Prisma.SupportTicketWhereInput = {
+      ...filters,
+      organizationId: this.organizationId,
+    };
+    const [tickets, total] = await Promise.all([
+      this.prisma.supportTicket.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: { createdAt: oldestFirst ? 'asc' : 'desc' },
+      }),
+      this.prisma.supportTicket.count({ where }),
+    ]);
+    return { tickets, total };
+  }
+
+  /**
+   * Changes a ticket and, when given, adds a message to it in the same
+   * statement.
+   */
+  updateTicket(
+    id: string,
+    changes: TicketChanges,
+    message?: {
+      authorKind: 'AGENT' | 'SYSTEM';
+      authorRef: string | null;
+      visibility: HelpdeskMessageVisibility;
+      body: string;
+    },
+  ) {
+    // A ticket never changes identity or organization, whatever is passed.
+    const {
+      id: _id,
+      organizationId: _organizationId,
+      ...safeChanges
+    } = changes as Prisma.SupportTicketUncheckedUpdateInput;
+    return this.prisma.supportTicket.update({
+      where: { id, organizationId: this.organizationId },
+      data: {
+        ...safeChanges,
+        ...(message && { messages: { create: message } }),
+      },
+    });
+  }
+
+  /** The conversation of a ticket, oldest first. */
+  messages(ticketId: string, visibility?: HelpdeskMessageVisibility) {
+    return this.prisma.helpdeskMessage.findMany({
+      where: {
+        ticketId,
+        ticket: { organizationId: this.organizationId },
+        ...(visibility && { visibility }),
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        authorKind: true,
+        authorRef: true,
+        visibility: true,
+        body: true,
+        channel: true,
+        createdAt: true,
+      },
+    });
+  }
+}
