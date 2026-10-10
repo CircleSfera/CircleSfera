@@ -40,7 +40,7 @@ export const ActiveSessionsSettings: React.FC = () => {
       setSessions(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       logger.error('Failed to load active sessions:', err);
-      setError(t('settings.security.sessions_subtitle'));
+      setError(t('settings.security.sessions_load_error'));
     } finally {
       setLoading(false);
     }
@@ -53,10 +53,12 @@ export const ActiveSessionsSettings: React.FC = () => {
   const handleRevokeSingle = async (id: string) => {
     try {
       setRevokingId(id);
+      setError(null);
       await authApi.revokeSession(id);
       setSessions((prev) => prev.filter((s) => s.id !== id));
     } catch (err) {
       logger.error('Failed to revoke session:', err);
+      setError(t('settings.security.revoke_error'));
     } finally {
       setRevokingId(null);
     }
@@ -69,6 +71,7 @@ export const ActiveSessionsSettings: React.FC = () => {
       await fetchSessions();
     } catch (err) {
       logger.error('Failed to revoke other sessions:', err);
+      setError(t('settings.security.revoke_error'));
     } finally {
       setRevokingOthers(false);
     }
@@ -133,7 +136,10 @@ export const ActiveSessionsSettings: React.FC = () => {
       </div>
 
       {error && (
-        <div className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl">
+        <div
+          role="alert"
+          className="flex items-center space-x-2 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-xs rounded-xl"
+        >
           <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{error}</span>
         </div>
@@ -175,7 +181,7 @@ export const ActiveSessionsSettings: React.FC = () => {
                       )}
                     </div>
                     <div className="flex items-center space-x-2 text-xs text-gray-400 mt-0.5">
-                      <span>IP: {session.ipAddress || '127.0.0.1'}</span>
+                      <span>IP: {session.ipAddress || '—'}</span>
                       <span>•</span>
                       <span>
                         {formatDate(session.createdAt, i18n.language)}

@@ -301,6 +301,8 @@
       "sessions_subtitle": "Gestiona y revoca los accesos activos en tus dispositivos",
       "revoke_others": "Cerrar otras sesiones",
       "current_device": "Este dispositivo",
+      "sessions_load_error": "No se pudieron cargar tus sesiones. Inténtalo de nuevo.",
+      "revoke_error": "No se pudo cerrar la sesión. Inténtalo de nuevo.",
       "loading_sessions": "Cargando sesiones activas...",
       "no_other_sessions": "No hay sesiones activas adicionales en este momento.",
       "2fa": {
