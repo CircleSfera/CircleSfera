@@ -72,6 +72,7 @@ export class HelpdeskTicketsService {
     status: TicketStatus;
     createdAt: Date;
     updatedAt: Date;
+    previousTicketId?: string | null;
   }) {
     return {
       id: ticket.id,
@@ -81,6 +82,8 @@ export class HelpdeskTicketsService {
       status: ticket.status,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
+      // The closed request this one continues, when there is one.
+      previousTicketId: ticket.previousTicketId ?? null,
     };
   }
 
@@ -155,7 +158,21 @@ export class HelpdeskTicketsService {
     }
     const ticket = await this.requesterTicketOrFail(id, requesterRef);
     if (ticket.status === 'CLOSED') {
-      throw new ConflictException('A closed ticket cannot be answered');
+      // A closed ticket stays closed: what they write opens a new one that
+      // continues it.
+      const subject = ticket.subject.startsWith('Re: ')
+        ? ticket.subject
+        : `Re: ${ticket.subject}`.slice(0, 100);
+      const continued = await this.store.openTicket({
+        requesterRef,
+        email: ticket.email,
+        subject,
+        message: body,
+        category: ticket.category,
+        previousTicketId: ticket.id,
+      });
+      this.teamChannel.ticketOpened(continued);
+      return this.getMyTicket(requesterRef, continued.id);
     }
 
     const reopened = ticket.status === 'RESOLVED';
@@ -434,6 +451,14 @@ export class HelpdeskTicketsService {
       ...updated,
       escalatedReport: handed ? { id: handed.id, status: handed.status } : null,
     };
+  }
+
+  // Closes the tickets that were solved some days ago and got no reply. A
+  // reply reopens a ticket, so a solved one is one nobody answered. Safe to
+  // run again.
+  async closeSolvedTickets(afterDays = 7): Promise<number> {
+    const before = new Date(Date.now() - afterDays * 24 * 60 * 60 * 1000);
+    return this.store.closeSolvedBefore(before);
   }
 
   // Brings back to support the tickets whose case with another team is

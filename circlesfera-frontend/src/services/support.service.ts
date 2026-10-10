@@ -12,6 +12,8 @@ export interface SupportRequest {
   status: SupportRequestStatus;
   createdAt: string;
   updatedAt: string;
+  // The closed request this one continues, when there is one.
+  previousTicketId?: string | null;
 }
 
 export interface SupportRequestMessage {

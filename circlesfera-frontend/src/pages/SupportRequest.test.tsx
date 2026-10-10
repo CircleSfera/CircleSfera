@@ -111,16 +111,45 @@ describe('SupportRequest', () => {
     ).toBeInTheDocument();
   });
 
-  it('offers no reply on a closed request, and the way to write a new one', async () => {
+  it('on a closed request, what they write opens a new one and takes them to it', async () => {
+    const continued = request({
+      id: 't-2',
+      reference: 43,
+      subject: 'Re: I was charged twice',
+      previousTicketId: 't-1',
+      messages: [
+        {
+          id: 'm-9',
+          authorKind: 'REQUESTER',
+          body: 'It happened again.',
+          createdAt: '2026-10-01T10:00:00.000Z',
+        },
+      ],
+    });
+    vi.mocked(supportApi.reply).mockResolvedValue({ data: continued } as never);
     open(request({ status: 'CLOSED' }));
 
     expect(
       await screen.findByText(/This request is closed/),
     ).toBeInTheDocument();
-    expect(screen.queryByLabelText('Reply')).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Write again about this'), {
+      target: { value: 'It happened again.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }));
+
+    await waitFor(() =>
+      expect(supportApi.reply).toHaveBeenCalledWith(
+        't-1',
+        'It happened again.',
+      ),
+    );
+    // The page is now the new request, which says what it continues.
     expect(
-      screen.getByRole('link', { name: 'Write a new one' }),
-    ).toHaveAttribute('href', '/support');
+      await screen.findByRole('heading', { name: 'Re: I was charged twice' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Continues an earlier request' }),
+    ).toHaveAttribute('href', '/support/requests/t-1');
   });
 
   it('says so when the request is not theirs or does not exist', async () => {

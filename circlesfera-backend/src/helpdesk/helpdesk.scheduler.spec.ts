@@ -19,4 +19,15 @@ describe('HelpdeskScheduler', () => {
       new HelpdeskScheduler(tickets as never).returnDecidedHandovers(),
     ).resolves.toBeUndefined();
   });
+
+  it('closes solved tickets, and survives a failed run', async () => {
+    const tickets = { closeSolvedTickets: vi.fn().mockResolvedValue(1) };
+    await new HelpdeskScheduler(tickets as never).closeSolvedTickets();
+    expect(tickets.closeSolvedTickets).toHaveBeenCalledTimes(1);
+
+    tickets.closeSolvedTickets.mockRejectedValue(new Error('db down'));
+    await expect(
+      new HelpdeskScheduler(tickets as never).closeSolvedTickets(),
+    ).resolves.toBeUndefined();
+  });
 });
