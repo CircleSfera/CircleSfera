@@ -302,6 +302,8 @@
       "sessions_subtitle": "Manage and revoke active session access across your devices",
       "revoke_others": "Log out other sessions",
       "current_device": "This device",
+      "sessions_load_error": "Your sessions could not be loaded. Try again.",
+      "revoke_error": "The session could not be closed. Try again.",
       "loading_sessions": "Loading active sessions...",
       "no_other_sessions": "No additional active sessions at this time.",
       "2fa": {
