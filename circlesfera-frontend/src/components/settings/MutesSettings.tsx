@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { followsApi, type MutedUserEntry } from '../../services';
 import type { ProfileWithUser } from '../../types';
@@ -45,11 +46,13 @@ export default function MutesSettings() {
   const unblockMutation = useMutation({
     mutationFn: (targetUsername: string) => followsApi.unblock(targetUsername),
     onSuccess: () => refetchBlocked(),
+    onError: () => toast.error(t('settings.mutes.unblock_error')),
   });
 
   const unmuteMutation = useMutation({
     mutationFn: (targetUsername: string) => followsApi.unmute(targetUsername),
     onSuccess: () => refetchMuted(),
+    onError: () => toast.error(t('settings.mutes.unmute_error')),
   });
 
   const renderBlockedRow = (user: ProfileWithUser) => (
@@ -78,7 +81,11 @@ export default function MutesSettings() {
       <Button
         onClick={() => user.username && unblockMutation.mutate(user.username)}
         variant="outline"
-        isLoading={unblockMutation.isPending}
+        isLoading={
+          unblockMutation.isPending &&
+          unblockMutation.variables === user.username
+        }
+        disabled={unblockMutation.isPending}
         className="min-h-11 text-sm font-semibold px-4 shrink-0"
       >
         {t('settings.mutes.unblock')}
@@ -129,7 +136,11 @@ export default function MutesSettings() {
               user.username && unmuteMutation.mutate(user.username)
             }
             variant="outline"
-            isLoading={unmuteMutation.isPending}
+            isLoading={
+              unmuteMutation.isPending &&
+              unmuteMutation.variables === user.username
+            }
+            disabled={unmuteMutation.isPending}
             className="min-h-11 text-sm font-semibold px-4"
           >
             {t('settings.mutes.unmute')}
