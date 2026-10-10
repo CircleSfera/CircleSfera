@@ -11,6 +11,7 @@ import {
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useUIStore } from '../../stores/uiStore';
 
 type MenuItem = {
@@ -27,6 +28,11 @@ export default function CreateBottomSheet() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const dragControls = useDragControls();
+  // A dialog: the focus goes into it, stays in it, and returns to what
+  // opened it.
+  const sheetRef = useFocusTrap<HTMLDivElement>(isCreateMenuOpen, undefined, {
+    onEscape: closeCreateMenu,
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -165,6 +171,7 @@ export default function CreateBottomSheet() {
             size={compact ? 22 : 26}
             className={`relative z-10 transition-transform group-hover:scale-110 md:w-8 md:h-8 ${iconColor}`}
             strokeWidth={1.5}
+            aria-hidden
           />
         </div>
 
@@ -199,6 +206,11 @@ export default function CreateBottomSheet() {
           />
 
           <motion.div
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-menu-title"
+            tabIndex={-1}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -224,7 +236,10 @@ export default function CreateBottomSheet() {
             </div>
 
             <div className="text-center pb-3 md:pt-4 border-b border-white/10">
-              <h2 className="text-white font-bold text-lg">
+              <h2
+                id="create-menu-title"
+                className="text-white font-bold text-lg"
+              >
                 {t('create_menu.title')}
               </h2>
             </div>
