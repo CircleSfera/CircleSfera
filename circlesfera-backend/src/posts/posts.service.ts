@@ -45,6 +45,7 @@ import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constant
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
+import { FrameCoverService } from './services/frame-cover.service.js';
 import { PostDistributionService } from './services/post-distribution.service.js';
 import { PostMediaCleanupService } from './services/post-media-cleanup.service.js';
 import { PostPaywallService } from './services/post-paywall.service.js';
@@ -65,6 +66,8 @@ export class PostsService {
     private readonly postDistributionService: PostDistributionService,
     @Inject(PostMediaCleanupService)
     private readonly postMediaCleanupService: PostMediaCleanupService,
+    @Inject(FrameCoverService)
+    private readonly frameCover: FrameCoverService,
   ) {}
 
   // Create a new post with media, caption, hashtags, and mentions.
@@ -79,6 +82,11 @@ export class PostsService {
     );
     if (!postingEnabled) {
       throw new ForbiddenException('CONTENT_POSTING_DISABLED');
+    }
+
+    // Only a frame has a cover to choose; said before anything is created.
+    if (dto.coverTimeMs !== undefined && dto.type !== 'FRAME') {
+      throw new BadRequestException('Only a frame has a cover to choose');
     }
 
     // Extract hashtags and mentions
@@ -276,6 +284,10 @@ export class PostsService {
         return post;
       },
     );
+
+    if (dto.coverTimeMs !== undefined) {
+      await this.frameCover.choose(createdPost.id, dto.coverTimeMs);
+    }
 
     // Fetch complete post with relations before returning
     const createdPostWithRelations = await this.prisma.post.findUniqueOrThrow({
@@ -762,6 +774,12 @@ export class PostsService {
   // Throws ForbiddenException if user is not the author
   async update(id: string, dto: UpdatePostDto) {
     // The OwnershipGuard ensures the post exists and belongs to the user
+
+    // The cover is chosen first: a post with no cover to choose is refused
+    // before its caption changes.
+    if (dto.coverTimeMs !== undefined) {
+      await this.frameCover.choose(id, dto.coverTimeMs);
+    }
 
     const post = await this.prisma.post.update({
       where: { id },

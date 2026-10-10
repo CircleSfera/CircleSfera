@@ -129,3 +129,37 @@ describe('the caption of a post', () => {
     expect(errors).toEqual([]);
   });
 });
+
+describe('the moment of the cover of a frame', () => {
+  const rules = async (
+    dto: typeof CreatePostDto | typeof UpdatePostDto,
+    coverTimeMs: unknown,
+  ) => {
+    const errors = await validate(
+      plainToInstance(dto, { coverTimeMs }) as object,
+    );
+    return Object.keys(
+      errors.find((error) => error.property === 'coverTimeMs')?.constraints ??
+        {},
+    ).sort();
+  };
+
+  it.each([
+    ['creating', CreatePostDto],
+    ['editing', UpdatePostDto],
+  ])(
+    'is a whole number of milliseconds within the longest frame, when %s',
+    async (_when, dto) => {
+      expect(await rules(dto, 0)).toEqual([]);
+      expect(await rules(dto, 90_000)).toEqual([]);
+      expect(await rules(dto, 90_001)).toEqual(['max']);
+      expect(await rules(dto, -1)).toEqual(['min']);
+      expect(await rules(dto, 1.5)).toEqual(['isInt']);
+      expect(await rules(dto, '1000')).toContain('isInt');
+    },
+  );
+
+  it('can be left out', async () => {
+    expect(await rules(UpdatePostDto, undefined)).toEqual([]);
+  });
+});

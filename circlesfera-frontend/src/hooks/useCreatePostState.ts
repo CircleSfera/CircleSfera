@@ -15,6 +15,7 @@ export type SubScreen =
   | 'monetization'
   | 'interactive'
   | 'music'
+  | 'cover'
   | 'close_friends';
 
 export type InteractiveDraft =
@@ -78,6 +79,8 @@ export function useCreatePostState() {
 
   const [hideLikes, setHideLikes] = useState(false);
   const [turnOffComments, setTurnOffComments] = useState(false);
+  // The moment of a new frame chosen as its cover; none means the automatic one.
+  const [coverTimeMs, setCoverTimeMs] = useState<number | null>(null);
   const [isSensitive, setIsSensitive] = useState(false);
   const [selectedAudio, setSelectedAudio] = useState<AudioTrack | null>(null);
   const [audioStartMs, setAudioStartMs] = useState(0);
@@ -129,6 +132,8 @@ export function useCreatePostState() {
     setHideLikes,
     turnOffComments,
     setTurnOffComments,
+    coverTimeMs,
+    setCoverTimeMs,
     isSensitive,
     setIsSensitive,
     selectedAudio,

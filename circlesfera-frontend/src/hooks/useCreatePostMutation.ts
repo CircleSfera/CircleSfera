@@ -29,6 +29,7 @@ interface MutationDeps {
   caption: string;
   hideLikes: boolean;
   turnOffComments: boolean;
+  coverTimeMs: number | null;
   isSensitive: boolean;
   location: string;
   selectedPlace: any;
@@ -250,6 +251,9 @@ export function useCreatePostMutation(deps: MutationDeps) {
           turnOffComments: deps.turnOffComments,
           media: uploadedMedia,
           type: deps.mode,
+          // The cover of a frame, when its author chose one.
+          ...(deps.mode === 'FRAME' &&
+            deps.coverTimeMs !== null && { coverTimeMs: deps.coverTimeMs }),
           audioId: deps.selectedAudio?.id,
           audioStartMs: deps.selectedAudio ? deps.audioStartMs : 0,
           location: deps.location || undefined,

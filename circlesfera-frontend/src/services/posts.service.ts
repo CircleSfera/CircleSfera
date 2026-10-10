@@ -26,8 +26,13 @@ export const postsApi = {
 
   getById: (id: string) => apiClient.get<Post>(`posts/${id}`),
 
-  update: (id: string, caption: string) =>
-    apiClient.put<Post>(`/posts/${id}`, { caption }),
+  // The caption and, for a frame, the moment of its video used as the cover.
+  // The media itself cannot be changed.
+  update: (id: string, caption: string, coverTimeMs?: number) =>
+    apiClient.put<Post>(`/posts/${id}`, {
+      caption,
+      ...(coverTimeMs !== undefined && { coverTimeMs }),
+    }),
 
   delete: (id: string) => apiClient.delete(`/posts/${id}`),
 

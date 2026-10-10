@@ -140,6 +140,7 @@ function compose(state: Record<string, unknown> = {}, address = '/create') {
     showFrameTrim: false,
     showDiscardConfirm: false,
     caption: '',
+    coverTimeMs: null,
     location: '',
     selectedAudio: null,
     audioStartMs: 0,
@@ -432,6 +433,39 @@ describe('ContentComposerPage', () => {
       expect(hook.setSelectedAudio).toHaveBeenCalledWith(null);
       expect(hook.setAudioStartMs).toHaveBeenCalledWith(0);
       expect(hook.setSubScreen).toHaveBeenCalledWith('music');
+    });
+  });
+
+  describe('the cover of a frame', () => {
+    it('tells the caption step whether one was chosen', () => {
+      compose({
+        mode: 'FRAME',
+        step: 'caption',
+        mediaFiles: [clip()],
+      }).unmount();
+      expect(seen.caption.hasChosenCover).toBe(false);
+
+      compose({
+        mode: 'FRAME',
+        step: 'caption',
+        mediaFiles: [clip()],
+        coverTimeMs: 0,
+      });
+      expect(seen.caption.hasChosenCover).toBe(true);
+    });
+
+    it('hands the chosen moment to its screen', () => {
+      const setCoverTimeMs = vi.fn();
+      compose({
+        mode: 'FRAME',
+        subScreen: 'cover',
+        mediaFiles: [clip()],
+        coverTimeMs: 1500,
+        setCoverTimeMs,
+      });
+
+      expect(seen.subScreen.coverTimeMs).toBe(1500);
+      expect(seen.subScreen.setCoverTimeMs).toBe(setCoverTimeMs);
     });
   });
 

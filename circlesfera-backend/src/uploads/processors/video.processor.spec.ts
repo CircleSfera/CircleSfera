@@ -259,10 +259,28 @@ describe('VideoProcessor', () => {
     expect(mockFfmpegInstance.screenshots).toHaveBeenCalled();
     expect(mockFfmpegInstance.run).toHaveBeenCalled();
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4` },
+      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
       data: {
         standardUrl: `/uploads/${validUuid}/master.m3u8`,
         thumbnailUrl: `/uploads/${validUuid}/thumb.jpg`,
+      },
+    });
+    // A frame whose author chose its cover gets the stream and keeps the
+    // cover.
+    expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
+      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: { not: null } },
+      data: { standardUrl: `/uploads/${validUuid}/master.m3u8` },
+    });
+    expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
+      where: {
+        url: `/uploads/${validUuid}.mp4`,
+        postMedia: { some: { coverTimeMs: { not: null } } },
+      },
+      data: {
+        status: 'READY',
+        standardUrl: `/uploads/${validUuid}/master.m3u8`,
+        failedAt: null,
+        failureReason: null,
       },
     });
   });
@@ -317,7 +335,7 @@ describe('VideoProcessor', () => {
 
     // Database reconciliation still executes
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4` },
+      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
       data: {
         standardUrl: `/uploads/${validUuid}/master.m3u8`,
         thumbnailUrl: `/uploads/${validUuid}/thumb.jpg`,
@@ -439,7 +457,7 @@ describe('VideoProcessor', () => {
     });
 
     expect(mockPrisma.postMedia.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4` },
+      where: { url: `/uploads/${validUuid}.mp4`, coverTimeMs: null },
       data: {
         standardUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/master.m3u8`,
         thumbnailUrl: `https://cdn.example.com/circlesfera/hls/${validUuid}/thumb.jpg`,
@@ -486,7 +504,10 @@ describe('VideoProcessor', () => {
     await processor.process(job);
 
     expect(mockPrisma.media.updateMany).toHaveBeenCalledWith({
-      where: { url: `/uploads/${validUuid}.mp4` },
+      where: {
+        url: `/uploads/${validUuid}.mp4`,
+        NOT: { postMedia: { some: { coverTimeMs: { not: null } } } },
+      },
       data: {
         status: 'READY',
         standardUrl: `/uploads/${validUuid}/master.m3u8`,

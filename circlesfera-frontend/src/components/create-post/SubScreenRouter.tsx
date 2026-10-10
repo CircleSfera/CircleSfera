@@ -4,6 +4,7 @@ import type { Audio } from '../../types';
 import AccessibilitySubScreen from './AccessibilitySubScreen';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
 import CloseFriendsSubScreen from './CloseFriendsSubScreen';
+import CoverSubScreen from './CoverSubScreen';
 import InteractiveSubScreen, {
   type InteractiveDraft,
 } from './InteractiveSubScreen';
@@ -26,6 +27,7 @@ interface SubScreenRouterProps {
     | 'monetization'
     | 'interactive'
     | 'music'
+    | 'cover'
     | 'close_friends';
   setSubScreen: (
     screen:
@@ -37,6 +39,7 @@ interface SubScreenRouterProps {
       | 'monetization'
       | 'interactive'
       | 'music'
+      | 'cover'
       | 'close_friends',
   ) => void;
   mediaFiles: MediaFile[];
@@ -48,6 +51,8 @@ interface SubScreenRouterProps {
   setHideLikes: (val: boolean) => void;
   turnOffComments: boolean;
   setTurnOffComments: (val: boolean) => void;
+  coverTimeMs?: number | null;
+  setCoverTimeMs?: (val: number | null) => void;
   isSensitive: boolean;
   setIsSensitive: (val: boolean) => void;
   showSensitiveToggle: boolean;
@@ -93,6 +98,8 @@ export default function SubScreenRouter({
   setHideLikes,
   turnOffComments,
   setTurnOffComments,
+  coverTimeMs = null,
+  setCoverTimeMs,
   isSensitive,
   setIsSensitive,
   showSensitiveToggle,
@@ -141,6 +148,17 @@ export default function SubScreenRouter({
         onClose={() => setSubScreen('none')}
         onGenerateAltText={onGenerateAltText}
         mode={mode}
+      />
+    );
+  }
+
+  if (subScreen === 'cover') {
+    return (
+      <CoverSubScreen
+        mediaFiles={mediaFiles}
+        coverTimeMs={coverTimeMs}
+        setCoverTimeMs={setCoverTimeMs || (() => undefined)}
+        onClose={() => setSubScreen('none')}
       />
     );
   }
