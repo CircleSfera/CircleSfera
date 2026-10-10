@@ -53,6 +53,15 @@ export class HelpdeskTicketsService {
         message: dto.message,
         category: dto.category,
         userId: dto.userId,
+        // What the requester wrote is also the first message of the
+        // conversation. The ticket's own field is kept until nothing reads it.
+        messages: {
+          create: {
+            authorKind: 'REQUESTER',
+            authorRef: dto.userId,
+            body: dto.message,
+          },
+        },
       },
     });
 
@@ -166,6 +175,15 @@ export class HelpdeskTicketsService {
       if (resolvedAt !== undefined) {
         updateData.resolvedAt = resolvedAt;
       }
+    }
+
+    // The answer is also a message of the conversation, written with the
+    // ticket in one statement.
+    const answer = data.reply?.trim();
+    if (answer) {
+      updateData.messages = {
+        create: { authorKind: 'AGENT', authorRef: agentRef, body: answer },
+      };
     }
 
     const ticket = await this.prisma.supportTicket.update({
