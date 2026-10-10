@@ -329,18 +329,33 @@ export class HelpdeskStore {
     >,
     page: number,
     limit: number,
-    oldestFirst: boolean,
+    // The list of open tickets: what to answer next comes first.
+    openList: boolean,
+    // Only the open tickets whose next target passed before this moment.
+    pastTargetAt?: Date,
   ) {
     const where: Prisma.SupportTicketWhereInput = {
       ...filters,
       organizationId: this.organizationId,
+      ...(pastTargetAt && {
+        status: 'OPEN',
+        OR: [
+          // Not answered yet, and the first response is late.
+          { firstRespondedAt: null, firstResponseDueAt: { lt: pastTargetAt } },
+          { resolutionDueAt: { lt: pastTargetAt } },
+        ],
+      }),
     };
     const [tickets, total] = await Promise.all([
       this.prisma.supportTicket.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { createdAt: oldestFirst ? 'asc' : 'desc' },
+        // Open tickets: high priority first, and inside each priority the
+        // one waiting longest. Any other list: newest first.
+        orderBy: openList
+          ? [{ priority: 'desc' }, { createdAt: 'asc' }]
+          : { createdAt: 'desc' },
       }),
       this.prisma.supportTicket.count({ where }),
     ]);

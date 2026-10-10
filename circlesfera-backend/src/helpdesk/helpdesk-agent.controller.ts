@@ -48,6 +48,7 @@ export class HelpdeskAgentController {
       {
         priority: query.priority,
         assignment: query.assignment,
+        target: query.target,
         // "mine" is always who is signed in, never a value of the request.
         agentRef: admin.adminId,
       },

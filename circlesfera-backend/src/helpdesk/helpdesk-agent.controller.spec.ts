@@ -120,6 +120,7 @@ describe('HelpdeskAgentController', () => {
       {
         priority: undefined,
         assignment: undefined,
+        target: undefined,
         agentRef: TEST_ADMIN.adminId,
       },
     );
@@ -145,6 +146,7 @@ describe('HelpdeskAgentController', () => {
       {
         priority: undefined,
         assignment: undefined,
+        target: undefined,
         agentRef: TEST_ADMIN.adminId,
       },
     );
@@ -295,8 +297,25 @@ describe('HelpdeskAgentController', () => {
       10,
       undefined,
       undefined,
-      { priority: 'HIGH', assignment: 'mine', agentRef: TEST_ADMIN.adminId },
+      {
+        priority: 'HIGH',
+        assignment: 'mine',
+        target: undefined,
+        agentRef: TEST_ADMIN.adminId,
+      },
     );
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets?target=past')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    expect(mockService.listTickets.mock.calls.at(-1)?.[4]).toMatchObject({
+      target: 'past',
+    });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets?target=soon')
+      .set(ADMIN_BEARER)
+      .expect(400);
 
     await request(app.getHttpServer())
       .get(

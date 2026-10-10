@@ -169,6 +169,24 @@ describe('HelpdeskTicketsService', () => {
       expect(store.listTickets).toHaveBeenLastCalledWith({}, 1, 20, false);
     });
 
+    it('asks for the open tickets past their target as of now, whatever state was asked for', async () => {
+      const before = Date.now();
+
+      await service.listTickets(1, 20, 'RESOLVED', undefined, {
+        target: 'past',
+      });
+
+      const [filters, , , openList, moment] =
+        store.listTickets.mock.calls.at(-1) ?? [];
+      expect(filters).toEqual({ status: 'OPEN' });
+      expect(openList).toBe(true);
+      expect((moment as Date).getTime()).toBeGreaterThanOrEqual(before);
+
+      // Any other value is not a filter.
+      await service.listTickets(1, 20, undefined, undefined, { target: 'x' });
+      expect(store.listTickets).toHaveBeenLastCalledWith({}, 1, 20, false);
+    });
+
     it('filters by what the ticket is about and ignores values that do not exist', async () => {
       await service.listTickets(1, 20, undefined, 'PAYMENTS');
       expect(store.listTickets).toHaveBeenLastCalledWith(
