@@ -300,25 +300,17 @@ export class InteractiveService {
     };
   }
 
-  // Get Q&A Box prompt and received answers.
-  async getQnaBox(qnaBoxId: string) {
+  // The question of a Q&A box, for anyone, and its answers, for the profile
+  // that owns the post or story it sits on. People answer a creator, not
+  // each other: the answers and who gave them go to nobody else.
+  async getQnaBox(qnaBoxId: string, viewerProfileId?: string) {
     const qnaBox = await this.prisma.qnaBox.findUnique({
       where: { id: qnaBoxId },
-      include: {
-        answers: {
-          include: {
-            profile: {
-              select: {
-                id: true,
-                username: true,
-                avatar: true,
-                fullName: true,
-                user: { select: { id: true } },
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
+      select: {
+        id: true,
+        prompt: true,
+        post: { select: { profileId: true } },
+        story: { select: { profileId: true } },
       },
     });
 
@@ -329,11 +321,38 @@ export class InteractiveService {
       );
     }
 
+    const ownerProfileId = qnaBox.post?.profileId ?? qnaBox.story?.profileId;
+    const isOwner = !!viewerProfileId && viewerProfileId === ownerProfileId;
+    if (!isOwner) {
+      return {
+        id: qnaBox.id,
+        prompt: qnaBox.prompt,
+        totalAnswers: 0,
+        answers: [],
+      };
+    }
+
+    const answers = await this.prisma.qnaAnswer.findMany({
+      where: { qnaBoxId },
+      include: {
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+            fullName: true,
+            user: { select: { id: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
     return {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
-      totalAnswers: qnaBox.answers.length,
-      answers: qnaBox.answers.map((a) => {
+      totalAnswers: answers.length,
+      answers: answers.map((a) => {
         const profile = a.profile;
         const username = profile?.username || 'usuario';
         return {
