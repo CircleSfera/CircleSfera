@@ -75,8 +75,21 @@ function isActiveStatus(status: string) {
   ].includes(status);
 }
 
+// Every campaign that is no longer running goes to the history, the ones
+// the team rejected and the ones whose payment failed included: left out
+// of both lists, the creator would never learn what happened to them.
 function isCompletedStatus(status: string) {
-  return ['COMPLETED', 'CANCELLED', 'completed', 'cancelled'].includes(status);
+  return ['COMPLETED', 'CANCELLED', 'REJECTED', 'FAILED'].includes(
+    status.toUpperCase(),
+  );
+}
+
+/** The text key that says why a campaign ended without running its course. */
+function endedBadgeKey(status: string): string | null {
+  const upper = status.toUpperCase();
+  if (upper === 'REJECTED') return 'creator.promotions.rejected_badge';
+  if (upper === 'FAILED') return 'creator.promotions.failed_badge';
+  return null;
 }
 
 interface Props {
@@ -193,6 +206,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
     const pct = computeProgress(promo.startDate, promo.endDate);
     const daysLeft = computeDaysLeft(promo.endDate);
     const active = isActiveStatus(promo.status);
+    const endedBadge = endedBadgeKey(promo.status);
 
     return (
       <div className="p-4 sm:p-6 space-y-5">
@@ -223,6 +237,11 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             {(promo.status === 'PAUSED' || promo.status === 'paused') && (
               <span className="inline-block mt-2 text-amber-400 text-xs font-semibold">
                 {t('creator.promotions.paused_badge')}
+              </span>
+            )}
+            {endedBadge && (
+              <span className="inline-block mt-2 text-rose-400 text-xs font-semibold">
+                {t(endedBadge)}
               </span>
             )}
           </div>
@@ -528,6 +547,13 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                       title={
                         promo.target?.caption ||
                         t('creator.promotions.completed_campaign')
+                      }
+                      badge={
+                        endedBadgeKey(promo.status) ? (
+                          <span className="text-[10px] font-semibold text-rose-400">
+                            {t(endedBadgeKey(promo.status) as string)}
+                          </span>
+                        ) : undefined
                       }
                       meta={
                         <>
