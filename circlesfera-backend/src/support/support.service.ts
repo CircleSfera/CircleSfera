@@ -17,6 +17,7 @@ export class SupportService {
         email: dto.email,
         subject: dto.subject,
         message: dto.message,
+        category: dto.category,
         userId: dto.userId,
       },
     });

@@ -6,7 +6,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AdminAction, type Prisma, type TicketStatus } from '@prisma/client';
+import {
+  AdminAction,
+  type Prisma,
+  type TicketCategory,
+  type TicketStatus,
+} from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
 import { AIService } from '../ai/ai.service.js';
@@ -204,7 +209,12 @@ export class AdminOpsService {
 
   // Support tickets
 
-  async getSupportTickets(page = 1, limit = 20, status?: string) {
+  async getSupportTickets(
+    page = 1,
+    limit = 20,
+    status?: string,
+    category?: string,
+  ) {
     const skip = (page - 1) * limit;
     const where: Prisma.SupportTicketWhereInput = {};
     if (
@@ -212,6 +222,12 @@ export class AdminOpsService {
       ['OPEN', 'RESOLVED', 'CLOSED', 'ESCALATED'].includes(status)
     ) {
       where.status = status as TicketStatus;
+    }
+    if (
+      category &&
+      ['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'].includes(category)
+    ) {
+      where.category = category as TicketCategory;
     }
 
     const [tickets, total] = await Promise.all([

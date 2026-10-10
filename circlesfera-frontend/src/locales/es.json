@@ -2632,6 +2632,8 @@
       "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
+      "filter_category": "Tema",
+      "category_all": "Todos los temas",
       "waiting_under_hour": "Esperando menos de 1 hora",
       "waiting_hours_one": "Esperando {{count}} hora",
       "waiting_hours_other": "Esperando {{count}} horas",
@@ -3465,6 +3467,14 @@
     "renamed": "Colección renombrada"
   },
   "supportPage": {
+    "category_label": "¿Sobre qué es?",
+    "category_placeholder": "Elige un tema",
+    "category": {
+      "ACCOUNT": "Mi cuenta",
+      "PAYMENTS": "Pagos y planes",
+      "CONTENT": "Contenido o denuncias",
+      "OTHER": "Otra cosa"
+    },
     "badge": "Soporte",
     "seo_title": "Soporte — CircleSfera",
     "seo_desc": "Asistencia directa y soporte especializado para usuarios de CircleSfera. Nuestro equipo está listo para ayudarte.",

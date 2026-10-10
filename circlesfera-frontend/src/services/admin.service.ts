@@ -467,6 +467,8 @@ export interface AdminSupportTicket {
   message: string;
   // ESCALATED: handed to moderation, which decides its report.
   status: 'OPEN' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  // What the ticket is about, chosen by who wrote it.
+  category: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
   escalatedReport?: { id: string; status: string } | null;
   reply: string | null;
   createdAt: string;
@@ -1075,10 +1077,15 @@ export const adminApi = {
     apiClient.delete(`admin/experiments/users/${id}`),
 
   // Support tickets
-  getSupportTickets: (page = 1, limit = 20, status?: string) =>
+  getSupportTickets: (
+    page = 1,
+    limit = 20,
+    status?: string,
+    category?: string,
+  ) =>
     apiClient.get<PaginatedResponse<AdminSupportTicket>>(
       'admin/support/tickets',
-      { params: { page, limit, status } },
+      { params: { page, limit, status, category } },
     ),
 
   updateSupportTicket: (
