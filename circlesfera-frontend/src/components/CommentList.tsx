@@ -221,6 +221,8 @@ export default function CommentList({
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['post', postId] });
     },
+    // What was written stays in the field, to be sent again.
+    onError: () => toast.error(t('comments.send_error')),
   });
 
   const deleteMutation = useMutation({
@@ -234,6 +236,7 @@ export default function CommentList({
     onError: () => {
       setDeletingId(null);
       setShowDeleteConfirm(false);
+      toast.error(t('comments.delete_error'));
     },
   });
 
@@ -251,6 +254,7 @@ export default function CommentList({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
     },
+    onError: () => toast.error(t('comments.like_error')),
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -391,7 +395,9 @@ export default function CommentList({
           onSendVoice={(voiceData) => {
             const commentDto: CreateCommentDto = {
               content: t('comments.voice_note'),
-              parentId: replyingTo?.id,
+              // As a written reply: an answer to a reply hangs from the
+              // comment that reply belongs to.
+              parentId: replyingTo?.parentId || replyingTo?.id,
               voiceUrl: voiceData.voiceUrl,
               voiceDuration: voiceData.voiceDuration,
               voiceWaveform: voiceData.voiceWaveform,
