@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import CaptionStep from './CaptionStep';
@@ -57,6 +57,38 @@ describe('CaptionStep', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(i18n!.t('createPost.caption.add_location')),
+    ).toBeInTheDocument();
+  });
+
+  it('offers the cover on a Frame only, and opens its screen', () => {
+    const view = renderWithProviders(
+      <CaptionStep {...baseProps} mediaFiles={[videoFile]} mode="FRAME" />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose cover' }));
+    expect(baseProps.setSubScreen).toHaveBeenCalledWith('cover');
+    view.unmount();
+
+    renderWithProviders(
+      <CaptionStep {...baseProps} mediaFiles={[videoFile]} mode="POST" />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Choose cover' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('says so on a Frame whose cover is already chosen', () => {
+    renderWithProviders(
+      <CaptionStep
+        {...baseProps}
+        mediaFiles={[videoFile]}
+        mode="FRAME"
+        hasChosenCover
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Cover chosen' }),
     ).toBeInTheDocument();
   });
 

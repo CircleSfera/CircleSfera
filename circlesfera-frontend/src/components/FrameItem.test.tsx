@@ -408,6 +408,29 @@ describe('FrameItem', () => {
       expect(liked(queryClient)).toBe(true);
     });
 
+    it('leave no animation timer running once the frame is gone', () => {
+      vi.useFakeTimers();
+      const set = vi.spyOn(globalThis, 'setTimeout');
+      const clear = vi.spyOn(globalThis, 'clearTimeout');
+      const { unmount } = show(frame({ isLocked: true }));
+
+      // One tap starts the play animation, two more the heart.
+      fireEvent.click(area());
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      twoTaps();
+      const animations = set.mock.calls
+        .map(([, ms], call) => ({ ms, id: set.mock.results[call].value }))
+        .filter(({ ms }) => ms === 800 || ms === 1000);
+      expect(animations.map(({ ms }) => ms)).toEqual([800, 1000]);
+
+      unmount();
+      for (const { id } of animations) {
+        expect(clear).toHaveBeenCalledWith(id);
+      }
+    });
+
     it('never take a like away', async () => {
       vi.mocked(likesApi.check).mockResolvedValue({
         data: { liked: true },
@@ -748,7 +771,12 @@ describe('FrameItem', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Save' }));
 
       await waitFor(() =>
-        expect(postsApi.update).toHaveBeenCalledWith('f1', 'Second take'),
+        // Only the caption: the cover was not touched.
+        expect(postsApi.update).toHaveBeenCalledWith(
+          'f1',
+          'Second take',
+          undefined,
+        ),
       );
       await waitFor(() =>
         expect(invalidate).toHaveBeenCalledWith({ queryKey: ['frames'] }),
@@ -758,6 +786,55 @@ describe('FrameItem', () => {
           screen.queryByPlaceholderText('Write a caption...'),
         ).not.toBeInTheDocument(),
       );
+    });
+
+    it('changes the cover to the moment chosen in the same dialog', async () => {
+      vi.mocked(postsApi.update).mockResolvedValue({} as never);
+      const { actions } = withMenu(frame({ profileId: 'me', caption: 'Take' }));
+
+      act(() => actions()?.onEdit());
+      const preview = await screen.findByLabelText('Cover preview');
+      Object.defineProperty(preview, 'duration', {
+        configurable: true,
+        value: 20,
+      });
+      fireEvent.loadedMetadata(preview);
+      fireEvent.change(
+        screen.getByRole('slider', { name: 'Moment of the video' }),
+        { target: { value: '7500' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+      await waitFor(() =>
+        expect(postsApi.update).toHaveBeenCalledWith('f1', 'Take', 7500),
+      );
+      // Its image is made in the background: the author is told.
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          'Saved. The new cover will show in a few seconds.',
+        ),
+      );
+    });
+
+    it('shows the moment the author chose before', async () => {
+      const { actions } = withMenu(
+        frame({
+          profileId: 'me',
+          media: [
+            {
+              type: 'video',
+              url: 'https://media.test/f1.mp4',
+              coverTimeMs: 3000,
+            },
+          ],
+        } as never),
+      );
+
+      act(() => actions()?.onEdit());
+
+      expect(
+        await screen.findByText('At 0:03 of the video'),
+      ).toBeInTheDocument();
     });
 
     it('changes nothing when the caption is cancelled', async () => {

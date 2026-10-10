@@ -2,7 +2,14 @@ import { Capacitor } from '@capacitor/core';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Heart, Pause, Play, Volume2, VolumeX } from 'lucide-react';
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useSyncedLibraryAudio } from '../hooks/useSyncedLibraryAudio';
@@ -17,6 +24,7 @@ import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
 import FrameActionRail from './frames/FrameActionRail';
+import FrameCoverPicker from './frames/FrameCoverPicker';
 import type { FrameMenuActions } from './frames/FrameOptionsSheet';
 import FrameOverlayInfo from './frames/FrameOverlayInfo';
 import ConfirmModal from './modals/ConfirmModal';
@@ -69,6 +77,8 @@ export default function FrameItem({
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editCaption, setEditCaption] = useState(post.caption || '');
+  // The cover being chosen in the dialog; none while it is left as it is.
+  const [editCover, setEditCover] = useState<number | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const [progress, setProgress] = useState(0);
@@ -106,9 +116,14 @@ export default function FrameItem({
   // Only the caption of a published frame can be changed here; its video
   // cannot.
   const captionMutation = useMutation({
-    mutationFn: (caption: string) => postsApi.update(post.id, caption),
-    onSuccess: () => {
+    mutationFn: (changes: { caption: string; coverTimeMs?: number }) =>
+      postsApi.update(post.id, changes.caption, changes.coverTimeMs),
+    onSuccess: (_saved, changes) => {
       setShowEditModal(false);
+      // The image of a new cover is made in the background.
+      if (changes.coverTimeMs !== undefined) {
+        toast.success(t('frames.cover.pending'));
+      }
       queryClient.invalidateQueries({ queryKey: ['frames'] });
       queryClient.invalidateQueries({ queryKey: ['userFrames'] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
@@ -140,6 +155,7 @@ export default function FrameItem({
     onRegisterMenuActions({
       onEdit: () => {
         setEditCaption(captionRef.current || '');
+        setEditCover(null);
         setShowEditModal(true);
       },
       onDelete: () => setShowDeleteModal(true),
@@ -190,6 +206,24 @@ export default function FrameItem({
     };
   }, []);
 
+  // The short timers that end a tap animation. They are cancelled when the
+  // frame leaves the screen, so none of them runs on a frame that is gone.
+  const animationTimers = useRef(new Set<ReturnType<typeof setTimeout>>());
+  const later = useCallback((run: () => void, ms: number) => {
+    const id = setTimeout(() => {
+      animationTimers.current.delete(id);
+      run();
+    }, ms);
+    animationTimers.current.add(id);
+  }, []);
+  useEffect(() => {
+    const timers = animationTimers.current;
+    return () => {
+      for (const id of timers) clearTimeout(id);
+      timers.clear();
+    };
+  }, []);
+
   const viewRecorded = useRef(false);
   useEffect(() => {
     if (!post.isPromoted || !post.promotionId || viewRecorded.current) return;
@@ -237,7 +271,7 @@ export default function FrameItem({
             videoRef.current.pause();
             setShowPlayAnim('pause');
           }
-          setTimeout(() => setShowPlayAnim(null), 800);
+          later(() => setShowPlayAnim(null), 800);
         }
       } else if (e.key.toLowerCase() === 'm') {
         e.preventDefault();
@@ -247,7 +281,7 @@ export default function FrameItem({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isActive, toggleMute]);
+  }, [isActive, toggleMute, later]);
 
   const handleTimeUpdate = () => {
     if (!videoRef.current) return;
@@ -316,7 +350,7 @@ export default function FrameItem({
           videoRef.current.pause();
           setShowPlayAnim('pause');
         }
-        setTimeout(() => setShowPlayAnim(null), 800);
+        later(() => setShowPlayAnim(null), 800);
       }, 180);
     }
   };
@@ -357,7 +391,7 @@ export default function FrameItem({
 
   const handleDoubleTap = async () => {
     setShowHeartAnim(true);
-    setTimeout(() => setShowHeartAnim(false), 1000);
+    later(() => setShowHeartAnim(false), 1000);
     if (!post.isLocked) void likeFromTaps();
     if (Capacitor.isNativePlatform()) {
       await Haptics.impact({ style: ImpactStyle.Medium }).catch(() => {});
@@ -367,6 +401,8 @@ export default function FrameItem({
   const isOwner = profile?.id === post.profileId;
   const videoMedia = post.media?.find((m) => m.type === 'video') ||
     post.media?.[0] || { url: '' };
+  const chosenCoverMs =
+    (videoMedia as { coverTimeMs?: number | null }).coverTimeMs ?? null;
 
   return (
     <div className="w-full h-full bg-black relative flex items-center justify-center snap-start rounded-[20px] overflow-hidden group">
@@ -498,10 +534,21 @@ export default function FrameItem({
         onCaptionChange={setEditCaption}
         onSubmit={(e) => {
           e.preventDefault();
-          captionMutation.mutate(editCaption);
+          captionMutation.mutate({
+            caption: editCaption,
+            ...(editCover !== null && { coverTimeMs: editCover }),
+          });
         }}
         isSaving={captionMutation.isPending}
-      />
+      >
+        {videoMedia.url && (
+          <FrameCoverPicker
+            src={videoMedia.url}
+            valueMs={editCover ?? chosenCoverMs}
+            onChange={setEditCover}
+          />
+        )}
+      </EditCaptionDialog>
       <ConfirmModal
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
