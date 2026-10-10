@@ -15,7 +15,9 @@ export default function Playhead() {
   const formatTime = (timeInSeconds: number) => {
     const mins = Math.floor(timeInSeconds / 60);
     const secs = Math.floor(timeInSeconds % 60);
-    const frames = Math.floor((timeInSeconds % 1) * fps);
+    // A hair is added before rounding down: 0.3 s is stored as 0.2999…,
+    // which would show the frame before the one the playhead is on.
+    const frames = Math.floor((timeInSeconds % 1) * fps + 1e-6);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${frames.toString().padStart(2, '0')}`;
   };
 

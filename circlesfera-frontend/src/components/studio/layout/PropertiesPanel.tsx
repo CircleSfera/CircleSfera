@@ -27,7 +27,9 @@ export default function PropertiesPanel() {
     updateClip,
     beginHistoryTransaction,
   } = useStudioStore();
-  const [tab, setTab] = useState<'transform' | 'style' | 'audio'>('transform');
+  const [chosenTab, setTab] = useState<'transform' | 'style' | 'audio'>(
+    'transform',
+  );
 
   const selectedClip = project?.tracks
     .flatMap((tr) => tr.clips)
@@ -39,6 +41,17 @@ export default function PropertiesPanel() {
   const isMedia =
     selectedClip.type === 'video' || selectedClip.type === 'image';
   const isAudio = selectedClip.type === 'audio';
+
+  // The tab is remembered between clips, but not every clip has every tab:
+  // text has no sound and sound has no look. A tab the clip lacks would
+  // leave the panel empty, so it falls back to the first one.
+  const hasStyleTab = isText || isMedia;
+  const hasAudioTab = isMedia || isAudio;
+  const tab =
+    (chosenTab === 'style' && !hasStyleTab) ||
+    (chosenTab === 'audio' && !hasAudioTab)
+      ? 'transform'
+      : chosenTab;
 
   const transform = selectedClip.transform || {
     scale: 1,
@@ -102,24 +115,26 @@ export default function PropertiesPanel() {
           <span>{t('studio.properties.tabs.transform')}</span>
         </button>
 
-        <button
-          type="button"
-          onClick={() => setTab('style')}
-          className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
-            tab === 'style'
-              ? 'bg-brand-primary text-white shadow-sm'
-              : 'text-white/50 hover:text-white'
-          }`}
-        >
-          {isText ? <TypeIcon size={12} /> : <Sparkles size={12} />}
-          <span>
-            {isText
-              ? t('studio.properties.tabs.text')
-              : t('studio.properties.tabs.filters')}
-          </span>
-        </button>
+        {hasStyleTab && (
+          <button
+            type="button"
+            onClick={() => setTab('style')}
+            className={`flex-1 min-h-11 md:min-h-0 md:py-1.5 rounded-full text-xs font-semibold leading-tight transition-all flex items-center justify-center gap-1 ${
+              tab === 'style'
+                ? 'bg-brand-primary text-white shadow-sm'
+                : 'text-white/50 hover:text-white'
+            }`}
+          >
+            {isText ? <TypeIcon size={12} /> : <Sparkles size={12} />}
+            <span>
+              {isText
+                ? t('studio.properties.tabs.text')
+                : t('studio.properties.tabs.filters')}
+            </span>
+          </button>
+        )}
 
-        {(isMedia || isAudio) && (
+        {hasAudioTab && (
           <button
             type="button"
             onClick={() => setTab('audio')}
@@ -333,9 +348,21 @@ export default function PropertiesPanel() {
                 </span>
                 <div className="flex items-center gap-1 bg-white/5 p-1 rounded-full border border-white/10">
                   {[
-                    { align: 'left' as const, icon: AlignLeft },
-                    { align: 'center' as const, icon: AlignCenter },
-                    { align: 'right' as const, icon: AlignRight },
+                    {
+                      align: 'left' as const,
+                      icon: AlignLeft,
+                      label: t('studio.properties.align_left'),
+                    },
+                    {
+                      align: 'center' as const,
+                      icon: AlignCenter,
+                      label: t('studio.properties.align_center'),
+                    },
+                    {
+                      align: 'right' as const,
+                      icon: AlignRight,
+                      label: t('studio.properties.align_right'),
+                    },
                   ].map((a) => {
                     const Icon = a.icon;
                     const isActive =
@@ -357,6 +384,8 @@ export default function PropertiesPanel() {
                             { history: true },
                           );
                         }}
+                        aria-label={a.label}
+                        aria-pressed={isActive}
                         className={`p-1.5 rounded-full transition-colors min-h-11 min-w-11 flex items-center justify-center ${
                           isActive
                             ? 'bg-brand-primary text-white'
@@ -480,7 +509,7 @@ export default function PropertiesPanel() {
         </div>
       )}
 
-      {tab === 'audio' && (isMedia || isAudio) && (
+      {tab === 'audio' && hasAudioTab && (
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-xs text-white/70">

@@ -73,8 +73,16 @@ export default function StudioTopbar({
             </div>
             <input
               type="text"
-              value={project?.name || t('studio.default_project_name')}
+              value={project?.name ?? ''}
+              placeholder={t('studio.default_project_name')}
               onChange={(e) => setProjectName(e.target.value)}
+              // The field can be emptied to type a new name; a project
+              // left without one gets the default name back.
+              onBlur={(e) => {
+                if (!e.target.value.trim()) {
+                  setProjectName(t('studio.default_project_name'));
+                }
+              }}
               className="bg-transparent border-none text-xs sm:text-sm font-bold text-white h-12 min-w-0 w-full md:w-36 md:focus:w-44 transition-all outline-none focus:ring-1 focus:ring-brand-primary/50 rounded px-1.5 py-0.5 placeholder:text-white/30 truncate"
               aria-label={t('studio.project_name')}
             />
