@@ -269,7 +269,7 @@ describe('PostsTab', () => {
     ).toHaveTextContent('2');
     // The staff panel lives on its own host: the link must leave it.
     const link = within(open).getByRole('link', { name: 'View on platform' });
-    expect(link).toHaveAttribute('href', 'https://circlesfera.test/post/a');
+    expect(link).toHaveAttribute('href', 'https://circlesfera.test/p/a');
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveClass('min-h-11');
@@ -331,7 +331,7 @@ describe('PostsTab', () => {
       await screen.findByRole('menuitem', { name: 'View on platform' }),
     );
     expect(opened).toHaveBeenCalledWith(
-      'https://circlesfera.test/post/a',
+      'https://circlesfera.test/p/a',
       '_blank',
       'noopener,noreferrer',
     );
