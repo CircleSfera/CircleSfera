@@ -12,6 +12,7 @@ describe('HelpdeskStore', () => {
       count: vi.fn().mockResolvedValue(0),
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 3 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
     },
     helpdeskMessage: { findMany: vi.fn().mockResolvedValue([]) },
   };
@@ -190,6 +191,92 @@ describe('HelpdeskStore', () => {
     expect(prisma.supportTicket.create.mock.calls[0][0].data).toMatchObject({
       organizationId: 'org-1',
       previousTicketId: 't-old',
+    });
+  });
+
+  describe('what the rest of the product asks', () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    it('exports the tickets of a requester with their public messages only', async () => {
+      await store.requesterExport('u-1');
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where).toEqual({ organizationId: 'org-1', userId: 'u-1' });
+      // Internal notes are left out by the query itself.
+      expect(query.select.messages.where).toEqual({ visibility: 'PUBLIC' });
+      // Neither who of the team wrote, nor the old fields, nor the case with
+      // another team.
+      expect(Object.keys(query.select.messages.select)).toEqual([
+        'authorKind',
+        'body',
+        'channel',
+        'createdAt',
+      ]);
+      expect(Object.keys(query.select)).not.toEqual(
+        expect.arrayContaining([
+          'escalatedReportId',
+          'organizationId',
+          'reply',
+        ]),
+      );
+    });
+
+    it('deletes only solved and closed tickets of the organization that ended before the moment', async () => {
+      expect(await store.deleteEndedBefore(moment)).toEqual({ count: 2 });
+
+      expect(prisma.supportTicket.deleteMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          status: { in: ['RESOLVED', 'CLOSED'] },
+          OR: [
+            { resolvedAt: { lt: moment } },
+            { resolvedAt: null, updatedAt: { lt: moment } },
+          ],
+        },
+      });
+    });
+
+    it('gives analytics the id, state and times of what changed, and nothing written by anyone', async () => {
+      await store.ticketFactsSince(moment);
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where.organizationId).toBe('org-1');
+      expect(Object.keys(query.select)).toEqual([
+        'id',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'resolvedAt',
+      ]);
+    });
+
+    it('lists and counts the open tickets of the organization', async () => {
+      prisma.supportTicket.count.mockResolvedValue(7);
+
+      const result = await store.openTickets(5);
+
+      const where = { organizationId: 'org-1', status: 'OPEN' };
+      expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      });
+      expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+      expect(result.total).toBe(7);
+    });
+
+    it('gives the opening and solving times of tickets solved since a moment', async () => {
+      await store.resolutionTimesSince(moment, 100);
+
+      expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          resolvedAt: { not: null, gte: moment },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: 100,
+        select: { createdAt: true, resolvedAt: true },
+      });
     });
   });
 });

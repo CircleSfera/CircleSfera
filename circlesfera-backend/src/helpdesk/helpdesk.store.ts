@@ -117,6 +117,99 @@ export class HelpdeskStore {
     return count;
   }
 
+  /** A requester's tickets with their public messages, for a data export. */
+  requesterExport(requesterRef: string) {
+    return this.prisma.supportTicket.findMany({
+      where: { organizationId: this.organizationId, userId: requesterRef },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        reference: true,
+        subject: true,
+        category: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        resolvedAt: true,
+        messages: {
+          where: { visibility: 'PUBLIC' },
+          orderBy: { createdAt: 'asc' },
+          select: {
+            authorKind: true,
+            body: true,
+            channel: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  }
+
+  /** Deletes solved and closed tickets that ended before a moment. */
+  deleteEndedBefore(moment: Date) {
+    return this.prisma.supportTicket.deleteMany({
+      where: {
+        organizationId: this.organizationId,
+        status: { in: ['RESOLVED', 'CLOSED'] },
+        OR: [
+          { resolvedAt: { lt: moment } },
+          { resolvedAt: null, updatedAt: { lt: moment } },
+        ],
+      },
+    });
+  }
+
+  /** The open tickets, newest first, and how many there are. */
+  async openTickets(take: number) {
+    const where: Prisma.SupportTicketWhereInput = {
+      organizationId: this.organizationId,
+      status: 'OPEN',
+    };
+    const [tickets, total] = await Promise.all([
+      this.prisma.supportTicket.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take,
+      }),
+      this.prisma.supportTicket.count({ where }),
+    ]);
+    return { tickets, total };
+  }
+
+  /** When tickets solved since a moment were opened and solved. */
+  resolutionTimesSince(moment: Date, limit: number) {
+    return this.prisma.supportTicket.findMany({
+      where: {
+        organizationId: this.organizationId,
+        resolvedAt: { not: null, gte: moment },
+      },
+      orderBy: { resolvedAt: 'desc' },
+      take: limit,
+      select: { createdAt: true, resolvedAt: true },
+    });
+  }
+
+  /** Id, state and times of the tickets that changed since a moment. */
+  ticketFactsSince(moment: Date) {
+    return this.prisma.supportTicket.findMany({
+      where: {
+        organizationId: this.organizationId,
+        OR: [
+          { createdAt: { gte: moment } },
+          { updatedAt: { gte: moment } },
+          { resolvedAt: { gte: moment } },
+        ],
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        resolvedAt: true,
+      },
+    });
+  }
+
   findTicket(id: string) {
     return this.prisma.supportTicket.findFirst({
       where: { id, organizationId: this.organizationId },

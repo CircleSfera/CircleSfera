@@ -6,6 +6,7 @@ import { EmailService } from '../email/email.service.js';
 import { helpdeskFor } from '../helpdesk/helpdesk.module.js';
 import { HelpdeskStore } from '../helpdesk/helpdesk.store.js';
 import { HelpdeskAgentController } from '../helpdesk/helpdesk-agent.controller.js';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { HelpdeskRequesterController } from '../helpdesk/helpdesk-requester.controller.js';
 import { HelpdeskTicketsService } from '../helpdesk/helpdesk-tickets.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -43,6 +44,10 @@ describe('Help Desk wired to its CircleSfera host', () => {
       HelpdeskTicketsService,
     );
     expect(moduleRef.get(HelpdeskStore)).toBeInstanceOf(HelpdeskStore);
+    // What the rest of the product may ask is reachable from outside.
+    expect(moduleRef.get(HelpdeskDataPort, { strict: false })).toBeInstanceOf(
+      HelpdeskDataPort,
+    );
     expect(moduleRef.get(HelpdeskRequesterController)).toBeDefined();
     expect(moduleRef.get(HelpdeskAgentController)).toBeDefined();
     await moduleRef.close();

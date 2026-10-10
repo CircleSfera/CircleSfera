@@ -8,6 +8,7 @@ import {
   READ_NOTIFICATION_RETENTION_DAYS,
   STRIKE_RECORD_RETENTION_DAYS_AFTER_EXPIRY,
 } from '../common/constants/data-retention.constants.js';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
@@ -18,6 +19,7 @@ export class MaintenanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
+    private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
   // Cleans up stories that have expired (expiresAt < now).
@@ -460,16 +462,7 @@ export class MaintenanceService {
       ],
       [
         'closed support tickets',
-        () =>
-          this.prisma.supportTicket.deleteMany({
-            where: {
-              status: { in: ['RESOLVED', 'CLOSED'] },
-              OR: [
-                { resolvedAt: { lt: caseCutoff } },
-                { resolvedAt: null, updatedAt: { lt: caseCutoff } },
-              ],
-            },
-          }),
+        () => this.helpdeskData.deleteEndedBefore(caseCutoff),
       ],
       [
         'resolved appeals',
