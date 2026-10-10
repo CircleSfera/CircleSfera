@@ -3389,7 +3389,15 @@
       "tab_experiments": "A/B Experiments",
       "user_search_placeholder": "Search user by name or email...",
       "searching_users": "Searching users...",
-      "no_users_found": "No users found."
+      "no_users_found": "No users found.",
+      "toast_flag_saved": "Flag saved",
+      "toast_flag_save_error": "The flag could not be saved",
+      "toast_flag_deleted": "Flag deleted",
+      "toast_flag_delete_error": "The flag could not be deleted",
+      "toast_assigned": "Assignment saved",
+      "toast_assign_error": "The assignment could not be saved",
+      "toast_removed": "Assignment removed",
+      "toast_remove_error": "The assignment could not be removed"
     },
     "health": {
       "title": "System Status",
