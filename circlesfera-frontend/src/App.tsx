@@ -13,6 +13,10 @@ import CreatorStudioGuard from './components/auth/CreatorStudioGuard';
 import GuestGuard from './components/auth/GuestGuard';
 import BrandAmbientBackground from './components/common/BrandAmbientBackground';
 import ScrollToTop from './components/common/ScrollToTop';
+import {
+  LegacyPostRedirect,
+  LegacyTagRedirect,
+} from './components/LegacyRedirects';
 import { useAccountLocaleSync } from './hooks/useAccountLocaleSync';
 import { useNativeApp } from './hooks/useNativeApp';
 import { usePushNotifications } from './hooks/usePushNotifications';
@@ -367,10 +371,7 @@ function App() {
           }
         />
         {/* Keep old route for compatibility */}
-        <Route
-          path="/tags/:tag"
-          element={<Navigate to="/explore/tags/:tag" replace />}
-        />
+        <Route path="/tags/:tag" element={<LegacyTagRedirect />} />
 
         {/* Legacy guest deep-dives → /features/:slug */}
         <Route path="/explore/:feature" element={<ExploreFeatureRedirect />} />
@@ -385,7 +386,7 @@ function App() {
           }
         />
         {/* Keep old route for compatibility */}
-        <Route path="/post/:id" element={<Navigate to="/p/:id" replace />} />
+        <Route path="/post/:id" element={<LegacyPostRedirect />} />
 
         {/* Direct messages — Messages shell stays eager; chat panes are lazy */}
         <Route
