@@ -2632,6 +2632,11 @@
       "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
+      "waiting_under_hour": "Esperando menos de 1 hora",
+      "waiting_hours_one": "Esperando {{count}} hora",
+      "waiting_hours_other": "Esperando {{count}} horas",
+      "waiting_days_one": "Esperando {{count}} día",
+      "waiting_days_other": "Esperando {{count}} días",
       "title": "Tickets de Soporte",
       "subtitle": "Gestión de solicitudes de soporte y respuestas",
       "filter_status": "Estado",

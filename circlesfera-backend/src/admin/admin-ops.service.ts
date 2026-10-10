@@ -219,7 +219,8 @@ export class AdminOpsService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        // Open tickets: the one waiting longest first. Any other list: newest first.
+        orderBy: { createdAt: where.status === 'OPEN' ? 'asc' : 'desc' },
         include: {
           user: {
             select: {
