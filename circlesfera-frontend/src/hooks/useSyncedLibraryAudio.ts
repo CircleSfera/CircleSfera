@@ -1,4 +1,4 @@
-import { type RefObject, useEffect } from 'react';
+import { type RefObject, useEffect, useRef } from 'react';
 
 type VideoLike = Pick<
   HTMLVideoElement,
@@ -18,13 +18,20 @@ export function useSyncedLibraryAudio(options: {
 }) {
   const { enabled, trackUrl, audioStartMs, isMuted, videoRef } = options;
 
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  // Read when the track is made; a later change of sound goes through the
+  // effect below, which does not load the track again.
+  const isMutedRef = useRef(isMuted);
+  isMutedRef.current = isMuted;
+
   useEffect(() => {
     if (!enabled || !trackUrl) return;
 
     const startSec = Math.max(0, audioStartMs ?? 0) / 1000;
     const audio = new window.Audio(trackUrl);
+    audioRef.current = audio;
     audio.loop = false;
-    audio.muted = isMuted;
+    audio.muted = isMutedRef.current;
     audio.currentTime = startSec;
 
     const video = videoRef.current;
@@ -66,6 +73,13 @@ export function useSyncedLibraryAudio(options: {
       video?.removeEventListener('timeupdate', syncFromVideo);
       audio.pause();
       audio.src = '';
+      audioRef.current = null;
     };
-  }, [enabled, trackUrl, audioStartMs, isMuted, videoRef]);
+  }, [enabled, trackUrl, audioStartMs, videoRef]);
+
+  // Switching the sound on or off keeps the same track playing: making a
+  // new one would download it again and leave a gap.
+  useEffect(() => {
+    if (audioRef.current) audioRef.current.muted = isMuted;
+  }, [isMuted]);
 }
