@@ -60,6 +60,7 @@ describe('WarehouseExportService', () => {
       prisma as never,
       config as unknown as ConfigService,
       clickHouseLoad as unknown as ClickHouseLoadService,
+      { ticketFactsSince: prisma.supportTicket.findMany } as never,
     );
   });
 

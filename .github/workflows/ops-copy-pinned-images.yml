@@ -1,0 +1,57 @@
+name: Ops — copy pinned images
+
+# Keeps, in the registry of this repository, a copy of the images the
+# workflows need that are not official Docker images. The only other public
+# source of their pinned digests without signing in is a best-effort cache
+# that may drop them. Each image is copied by its digest, with every platform,
+# and the run fails if the copy does not have that same digest.
+#
+# It writes only to the packages of this repository; it does not touch
+# production. Safe to run again: copying an image that is already there
+# changes nothing.
+#
+# To change the version of an image: change its digest in the list below, run
+# this, then change the digest where the workflows name the copy.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: copy-pinned-images
+  cancel-in-progress: false
+
+jobs:
+  copy:
+    name: Copy pinned images
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TARGET: ghcr.io/circlesfera/circlesfera/mirror
+      REGISTRY_USER: ${{ github.actor }}
+      REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Copy each image by its digest
+        run: |
+          set -euo pipefail
+          # name:tag | source | digest
+          images='
+          pgvector:pg16|mirror.gcr.io/pgvector/pgvector|sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
+          buildkit:buildx-stable-1|mirror.gcr.io/moby/buildkit|sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+          '
+          echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
+          echo "$images" | while IFS='|' read -r name source digest; do
+            name=$(echo "$name" | xargs)
+            [ -n "$name" ] || continue
+            echo "Copying $source@$digest to $TARGET/$name"
+            skopeo copy --all --preserve-digests \
+              "docker://$source@$digest" "docker://$TARGET/$name"
+            copied="sha256:$(skopeo inspect --raw "docker://$TARGET/$name" | sha256sum | cut -d' ' -f1)"
+            if [ "$copied" != "$digest" ]; then
+              echo "The copy of $name has digest $copied, expected $digest"
+              exit 1
+            fi
+            echo "Copied $name: $copied"
+          done

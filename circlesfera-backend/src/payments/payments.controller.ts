@@ -26,7 +26,7 @@ import { CheckoutDto } from './dto/checkout.dto.js';
 import { PaymentsService } from './payments.service.js';
 
 interface RequestWithUser extends Request {
-  user: { userId: string; email: string; role: string };
+  user: { userId: string; email: string; role: string; profileId: string };
 }
 
 @Controller('payments')
@@ -53,6 +53,8 @@ export class PaymentsController {
       req.user.userId,
       body.planId,
       body.billingCycle,
+      // A plan is bought for the Profile in use.
+      req.user.profileId,
     );
   }
 
@@ -67,7 +69,10 @@ export class PaymentsController {
   @Get('status')
   @UseGuards(JwtAuthGuard)
   async getBillingStatus(@Req() req: RequestWithUser) {
-    return this.paymentsService.getBillingStatus(req.user.userId);
+    return this.paymentsService.getBillingStatus(
+      req.user.userId,
+      req.user.profileId,
+    );
   }
 
   @Get('ledger')

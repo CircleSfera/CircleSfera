@@ -13,9 +13,10 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
-  ADMIN_NAV_GROUPS,
-  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
+  canOpenTab,
+  currentStaffSite,
+  navGroupsFor,
 } from './adminNav';
 
 interface Props {
@@ -55,9 +56,12 @@ export function AdminMobileDrawer({
     (trustQueue?.counts.riskCases ?? 0) +
     (trustQueue?.counts.tickets ?? 0);
 
+  // The sections of the staff site this is: Admin Panel or Backoffice.
+  const navGroups = useMemo(() => navGroupsFor(currentStaffSite()), []);
+
   const badgeById = useMemo(() => {
     const map = new Map<AdminTab, string | undefined>();
-    for (const group of ADMIN_NAV_GROUPS) {
+    for (const group of navGroups) {
       for (const item of group.items) {
         if (item.id === 'trust' && trustBadgeTotal > 0) {
           map.set(item.id, String(trustBadgeTotal));
@@ -75,7 +79,7 @@ export function AdminMobileDrawer({
       }
     }
     return map;
-  }, [trustBadgeTotal, trustQueue]);
+  }, [navGroups, trustBadgeTotal, trustQueue]);
 
   useEffect(() => {
     if (isOpen) {
@@ -173,9 +177,9 @@ export function AdminMobileDrawer({
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 py-3 custom-scrollbar space-y-4">
-          {ADMIN_NAV_GROUPS.map((group) => {
+          {navGroups.map((group) => {
             const visibleItems = group.items.filter((item) => {
-              return hasPermission(ADMIN_TAB_PERMISSIONS[item.id]);
+              return canOpenTab(hasPermission, item.id);
             });
 
             if (visibleItems.length === 0) return null;

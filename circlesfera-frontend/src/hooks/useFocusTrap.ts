@@ -8,15 +8,16 @@ export function useFocusTrap<T extends HTMLElement>(
   const internalRef = useRef<T>(null);
   const containerRef = externalRef || internalRef;
   const previousFocusRef = useRef<HTMLElement | null>(null);
-  const onEscape = options?.onEscape;
+  // Callers write the handler in place, so it is a new function on every
+  // render. Kept in a ref, a new one does not start the trap again: that
+  // would pull the focus back to the first control in the middle of typing.
+  const onEscapeRef = useRef(options?.onEscape);
+  useEffect(() => {
+    onEscapeRef.current = options?.onEscape;
+  });
 
   useEffect(() => {
-    if (!isActive) {
-      if (previousFocusRef.current) {
-        previousFocusRef.current.focus();
-      }
-      return;
-    }
+    if (!isActive) return;
 
     const container = containerRef.current;
     if (!container) return;
@@ -54,7 +55,7 @@ export function useFocusTrap<T extends HTMLElement>(
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onEscape?.();
+        onEscapeRef.current?.();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -80,8 +81,13 @@ export function useFocusTrap<T extends HTMLElement>(
 
     return () => {
       container.removeEventListener('keydown', handleKeyDown);
+      // Whether the dialog is switched off or taken away, the focus goes
+      // back to what had it before, when that is still on the page.
+      const previous = previousFocusRef.current;
+      previousFocusRef.current = null;
+      if (previous?.isConnected) previous.focus();
     };
-  }, [isActive, containerRef, onEscape]);
+  }, [isActive, containerRef]);
 
   return containerRef;
 }

@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { paymentsApi } from '../../services/payments.service';
+import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import BillingSettings from './BillingSettings';
 
@@ -32,6 +33,51 @@ describe('BillingSettings', () => {
       configurable: true,
       value: originalLocation,
     });
+  });
+
+  it('says whose plan it is, and lists the plans of the other profiles with the way to manage them', async () => {
+    useAuthStore.setState({ profile: { username: 'ana' } as never });
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      otherProfiles: [
+        { profileId: 'p-2', username: 'ana.shop', planName: 'Business' },
+      ],
+    });
+    vi.mocked(paymentsApi.getBillingPortalUrl).mockResolvedValue({
+      url: 'https://billing.example/portal',
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+
+    expect(
+      await screen.findByText(
+        i18n!.t('settings.billing.subtitle_profile', { username: 'ana' }),
+      ),
+    ).toBeInTheDocument();
+    // This profile has no plan; another one of the person does.
+    expect(screen.getByText(i18n!.t('settings.billing.free'))).toBeVisible();
+    expect(screen.getByText('@ana.shop')).toBeVisible();
+    expect(screen.getByText('Business')).toBeVisible();
+
+    // One payer: the billing of the other profile is reached from here too.
+    fireEvent.click(
+      screen.getByRole('button', { name: i18n!.t('settings.billing.manage') }),
+    );
+    await waitFor(() =>
+      expect(location.href).toBe('https://billing.example/portal'),
+    );
+  });
+
+  it('shows no list of other profiles when none has a plan', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      otherProfiles: [],
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+
+    await screen.findByText(i18n!.t('settings.billing.free'));
+    expect(
+      screen.queryByText(i18n!.t('settings.billing.other_profiles')),
+    ).not.toBeInTheDocument();
   });
 
   it('a free account sees the free plan and goes to the plans page', async () => {

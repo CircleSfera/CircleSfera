@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { profileLimit } from '../../services';
 import CreateProfileForm from '../profiles/CreateProfileForm';
 import OwnedProfileList, { useMyProfiles } from '../profiles/OwnedProfileList';
+import ProfileSignIns from '../profiles/ProfileSignIns';
 import { Button, Card } from '../ui';
 import SettingsSection from './SettingsSection';
 
@@ -25,6 +26,8 @@ export default function ProfilesSettings() {
       >
         <OwnedProfileList />
       </SettingsSection>
+
+      <ProfileSignIns />
 
       {creating ? (
         <Card variant="glass">

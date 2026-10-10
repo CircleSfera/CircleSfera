@@ -160,13 +160,15 @@ export class AdminUsersService {
       where.AND = [...existingAnd, roleWhere];
     }
 
-    if (kycStatus) {
-      if (kycStatus === 'APPROVED') {
-        where.identityVerifiedAt = { not: null };
-      } else if (kycStatus === 'PENDING') {
-        where.identityVerifiedAt = null;
-        where.stripeIdentitySessionId = { not: null };
-      }
+    // Identity check: done, started and not finished, or never started.
+    if (kycStatus === 'verified') {
+      where.identityVerifiedAt = { not: null };
+    } else if (kycStatus === 'pending') {
+      where.identityVerifiedAt = null;
+      where.stripeIdentitySessionId = { not: null };
+    } else if (kycStatus === 'not_started') {
+      where.identityVerifiedAt = null;
+      where.stripeIdentitySessionId = null;
     }
 
     if (status === 'active') where.isActive = true;
@@ -221,18 +223,21 @@ export class AdminUsersService {
     };
   }
 
+  // How many accounts are in each state of the identity check.
   async getKycStats() {
-    const approved = await this.prisma.user.count({
-      where: { identityVerifiedAt: { not: null } },
-    });
-    const pending = await this.prisma.user.count({
-      where: {
-        identityVerifiedAt: null,
-        stripeIdentitySessionId: { not: null },
-      },
-    });
-    const rejected = 0;
-    return { pending, approved, rejected };
+    const [verified, pending, total] = await Promise.all([
+      this.prisma.user.count({
+        where: { identityVerifiedAt: { not: null } },
+      }),
+      this.prisma.user.count({
+        where: {
+          identityVerifiedAt: null,
+          stripeIdentitySessionId: { not: null },
+        },
+      }),
+      this.prisma.user.count(),
+    ]);
+    return { verified, pending, notStarted: total - verified - pending, total };
   }
 
   async banUser(adminId: string, userId: string) {

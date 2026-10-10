@@ -13,6 +13,7 @@ vi.mock('./api', () => ({ apiClient: client }));
 
 import * as appeals from './appeals.service';
 import { authApi } from './auth.service';
+import { bookmarksApi } from './bookmarks.service';
 import { paymentsApi } from './payments.service';
 import { profileApi } from './profile.service';
 import { reportsApi } from './reports.service';
@@ -66,29 +67,49 @@ const cases: Case[] = [
     'post',
     ['/auth/reset-password', { token: 't', newPassword: 'n' }],
   ],
-  [
-    'auth.generate2fa',
-    () => authApi.generate2fa(),
-    'post',
-    ['/auth/2fa/generate'],
-  ],
-  [
-    'auth.verify2fa',
-    () => authApi.verify2fa({ code: '1' }),
-    'post',
-    ['/auth/2fa/verify', { code: '1' }],
-  ],
+  ['auth.generate2fa', () => authApi.generate2fa(), 'post', ['/2fa/generate']],
   [
     'auth.enable2fa',
-    () => authApi.enable2fa({ code: '1' }),
+    () => authApi.enable2fa({ code: '123456' }),
     'post',
-    ['/auth/2fa/enable', { code: '1' }],
+    ['/2fa/turn-on', { twoFactorAuthenticationCode: '123456' }],
   ],
   [
     'auth.disable2fa',
-    () => authApi.disable2fa(),
+    () => authApi.disable2fa({ code: '123456' }),
     'post',
-    ['/auth/2fa/disable'],
+    ['/2fa/turn-off', { twoFactorAuthenticationCode: '123456' }],
+  ],
+  // Saving a post
+  [
+    'bookmarks.toggle',
+    () => bookmarksApi.toggle('p1'),
+    'post',
+    ['bookmarks/p1', { collectionId: undefined }],
+  ],
+  [
+    'bookmarks.toggle into a collection',
+    () => bookmarksApi.toggle('p1', 'c1'),
+    'post',
+    ['bookmarks/p1', { collectionId: 'c1' }],
+  ],
+  [
+    'bookmarks.updateCollection',
+    () => bookmarksApi.updateCollection('p1', 'c1'),
+    'patch',
+    ['bookmarks/p1/collection', { collectionId: 'c1' }],
+  ],
+  [
+    'bookmarks.check',
+    () => bookmarksApi.check('p1'),
+    'get',
+    ['bookmarks/p1/check'],
+  ],
+  [
+    'bookmarks.getAll',
+    () => bookmarksApi.getAll(2, 12, 'c1'),
+    'get',
+    ['bookmarks', { params: { page: 2, limit: 12, collectionId: 'c1' } }],
   ],
   ['auth.getSessions', () => authApi.getSessions(), 'get', ['/auth/sessions']],
   [

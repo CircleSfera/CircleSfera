@@ -98,6 +98,7 @@ export class PasskeyController {
       const tokens = await this.authService.loginById(
         result.userId,
         this.abuseMeta(req),
+        result.signInId,
       );
       res.cookie(
         ACCESS_TOKEN_COOKIE,
@@ -120,7 +121,10 @@ export class PasskeyController {
   @UseGuards(JwtAuthGuard)
   @Post('step-up-options')
   async generateStepUpOptions(@CurrentUser() user: CurrentUserData) {
-    return this.passkeyService.generateStepUpOptions(user.userId);
+    return this.passkeyService.generateStepUpOptions(
+      user.userId,
+      user.signInId,
+    );
   }
 
   // Delete a registered passkey (requires auth and a fresh step-up assertion).

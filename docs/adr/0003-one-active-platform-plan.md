@@ -1,7 +1,7 @@
 # ADR-0003: One active platform subscription plan per user
 
-- **Status:** Accepted (current behavior, documented 2026-07-23)
-- **To be superseded in part by:** [ADR-0025](./0025-sign-in-per-profile-one-identity.md), when its step 6 is on `main`: the rule becomes one active plan per Profile. Until then this record describes the code.
+- **Status:** Superseded in part by [ADR-0025](./0025-sign-in-per-profile-one-identity.md)
+- **What no longer holds:** the rule is one active plan per **Profile**, not per `User`. A person may hold several plans, one per Profile, checked in `PaymentsService.createCheckout` and kept by a partial unique index on the subscriptions. The rest of this record (the checkout refusing a second plan, the healing of races when a plan is activated) describes the same mechanism, now scoped to the Profile.
 - **Date:** 2026-07-23
 - **Deciders:** CircleSfera engineering (remediation pass)
 

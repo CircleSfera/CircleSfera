@@ -4,6 +4,7 @@ import { TurnstileService } from '../../common/abuse/turnstile.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
+import { sessionEmailVerified } from '../auth/sign-in-lookup.js';
 import { AppException } from '../errors/app.exception.js';
 
 export async function assertEmailVerifiedForWrite(
@@ -17,11 +18,7 @@ export async function assertEmailVerifiedForWrite(
   );
   if (!required) return;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { emailVerified: true },
-  });
-  if (user?.emailVerified) return;
+  if (await sessionEmailVerified(prisma, { userId })) return;
 
   await turnstile.incrementEmailForbidden();
   throw AppException.Forbidden(

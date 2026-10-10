@@ -16,6 +16,7 @@ interface RequestWithUser extends Request {
     userId: string;
     email: string;
     role: string;
+    profileId?: string;
   };
 }
 
@@ -59,10 +60,19 @@ export class SubscriptionGuard implements CanActivate {
       return false;
     }
 
+    // A plan belongs to one Profile: the one in use must be the one that
+    // has it. A session without a Profile has no plan.
+    if (!user.profileId) {
+      throw new ForbiddenException(
+        `This feature requires an active '${requiredPlan}' subscription.`,
+      );
+    }
+
     // Check for active subscription
     const userSubscription = await this.prisma.platformSubscription.findFirst({
       where: {
         userId: user.userId,
+        profileId: user.profileId,
         status: SubscriptionStatus.ACTIVE,
       },
       include: {

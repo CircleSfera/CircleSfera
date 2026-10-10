@@ -14,6 +14,10 @@ export function TwoFactorSettings() {
 
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
+  // Turning it off takes a current code as well: the form that asks for it
+  // opens from the button.
+  const [isDisabling, setIsDisabling] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
 
   const is2FAEnabled = profile?.user?.isTwoFactorEnabled || false;
 
@@ -47,9 +51,11 @@ export function TwoFactorSettings() {
   });
 
   const disableMutation = useMutation({
-    mutationFn: () => authApi.disable2fa(),
+    mutationFn: (code: string) => authApi.disable2fa({ code }),
     onSuccess: () => {
       toast.success(t('settings.security.2fa.disable_success'));
+      setIsDisabling(false);
+      setDisableCode('');
       if (profile?.user) {
         setProfile({
           ...profile,
@@ -58,10 +64,22 @@ export function TwoFactorSettings() {
       }
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
-    onError: () => {
-      toast.error(t('settings.security.2fa.disable_error'));
+    onError: (error: { response?: { status?: number } }) => {
+      // The server answers 400 to a code that is not the current one.
+      toast.error(
+        error?.response?.status === 400
+          ? t('settings.security.2fa.invalid_code')
+          : t('settings.security.2fa.disable_error'),
+      );
     },
   });
+
+  const handleDisableSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (disableCode.length === 6) {
+      disableMutation.mutate(disableCode);
+    }
+  };
 
   const handleEnableSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,20 +142,23 @@ export function TwoFactorSettings() {
           <form onSubmit={handleEnableSubmit} className="flex gap-3 max-w-sm">
             <input
               type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
               maxLength={6}
               value={verificationCode}
               onChange={(e) =>
                 setVerificationCode(e.target.value.replace(/\D/g, ''))
               }
               placeholder="000000"
-              className="flex-1 bg-zinc-900/50 border border-white/10 rounded-xl px-2 py-1 text-white text-center tracking-[0.5em] font-mono focus:border-blue-500/50 outline-none"
+              aria-label={t('settings.security.2fa.code_label')}
+              className="flex-1 min-w-0 min-h-12 bg-zinc-900/50 border border-white/10 rounded-xl px-2 text-base text-white text-center tracking-[0.5em] font-mono focus:border-blue-500/50 outline-none"
             />
             <button
               type="submit"
               disabled={
                 verificationCode.length !== 6 || enableMutation.isPending
               }
-              className="px-5 py-2 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-colors"
+              className="min-h-12 px-5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl disabled:opacity-50 transition-colors"
             >
               {enableMutation.isPending ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -149,21 +170,57 @@ export function TwoFactorSettings() {
         </div>
       )}
 
-      {is2FAEnabled && (
+      {is2FAEnabled && !isDisabling && (
         <button
           type="button"
-          onClick={() => {
-            if (window.confirm(t('settings.security.2fa.confirm_disable'))) {
-              disableMutation.mutate();
-            }
-          }}
-          disabled={disableMutation.isPending}
-          className="px-5 py-2.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
+          onClick={() => setIsDisabling(true)}
+          className="min-h-11 px-5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-bold text-xs uppercase tracking-wide hover:bg-red-500 hover:text-white transition-colors"
         >
-          {disableMutation.isPending
-            ? t('settings.security.2fa.disabling')
-            : t('settings.security.2fa.disable_btn')}
+          {t('settings.security.2fa.disable_btn')}
         </button>
+      )}
+
+      {is2FAEnabled && isDisabling && (
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4 space-y-4">
+          <p className="text-sm text-gray-300 font-medium">
+            {t('settings.security.2fa.confirm_disable')}{' '}
+            {t('settings.security.2fa.disable_instructions')}
+          </p>
+          <form onSubmit={handleDisableSubmit} className="flex gap-3 max-w-sm">
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={disableCode}
+              onChange={(e) =>
+                setDisableCode(e.target.value.replace(/\D/g, ''))
+              }
+              placeholder="000000"
+              aria-label={t('settings.security.2fa.code_label')}
+              className="flex-1 min-w-0 min-h-12 bg-zinc-900/50 border border-white/10 rounded-xl px-2 text-base text-white text-center tracking-[0.5em] font-mono focus:border-blue-500/50 outline-none"
+            />
+            <button
+              type="submit"
+              disabled={disableCode.length !== 6 || disableMutation.isPending}
+              className="min-h-12 px-5 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-sm disabled:opacity-50 transition-colors"
+            >
+              {disableMutation.isPending
+                ? t('settings.security.2fa.disabling')
+                : t('settings.security.2fa.disable_btn')}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => {
+              setIsDisabling(false);
+              setDisableCode('');
+            }}
+            className="min-h-11 px-4 text-sm font-semibold text-gray-300 hover:text-white rounded-full"
+          >
+            {t('common.cancel')}
+          </button>
+        </div>
       )}
     </div>
   );

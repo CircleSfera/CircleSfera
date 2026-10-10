@@ -2,6 +2,10 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
+import {
+  FIRST_SIGN_IN_ORDER,
+  sessionSignInWhere,
+} from '../../common/auth/sign-in-lookup.js';
 import { CryptoService } from '../../common/services/crypto.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
@@ -13,9 +17,20 @@ export class TwoFactorService {
     @Inject(CryptoService) private readonly cryptoService: CryptoService,
   ) {}
 
+  // The sign-in of the session: the one it names, or the first of the
+  // account for a session that names none. The second step belongs to it.
+  private async signInOf(user: { id: string; signInId?: string }) {
+    return this.prisma.signIn.findFirst({
+      where: sessionSignInWhere({ userId: user.id, signInId: user.signInId }),
+      orderBy: FIRST_SIGN_IN_ORDER,
+      select: { id: true, twoFactorSecret: true },
+    });
+  }
+
   public async generateTwoFactorAuthenticationSecret(user: {
     email: string;
     id: string;
+    signInId?: string;
   }) {
     const secret = generateSecret();
     const appName = this.configService.get('APP_NAME') || 'CircleSfera';
@@ -25,8 +40,12 @@ export class TwoFactorService {
       secret,
     });
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    const signIn = await this.signInOf(user);
+    if (!signIn) {
+      throw new BadRequestException('Sign-in not found');
+    }
+    await this.prisma.signIn.update({
+      where: { id: signIn.id },
       data: { twoFactorSecret: this.cryptoService.encrypt(secret) },
     });
 
@@ -39,12 +58,9 @@ export class TwoFactorService {
 
   public async isTwoFactorAuthenticationCodeValid(
     twoFactorAuthenticationCode: string,
-    user: { id: string },
+    user: { id: string; signInId?: string },
   ) {
-    const userData = await this.prisma.user.findUnique({
-      where: { id: user.id },
-      omit: { twoFactorSecret: false },
-    });
+    const userData = await this.signInOf(user);
 
     if (!userData?.twoFactorSecret) {
       return false;
@@ -61,9 +77,9 @@ export class TwoFactorService {
 
     // Opportunistic rolling migration for legacy plaintext secrets
     if (valid && !rawSecret.includes(':')) {
-      void this.prisma.user
+      void this.prisma.signIn
         .update({
-          where: { id: user.id },
+          where: { id: userData.id },
           data: {
             twoFactorSecret: this.cryptoService.encrypt(decryptedSecret),
           },
@@ -74,36 +90,43 @@ export class TwoFactorService {
     return valid;
   }
 
-  public async turnOnTwoFactorAuthentication(userId: string, code: string) {
-    const isCodeValid = await this.isTwoFactorAuthenticationCodeValid(code, {
-      id: userId,
-    });
-
-    if (!isCodeValid) {
-      throw new BadRequestException('Invalid authentication code');
-    }
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { isTwoFactorEnabled: true },
+  public async turnOnTwoFactorAuthentication(
+    userId: string,
+    code: string,
+    signInId?: string,
+  ) {
+    await this.switchTwoFactor({ id: userId, signInId }, code, {
+      isTwoFactorEnabled: true,
     });
   }
 
-  public async turnOffTwoFactorAuthentication(userId: string, code: string) {
-    const isCodeValid = await this.isTwoFactorAuthenticationCodeValid(code, {
-      id: userId,
-    });
-
-    if (!isCodeValid) {
+  // Checks the code against the sign-in and writes the change on that same
+  // sign-in. No sign-in, or a wrong code, changes nothing.
+  private async switchTwoFactor(
+    user: { id: string; signInId?: string },
+    code: string,
+    data: { isTwoFactorEnabled: boolean; twoFactorSecret?: null },
+  ) {
+    const isCodeValid = await this.isTwoFactorAuthenticationCodeValid(
+      code,
+      user,
+    );
+    const signIn = isCodeValid ? await this.signInOf(user) : null;
+    if (!signIn) {
       throw new BadRequestException('Invalid authentication code');
     }
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        isTwoFactorEnabled: false,
-        twoFactorSecret: null,
-      },
+    await this.prisma.signIn.update({ where: { id: signIn.id }, data });
+  }
+
+  public async turnOffTwoFactorAuthentication(
+    userId: string,
+    code: string,
+    signInId?: string,
+  ) {
+    await this.switchTwoFactor({ id: userId, signInId }, code, {
+      isTwoFactorEnabled: false,
+      twoFactorSecret: null,
     });
   }
 }
