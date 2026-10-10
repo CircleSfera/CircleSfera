@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Check, ChevronDown, ChevronUp, UserPlus, X } from 'lucide-react';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { followsApi } from '../../services/follows.service';
 import UserAvatar from '../UserAvatar';
 
 export default function PendingFollowRequests() {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -39,6 +41,7 @@ export default function PendingFollowRequests() {
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
+        aria-expanded={isExpanded}
         className="w-full flex items-center justify-between p-4 bg-black/20 hover:bg-black/40 transition-colors"
       >
         <div className="flex items-center gap-3">
@@ -47,10 +50,12 @@ export default function PendingFollowRequests() {
           </div>
           <div className="text-left">
             <h3 className="text-white font-bold text-sm">
-              Solicitudes de seguimiento
+              {t('settings.requests.title')}
             </h3>
             <p className="text-zinc-400 text-xs">
-              {pendingUsers.length} peticiones pendientes
+              {t('notifications.pending_requests', {
+                count: pendingUsers.length,
+              })}
             </p>
           </div>
         </div>
@@ -93,17 +98,23 @@ export default function PendingFollowRequests() {
                       type="button"
                       onClick={() => acceptMutation.mutate(user.username)}
                       disabled={acceptMutation.isPending}
-                      className="w-8 h-8 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
+                      aria-label={t('notifications.accept_request', {
+                        username: user.username,
+                      })}
+                      className="w-11 h-11 rounded-full bg-blue-500 hover:bg-blue-600 flex items-center justify-center text-white transition-colors"
                     >
-                      <Check size={16} />
+                      <Check size={16} aria-hidden />
                     </button>
                     <button
                       type="button"
                       onClick={() => rejectMutation.mutate(user.username)}
                       disabled={rejectMutation.isPending}
-                      className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                      aria-label={t('notifications.reject_request', {
+                        username: user.username,
+                      })}
+                      className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
                     >
-                      <X size={16} />
+                      <X size={16} aria-hidden />
                     </button>
                   </div>
                 </div>

@@ -25,6 +25,7 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
   const [poll, setPoll] = useState<PollData | null>(null);
   const [loading, setLoading] = useState(true);
   const [votingIndex, setVotingIndex] = useState<number | null>(null);
+  const [voteFailed, setVoteFailed] = useState(false);
 
   const fetchPoll = useCallback(async () => {
     try {
@@ -45,6 +46,7 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
   const handleVote = async (optionIndex: number) => {
     try {
       setVotingIndex(optionIndex);
+      setVoteFailed(false);
       const res = await apiClient.post<PollData>('interactive/poll/vote', {
         pollId,
         optionIndex,
@@ -52,6 +54,8 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       setPoll(res.data);
     } catch (err) {
       logger.error('Failed to vote on poll:', err);
+      // The option stays as it was: the person must know the vote did not count.
+      setVoteFailed(true);
     } finally {
       setVotingIndex(null);
     }
@@ -94,7 +98,8 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
               type="button"
               onClick={() => handleVote(option.index)}
               disabled={votingIndex !== null}
-              className={`relative w-full p-3 rounded-xl border text-left overflow-hidden transition-all ${
+              aria-pressed={isSelected}
+              className={`relative w-full min-h-11 p-3 rounded-xl border text-left overflow-hidden transition-all ${
                 isSelected
                   ? 'border-accent-blue bg-accent-blue/10 text-white'
                   : 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-200'
@@ -125,6 +130,12 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
           );
         })}
       </div>
+
+      {voteFailed && (
+        <p role="alert" className="text-xs font-medium text-rose-400">
+          {t('interactive.poll.vote_error')}
+        </p>
+      )}
 
       <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
         <span>{t('interactive.poll.votes', { count: poll.totalVotes })}</span>
