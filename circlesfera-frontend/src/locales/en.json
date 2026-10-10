@@ -1989,6 +1989,8 @@
       "pause": "Pause",
       "resume": "Resume",
       "paused_badge": "Paused",
+      "rejected_badge": "Rejected",
+      "failed_badge": "Payment failed",
       "cancel_refund_hint": "Unused budget ({{amount}} {{currency}}) will be refunded.",
       "paused": "Campaign paused",
       "resumed": "Campaign resumed",
