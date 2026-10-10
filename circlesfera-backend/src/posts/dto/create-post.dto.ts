@@ -16,6 +16,9 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+/** The longest caption of a post or frame; the composer shows the same limit. */
+export const POST_CAPTION_MAX_LENGTH = 2200;
+
 class TagDto {
   @IsString()
   @IsNotEmpty()
@@ -126,6 +129,7 @@ class PlaceInputDto {
 
 export class CreatePostDto {
   @IsString()
+  @MaxLength(POST_CAPTION_MAX_LENGTH)
   @IsOptional()
   caption?: string;
 

@@ -3,6 +3,7 @@ import { type ValidationError, validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
 import { CreateStoryDto } from '../../stories/dto/create-story.dto.js';
 import { CreatePostDto } from './create-post.dto.js';
+import { UpdatePostDto } from './update-post.dto.js';
 
 const place = (translations?: unknown) => ({
   mapboxId: 'place.es',
@@ -94,5 +95,37 @@ describe.each([
         place: place([{ locale: 'en', name: 'Spain', latitude: 1 }]),
       }),
     ).toContain('whitelistValidation');
+  });
+});
+
+describe('the caption of a post', () => {
+  const captionRules = async (
+    dto: typeof CreatePostDto | typeof UpdatePostDto,
+    caption: string,
+  ) => {
+    const errors = await validate(plainToInstance(dto, { caption }) as object);
+    return Object.keys(
+      errors.find((error) => error.property === 'caption')?.constraints ?? {},
+    );
+  };
+
+  it.each([
+    ['creating', CreatePostDto],
+    ['editing', UpdatePostDto],
+  ])('is accepted at 2200 characters when %s', async (_when, dto) => {
+    expect(await captionRules(dto, 'a'.repeat(2200))).toEqual([]);
+  });
+
+  it.each([
+    ['creating', CreatePostDto],
+    ['editing', UpdatePostDto],
+  ])('is refused over 2200 characters when %s', async (_when, dto) => {
+    expect(await captionRules(dto, 'a'.repeat(2201))).toEqual(['maxLength']);
+  });
+
+  it('can be left out or emptied', async () => {
+    expect(await captionRules(UpdatePostDto, '')).toEqual([]);
+    const errors = await validate(plainToInstance(UpdatePostDto, {}) as object);
+    expect(errors).toEqual([]);
   });
 });
