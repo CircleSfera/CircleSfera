@@ -2649,6 +2649,20 @@
       "assignee_nobody": "Nobody",
       "assignee_me": "You",
       "assignee_other": "Another agent",
+      "event": {
+        "state": "Status: {{from}} → {{to}}",
+        "topic": "Topic: {{from}} → {{to}}",
+        "priority": "Priority: {{from}} → {{to}}",
+        "assignment": "Handled by: {{from}} → {{to}}",
+        "handover": "Handed to moderation",
+        "state_name": {
+          "OPEN": "Open",
+          "WAITING": "Waiting for requester",
+          "RESOLVED": "Resolved",
+          "CLOSED": "Closed",
+          "ESCALATED": "With moderation"
+        }
+      },
       "take": "Take",
       "release": "Release",
       "status_waiting": "Waiting for requester",

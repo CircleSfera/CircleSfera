@@ -360,6 +360,23 @@ export class HelpdeskStore {
     });
   }
 
+  /** What changed in a ticket and who changed it, oldest first. */
+  events(ticketId: string) {
+    return this.prisma.helpdeskTicketEvent.findMany({
+      where: { ticketId, ticket: { organizationId: this.organizationId } },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        kind: true,
+        fromValue: true,
+        toValue: true,
+        actorKind: true,
+        actorRef: true,
+        createdAt: true,
+      },
+    });
+  }
+
   /** The conversation of a ticket, oldest first. */
   messages(ticketId: string, visibility?: HelpdeskMessageVisibility) {
     return this.prisma.helpdeskMessage.findMany({

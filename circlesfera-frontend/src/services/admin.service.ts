@@ -496,8 +496,21 @@ export interface AdminSupportTicket {
   } | null;
 }
 
+// One change of a ticket: what, from what to what, and who made it.
+export interface AdminSupportEvent {
+  id: string;
+  kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
+  fromValue: string | null;
+  toValue: string | null;
+  actorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
+  // Empty for the system and for an answer from the team channel.
+  actorRef: string | null;
+  createdAt: string;
+}
+
 export interface AdminSupportTicketDetail extends AdminSupportTicket {
   messages: AdminSupportMessage[];
+  events?: AdminSupportEvent[];
 }
 
 export interface AdminFeatureFlag {
