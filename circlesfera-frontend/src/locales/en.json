@@ -1613,7 +1613,9 @@
       "done": "Done",
       "tags_on_photo": "Tags on this photo",
       "no_tags_yet": "No tags yet. Tap the photo to add tags.",
-      "remove": "Remove"
+      "remove": "Remove",
+      "remove_user": "Remove the tag of {{username}}",
+      "media_item": "Item {{n}} of {{total}}"
     },
     "story": {
       "add_music": "Add Music",

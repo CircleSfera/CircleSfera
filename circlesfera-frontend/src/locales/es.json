@@ -1613,7 +1613,9 @@
       "done": "Listo",
       "tags_on_photo": "Etiquetas en esta foto",
       "no_tags_yet": "Aún no hay etiquetas. Toca la foto para añadirlas.",
-      "remove": "Quitar"
+      "remove": "Quitar",
+      "remove_user": "Quitar la etiqueta de {{username}}",
+      "media_item": "Elemento {{n}} de {{total}}"
     },
     "story": {
       "add_music": "Añadir Música",

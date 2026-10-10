@@ -204,6 +204,7 @@ export default function TagPeopleSubScreen({
                   ref={searchInputRef}
                   type="text"
                   placeholder={t('createPost.tags.search_user')}
+                  aria-label={t('createPost.tags.search_user')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-2xl h-12 py-2 pl-9 pr-3 text-base text-white placeholder-white/40 focus:outline-none focus:ring-1 focus:ring-brand-primary/50"
@@ -268,6 +269,11 @@ export default function TagPeopleSubScreen({
                   setActiveTap(null);
                   setSearchQuery('');
                 }}
+                aria-label={t('createPost.tags.media_item', {
+                  n: idx + 1,
+                  total: mediaFiles.length,
+                })}
+                aria-pressed={currentIndex === idx}
                 className={`w-11 h-11 rounded-lg overflow-hidden shrink-0 transition-all ${
                   currentIndex === idx
                     ? 'ring-2 ring-brand-primary ring-offset-1 ring-offset-surface-elevated'
@@ -313,9 +319,11 @@ export default function TagPeopleSubScreen({
                     type="button"
                     onClick={() => removeTag(idx)}
                     className="min-h-11 min-w-11 flex items-center justify-center rounded-lg text-white/40 hover:text-red-400 hover:bg-white/8 transition-colors"
-                    aria-label={t('createPost.tags.remove')}
+                    aria-label={t('createPost.tags.remove_user', {
+                      username: tag.username,
+                    })}
                   >
-                    <X size={14} />
+                    <X size={14} aria-hidden />
                   </button>
                 </div>
               ))}
