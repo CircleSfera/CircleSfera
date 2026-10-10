@@ -118,12 +118,12 @@ export default defineConfig({
         'src/types/**',
       ],
       // Ratchet: set to the measured coverage and only ever raised, never
-      // lowered, until the 80% global target is met.
+      // lowered. The 80% global target is met on every measure.
       thresholds: {
-        statements: 31,
-        lines: 32,
-        branches: 31,
-        functions: 28,
+        statements: 88,
+        lines: 89,
+        branches: 81,
+        functions: 85,
         // Critical paths: the API client (session renewal, CSRF), the
         // session guards and passkeys, the sign-in and account recovery
         // pages, creator payouts and appeal review.
