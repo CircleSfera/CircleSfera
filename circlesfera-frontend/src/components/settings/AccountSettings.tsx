@@ -76,6 +76,9 @@ export default function AccountSettings() {
       logout();
       navigate('/accounts/login');
     },
+    onError: (error: unknown) => {
+      toast.error(apiErrorMessage(error, t, 'settings.account.delete_error'));
+    },
   });
 
   const cancelDeletionMutation = useMutation({
@@ -174,6 +177,7 @@ export default function AccountSettings() {
               <button
                 type="button"
                 onClick={() => changeLanguage('en')}
+                aria-pressed={i18n.language.startsWith('en')}
                 className={`min-h-11 px-4 rounded-xl text-sm font-medium transition-colors ${
                   i18n.language.startsWith('en')
                     ? 'bg-brand-primary text-white'
@@ -185,6 +189,7 @@ export default function AccountSettings() {
               <button
                 type="button"
                 onClick={() => changeLanguage('es')}
+                aria-pressed={i18n.language.startsWith('es')}
                 className={`min-h-11 px-4 rounded-xl text-sm font-medium transition-colors ${
                   i18n.language.startsWith('es')
                     ? 'bg-brand-primary text-white'
