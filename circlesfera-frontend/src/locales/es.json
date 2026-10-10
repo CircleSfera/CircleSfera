@@ -4253,6 +4253,11 @@
     "title": "Crear"
   },
   "voice": {
+    "play": "Reproducir audio",
+    "pause": "Pausar audio",
+    "speed": "Velocidad de reproducción: {{speed}}x",
+    "seek": "Saltar a {{time}}",
+    "position": "Posición en el audio",
     "discard": "Descartar",
     "pause_preview": "Pausar vista previa",
     "play_preview": "Escuchar borrador",

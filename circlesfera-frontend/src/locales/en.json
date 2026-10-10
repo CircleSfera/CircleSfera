@@ -4253,6 +4253,11 @@
     "title": "Create"
   },
   "voice": {
+    "play": "Play audio",
+    "pause": "Pause audio",
+    "speed": "Playback speed: {{speed}}x",
+    "seek": "Jump to {{time}}",
+    "position": "Position in the audio",
     "discard": "Discard",
     "pause_preview": "Pause preview",
     "play_preview": "Play draft",
