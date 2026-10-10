@@ -103,14 +103,22 @@ export default function CaptionsPanel() {
         cloudProjectId,
         selectedMedia.id,
       );
-      return pollCaptionsJob(cloudProjectId, jobId, controller.signal);
+      const segments = await pollCaptionsJob(
+        cloudProjectId,
+        jobId,
+        controller.signal,
+      );
+      // The clip travels with its captions: by the time they arrive the
+      // person may have selected something else, and the captions still
+      // belong to the clip they were asked for.
+      return { segments, clip: selectedMedia };
     },
-    onSuccess: (segments) => {
-      if (!project || !selectedMedia) return;
+    onSuccess: ({ segments, clip: captioned }) => {
+      if (!project) return;
       const trackId =
         project.tracks.find((tr) => tr.type === 'text')?.id ||
         project.tracks[0].id;
-      const mapped = mapCaptionSegmentsToTimeline(segments, selectedMedia);
+      const mapped = mapCaptionSegmentsToTimeline(segments, captioned);
       for (const cue of mapped) {
         const clip: TextClip = {
           id: generateId(),

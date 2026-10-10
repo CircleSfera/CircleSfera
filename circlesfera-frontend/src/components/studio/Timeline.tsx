@@ -58,7 +58,8 @@ export default function Timeline() {
     const clickX = e.clientX - rect.left + containerRef.current.scrollLeft;
     let newTime = (clickX - timelineOffsetPx(containerRef.current)) / zoom;
     if (newTime < 0) newTime = 0;
-    setPlayhead(newTime);
+    // The playhead does not go past the end, as when it is dragged.
+    setPlayhead(Math.min(newTime, project?.duration ?? newTime));
   };
 
   if (!project) {
@@ -83,7 +84,10 @@ export default function Timeline() {
         style={{ left: `${i * zoom}px`, transform: 'translateX(-50%)' }}
       >
         <span className="text-xs text-white/50 mb-1 font-mono">
-          00:{i.toString().padStart(2, '0')}
+          {Math.floor(i / 60)
+            .toString()
+            .padStart(2, '0')}
+          :{(i % 60).toString().padStart(2, '0')}
         </span>
         <div className="w-px h-2 bg-white/20" />
       </div>,

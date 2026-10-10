@@ -13,14 +13,22 @@ const FILTERS = [
 
 export default function FiltersPanel() {
   const { t } = useTranslation();
-  const { selectedClipId, updateClip } = useStudioStore();
+  const { project, selectedClipId, updateClip } = useStudioStore();
+
+  // A filter changes how a picture looks: text and sound have none.
+  const filterableClipId = project?.tracks
+    .flatMap((tr) => tr.clips)
+    .find(
+      (c) =>
+        c.id === selectedClipId && (c.type === 'video' || c.type === 'image'),
+    )?.id;
 
   return (
     <div className="flex flex-col gap-3">
       <span className="text-xs font-bold uppercase tracking-wider text-white/50">
         {t('studio.filters.title')}
       </span>
-      {!selectedClipId && (
+      {!filterableClipId && (
         <p className="text-xs text-white/40 text-center py-2">
           {t('studio.filters.select_clip')}
         </p>
@@ -31,12 +39,12 @@ export default function FiltersPanel() {
             key={f.key}
             type="button"
             onClick={() => {
-              if (!selectedClipId) {
+              if (!filterableClipId) {
                 toast.error(t('studio.filters.select_clip'));
                 return;
               }
               updateClip(
-                selectedClipId,
+                filterableClipId,
                 { filter: f.filter } as { filter: string },
                 { history: true },
               );
