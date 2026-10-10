@@ -232,7 +232,16 @@ export default function LiveViewer() {
     });
   };
 
-  const handleDoubleTap = () => {
+  const handleDoubleTap = (e: React.MouseEvent) => {
+    // Two quick presses on a control are two uses of that control, and a
+    // double click in the comment field selects a word: neither is a heart.
+    if (
+      (e.target as HTMLElement).closest(
+        'button, input, textarea, a, [role="dialog"]',
+      )
+    ) {
+      return;
+    }
     sendQuickReaction('❤️');
   };
 
