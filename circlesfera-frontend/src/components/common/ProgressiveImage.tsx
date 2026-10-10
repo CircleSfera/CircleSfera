@@ -43,6 +43,16 @@ export default function ProgressiveImage({
       setImgSrc(src);
       setIsLoaded(true);
     };
+    // A picture that cannot be loaded leaves the small one, shown sharp:
+    // blurred for ever would look like a page still loading.
+    img.onerror = () => setIsLoaded(true);
+
+    // A picture still on its way when another one is asked for, or when
+    // the element goes away, must not come back and replace the new one.
+    return () => {
+      img.onload = null;
+      img.onerror = null;
+    };
   }, [src, placeholderSrc, props.srcSet, props.sizes]);
 
   return (
