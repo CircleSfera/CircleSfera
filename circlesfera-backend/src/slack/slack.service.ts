@@ -3,7 +3,7 @@ import type {
   PaymentAlertEvent,
   SupportTicketCreatedEvent,
 } from '@circlesfera/shared';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import { AIService } from '../ai/ai.service.js';
 import { redactSensitiveText } from '../common/observability/redaction.util.js';
 import { sanitizeUrl } from '../common/utils/url-sanitizer.util.js';
 import { EmailService } from '../email/email.service.js';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -25,9 +26,17 @@ export class SlackService {
   private readonly paymentsWebhookUrl: string | undefined;
   private readonly supportWebhookUrl: string | undefined;
 
+  // Set by the container. The Help Desk tells this channel about tickets,
+  // and this channel answers through the Help Desk.
+  @Optional()
+  @Inject(HelpdeskDataPort)
+  private readonly helpdeskData?: HelpdeskDataPort;
+
   constructor(
     private prisma: PrismaService,
-    private emailService: EmailService,
+    // Kept in the signature for the container; support answers now go
+    // through the Help Desk.
+    _emailService: EmailService,
     private aiService: AIService,
     private configService: ConfigService,
   ) {
@@ -331,6 +340,68 @@ export class SlackService {
       ],
     };
     await this.sendMessage(this.supportWebhookUrl, payload);
+  }
+
+  // A requester answered in their ticket: the team hears of it. Only the
+  // number and the subject; the conversation is read in the Help Desk.
+  async sendSupportReplyAlert(ticket: {
+    id: string;
+    reference: number;
+    subject: string;
+  }): Promise<void> {
+    await this.sendMessage(this.supportWebhookUrl, {
+      blocks: [
+        {
+          type: 'header',
+          text: { type: 'plain_text', text: '💬 Respuesta en un ticket' },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Ticket:*\n#${ticket.reference}` },
+            { type: 'mrkdwn', text: `*Asunto:*\n${ticket.subject}` },
+            { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
+          ],
+        },
+      ],
+    });
+  }
+
+  // Email that answers support requests needs a look. Counts only: no
+  // address, subject or text of anyone's email.
+  async sendSupportEmailInAlert(trouble: {
+    noTicket: number;
+    senderMismatch: number;
+    stuck: number;
+  }): Promise<void> {
+    await this.sendMessage(this.supportWebhookUrl, {
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: '📭 Correo de soporte: revisar',
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Sin solicitud (última hora):*\n${trouble.noTicket}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*De otro remitente (última hora):*\n${trouble.senderMismatch}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Sin procesar tras 15 min:*\n${trouble.stuck}`,
+            },
+          ],
+        },
+      ],
+    });
   }
 
   // Phase 2: Slash Commands
@@ -729,28 +800,14 @@ export class SlackService {
         const stateValues = payload.view.state.values;
         const replyText = stateValues.reply_input_block.reply_text.value;
 
-        const ticket = await this.prisma.supportTicket.findUnique({
-          where: { id: ticketId },
-        });
-
-        if (ticket && ticket.status !== 'RESOLVED') {
-          // Send email via Brevo
-          await this.emailService.sendSupportReplyEmail(
-            ticket.email,
-            ticket.subject,
-            replyText,
-          );
-
-          // Update ticket status in DB
-          await this.prisma.supportTicket.update({
-            where: { id: ticketId },
-            data: {
-              status: 'RESOLVED',
-              reply: replyText,
-              resolvedAt: ticket.resolvedAt ?? new Date(),
-            },
-          });
-
+        // The Help Desk adds the answer to the conversation, solves the
+        // ticket and tells the requester. It refuses a ticket that is
+        // already solved, closed or with moderation.
+        const answered = await this.helpdeskData?.answerFromTeamChannel(
+          ticketId,
+          replyText,
+        );
+        if (answered) {
           this.logger.log(`Support ticket ${ticketId} resolved via Slack`);
         }
       }

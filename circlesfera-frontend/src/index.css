@@ -230,6 +230,9 @@
 
   /* Brand palette — CircleSfera official */
   --brand-primary: #884cff; /* Vivid purple — canonical; never #833ab4 */
+  /* What is drawn over a fill of the brand colour; a profile that chose a
+     light colour changes it to a dark tone. */
+  --on-brand-primary: #ffffff;
   --brand-primary-rgb: 136, 76, 255; /* For rgba(var(--brand-primary-rgb), a) */
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */
@@ -881,5 +884,44 @@ input[type="range"]::-moz-range-progress {
 @media (min-width: 80rem) {
   body:has(.sidebar-root:not(.sidebar-compact)) .beside-sidebar {
     left: var(--nav-sidebar-width);
+  }
+}
+
+/* The short notices of the app: at the bottom, just above the navigation
+   bar on phones and beside the sidebar on desktop. All the same width, so
+   several of them read as one column. */
+.app-toaster {
+  --app-toaster-top: calc(0.5rem + env(safe-area-inset-top, 0px));
+  --app-toaster-bottom: calc(
+    var(--nav-bottom-height) +
+    env(safe-area-inset-bottom, 0px) +
+    0.5rem
+  );
+  --app-toaster-left: 1rem;
+}
+.app-toast {
+  width: 100%;
+  max-width: 26rem;
+}
+.app-toast > [role="status"] {
+  justify-content: flex-start;
+}
+@media (min-width: 48rem) {
+  .app-toaster {
+    --app-toaster-top: 1rem;
+    --app-toaster-bottom: 1rem;
+  }
+  /* Narrow enough to stay in the margin between the sidebar and the
+     content column. */
+  .app-toast {
+    width: 18rem;
+  }
+  body:has(.sidebar-root) .app-toaster {
+    --app-toaster-left: calc(var(--nav-sidebar-collapsed) + 1rem);
+  }
+}
+@media (min-width: 80rem) {
+  body:has(.sidebar-root:not(.sidebar-compact)) .app-toaster {
+    --app-toaster-left: calc(var(--nav-sidebar-width) + 1rem);
   }
 }

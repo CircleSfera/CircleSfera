@@ -26,6 +26,7 @@ import {
   isOriginAllowed,
   parseAllowedOrigins,
 } from '../common/config/origin.config.js';
+import { isEliteLiveReaction } from '../common/constants/live-reactions.constants.js';
 import { CorrelationContext } from '../common/correlation/correlation.context.js';
 import { WebrtcSignalingService } from '../webrtc/webrtc-signaling.service.js';
 import type {
@@ -60,6 +61,9 @@ export interface SocketWithAuth extends Socket {
     user: SocketAuthUser;
     conversationIds?: Set<string>;
     correlationId?: string;
+    // Whether this Profile is on a plan with the plan reactions, remembered
+    // for a few minutes so a tap on a reaction does not query the database.
+    elitePlan?: { value: boolean; until: number };
     // Live streams this socket has joined via live:join, tracked separately
     // from Socket.IO's own room membership because rooms are already left
     // by the time the 'disconnect' event fires, so handleDisconnect can't
@@ -716,6 +720,30 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  // The reaction a viewer may send: the one asked for, unless it is one of
+  // the plan reactions and the Profile is not on a plan that includes them.
+  // The plan is looked up once per connection for a few minutes, not on
+  // every tap.
+  private async allowedLiveReaction(
+    client: SocketWithAuth,
+    profileId: string,
+    requested: unknown,
+    fallback: string,
+  ): Promise<string> {
+    if (typeof requested !== 'string' || requested.length > 32) {
+      return fallback;
+    }
+    if (!isEliteLiveReaction(requested)) return requested;
+
+    const cached = client.data.elitePlan;
+    if (cached && cached.until > Date.now()) {
+      return cached.value ? requested : fallback;
+    }
+    const value = await this.liveRealtimeService.hasElitePlan(profileId);
+    client.data.elitePlan = { value, until: Date.now() + 5 * 60_000 };
+    return value ? requested : fallback;
+  }
+
   @SubscribeMessage('live:heart')
   async handleLiveHeart(
     @MessageBody() payload: LiveReactionDto,
@@ -725,10 +753,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const reaction =
-      typeof payload.reaction === 'string' && payload.reaction.length <= 32
-        ? payload.reaction
-        : '❤️';
+    const reaction = await this.allowedLiveReaction(
+      client,
+      callerProfileId,
+      payload.reaction,
+      '❤️',
+    );
     this.server.to(`live:${payload.streamId}`).emit('live:heart_received', {
       profileId: callerProfileId,
       reaction,
@@ -744,10 +774,12 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const callerProfileId = client.data?.user?.profileId;
     if (!callerProfileId) return;
 
-    const reaction =
-      typeof payload.reaction === 'string' && payload.reaction.length <= 32
-        ? payload.reaction
-        : '🔥';
+    const reaction = await this.allowedLiveReaction(
+      client,
+      callerProfileId,
+      payload.reaction,
+      '🔥',
+    );
     this.server.to(`live:${payload.streamId}`).emit('live:reaction_received', {
       profileId: callerProfileId,
       reaction,

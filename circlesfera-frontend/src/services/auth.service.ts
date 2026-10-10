@@ -22,18 +22,19 @@ export const authApi = {
   resetPassword: (data: { token: string; newPassword: string }) =>
     apiClient.post('/auth/reset-password', data),
 
-  generate2fa: () =>
-    apiClient.post<{ secret: string; qrCodeDataUrl: string }>(
-      '/auth/2fa/generate',
-    ),
+  generate2fa: () => apiClient.post<{ qrCodeDataUrl: string }>('/2fa/generate'),
 
-  verify2fa: (data: { code: string }) =>
-    apiClient.post<{ isValid: boolean }>('/auth/2fa/verify', data),
-
+  // Turning two-factor on or off takes a current code of the authenticator
+  // app, under the name the server reads it by.
   enable2fa: (data: { code: string }) =>
-    apiClient.post<{ success: boolean }>('/auth/2fa/enable', data),
+    apiClient.post<{ message: string }>('/2fa/turn-on', {
+      twoFactorAuthenticationCode: data.code,
+    }),
 
-  disable2fa: () => apiClient.post<{ success: boolean }>('/auth/2fa/disable'),
+  disable2fa: (data: { code: string }) =>
+    apiClient.post<{ message: string }>('/2fa/turn-off', {
+      twoFactorAuthenticationCode: data.code,
+    }),
 
   getSessions: () =>
     apiClient.get<

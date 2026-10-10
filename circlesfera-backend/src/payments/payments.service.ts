@@ -9,6 +9,7 @@ import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
+  type ConnectAccountCompanyFields,
   classifyStripeError,
   StripeService,
 } from '../common/stripe/stripe.service.js';
@@ -16,6 +17,7 @@ import { EmailService } from '../email/email.service.js';
 import {
   isMonetizationCheckoutType,
   MonetizationWebhookService,
+  type StripeDisputePayload,
 } from '../monetization/monetization-webhook.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -126,6 +128,8 @@ export class PaymentsService {
 
     const plan = await this.prisma.platformPlan.findFirst({
       where: {
+        // A plan taken off sale cannot be bought, whoever names its id.
+        isActive: true,
         OR: [{ id: planId }, { stripeProductId: planId }],
       },
     });
@@ -775,6 +779,19 @@ export class PaymentsService {
             payment_intent?: string | { id: string } | null;
           },
         );
+        if (type === 'charge.dispute.created') {
+          await this.monetizationWebhookService.syncDispute(
+            data.object as StripeDisputePayload,
+          );
+        }
+        break;
+      }
+
+      case 'charge.dispute.updated':
+      case 'charge.dispute.closed': {
+        await this.monetizationWebhookService.syncDispute(
+          data.object as StripeDisputePayload,
+        );
         break;
       }
 
@@ -793,7 +810,7 @@ export class PaymentsService {
             id: string;
             charges_enabled?: boolean;
             capabilities?: { transfers?: string };
-          },
+          } & ConnectAccountCompanyFields,
         );
         break;
       }

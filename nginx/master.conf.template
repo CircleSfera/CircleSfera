@@ -817,3 +817,167 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
+
+# 1.7 Backoffice (backoffice.circlesfera.com)
+# The second staff site. Same app and API as the Admin Panel, chosen by host;
+# kept identical to block 1.6 except for the server name.
+server {
+    listen 80;
+    server_name backoffice.circlesfera.com;
+
+    # Bounded client payload and request buffer defaults
+    client_max_body_size 10m;
+    client_body_buffer_size 128k;
+
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
+
+    # Bounded default timeouts
+    client_body_timeout 30s;
+    send_timeout 30s;
+    proxy_connect_timeout 10s;
+    proxy_send_timeout 30s;
+    proxy_read_timeout 60s;
+
+    # Standard response buffering
+    proxy_buffering on;
+    proxy_buffers 8 16k;
+    proxy_buffer_size 16k;
+    proxy_busy_buffers_size 32k;
+    proxy_request_buffering on;
+
+    resolver 127.0.0.11 valid=30s;
+    set $backend_upstream http://backend:${BACKEND_PORT};
+    set $frontend_upstream http://frontend:${FRONTEND_PORT};
+
+    # Realtime WebSocket Proxy (Prefixed)
+    location /api/v1/socket.io/ {
+        proxy_pass $backend_upstream/socket.io/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Realtime WebSocket Proxy
+    location /socket.io/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 3600s;
+        proxy_send_timeout 3600s;
+    }
+
+    # Media & File Uploads Exception
+    location /api/v1/uploads {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 100m;
+        client_body_buffer_size 16M;
+        client_body_timeout 300s;
+        proxy_connect_timeout 15s;
+        proxy_send_timeout 300s;
+        proxy_read_timeout 300s;
+        proxy_request_buffering off;
+    }
+
+    # GDPR Large Export Archive Download
+    location ~ ^/api/v1/users/gdpr/exports/[^/]+/download$ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_buffering off;
+        proxy_read_timeout 300s;
+        send_timeout 300s;
+    }
+
+    # Backend API Proxy (Bounded Defaults)
+    location /api/v1/ {
+        proxy_pass $backend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        client_max_body_size 10m;
+        client_body_buffer_size 128k;
+        client_body_timeout 30s;
+        send_timeout 30s;
+        proxy_connect_timeout 10s;
+        proxy_send_timeout 30s;
+        proxy_read_timeout 60s;
+        proxy_buffering on;
+        proxy_request_buffering on;
+    }
+
+    # Media delivery with per-file authorization via auth_request.
+    location /uploads/ {
+        auth_request /internal/media-auth;
+        auth_request_set $auth_status $upstream_status;
+
+        alias /usr/share/nginx/html/uploads/;
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    # Internal auth subrequest — not reachable from the public internet.
+    location = /internal/media-auth {
+        internal;
+        proxy_pass $backend_upstream/api/v1/media/auth-check;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header Cookie $http_cookie;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_connect_timeout 5s;
+        proxy_read_timeout 10s;
+        proxy_send_timeout 10s;
+    }
+
+    # Admin Frontend SPA
+    location / {
+        proxy_pass $frontend_upstream;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
