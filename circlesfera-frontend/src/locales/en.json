@@ -2188,6 +2188,7 @@
     "description": "CircleSfera Management and Moderation",
     "connected_as": "Admin",
     "back_to_app": "Back to CircleSfera",
+    "account_menu": "Account of {{name}}",
     "back_short": "App",
     "open_nav": "Open navigation",
     "mobile_nav_title": "Navigation",
