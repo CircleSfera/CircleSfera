@@ -1805,6 +1805,7 @@
     "decline": "Decline",
     "accept": "Accept",
     "in_call": "In Call...",
+    "end_call": "End call",
     "remote_user": "Remote user",
     "delete_confirm": {
       "me_title": "Delete the conversation for you?",

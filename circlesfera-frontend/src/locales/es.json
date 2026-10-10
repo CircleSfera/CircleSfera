@@ -1805,6 +1805,7 @@
     "decline": "Rechazar",
     "accept": "Aceptar",
     "in_call": "En Llamada...",
+    "end_call": "Colgar",
     "remote_user": "Usuario remoto",
     "delete_confirm": {
       "me_title": "¿Eliminar la conversación para ti?",
