@@ -29,7 +29,7 @@ export function MarketingSection({
   align = 'left',
 }: MarketingSectionProps) {
   return (
-    <section id={id} className={clsx('relative py-8 sm:py-12', className)}>
+    <section id={id} className={clsx('relative py-14 sm:py-20', className)}>
       <div
         className={clsx(
           'mx-auto px-4 sm:px-5',

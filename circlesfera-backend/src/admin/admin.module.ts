@@ -16,15 +16,21 @@ import { TrustModule } from '../trust/trust.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AdminService } from './admin.service.js';
 import { AdminContentController } from './admin-content.controller.js';
+import { AdminDisputesController } from './admin-disputes.controller.js';
+import { AdminDisputesService } from './admin-disputes.service.js';
 import { AdminMediaController } from './admin-media.controller.js';
 import { AdminOperatorsController } from './admin-operators.controller.js';
 import { AdminOperatorsService } from './admin-operators.service.js';
 import { AdminOpsController } from './admin-ops.controller.js';
 import { AdminOpsService } from './admin-ops.service.js';
+import { AdminPlansController } from './admin-plans.controller.js';
+import { AdminPlansService } from './admin-plans.service.js';
 import { AdminRiskCasesController } from './admin-risk-cases.controller.js';
 import { AdminRiskCasesService } from './admin-risk-cases.service.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
+import { AdminSubscriptionsController } from './admin-subscriptions.controller.js';
+import { AdminSubscriptionsService } from './admin-subscriptions.service.js';
 import { AdminSystemController } from './admin-system.controller.js';
 import { AdminUsersController } from './admin-users.controller.js';
 import { AdminUsersService } from './admin-users.service.js';
@@ -64,6 +70,9 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminContentController,
     AdminMediaController,
     AdminOpsController,
+    AdminPlansController,
+    AdminDisputesController,
+    AdminSubscriptionsController,
     AdminOperatorsController,
     AdminStatsController,
     AdminSystemController,
@@ -73,6 +82,9 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
   providers: [
     AdminService,
     AdminOpsService,
+    AdminPlansService,
+    AdminDisputesService,
+    AdminSubscriptionsService,
     AdminOperatorsService,
     AdminUsersService,
     AdminRiskCasesService,

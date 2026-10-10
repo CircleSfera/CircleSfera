@@ -241,7 +241,6 @@ describe('UsersService', () => {
         ],
         settings: { privacyLevel: 'PUBLIC' },
         appeals: [],
-        supportTickets: [],
         sentTransactions: [
           {
             id: 'tx_s1',

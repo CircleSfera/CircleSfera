@@ -12,14 +12,25 @@ export interface OwnedProfile {
   thumbnailUrl?: string | null;
   standardUrl?: string | null;
   accountType: ProfileAccountType;
+  verificationLevel?: 'BASIC' | 'VERIFIED' | 'BUSINESS' | 'ELITE';
   isAccountBanned: boolean;
   isSuspended: boolean;
   suspendedUntil: string | null;
   _count?: { posts: number; followers: number; following: number };
 }
 
-// Profiles per account, enforced by the backend.
+// Profiles per account, enforced by the backend: 5, or 10 when one of them
+// is on the Business plan.
 export const MAX_PROFILES_PER_ACCOUNT = 5;
+export const MAX_PROFILES_WITH_BUSINESS_PLAN = 10;
+
+export function profileLimit(
+  profiles: Pick<OwnedProfile, 'verificationLevel'>[] | undefined,
+): number {
+  return profiles?.some((profile) => profile.verificationLevel === 'BUSINESS')
+    ? MAX_PROFILES_WITH_BUSINESS_PLAN
+    : MAX_PROFILES_PER_ACCOUNT;
+}
 
 export const profileApi = {
   getMyProfile: () => apiClient.get<ProfileWithUser>('profiles/me'),

@@ -19,6 +19,7 @@ import SharePostModal from '../components/modals/SharePostModal';
 import { postsApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import type { PaginatedResponse, Post } from '../types';
+import { hasCreatorTools } from '../utils/creatorTools';
 
 export default function Frames() {
   const { t } = useTranslation();
@@ -239,10 +240,9 @@ export default function Frames() {
   }
 
   const activeFrame = displayFrames[activeFrameIndex];
-  const verificationLevel =
-    profile?.verificationLevel || profile?.verificationLevel;
   const isFrameOwner = profile?.id === activeFrame?.profileId;
-  const canPromoteFrame = verificationLevel === 'ELITE' && isFrameOwner;
+  // Promoting follows the kind of account, not a paid plan.
+  const canPromoteFrame = hasCreatorTools(profile?.accountType) && isFrameOwner;
   const blurredBgImage =
     activeFrame?.media?.[0]?.thumbnailUrl || activeFrame?.media?.[0]?.url;
 

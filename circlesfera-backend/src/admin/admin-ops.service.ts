@@ -5,15 +5,13 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AdminAction, type Prisma, type TicketStatus } from '@prisma/client';
+import { AdminAction, type Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
 import { AIService } from '../ai/ai.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
-import { EmailService } from '../email/email.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { resolvedAtOnStatusChange } from './utils/resolved-at.util.js';
 
 // Admin operations that are orthogonal to core user/content moderation:
 // AI vector firewall signatures, per-user experiment overrides,
@@ -23,7 +21,6 @@ export class AdminOpsService {
   constructor(
     @Inject(PrismaService) private readonly prisma: PrismaService,
     @Inject(AIService) private readonly aiService: AIService,
-    @Inject(EmailService) private readonly emailService: EmailService,
     @Inject(PaymentsService) private readonly paymentsService: PaymentsService,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
   ) {}
@@ -202,106 +199,6 @@ export class AdminOpsService {
   }
 
   // Support tickets
-
-  async getSupportTickets(page = 1, limit = 20, status?: string) {
-    const skip = (page - 1) * limit;
-    const where: Prisma.SupportTicketWhereInput = {};
-    if (status && ['OPEN', 'RESOLVED', 'CLOSED'].includes(status)) {
-      where.status = status as TicketStatus;
-    }
-
-    const [tickets, total] = await Promise.all([
-      this.prisma.supportTicket.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          user: {
-            select: {
-              id: true,
-              email: true,
-              profiles: {
-                select: { username: true, avatar: true, fullName: true },
-              },
-            },
-          },
-        },
-      }),
-      this.prisma.supportTicket.count({ where }),
-    ]);
-
-    return {
-      data: tickets.map((ticket) => ({
-        ...ticket,
-        user: ticket.user ? withPrimaryProfile(ticket.user) : null,
-      })),
-      meta: {
-        total,
-        page,
-        limit,
-        totalPages: Math.max(1, Math.ceil(total / limit)),
-      },
-    };
-  }
-
-  async updateSupportTicket(
-    adminId: string,
-    id: string,
-    data: { status?: TicketStatus; reply?: string },
-  ) {
-    const existing = await this.prisma.supportTicket.findUnique({
-      where: { id },
-    });
-    if (!existing) {
-      throw new NotFoundException('Support ticket not found');
-    }
-
-    const updateData: Prisma.SupportTicketUpdateInput = {};
-    if (data.reply !== undefined) updateData.reply = data.reply;
-
-    const effectiveStatus =
-      data.status ??
-      (data.reply?.trim() && existing.status === 'OPEN'
-        ? 'RESOLVED'
-        : undefined);
-
-    if (effectiveStatus) {
-      updateData.status = effectiveStatus;
-      const resolvedAt = resolvedAtOnStatusChange(
-        effectiveStatus,
-        existing.resolvedAt,
-        ['RESOLVED', 'CLOSED'],
-        'OPEN',
-      );
-      if (resolvedAt !== undefined) {
-        updateData.resolvedAt = resolvedAt;
-      }
-    }
-
-    const ticket = await this.prisma.supportTicket.update({
-      where: { id },
-      data: updateData,
-    });
-
-    if (data.reply?.trim()) {
-      await this.emailService.sendSupportReplyEmail(
-        ticket.email,
-        ticket.subject,
-        data.reply.trim(),
-      );
-    }
-
-    await this.logAction(
-      adminId,
-      AdminAction.MANUAL_OVERRIDE,
-      'support_ticket',
-      id,
-      `Updated ticket ${id}${effectiveStatus ? ` → ${effectiveStatus}` : data.status ? ` → ${data.status}` : ''}${data.reply ? ' (replied)' : ''}`,
-    );
-
-    return ticket;
-  }
 
   // Feature flags
 

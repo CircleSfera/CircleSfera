@@ -4,7 +4,7 @@ import { prepareGuestSession } from './helpers/session';
 
 /**
  * The screens someone sees before signing in: sign-in, sign-up, password
- * recovery, email verification and the public landing. On a phone and on
+ * recovery, email verification, the public landing and its pages. On a phone and on
  * desktop, text is at least 12 px and every control is at size.
  */
 async function expectInOrder(page: Page) {
@@ -50,6 +50,16 @@ for (const [label, viewport] of [
       ['reset password', '/reset-password?token=abc'],
       ['verify email', '/verify-email?token=abc'],
       ['landing', '/'],
+      ['features', '/features'],
+      ['feature detail', '/features/feed'],
+      ['principles', '/principles'],
+      ['help centre', '/help'],
+      ['guest explore', '/explore'],
+      ['support', '/support'],
+      ['pricing', '/pricing'],
+      ['terms', '/terms'],
+      ['privacy', '/privacy'],
+      ['guidelines', '/guidelines'],
     ] as const) {
       test(name, async ({ page }) => {
         await prepareGuestSession(page);

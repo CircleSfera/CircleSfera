@@ -183,7 +183,10 @@ export default defineConfig({
         'src/push/push.service.ts': { statements: 100, lines: 100 },
         'src/reports/reports.service.ts': { statements: 100, lines: 100 },
         'src/seo/seo.service.ts': { statements: 100, lines: 100 },
-        'src/support/support.service.ts': { statements: 100, lines: 100 },
+        'src/helpdesk/helpdesk-tickets.service.ts': {
+          statements: 100,
+          lines: 100,
+        },
         'src/system-settings/system-settings.service.ts': {
           statements: 100,
           lines: 100,

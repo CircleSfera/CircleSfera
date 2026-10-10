@@ -6,6 +6,7 @@ import {
   RequireAdminStepUp,
   RequireStaffPermissions,
   STAFF_PERMISSIONS_KEY,
+  staffHoldsPermission,
 } from './admin.guard.js';
 
 describe('AdminGuard (Admin Panel RBAC)', () => {
@@ -151,5 +152,16 @@ describe('AdminGuard (Admin Panel RBAC)', () => {
       Target.prototype.criticalAction,
     );
     expect(meta).toBe(true);
+  });
+
+  it('a staff identity holds a permission it was granted, and SUPER_ADMIN or who manages staff holds them all', () => {
+    const holds = (permissions: string[], roles: string[]) =>
+      staffHoldsPermission({ permissions, roles }, 'support.manage');
+
+    expect(holds(['support'], ['SUPPORT_ADMIN'])).toBe(false);
+    expect(holds([], [])).toBe(false);
+    expect(holds(['support', 'support.manage'], ['PLATFORM_ADMIN'])).toBe(true);
+    expect(holds(['admins.manage'], [])).toBe(true);
+    expect(holds([], ['SUPER_ADMIN'])).toBe(true);
   });
 });

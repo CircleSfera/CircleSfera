@@ -230,6 +230,9 @@
 
   /* Brand palette — CircleSfera official */
   --brand-primary: #884cff; /* Vivid purple — canonical; never #833ab4 */
+  /* What is drawn over a fill of the brand colour; a profile that chose a
+     light colour changes it to a dark tone. */
+  --on-brand-primary: #ffffff;
   --brand-primary-rgb: 136, 76, 255; /* For rgba(var(--brand-primary-rgb), a) */
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */

@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "biome lint . && node scripts/check-i18n-keys.mjs",
+    "lint": "biome lint . && node scripts/check-i18n-keys.mjs && node scripts/check-api-routes.mjs",
     "format": "biome format --write .",
     "check": "biome check --write .",
     "check:deps": "depcruise src",

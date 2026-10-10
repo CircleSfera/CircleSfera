@@ -1,107 +1,99 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { GuestSurfaceMedia } from './GuestSurfaceMedia';
+import { LandingPhone } from './LandingPhone';
 import { MarketingCTA } from './MarketingCTA';
 
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+/**
+ * The top of the public landing: what CircleSfera is, the way in, and the
+ * app itself beside it. One column on a phone, two from desktop width, so
+ * the product shows without scrolling.
+ */
 export function LandingHero() {
   const { t } = useTranslation();
 
   return (
-    <section className="relative w-full overflow-hidden text-white pt-16 sm:pt-24 md:pt-32 pb-20">
-      {/* Immersive cinematic background */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[150%] sm:w-[120%] h-200 bg-[radial-gradient(ellipse_at_top,rgba(var(--brand-primary-rgb),0.15),transparent_60%)] pointer-events-none" />
-      <div className="absolute top-40 left-1/2 -translate-x-1/2 w-200 h-100 bg-brand-blue/10 blur-[120px] rounded-full pointer-events-none mix-blend-screen opacity-50" />
+    <section className="relative w-full overflow-hidden text-white pt-12 sm:pt-16 lg:pt-24 pb-16 lg:pb-24">
+      {/* One wash of the brand colours behind the whole section */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_0%,rgba(var(--brand-primary-rgb),0.22),transparent_55%)] pointer-events-none" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_90%_30%,rgba(64,93,230,0.16),transparent_50%)] pointer-events-none" />
 
-      <div className="relative z-10 flex flex-col items-center text-center px-4 sm:px-6 mx-auto max-w-5xl">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-8"
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-xl shadow-[0_0_20px_rgba(255,255,255,0.05)]">
-            <span className="w-2 h-2 rounded-full bg-brand-primary animate-pulse-slow" />
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-white/80">
-              {t('landing.hero.badge')}
+      <div className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 sm:px-6 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+        <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.05, ease: EASE }}
+            className="text-5xl font-black leading-[1.02] tracking-tighter sm:text-6xl lg:text-7xl"
+          >
+            <span className="block text-white">
+              {t('landing.hero.title_part1')}
+            </span>{' '}
+            <span className="block bg-linear-to-r from-brand-secondary via-brand-primary to-brand-blue bg-clip-text text-transparent">
+              {t('landing.hero.title_part2')}
             </span>
-          </div>
-        </motion.div>
+          </motion.h1>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tighter leading-[1.05] mb-6"
-        >
-          <span className="text-white drop-shadow-2xl">
-            {t('landing.hero.title_part1')}{' '}
-          </span>
-          <br className="hidden sm:block" />
-          <span className="text-transparent bg-clip-text bg-linear-to-b from-white/70 to-white/20">
-            {t('landing.hero.title_part2')}
-          </span>
-        </motion.h1>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.12, ease: EASE }}
+            className="mt-6 max-w-xl"
+          >
+            {/* The motto stays in English in every language; this line says
+                what it means in the reader's own. */}
+            <p className="text-xl font-bold text-white sm:text-2xl">
+              {t('landing.hero.lead')}
+            </p>
+            <p className="mt-3 text-base leading-relaxed text-white/65 sm:text-lg">
+              {t('landing.hero.subtitle')}
+            </p>
+          </motion.div>
 
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="text-base sm:text-lg text-white/50 leading-relaxed max-w-2xl mb-10 font-medium"
-        >
-          {t('landing.hero.subtitle')}
-        </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
+            className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row"
+          >
+            <MarketingCTA
+              to="/accounts/signup"
+              variant="primary"
+              className="w-full px-8 sm:w-auto"
+            >
+              {t('landing.hero.get_started')}
+            </MarketingCTA>
+            <MarketingCTA
+              to="/explore"
+              variant="secondary"
+              size="lg"
+              className="w-full px-8 sm:w-auto"
+            >
+              {t('landing.hero.explore_demo')}
+            </MarketingCTA>
+          </motion.div>
+
+          <p className="mt-8 text-sm text-white/50">
+            {t('landing.hero.already')}{' '}
+            <Link
+              to="/accounts/login"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center -my-3 font-bold text-white underline-offset-4 transition-colors hover:text-brand-primary hover:underline"
+            >
+              {t('landing.hero.log_in')}
+            </Link>
+          </p>
+        </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+          transition={{ duration: 0.8, delay: 0.2, ease: EASE }}
         >
-          <MarketingCTA
-            to="/accounts/signup"
-            variant="primary"
-            className="h-12 px-8 text-[15px] font-black w-full sm:w-auto rounded-xl! shadow-[0_0_40px_rgba(var(--brand-primary-rgb),0.3)] hover:shadow-[0_0_60px_rgba(var(--brand-primary-rgb),0.5)] transition-all hover:-translate-y-1"
-          >
-            {t('landing.hero.get_started')}
-          </MarketingCTA>
-          <MarketingCTA
-            to="/explore"
-            variant="secondary"
-            className="h-12 px-8 text-[15px] font-bold w-full sm:w-auto rounded-xl! border-white/10 bg-white/5 hover:bg-white/10 backdrop-blur-xl transition-all"
-          >
-            {t('landing.hero.explore_demo')}
-          </MarketingCTA>
+          <LandingPhone />
         </motion.div>
-
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1, delay: 0.5 }}
-          className="mt-8 text-sm text-white/40 font-medium"
-        >
-          {t('landing.hero.already')}{' '}
-          <Link
-            to="/accounts/login"
-            className="inline-flex min-h-11 min-w-11 items-center -my-3 text-white hover:text-brand-primary underline-offset-4 hover:underline transition-colors font-bold"
-          >
-            {t('landing.hero.log_in')}
-          </Link>
-        </motion.p>
       </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 100 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
-        className="relative mx-auto flex justify-center px-4 sm:px-6 mt-32 sm:mt-48 lg:mt-64 pb-20"
-      >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 bg-brand-primary/20 blur-[100px] rounded-full pointer-events-none" />
-        <GuestSurfaceMedia
-          surface="home"
-          className="relative z-10 w-full shadow-[0_-20px_80px_rgba(var(--brand-primary-rgb),0.15)] ring-4 ring-white/5"
-        />
-      </motion.div>
     </section>
   );
 }

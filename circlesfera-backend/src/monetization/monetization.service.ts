@@ -11,6 +11,7 @@ import { AppException } from '../common/errors/app.exception.js';
 import { assertRealMoneyAllowed } from '../common/policies/test-account.policy.js';
 import {
   deriveConnectAccountFlags,
+  isVerifiedCompanyAccount,
   StripeService,
 } from '../common/stripe/stripe.service.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
@@ -492,10 +493,11 @@ export class MonetizationService {
       );
       const { transfersEnabled, chargesEnabled } =
         deriveConnectAccountFlags(account);
+      const verifiedCompany = isVerifiedCompanyAccount(account);
       await this.prisma.monetization.upsert({
         where: { userId },
-        update: { transfersEnabled, chargesEnabled },
-        create: { userId, transfersEnabled, chargesEnabled },
+        update: { transfersEnabled, chargesEnabled, verifiedCompany },
+        create: { userId, transfersEnabled, chargesEnabled, verifiedCompany },
       });
       return {
         connected: true,

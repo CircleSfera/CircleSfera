@@ -12,6 +12,7 @@ import { monetizationApi } from '../services/monetization.service';
 import { useAuthStore } from '../stores/authStore';
 import { useFrameStore } from '../stores/frameStore';
 import type { Post } from '../types';
+import { hasCreatorTools } from '../utils/creatorTools';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
@@ -53,9 +54,8 @@ export default function FrameItem({
   const [showHeartAnim, setShowHeartAnim] = useState(false);
   const [likesCount, setLikesCount] = useState(post._count?.likes || 0);
   const profile = useAuthStore((state) => state.profile);
-  const verificationLevel =
-    profile?.verificationLevel || profile?.verificationLevel;
-  const canPromote = verificationLevel === 'ELITE';
+  // Promoting follows the kind of account, not a paid plan.
+  const canPromote = hasCreatorTools(profile?.accountType);
   const { isMuted, toggleMute, setMuted } = useFrameStore();
   const queryClient = useQueryClient();
 

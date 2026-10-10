@@ -19,6 +19,7 @@ import type { Request } from 'express';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { type CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
+import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 
 // Analytics
@@ -234,8 +235,11 @@ export class CreatorController {
     ) as Promise<unknown>;
   }
 
+  // Advanced analytics come with the Elite Creator and Business plans. The
+  // summary, the content lists, promotions and earning stay with the kind of
+  // account alone.
   @Get('analytics/revenue')
-  @UseGuards(CreatorAccountGuard)
+  @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   async getRevenueAnalytics(
     @Req() req: AuthRequest,
     @Query('period') period?: '7d' | '30d' | '90d' | '1y',
@@ -246,13 +250,13 @@ export class CreatorController {
   }
 
   @Get('analytics/retention')
-  @UseGuards(CreatorAccountGuard)
+  @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   async getAudienceRetentionAnalytics(@Req() req: AuthRequest) {
     return this.getAudienceRetentionQ.execute(req.user.profileId);
   }
 
   @Get('analytics/top-posts')
-  @UseGuards(CreatorAccountGuard)
+  @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   async getTopPerformingContent(
     @Req() req: AuthRequest,
     @Query('limit') limit?: string,
@@ -264,7 +268,7 @@ export class CreatorController {
   }
 
   @Get('analytics/export')
-  @UseGuards(CreatorAccountGuard)
+  @UseGuards(CreatorAccountGuard, ElitePlanGuard)
   @Header('Content-Type', 'text/csv')
   @Header(
     'Content-Disposition',

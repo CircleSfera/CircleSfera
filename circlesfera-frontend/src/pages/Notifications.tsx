@@ -34,6 +34,16 @@ const STRIKE_NOTICE_KEYS: Record<string, string> = {
     'notifications.types.moderation_restriction_review',
 };
 
+/** The page of the support request a notice is about, when it is about one. */
+function supportRequestPath(notif: {
+  targetType?: string | null;
+  targetId?: string | null;
+}): string | null {
+  return notif.targetType === 'support_ticket' && notif.targetId
+    ? `/support/requests/${encodeURIComponent(notif.targetId)}`
+    : null;
+}
+
 export default function Notifications() {
   const { t, i18n } = useTranslation();
   const {
@@ -296,12 +306,17 @@ export default function Notifications() {
               {/* Avatar with gradient icon badge */}
               <div className="relative shrink-0 ml-2">
                 <Link
-                  to={`/${notif.sender?.username}`}
+                  to={supportRequestPath(notif) ?? `/${notif.sender?.username}`}
                   className="block p-0.5 transition-transform active:scale-95"
-                  aria-label={t('common.view_profile', {
-                    username:
-                      notif.sender?.username || t('notifications.unknown_user'),
-                  })}
+                  aria-label={
+                    supportRequestPath(notif)
+                      ? t('notifications.view_request')
+                      : t('common.view_profile', {
+                          username:
+                            notif.sender?.username ||
+                            t('notifications.unknown_user'),
+                        })
+                  }
                 >
                   <UserAvatar
                     src={notif.sender?.avatar || ''}
@@ -325,10 +340,15 @@ export default function Notifications() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm leading-snug">
                   <Link
-                    to={`/${notif.sender?.username}`}
+                    to={
+                      supportRequestPath(notif) ?? `/${notif.sender?.username}`
+                    }
                     className="font-bold text-white hover:opacity-80 transition-opacity"
                   >
-                    {notif.sender?.username || t('notifications.unknown_user')}
+                    {supportRequestPath(notif)
+                      ? t('notifications.from_support')
+                      : notif.sender?.username ||
+                        t('notifications.unknown_user')}
                   </Link>
                   <span className="text-white/70 ml-1">
                     {notif.type === 'LIKE' && t('notifications.types.like')}
@@ -377,6 +397,16 @@ export default function Notifications() {
                 </p>
               </div>
 
+              {/* The way to the support request */}
+              {supportRequestPath(notif) && (
+                <Link
+                  to={supportRequestPath(notif) as string}
+                  aria-label={t('notifications.view_request')}
+                  className="shrink-0 w-11 h-11 rounded-full flex items-center justify-center bg-white/5 border border-white/8 text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <ChevronRight size={18} aria-hidden="true" />
+                </Link>
+              )}
               {/* The way to the post */}
               {notif.postId && notif.type !== 'MODERATION' && (
                 <Link

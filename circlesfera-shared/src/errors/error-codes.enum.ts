@@ -92,6 +92,8 @@ export enum ErrorCode {
   // A purchase or payout action from an account whose identity is not
   // verified yet.
   IDENTITY_VERIFICATION_REQUIRED = 'IDENTITY_VERIFICATION_REQUIRED',
+  // The action is part of a platform plan the Profile does not have.
+  PLAN_REQUIRED = 'PLAN_REQUIRED',
   CAPTCHA_FAILED = 'CAPTCHA_FAILED',
   CAPTCHA_REQUIRED = 'CAPTCHA_REQUIRED',
 }

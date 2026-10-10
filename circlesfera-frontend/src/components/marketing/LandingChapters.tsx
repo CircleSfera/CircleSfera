@@ -1,8 +1,8 @@
 import { useTranslation } from 'react-i18next';
+import { FeatureShowcase } from './FeatureShowcase';
 import { MarketingSection } from './MarketingSection';
-import { ProductChaptersList } from './ProductChaptersList';
 
-// Product chapters — Bento Grid showcase.
+// What you can do in CircleSfera, one block per feature.
 export function LandingChapters() {
   const { t } = useTranslation();
 
@@ -15,8 +15,8 @@ export function LandingChapters() {
       wide
       align="center"
     >
-      <div className="mt-12">
-        <ProductChaptersList />
+      <div className="mt-12 sm:mt-20">
+        <FeatureShowcase />
       </div>
     </MarketingSection>
   );

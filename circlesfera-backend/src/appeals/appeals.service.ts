@@ -9,7 +9,7 @@ import {
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NotificationType, type Prisma } from '@prisma/client';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
-import { resolvedAtOnStatusChange } from '../admin/utils/resolved-at.util.js';
+import { resolvedAtOnStatusChange } from '../common/utils/resolved-at.util.js';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';

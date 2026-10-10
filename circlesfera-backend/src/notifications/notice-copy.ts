@@ -54,7 +54,9 @@ export type Notice =
       days: number;
     }
   | { key: 'message_unlocked'; amountCents: number; currency: string }
-  | { key: 'tip_received'; amountCents: number; currency: string };
+  | { key: 'tip_received'; amountCents: number; currency: string }
+  // The app shows it as coming from Support, like a sender.
+  | { key: 'support_answered'; subject: string };
 
 export type NoticeKey = Notice['key'];
 
@@ -247,6 +249,8 @@ function renderEn(n: Notice): string {
       return `unlocked your private message for ${money('en', n.amountCents, n.currency)}`;
     case 'tip_received':
       return `sent you a ${money('en', n.amountCents, n.currency)} tip`;
+    case 'support_answered':
+      return `answered your request "${n.subject}"`;
   }
 }
 
@@ -350,6 +354,8 @@ function renderEs(n: Notice): string {
       return `ha desbloqueado tu mensaje privado por ${money('es', n.amountCents, n.currency)}`;
     case 'tip_received':
       return `te ha enviado una propina de ${money('es', n.amountCents, n.currency)}`;
+    case 'support_answered':
+      return `ha respondido a tu solicitud «${n.subject}»`;
   }
 }
 

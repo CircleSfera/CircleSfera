@@ -21,7 +21,7 @@ export function GuestFooter() {
       links: [
         { to: '/features', label: t('landing.footer.features') },
         { to: '/principles', label: t('landing.footer.principles') },
-        { to: '/faq', label: t('landing.faq.badge') },
+        { to: '/help', label: t('helpCentre.badge') },
       ],
     },
     {
@@ -68,7 +68,7 @@ export function GuestFooter() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8 flex-1">
             {columns.map((col) => (
               <div key={col.title}>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-white/60 mb-2">
                   {col.title}
                 </h3>
                 <ul className="space-y-0.5">
@@ -76,7 +76,7 @@ export function GuestFooter() {
                     <li key={link.to}>
                       <Link
                         to={link.to}
-                        className="inline-flex items-center min-h-11 text-sm text-white/60 hover:text-white transition-colors"
+                        className="inline-flex items-center min-h-11 min-w-11 text-sm text-white/60 hover:text-white transition-colors"
                       >
                         {link.label}
                       </Link>
@@ -89,7 +89,7 @@ export function GuestFooter() {
         </div>
 
         <div className="mt-8 pt-5 border-t border-white/8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <p className="text-xs text-white/35">{t('landing.footer.rights')}</p>
+          <p className="text-xs text-white/60">{t('landing.footer.rights')}</p>
         </div>
       </div>
     </footer>
