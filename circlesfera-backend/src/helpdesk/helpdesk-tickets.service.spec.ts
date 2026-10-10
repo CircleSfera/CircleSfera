@@ -154,6 +154,54 @@ describe('HelpdeskTicketsService', () => {
       expect(store.listTickets).toHaveBeenLastCalledWith({}, 1, 20, false);
     });
 
+    it('filters by the waiting state too', async () => {
+      await service.listTickets(1, 20, 'WAITING');
+
+      expect(store.listTickets).toHaveBeenLastCalledWith(
+        { status: 'WAITING' },
+        1,
+        20,
+        false,
+      );
+    });
+
+    it('lists the tickets of the agent, the ones nobody has, or all', async () => {
+      const team = { agentRef: 'admin-1' };
+
+      await service.listTickets(1, 20, undefined, undefined, {
+        ...team,
+        assignment: 'mine',
+      });
+      expect(store.listTickets.mock.calls.at(-1)?.[0]).toEqual({
+        assignedAgentRef: 'admin-1',
+      });
+
+      await service.listTickets(1, 20, undefined, undefined, {
+        ...team,
+        assignment: 'unassigned',
+      });
+      expect(store.listTickets.mock.calls.at(-1)?.[0]).toEqual({
+        assignedAgentRef: null,
+      });
+
+      await service.listTickets(1, 20, undefined, undefined, team);
+      expect(store.listTickets.mock.calls.at(-1)?.[0]).toEqual({});
+    });
+
+    it('filters by priority and ignores one that does not exist', async () => {
+      await service.listTickets(1, 20, undefined, undefined, {
+        priority: 'HIGH',
+      });
+      expect(store.listTickets.mock.calls.at(-1)?.[0]).toEqual({
+        priority: 'HIGH',
+      });
+
+      await service.listTickets(1, 20, undefined, undefined, {
+        priority: 'URGENT',
+      });
+      expect(store.listTickets.mock.calls.at(-1)?.[0]).toEqual({});
+    });
+
     it('asks the host who wrote the tickets and where each handed case stands', async () => {
       store.listTickets.mockResolvedValue({
         tickets: [

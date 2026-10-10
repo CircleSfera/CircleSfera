@@ -227,7 +227,10 @@ export class HelpdeskStore {
   }
 
   async listTickets(
-    filters: Pick<Prisma.SupportTicketWhereInput, 'status' | 'category'>,
+    filters: Pick<
+      Prisma.SupportTicketWhereInput,
+      'status' | 'category' | 'priority' | 'assignedAgentRef'
+    >,
     page: number,
     limit: number,
     oldestFirst: boolean,

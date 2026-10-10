@@ -11,4 +11,15 @@ export class AgentTicketsQueryDto extends PaginationDto {
   @IsString()
   @IsIn(['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'])
   category?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['LOW', 'NORMAL', 'HIGH'])
+  priority?: string;
+
+  // mine: the tickets of who asks. unassigned: the ones nobody has.
+  @IsOptional()
+  @IsString()
+  @IsIn(['mine', 'unassigned'])
+  assignment?: string;
 }
