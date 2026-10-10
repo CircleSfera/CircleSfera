@@ -431,6 +431,9 @@ export default function SupportTicketsTab({ onToast }: Props) {
     mutationFn: (id: string) => adminApi.escalateSupportTicket(id),
     onSuccess: () => {
       refresh();
+      // The handover opens a case for moderation: its lists change too.
+      queryClient.invalidateQueries({ queryKey: ['admin', 'reports'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
       onToast(t('admin.support.toast_escalated'), 'success');
     },
     onError: () => onToast(t('admin.support.toast_error'), 'error'),

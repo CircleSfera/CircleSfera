@@ -133,5 +133,7 @@ describe('Notifications written for the reader', () => {
     }
     // Nobody unknown: the notice does not come from a profile.
     expect(screen.queryByText('Desconocido')).not.toBeInTheDocument();
+    // Nor is its picture described as an unknown person's.
+    expect(document.body.innerHTML).not.toContain('Desconocido');
   });
 });

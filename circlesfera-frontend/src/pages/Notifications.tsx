@@ -323,7 +323,10 @@ export default function Notifications() {
                     thumbnailUrl={notif.sender?.thumbnailUrl}
                     standardUrl={notif.sender?.standardUrl}
                     alt={
-                      notif.sender?.username || t('notifications.unknown_user')
+                      supportRequestPath(notif)
+                        ? t('notifications.from_support')
+                        : notif.sender?.username ||
+                          t('notifications.unknown_user')
                     }
                     size="md"
                   />

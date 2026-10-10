@@ -109,6 +109,8 @@ describe('SupportTicketsTab', () => {
     } as never);
   });
 
+  let invalidated: ReturnType<typeof vi.spyOn>;
+
   const open = async (data: unknown[]) => {
     vi.mocked(adminApi.getSupportTickets).mockResolvedValue(
       page(data) as never,
@@ -116,6 +118,7 @@ describe('SupportTicketsTab', () => {
     const rendered = renderWithProviders(
       <SupportTicketsTab onToast={onToast} />,
     );
+    invalidated = vi.spyOn(rendered.queryClient, 'invalidateQueries');
     fireEvent.click(await screen.findByText('Someone is harassing me'));
     return rendered.i18n!;
   };
@@ -150,6 +153,13 @@ describe('SupportTicketsTab', () => {
         'success',
       ),
     );
+    // The case it opens shows in the lists of moderation without reloading.
+    expect(invalidated).toHaveBeenCalledWith({
+      queryKey: ['admin', 'reports'],
+    });
+    expect(invalidated).toHaveBeenCalledWith({
+      queryKey: ['admin', 'trust-queue'],
+    });
   });
 
   it('a ticket with moderation cannot be answered, closed or handed over again', async () => {
@@ -212,18 +222,25 @@ describe('SupportTicketsTab', () => {
   });
 
   it('says how long an open ticket has waited, and not for a closed one', async () => {
-    const threeDaysAgo = new Date(
-      Date.now() - 3 * 24 * 60 * 60 * 1000 - 60_000,
-    ).toISOString();
+    // A fixed moment: the label must not depend on when the test runs.
+    vi.useFakeTimers({
+      toFake: ['Date'],
+      now: new Date('2026-09-10T10:00:00Z'),
+    });
+    const threeDaysAgo = '2026-09-07T09:59:00.000Z';
     vi.mocked(adminApi.getSupportTickets).mockResolvedValue(
       page([
         ticket({ id: 't-old', createdAt: threeDaysAgo }),
         ticket({ id: 't-done', status: 'RESOLVED', createdAt: threeDaysAgo }),
       ]) as never,
     );
-    renderWithProviders(<SupportTicketsTab onToast={onToast} />);
+    try {
+      renderWithProviders(<SupportTicketsTab onToast={onToast} />);
 
-    expect(await screen.findAllByText('Waiting 3 days')).toHaveLength(1);
+      expect(await screen.findAllByText('Waiting 3 days')).toHaveLength(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows what each ticket is about and filters by it', async () => {

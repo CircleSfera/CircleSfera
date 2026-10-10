@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { HelpdeskStore } from './helpdesk.store.js';
+import { HelpdeskStore, TicketStateChangedError } from './helpdesk.store.js';
 
 // The data access layer of the Help Desk: every read and every write carries
 // the organization of the current request.
@@ -150,15 +150,27 @@ describe('HelpdeskStore', () => {
     expect(query.orderBy).toEqual({ createdAt: 'asc' });
   });
 
-  it('reads what changed in a ticket of the organization, oldest first', async () => {
-    await store.events('t-1');
+  it('reads the most recent changes of a ticket of the organization, up to a limit, and gives them oldest first', async () => {
+    prisma.helpdeskTicketEvent.findMany.mockResolvedValueOnce([
+      { id: 'e-3' },
+      { id: 'e-2' },
+      { id: 'e-1' },
+    ]);
+
+    const events = await store.events('t-1');
 
     const query = prisma.helpdeskTicketEvent.findMany.mock.calls[0][0];
     expect(query.where).toEqual({
       ticketId: 't-1',
       ticket: { organizationId: 'org-1' },
     });
-    expect(query.orderBy).toEqual({ createdAt: 'asc' });
+    expect(query.orderBy).toEqual({ createdAt: 'desc' });
+    expect(query.take).toBe(200);
+    expect(events.map((e: { id: string }) => e.id)).toEqual([
+      'e-1',
+      'e-2',
+      'e-3',
+    ]);
   });
 
   it('leaves internal notes out when only public messages are asked for', async () => {
@@ -310,6 +322,43 @@ describe('HelpdeskStore', () => {
       where: { id: 't-1', organizationId: 'org-1' },
       data: { status: 'RESOLVED', events: { create: [event] } },
     });
+  });
+
+  it('changes a ticket only in the state asked for, when one is given', async () => {
+    prisma.supportTicket.update.mockResolvedValue({ id: 't-1' });
+    await store.updateTicket(
+      't-1',
+      { status: 'ESCALATED' },
+      undefined,
+      [],
+      'OPEN',
+    );
+
+    expect(prisma.supportTicket.update.mock.calls[0][0].where).toEqual({
+      id: 't-1',
+      organizationId: 'org-1',
+      status: 'OPEN',
+    });
+  });
+
+  it('says the state changed when the ticket is no longer in it', async () => {
+    prisma.supportTicket.update.mockRejectedValue(
+      Object.assign(new Error('Record to update not found.'), {
+        code: 'P2025',
+      }),
+    );
+
+    await expect(
+      store.updateTicket('t-1', { status: 'ESCALATED' }, undefined, [], 'OPEN'),
+    ).rejects.toBeInstanceOf(TicketStateChangedError);
+  });
+
+  it('passes on any other failure of a change as it is', async () => {
+    prisma.supportTicket.update.mockRejectedValue(new Error('db down'));
+
+    await expect(
+      store.updateTicket('t-1', { status: 'ESCALATED' }, undefined, [], 'OPEN'),
+    ).rejects.toThrow('db down');
   });
 
   it('links a new ticket to the closed one it continues', async () => {

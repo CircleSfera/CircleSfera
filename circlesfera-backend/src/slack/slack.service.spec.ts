@@ -337,6 +337,23 @@ describe('SlackService', () => {
     });
   });
 
+  describe('what a requester wrote, in an alert', () => {
+    it('shows as written, and cannot build a link or call the channel', async () => {
+      await service.sendSupportReplyAlert({
+        id: 'tick-1',
+        reference: 42,
+        subject: '<!channel> see <https://evil.example|your account> & more',
+      });
+
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain(
+        '&lt;!channel&gt; see &lt;https://evil.example|your account&gt; &amp; more',
+      );
+      expect(sent).not.toContain('<!channel>');
+      expect(sent).not.toContain('<https://evil.example');
+    });
+  });
+
   describe('sendSupportEmailInAlert', () => {
     it('tells the support channel the three counts and nothing of anyone’s email', async () => {
       await service.sendSupportEmailInAlert({

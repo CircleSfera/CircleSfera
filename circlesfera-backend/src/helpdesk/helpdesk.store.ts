@@ -4,6 +4,7 @@ import type {
   HelpdeskMessageVisibility,
   Prisma,
   TicketCategory,
+  TicketStatus,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -22,6 +23,13 @@ const pastTarget = (moment: Date): Prisma.SupportTicketWhereInput => ({
 });
 
 /** One change of a ticket and who made it. */
+/** A change asked for a ticket in one state found it in another. */
+export class TicketStateChangedError extends Error {
+  constructor() {
+    super('The ticket is no longer in the expected state');
+  }
+}
+
 export interface TicketEventInput {
   kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
   fromValue: string | null;
@@ -40,6 +48,9 @@ type TicketChanges = Omit<
  * every write carries the organization of the current request, so a service
  * cannot reach a ticket of another organization by forgetting a filter.
  */
+// The most changes of one ticket read at once.
+export const TICKET_EVENTS_LIMIT = 200;
+
 @Injectable()
 export class HelpdeskStore {
   constructor(
@@ -384,6 +395,9 @@ export class HelpdeskStore {
     },
     // What changed and who changed it, written with the change.
     events: TicketEventInput[] = [],
+    // When given, the change is made only if the ticket is still in this
+    // state; otherwise nothing is written and the update fails.
+    onlyIfStatus?: TicketStatus,
   ) {
     // A ticket never changes identity or organization, whatever is passed.
     const {
@@ -391,21 +405,38 @@ export class HelpdeskStore {
       organizationId: _organizationId,
       ...safeChanges
     } = changes as Prisma.SupportTicketUncheckedUpdateInput;
-    return this.prisma.supportTicket.update({
-      where: { id, organizationId: this.organizationId },
+    const update = this.prisma.supportTicket.update({
+      where: {
+        id,
+        organizationId: this.organizationId,
+        ...(onlyIfStatus && { status: onlyIfStatus }),
+      },
       data: {
         ...safeChanges,
         ...(message && { messages: { create: message } }),
         ...(events.length > 0 && { events: { create: events } }),
       },
     });
+    if (!onlyIfStatus) return update;
+    return update.catch((error: unknown) => {
+      // No row matched: someone changed the state first.
+      if ((error as { code?: string })?.code === 'P2025') {
+        throw new TicketStateChangedError();
+      }
+      throw error;
+    });
   }
 
-  /** What changed in a ticket and who changed it, oldest first. */
-  events(ticketId: string) {
-    return this.prisma.helpdeskTicketEvent.findMany({
+  /**
+   * What changed in a ticket and who changed it, oldest first. A ticket
+   * changes a few times in its life; the read is still bounded, to the most
+   * recent changes, so that one ticket can never load without limit.
+   */
+  async events(ticketId: string) {
+    const latest = await this.prisma.helpdeskTicketEvent.findMany({
       where: { ticketId, ticket: { organizationId: this.organizationId } },
-      orderBy: { createdAt: 'asc' },
+      orderBy: { createdAt: 'desc' },
+      take: TICKET_EVENTS_LIMIT,
       select: {
         id: true,
         kind: true,
@@ -416,6 +447,7 @@ export class HelpdeskStore {
         createdAt: true,
       },
     });
+    return latest.reverse();
   }
 
   /** The conversation of a ticket, oldest first. */

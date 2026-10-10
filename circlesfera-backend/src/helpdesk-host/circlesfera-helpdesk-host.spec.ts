@@ -279,6 +279,17 @@ describe('CircleSfera as the host of the Help Desk', () => {
       expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
+    it('does not fail an answer already stored and sent when its notice in the app cannot be made', async () => {
+      eventEmitter.emit.mockClear();
+      email.sendSupportReplyEmail.mockClear();
+      prisma.profile.findFirst.mockRejectedValueOnce(new Error('db down'));
+
+      await expect(notifier.answer(ticket, 'Fixed.')).resolves.toBeUndefined();
+
+      expect(email.sendSupportReplyEmail).toHaveBeenCalledTimes(1);
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
+    });
+
     it('never puts the text of the answer in the notice', async () => {
       eventEmitter.emit.mockClear();
       prisma.profile.findFirst.mockResolvedValue({ id: 'p-1' });

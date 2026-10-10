@@ -1,5 +1,5 @@
 import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction } from '@prisma/client';
 import {
@@ -196,6 +196,8 @@ export class ModerationHandover implements HandoverGateway {
 // request, and as a notice in the app on their main Profile.
 @Injectable()
 export class CircleSferaRequesterNotifier implements RequesterNotifier {
+  private readonly logger = new Logger(CircleSferaRequesterNotifier.name);
+
   constructor(
     @Inject(EmailService) private readonly email: EmailService,
     @Inject(PrismaService) private readonly prisma: PrismaService,
@@ -211,17 +213,27 @@ export class CircleSferaRequesterNotifier implements RequesterNotifier {
       ticket.replyTo,
     );
 
-    const recipientId = ticket.requesterRef
-      ? await primaryProfileIdForUser(this.prisma, ticket.requesterRef)
-      : null;
-    if (!recipientId) return;
-    this.eventEmitter.emit('notification.create', {
-      recipientId,
-      type: 'SYSTEM',
-      notice: { key: 'support_answered', subject: ticket.subject },
-      targetType: 'support_ticket',
-      targetId: ticket.id,
-    });
+    // The answer is stored and its email sent by now. A notice in the app
+    // that cannot be made must not turn the answer into an error: the agent
+    // would send it again. It is recorded instead.
+    try {
+      const recipientId = ticket.requesterRef
+        ? await primaryProfileIdForUser(this.prisma, ticket.requesterRef)
+        : null;
+      if (!recipientId) return;
+      this.eventEmitter.emit('notification.create', {
+        recipientId,
+        type: 'SYSTEM',
+        notice: { key: 'support_answered', subject: ticket.subject },
+        targetType: 'support_ticket',
+        targetId: ticket.id,
+      });
+    } catch (error) {
+      this.logger.error(
+        `No in-app notice for the answer to ticket ${ticket.id}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
   }
 
   async remind(ticket: TicketNotice, solvedInDays: number) {
