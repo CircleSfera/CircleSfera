@@ -3,6 +3,9 @@ name: Pull Request CI
 on:
   pull_request:
     branches: [ main ]
+  # The merge queue checks pull requests together, on top of main and of the
+  # ones queued before them, before any of them reaches main.
+  merge_group:
 
 concurrency:
   group: pr-${{ github.workflow }}-${{ github.ref }}
