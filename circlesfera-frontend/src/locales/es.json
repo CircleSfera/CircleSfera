@@ -2188,6 +2188,7 @@
     "description": "Gestión y moderación de CircleSfera",
     "connected_as": "Admin",
     "back_to_app": "Volver a CircleSfera",
+    "account_menu": "Cuenta de {{name}}",
     "back_short": "App",
     "open_nav": "Abrir navegación",
     "mobile_nav_title": "Navegación",
@@ -2612,7 +2613,17 @@
       "kpi_traffic_normal": "Normal",
       "status_live_now": "En vivo ahora",
       "gifts": "Regalos",
-      "viewers": "Espectadores"
+      "viewers": "Espectadores",
+      "badge_live": "En vivo",
+      "badge_ended": "Finalizado",
+      "participants": "Participantes",
+      "role_host": "Anfitrión principal",
+      "role_cohost": "Coanfitrión invitado",
+      "moderation_actions": "Acciones de moderación",
+      "warn_title": "Enviar advertencia",
+      "warn_description": "El usuario recibirá un aviso oficial.",
+      "force_end_title": "Forzar cierre de la transmisión",
+      "force_end_description": "El directo terminará inmediatamente."
     },
     "plans": {
       "title": "Planes",
@@ -3270,7 +3281,22 @@
       "rule_delete_error": "Error borrando regla",
       "delete_desc": "Esto elimina la regla de palabra clave de forma permanente.",
       "delete_title": "¿Eliminar regla del firewall?",
-      "keyword_placeholder": "ej. spamcasino.com"
+      "keyword_placeholder": "ej. spamcasino.com",
+      "search_rules": "Buscar reglas",
+      "label_keyword": "Palabra clave o frase",
+      "label_action": "Acción",
+      "option_flag": "FLAG (enviar a la cola de revisión)",
+      "option_block": "BLOCK (prohibir la publicación inmediatamente)",
+      "option_mute": "MUTE (publicar pero ocultar a otros usuarios)",
+      "intercepted_keyword": "Palabra clave interceptada",
+      "current_action": "Acción actual",
+      "created_on": "Creado el",
+      "change_action": "Cambiar acción",
+      "set_flag": "FLAG - Enviar a la cola de revisión",
+      "set_block": "BLOCK - Prohibir la publicación",
+      "set_mute": "MUTE - Ocultar el contenido a los demás",
+      "select_rule_title": "Selecciona una regla",
+      "select_rule_description": "Elige una regla de la lista para ver sus detalles o añade una nueva para interceptar texto."
     },
     "whitelist": {
       "title": "Whitelist de Interesados",
@@ -3299,7 +3325,13 @@
       "create_title": "Añadir a whitelist",
       "create_message": "Introduce el email invitado.",
       "email_placeholder": "email@ejemplo.com",
-      "name_placeholder": "Nombre (opcional)"
+      "name_placeholder": "Nombre (opcional)",
+      "toast_added": "Añadido a la whitelist",
+      "toast_add_error": "No se pudo añadir a la whitelist",
+      "toast_saved": "Registro guardado",
+      "toast_save_error": "No se pudo guardar el registro",
+      "toast_deleted": "Registro eliminado",
+      "toast_delete_error": "No se pudo eliminar el registro"
     },
     "verification": {
       "title": "KYC & Verificación",
@@ -3415,7 +3447,15 @@
       "tab_experiments": "Experimentos A/B",
       "user_search_placeholder": "Buscar usuario por nombre o email...",
       "searching_users": "Buscando usuarios...",
-      "no_users_found": "No se encontraron usuarios."
+      "no_users_found": "No se encontraron usuarios.",
+      "toast_flag_saved": "Flag guardada",
+      "toast_flag_save_error": "No se pudo guardar la flag",
+      "toast_flag_deleted": "Flag eliminada",
+      "toast_flag_delete_error": "No se pudo eliminar la flag",
+      "toast_assigned": "Asignación guardada",
+      "toast_assign_error": "No se pudo guardar la asignación",
+      "toast_removed": "Asignación eliminada",
+      "toast_remove_error": "No se pudo eliminar la asignación"
     },
     "health": {
       "title": "Estado del Sistema",
@@ -3455,7 +3495,8 @@
       "provider": "Proveedor",
       "external_id": "External ID",
       "status": "Estado",
-      "processed_at": "Procesado"
+      "processed_at": "Procesado",
+      "replay_error": "No se pudo reenviar el evento"
     },
     "user_preview": {
       "title": "Expediente de Usuario",
@@ -3873,7 +3914,11 @@
     "save_error_short": "Error al guardar",
     "zoom": "Zoom de timeline",
     "playhead": "Cabezal de reproducción",
-    "clip_types": { "video": "Vídeo", "image": "Imagen", "audio": "Audio" },
+    "clip_types": {
+      "video": "Vídeo",
+      "image": "Imagen",
+      "audio": "Audio"
+    },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
     "mute": "Silenciar pista",
