@@ -188,7 +188,7 @@ export class AuthController {
     },
   })
   async resendVerification(@CurrentUser() user: CurrentUserData) {
-    return this.authService.resendVerification(user.userId);
+    return this.authService.resendVerification(user.userId, user.signInId);
   }
 
   // Request a password reset email.

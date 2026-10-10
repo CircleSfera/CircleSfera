@@ -8,6 +8,22 @@ export interface SessionOwner {
   profileId?: string | null;
 }
 
+// The first sign-in of an account: the one its Profiles share by default.
+export const FIRST_SIGN_IN_ORDER = [
+  { createdAt: 'asc' as const },
+  { id: 'asc' as const },
+];
+
+/** The sign-in a session means, always inside the account of the session. */
+export function sessionSignInWhere(owner: SessionOwner) {
+  return {
+    userId: owner.userId,
+    ...(owner.signInId
+      ? { id: owner.signInId }
+      : owner.profileId && { profiles: { some: { id: owner.profileId } } }),
+  };
+}
+
 /**
  * Whether the email of the sign-in behind a session is verified. The sign-in
  * is the one that opened the session; for a session that does not name it,
@@ -20,13 +36,8 @@ export async function sessionEmailVerified(
   owner: SessionOwner,
 ): Promise<boolean> {
   const signIn = await prisma.signIn.findFirst({
-    where: {
-      userId: owner.userId,
-      ...(owner.signInId
-        ? { id: owner.signInId }
-        : owner.profileId && { profiles: { some: { id: owner.profileId } } }),
-    },
-    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    where: sessionSignInWhere(owner),
+    orderBy: FIRST_SIGN_IN_ORDER,
     select: { emailVerified: true },
   });
   return !!signIn?.emailVerified;

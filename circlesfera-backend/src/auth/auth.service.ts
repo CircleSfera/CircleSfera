@@ -22,6 +22,10 @@ import {
   DeviceSignalService,
 } from '../common/abuse/device-signal.service.js';
 import { TurnstileService } from '../common/abuse/turnstile.service.js';
+import {
+  FIRST_SIGN_IN_ORDER,
+  sessionSignInWhere,
+} from '../common/auth/sign-in-lookup.js';
 import { toSupportedLocale } from '../common/constants/locale.constants.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { EmailService } from '../email/email.service.js';
@@ -206,11 +210,10 @@ export class AuthService {
   // Returns Success message
   // Throws BadRequestException if token is invalid or expired
   async verifyEmail(dto: VerifyEmailDto) {
-    // The token is looked for on the sign-in; the account is written, and
-    // the database copies the change to the sign-in in the same transaction.
+    // The token is looked for, and the verification written, on the sign-in.
     const signIn = await this.prisma.signIn.findUnique({
       where: { verificationToken: dto.token },
-      select: { userId: true },
+      select: { id: true, userId: true },
     });
 
     if (!signIn) {
@@ -218,8 +221,8 @@ export class AuthService {
     }
     const user = { id: signIn.userId };
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn.id },
       data: {
         emailVerified: new Date(),
         verificationToken: null,
@@ -237,12 +240,16 @@ export class AuthService {
     return { message: 'Email verified successfully' };
   }
 
-  async resendVerification(userId: string): Promise<{ message: string }> {
-    // The first sign-in of the account: the one its Profiles share.
+  async resendVerification(
+    userId: string,
+    signInId?: string,
+  ): Promise<{ message: string }> {
+    // The sign-in of the session; the first of the account for a session
+    // that names none.
     const user = await this.prisma.signIn.findFirst({
-      where: { userId },
-      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-      select: { email: true, emailVerified: true },
+      where: sessionSignInWhere({ userId, signInId }),
+      orderBy: FIRST_SIGN_IN_ORDER,
+      select: { id: true, email: true, emailVerified: true },
     });
     if (!user) {
       throw new BadRequestException('User not found');
@@ -251,8 +258,8 @@ export class AuthService {
       return { message: 'Email already verified' };
     }
     const verificationToken = crypto.randomBytes(32).toString('hex');
-    await this.prisma.user.update({
-      where: { id: userId },
+    await this.prisma.signIn.update({
+      where: { id: user.id },
       data: { verificationToken },
     });
     await this.emailService.sendVerificationEmail(
@@ -269,7 +276,7 @@ export class AuthService {
   async requestPasswordReset(dto: RequestResetDto) {
     const signIn = await this.prisma.signIn.findUnique({
       where: { email: dto.email },
-      select: { userId: true, email: true },
+      select: { id: true, userId: true, email: true },
     });
     const user = signIn && { id: signIn.userId, email: signIn.email };
 
@@ -281,8 +288,8 @@ export class AuthService {
     const resetToken = crypto.randomBytes(32).toString('hex');
     const resetTokenExpires = new Date(Date.now() + 3600000); // 1 hour
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn!.id },
       data: {
         resetToken,
         resetTokenExpires,
@@ -315,8 +322,8 @@ export class AuthService {
 
     const hashedPassword = await argon2.hash(dto.newPassword);
 
-    await this.prisma.user.update({
-      where: { id: user.id },
+    await this.prisma.signIn.update({
+      where: { id: signIn.id },
       data: {
         password: hashedPassword,
         resetToken: null,
@@ -408,8 +415,8 @@ export class AuthService {
         // If valid, migrate to argon2
         if (isPasswordValid) {
           const newHashedPassword = await argon2.hash(dto.password);
-          await this.prisma.user.update({
-            where: { id: user.id },
+          await this.prisma.signIn.update({
+            where: { id: signIn.id },
             data: { password: newHashedPassword },
           });
         }
@@ -536,9 +543,9 @@ export class AuthService {
 
         // Opportunistic rolling migration for legacy plaintext secrets
         if (!rawSecret.includes(':')) {
-          void this.prisma.user
+          void this.prisma.signIn
             .update({
-              where: { id: user.id },
+              where: { id: signIn.id },
               data: { twoFactorSecret: this.cryptoService.encrypt(secret) },
             })
             .catch(() => undefined);

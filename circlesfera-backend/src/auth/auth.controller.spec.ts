@@ -252,6 +252,7 @@ describe('AuthController', () => {
 
     expect(mockService.resendVerification).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.signInId,
     );
     expect(mockService.getUserSessions).toHaveBeenCalledWith(TEST_USER.userId);
   });

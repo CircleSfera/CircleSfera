@@ -15,7 +15,7 @@ import { TwoFactorCodeDto } from './dto/two-factor-code.dto.js';
 import { TwoFactorService } from './two-factor.service.js';
 
 interface AuthRequest {
-  user: { userId: string; email: string; role: string };
+  user: { userId: string; email: string; role: string; signInId?: string };
 }
 
 @ApiTags('2FA')
@@ -32,6 +32,7 @@ export class TwoFactorController {
       await this.twoFactorService.generateTwoFactorAuthenticationSecret({
         id: req.user.userId,
         email: req.user.email,
+        signInId: req.user.signInId,
       });
 
     const qrCodeDataUrl =
@@ -51,6 +52,7 @@ export class TwoFactorController {
     await this.twoFactorService.turnOnTwoFactorAuthentication(
       req.user.userId,
       body.twoFactorAuthenticationCode,
+      req.user.signInId,
     );
     return { message: '2FA has been turned on successfully' };
   }
@@ -64,6 +66,7 @@ export class TwoFactorController {
     await this.twoFactorService.turnOffTwoFactorAuthentication(
       req.user.userId,
       body.twoFactorAuthenticationCode,
+      req.user.signInId,
     );
     return { message: '2FA has been turned off successfully' };
   }

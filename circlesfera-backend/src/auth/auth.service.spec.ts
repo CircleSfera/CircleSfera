@@ -58,6 +58,7 @@ describe('AuthService', () => {
       update: vi.fn().mockResolvedValue({}),
     },
     signIn: {
+      update: vi.fn().mockResolvedValue({}),
       findUnique: vi.fn(async (args?: unknown) =>
         signInOf(
           (await mockPrismaService.user.findUnique(args)) as AccountDouble,
@@ -331,10 +332,11 @@ describe('AuthService', () => {
 
       const result = await service.login(dto);
 
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
-      const updateArgs = mockPrismaService.user.update.mock.calls[0][0] as {
-        data: { password: string };
-      };
+      // The new format is written on the sign-in that signed in.
+      const updateArgs = mockPrismaService.signIn.update.mock.calls.at(
+        -1,
+      )?.[0] as { where: { id: string }; data: { password: string } };
+      expect(updateArgs.where).toEqual({ id: 'sign-in-1' });
       expect(updateArgs.data.password).toContain('$argon2');
       expect(result).toHaveProperty('accessToken');
     });
@@ -534,8 +536,8 @@ describe('AuthService', () => {
       expect(mockCryptoService.encrypt).toHaveBeenCalledWith(
         'totp-base32-secret',
       );
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: '2fa-legacy-user' },
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-2fa-legacy-user' },
         data: { twoFactorSecret: 'enc:totp-base32-secret' },
       });
       expect(result).toHaveProperty('accessToken');
@@ -604,7 +606,7 @@ describe('AuthService', () => {
         isTwoFactorEnabled: true,
         twoFactorSecret: 'totp-base32-secret',
       });
-      mockPrismaService.user.update.mockRejectedValueOnce(
+      mockPrismaService.signIn.update.mockRejectedValueOnce(
         new Error('DB write collision'),
       );
 
@@ -729,14 +731,15 @@ describe('AuthService', () => {
         username: 'bob',
       });
       const result = await service.verifyEmail({ token: 'token' });
-      // The token is looked for on the sign-in; the account is written.
+      // The token is looked for, and the verification written, on the sign-in.
       expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
         where: { verificationToken: 'token' },
-        select: { userId: true },
+        select: { id: true, userId: true },
       });
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: '1' } }),
-      );
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
+        data: { emailVerified: expect.any(Date), verificationToken: null },
+      });
       expect(result.message).toContain('successfully');
     });
 
@@ -759,11 +762,15 @@ describe('AuthService', () => {
       });
       expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith({
         where: { email: 'test@example.com' },
-        select: { userId: true, email: true },
+        select: { id: true, userId: true, email: true },
       });
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: '1' } }),
-      );
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith({
+        where: { id: 'sign-in-1' },
+        data: {
+          resetToken: expect.any(String),
+          resetTokenExpires: expect.any(Date),
+        },
+      });
       expect(result.message).toContain('email has been sent');
     });
   });
@@ -782,11 +789,11 @@ describe('AuthService', () => {
         where: { resetToken: 'token' },
         select: { id: true, userId: true, resetTokenExpires: true },
       });
-      expect(mockPrismaService.user.update).toHaveBeenCalled();
+      expect(mockPrismaService.signIn.update).toHaveBeenCalled();
       expect(result.message).toContain('successfully');
 
-      const updateArgs = mockPrismaService.user.update.mock.calls[
-        mockPrismaService.user.update.mock.calls.length - 1
+      const updateArgs = mockPrismaService.signIn.update.mock.calls[
+        mockPrismaService.signIn.update.mock.calls.length - 1
       ][0] as {
         data: { password: string; passwordResetRequiredAt: null };
       };
@@ -1171,14 +1178,15 @@ describe('AuthService', () => {
 
     it('updates token and sends email when user is unverified', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-unverified',
         email: 'unv@example.com',
         emailVerified: null,
       });
       const result = await service.resendVerification('u-unverified');
       expect(result).toEqual({ message: 'Verification email sent' });
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith(
+      expect(mockPrismaService.signIn.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'u-unverified' },
+          where: { id: 'sign-in-u-unverified' },
           data: expect.objectContaining({
             verificationToken: expect.any(String),
           }),
