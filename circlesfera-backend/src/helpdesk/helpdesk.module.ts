@@ -4,6 +4,8 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { HelpdeskScheduler } from './helpdesk.scheduler.js';
 import { HelpdeskStore } from './helpdesk.store.js';
 import { HelpdeskAgentController } from './helpdesk-agent.controller.js';
+import { HelpdeskArticlesController } from './helpdesk-articles.controller.js';
+import { HelpdeskArticlesService } from './helpdesk-articles.service.js';
 import { HelpdeskDataPort } from './helpdesk-data.port.js';
 import { HelpdeskFiguresService } from './helpdesk-figures.service.js';
 import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
@@ -31,12 +33,14 @@ export function helpdeskFor(host: Type<unknown>): DynamicModule {
       HelpdeskRequesterController,
       HelpdeskAgentController,
       HelpdeskSavedRepliesController,
+      HelpdeskArticlesController,
     ],
     providers: [
       HelpdeskStore,
       HelpdeskTicketsService,
       HelpdeskSavedRepliesService,
       HelpdeskFiguresService,
+      HelpdeskArticlesService,
       HelpdeskReplyAddress,
       HelpdeskInboundService,
       HelpdeskScheduler,

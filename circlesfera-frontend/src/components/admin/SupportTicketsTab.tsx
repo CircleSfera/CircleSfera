@@ -36,6 +36,7 @@ import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination } from './AdminTable';
 import { staffTabHref } from './adminNav';
+import { HelpCentreEditor } from './HelpCentreEditor';
 import { SavedReplies } from './SavedReplies';
 import { SupportFigures } from './SupportFigures';
 
@@ -480,7 +481,14 @@ export default function SupportTicketsTab({ onToast }: Props) {
       <AdminPageHeader
         title={t('admin.support.title')}
         subtitle={t('admin.support.subtitle')}
-        actions={leadsTeam ? <SupportFigures /> : undefined}
+        actions={
+          leadsTeam ? (
+            <div className="flex flex-wrap gap-2">
+              <HelpCentreEditor onToast={onToast} />
+              <SupportFigures />
+            </div>
+          ) : undefined
+        }
       />
 
       <AdminFilterBar>
