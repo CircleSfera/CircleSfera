@@ -1710,6 +1710,10 @@
     }
   },
   "notifications": {
+    "pending_requests_one": "{{count}} solicitud pendiente",
+    "pending_requests_other": "{{count}} solicitudes pendientes",
+    "accept_request": "Aceptar la solicitud de @{{username}}",
+    "reject_request": "Rechazar la solicitud de @{{username}}",
     "seo_title": "Notificaciones",
     "title": "Actividad",
     "no_activity": "No hay actividad aún",
@@ -4508,6 +4512,7 @@
   },
   "interactive": {
     "poll": {
+      "vote_error": "No se pudo registrar tu voto. Inténtalo de nuevo.",
       "title": "Encuesta",
       "loading": "Cargando encuesta…",
       "votes_one": "{{count}} voto",
@@ -4516,6 +4521,8 @@
       "votes": "{{count}} votos"
     },
     "qna": {
+      "send": "Enviar respuesta",
+      "send_error": "No se pudo enviar tu respuesta. Inténtalo de nuevo.",
       "title": "Preguntas y respuestas",
       "default_prompt": "Pregúntame lo que quieras…",
       "placeholder": "Escribe tu respuesta…",

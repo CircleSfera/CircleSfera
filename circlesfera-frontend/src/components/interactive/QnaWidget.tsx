@@ -33,6 +33,7 @@ export const QnaWidget: React.FC<{
   const [answerText, setAnswerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sendFailed, setSendFailed] = useState(false);
   const [box, setBox] = useState<QnaBoxData | null>(null);
   const [loadingAnswers, setLoadingAnswers] = useState(false);
 
@@ -64,6 +65,7 @@ export const QnaWidget: React.FC<{
 
     try {
       setSubmitting(true);
+      setSendFailed(false);
       await apiClient.post('interactive/qna/answer', {
         qnaBoxId,
         answerText,
@@ -72,6 +74,8 @@ export const QnaWidget: React.FC<{
       setAnswerText('');
     } catch (err) {
       logger.error('Failed to submit Q&A answer:', err);
+      // What was written stays in the field, to be sent again.
+      setSendFailed(true);
     } finally {
       setSubmitting(false);
     }
@@ -129,26 +133,35 @@ export const QnaWidget: React.FC<{
           {t('interactive.qna.sent')}
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-          <input
-            type="text"
-            value={answerText}
-            onChange={(e) => setAnswerText(e.target.value)}
-            placeholder={t('interactive.qna.placeholder')}
-            className="flex-1 px-3 py-2 bg-black/40 border border-white/10 rounded-xl text-xs text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
-          />
-          <button
-            type="submit"
-            disabled={submitting || !answerText.trim()}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center"
-          >
-            {submitting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </button>
-        </form>
+        <div className="space-y-2">
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={answerText}
+              onChange={(e) => setAnswerText(e.target.value)}
+              aria-label={t('interactive.qna.placeholder')}
+              placeholder={t('interactive.qna.placeholder')}
+              className="flex-1 min-w-0 min-h-12 px-3 bg-black/40 border border-white/10 rounded-xl text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
+            />
+            <button
+              type="submit"
+              disabled={submitting || !answerText.trim()}
+              aria-label={t('interactive.qna.send')}
+              className="min-h-11 min-w-11 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center"
+            >
+              {submitting ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-hidden />
+              ) : (
+                <Send className="w-4 h-4" aria-hidden />
+              )}
+            </button>
+          </form>
+          {sendFailed && (
+            <p role="alert" className="text-xs font-medium text-rose-400">
+              {t('interactive.qna.send_error')}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1710,6 +1710,10 @@
     }
   },
   "notifications": {
+    "pending_requests_one": "{{count}} pending request",
+    "pending_requests_other": "{{count}} pending requests",
+    "accept_request": "Accept the request of @{{username}}",
+    "reject_request": "Decline the request of @{{username}}",
     "seo_title": "Notifications",
     "title": "Activity",
     "no_activity": "No activity yet",
@@ -4508,6 +4512,7 @@
   },
   "interactive": {
     "poll": {
+      "vote_error": "Your vote could not be recorded. Try again.",
       "title": "Poll",
       "loading": "Loading poll…",
       "votes_one": "{{count}} vote",
@@ -4516,6 +4521,8 @@
       "votes": "{{count}} votes"
     },
     "qna": {
+      "send": "Send answer",
+      "send_error": "Your answer could not be sent. Try again.",
       "title": "Q&A",
       "default_prompt": "Ask me anything…",
       "placeholder": "Write your answer…",
