@@ -188,10 +188,10 @@ describe('HelpdeskStore: articles', () => {
     });
   });
 
-  it('looks for words in the title and the body of that language, without minding capitals, inside a topic', async () => {
+  it('looks for each word in the title and the body of that language, without minding capitals, inside a topic', async () => {
     await store.publishedArticles(
       'en',
-      { search: 'refund', topic: 'PAYMENTS' },
+      { search: ['refund', 'card'], topic: 'PAYMENTS' },
       5,
     );
 
@@ -205,6 +205,8 @@ describe('HelpdeskStore: articles', () => {
           OR: [
             { title: { contains: 'refund', mode: 'insensitive' } },
             { body: { contains: 'refund', mode: 'insensitive' } },
+            { title: { contains: 'card', mode: 'insensitive' } },
+            { body: { contains: 'card', mode: 'insensitive' } },
           ],
         },
       },
