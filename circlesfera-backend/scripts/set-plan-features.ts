@@ -11,20 +11,30 @@ const PLANS = [
   {
     // The €9.99 plan is named Premium; "Verified" is its former name.
     match: ['premium', 'verified'],
-    description: 'Verified badge.',
-    features: ['verified_badge'],
+    description: 'Verified badge and priority support.',
+    features: ['verified_badge', 'priority_support'],
   },
   {
     match: ['elite'],
     description:
-      'Elite badge, a feed without promoted posts and advanced analytics.',
-    features: ['verified_badge', 'no_promoted_content', 'advanced_analytics'],
+      'Elite badge, priority support, a feed without promoted posts and advanced analytics.',
+    features: [
+      'verified_badge',
+      'priority_support',
+      'no_promoted_content',
+      'advanced_analytics',
+    ],
   },
   {
     match: ['business'],
     description:
-      'Business badge, a feed without promoted posts and advanced analytics.',
-    features: ['verified_badge', 'no_promoted_content', 'advanced_analytics'],
+      'Business badge, priority support, a feed without promoted posts and advanced analytics.',
+    features: [
+      'verified_badge',
+      'priority_support',
+      'no_promoted_content',
+      'advanced_analytics',
+    ],
   },
 ] as const;
 
