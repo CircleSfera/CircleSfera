@@ -16,6 +16,7 @@ describe('HelpdeskTicketsService', () => {
     updateTicket: vi.fn(),
     messages: vi.fn(),
     events: vi.fn(),
+    serviceTarget: vi.fn(),
   };
   const requesters = { describe: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
@@ -34,6 +35,7 @@ describe('HelpdeskTicketsService', () => {
   const agents = { describe: vi.fn(), assignable: vi.fn() };
   // Email in is off unless a test turns it on.
   const replyAddress = { for: vi.fn() };
+  const serviceLevels = { levelOf: vi.fn() };
   let service: HelpdeskTicketsService;
 
   const ticket = {
@@ -82,6 +84,8 @@ describe('HelpdeskTicketsService', () => {
     handover.cases.mockResolvedValue(new Map());
     teamChannel.requesterReplied.mockResolvedValue(undefined);
     agents.describe.mockResolvedValue(new Map());
+    serviceLevels.levelOf.mockResolvedValue('STANDARD');
+    store.serviceTarget.mockResolvedValue(null);
     agents.assignable.mockResolvedValue([
       { ref: 'admin-1', name: 'Ana' },
       { ref: 'admin-3', name: 'Carla' },
@@ -96,6 +100,7 @@ describe('HelpdeskTicketsService', () => {
       staffLog,
       agents,
       replyAddress as never,
+      serviceLevels,
     );
   });
 
@@ -119,6 +124,9 @@ describe('HelpdeskTicketsService', () => {
         subject: dto.subject,
         message: dto.message,
         category: undefined,
+        // No targets set for this organization: not measured.
+        serviceLevel: 'STANDARD',
+        priority: 'NORMAL',
       });
       expect(teamChannel.ticketOpened).toHaveBeenCalledWith(created);
       expect(result).toEqual({
@@ -361,6 +369,8 @@ describe('HelpdeskTicketsService', () => {
           waitingRemindedAt: null,
           // Nobody had it: it is now of who answered.
           assignedAgentRef: 'admin-1',
+          // No longer open: its clock stops.
+          pausedAt: expect.any(Date),
         },
         {
           authorKind: 'AGENT',
@@ -430,6 +440,7 @@ describe('HelpdeskTicketsService', () => {
       expect(store.updateTicket.mock.calls[0][1]).toEqual({
         status: 'WAITING',
         waitingRemindedAt: null,
+        pausedAt: expect.any(Date),
       });
       expect(store.updateTicket.mock.calls[0][3]).toEqual([
         stateEvent('OPEN', 'WAITING', 'AGENT', 'admin-1'),
@@ -722,6 +733,8 @@ describe('HelpdeskTicketsService', () => {
         category: 'PAYMENTS',
         previousTicketId: 't-1',
         channel: 'PRODUCT',
+        serviceLevel: 'STANDARD',
+        priority: 'NORMAL',
       });
       expect(store.updateTicket).not.toHaveBeenCalled();
       expect(teamChannel.ticketOpened).toHaveBeenCalledWith(continued);
@@ -803,7 +816,11 @@ describe('HelpdeskTicketsService', () => {
       });
       expect(store.updateTicket).toHaveBeenCalledWith(
         't-1',
-        { status: 'ESCALATED', escalatedReportId: 'r-1' },
+        {
+          status: 'ESCALATED',
+          escalatedReportId: 'r-1',
+          pausedAt: expect.any(Date),
+        },
         undefined,
         [
           stateEvent('OPEN', 'ESCALATED', 'AGENT', 'admin-1'),
@@ -978,7 +995,11 @@ describe('HelpdeskTicketsService', () => {
 
       expect(store.updateTicket).toHaveBeenCalledWith(
         't-1',
-        { status: 'RESOLVED', resolvedAt: expect.any(Date) },
+        {
+          status: 'RESOLVED',
+          resolvedAt: expect.any(Date),
+          pausedAt: expect.any(Date),
+        },
         // The channel does not say who of the team wrote it.
         {
           authorKind: 'AGENT',
@@ -1076,6 +1097,7 @@ describe('HelpdeskTicketsService', () => {
       expect(changes).toEqual({
         status: 'RESOLVED',
         resolvedAt: expect.any(Date),
+        pausedAt: expect.any(Date),
       });
       expect(changes).not.toHaveProperty('reply');
       expect(message).toEqual({

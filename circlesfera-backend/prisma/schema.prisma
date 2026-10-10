@@ -1676,19 +1676,28 @@ model SupportTicket {
   updatedAt  DateTime       @updatedAt
 
   // The Help Desk organization the ticket belongs to
-  organizationId    String
+  organizationId     String
   // Short number shown to requester and agent
-  reference         Int              @unique @default(autoincrement())
+  reference          Int                  @unique @default(autoincrement())
   // Only agents see it
-  priority          HelpdeskPriority @default(NORMAL)
+  priority           HelpdeskPriority     @default(NORMAL)
   // Who of the team has the ticket, as the host names them; empty when
   // nobody has it
-  assignedAgentRef  String?
+  assignedAgentRef   String?
   // When the one reminder of the current wait was sent
-  waitingRemindedAt DateTime?
+  waitingRemindedAt  DateTime?
   // The closed ticket this one continues, when it was opened by replying
   // to it
-  previousTicketId  String?
+  previousTicketId   String?
+  // What the ticket is measured by, taken when it is opened
+  serviceLevel       HelpdeskServiceLevel @default(STANDARD)
+  firstResponseDueAt DateTime?
+  // The first public answer of an agent
+  firstRespondedAt   DateTime?
+  // Moves forward by the time the clock was stopped
+  resolutionDueAt    DateTime?
+  // When the clock stopped: the ticket is not open. Empty while it runs
+  pausedAt           DateTime?
 
   user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
   // The report created when the ticket was handed to moderation
@@ -1700,6 +1709,7 @@ model SupportTicket {
   previousTicket    SupportTicket?         @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
   continuations     SupportTicket[]        @relation("TicketContinuation")
   inboundEmails     HelpdeskInboundEmail[]
+  rating            HelpdeskRating?
 
   @@index([userId])
   @@index([status])
@@ -1707,6 +1717,7 @@ model SupportTicket {
   @@index([organizationId, status, createdAt])
   @@index([previousTicketId])
   @@index([organizationId, assignedAgentRef, status])
+  @@index([organizationId, status, resolutionDueAt])
   @@map("support_tickets")
 }
 
@@ -1720,9 +1731,11 @@ model HelpdeskOrganization {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tickets       SupportTicket[]
-  savedReplies  HelpdeskSavedReply[]
-  inboundEmails HelpdeskInboundEmail[]
+  tickets        SupportTicket[]
+  savedReplies   HelpdeskSavedReply[]
+  inboundEmails  HelpdeskInboundEmail[]
+  serviceTargets HelpdeskServiceTarget[]
+  ratings        HelpdeskRating[]
 
   @@map("helpdesk_organizations")
 }
@@ -1766,6 +1779,51 @@ enum HelpdeskPriority {
   LOW
   NORMAL
   HIGH
+}
+
+// How fast a requester is to be answered.
+enum HelpdeskServiceLevel {
+  STANDARD
+  PRIORITY
+}
+
+enum HelpdeskRatingScore {
+  GOOD
+  BAD
+}
+
+// The targets of an organization for one service level, in minutes on the
+// clock.
+model HelpdeskServiceTarget {
+  id                   String               @id @default(uuid())
+  organizationId       String
+  serviceLevel         HelpdeskServiceLevel
+  firstResponseMinutes Int
+  resolutionMinutes    Int
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, serviceLevel])
+  @@map("helpdesk_service_targets")
+}
+
+// What the requester thought of the answer. One per ticket.
+model HelpdeskRating {
+  id             String              @id @default(uuid())
+  organizationId String
+  ticketId       String              @unique
+  score          HelpdeskRatingScore
+  comment        String?             @db.VarChar(500)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ticket       SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("helpdesk_ratings")
 }
 
 // What became of an email that arrived at a reply address.

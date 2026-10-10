@@ -34,6 +34,17 @@ export interface AgentDirectory {
   assignable(): Promise<AgentSummary[]>;
 }
 
+/** How fast a requester is to be answered: with preference, or not. */
+export type ServiceLevel = 'STANDARD' | 'PRIORITY';
+
+export interface ServiceLevelProvider {
+  /**
+   * The service level of a requester, as the host decides it. A requester
+   * the host does not know is standard.
+   */
+  levelOf(requesterRef: string): Promise<ServiceLevel>;
+}
+
 export interface AccountCardProvider {
   /**
    * Read-only facts about a requester for whoever answers them, or null when
@@ -133,6 +144,7 @@ export interface OrganizationScope {
 export const ORGANIZATION_SCOPE = Symbol('helpdesk.organizationScope');
 export const REQUESTER_DIRECTORY = Symbol('helpdesk.requesterDirectory');
 export const AGENT_DIRECTORY = Symbol('helpdesk.agentDirectory');
+export const SERVICE_LEVEL_PROVIDER = Symbol('helpdesk.serviceLevelProvider');
 export const ACCOUNT_CARD_PROVIDER = Symbol('helpdesk.accountCardProvider');
 export const HANDOVER_GATEWAY = Symbol('helpdesk.handoverGateway');
 export const REQUESTER_NOTIFIER = Symbol('helpdesk.requesterNotifier');
