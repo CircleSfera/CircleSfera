@@ -714,6 +714,47 @@ describe('ProfilesService', () => {
       expect(res.isVerified).toBe(true);
       // The owner sees the same company state as everyone else.
       expect(res.companyVerified).toBe(true);
+      // A session that names no sign-in reads the account.
+      expect(res.user?.email).toBe('me@example.com');
+      expect(res.emailConfirmed).toBe(true);
+    });
+
+    it('shows the email of the sign-in of the session, and whether that one is verified', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        id: 'p-shop',
+        userId: 'u-me',
+        username: 'myshop',
+        verificationLevel: 'BASIC',
+        suspendedUntil: null,
+        user: {
+          id: 'u-me',
+          email: 'me@example.com',
+          emailVerified: new Date(),
+          isActive: true,
+          settings: { isOnboarded: true, privacyLevel: 'PUBLIC' },
+        },
+        _count: { followers: 0, following: 0, strikes: 0 },
+      });
+      mockPrismaService.platformSubscription = {
+        findFirst: vi.fn().mockResolvedValue(null),
+      };
+      mockPrismaService.signIn = {
+        findFirst: vi.fn().mockResolvedValue({
+          email: 'shop@example.com',
+          emailVerified: null,
+        }),
+      };
+
+      const res = await service.getMyProfile('p-shop', 'sign-in-own');
+
+      // Looked for inside the account of the Profile.
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { id: 'sign-in-own', userId: 'u-me' },
+        select: { email: true, emailVerified: true },
+      });
+      expect(res.user?.email).toBe('shop@example.com');
+      expect(res.emailConfirmed).toBe(false);
+      expect(res.emailVerified).toBeNull();
     });
   });
 

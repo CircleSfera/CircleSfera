@@ -82,6 +82,19 @@ export enum ErrorCode {
   // The account already has as many passkeys as it may register; details
   // carry the limit.
   PASSKEY_LIMIT_REACHED = 'PASSKEY_LIMIT_REACHED',
+  // Creating or removing a way to sign in asks for the password of the
+  // session's sign-in or one of its passkeys; none was sent.
+  SIGN_IN_PROOF_REQUIRED = 'SIGN_IN_PROOF_REQUIRED',
+  // The password or the passkey sent as proof is not the right one.
+  SIGN_IN_PROOF_INVALID = 'SIGN_IN_PROOF_INVALID',
+  // The email is already the email of a sign-in.
+  SIGN_IN_EMAIL_TAKEN = 'SIGN_IN_EMAIL_TAKEN',
+  // The Profile already has a sign-in of its own.
+  SIGN_IN_ALREADY_OWN = 'SIGN_IN_ALREADY_OWN',
+  // The Profile or the sign-in named is not one of the person's.
+  SIGN_IN_NOT_FOUND = 'SIGN_IN_NOT_FOUND',
+  // Too many new sign-ins in a short time; details carry when to try again.
+  SIGN_IN_LIMIT_REACHED = 'SIGN_IN_LIMIT_REACHED',
 
   // System
   MAINTENANCE_MODE = 'MAINTENANCE_MODE',

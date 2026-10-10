@@ -119,11 +119,17 @@ export class AuthService {
     }
 
     // Check if user already exists
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    // An email is taken when an account or any sign-in holds it: a Profile
+    // may sign in with an email of its own.
+    const [existingUser, existingSignIn] = await Promise.all([
+      this.prisma.user.findUnique({ where: { email: dto.email } }),
+      this.prisma.signIn.findUnique({
+        where: { email: dto.email },
+        select: { id: true },
+      }),
+    ]);
 
-    if (existingUser) {
+    if (existingUser || existingSignIn) {
       throw new ConflictException('Email already registered');
     }
 
@@ -373,14 +379,17 @@ export class AuthService {
       where: { email: dto.identifier },
       ...withAccount,
     });
+    // Signing in by username opens the session on that Profile.
+    let namedProfileId: string | undefined;
 
     if (!signIn) {
       // Try finding by username in profile
       const profile = await this.prisma.profile.findFirst({
         where: { username: { equals: dto.identifier, mode: 'insensitive' } },
-        select: { signIn: withAccount },
+        select: { id: true, signIn: withAccount },
       });
       signIn = profile?.signIn ?? null;
+      namedProfileId = profile?.id;
     }
 
     // A Profile without a sign-in, or a sign-in without its account, is
@@ -515,8 +524,13 @@ export class AuthService {
       });
     }
 
-    // Profile-level bans and suspensions: sign in with a usable Profile.
-    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
+    // Profile-level bans and suspensions: sign in with a usable Profile,
+    // among those this sign-in serves.
+    const loginProfile = await this.resolveLoginProfileOrThrow(
+      user.id,
+      signIn.id,
+      namedProfileId,
+    );
 
     if (user.isTwoFactorEnabled) {
       if (!dto.twoFactorCode) {
@@ -657,7 +671,10 @@ export class AuthService {
       });
     }
 
-    const loginProfile = await this.resolveLoginProfileOrThrow(user.id);
+    const loginProfile = await this.resolveLoginProfileOrThrow(
+      user.id,
+      signInId,
+    );
 
     return this.generateTokens(
       user.id,
@@ -909,13 +926,21 @@ export class AuthService {
   // Picks the Profile to sign in with: the oldest one that is not banned or
   // suspended. Access is refused only when every Profile of the account is
   // banned or suspended, with the reason of the oldest one.
-  private async resolveLoginProfileOrThrow(userId: string) {
+  // The Profile a new session opens on: one of those the sign-in serves. The
+  // one named when signing in by username, otherwise the oldest usable one.
+  // Without a sign-in named (a session opened the old way), any Profile of
+  // the account.
+  private async resolveLoginProfileOrThrow(
+    userId: string,
+    signInId?: string,
+    namedProfileId?: string,
+  ) {
     const profiles = await this.prisma.profile.findMany({
-      where: { userId },
+      where: { userId, ...(signInId && { signInId }) },
       orderBy: SESSION_PROFILE_ORDER,
       select: SESSION_PROFILE_SELECT,
     });
-    const loginProfile = pickSessionProfile(profiles);
+    const loginProfile = pickSessionProfile(profiles, namedProfileId);
 
     if (loginProfile?.isAccountBanned) {
       throw new UnauthorizedException({

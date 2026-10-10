@@ -25,6 +25,44 @@ export function sessionSignInWhere(owner: SessionOwner) {
 }
 
 /**
+ * Where an email about a Profile goes: the email of the sign-in of that
+ * Profile once it is verified. Until then, the email of the first sign-in of
+ * the account, so that a mistyped address never receives someone's notices.
+ * Nothing when the Profile does not exist.
+ */
+export async function emailForProfile(
+  prisma: PrismaService,
+  profileId: string,
+): Promise<string | null> {
+  const profile = await prisma.profile.findUnique({
+    where: { id: profileId },
+    select: {
+      userId: true,
+      signIn: { select: { email: true, emailVerified: true } },
+    },
+  });
+  if (!profile) return null;
+  if (profile.signIn?.emailVerified) return profile.signIn.email;
+  return emailForPerson(prisma, profile.userId);
+}
+
+/**
+ * Where an email about the person goes (payments, data, the account): the
+ * email of the first sign-in of the account.
+ */
+export async function emailForPerson(
+  prisma: PrismaService,
+  userId: string,
+): Promise<string | null> {
+  const first = await prisma.signIn.findFirst({
+    where: { userId },
+    orderBy: FIRST_SIGN_IN_ORDER,
+    select: { email: true },
+  });
+  return first?.email ?? null;
+}
+
+/**
  * Whether the email of the sign-in behind a session is verified. The sign-in
  * is the one that opened the session; for a session that does not name it,
  * the one of the Profile in use, and failing that the first sign-in of the
