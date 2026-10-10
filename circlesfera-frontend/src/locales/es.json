@@ -4307,6 +4307,7 @@
     "options": "Opciones",
     "caption_more": "más",
     "caption_less": "menos",
+    "caption_error": "No se ha podido guardar el texto. Inténtalo de nuevo.",
     "original_audio": "{{username}} • Audio original",
     "artist_fallback": "Artista",
     "audio_disc": "Disco de audio",

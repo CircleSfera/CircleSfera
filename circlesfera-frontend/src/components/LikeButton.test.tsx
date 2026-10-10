@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { likesApi } from '../services';
@@ -71,5 +71,50 @@ describe('LikeButton', () => {
     expect(
       screen.queryByRole('button', { name: i18n!.t('post.actions.like') }),
     ).not.toBeInTheDocument();
+  });
+
+  it('turns on at once and tells the screen, before the server answers', async () => {
+    vi.mocked(likesApi.toggle).mockReturnValue(new Promise(() => {}) as never);
+    const onToggle = vi.fn();
+    renderWithProviders(<LikeButton postId="post-1" onToggle={onToggle} />);
+    await waitFor(() => expect(likesApi.check).toHaveBeenCalled());
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Like post' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Unlike post' }),
+    ).toBeInTheDocument();
+    expect(onToggle).toHaveBeenCalledWith(true);
+    expect(likesApi.toggle).toHaveBeenCalledWith('post-1');
+  });
+
+  it('goes back when the like cannot be saved', async () => {
+    vi.mocked(likesApi.toggle).mockRejectedValue(new Error('offline'));
+    const onToggle = vi.fn();
+    renderWithProviders(<LikeButton postId="post-1" onToggle={onToggle} />);
+    await waitFor(() => expect(likesApi.check).toHaveBeenCalled());
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Like post' }));
+
+    await waitFor(() => expect(onToggle).toHaveBeenLastCalledWith(false));
+    expect(
+      await screen.findByRole('button', { name: 'Like post' }),
+    ).toBeInTheDocument();
+  });
+
+  it('follows a like given elsewhere on the screen', async () => {
+    const { queryClient } = renderWithProviders(<LikeButton postId="post-1" />);
+    await screen.findByRole('button', { name: 'Like post' });
+    await waitFor(() =>
+      expect(queryClient.getQueryData(['like', 'post-1'])).toBeDefined(),
+    );
+
+    act(() =>
+      queryClient.setQueryData(['like', 'post-1'], { data: { liked: true } }),
+    );
+
+    expect(
+      await screen.findByRole('button', { name: 'Unlike post' }),
+    ).toBeInTheDocument();
   });
 });
