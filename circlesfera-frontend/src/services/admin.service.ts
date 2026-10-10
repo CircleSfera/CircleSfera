@@ -511,6 +511,14 @@ export interface AdminSupportEvent {
 export interface AdminSupportTicketDetail extends AdminSupportTicket {
   messages: AdminSupportMessage[];
   events?: AdminSupportEvent[];
+  // The names of the agents the ticket mentions, by reference.
+  agents?: Record<string, string>;
+}
+
+// An agent a ticket can be given to.
+export interface AdminSupportAgent {
+  ref: string;
+  name: string;
 }
 
 export interface AdminFeatureFlag {
@@ -1122,6 +1130,10 @@ export const adminApi = {
       'admin/support/tickets',
       { params: { page, limit, status, category, ...team } },
     ),
+
+  // The agents a ticket can be given to.
+  getSupportAgents: () =>
+    apiClient.get<AdminSupportAgent[]>('admin/support/tickets/agents'),
 
   // Takes the ticket (the agent's own reference) or lets go of it (null).
   assignSupportTicket: (id: string, agentRef: string | null) =>

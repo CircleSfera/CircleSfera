@@ -25,6 +25,11 @@ describe('Help Desk: isolation between two organizations', () => {
   };
   const notifier = { answer: vi.fn(), remind: vi.fn() };
   const accountCards = { accountCard: vi.fn() };
+  // The agents of the host: the same for whoever asks.
+  const agents = {
+    describe: vi.fn(),
+    assignable: vi.fn(),
+  };
 
   // What belongs to the first organization, by name.
   let a: {
@@ -78,6 +83,11 @@ describe('Help Desk: isolation between two organizations', () => {
         ),
     );
     handover.open.mockResolvedValue({ caseRef: 'case-new' });
+    agents.describe.mockResolvedValue(new Map());
+    agents.assignable.mockResolvedValue([
+      { ref: 'agent-a', name: 'A' },
+      { ref: 'agent-b', name: 'B' },
+    ]);
     accountCards.accountCard.mockResolvedValue({ plan: 'secret of org a' });
     tickets = new HelpdeskTicketsService(
       store,
@@ -90,6 +100,7 @@ describe('Help Desk: isolation between two organizations', () => {
         requesterReplied: vi.fn().mockResolvedValue(undefined),
       },
       { record: vi.fn() },
+      agents,
     );
     port = new HelpdeskDataPort(store, { get: () => tickets } as never);
 
@@ -189,6 +200,11 @@ describe('Help Desk: isolation between two organizations', () => {
           () => true,
           (error) => error.status !== 404,
         ),
+    }),
+    // Agents belong to the host, not to an organization: nothing of a
+    // ticket is read to list them.
+    assignableAgents: async () => ({
+      leaked: (await tickets.assignableAgents()).length !== 2,
     }),
     answerFromTeamChannel: async () => ({
       leaked:
@@ -321,6 +337,7 @@ describe('Help Desk: isolation between two organizations', () => {
       'requesterTicketOrFail',
       'ticketOrFail',
       'isHeldByOtherTeam',
+      'agentNames',
     ]);
     const all = [
       ...publicMethods(HelpdeskTicketsService.prototype),

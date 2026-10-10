@@ -21,6 +21,7 @@ export type StaffPermission =
   | 'system'
   | 'experiments'
   | 'support'
+  | 'support.manage'
   | 'audit'
   | 'live'
   | 'content'
@@ -36,6 +37,19 @@ export const RequireStaffPermissions = (...permissions: StaffPermission[]) =>
 
 // Require recent step-up re-auth (password or MFA) for critical mutations.
 export const RequireAdminStepUp = () => SetMetadata(ADMIN_STEP_UP_KEY, true);
+
+// Whether a staff identity holds a permission. SUPER_ADMIN, and whoever
+// manages staff identities, hold every permission.
+export function staffHoldsPermission(
+  admin: Pick<CurrentAdminData, 'permissions' | 'roles'>,
+  permission: StaffPermission,
+): boolean {
+  return (
+    admin.permissions.includes(permission) ||
+    admin.permissions.includes('admins.manage') ||
+    !!admin.roles?.includes('SUPER_ADMIN')
+  );
+}
 
 // Authorizes Admin Panel operators after AdminJwtAuthGuard.
 // Permissions come from AdminIdentity roles in the DB.

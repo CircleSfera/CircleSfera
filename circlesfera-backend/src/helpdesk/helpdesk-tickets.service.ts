@@ -20,6 +20,8 @@ import { HelpdeskStore, type TicketEventInput } from './helpdesk.store.js';
 import {
   ACCOUNT_CARD_PROVIDER,
   type AccountCardProvider,
+  AGENT_DIRECTORY,
+  type AgentDirectory,
   HANDOVER_GATEWAY,
   type HandoverGateway,
   REQUESTER_DIRECTORY,
@@ -52,7 +54,20 @@ export class HelpdeskTicketsService {
     @Inject(REQUESTER_NOTIFIER) private readonly notifier: RequesterNotifier,
     @Inject(TEAM_CHANNEL) private readonly teamChannel: TeamChannel,
     @Inject(STAFF_ACTION_LOG) private readonly staffLog: StaffActionLog,
+    @Inject(AGENT_DIRECTORY) private readonly agents: AgentDirectory,
   ) {}
+
+  // The names of the agents these references point to, by reference.
+  private async agentNames(refs: (string | null | undefined)[]) {
+    const wanted = [...new Set(refs.filter((ref): ref is string => !!ref))];
+    if (wanted.length === 0) return {};
+    return Object.fromEntries(await this.agents.describe(wanted));
+  }
+
+  /** The agents a ticket can be given to. */
+  assignableAgents() {
+    return this.agents.assignable();
+  }
 
   async createTicket(dto: CreateTicketDto & { email: string; userId: string }) {
     const ticket = await this.store.openTicket({
@@ -300,10 +315,11 @@ export class HelpdeskTicketsService {
     const present = (values: (string | null)[]) => [
       ...new Set(values.filter((value): value is string => !!value)),
     ];
-    const [requesters, cases] = await Promise.all([
+    const [requesters, cases, agents] = await Promise.all([
       this.requesters.describe(present(tickets.map((t) => t.userId))),
       // Where the ticket stands with the other team, when it was handed over
       this.handover.cases(present(tickets.map((t) => t.escalatedReportId))),
+      this.agentNames(tickets.map((t) => t.assignedAgentRef)),
     ]);
 
     return {
@@ -325,6 +341,8 @@ export class HelpdeskTicketsService {
         limit,
         totalPages: Math.max(1, Math.ceil(total / limit)),
       },
+      // Who the agents of these tickets are, by reference.
+      agents,
     };
   }
 
@@ -370,6 +388,15 @@ export class HelpdeskTicketsService {
       messages,
       // What changed and who changed it: for agents only.
       events,
+      // Who the agents named in the ticket are, by reference.
+      agents: await this.agentNames([
+        ticket.assignedAgentRef,
+        ...messages.map((m) => (m.authorKind === 'AGENT' ? m.authorRef : null)),
+        ...events.flatMap((e) => [
+          e.actorKind === 'AGENT' ? e.actorRef : null,
+          ...(e.kind === 'ASSIGNMENT' ? [e.fromValue, e.toValue] : []),
+        ]),
+      ]),
     };
   }
 
@@ -558,6 +585,14 @@ export class HelpdeskTicketsService {
       throw new ForbiddenException(
         'Only who manages the team can assign a ticket to someone else',
       );
+    }
+    // A ticket goes only to someone who can answer it.
+    if (
+      agentRef !== null &&
+      agentRef !== current &&
+      !(await this.agents.assignable()).some((agent) => agent.ref === agentRef)
+    ) {
+      throw new BadRequestException('This agent cannot be given tickets');
     }
     const updated = await this.change(
       ticket,

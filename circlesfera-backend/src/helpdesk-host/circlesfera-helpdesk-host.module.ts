@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { EmailModule } from '../email/email.module.js';
 import {
   ACCOUNT_CARD_PROVIDER,
+  AGENT_DIRECTORY,
   HANDOVER_GATEWAY,
   ORGANIZATION_SCOPE,
   REQUESTER_DIRECTORY,
@@ -19,6 +20,7 @@ import {
   CircleSferaRequesterNotifier,
   CircleSferaTeamChannel,
   ModerationHandover,
+  StaffAgentDirectory,
 } from './circlesfera-helpdesk-host.js';
 
 const contracts = [
@@ -29,6 +31,7 @@ const contracts = [
   { provide: REQUESTER_NOTIFIER, useClass: CircleSferaRequesterNotifier },
   { provide: TEAM_CHANNEL, useClass: CircleSferaTeamChannel },
   { provide: STAFF_ACTION_LOG, useClass: AdminAuditStaffActionLog },
+  { provide: AGENT_DIRECTORY, useClass: StaffAgentDirectory },
 ];
 
 /** CircleSfera's side of the Help Desk contracts. */

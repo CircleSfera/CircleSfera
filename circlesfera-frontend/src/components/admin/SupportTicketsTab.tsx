@@ -35,6 +35,11 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
+// A page of tickets, with the names of the agents who have them.
+type SupportTicketsPage = PaginatedResponse<AdminSupportTicket> & {
+  agents?: Record<string, string>;
+};
+
 type TicketStatus = 'OPEN' | 'RESOLVED' | 'CLOSED';
 type ShownStatus = TicketStatus | 'ESCALATED' | 'WAITING';
 
@@ -203,13 +208,10 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [whose, setWhose] = useState<'all' | 'mine' | 'unassigned'>('all');
   const [priorityFilter, setPriorityFilter] = useState('');
   const myRef = useAdminAuthStore((state) => state.admin?.id);
-  // Who has a ticket, as far as this screen can say without a list of agents.
-  const assigneeLabel = (agentRef: string | null | undefined) =>
-    !agentRef
-      ? t('admin.support.assignee_nobody')
-      : agentRef === myRef
-        ? t('admin.support.assignee_me')
-        : t('admin.support.assignee_other');
+  // Who leads the team gives tickets to others; every agent takes and lets go.
+  const leadsTeam = useAdminAuthStore((state) =>
+    state.hasPermission('support.manage'),
+  );
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
   // The last message on screen when the agent started writing, and where.
@@ -225,7 +227,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
   const [confirmClose, setConfirmClose] = useState(false);
   const [confirmEscalate, setConfirmEscalate] = useState(false);
 
-  const { data, isLoading } = useQuery<PaginatedResponse<AdminSupportTicket>>({
+  const { data, isLoading } = useQuery<SupportTicketsPage>({
     queryKey: [
       'admin',
       'support-tickets',
@@ -247,7 +249,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
             ...(priorityFilter && { priority: priorityFilter }),
           },
         )
-        .then((res) => res.data as PaginatedResponse<AdminSupportTicket>),
+        .then((res) => res.data as SupportTicketsPage),
   });
 
   const selectedTicket = data?.data.find((t) => t.id === selectedTicketId);
@@ -267,6 +269,22 @@ export default function SupportTicketsTab({ onToast }: Props) {
     refetchInterval: draft.trim() ? NEW_MESSAGE_CHECK_MS : false,
   });
   const messages: AdminSupportMessage[] = detail?.messages ?? [];
+  // Who has a ticket: nobody, who is signed in, or an agent by name. An
+  // agent the team no longer has is not named.
+  const agentNames = { ...data?.agents, ...detail?.agents };
+  const assigneeLabel = (agentRef: string | null | undefined) =>
+    !agentRef
+      ? t('admin.support.assignee_nobody')
+      : agentRef === myRef
+        ? t('admin.support.assignee_me')
+        : (agentNames[agentRef] ?? t('admin.support.assignee_former'));
+  // The agents a ticket can be given to, for who leads the team.
+  const { data: assignable } = useQuery({
+    queryKey: ['admin', 'support-agents'],
+    queryFn: () => adminApi.getSupportAgents().then((res) => res.data),
+    enabled: leadsTeam,
+    staleTime: 5 * 60 * 1000,
+  });
   const lastMessageId = messages.at(-1)?.id ?? null;
   // A message that arrived after the agent started writing in this ticket.
   const arrivedAfter = (latest: string | null) =>
@@ -695,39 +713,87 @@ export default function SupportTicketsTab({ onToast }: Props) {
                         {t('admin.support.assignee')}
                       </dt>
                       <dd className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-white">
-                          {assigneeLabel(selectedTicket.assignedAgentRef)}
-                        </span>
-                        {!selectedTicket.assignedAgentRef && myRef && (
-                          <Button
-                            variant="secondary"
-                            className="min-h-11 text-sm"
-                            isLoading={assignMutation.isPending}
-                            onClick={() =>
+                        {leadsTeam && assignable ? (
+                          <FilterDropdown
+                            label={t('admin.support.assign_to')}
+                            value={selectedTicket.assignedAgentRef ?? ''}
+                            onChange={(value) =>
                               assignMutation.mutate({
                                 id: selectedTicket.id,
-                                agentRef: myRef,
+                                agentRef: value || null,
                               })
                             }
-                          >
-                            {t('admin.support.take')}
-                          </Button>
+                            options={[
+                              {
+                                value: '',
+                                label: t('admin.support.assignee_nobody'),
+                              },
+                              ...assignable.map((agent) => ({
+                                value: agent.ref,
+                                label:
+                                  agent.ref === myRef
+                                    ? t('admin.support.assignee_me_named', {
+                                        name: agent.name,
+                                      })
+                                    : agent.name,
+                              })),
+                              // Who has it now, when they can no longer be
+                              // given tickets.
+                              ...(selectedTicket.assignedAgentRef &&
+                              !assignable.some(
+                                (agent) =>
+                                  agent.ref === selectedTicket.assignedAgentRef,
+                              )
+                                ? [
+                                    {
+                                      value: selectedTicket.assignedAgentRef,
+                                      label: assigneeLabel(
+                                        selectedTicket.assignedAgentRef,
+                                      ),
+                                    },
+                                  ]
+                                : []),
+                            ]}
+                          />
+                        ) : (
+                          <span className="text-sm font-semibold text-white">
+                            {assigneeLabel(selectedTicket.assignedAgentRef)}
+                          </span>
                         )}
-                        {selectedTicket.assignedAgentRef === myRef && myRef && (
-                          <Button
-                            variant="secondary"
-                            className="min-h-11 text-sm"
-                            isLoading={assignMutation.isPending}
-                            onClick={() =>
-                              assignMutation.mutate({
-                                id: selectedTicket.id,
-                                agentRef: null,
-                              })
-                            }
-                          >
-                            {t('admin.support.release')}
-                          </Button>
-                        )}
+                        {!leadsTeam &&
+                          !selectedTicket.assignedAgentRef &&
+                          myRef && (
+                            <Button
+                              variant="secondary"
+                              className="min-h-11 text-sm"
+                              isLoading={assignMutation.isPending}
+                              onClick={() =>
+                                assignMutation.mutate({
+                                  id: selectedTicket.id,
+                                  agentRef: myRef,
+                                })
+                              }
+                            >
+                              {t('admin.support.take')}
+                            </Button>
+                          )}
+                        {!leadsTeam &&
+                          selectedTicket.assignedAgentRef === myRef &&
+                          myRef && (
+                            <Button
+                              variant="secondary"
+                              className="min-h-11 text-sm"
+                              isLoading={assignMutation.isPending}
+                              onClick={() =>
+                                assignMutation.mutate({
+                                  id: selectedTicket.id,
+                                  agentRef: null,
+                                })
+                              }
+                            >
+                              {t('admin.support.release')}
+                            </Button>
+                          )}
                       </dd>
                     </div>
                   </dl>

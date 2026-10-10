@@ -16,6 +16,7 @@ import {
 import {
   AdminGuard,
   RequireStaffPermissions,
+  staffHoldsPermission,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AgentAssignmentDto } from './dto/agent-assignment.dto.js';
@@ -53,6 +54,12 @@ export class HelpdeskAgentController {
     );
   }
 
+  // The agents a ticket can be given to.
+  @Get('agents')
+  async listAgents() {
+    return this.tickets.assignableAgents();
+  }
+
   // The ticket with its whole conversation, internal notes included.
   @Get(':id')
   async getTicket(@Param('id') id: string) {
@@ -86,9 +93,12 @@ export class HelpdeskAgentController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.tickets.assign(
-      // Assigning to someone else needs the permission of who manages the
-      // team, which does not exist yet: every agent takes and lets go only.
-      { ref: admin.adminId, canManage: false },
+      // Giving a ticket to someone else is for who leads the team; every
+      // other agent takes and lets go only.
+      {
+        ref: admin.adminId,
+        canManage: staffHoldsPermission(admin, 'support.manage'),
+      },
       id,
       dto.agentRef ?? null,
     );

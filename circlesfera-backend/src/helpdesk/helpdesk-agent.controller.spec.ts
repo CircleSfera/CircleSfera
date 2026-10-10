@@ -35,6 +35,7 @@ describe('HelpdeskAgentController', () => {
     getTicket: vi.fn(),
     addMessage: vi.fn(),
     assign: vi.fn(),
+    assignableAgents: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -212,7 +213,21 @@ describe('HelpdeskAgentController', () => {
     expect(mockService.addMessage).not.toHaveBeenCalled();
   });
 
-  it('takes or releases a ticket as the agent, who cannot yet assign it to others', async () => {
+  it('lists the agents a ticket can be given to, and does not take the word for a ticket', async () => {
+    mockService.assignableAgents.mockResolvedValue([
+      { ref: 'admin-1', name: 'Ana' },
+    ]);
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/support/tickets/agents')
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(res.body).toEqual([{ ref: 'admin-1', name: 'Ana' }]);
+    expect(mockService.getTicket).not.toHaveBeenCalled();
+  });
+
+  it('assigns as who is signed in, saying whether they lead the team', async () => {
     mockService.assign.mockResolvedValue({ id: 't-1' });
 
     await request(app.getHttpServer())
@@ -228,13 +243,13 @@ describe('HelpdeskAgentController', () => {
 
     expect(mockService.assign).toHaveBeenNthCalledWith(
       1,
-      { ref: TEST_ADMIN.adminId, canManage: false },
+      { ref: TEST_ADMIN.adminId, canManage: true },
       't-1',
       TEST_ADMIN.adminId,
     );
     expect(mockService.assign).toHaveBeenNthCalledWith(
       2,
-      { ref: TEST_ADMIN.adminId, canManage: false },
+      { ref: TEST_ADMIN.adminId, canManage: true },
       't-1',
       null,
     );

@@ -13,9 +13,17 @@ vi.mock('../../services/admin.service', () => ({
     getSupportTicketAccount: vi.fn(),
     getSupportTicket: vi.fn(),
     assignSupportTicket: vi.fn(),
+    getSupportAgents: vi.fn(),
     addSupportMessage: vi.fn(),
   },
 }));
+
+// An agent who answers tickets and does not lead the team.
+const agentOne = {
+  id: 'admin-1',
+  roles: ['SUPPORT_ADMIN'],
+  permissions: ['support'],
+};
 
 const ticket = (overrides: Record<string, unknown> = {}) => ({
   id: 't-1',
@@ -454,7 +462,7 @@ describe('SupportTicketsTab', () => {
   });
 
   it('writes what changed in the ticket between the messages, in the order it happened', async () => {
-    useAdminAuthStore.setState({ admin: { id: 'admin-1' } as never });
+    useAdminAuthStore.setState({ admin: agentOne as never });
     const event = (overrides: Record<string, unknown>) => ({
       actorKind: 'AGENT',
       actorRef: 'admin-1',
@@ -468,6 +476,7 @@ describe('SupportTicketsTab', () => {
     vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
       data: {
         ...ticket(),
+        agents: { 'admin-1': 'Ana', 'admin-2': 'Ben' },
         messages: [
           message({}),
           message({
@@ -550,7 +559,7 @@ describe('SupportTicketsTab', () => {
     expect(lines).toHaveLength(9);
     expect(lines[0]).toContain('It keeps happening in my comments.');
     expect(lines[1]).toMatch(/^Handled by: Nobody → YouYou/);
-    expect(lines[2]).toMatch(/^Priority: Normal → HighAnother agent/);
+    expect(lines[2]).toMatch(/^Priority: Normal → HighBen/);
     expect(lines[3]).toContain('Which email do you use?');
     expect(lines[4]).toMatch(/^Status: Open → Waiting for requesterYou/);
     expect(lines[5]).toMatch(
@@ -600,7 +609,7 @@ describe('SupportTicketsTab', () => {
 
   describe('working as a team', () => {
     beforeEach(() => {
-      useAdminAuthStore.setState({ admin: { id: 'admin-1' } } as never);
+      useAdminAuthStore.setState({ admin: agentOne } as never);
       vi.mocked(adminApi.assignSupportTicket).mockResolvedValue({
         data: ticket(),
       } as never);
@@ -649,14 +658,113 @@ describe('SupportTicketsTab', () => {
       );
     });
 
-    it('says who has each ticket and marks the high priority ones', async () => {
-      const i18n = await open([
-        ticket({ priority: 'HIGH', assignedAgentRef: 'admin-2' }),
-      ]);
+    it('names an agent the team no longer has as a former agent', async () => {
+      const i18n = await open([ticket({ assignedAgentRef: 'admin-gone' })]);
 
       expect(
-        screen.getAllByText(i18n.t('admin.support.assignee_other')).length,
+        screen.getAllByText(i18n.t('admin.support.assignee_former')).length,
       ).toBeGreaterThan(0);
+    });
+
+    describe('who leads the team', () => {
+      const lead = {
+        id: 'admin-1',
+        roles: ['PLATFORM_ADMIN'],
+        permissions: ['support', 'support.manage'],
+      };
+      const openAsLead = async (assignedAgentRef: string | null) => {
+        useAdminAuthStore.setState({ admin: lead } as never);
+        vi.mocked(adminApi.getSupportAgents).mockResolvedValue({
+          data: [
+            { ref: 'admin-1', name: 'Ana' },
+            { ref: 'admin-2', name: 'Ben' },
+          ],
+        } as never);
+        vi.mocked(adminApi.assignSupportTicket).mockResolvedValue({
+          data: ticket(),
+        } as never);
+        const i18n = await open([ticket({ assignedAgentRef })]);
+        const selector = await screen.findByRole('combobox', {
+          name: i18n.t('admin.support.assign_to'),
+        });
+        return { i18n, selector };
+      };
+
+      it('gives a ticket to another agent, chosen by name', async () => {
+        const { i18n, selector } = await openAsLead(null);
+
+        expect(
+          within(selector)
+            .getAllByRole('option')
+            .map((option) => option.textContent),
+        ).toEqual([
+          i18n.t('admin.support.assignee_nobody'),
+          i18n.t('admin.support.assignee_me_named', { name: 'Ana' }),
+          'Ben',
+        ]);
+        fireEvent.change(selector, { target: { value: 'admin-2' } });
+
+        await waitFor(() =>
+          expect(adminApi.assignSupportTicket).toHaveBeenCalledWith(
+            't-1',
+            'admin-2',
+          ),
+        );
+      });
+
+      it('leaves a ticket with nobody', async () => {
+        const { selector } = await openAsLead('admin-2');
+
+        expect(selector).toHaveValue('admin-2');
+        fireEvent.change(selector, { target: { value: '' } });
+
+        await waitFor(() =>
+          expect(adminApi.assignSupportTicket).toHaveBeenCalledWith(
+            't-1',
+            null,
+          ),
+        );
+      });
+
+      it('still shows who has the ticket when they can no longer be given tickets', async () => {
+        const { i18n, selector } = await openAsLead('admin-gone');
+
+        expect(selector).toHaveValue('admin-gone');
+        expect(
+          within(selector).getByRole('option', {
+            name: i18n.t('admin.support.assignee_former'),
+          }),
+        ).toBeInTheDocument();
+      });
+    });
+
+    it('does not offer an agent the choice of who gets a ticket, nor ask for the list of agents', async () => {
+      const i18n = await open([ticket({ assignedAgentRef: null })]);
+
+      await screen.findByRole('button', { name: i18n.t('admin.support.take') });
+      expect(
+        screen.queryByRole('combobox', {
+          name: i18n.t('admin.support.assign_to'),
+        }),
+      ).toBeNull();
+      expect(adminApi.getSupportAgents).not.toHaveBeenCalled();
+    });
+
+    it('says who has each ticket and marks the high priority ones', async () => {
+      vi.mocked(adminApi.getSupportTickets).mockResolvedValue({
+        data: {
+          ...page([ticket({ priority: 'HIGH', assignedAgentRef: 'admin-2' })])
+            .data,
+          agents: { 'admin-2': 'Ben' },
+        },
+      } as never);
+      const rendered = renderWithProviders(
+        <SupportTicketsTab onToast={onToast} />,
+      );
+      fireEvent.click(await screen.findByText('Someone is harassing me'));
+      const i18n = rendered.i18n!;
+
+      expect(screen.getAllByText('Ben').length).toBeGreaterThan(0);
       expect(
         screen.getAllByText(i18n.t('admin.support.priority.HIGH')).length,
       ).toBeGreaterThan(0);
