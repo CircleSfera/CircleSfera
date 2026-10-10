@@ -2160,6 +2160,7 @@
       "appeals": "Apelaciones",
       "support": "Soporte",
       "plans": "Planes",
+      "subscriptions": "Suscripciones",
       "trust": "Cola de confianza",
       "live": "Directos",
       "roles": "Roles",
@@ -2566,6 +2567,31 @@
       "toast_failed": "No se pudo guardar el plan",
       "load_failed": "No se pudo cargar el catálogo de planes",
       "empty": "No hay planes en el catálogo"
+    },
+    "subscriptions": {
+      "title": "Suscripciones",
+      "subtitle": "Quién tiene cada plan y en qué estado. Para cambiar, cancelar o reembolsar una suscripción, ábrela en Stripe.",
+      "search_placeholder": "Buscar por usuario o correo",
+      "filter_status": "Estado",
+      "all_statuses": "Todos los estados",
+      "filter_plan": "Plan",
+      "all_plans": "Todos los planes",
+      "status": {
+        "ACTIVE": "Activa",
+        "TRIALING": "En prueba",
+        "PAST_DUE": "Pago pendiente",
+        "INCOMPLETE": "Sin completar",
+        "CANCELLED": "Cancelada",
+        "EXPIRED": "Caducada"
+      },
+      "renews_on": "Se renueva el {{date}}",
+      "ends_on": "Termina el {{date}}",
+      "period_ended_on": "Periodo hasta el {{date}}",
+      "open_in_stripe": "Abrir en Stripe",
+      "account_deleted": "Cuenta eliminada",
+      "empty_title": "No hay suscripciones",
+      "empty_description": "Aquí aparecerán las suscripciones a los planes cuando alguien contrate uno.",
+      "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
       "title": "Tickets de Soporte",
@@ -4143,7 +4169,23 @@
   "backoffice": {
     "title": "Backoffice",
     "nav": {
-      "business": "Negocio"
+      "business": "Negocio",
+      "overview": "Resumen"
+    },
+    "overview": {
+      "title": "Resumen",
+      "subtitle": "Lo que conviene mirar cada día. Cada cifra abre su sección.",
+      "subscriptions": "Suscripciones activas",
+      "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
+      "recurring_revenue": "Ingresos recurrentes al mes",
+      "recurring_revenue_hint": "Suma del precio mensual de las suscripciones activas",
+      "failed_payouts": "Retiros fallidos",
+      "pending_payouts_one": "{{count}} pendiente",
+      "pending_payouts_other": "{{count}} pendientes",
+      "open_tickets": "Tickets abiertos",
+      "tickets_with_moderation_one": "{{count}} en moderación",
+      "tickets_with_moderation_other": "{{count}} en moderación",
+      "pending_promotions": "Promociones por revisar"
     },
     "home": {
       "title": "El negocio de CircleSfera",
