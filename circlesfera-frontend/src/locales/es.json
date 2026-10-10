@@ -5,7 +5,7 @@
   },
   "cookieConsent": {
     "title": "Cookies",
-    "description": "Usamos cookies necesarias para que la app funcione. Las cookies de analítica son opcionales y nos ayudan a mejorar CircleSfera.",
+    "description": "Usamos cookies necesarias para que la app funcione. Las de análisis son opcionales: sirven para detectar errores y fallos de rendimiento.",
     "essential_only": "Solo esenciales",
     "accept": "Aceptar todas",
     "dismiss": "Cerrar"
