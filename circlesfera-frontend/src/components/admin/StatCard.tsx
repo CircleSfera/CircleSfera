@@ -61,10 +61,13 @@ function useCountUp(target: number, duration = 800) {
   useEffect(() => {
     prevTarget.current = target;
 
-    const start = performance.now();
+    // The count starts at its first frame: the time a frame is given and the
+    // page clock do not have to agree.
+    let start: number | null = null;
     let raf: number;
 
     const step = (now: number) => {
+      start ??= now;
       const progress = Math.min((now - start) / duration, 1);
       // Ease-out cubic
       const eased = 1 - (1 - progress) ** 3;
