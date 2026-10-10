@@ -714,6 +714,14 @@ describe('ProfilesService', () => {
       expect(res.isVerified).toBe(true);
       // The owner sees the same company state as everyone else.
       expect(res.companyVerified).toBe(true);
+      // The badge is looked for among the plans of this Profile, not among
+      // those of the person's other Profiles.
+      expect(
+        mockPrismaService.platformSubscription.findFirst.mock.calls[0][0].where,
+      ).toMatchObject({ profileId: 'p-me' });
+      expect(
+        mockPrismaService.platformSubscription.findFirst.mock.calls[0][0].where,
+      ).not.toHaveProperty('userId');
       // A session that names no sign-in reads the account.
       expect(res.user?.email).toBe('me@example.com');
       expect(res.emailConfirmed).toBe(true);

@@ -270,6 +270,9 @@
     "billing": {
       "title": "Suscripción",
       "subtitle": "Gestiona tu plan en la plataforma",
+      "subtitle_profile": "El plan de @{{username}}. Cada perfil tiene el suyo; tú pagas los de todos tus perfiles.",
+      "other_profiles": "Planes de tus otros perfiles",
+      "other_profiles_desc": "Se gestionan en la misma facturación.",
       "current_plan": "Plan actual",
       "free": "Gratis",
       "free_desc": "Nivel básico sin funciones avanzadas",
@@ -537,7 +540,7 @@
     },
     "profiles": {
       "title": "Tus perfiles",
-      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. Cada perfil comparte el inicio de sesión o tiene el suyo; el plan es compartido.",
+      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. Cada perfil comparte el inicio de sesión o tiene el suyo, y tiene su propio plan.",
       "current": "Actual",
       "suspended": "Suspendido",
       "banned": "Bloqueado",
@@ -3818,6 +3821,10 @@
       "support_title": "Soporte para todos",
       "support_desc": "Cualquier cuenta puede escribir a Soporte. Con un plan, te respondemos antes."
     },
+    "for_profile": {
+      "CREATOR": "Para perfiles de creador. Cambia el tipo de este perfil en Ajustes para elegirlo.",
+      "BUSINESS": "Para perfiles de empresa. Cambia el tipo de este perfil en Ajustes para elegirlo."
+    },
     "all_questions": "Ver todas las preguntas"
   },
   "studio": {
@@ -4577,6 +4584,7 @@
       "other": "Has alcanzado un límite de actividad. Vuelve a intentarlo más tarde."
     },
     "codes": {
+      "PLAN_NOT_FOR_PROFILE_TYPE": "Este plan es para otro tipo de perfil.",
       "INTERNAL_SERVER_ERROR": "Algo ha fallado por nuestra parte. Inténtalo de nuevo.",
       "NOT_FOUND": "No hemos encontrado lo que buscas.",
       "BAD_REQUEST": "La solicitud no es válida. Revisa los datos e inténtalo de nuevo.",
@@ -4604,7 +4612,7 @@
       "STRIPE_ONBOARDING_FAILED": "No hemos podido iniciar la configuración de cobros. Inténtalo de nuevo.",
       "PLAN_NOT_FOUND": "Ese plan no está disponible.",
       "PRICE_NOT_FOUND": "Ese precio no está disponible.",
-      "ACTIVE_SUBSCRIPTION_EXISTS": "Ya tienes una suscripción activa.",
+      "ACTIVE_SUBSCRIPTION_EXISTS": "Este perfil ya tiene un plan activo. Gestiónalo desde la facturación.",
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",

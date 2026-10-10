@@ -3,7 +3,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { SubscriptionStatus } from '@prisma/client';
+import { AccountType, SubscriptionStatus } from '@prisma/client';
 import * as Sentry from '@sentry/nestjs';
 import type Stripe from 'stripe';
 import { AppException } from '../common/errors/app.exception.js';
@@ -23,6 +23,17 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 
 export const WEBHOOK_LEASE_DURATION_MS = 2 * 60 * 1000; // 2 minutes lease duration
+
+// The type of Profile a plan is meant for, from its name; Premium, and any
+// plan that names none, is for every Profile.
+export function planAccountType(
+  planName: string | null | undefined,
+): AccountType | null {
+  const name = (planName ?? '').toLowerCase();
+  if (name.includes('business')) return AccountType.BUSINESS;
+  if (name.includes('elite')) return AccountType.CREATOR;
+  return null;
+}
 
 @Injectable()
 export class PaymentsService {
@@ -126,6 +137,21 @@ export class PaymentsService {
     if (!user)
       throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
 
+    // A plan belongs to one Profile: the one in use, which must be one of
+    // the person's.
+    const profile = profileId
+      ? await this.prisma.profile.findFirst({
+          where: { id: profileId, userId },
+          select: { id: true, accountType: true },
+        })
+      : null;
+    if (!profile) {
+      throw AppException.NotFound(
+        ErrorCode.PROFILE_NOT_FOUND,
+        'Profile not found',
+      );
+    }
+
     const plan = await this.prisma.platformPlan.findFirst({
       where: {
         // A plan taken off sale cannot be bought, whoever names its id.
@@ -141,8 +167,19 @@ export class PaymentsService {
       SubscriptionStatus.ACTIVE,
       SubscriptionStatus.TRIALING,
     ];
-    const activeSubs = user.platformSubscriptions.filter((s) =>
-      activeStatuses.includes(s.status),
+    // Each plan is for one type of Profile; Premium is for any.
+    const requiredType = planAccountType(plan.name);
+    if (requiredType && profile.accountType !== requiredType) {
+      throw AppException.BadRequest(
+        ErrorCode.PLAN_NOT_FOR_PROFILE_TYPE,
+        `This plan is for ${requiredType.toLowerCase()} profiles.`,
+        { requiredAccountType: requiredType },
+      );
+    }
+
+    // One active plan per Profile; the person's other Profiles do not count.
+    const activeSubs = user.platformSubscriptions.filter(
+      (s) => s.profileId === profile.id && activeStatuses.includes(s.status),
     );
 
     if (activeSubs.some((s) => s.planId === plan.id)) {
@@ -155,7 +192,7 @@ export class PaymentsService {
     if (activeSubs.length > 0) {
       throw AppException.Conflict(
         ErrorCode.ACTIVE_SUBSCRIPTION_EXISTS,
-        'You already have an active platform plan. Cancel or change it via the billing portal before starting another.',
+        'This profile already has an active platform plan. Cancel or change it via the billing portal before starting another.',
       );
     }
 
@@ -168,7 +205,7 @@ export class PaymentsService {
       );
     }
 
-    const intentKey = `${userId}:${plan.id}:${billingCycle}`;
+    const intentKey = `${userId}:${profile.id}:${plan.id}:${billingCycle}`;
     const inFlight = this.checkoutInFlight.get(intentKey);
     if (inFlight) {
       return inFlight;
@@ -189,7 +226,7 @@ export class PaymentsService {
               userId,
               planId: plan.id,
               billingCycle,
-              ...(profileId && { profileId }),
+              profileId: profile.id,
             },
           },
           {
@@ -269,10 +306,14 @@ export class PaymentsService {
     return customer.id;
   }
 
-  async getBillingStatus(userId: string) {
+  // The plan of the Profile in use, and which other Profiles of the person
+  // have one: the person pays for all of them.
+  async getBillingStatus(userId: string, profileId: string) {
     const subscription = await this.prisma.platformSubscription.findFirst({
       where: {
         userId,
+        // Without a Profile the session has no plan: never another one's.
+        profileId: profileId || '__no_profile__',
         status: {
           in: [
             SubscriptionStatus.ACTIVE,
@@ -312,21 +353,61 @@ export class PaymentsService {
             currency: subscription.plan.currency,
           }
         : null,
+      otherProfiles: await this.plansOfOtherProfiles(userId, profileId),
     };
   }
 
-  // Heal races: keep only the newly activated plan as ACTIVE.
-  private async enforceSingleActivePlatformPlan(
-    userId: string,
-    keepPlanId: string,
-  ) {
+  private async plansOfOtherProfiles(userId: string, profileId: string) {
     const others = await this.prisma.platformSubscription.findMany({
       where: {
         userId,
+        profileId: { not: profileId || '__no_profile__' },
         status: {
           in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
         },
-        NOT: { planId: keepPlanId },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: {
+        status: true,
+        plan: { select: { name: true } },
+        profile: { select: { id: true, username: true } },
+      },
+    });
+    return others
+      .filter((other) => other.profile)
+      .map((other) => ({
+        profileId: other.profile!.id,
+        username: other.profile!.username,
+        planName: other.plan.name,
+        status: other.status,
+      }));
+  }
+
+  private async profileOfCheckout(
+    userId: string,
+    named?: string | null,
+  ): Promise<string | null> {
+    const profile = await this.prisma.profile.findFirst({
+      where: { userId, ...(named && { id: named }) },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      select: { id: true },
+    });
+    return profile?.id ?? null;
+  }
+
+  // Heal races: on one Profile, keep only the newly activated plan as
+  // ACTIVE. The plans of the person's other Profiles are left alone.
+  private async enforceSingleActivePlatformPlan(
+    profileId: string,
+    keepStripeSubscriptionId: string,
+  ) {
+    const others = await this.prisma.platformSubscription.findMany({
+      where: {
+        profileId,
+        status: {
+          in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING],
+        },
+        NOT: { stripeSubscriptionId: keepStripeSubscriptionId },
       },
     });
 
@@ -608,12 +689,25 @@ export class PaymentsService {
           // Handle Subscriptions (Existing logic)
           const userId = metadata?.userId;
           const planId = metadata?.planId;
-          const profileId = metadata?.profileId || null;
           const stripeSubscriptionId = session.subscription as string;
 
           if (!userId || !planId || !stripeSubscriptionId) {
             this.logger.warn(
               'Checkout session completed but missing metadata or subscription ID',
+            );
+            return;
+          }
+
+          // The Profile the plan was bought for. A checkout started before
+          // plans were per Profile names none: it goes to the oldest Profile
+          // of the person. One named must be the person's own.
+          const profileId = await this.profileOfCheckout(
+            userId,
+            metadata?.profileId,
+          );
+          if (!profileId) {
+            this.logger.warn(
+              `Checkout session completed for user ${userId} without a Profile to give the plan to`,
             );
             return;
           }
@@ -626,6 +720,14 @@ export class PaymentsService {
             current_period_end: number;
             cancel_at_period_end: boolean;
           };
+
+          // The plan being recorded is the one that stays. Any older plan of
+          // this Profile is cancelled first, so the Profile never holds two,
+          // which the database would refuse.
+          await this.enforceSingleActivePlatformPlan(
+            profileId,
+            stripeSubscriptionId,
+          );
 
           await this.prisma.platformSubscription.upsert({
             where: { stripeSubscriptionId },
@@ -664,8 +766,6 @@ export class PaymentsService {
           if (plan) {
             await this.usersService.syncUserTier(userId);
           }
-
-          await this.enforceSingleActivePlatformPlan(userId, planId);
 
           this.logger.log(
             `Successfully processed checkout for user ${userId}, plan ${planId}`,

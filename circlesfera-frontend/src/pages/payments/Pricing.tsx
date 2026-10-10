@@ -29,6 +29,7 @@ import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
+import { planAccountType, planFitsProfile } from '../../utils/plans';
 
 // The articles of the help centre that answer what is asked before paying.
 const PRICING_ARTICLES = [
@@ -278,6 +279,12 @@ export default function Pricing() {
               const buttonText =
                 planButtonText[plan.name] ||
                 t('pricingPage.default_button', { plan: plan.name });
+              // A plan belongs to one profile, and each plan is for one type
+              // of profile. A visitor sees every plan as available.
+              const notForThisProfile =
+                isAuthenticated &&
+                !isActive &&
+                !planFitsProfile(plan.name, currentUser?.accountType);
 
               return (
                 <article
@@ -346,9 +353,13 @@ export default function Pricing() {
                     className="mt-6 w-full"
                     disabled={
                       loadingPlanId !== null ||
+                      notForThisProfile ||
                       (billingCycle === 'YEARLY' && yearlyCents <= 0)
                     }
                     onClick={() => handleTierClick(plan)}
+                    aria-describedby={
+                      notForThisProfile ? `plan-${plan.id}-profile` : undefined
+                    }
                   >
                     {loadingPlanId === plan.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -358,6 +369,16 @@ export default function Pricing() {
                       buttonText
                     )}
                   </MarketingCTA>
+                  {notForThisProfile && (
+                    <p
+                      id={`plan-${plan.id}-profile`}
+                      className="mt-3 text-center text-sm leading-relaxed text-white/60"
+                    >
+                      {t(
+                        `pricingPage.for_profile.${planAccountType(plan.name)}`,
+                      )}
+                    </p>
+                  )}
                 </article>
               );
             })}
