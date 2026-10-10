@@ -408,6 +408,29 @@ describe('FrameItem', () => {
       expect(liked(queryClient)).toBe(true);
     });
 
+    it('leave no animation timer running once the frame is gone', () => {
+      vi.useFakeTimers();
+      const set = vi.spyOn(globalThis, 'setTimeout');
+      const clear = vi.spyOn(globalThis, 'clearTimeout');
+      const { unmount } = show(frame({ isLocked: true }));
+
+      // One tap starts the play animation, two more the heart.
+      fireEvent.click(area());
+      act(() => {
+        vi.advanceTimersByTime(200);
+      });
+      twoTaps();
+      const animations = set.mock.calls
+        .map(([, ms], call) => ({ ms, id: set.mock.results[call].value }))
+        .filter(({ ms }) => ms === 800 || ms === 1000);
+      expect(animations.map(({ ms }) => ms)).toEqual([800, 1000]);
+
+      unmount();
+      for (const { id } of animations) {
+        expect(clear).toHaveBeenCalledWith(id);
+      }
+    });
+
     it('never take a like away', async () => {
       vi.mocked(likesApi.check).mockResolvedValue({
         data: { liked: true },
