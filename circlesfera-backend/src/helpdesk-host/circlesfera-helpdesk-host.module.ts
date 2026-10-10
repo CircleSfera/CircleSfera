@@ -3,6 +3,7 @@ import { EmailModule } from '../email/email.module.js';
 import {
   ACCOUNT_CARD_PROVIDER,
   HANDOVER_GATEWAY,
+  ORGANIZATION_SCOPE,
   REQUESTER_DIRECTORY,
   REQUESTER_NOTIFIER,
   STAFF_ACTION_LOG,
@@ -12,6 +13,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import {
   AdminAuditStaffActionLog,
   CircleSferaAccountCard,
+  CircleSferaOrganizationScope,
   CircleSferaRequesterDirectory,
   EmailRequesterNotifier,
   EventTeamChannel,
@@ -19,6 +21,7 @@ import {
 } from './circlesfera-helpdesk-host.js';
 
 const contracts = [
+  { provide: ORGANIZATION_SCOPE, useClass: CircleSferaOrganizationScope },
   { provide: REQUESTER_DIRECTORY, useClass: CircleSferaRequesterDirectory },
   { provide: ACCOUNT_CARD_PROVIDER, useClass: CircleSferaAccountCard },
   { provide: HANDOVER_GATEWAY, useClass: ModerationHandover },
