@@ -1172,6 +1172,9 @@
     "highlight_updated": "Destacado actualizado"
   },
   "comments": {
+    "send_error": "No se pudo publicar tu comentario. Inténtalo de nuevo.",
+    "delete_error": "No se pudo eliminar el comentario.",
+    "like_error": "No se pudo guardar el me gusta.",
     "unlike": "Ya no me gusta",
     "like": "Me gusta",
     "reply": "Responder",

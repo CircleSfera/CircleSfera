@@ -397,7 +397,8 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => setSelectedCollection(null)}
-              className="p-2 hover:bg-white/10 rounded-full transition-colors"
+              aria-label={t('common.back')}
+              className="min-h-11 min-w-11 flex items-center justify-center hover:bg-white/10 rounded-full transition-colors"
             >
               <svg
                 aria-hidden="true"
