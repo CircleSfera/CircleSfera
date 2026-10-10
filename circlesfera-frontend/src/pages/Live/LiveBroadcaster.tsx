@@ -46,7 +46,9 @@ export default function LiveBroadcaster() {
   const [streamId, setStreamId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [messageInput, setMessageInput] = useState('');
-  const [hearts, setHearts] = useState<{ id: string; x: number }[]>([]);
+  const [hearts, setHearts] = useState<
+    { id: string; x: number; emoji: string }[]
+  >([]);
   const [coHostUsernameInput, setCoHostUsernameInput] = useState('');
   const [coHostUsername, setCoHostUsername] = useState<string | null>(null);
   const [isInviting, setIsInviting] = useState(false);
@@ -81,12 +83,12 @@ export default function LiveBroadcaster() {
   useEffect(() => {
     if (!hasStarted) return;
     return () => {
-      // Don't call end automatically on unmount if we explicitly ended it
-      if (!isEnded) {
+      // Leaving the screen ends the live, unless it was ended already.
+      if (!endedRef.current) {
         api.post('/live/end').catch(() => {});
       }
     };
-  }, [hasStarted, isEnded]);
+  }, [hasStarted]);
 
   // The live is only shown as ended once the server has ended it: saying so
   // while it is still on air would leave the camera broadcasting unnoticed.
@@ -181,14 +183,24 @@ export default function LiveBroadcaster() {
       }
     });
 
-    socket.on('live:heart_received', () => {
-      setLikesCount((prev) => prev + 1);
+    // Viewers send every reaction, hearts included, as a reaction; a heart
+    // of the host comes as a heart. Both float, and the hearts are counted.
+    const showReaction = (emoji: string) => {
+      if (emoji === '❤️') setLikesCount((prev) => prev + 1);
       const id = Math.random().toString(36).substring(2, 9);
       const x = Math.random() * 40 - 20;
-      setHearts((prev) => [...prev, { id, x }]);
+      setHearts((prev) => [...prev, { id, x, emoji }]);
       setTimeout(() => {
         setHearts((prev) => prev.filter((h) => h.id !== id));
       }, 2000);
+    };
+
+    socket.on('live:heart_received', (data?: { reaction?: string }) => {
+      showReaction(data?.reaction || '❤️');
+    });
+
+    socket.on('live:reaction_received', (data?: { reaction?: string }) => {
+      showReaction(data?.reaction || '🔥');
     });
 
     return () => {
@@ -198,6 +210,7 @@ export default function LiveBroadcaster() {
       socket.off('live:comment_pinned');
       socket.off('live:comment_unpinned');
       socket.off('live:heart_received');
+      socket.off('live:reaction_received');
       socket.off('live:goal_set');
       socket.off('live:question_asked');
       socket.off('live:question_highlighted');
@@ -253,8 +266,16 @@ export default function LiveBroadcaster() {
     }
   };
 
-  const handleDoubleTap = () => {
+  const handleDoubleTap = (e: React.MouseEvent) => {
     if (!streamId) return;
+    // Two quick presses on a control are two uses of that control.
+    if (
+      (e.target as HTMLElement).closest(
+        'button, input, textarea, a, [role="dialog"]',
+      )
+    ) {
+      return;
+    }
     const socket = useSocketStore.getState().socket;
     if (!socket) return;
     socket.emit('live:heart', { streamId });
@@ -557,7 +578,11 @@ export default function LiveBroadcaster() {
               className="animate-float-up absolute bottom-0 opacity-0"
               style={{ transform: `translateX(${heart.x}px)` }}
             >
-              <Heart className="h-7 w-7 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              {heart.emoji === '❤️' ? (
+                <Heart className="h-7 w-7 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+              ) : (
+                <span className="text-2xl">{heart.emoji}</span>
+              )}
             </div>
           ))}
         </div>
