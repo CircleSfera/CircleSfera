@@ -22,7 +22,7 @@ vi.mock('@ffmpeg/util', () => ({
   ),
 }));
 
-import { exportEditedVideo, initFFmpeg } from './videoExport';
+import { exportEditedVideo } from './videoExport';
 
 const clip = new File(['x'], 'holiday.clip.mov', { type: 'video/quicktime' });
 const STYLE = 'filter-class:Custom__style:';
@@ -37,6 +37,11 @@ describe('video export', () => {
   });
 
   it('loads the encoder once, from the files the app serves', async () => {
+    // The encoder is kept once loaded: this case starts from a module that
+    // has loaded none, whichever case ran before it.
+    vi.resetModules();
+    made.count = 0;
+    const { initFFmpeg } = await import('./videoExport');
     const first = await initFFmpeg();
     const second = await initFFmpeg();
 

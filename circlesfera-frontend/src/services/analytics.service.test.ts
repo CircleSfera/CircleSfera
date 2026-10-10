@@ -103,14 +103,15 @@ describe('analyticsApi (time on a post)', () => {
     const leave = () => window.dispatchEvent(new Event('beforeunload'));
 
     it('hands what is waiting to the browser, which delivers it after the page is gone', async () => {
-      const sendBeacon = vi.fn();
+      // True is the browser saying it took the request.
+      const sendBeacon = vi.fn(() => true);
       vi.stubGlobal('navigator', { sendBeacon });
       const api = await load();
       api.queueDwellTimeEvent('post-1', 700);
 
       leave();
 
-      const [url, body] = sendBeacon.mock.calls[0];
+      const [url, body] = sendBeacon.mock.calls[0] as unknown as [string, Blob];
       expect(url).toBe('https://api.example/api/v1/analytics/batch');
       expect(JSON.parse(await (body as Blob).text())).toEqual({
         events: [
@@ -120,6 +121,26 @@ describe('analyticsApi (time on a post)', () => {
       // Handed over once: nothing is sent again.
       await vi.advanceTimersByTimeAsync(5000);
       expect(post).not.toHaveBeenCalled();
+    });
+
+    it('sends it the usual way when the browser does not take it', async () => {
+      const sendBeacon = vi.fn(() => false);
+      vi.stubGlobal('navigator', { sendBeacon });
+      const api = await load();
+      api.queueDwellTimeEvent('post-1', 700);
+
+      leave();
+
+      expect(sendBeacon).toHaveBeenCalledTimes(1);
+      expect(post).toHaveBeenCalledTimes(1);
+      expect(post).toHaveBeenCalledWith('/analytics/batch', {
+        events: [
+          expect.objectContaining({ targetId: 'post-1', dwellTime: 700 }),
+        ],
+      });
+      // Sent once: it is not kept to be sent again.
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(post).toHaveBeenCalledTimes(1);
     });
 
     it('sends it the usual way in a browser without that', async () => {
