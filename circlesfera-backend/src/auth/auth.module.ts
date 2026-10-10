@@ -11,6 +11,8 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { PasskeyModule } from './passkey/passkey.module.js';
+import { SignInsController } from './sign-ins/sign-ins.controller.js';
+import { SignInsService } from './sign-ins/sign-ins.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { TwoFactorModule } from './two-factor/two-factor.module.js';
 
@@ -26,8 +28,8 @@ import { TwoFactorModule } from './two-factor/two-factor.module.js';
       getRegisterQueueOptions(QUEUE_NAMES.USERS_PROCESSING),
     ),
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
+  controllers: [AuthController, SignInsController],
+  providers: [AuthService, JwtStrategy, SignInsService],
   exports: [AuthService],
 })
 export class AuthModule {}

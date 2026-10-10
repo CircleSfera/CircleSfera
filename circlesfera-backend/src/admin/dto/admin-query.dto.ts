@@ -29,6 +29,12 @@ export class AdminQueryDto extends PaginationDto {
   @IsIn(['verified', 'pending', 'not_started'])
   kycStatus?: string;
 
+  // Support tickets: what the ticket is about.
+  @IsOptional()
+  @IsString()
+  @IsIn(['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'])
+  category?: string;
+
   @IsOptional()
   @IsString()
   @IsIn(['POST', 'FRAME', 'STORY', 'COMMENT'])

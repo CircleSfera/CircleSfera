@@ -146,8 +146,11 @@ model SignIn {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  profiles Profile[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profiles          Profile[]
+  passkeys          Passkey[]
+  passkeyChallenges PasskeyChallenge[]
+  refreshTokens     RefreshToken[]
 
   @@index([userId])
   @@map("sign_ins")
@@ -157,6 +160,8 @@ model RefreshToken {
   id        String    @id @default(uuid())
   token     String    @unique
   userId    String
+  // The sign-in that opened the session
+  signInId  String?
   familyId  String?
   isRevoked Boolean   @default(false)
   revokedAt DateTime?
@@ -165,9 +170,11 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([signInId])
   @@index([familyId])
   @@map("refresh_tokens")
 }
@@ -175,29 +182,36 @@ model RefreshToken {
 model Passkey {
   id           String   @id @default(uuid())
   userId       String
+  // The sign-in it signs in to; the database fills it when it is not named
+  signInId     String?
   credentialID String   @unique
   publicKey    Bytes
   counter      BigInt
   transports   String[] @default([])
   createdAt    DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([signInId])
   @@map("passkeys")
 }
 
 model PasskeyChallenge {
   id        String   @id @default(uuid())
   userId    String
+  signInId  String?
   scope     String // "REGISTRATION" | "AUTHENTICATION"
   challenge String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  signIn SignIn? @relation(fields: [signInId], references: [id], onDelete: Cascade)
 
   @@index([userId, scope])
+  @@index([signInId])
   @@index([expiresAt])
   @@map("passkey_challenges")
 }
@@ -1414,17 +1428,53 @@ model Transaction {
   description String?
   createdAt   DateTime @default(now())
 
-  sender     User?       @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
-  receiver   User?       @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
-  liveStream LiveStream? @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
+  sender     User?            @relation("SentTransactions", fields: [senderId], references: [id], onDelete: SetNull)
+  receiver   User?            @relation("ReceivedTransactions", fields: [receiverId], references: [id], onDelete: SetNull)
+  liveStream LiveStream?      @relation(fields: [liveStreamId], references: [id], onDelete: SetNull)
   liveGift   LiveGift?
-  message    Message?    @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  message    Message?         @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  disputes   PaymentDispute[]
 
   @@index([senderId])
   @@index([receiverId])
   @@index([type])
   @@index([liveStreamId])
   @@map("transactions")
+}
+
+// A dispute (chargeback) opened at the payment provider against a charge.
+// The provider is the source of truth and where it is answered; this row
+// mirrors what staff need to see: the amount, the reason, the state and the
+// day the answer is due.
+model PaymentDispute {
+  id                    String  @id @default(uuid())
+  stripeDisputeId       String  @unique
+  // The charge and payment the dispute is about, as the provider names them.
+  stripeChargeId        String?
+  stripePaymentIntentId String?
+  // Null when the disputed payment has no Transaction (a plan invoice).
+  transactionId         String?
+
+  amountCents Int
+  currency    String @default("EUR")
+  // The provider's own values, stored as received (e.g. fraudulent,
+  // needs_response, won, lost).
+  reason      String
+  status      String
+
+  // The day the evidence must be in; null once none is expected.
+  evidenceDueBy DateTime?
+  openedAt      DateTime
+  closedAt      DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([evidenceDueBy])
+  @@index([transactionId])
+  @@map("payment_disputes")
 }
 
 model PostUnlock {
@@ -1626,23 +1676,312 @@ model SystemSetting {
 }
 
 model SupportTicket {
-  id         String       @id @default(uuid())
+  id         String         @id @default(uuid())
   userId     String?
   email      String
   subject    String
   message    String
-  status     TicketStatus @default(OPEN)
+  status     TicketStatus   @default(OPEN)
+  // What the ticket is about, chosen by who writes it
+  category   TicketCategory @default(OTHER)
   reply      String?
   resolvedAt DateTime?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // The Help Desk organization the ticket belongs to
+  organizationId     String
+  // Short number shown to requester and agent
+  reference          Int                  @unique @default(autoincrement())
+  // Only agents see it
+  priority           HelpdeskPriority     @default(NORMAL)
+  // Who of the team has the ticket, as the host names them; empty when
+  // nobody has it
+  assignedAgentRef   String?
+  // When the one reminder of the current wait was sent
+  waitingRemindedAt  DateTime?
+  // The closed ticket this one continues, when it was opened by replying
+  // to it
+  previousTicketId   String?
+  // What the ticket is measured by, taken when it is opened
+  serviceLevel       HelpdeskServiceLevel @default(STANDARD)
+  firstResponseDueAt DateTime?
+  // The first public answer of an agent
+  firstRespondedAt   DateTime?
+  // Moves forward by the time the clock was stopped
+  resolutionDueAt    DateTime?
+  // When the clock stopped: the ticket is not open. Empty while it runs
+  pausedAt           DateTime?
+
+  user              User?                  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // The report created when the ticket was handed to moderation
+  escalatedReportId String?                @unique
+  escalatedReport   Report?                @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
+  organization      HelpdeskOrganization   @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  messages          HelpdeskMessage[]
+  events            HelpdeskTicketEvent[]
+  previousTicket    SupportTicket?         @relation("TicketContinuation", fields: [previousTicketId], references: [id], onDelete: SetNull)
+  continuations     SupportTicket[]        @relation("TicketContinuation")
+  inboundEmails     HelpdeskInboundEmail[]
+  rating            HelpdeskRating?
 
   @@index([userId])
   @@index([status])
   @@index([resolvedAt])
+  @@index([organizationId, status, createdAt])
+  @@index([previousTicketId])
+  @@index([organizationId, assignedAgentRef, status])
+  @@index([organizationId, status, resolutionDueAt])
   @@map("support_tickets")
+}
+
+// The company that runs a Help Desk. One row today: CircleSfera.
+model HelpdeskOrganization {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String
+  locales   String[]
+  timeZone  String   @default("Europe/Madrid")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tickets        SupportTicket[]
+  savedReplies   HelpdeskSavedReply[]
+  inboundEmails  HelpdeskInboundEmail[]
+  serviceTargets HelpdeskServiceTarget[]
+  ratings        HelpdeskRating[]
+  articles       HelpdeskArticle[]
+
+  @@map("helpdesk_organizations")
+}
+
+// An answer an agent keeps for a repeated question. It only fills the reply
+// box; it is never sent on its own.
+model HelpdeskSavedReply {
+  id             String   @id @default(uuid())
+  organizationId String
+  title          String   @db.VarChar(120)
+  body           String
+  // The agent who owns it, as the host names them. Empty when the whole
+  // team shares it.
+  ownerRef       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@index([organizationId, ownerRef])
+  @@map("helpdesk_saved_replies")
+}
+
+enum HelpdeskAuthorKind {
+  REQUESTER
+  AGENT
+  SYSTEM
+}
+
+enum HelpdeskMessageVisibility {
+  PUBLIC
+  INTERNAL
+}
+
+enum HelpdeskMessageChannel {
+  PRODUCT
+  EMAIL
+}
+
+enum HelpdeskPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum HelpdeskArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+// An article of the help centre: it answers one question for anyone,
+// without a ticket. Its words are in HelpdeskArticleText, one per language.
+model HelpdeskArticle {
+  id             String                @id @default(uuid())
+  organizationId String
+  // Its name in its address; the same in every language
+  slug           String                @db.VarChar(120)
+  topic          TicketCategory        @default(OTHER)
+  status         HelpdeskArticleStatus @default(DRAFT)
+  // Its place inside its topic
+  position       Int                   @default(0)
+  // How many readers said it helped, and how many said it did not
+  usefulYes      Int                   @default(0)
+  usefulNo       Int                   @default(0)
+  // Who of the staff wrote it, as the host names them
+  authorRef      String?
+  publishedAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  organization HelpdeskOrganization  @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  texts        HelpdeskArticleText[]
+
+  @@unique([organizationId, slug])
+  @@index([organizationId, status, topic, position])
+  @@map("helpdesk_articles")
+}
+
+// The title and the body of an article in one language. The body is text,
+// never HTML.
+model HelpdeskArticleText {
+  id        String   @id @default(uuid())
+  articleId String
+  locale    String   @db.VarChar(10)
+  title     String   @db.VarChar(150)
+  body      String
+  updatedAt DateTime @updatedAt
+
+  article HelpdeskArticle @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@map("helpdesk_article_texts")
+}
+
+// How fast a requester is to be answered.
+enum HelpdeskServiceLevel {
+  STANDARD
+  PRIORITY
+}
+
+enum HelpdeskRatingScore {
+  GOOD
+  BAD
+}
+
+// The targets of an organization for one service level, in minutes on the
+// clock.
+model HelpdeskServiceTarget {
+  id                   String               @id @default(uuid())
+  organizationId       String
+  serviceLevel         HelpdeskServiceLevel
+  firstResponseMinutes Int
+  resolutionMinutes    Int
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+
+  @@unique([organizationId, serviceLevel])
+  @@map("helpdesk_service_targets")
+}
+
+// What the requester thought of the answer. One per ticket.
+model HelpdeskRating {
+  id             String              @id @default(uuid())
+  organizationId String
+  ticketId       String              @unique
+  score          HelpdeskRatingScore
+  comment        String?             @db.VarChar(500)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ticket       SupportTicket        @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, createdAt])
+  @@map("helpdesk_ratings")
+}
+
+// What became of an email that arrived at a reply address.
+enum HelpdeskInboundOutcome {
+  // Kept, not looked at yet
+  RECEIVED
+  // It is a message of its ticket
+  MATCHED
+  // Not sent to the address of a ticket
+  NO_TICKET
+  // Sent to a ticket by someone who is not its requester
+  SENDER_MISMATCH
+  // Nothing left once quoted text was cut
+  EMPTY
+  // Out-of-office answers, bounces, lists
+  AUTOMATED
+  SPAM
+}
+
+// An email that arrived at a reply address. Kept for 30 days; what matters
+// of a matched one lives on as the message of its ticket.
+model HelpdeskInboundEmail {
+  id              String                 @id @default(uuid())
+  organizationId  String
+  // The Message-ID of the email: the same email delivered twice is kept once
+  messageId       String
+  fromAddress     String
+  toAddress       String
+  subject         String
+  // Its text, without quoted replies when the mail provider cut them
+  body            String
+  spamScore       Float?
+  attachmentCount Int                    @default(0)
+  // Its headers say a machine sent it
+  automated       Boolean                @default(false)
+  outcome         HelpdeskInboundOutcome @default(RECEIVED)
+  ticketId        String?
+  // When the sender was told their email matched no request
+  noticeSentAt    DateTime?
+  receivedAt      DateTime               @default(now())
+
+  organization HelpdeskOrganization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  ticket       SupportTicket?       @relation(fields: [ticketId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, messageId])
+  @@index([organizationId, outcome, receivedAt])
+  @@index([receivedAt])
+  @@index([ticketId])
+  @@map("helpdesk_inbound_emails")
+}
+
+enum HelpdeskEventKind {
+  STATE
+  TOPIC
+  PRIORITY
+  ASSIGNMENT
+  HANDOVER
+}
+
+// One change of a ticket and who made it. Append-only; the history agents
+// see.
+model HelpdeskTicketEvent {
+  id        String             @id @default(uuid())
+  ticketId  String
+  kind      HelpdeskEventKind
+  fromValue String?
+  toValue   String?
+  actorKind HelpdeskAuthorKind
+  actorRef  String?
+  createdAt DateTime           @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("helpdesk_ticket_events")
+}
+
+// One thing said in a ticket. Append-only.
+model HelpdeskMessage {
+  id         String                    @id @default(uuid())
+  ticketId   String
+  authorKind HelpdeskAuthorKind
+  // Who wrote it, as the host names them. Empty for the system and for
+  // answers from before authors were stored.
+  authorRef  String?
+  visibility HelpdeskMessageVisibility @default(PUBLIC)
+  body       String
+  channel    HelpdeskMessageChannel    @default(PRODUCT)
+  createdAt  DateTime                  @default(now())
+
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
+  @@map("helpdesk_messages")
 }
 
 // =============================================================================
@@ -1673,6 +2012,8 @@ model Report {
   reporter      Profile         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
   strikes       ProfileStrike[]
+  // Set when the report came from a support ticket handed to moderation
+  supportTicket SupportTicket?
 
   @@index([reporterId])
   @@index([targetType, targetId])
@@ -2143,10 +2484,21 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+enum TicketCategory {
+  ACCOUNT
+  PAYMENTS
+  CONTENT
+  OTHER
+}
+
 enum TicketStatus {
   OPEN
   RESOLVED
   CLOSED
+  // Handed to moderation: a report in the trust queues decides it
+  ESCALATED
+  // The team asked something and waits for the requester
+  WAITING
 }
 
 enum TransactionStatus {

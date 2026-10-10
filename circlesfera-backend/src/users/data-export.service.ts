@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Response } from 'express';
+import { queueJobId } from '../common/utils/queue-job-id.util.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EXPORTS_DIR, LEGACY_EXPORTS_DIR } from './data-export.constants.js';
@@ -84,7 +85,7 @@ export class DataExportService {
           userId,
         },
         options: {
-          jobId: `export:${created.id}`,
+          jobId: queueJobId('export', created.id),
           removeOnComplete: true,
           removeOnFail: false,
         },

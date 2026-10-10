@@ -37,6 +37,7 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'profile_restricted', by: 'automated', hours: 72, days: 7 },
   { key: 'message_unlocked', amountCents: 499, currency: 'eur' },
   { key: 'tip_received', amountCents: 1250, currency: 'eur' },
+  { key: 'support_answered', subject: 'I was charged twice' },
 ];
 
 describe('renderNotice', () => {

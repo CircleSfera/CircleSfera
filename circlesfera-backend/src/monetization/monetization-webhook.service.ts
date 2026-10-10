@@ -45,6 +45,30 @@ export function isMonetizationCheckoutType(type: string | undefined): boolean {
  * bookkeeping and single `/payments/webhook` endpoint (PaymentsService):
  * independent application boundaries, shared Stripe infrastructure.
  */
+// The fields of a provider dispute this service reads.
+export interface StripeDisputePayload {
+  id?: string;
+  amount?: number;
+  currency?: string;
+  reason?: string;
+  status?: string;
+  created?: number;
+  charge?: string | { id: string } | null;
+  payment_intent?: string | { id: string } | null;
+  evidence_details?: { due_by?: number | null } | null;
+}
+
+// States in which the provider expects nothing more from us.
+const CLOSED_DISPUTE_STATUSES: ReadonlySet<string> = new Set([
+  'won',
+  'lost',
+  'warning_closed',
+]);
+
+const stripeId = (
+  value: string | { id: string } | null | undefined,
+): string | undefined => (typeof value === 'string' ? value : value?.id);
+
 @Injectable()
 export class MonetizationWebhookService {
   private readonly logger = new Logger(MonetizationWebhookService.name);
@@ -444,6 +468,60 @@ export class MonetizationWebhookService {
     if (paymentIntentId) {
       await this.revokeAccessForPaymentIntent(paymentIntentId);
     }
+  }
+
+  // Mirrors a dispute as the payment provider reports it: created, updated
+  // or closed. One row per dispute; the provider stays the source of truth.
+  async syncDispute(dispute: StripeDisputePayload): Promise<void> {
+    if (!dispute?.id || typeof dispute.amount !== 'number') {
+      this.logger.warn('Dispute webhook missing the dispute id or amount');
+      return;
+    }
+
+    const existing = await this.prisma.paymentDispute.findUnique({
+      where: { stripeDisputeId: dispute.id },
+      select: { status: true },
+    });
+    const status = dispute.status ?? 'unknown';
+    const closed = CLOSED_DISPUTE_STATUSES.has(status);
+    // Webhooks can arrive out of order: an older update must not reopen a
+    // dispute the provider has already closed.
+    if (existing && CLOSED_DISPUTE_STATUSES.has(existing.status) && !closed) {
+      return;
+    }
+
+    const paymentIntentId = stripeId(dispute.payment_intent);
+    const transaction = paymentIntentId
+      ? await this.prisma.transaction.findUnique({
+          where: { stripePaymentIntentId: paymentIntentId },
+          select: { id: true },
+        })
+      : null;
+    const dueBy = dispute.evidence_details?.due_by;
+
+    const data = {
+      stripeChargeId: stripeId(dispute.charge) ?? null,
+      stripePaymentIntentId: paymentIntentId ?? null,
+      transactionId: transaction?.id ?? null,
+      amountCents: dispute.amount,
+      currency: (dispute.currency ?? 'eur').toUpperCase(),
+      reason: dispute.reason ?? 'general',
+      status,
+      evidenceDueBy: !closed && dueBy ? new Date(dueBy * 1000) : null,
+      closedAt: closed ? new Date() : null,
+    };
+
+    await this.prisma.paymentDispute.upsert({
+      where: { stripeDisputeId: dispute.id },
+      create: {
+        stripeDisputeId: dispute.id,
+        openedAt: dispute.created
+          ? new Date(dispute.created * 1000)
+          : new Date(),
+        ...data,
+      },
+      update: data,
+    });
   }
 
   // Revoke unlock entitlements after refund or dispute.

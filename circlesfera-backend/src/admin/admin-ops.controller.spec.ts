@@ -30,8 +30,6 @@ describe('AdminOpsController', () => {
     getUserExperiments: vi.fn(),
     assignUserExperiment: vi.fn(),
     removeUserExperiment: vi.fn(),
-    getSupportTickets: vi.fn(),
-    updateSupportTicket: vi.fn(),
     listFeatureFlags: vi.fn(),
     upsertFeatureFlag: vi.fn(),
     deleteFeatureFlag: vi.fn(),
@@ -141,30 +139,6 @@ describe('AdminOpsController', () => {
     expect(mockService.removeUserExperiment).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'exp-1',
-    );
-  });
-
-  it('lists and updates support tickets as adminId', async () => {
-    const body = { status: 'RESOLVED' as const, reply: 'Done' };
-    mockService.getSupportTickets.mockResolvedValue({ data: [] });
-    mockService.updateSupportTicket.mockResolvedValue({ id: 't-1' });
-
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/support/tickets')
-      .query({ status: 'OPEN' })
-      .set(ADMIN_BEARER)
-      .expect(200);
-    await request(app.getHttpServer())
-      .patch('/api/v1/admin/support/tickets/t-1')
-      .set(ADMIN_BEARER)
-      .send(body)
-      .expect(200);
-
-    expect(mockService.getSupportTickets).toHaveBeenCalledWith(1, 10, 'OPEN');
-    expect(mockService.updateSupportTicket).toHaveBeenCalledWith(
-      TEST_ADMIN.adminId,
-      't-1',
-      body,
     );
   });
 

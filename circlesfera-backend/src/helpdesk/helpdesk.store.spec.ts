@@ -1,0 +1,469 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { HelpdeskStore } from './helpdesk.store.js';
+
+// The data access layer of the Help Desk: every read and every write carries
+// the organization of the current request.
+describe('HelpdeskStore', () => {
+  const prisma = {
+    supportTicket: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      count: vi.fn().mockResolvedValue(0),
+      update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 3 }),
+      deleteMany: vi.fn().mockResolvedValue({ count: 2 }),
+    },
+    helpdeskMessage: { findMany: vi.fn().mockResolvedValue([]) },
+    helpdeskTicketEvent: { findMany: vi.fn().mockResolvedValue([]) },
+    helpdeskRating: { findMany: vi.fn().mockResolvedValue([]) },
+  };
+  const organization = { current: vi.fn() };
+  let store: HelpdeskStore;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    organization.current.mockReturnValue('org-1');
+    store = new HelpdeskStore(prisma as never, organization);
+  });
+
+  it('opens a ticket in the organization of the request, with its first message', async () => {
+    await store.openTicket({
+      requesterRef: 'u-1',
+      email: 'ana@example.com',
+      subject: 'Help',
+      message: 'I cannot sign in',
+      category: 'ACCOUNT',
+    });
+
+    expect(prisma.supportTicket.create).toHaveBeenCalledWith({
+      data: {
+        organizationId: 'org-1',
+        userId: 'u-1',
+        email: 'ana@example.com',
+        subject: 'Help',
+        message: 'I cannot sign in',
+        category: 'ACCOUNT',
+        previousTicketId: undefined,
+        messages: {
+          create: {
+            authorKind: 'REQUESTER',
+            authorRef: 'u-1',
+            body: 'I cannot sign in',
+          },
+        },
+      },
+    });
+  });
+
+  it('finds a ticket only inside the organization', async () => {
+    await store.findTicket('t-1');
+
+    expect(prisma.supportTicket.findFirst).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1' },
+    });
+  });
+
+  it('lists and counts only the tickets of the organization', async () => {
+    await store.listTickets({ status: 'OPEN' }, 2, 20, true);
+
+    const where = { status: 'OPEN', organizationId: 'org-1' };
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where,
+      skip: 20,
+      take: 20,
+      // What to answer next: high priority first, then the longest wait.
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+    });
+    expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+  });
+
+  it('lists any other state newest first', async () => {
+    await store.listTickets({ status: 'RESOLVED' }, 1, 20, false);
+
+    expect(prisma.supportTicket.findMany.mock.calls[0][0].orderBy).toEqual({
+      createdAt: 'desc',
+    });
+  });
+
+  it('lists the open tickets past their target: late for a first response not given yet, or late to be solved', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.listTickets({ priority: 'HIGH' }, 1, 20, true, moment);
+
+    expect(prisma.supportTicket.findMany.mock.calls[0][0].where).toEqual({
+      priority: 'HIGH',
+      organizationId: 'org-1',
+      status: 'OPEN',
+      OR: [
+        { firstRespondedAt: null, firstResponseDueAt: { lt: moment } },
+        { resolutionDueAt: { lt: moment } },
+      ],
+    });
+  });
+
+  it('cannot be asked for another organization through a filter', async () => {
+    await store.listTickets({ organizationId: 'org-2' } as never, 1, 20, false);
+
+    expect(prisma.supportTicket.findMany.mock.calls[0][0].where).toEqual({
+      organizationId: 'org-1',
+    });
+  });
+
+  it('changes a ticket only inside the organization, and never moves it to another', async () => {
+    await store.updateTicket('t-1', {
+      status: 'CLOSED',
+      organizationId: 'org-2',
+    } as never);
+
+    const call = prisma.supportTicket.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 't-1', organizationId: 'org-1' });
+    expect(call.data).not.toHaveProperty('messages');
+    // The type forbids it; the organization of the request wins regardless.
+    expect(call.data.organizationId).toBeUndefined();
+  });
+
+  it('adds a message with the change, in one statement', async () => {
+    const message = {
+      authorKind: 'AGENT' as const,
+      authorRef: 'admin-1',
+      visibility: 'INTERNAL' as const,
+      body: 'Checked the payment.',
+    };
+
+    await store.updateTicket('t-1', {}, message);
+
+    expect(prisma.supportTicket.update).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1' },
+      data: { messages: { create: message } },
+    });
+  });
+
+  it('reads the conversation of a ticket of the organization, oldest first', async () => {
+    await store.messages('t-1');
+
+    const query = prisma.helpdeskMessage.findMany.mock.calls[0][0];
+    expect(query.where).toEqual({
+      ticketId: 't-1',
+      ticket: { organizationId: 'org-1' },
+    });
+    expect(query.orderBy).toEqual({ createdAt: 'asc' });
+  });
+
+  it('reads what changed in a ticket of the organization, oldest first', async () => {
+    await store.events('t-1');
+
+    const query = prisma.helpdeskTicketEvent.findMany.mock.calls[0][0];
+    expect(query.where).toEqual({
+      ticketId: 't-1',
+      ticket: { organizationId: 'org-1' },
+    });
+    expect(query.orderBy).toEqual({ createdAt: 'asc' });
+  });
+
+  it('leaves internal notes out when only public messages are asked for', async () => {
+    await store.messages('t-1', 'PUBLIC');
+
+    expect(prisma.helpdeskMessage.findMany.mock.calls[0][0].where).toEqual({
+      ticketId: 't-1',
+      ticket: { organizationId: 'org-1' },
+      visibility: 'PUBLIC',
+    });
+  });
+
+  it('finds a ticket for its requester only: the same organization and the same person', async () => {
+    await store.findRequesterTicket('t-1', 'u-1');
+
+    expect(prisma.supportTicket.findFirst).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1', userId: 'u-1' },
+    });
+  });
+
+  it('lists only the tickets a requester opened, the latest change first', async () => {
+    await store.listRequesterTickets('u-1', 1, 20);
+
+    const where = { organizationId: 'org-1', userId: 'u-1' };
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where,
+      skip: 0,
+      take: 20,
+      orderBy: { updatedAt: 'desc' },
+    });
+    expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+  });
+
+  it('finds the tickets that are with another team, inside the organization', async () => {
+    await store.ticketsWithOtherTeam(50);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', status: 'ESCALATED' },
+      orderBy: { updatedAt: 'asc' },
+      take: 50,
+      select: {
+        id: true,
+        escalatedReportId: true,
+        resolutionDueAt: true,
+        pausedAt: true,
+      },
+    });
+  });
+
+  it('finds only solved tickets of the organization that were solved before the moment', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.ticketsSolvedBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        status: 'RESOLVED',
+        resolvedAt: { lt: moment },
+      },
+      orderBy: { resolvedAt: 'asc' },
+      take: 100,
+      select: { id: true, status: true },
+    });
+  });
+
+  it('finds the tickets of the organization that wait since before the moment and were not reminded', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.ticketsWaitingSinceBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          status: 'WAITING',
+          waitingRemindedAt: null,
+          messages: {
+            none: { visibility: 'PUBLIC', createdAt: { gte: moment } },
+          },
+          events: {
+            none: {
+              kind: 'STATE',
+              toValue: 'WAITING',
+              createdAt: { gte: moment },
+            },
+          },
+        },
+        take: 100,
+      }),
+    );
+  });
+
+  it('marks a reminder only on a ticket of the organization that waits and has none, and takes it back', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+    prisma.supportTicket.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    expect(await store.claimReminder('t-1', moment)).toBe(true);
+    expect(await store.claimReminder('t-1', moment)).toBe(false);
+    await store.releaseReminder('t-1', moment);
+
+    expect(prisma.supportTicket.updateMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 't-1',
+        organizationId: 'org-1',
+        status: 'WAITING',
+        waitingRemindedAt: null,
+      },
+      data: { waitingRemindedAt: moment },
+    });
+    expect(prisma.supportTicket.updateMany).toHaveBeenNthCalledWith(3, {
+      where: { id: 't-1', organizationId: 'org-1', waitingRemindedAt: moment },
+      data: { waitingRemindedAt: null },
+    });
+  });
+
+  it('finds the waiting tickets of the organization reminded before the moment', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.ticketsRemindedBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        status: 'WAITING',
+        waitingRemindedAt: { lt: moment },
+      },
+      orderBy: { waitingRemindedAt: 'asc' },
+      take: 100,
+      select: { id: true, status: true },
+    });
+  });
+
+  it('writes what changed and who changed it with the change itself', async () => {
+    const event = {
+      kind: 'STATE' as const,
+      fromValue: 'OPEN',
+      toValue: 'RESOLVED',
+      actorKind: 'AGENT' as const,
+      actorRef: 'admin-1',
+    };
+
+    await store.updateTicket('t-1', { status: 'RESOLVED' }, undefined, [event]);
+
+    expect(prisma.supportTicket.update).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1' },
+      data: { status: 'RESOLVED', events: { create: [event] } },
+    });
+  });
+
+  it('links a new ticket to the closed one it continues', async () => {
+    await store.openTicket({
+      requesterRef: 'u-1',
+      email: 'ana@example.com',
+      subject: 'Re: Help',
+      message: 'It happened again',
+      previousTicketId: 't-old',
+    });
+
+    expect(prisma.supportTicket.create.mock.calls[0][0].data).toMatchObject({
+      organizationId: 'org-1',
+      previousTicketId: 't-old',
+    });
+  });
+
+  describe('what the rest of the product asks', () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    it('exports the tickets of a requester with their public messages only', async () => {
+      await store.requesterExport('u-1');
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where).toEqual({ organizationId: 'org-1', userId: 'u-1' });
+      // Internal notes are left out by the query itself.
+      expect(query.select.messages.where).toEqual({ visibility: 'PUBLIC' });
+      // What they thought of the answer is theirs too.
+      expect(query.select.rating).toEqual({
+        select: { score: true, comment: true, updatedAt: true },
+      });
+      // Neither who of the team wrote, nor the old fields, nor the case with
+      // another team.
+      expect(Object.keys(query.select.messages.select)).toEqual([
+        'authorKind',
+        'body',
+        'channel',
+        'createdAt',
+      ]);
+      expect(Object.keys(query.select)).not.toEqual(
+        expect.arrayContaining([
+          'escalatedReportId',
+          'organizationId',
+          'reply',
+        ]),
+      );
+    });
+
+    it('deletes only solved and closed tickets of the organization that ended before the moment', async () => {
+      expect(await store.deleteEndedBefore(moment)).toEqual({ count: 2 });
+
+      expect(prisma.supportTicket.deleteMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          status: { in: ['RESOLVED', 'CLOSED'] },
+          OR: [
+            { resolvedAt: { lt: moment } },
+            { resolvedAt: null, updatedAt: { lt: moment } },
+          ],
+        },
+      });
+    });
+
+    it('gives analytics the id, state and times of what changed, and nothing written by anyone', async () => {
+      await store.ticketFactsSince(moment);
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where.organizationId).toBe('org-1');
+      expect(Object.keys(query.select)).toEqual([
+        'id',
+        'status',
+        'createdAt',
+        'updatedAt',
+        'resolvedAt',
+      ]);
+    });
+
+    it('lists and counts the open tickets of the organization', async () => {
+      prisma.supportTicket.count.mockResolvedValue(7);
+
+      const result = await store.openTickets(5);
+
+      const where = { organizationId: 'org-1', status: 'OPEN' };
+      expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+        where,
+        orderBy: { createdAt: 'desc' },
+        take: 5,
+      });
+      expect(prisma.supportTicket.count).toHaveBeenCalledWith({ where });
+      expect(result.total).toBe(7);
+    });
+
+    it('gives the opening and solving times of tickets solved since a moment', async () => {
+      await store.resolutionTimesSince(moment, 100);
+
+      expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          resolvedAt: { not: null, gte: moment },
+        },
+        orderBy: { resolvedAt: 'desc' },
+        take: 100,
+        select: { createdAt: true, resolvedAt: true },
+      });
+    });
+  });
+
+  describe('figures', () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    it('counts the open tickets of the organization past their target', async () => {
+      await store.countPastTarget(moment);
+
+      expect(prisma.supportTicket.count).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          status: 'OPEN',
+          OR: [
+            { firstRespondedAt: null, firstResponseDueAt: { lt: moment } },
+            { resolutionDueAt: { lt: moment } },
+          ],
+        },
+      });
+    });
+
+    it('reads times and state of the tickets opened since a moment, and nothing anyone wrote', async () => {
+      await store.measuredTicketsSince(moment);
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where).toEqual({
+        organizationId: 'org-1',
+        createdAt: { gte: moment },
+      });
+      expect(Object.keys(query.select).sort()).toEqual([
+        'createdAt',
+        'firstRespondedAt',
+        'firstResponseDueAt',
+        'resolutionDueAt',
+        'resolvedAt',
+        'serviceLevel',
+        'status',
+      ]);
+    });
+
+    it('reads the score of the ratings of those tickets, not the comment', async () => {
+      await store.ratingsSince(moment);
+
+      expect(prisma.helpdeskRating.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          ticket: { createdAt: { gte: moment } },
+        },
+        select: { score: true, ticket: { select: { serviceLevel: true } } },
+      });
+    });
+  });
+});

@@ -90,7 +90,10 @@ Each step is one change, deployable and reversible on its own.
    the choice when creating a Profile.
 6. **Platform Plan per Profile**: the plan guard, the billing status, the verified badge and the
    one-active-plan rule look the plan up by Profile.
-7. **Phone number** on the `SignIn`, with an SMS provider.
+7. **Phone number** on the `SignIn`, with an SMS provider. **Deferred by the owner:** signing in
+   and verifying with a phone number is not offered for now. Nothing in the product or the schema
+   refers to a phone number, so there is nothing to hide or remove. It is not started until the
+   owner asks for it; it then needs its own confirmation (a new provider and a schema change).
 8. **Removal** of the credential columns from `User`, once step 4 has been in production long
    enough to be sure nothing reads them.
 
@@ -117,6 +120,19 @@ it is built. What it has to settle is named here so that it is not left implicit
   Profile in use.
 
 When step 6 lands, ADR-0003 is marked as superseded in part by this record.
+
+What step 6 settled:
+
+- **Ownership.** A plan is bought for the Profile in use and recorded with it. A checkout that
+  names no Profile of the person is refused.
+- **Uniqueness.** One active or trialing subscription per Profile, kept by a partial unique index.
+  The uniqueness on (`userId`, `planId`) named above did not exist in the schema.
+- **Existing subscriptions.** The owner confirmed there were none. The migration still gives any
+  subscription without a Profile the oldest Profile of its person and reports how many.
+- **Readers.** The plan guard, the billing status and the verified badge look at the Profile.
+- **Which plan for which Profile.** Premium for any Profile, Elite Creator for a Creator Profile,
+  Business for a Business Profile; the checkout refuses the others.
+- **What stays per person.** The payer, the Stripe customer and the billing portal.
 
 ## Consequences
 

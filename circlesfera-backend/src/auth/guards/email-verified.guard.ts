@@ -6,6 +6,7 @@ import {
   Injectable,
 } from '@nestjs/common';
 import { TurnstileService } from '../../common/abuse/turnstile.service.js';
+import { sessionEmailVerified } from '../../common/auth/sign-in-lookup.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../../system-settings/system-settings.service.js';
@@ -25,17 +26,20 @@ export class EmailVerifiedGuard implements CanActivate {
     if (!required) return true;
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user as { userId?: string } | undefined;
+    const user = request.user as
+      | { userId?: string; signInId?: string; profileId?: string | null }
+      | undefined;
     if (!user?.userId) {
       throw new ForbiddenException(ApiErrorCode.EMAIL_NOT_VERIFIED);
     }
 
-    const dbUser = await this.prisma.user.findUnique({
-      where: { id: user.userId },
-      select: { emailVerified: true },
+    // The email that counts is the one of the sign-in of the session.
+    const verified = await sessionEmailVerified(this.prisma, {
+      userId: user.userId,
+      signInId: user.signInId,
+      profileId: user.profileId,
     });
-
-    if (dbUser?.emailVerified) return true;
+    if (verified) return true;
 
     await this.turnstile.incrementEmailForbidden();
     throw new ForbiddenException({

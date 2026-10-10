@@ -4,6 +4,7 @@ import {
   toAdminUser,
   withPrimaryProfile,
 } from '../../../../common/utils/user-profile-shape.util.js';
+import { HelpdeskDataPort } from '../../../../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import {
   computeMttr,
@@ -13,7 +14,10 @@ import {
 
 @Injectable()
 export class GetContentQuery {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(HelpdeskDataPort) private readonly helpdeskData: HelpdeskDataPort,
+  ) {}
 
   async getHashtags(page = 1, limit = 20, search?: string) {
     const where: Prisma.HashtagWhereInput = search
@@ -154,10 +158,9 @@ export class GetContentQuery {
     const [
       reports,
       appeals,
-      tickets,
+      openTickets,
       reportCount,
       appealCount,
-      ticketCount,
       resolvedReportsForMttr,
       resolvedAppealsForMttr,
       resolvedTicketsForMttr,
@@ -194,16 +197,11 @@ export class GetContentQuery {
           },
         },
       }),
-      this.prisma.supportTicket.findMany({
-        where: { status: 'OPEN' },
-        orderBy: { createdAt: 'desc' },
-        take,
-      }),
+      this.helpdeskData.openTickets(take),
       this.prisma.report.count({
         where: { status: { in: ['PENDING', 'REVIEWING'] } },
       }),
       this.prisma.appeal.count({ where: { status: 'PENDING' } }),
-      this.prisma.supportTicket.count({ where: { status: 'OPEN' } }),
       this.prisma.report.findMany({
         where: {
           resolvedAt: { not: null, gte: mttrSince },
@@ -220,14 +218,10 @@ export class GetContentQuery {
         take: REPORT_MTTR_SAMPLE_LIMIT,
         select: { createdAt: true, resolvedAt: true },
       }),
-      this.prisma.supportTicket.findMany({
-        where: {
-          resolvedAt: { not: null, gte: mttrSince },
-        },
-        orderBy: { resolvedAt: 'desc' },
-        take: REPORT_MTTR_SAMPLE_LIMIT,
-        select: { createdAt: true, resolvedAt: true },
-      }),
+      this.helpdeskData.resolutionTimesSince(
+        mttrSince,
+        REPORT_MTTR_SAMPLE_LIMIT,
+      ),
     ]);
 
     return {
@@ -239,11 +233,11 @@ export class GetContentQuery {
         ...appeal,
         user: appeal.user ? withPrimaryProfile(appeal.user) : null,
       })),
-      tickets,
+      tickets: openTickets.tickets,
       counts: {
         reports: reportCount,
         appeals: appealCount,
-        tickets: ticketCount,
+        tickets: openTickets.total,
         // Profiles the spam and bot detector sent for review.
         riskCases: await this.prisma.riskCase.count({
           where: { status: 'OPEN' },

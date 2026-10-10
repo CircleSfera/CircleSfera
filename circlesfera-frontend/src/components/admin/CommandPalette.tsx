@@ -8,11 +8,12 @@ import { adminApi } from '../../services';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { Dialog } from '../ui/Dialog';
 import {
-  ADMIN_NAV_ITEMS,
-  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
   adminTabPath,
+  canOpenTab as canOpenStaffTab,
+  currentStaffSite,
   findAdminNavItem,
+  navItemsFor,
 } from './adminNav';
 
 const QUICK_ACTION_TABS: AdminTab[] = [
@@ -59,7 +60,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   });
 
   const canOpenTab = useCallback(
-    (tabId: AdminTab) => hasPermission(ADMIN_TAB_PERMISSIONS[tabId]),
+    (tabId: AdminTab) => canOpenStaffTab(hasPermission, tabId),
     [hasPermission],
   );
 
@@ -84,18 +85,20 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
 
   const navResults = useMemo(
     () =>
-      ADMIN_NAV_ITEMS.filter(
-        (item) => !QUICK_ACTION_TABS.includes(item.id) && canOpenTab(item.id),
-      ).map((item) => ({
-        id: `nav-${item.id}`,
-        title: t('admin.cmd.go_to', { section: t(item.labelKey) }),
-        icon: <item.icon size={16} />,
-        action: () => {
-          navigate(adminTabPath(item.id));
-          onClose();
-        },
-        searchable: `${t(item.labelKey)} ${item.id}`,
-      })),
+      navItemsFor(currentStaffSite())
+        .filter(
+          (item) => !QUICK_ACTION_TABS.includes(item.id) && canOpenTab(item.id),
+        )
+        .map((item) => ({
+          id: `nav-${item.id}`,
+          title: t('admin.cmd.go_to', { section: t(item.labelKey) }),
+          icon: <item.icon size={16} />,
+          action: () => {
+            navigate(adminTabPath(item.id));
+            onClose();
+          },
+          searchable: `${t(item.labelKey)} ${item.id}`,
+        })),
     [canOpenTab, navigate, onClose, t],
   );
 

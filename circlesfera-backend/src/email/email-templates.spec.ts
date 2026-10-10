@@ -127,4 +127,76 @@ describe('fill and escapeHtml', () => {
       '&lt;a href=&quot;x&quot;&gt;&#39;&amp;&#39;&lt;/a&gt;',
     );
   });
+
+  it('links the support reply to the request when it is given one', () => {
+    const withLink = EmailTemplates.supportReply(
+      en,
+      'Help',
+      'Fixed.',
+      'https://circlesfera.com/support/requests/t-1',
+    ).html;
+    const without = EmailTemplates.supportReply(en, 'Help', 'Fixed.').html;
+
+    expect(withLink).toContain('https://circlesfera.com/support/requests/t-1');
+    expect(withLink).toContain('See your request');
+    expect(without).not.toContain('See your request');
+  });
+
+  it('the reminder of a request names it, says when it will be solved and links to it, in both languages', () => {
+    const url = 'https://circlesfera.com/support/requests/t-1';
+    const inEnglish = EmailTemplates.supportReminder(en, 'A <b>', 42, 7, url);
+    const inSpanish = EmailTemplates.supportReminder(es, 'Ayuda', 42, 7, url);
+
+    expect(inEnglish.subject).toBe(
+      'Do you still need help? A <b> - CircleSfera Support',
+    );
+    expect(inEnglish.html).toContain('request #42, <strong>A &lt;b&gt;');
+    expect(inEnglish.html).toContain('in 7 days');
+    expect(inEnglish.html).toContain(url);
+    expect(inSpanish.subject).toBe(
+      '¿Sigues necesitando ayuda? Ayuda - Soporte de CircleSfera',
+    );
+    expect(inSpanish.html).toContain('solicitud n.º 42');
+    expect(inSpanish.html).toContain('en 7 días');
+  });
+
+  it('says an email can be answered only when it has an address to answer to', () => {
+    const url = 'https://circlesfera.com/support/requests/t-1';
+    const closed = [
+      EmailTemplates.supportReply(en, 'Help', 'Fixed.', url).html,
+      EmailTemplates.supportReminder(en, 'Help', 42, 7, url).html,
+    ];
+    const open = [
+      EmailTemplates.supportReply(en, 'Help', 'Fixed.', url, true).html,
+      EmailTemplates.supportReminder(en, 'Help', 42, 7, url, true).html,
+      EmailTemplates.supportReply(es, 'Ayuda', 'Hecho.', url, true).html,
+    ];
+
+    for (const html of closed) {
+      expect(html).toContain(EMAIL_COPY.en.automated);
+      expect(html).not.toContain(EMAIL_COPY.en.replyable);
+    }
+    expect(open[0]).toContain(EMAIL_COPY.en.replyable);
+    expect(open[0]).not.toContain(EMAIL_COPY.en.automated);
+    expect(open[1]).toContain(EMAIL_COPY.en.replyable);
+    expect(open[2]).toContain(EMAIL_COPY.es.replyable);
+    // Every other email still says it cannot be answered.
+    expect(EmailTemplates.verification(en, 'https://x/verify').html).toContain(
+      EMAIL_COPY.en.automated,
+    );
+  });
+
+  it('tells an unmatched sender where requests are opened, in both languages, and cannot be answered', () => {
+    const url = 'https://circlesfera.com/support';
+    const inEnglish = EmailTemplates.supportUnmatched(en, url);
+    const inSpanish = EmailTemplates.supportUnmatched(es, url);
+
+    expect(inEnglish.subject).toBe(
+      'We could not add your email to a request - CircleSfera Support',
+    );
+    expect(inEnglish.html).toContain(url);
+    expect(inEnglish.html).toContain(EMAIL_COPY.en.automated);
+    expect(inSpanish.subject).toContain('No hemos podido añadir tu correo');
+    expect(inSpanish.html).toContain('Ir a soporte');
+  });
 });

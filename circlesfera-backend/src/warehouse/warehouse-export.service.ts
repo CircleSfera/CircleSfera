@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Prisma } from '@prisma/client';
+import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ClickHouseLoadService } from './clickhouse-load.service.js';
 import type {
@@ -69,6 +70,7 @@ export class WarehouseExportService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly clickHouseLoad: ClickHouseLoadService,
+    private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
   async runNightlyExport(): Promise<AnalyticsExportResult> {
@@ -115,16 +117,7 @@ export class WarehouseExportService {
             resolvedAt: true,
           },
         }),
-        this.prisma.supportTicket.findMany({
-          where: windowFilter,
-          select: {
-            id: true,
-            status: true,
-            createdAt: true,
-            updatedAt: true,
-            resolvedAt: true,
-          },
-        }),
+        this.helpdeskData.ticketFactsSince(since),
         this.prisma.transaction.findMany({
           where: { createdAt: { gte: since } },
           select: {
