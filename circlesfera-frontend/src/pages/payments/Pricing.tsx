@@ -18,7 +18,9 @@ import {
   MarketingPage,
   MarketingPageHeader,
 } from '../../components/marketing';
+import { ArticleLinks } from '../../components/support/ArticleLinks';
 import { SegmentedControl } from '../../components/ui/SegmentedControl';
+import { helpCentreApi } from '../../services/helpCentre.service';
 import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
@@ -27,6 +29,44 @@ import { reportPaymentError } from '../../utils/identityVerification';
 import { logger } from '../../utils/logger';
 import { formatCents } from '../../utils/money';
 import { planFeatureLabel } from '../../utils/planFeatures';
+import { planAccountType, planFitsProfile } from '../../utils/plans';
+
+// The articles of the help centre that answer what is asked before paying.
+const PRICING_ARTICLES = [
+  'is-circlesfera-free',
+  'what-plans-unlock',
+  'identity-verification',
+];
+
+// Each one is asked for by its address: the list of the help centre holds
+// only its first articles, and these must not depend on being among them.
+// Shows nothing when the help centre does not answer: the link to all the
+// questions below it stays.
+function PricingQuestions() {
+  const { i18n } = useTranslation();
+  const { data: questions = [] } = useQuery({
+    queryKey: ['help', 'pricing-articles', i18n.language],
+    queryFn: async () => {
+      const found = await Promise.all(
+        PRICING_ARTICLES.map((slug) =>
+          helpCentreApi
+            .article(slug, i18n.language)
+            .then((res) => res.data)
+            // One that is missing or unpublished leaves the others.
+            .catch(() => null),
+        ),
+      );
+      return found.flatMap((article) => (article ? [article] : []));
+    },
+    retry: false,
+  });
+  if (questions.length === 0) return null;
+  return (
+    <div className="mt-6">
+      <ArticleLinks articles={questions} />
+    </div>
+  );
+}
 
 // Plan name → verification level it grants. "Verified" is the old name of
 // the €9.99 plan, now "Premium".
@@ -239,6 +279,12 @@ export default function Pricing() {
               const buttonText =
                 planButtonText[plan.name] ||
                 t('pricingPage.default_button', { plan: plan.name });
+              // A plan belongs to one profile, and each plan is for one type
+              // of profile. A visitor sees every plan as available.
+              const notForThisProfile =
+                isAuthenticated &&
+                !isActive &&
+                !planFitsProfile(plan.name, currentUser?.accountType);
 
               return (
                 <article
@@ -307,9 +353,13 @@ export default function Pricing() {
                     className="mt-6 w-full"
                     disabled={
                       loadingPlanId !== null ||
+                      notForThisProfile ||
                       (billingCycle === 'YEARLY' && yearlyCents <= 0)
                     }
                     onClick={() => handleTierClick(plan)}
+                    aria-describedby={
+                      notForThisProfile ? `plan-${plan.id}-profile` : undefined
+                    }
                   >
                     {loadingPlanId === plan.id ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
@@ -319,6 +369,16 @@ export default function Pricing() {
                       buttonText
                     )}
                   </MarketingCTA>
+                  {notForThisProfile && (
+                    <p
+                      id={`plan-${plan.id}-profile`}
+                      className="mt-3 text-center text-sm leading-relaxed text-white/60"
+                    >
+                      {t(
+                        `pricingPage.for_profile.${planAccountType(plan.name)}`,
+                      )}
+                    </p>
+                  )}
                 </article>
               );
             })}
@@ -351,20 +411,9 @@ export default function Pricing() {
           <h2 className="text-center text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">
             {t('landing.faq.title')}
           </h2>
-          <dl className="mt-6 divide-y divide-white/8 overflow-hidden rounded-3xl glass-panel">
-            {(['free', 'plans', 'verify'] as const).map((item) => (
-              <div key={item} className="p-6">
-                <dt className="text-lg font-bold tracking-tight text-white">
-                  {t(`landing.faq.items.${item}.q`)}
-                </dt>
-                <dd className="mt-2 text-base leading-relaxed text-white/60">
-                  {t(`landing.faq.items.${item}.a`)}
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <PricingQuestions />
           <div className="mt-6 flex justify-center">
-            <MarketingCTA to="/faq" variant="secondary" size="lg">
+            <MarketingCTA to="/help" variant="secondary" size="lg">
               {t('pricingPage.all_questions')}
             </MarketingCTA>
           </div>

@@ -19,5 +19,4 @@ export { MarketingCTA } from './MarketingCTA';
 export { MarketingPage } from './MarketingPage';
 export { MarketingPageHeader } from './MarketingPageHeader';
 export { MarketingSection } from './MarketingSection';
-export { ProductFaqList } from './ProductFaqList';
 export { ProductPrinciplesList } from './ProductPrinciplesList';

@@ -40,6 +40,26 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           findFirst: vi.fn(),
           update: vi.fn().mockResolvedValue({}),
         },
+        // The sign-in holds a copy of the credentials of the account each
+        // test describes, with the account behind it.
+        signIn: {
+          findUnique: vi.fn(async (args?: unknown) => {
+            const account = await mockPrisma.user.findUnique(args);
+            return account
+              ? {
+                  id: `sign-in-${account.id}`,
+                  userId: account.id,
+                  email: account.email,
+                  password: account.password,
+                  passwordResetRequiredAt:
+                    account.passwordResetRequiredAt ?? null,
+                  user: account,
+                }
+              : null;
+          }),
+          findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }),
+          update: vi.fn().mockResolvedValue({}),
+        },
         profile: {
           findFirst: vi.fn().mockResolvedValue(null),
           findUnique: vi.fn(),
@@ -221,9 +241,9 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
       });
 
       expect(result).toBeDefined();
-      expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect(mockPrisma.signIn.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { id: 'user-bcrypt' },
+          where: { id: 'sign-in-user-bcrypt' },
           data: expect.objectContaining({
             password: expect.stringMatching(/^\$argon2/),
           }),
@@ -356,6 +376,7 @@ describe('Security Regression Suite: P0/P1 Findings', () => {
           update: vi.fn().mockResolvedValue({}),
           create: vi.fn().mockResolvedValue({ id: 'rt-new', token: 'hash' }),
         },
+        signIn: { findFirst: vi.fn().mockResolvedValue({ id: 'sign-in-1' }) },
         user: {
           findUnique: vi.fn().mockResolvedValue({
             id: 'user-legit',

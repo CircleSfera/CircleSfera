@@ -41,11 +41,31 @@ describe('PasskeyService', () => {
 
   const challengeStore = new Map<string, any>();
 
+  // The sign-in of the account each test describes. The one named by an
+  // identifier carries the passkeys of that account, with the account behind.
+  const SIGN_IN = { id: 'sign-in-1', email: 'test@example.com' };
   const mockPrismaService = {
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       update: vi.fn(),
+    },
+    signIn: {
+      findFirst: vi.fn(async (): Promise<typeof SIGN_IN | null> => SIGN_IN),
+      findUnique: vi.fn(async (args?: unknown) => {
+        const account = await mockPrismaService.user.findFirst(args);
+        return account
+          ? {
+              id: SIGN_IN.id,
+              userId: account.id,
+              passkeys: account.passkeys ?? [],
+              user: account,
+            }
+          : null;
+      }),
+    },
+    profile: {
+      findFirst: vi.fn(async (): Promise<unknown> => null),
     },
     passkey: {
       count: vi.fn(async () => 0),
@@ -197,7 +217,16 @@ describe('PasskeyService', () => {
       const result = await service.verifyRegistration(userId, body);
 
       expect(result.verified).toBe(true);
-      expect(mockPrismaService.passkey.create).toHaveBeenCalled();
+      // Stored on the sign-in, and counted against its limit.
+      expect(mockPrismaService.passkey.count).toHaveBeenCalledWith({
+        where: { signInId: 'sign-in-1' },
+      });
+      expect(mockPrismaService.passkey.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: expect.any(String),
+          signInId: 'sign-in-1',
+        }),
+      });
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: userId },
         data: { currentChallenge: null },
@@ -924,7 +953,7 @@ describe('PasskeyService', () => {
       const result = await service.getUserPasskeys('user-1');
       expect(result).toEqual(mockList);
       expect(mockPrismaService.passkey.findMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
+        where: { userId: 'user-1', signInId: 'sign-in-1' },
         select: {
           id: true,
           credentialID: true,
@@ -936,9 +965,158 @@ describe('PasskeyService', () => {
     });
   });
 
+  describe('passkeys belong to a sign-in', () => {
+    const account = {
+      id: 'user-1',
+      currentChallenge: null,
+      passkeys: [{ credentialID: 'cred-1', transports: [] }],
+    };
+
+    it('offers, for an email, the passkeys of the sign-in with that email, and binds the challenge to it', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(account);
+      mockGenerateAuthenticationOptions.mockResolvedValue({
+        challenge: 'by-email',
+      } as PublicKeyCredentialRequestOptionsJSON);
+
+      await service.generateAuthenticationOptions('test@example.com');
+
+      expect(mockPrismaService.signIn.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { email: 'test@example.com' } }),
+      );
+      expect(mockPrismaService.profile.findFirst).not.toHaveBeenCalled();
+      expect(mockGenerateAuthenticationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowCredentials: [expect.objectContaining({ id: 'cred-1' })],
+        }),
+      );
+      expect(mockPrismaService.passkeyChallenge.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-1',
+          signInId: 'sign-in-1',
+        }),
+      });
+    });
+
+    it('offers, for a username, the passkeys of the sign-in of that Profile', async () => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValueOnce({
+        signIn: {
+          id: 'sign-in-of-profile',
+          userId: 'user-2',
+          passkeys: [{ credentialID: 'cred-of-profile', transports: [] }],
+          user: { id: 'user-2', currentChallenge: null },
+        },
+      });
+      mockGenerateAuthenticationOptions.mockResolvedValue({
+        challenge: 'by-username',
+      } as PublicKeyCredentialRequestOptionsJSON);
+
+      await service.generateAuthenticationOptions('ana');
+
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { username: 'ana' } }),
+      );
+      expect(mockGenerateAuthenticationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          allowCredentials: [
+            expect.objectContaining({ id: 'cred-of-profile' }),
+          ],
+        }),
+      );
+      expect(mockPrismaService.passkeyChallenge.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          userId: 'user-2',
+          signInId: 'sign-in-of-profile',
+        }),
+      });
+    });
+
+    it.each([
+      ['a Profile without a sign-in', { signIn: null }],
+      [
+        'a sign-in whose account is missing',
+        { signIn: { id: 's', userId: 'gone', passkeys: [], user: null } },
+      ],
+    ])('answers %s like an unknown identifier', async (_case, profile) => {
+      mockPrismaService.user.findFirst.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(profile);
+
+      await expect(
+        service.generateAuthenticationOptions('ana'),
+      ).rejects.toThrow(NotFoundException);
+      await expect(service.verifyAuthentication('ana', {})).rejects.toThrow(
+        NotFoundException,
+      );
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+    });
+
+    it('registers for the first sign-in of the account: its passkeys, its email and its challenge', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'account@example.com',
+        profiles: [],
+        passkeys: [],
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'reg',
+      } as never);
+
+      await service.generateRegistrationOptions('user-1');
+
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        select: { id: true, email: true },
+      });
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            passkeys: { where: { signInId: 'sign-in-1' } },
+          }),
+        }),
+      );
+      // With no Profile to name it, the passkey is named after the sign-in.
+      expect(mockGenerateRegistrationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({ userName: 'test@example.com' }),
+      );
+      expect(mockPrismaService.passkeyChallenge.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ signInId: 'sign-in-1' }),
+      });
+    });
+
+    it('refuses to register for an account without a sign-in', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'account@example.com',
+        profiles: [],
+        passkeys: [],
+      });
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.generateRegistrationOptions('user-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.passkeyChallenge.create).not.toHaveBeenCalled();
+    });
+
+    it('lists nothing and offers no step-up for an account without a sign-in', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValue(null);
+
+      await expect(service.getUserPasskeys('user-1')).resolves.toEqual([]);
+      expect(mockPrismaService.passkey.findMany).not.toHaveBeenCalled();
+      await expect(service.generateStepUpOptions('user-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      mockPrismaService.signIn.findFirst.mockImplementation(
+        async () => SIGN_IN,
+      );
+    });
+  });
+
   describe('generateStepUpOptions', () => {
     it('issues sensitive options bound to the signed-in user', async () => {
-      mockPrismaService.user.findUnique.mockResolvedValue({
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-1',
         email: 'me@example.com',
       });
       const spy = vi
@@ -949,6 +1127,78 @@ describe('PasskeyService', () => {
 
       expect(spy).toHaveBeenCalledWith('me@example.com', 'sensitive');
       spy.mockRestore();
+    });
+  });
+
+  describe('provesSignIn', () => {
+    const session = {
+      userId: 'user-1',
+      signInId: 'sign-in-1',
+      email: 'me@example.com',
+    };
+    const proven = {
+      verified: true,
+      userId: 'user-1',
+      signInId: 'sign-in-1',
+      userVerified: true,
+    };
+
+    it('is a yes for a verified answer, with user verification, of a passkey of that sign-in', async () => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue(proven);
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(true);
+      expect(verify).toHaveBeenCalledWith('me@example.com', { id: 'cred-1' });
+      verify.mockRestore();
+    });
+
+    it.each([
+      ['not verified', { ...proven, verified: false }],
+      ['without user verification', { ...proven, userVerified: false }],
+      ['of another account', { ...proven, userId: 'user-2' }],
+      ['of another sign-in of the same person', { ...proven, signInId: 's-2' }],
+    ])('is a no for an answer %s', async (_case, result) => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue(result);
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(false);
+      verify.mockRestore();
+    });
+
+    it('is a no, not an error, when the answer cannot be verified', async () => {
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockRejectedValue(new Error('Challenge not found'));
+
+      await expect(
+        service.provesSignIn(session, { id: 'cred-1' }),
+      ).resolves.toBe(false);
+      verify.mockRestore();
+    });
+
+    it('asks the step-up of the sign-in of the session, looked for inside its account', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-own',
+        email: 'own@example.com',
+      });
+      const options = vi
+        .spyOn(service, 'generateAuthenticationOptions')
+        .mockResolvedValue({ challenge: 'c' } as never);
+
+      await service.generateStepUpOptions('user-1', 'sign-in-own');
+
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith({
+        where: { id: 'sign-in-own', userId: 'user-1' },
+        select: { id: true, email: true },
+      });
+      expect(options).toHaveBeenCalledWith('own@example.com', 'sensitive');
+      options.mockRestore();
     });
   });
 
@@ -980,7 +1230,8 @@ describe('PasskeyService', () => {
         id: 'pk-1',
         userId: 'user-1',
       });
-      mockPrismaService.user.findUnique.mockResolvedValue({
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-1',
         email: 'me@example.com',
       });
       const verify = vi.spyOn(service, 'verifyAuthentication');
@@ -1004,7 +1255,8 @@ describe('PasskeyService', () => {
         id: 'pk-1',
         userId: 'user-1',
       });
-      mockPrismaService.user.findUnique.mockResolvedValue({
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-1',
         email: 'me@example.com',
       });
       const verify = vi

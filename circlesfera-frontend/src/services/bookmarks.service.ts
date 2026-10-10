@@ -4,12 +4,12 @@ import { apiClient } from './api';
 export const bookmarksApi = {
   toggle: (postId: string, collectionId?: string) =>
     apiClient.post<{ bookmarked: boolean; collectionId?: string }>(
-      `bookmarks/${postId}/toggle`,
+      `bookmarks/${postId}`,
       { collectionId },
     ),
 
   updateCollection: (postId: string, collectionId: string | null) =>
-    apiClient.post<{ bookmarked: boolean; collectionId?: string | null }>(
+    apiClient.patch<{ bookmarked: boolean; collectionId?: string | null }>(
       `bookmarks/${postId}/collection`,
       { collectionId },
     ),

@@ -16,7 +16,7 @@ const contextFor = (user: unknown): ExecutionContext =>
   }) as unknown as ExecutionContext;
 
 describe('EmailVerifiedGuard', () => {
-  const prisma = { user: { findUnique: vi.fn() } };
+  const prisma = { signIn: { findFirst: vi.fn() } };
   const settings = { isEnabled: vi.fn() };
   const turnstile = { incrementEmailForbidden: vi.fn() };
   const guard = new EmailVerifiedGuard(
@@ -33,7 +33,7 @@ describe('EmailVerifiedGuard', () => {
   it('lets everyone through when email verification is not required', async () => {
     settings.isEnabled.mockResolvedValue(false);
     await expect(guard.canActivate(contextFor(undefined))).resolves.toBe(true);
-    expect(prisma.user.findUnique).not.toHaveBeenCalled();
+    expect(prisma.signIn.findFirst).not.toHaveBeenCalled();
   });
 
   it('refuses a request without a signed-in user', async () => {
@@ -43,14 +43,25 @@ describe('EmailVerifiedGuard', () => {
   });
 
   it('lets a verified account through', async () => {
-    prisma.user.findUnique.mockResolvedValue({ emailVerified: new Date() });
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: new Date() });
     await expect(
       guard.canActivate(contextFor({ userId: 'u-1' })),
     ).resolves.toBe(true);
   });
 
+  it('asks for the sign-in of the Profile in use', async () => {
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: new Date() });
+
+    await guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-2' }));
+
+    expect(prisma.signIn.findFirst.mock.calls[0][0].where).toEqual({
+      userId: 'u-1',
+      profiles: { some: { id: 'p-2' } },
+    });
+  });
+
   it('refuses an unverified account and counts it', async () => {
-    prisma.user.findUnique.mockResolvedValue({ emailVerified: null });
+    prisma.signIn.findFirst.mockResolvedValue({ emailVerified: null });
 
     const error = await guard
       .canActivate(contextFor({ userId: 'u-1' }))
@@ -188,14 +199,33 @@ describe('SubscriptionGuard', () => {
       plan: { name: 'Basic', priceCents: 499 },
     });
     await expect(
-      guard.canActivate(contextFor({ userId: 'u-1' })),
+      guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-1' })),
     ).rejects.toThrow(ForbiddenException);
 
     prisma.platformSubscription.findFirst.mockResolvedValueOnce({
       plan: { name: 'Business', priceCents: 4999 },
     });
     await expect(
-      guard.canActivate(contextFor({ userId: 'u-1' })),
+      guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-1' })),
     ).resolves.toBe(true);
+  });
+
+  it('looks for the plan of the Profile in use, not of another Profile of the person', async () => {
+    prisma.platformSubscription.findFirst.mockResolvedValueOnce({
+      plan: { name: 'Business', priceCents: 4999 },
+    });
+
+    await guard.canActivate(contextFor({ userId: 'u-1', profileId: 'p-2' }));
+
+    expect(
+      prisma.platformSubscription.findFirst.mock.calls[0][0].where,
+    ).toEqual({ userId: 'u-1', profileId: 'p-2', status: 'ACTIVE' });
+  });
+
+  it('refuses a session without a Profile, without looking for any plan', async () => {
+    await expect(
+      guard.canActivate(contextFor({ userId: 'u-1' })),
+    ).rejects.toThrow(ForbiddenException);
+    expect(prisma.platformSubscription.findFirst).not.toHaveBeenCalled();
   });
 });

@@ -170,6 +170,115 @@ describe('Sign-in copy of the account credentials (e2e)', () => {
     expect(second.signInId).toBe(signIn.id);
   });
 
+  it('every write to the credentials of the first sign-in reaches its account', async () => {
+    const { user } = await bothCopies();
+    const first = await prisma.signIn.findFirstOrThrow({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+
+    const writes = [
+      { password: 'hash-written-on-the-sign-in' },
+      { resetToken: `reset_b_${id}`, resetTokenExpires: new Date() },
+      { resetToken: null, resetTokenExpires: null },
+      { emailVerified: null, verificationToken: `verify_b_${id}` },
+      { emailVerified: new Date(), verificationToken: null },
+      { isTwoFactorEnabled: true, twoFactorSecret: 'encrypted-secret-b' },
+      { isTwoFactorEnabled: false, twoFactorSecret: null },
+      { passwordResetRequiredAt: null },
+    ];
+    for (const data of writes) {
+      await prisma.signIn.update({ where: { id: first.id }, data });
+      const { signIns, onUser } = await bothCopies();
+      expect(signIns).toHaveLength(1);
+      expect(signIns[0]).toEqual(onUser);
+    }
+  });
+
+  it('a second sign-in of the account keeps its own credentials, in both directions', async () => {
+    const { user, onUser: before } = await bothCopies();
+    const second = await prisma.signIn.create({
+      data: {
+        userId: user.id,
+        email: `signin_second_${id}@example.com`,
+        password: 'hash-of-the-second',
+      },
+      select: { id: true },
+    });
+    const ofSecond = () =>
+      prisma.signIn.findUniqueOrThrow({
+        where: { id: second.id },
+        select: credentialFields,
+      });
+
+    // Writing the second sign-in does not touch the account.
+    await prisma.signIn.update({
+      where: { id: second.id },
+      data: {
+        password: 'another-hash-of-the-second',
+        emailVerified: new Date(),
+        isTwoFactorEnabled: true,
+        twoFactorSecret: 'secret-of-the-second',
+      },
+    });
+    expect((await bothCopies()).onUser).toEqual(before);
+
+    // Writing the account reaches its first sign-in and not the second.
+    const secondBefore = await ofSecond();
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password: 'hash-written-on-the-account' },
+    });
+    expect(await ofSecond()).toEqual(secondBefore);
+    const first = await prisma.signIn.findFirstOrThrow({
+      where: { userId: user.id, id: { not: second.id } },
+      omit: { password: false },
+    });
+    expect(first.password).toBe('hash-written-on-the-account');
+
+    await prisma.signIn.delete({ where: { id: second.id } });
+  });
+
+  it('the database refuses a Profile on a sign-in of another account', async () => {
+    const { user } = await bothCopies();
+    const stranger = await prisma.user.create({
+      data: {
+        email: `signin_stranger_${id}@example.com`,
+        password: 'hash-of-the-stranger',
+        dateOfBirth: new Date('1990-01-15'),
+        inviteCode: `S${id}`.slice(0, 12).toUpperCase(),
+      },
+      select: { id: true, signIns: { select: { id: true } } },
+    });
+    const mine = await prisma.profile.findFirstOrThrow({
+      where: { userId: user.id },
+      select: { id: true, signInId: true },
+    });
+
+    await expect(
+      prisma.profile.update({
+        where: { id: mine.id },
+        data: { signInId: stranger.signIns[0].id },
+      }),
+    ).rejects.toThrow();
+    await expect(
+      prisma.profile.create({
+        data: {
+          userId: user.id,
+          username: `signin_c_${id}`,
+          signInId: stranger.signIns[0].id,
+        },
+      }),
+    ).rejects.toThrow();
+
+    const after = await prisma.profile.findUniqueOrThrow({
+      where: { id: mine.id },
+      select: { signInId: true },
+    });
+    expect(after.signInId).toBe(mine.signInId);
+    await prisma.user.delete({ where: { id: stranger.id } });
+  });
+
   it('no account is left without a sign-in, and no Profile without one', async () => {
     const [accountsWithout, profilesWithout] = await Promise.all([
       prisma.user.count({ where: { signIns: { none: {} } } }),

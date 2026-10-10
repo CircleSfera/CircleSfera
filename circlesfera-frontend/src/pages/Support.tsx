@@ -8,14 +8,17 @@ import {
   MarketingPage,
   MarketingPageHeader,
 } from '../components/marketing';
+import { MyRequests } from '../components/support/MyRequests';
+import { SuggestedArticles } from '../components/support/SuggestedArticles';
 import { Input } from '../components/ui/Input';
+import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
 const SHORTCUTS = [
-  { key: 'faq', to: '/faq', icon: HelpCircle },
+  { key: 'help', to: '/help', icon: HelpCircle },
   { key: 'rules', to: '/guidelines', icon: Scale },
   { key: 'privacy', to: '/privacy', icon: Fingerprint },
 ] as const;
@@ -29,6 +32,7 @@ export const Support = () => {
   const userId = profile?.userId || profile?.user?.id;
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
+  const [category, setCategory] = useState('');
   const [status, setStatus] = useState<
     'idle' | 'loading' | 'success' | 'error'
   >('idle');
@@ -44,11 +48,13 @@ export const Support = () => {
         email: userEmail,
         subject,
         message,
+        category: category || undefined,
         userId: userId,
       });
       setStatus('success');
       setSubject('');
       setMessage('');
+      setCategory('');
     } catch (error: unknown) {
       setStatus('error');
       // The API client rejects with { status, data }, never an Axios error.
@@ -100,6 +106,9 @@ export const Support = () => {
             </li>
           ))}
         </ul>
+
+        {/* What they already wrote, before the form to write again */}
+        {userEmail && <MyRequests />}
 
         <div className="mt-10 grid gap-8 sm:mt-14 lg:grid-cols-[1fr_1.2fr] lg:gap-12">
           <section>
@@ -169,6 +178,30 @@ export const Support = () => {
                   </div>
                 )}
 
+                <Select
+                  id="category"
+                  label={t('supportPage.category_label')}
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  required
+                  disabled={!userEmail || status === 'loading'}
+                >
+                  <option value="" disabled className="bg-surface-raised">
+                    {t('supportPage.category_placeholder')}
+                  </option>
+                  {(['ACCOUNT', 'PAYMENTS', 'CONTENT', 'OTHER'] as const).map(
+                    (value) => (
+                      <option
+                        key={value}
+                        value={value}
+                        className="bg-surface-raised"
+                      >
+                        {t(`supportPage.category.${value}`)}
+                      </option>
+                    ),
+                  )}
+                </Select>
+
                 <Input
                   id="subject"
                   label={t('supportPage.subject_label')}
@@ -190,6 +223,9 @@ export const Support = () => {
                   disabled={!userEmail || status === 'loading'}
                   className="min-h-32"
                 />
+
+                {/* The answer may already be written: offer it before sending */}
+                {userEmail && <SuggestedArticles subject={subject} />}
 
                 {status === 'error' && (
                   <p className="text-sm text-brand-secondary" role="alert">

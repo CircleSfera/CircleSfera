@@ -282,6 +282,88 @@ describe('EmailService', () => {
       );
     });
 
+    it('links a support reply to the page of its request', async () => {
+      await service.sendSupportReplyEmail(
+        'support-asker@example.com',
+        'Billing inquiry',
+        'Here is the response',
+        't-1',
+      );
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { html: string },
+      ];
+      expect(job.html).toContain('/support/requests/t-1');
+    });
+
+    it('reminds a requester the team is waiting, with a link to the request', async () => {
+      await service.sendSupportReminderEmail(
+        'support-asker@example.com',
+        'Billing inquiry',
+        42,
+        't-1',
+        7,
+      );
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { to: string; subject: string; html: string },
+      ];
+      expect(job.to).toBe('support-asker@example.com');
+      expect(job.subject).toBe(
+        '¿Sigues necesitando ayuda? Billing inquiry - Soporte de CircleSfera',
+      );
+      expect(job.html).toContain('/support/requests/t-1');
+    });
+
+    it('queues a support email with the address to answer to, and without one when there is none', async () => {
+      const replyTo = 'ticket+42.0123456789abcdef@reply.example.com';
+
+      await service.sendSupportReplyEmail(
+        'a@example.com',
+        'Help',
+        'Fixed.',
+        't-1',
+        replyTo,
+      );
+      await service.sendSupportReminderEmail(
+        'a@example.com',
+        'Help',
+        42,
+        't-1',
+        7,
+        replyTo,
+      );
+      await service.sendSupportReplyEmail(
+        'a@example.com',
+        'Help',
+        'Fixed.',
+        't-1',
+      );
+
+      const jobs = mockEmailQueue.add.mock.calls
+        .slice(-3)
+        .map((call) => call[1] as { replyTo?: string; html: string });
+      expect(jobs[0].replyTo).toBe(replyTo);
+      expect(jobs[1].replyTo).toBe(replyTo);
+      expect('replyTo' in jobs[2]).toBe(false);
+      expect(jobs[0].html).toContain('Puedes responder a este correo');
+      expect(jobs[2].html).not.toContain('Puedes responder a este correo');
+    });
+
+    it('tells an unmatched sender where requests are opened, with no address to answer to', async () => {
+      await service.sendSupportUnmatchedEmail('mallory@example.com');
+
+      const [, job] = mockEmailQueue.add.mock.calls.at(-1) as [
+        string,
+        { to: string; html: string; replyTo?: string },
+      ];
+      expect(job.to).toBe('mallory@example.com');
+      expect(job.html).toContain('/support');
+      expect('replyTo' in job).toBe(false);
+    });
+
     it('should enqueue a subscription receipt email', async () => {
       await service.sendSubscriptionReceipt(
         'subscriber@example.com',
@@ -326,6 +408,31 @@ describe('EmailService', () => {
   });
 
   describe('deliverMail (the actual Brevo call, invoked by EmailProcessor)', () => {
+    it('sends the address to answer to with the email, and none when there is none', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+
+      await service.deliverMail({
+        to: 'reply-a@example.com',
+        subject: 's',
+        html: '<p>h</p>',
+        replyTo: 'ticket+42.0123456789abcdef@reply.example.com',
+      });
+      await service.deliverMail({
+        to: 'reply-b@example.com',
+        subject: 's',
+        html: '<p>h</p>',
+      });
+
+      const [withAddress, without] =
+        mBrevoInstance.transactionalEmails.sendTransacEmail.mock.calls
+          .slice(-2)
+          .map((call) => call[0] as { replyTo?: { email: string } });
+      expect(withAddress.replyTo).toEqual({
+        email: 'ticket+42.0123456789abcdef@reply.example.com',
+      });
+      expect('replyTo' in without).toBe(false);
+    });
+
     it('should call Brevo with the expected payload', async () => {
       mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
       await service.deliverMail({

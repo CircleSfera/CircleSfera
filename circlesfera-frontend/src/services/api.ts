@@ -2,7 +2,7 @@ import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import axios from 'axios';
 import i18n from '../i18n';
 import { notifyActionLimit } from '../utils/actionLimit';
-import { isAdminPanelHost } from '../utils/adminPanel';
+import { isStaffHost } from '../utils/adminPanel';
 import { handleApiError } from '../utils/apiUtils';
 
 // In production, this should be https://circlesfera.com/api/v1
@@ -80,7 +80,7 @@ class ApiClient {
         const originalRequest = error.config;
         if (!originalRequest) return Promise.reject(error);
 
-        const adminPanel = isAdminPanelHost();
+        const adminPanel = isStaffHost();
         const isAuthRequest = adminPanel
           ? originalRequest.url?.includes('/admin-auth/login') ||
             originalRequest.url?.includes('/admin-auth/mfa/verify') ||

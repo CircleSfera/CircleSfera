@@ -6,6 +6,8 @@ export interface CurrentUserData {
   email: string;
   role: 'USER' | 'ADMIN' | 'MODERATOR';
   profileId: string;
+  // The sign-in that opened the session.
+  signInId?: string;
   // Test Account. Read from the database on every request, never
   // from the token, so it cannot be forged or go stale.
   isTestAccount: boolean;
@@ -23,7 +25,7 @@ export const CurrentUser = createParamDecorator(
     const request = ctx.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     if (!user) return null;
-    if (data) return user[data];
+    if (data) return user[data] ?? null;
     return user;
   },
 );
