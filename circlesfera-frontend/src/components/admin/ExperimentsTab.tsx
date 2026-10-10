@@ -31,6 +31,7 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination, SearchInput } from './AdminTable';
+import { adminToast } from './adminToast';
 
 const FLAG_KEY_REGEX = /^[a-z][a-z0-9_]{1,79}$/;
 
@@ -120,7 +121,8 @@ function PercentageSlider({
         max={100}
         value={value}
         onChange={(e) => onChange(clamp(Number(e.target.value) || 0))}
-        className="w-20 min-h-11 text-center"
+        aria-label={id ? undefined : t('admin.experiments.percentage')}
+        className="w-20 min-h-12 text-center"
       />
       <span className="text-xs text-white/50 shrink-0">%</span>
     </div>
@@ -142,7 +144,8 @@ function SubTabToggle({
       <button
         type="button"
         onClick={() => onTabChange('flags')}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+        aria-pressed={activeTab === 'flags'}
+        className={`min-h-11 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
           activeTab === 'flags'
             ? 'bg-white/10 text-white shadow-sm'
             : 'text-white/50 hover:text-white/80 hover:bg-white/3'
@@ -154,7 +157,8 @@ function SubTabToggle({
       <button
         type="button"
         onClick={() => onTabChange('experiments')}
-        className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
+        aria-pressed={activeTab === 'experiments'}
+        className={`min-h-11 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
           activeTab === 'experiments'
             ? 'bg-white/10 text-white shadow-sm'
             : 'text-white/50 hover:text-white/80 hover:bg-white/3'
@@ -343,9 +347,18 @@ export default function ExperimentsTab() {
         percentage?: number;
       };
     }) => adminApi.upsertFeatureFlag(key, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'feature-flags'] });
+    onSuccess: async (_data, { key }) => {
+      await queryClient.invalidateQueries({
+        queryKey: ['admin', 'feature-flags'],
+      });
+      // The card goes back to showing the flag as saved; the values it held
+      // may be older than what the form has just changed.
+      setFlagDrafts(({ [key]: _saved, ...rest }) => rest);
       setSelectedFlagId(null);
+      adminToast(t('admin.experiments.toast_flag_saved'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.experiments.toast_flag_save_error'), 'error');
     },
   });
 
@@ -354,6 +367,10 @@ export default function ExperimentsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'feature-flags'] });
       setSelectedFlagId(null);
+      adminToast(t('admin.experiments.toast_flag_deleted'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.experiments.toast_flag_delete_error'), 'error');
     },
   });
 
@@ -388,6 +405,10 @@ export default function ExperimentsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'experiments'] });
       setSelectedExperimentId(null);
+      adminToast(t('admin.experiments.toast_assigned'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.experiments.toast_assign_error'), 'error');
     },
   });
 
@@ -396,6 +417,10 @@ export default function ExperimentsTab() {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'experiments'] });
       if (selectedExperimentId === id) setSelectedExperimentId(null);
+      adminToast(t('admin.experiments.toast_removed'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.experiments.toast_remove_error'), 'error');
     },
   });
 
@@ -409,19 +434,24 @@ export default function ExperimentsTab() {
       ? (flags?.find((f) => f.id === selectedFlagId) ?? null)
       : null;
 
+  const setFlagEnabled = (flagKey: string, isEnabled: boolean) => {
+    const flag = flags?.find((f) => f.key === flagKey);
+    setFlagDrafts((prev) => ({
+      ...prev,
+      [flagKey]: {
+        percentage: prev[flagKey]?.percentage ?? flag?.percentage ?? 0,
+        isEnabled,
+      },
+    }));
+  };
+
   const handleToggleEnabled = (flagKey: string, newEnabled: boolean) => {
     const flag = flags?.find((f) => f.key === flagKey);
     if (flag?.isEnabled && !newEnabled && flag.percentage > 0) {
       setConfirmDeactivate({ key: flagKey, percentage: flag.percentage });
       return;
     }
-    setFlagDrafts((prev) => ({
-      ...prev,
-      [flagKey]: {
-        ...prev[flagKey],
-        isEnabled: newEnabled,
-      },
-    }));
+    setFlagEnabled(flagKey, newEnabled);
   };
 
   return (
@@ -601,11 +631,8 @@ export default function ExperimentsTab() {
                   <FeatureFlagForm
                     key={editingFlag?.id ?? 'new'}
                     initialData={editingFlag ?? undefined}
-                    onSubmit={(payload) => {
-                      upsertFlagMutation.mutate({
-                        key: payload.key,
-                        data: payload,
-                      });
+                    onSubmit={({ key, ...data }) => {
+                      upsertFlagMutation.mutate({ key, data });
                     }}
                     onCancel={() => setSelectedFlagId(null)}
                     isSubmitting={upsertFlagMutation.isPending}
@@ -638,13 +665,7 @@ export default function ExperimentsTab() {
             onClose={() => setConfirmDeactivate(null)}
             onConfirm={() => {
               if (confirmDeactivate) {
-                setFlagDrafts((prev) => ({
-                  ...prev,
-                  [confirmDeactivate.key]: {
-                    ...prev[confirmDeactivate.key],
-                    isEnabled: false,
-                  },
-                }));
+                setFlagEnabled(confirmDeactivate.key, false);
               }
               setConfirmDeactivate(null);
             }}
@@ -918,7 +939,8 @@ function FeatureFlagForm({
             onSubmit({
               key,
               name,
-              description: description || undefined,
+              // An existing description can be emptied; a new flag has none.
+              description: isEditing ? description : description || undefined,
               percentage,
               isEnabled,
             })
