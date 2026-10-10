@@ -78,7 +78,8 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
   };
 
   const addMutation = useMutation({
-    mutationFn: () => adminApi.addFirewallSignature(newText, newCategory),
+    mutationFn: () =>
+      adminApi.addFirewallSignature(newText.trim(), newCategory),
     onSuccess: () => {
       onToast(t('admin.firewall.toast_added'), 'success');
       clearSelection();
@@ -321,6 +322,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
         cancelText={t('admin.shared.cancel')}
         onConfirm={() => deleteId && deleteMutation.mutate(deleteId)}
         onClose={() => setDeleteId(null)}
+        isDestructive
         isLoading={deleteMutation.isPending}
       />
     </div>

@@ -20,6 +20,7 @@ import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
+import { adminToast } from './adminToast';
 import LiveStreamDetailPanel from './LiveStreamDetailPanel';
 
 export default function LiveStreamsTab() {
@@ -58,9 +59,15 @@ export default function LiveStreamsTab() {
 
   const endStreamMutation = useMutation({
     mutationFn: (id: string) => adminApi.endLiveStream(id),
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'livestreams'] });
       setConfirmEndId(null);
+      // The open panel holds the stream as it was listed: still live.
+      setSelectedStream((open) => (open?.id === id ? null : open));
+      adminToast(t('admin.live.toast_ended'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.live.toast_end_error'), 'error');
     },
   });
 

@@ -85,7 +85,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                       onClick={() => onTabChange(item.id)}
                       aria-current={isSelected ? 'page' : undefined}
                       className={clsx(
-                        'w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold border text-left min-h-10',
+                        'w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold border text-left min-h-11',
                         isSelected
                           ? 'bg-brand-primary/15 text-white border-brand-primary/30 border-l-2 border-l-brand-primary'
                           : 'bg-transparent text-white/50 border-transparent hover:bg-white/5 hover:text-white',
