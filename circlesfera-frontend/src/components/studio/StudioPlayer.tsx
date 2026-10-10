@@ -140,7 +140,10 @@ export default function StudioPlayer() {
       .filter((tr) => tr.type === 'audio' && !tr.muted)
       .flatMap((tr) => tr.clips) as MediaClip[];
 
+    const soundingAudioIds = new Set<string>();
+
     audioClips.forEach((clip) => {
+      soundingAudioIds.add(clip.id);
       let audioEl = audioElementsRef.current[clip.id];
       if (!audioEl) {
         audioEl = document.createElement('audio');
@@ -169,6 +172,12 @@ export default function StudioPlayer() {
       } else if (!audioEl.paused) {
         audioEl.pause();
       }
+    });
+
+    // A clip whose track was muted, or that is no longer in the project,
+    // is not in the pass above: its sound is stopped here.
+    Object.entries(audioElementsRef.current).forEach(([id, el]) => {
+      if (!soundingAudioIds.has(id) && !el.paused) el.pause();
     });
   }, [playhead, project, isPlaying]);
 
@@ -297,6 +306,8 @@ export default function StudioPlayer() {
     if (isPlaying) {
       let lastTime = performance.now();
       interval = setInterval(() => {
+        // Stopped at the end a moment ago: the playhead stays at the start.
+        if (!useStudioStore.getState().isPlaying) return;
         const now = performance.now();
         const delta = (now - lastTime) / 1000;
         lastTime = now;
