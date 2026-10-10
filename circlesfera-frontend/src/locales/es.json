@@ -212,6 +212,8 @@
       "muted_empty": "No hay usuarios silenciados",
       "expires_forever": "Para siempre",
       "expires_on": "Hasta {{date}}",
+      "unblock_error": "No se pudo desbloquear la cuenta. Inténtalo de nuevo.",
+      "unmute_error": "No se pudo dejar de silenciar la cuenta. Inténtalo de nuevo.",
       "change_duration": "Duración"
     },
     "account": {
@@ -249,6 +251,7 @@
       "delete_scheduled": "Cuenta programada para eliminación. Inicia sesión en 30 días para restaurarla.",
       "delete_cancelled": "Eliminación cancelada. Tu cuenta está activa de nuevo.",
       "delete_cancel_error": "No se pudo cancelar la eliminación. Intenta iniciar sesión de nuevo dentro del periodo de gracia.",
+      "delete_error": "No se pudo programar el borrado de la cuenta. No ha cambiado nada.",
       "verification": {
         "title": "Verificación de identidad",
         "success": "¡Tu identidad ha sido verificada!",

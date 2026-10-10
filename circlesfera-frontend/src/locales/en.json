@@ -212,6 +212,8 @@
       "muted_empty": "No muted users",
       "expires_forever": "Forever",
       "expires_on": "Until {{date}}",
+      "unblock_error": "The account could not be unblocked. Try again.",
+      "unmute_error": "The account could not be unmuted. Try again.",
       "change_duration": "Duration"
     },
     "account": {
@@ -249,6 +251,7 @@
       "delete_scheduled": "Account scheduled for deletion. Log in within 30 days to restore it.",
       "delete_cancelled": "Account deletion cancelled. Your account is active again.",
       "delete_cancel_error": "Could not cancel deletion. Try logging in again within the grace period.",
+      "delete_error": "The account could not be scheduled for deletion. Nothing has changed.",
       "verification": {
         "title": "Identity verification",
         "success": "Your identity has been verified!",
