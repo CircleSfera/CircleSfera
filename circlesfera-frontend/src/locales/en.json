@@ -3310,7 +3310,13 @@
       "create_title": "Add to whitelist",
       "create_message": "Enter the invited email.",
       "email_placeholder": "email@example.com",
-      "name_placeholder": "Name (optional)"
+      "name_placeholder": "Name (optional)",
+      "toast_added": "Added to the whitelist",
+      "toast_add_error": "Could not add to the whitelist",
+      "toast_saved": "Entry saved",
+      "toast_save_error": "Could not save the entry",
+      "toast_deleted": "Entry deleted",
+      "toast_delete_error": "Could not delete the entry"
     },
     "verification": {
       "title": "KYC & Verification",

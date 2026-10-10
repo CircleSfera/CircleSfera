@@ -3310,7 +3310,13 @@
       "create_title": "Añadir a whitelist",
       "create_message": "Introduce el email invitado.",
       "email_placeholder": "email@ejemplo.com",
-      "name_placeholder": "Nombre (opcional)"
+      "name_placeholder": "Nombre (opcional)",
+      "toast_added": "Añadido a la whitelist",
+      "toast_add_error": "No se pudo añadir a la whitelist",
+      "toast_saved": "Registro guardado",
+      "toast_save_error": "No se pudo guardar el registro",
+      "toast_deleted": "Registro eliminado",
+      "toast_delete_error": "No se pudo eliminar el registro"
     },
     "verification": {
       "title": "KYC & Verificación",
