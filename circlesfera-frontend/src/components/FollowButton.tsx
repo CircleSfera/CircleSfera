@@ -29,7 +29,10 @@ export default function FollowButton({
   }, [data]);
 
   const followMutation = useMutation({
-    mutationFn: (user: string) => followsApi.toggle(user),
+    // Across a block the server does not know the account for a follow:
+    // the button reads "Unblock" there, and unblocking is what it does.
+    mutationFn: (user: string) =>
+      status === 'BLOCKED' ? followsApi.unblock(user) : followsApi.toggle(user),
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: ['follow', username] });
       const previousFollow = queryClient.getQueryData(['follow', username]);

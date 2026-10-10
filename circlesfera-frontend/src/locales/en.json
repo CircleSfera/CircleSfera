@@ -1114,6 +1114,9 @@
     "highlight_updated": "Highlight updated"
   },
   "comments": {
+    "send_error": "Your comment could not be posted. Try again.",
+    "delete_error": "The comment could not be deleted.",
+    "like_error": "The like could not be saved.",
     "unlike": "Unlike",
     "like": "Like",
     "reply": "Reply",
