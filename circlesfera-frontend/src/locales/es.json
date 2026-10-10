@@ -2188,6 +2188,7 @@
     "description": "Gestión y moderación de CircleSfera",
     "connected_as": "Admin",
     "back_to_app": "Volver a CircleSfera",
+    "account_menu": "Cuenta de {{name}}",
     "back_short": "App",
     "open_nav": "Abrir navegación",
     "mobile_nav_title": "Navegación",
@@ -2612,7 +2613,17 @@
       "kpi_traffic_normal": "Normal",
       "status_live_now": "En vivo ahora",
       "gifts": "Regalos",
-      "viewers": "Espectadores"
+      "viewers": "Espectadores",
+      "badge_live": "En vivo",
+      "badge_ended": "Finalizado",
+      "participants": "Participantes",
+      "role_host": "Anfitrión principal",
+      "role_cohost": "Coanfitrión invitado",
+      "moderation_actions": "Acciones de moderación",
+      "warn_title": "Enviar advertencia",
+      "warn_description": "El usuario recibirá un aviso oficial.",
+      "force_end_title": "Forzar cierre de la transmisión",
+      "force_end_description": "El directo terminará inmediatamente."
     },
     "plans": {
       "title": "Planes",
@@ -3455,7 +3466,8 @@
       "provider": "Proveedor",
       "external_id": "External ID",
       "status": "Estado",
-      "processed_at": "Procesado"
+      "processed_at": "Procesado",
+      "replay_error": "No se pudo reenviar el evento"
     },
     "user_preview": {
       "title": "Expediente de Usuario",
@@ -3873,7 +3885,11 @@
     "save_error_short": "Error al guardar",
     "zoom": "Zoom de timeline",
     "playhead": "Cabezal de reproducción",
-    "clip_types": { "video": "Vídeo", "image": "Imagen", "audio": "Audio" },
+    "clip_types": {
+      "video": "Vídeo",
+      "image": "Imagen",
+      "audio": "Audio"
+    },
     "trim_start": "Recortar inicio",
     "trim_end": "Recortar final",
     "mute": "Silenciar pista",
