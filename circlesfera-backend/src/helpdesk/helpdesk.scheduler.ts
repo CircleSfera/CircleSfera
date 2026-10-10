@@ -1,5 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
 // The work the Help Desk does on a schedule. Each job can run twice without
@@ -11,7 +12,23 @@ export class HelpdeskScheduler {
   constructor(
     @Inject(HelpdeskTicketsService)
     private readonly tickets: HelpdeskTicketsService,
+    @Inject(HelpdeskInboundService)
+    private readonly inbound: HelpdeskInboundService,
   ) {}
+
+  @Cron(CronExpression.EVERY_DAY_AT_4AM)
+  async deleteOldInboundEmails(): Promise<void> {
+    try {
+      const deleted = await this.inbound.deleteOld();
+      if (deleted > 0) {
+        this.logger.log(`Kept emails past their time deleted: ${deleted}`);
+      }
+    } catch (err: unknown) {
+      this.logger.error(
+        `Deleting old kept emails failed: ${err instanceof Error ? err.message : 'unknown error'}`,
+      );
+    }
+  }
 
   @Cron(CronExpression.EVERY_HOUR)
   async closeSolvedTickets(): Promise<void> {

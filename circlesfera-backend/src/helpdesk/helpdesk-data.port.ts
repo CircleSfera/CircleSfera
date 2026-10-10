@@ -1,6 +1,8 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 import { HelpdeskStore } from './helpdesk.store.js';
+import type { InboundEmail } from './helpdesk-inbound.js';
+import { HelpdeskInboundService } from './helpdesk-inbound.service.js';
 import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
 /**
@@ -53,6 +55,19 @@ export class HelpdeskDataPort {
    * An answer of the team written outside the Help Desk. False when the
    * ticket cannot be answered.
    */
+  /** Whether email in is set up: without it no email is received. */
+  emailInEnabled(): boolean {
+    return this.moduleRef.get(HelpdeskInboundService, { strict: false })
+      .enabled;
+  }
+
+  /** Keeps an email that arrived at a reply address. */
+  receiveEmail(email: InboundEmail): Promise<{ id: string; kept: boolean }> {
+    return this.moduleRef
+      .get(HelpdeskInboundService, { strict: false })
+      .receive(email);
+  }
+
   answerFromTeamChannel(ticketId: string, text: string): Promise<boolean> {
     return this.moduleRef
       .get(HelpdeskTicketsService, { strict: false })

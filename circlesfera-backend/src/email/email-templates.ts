@@ -38,12 +38,14 @@ interface LayoutOptions {
   button?: { text: string; url: string };
   // A secondary note under the body (expiry, "ignore if not you").
   note?: string;
+  // The email has an address to answer to; otherwise it says it has none.
+  canReply?: boolean;
 }
 
 function layout(
   ctx: EmailContext,
   copy: EmailCopy,
-  { title, content, button, note }: LayoutOptions,
+  { title, content, button, note, canReply = false }: LayoutOptions,
 ): string {
   const year = String(new Date().getFullYear());
   const logoUrl = `${ctx.frontendUrl}/email/logo.png`;
@@ -132,7 +134,7 @@ function layout(
           <tr>
             <td align="center" style="padding: 24px 16px 0 16px; font-family: ${BRAND.font}; font-size: 12px; line-height: 18px; color: ${BRAND.textSubtle};">
               ${fill(copy.footer, { year })}<br>
-              ${copy.automated}<br>
+              ${canReply ? copy.replyable : copy.automated}<br>
               <a href="${ctx.frontendUrl}/privacy" target="_blank" style="color: ${BRAND.textMuted}; text-decoration: underline;">${copy.privacy}</a>
             </td>
           </tr>
@@ -285,11 +287,14 @@ export const EmailTemplates = {
     reply: string,
     // Where the requester reads the conversation and answers.
     requestUrl?: string,
+    // The email has an address to answer to.
+    canReply = false,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {
       subject: fill(copy.supportReply.subject, { subject: originalSubject }),
       html: layout(ctx, copy, {
+        canReply,
         title: copy.supportReply.title,
         content: escapeHtml(reply).replace(/\n/g, '<br>'),
         ...(requestUrl && {
@@ -305,11 +310,13 @@ export const EmailTemplates = {
     reference: number,
     solvedInDays: number,
     requestUrl: string,
+    canReply = false,
   ): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {
       subject: fill(copy.supportReminder.subject, { subject: originalSubject }),
       html: layout(ctx, copy, {
+        canReply,
         title: copy.supportReminder.title,
         content: fill(copy.supportReminder.body, {
           subject: escapeHtml(originalSubject),

@@ -33,6 +33,7 @@ import {
   TEAM_CHANNEL,
   type TeamChannel,
 } from './helpdesk-host.contracts.js';
+import { HelpdeskReplyAddress } from './helpdesk-reply-address.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -55,6 +56,8 @@ export class HelpdeskTicketsService {
     @Inject(TEAM_CHANNEL) private readonly teamChannel: TeamChannel,
     @Inject(STAFF_ACTION_LOG) private readonly staffLog: StaffActionLog,
     @Inject(AGENT_DIRECTORY) private readonly agents: AgentDirectory,
+    @Inject(HelpdeskReplyAddress)
+    private readonly replyAddress: HelpdeskReplyAddress,
   ) {}
 
   // The names of the agents these references point to, by reference.
@@ -125,6 +128,7 @@ export class HelpdeskTicketsService {
       subject: ticket.subject,
       email: ticket.email,
       requesterRef: ticket.userId,
+      replyTo: this.replyAddress.for(ticket),
     };
   }
 

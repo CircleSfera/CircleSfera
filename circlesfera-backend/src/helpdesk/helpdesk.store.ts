@@ -453,4 +453,57 @@ export class HelpdeskStore {
     });
     return count === 1;
   }
+
+  /**
+   * Keeps an email that arrived, once: the same Message-ID in the
+   * organization is the same email. Says whether it is new.
+   */
+  async keepInboundEmail(email: {
+    messageId: string;
+    fromAddress: string;
+    toAddress: string;
+    subject: string;
+    body: string;
+    spamScore: number | null;
+    attachmentCount: number;
+    automated: boolean;
+  }): Promise<{ id: string; kept: boolean }> {
+    const where = {
+      organizationId_messageId: {
+        organizationId: this.organizationId,
+        messageId: email.messageId,
+      },
+    };
+    const before = await this.prisma.helpdeskInboundEmail.findUnique({
+      where,
+      select: { id: true },
+    });
+    if (before) return { id: before.id, kept: false };
+    try {
+      const created = await this.prisma.helpdeskInboundEmail.create({
+        data: { organizationId: this.organizationId, ...email },
+        select: { id: true },
+      });
+      return { id: created.id, kept: true };
+    } catch (err: unknown) {
+      // Delivered twice at the same moment: the other one kept it.
+      if ((err as { code?: string }).code !== 'P2002') throw err;
+      const other = await this.prisma.helpdeskInboundEmail.findUniqueOrThrow({
+        where,
+        select: { id: true },
+      });
+      return { id: other.id, kept: false };
+    }
+  }
+
+  /** Deletes the emails that arrived before a moment. */
+  async deleteInboundEmailsBefore(moment: Date): Promise<number> {
+    const { count } = await this.prisma.helpdeskInboundEmail.deleteMany({
+      where: {
+        organizationId: this.organizationId,
+        receivedAt: { lt: moment },
+      },
+    });
+    return count;
+  }
 }

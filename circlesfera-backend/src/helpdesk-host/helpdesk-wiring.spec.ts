@@ -12,6 +12,7 @@ import { HelpdeskTicketsService } from '../helpdesk/helpdesk-tickets.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SlackModule } from '../slack/slack.module.js';
 import { SlackService } from '../slack/slack.service.js';
+import { BrevoInboundController } from './brevo-inbound.controller.js';
 import { CircleSferaHelpdeskHostModule } from './circlesfera-helpdesk-host.module.js';
 
 // The internal channel brings in queues and outside services; here only its
@@ -50,6 +51,12 @@ describe('Help Desk wired to its CircleSfera host', () => {
     );
     expect(moduleRef.get(HelpdeskRequesterController)).toBeDefined();
     expect(moduleRef.get(HelpdeskAgentController)).toBeDefined();
+    // The route of the mail provider reaches the Help Desk through its port.
+    expect(moduleRef.get(BrevoInboundController)).toBeDefined();
+    // No settings here: email in is off.
+    expect(
+      moduleRef.get(HelpdeskDataPort, { strict: false }).emailInEnabled(),
+    ).toBe(false);
     await moduleRef.close();
   });
 });
