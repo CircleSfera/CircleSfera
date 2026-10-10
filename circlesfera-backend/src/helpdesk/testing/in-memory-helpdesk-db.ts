@@ -403,6 +403,14 @@ export class InMemoryHelpdeskDb {
   };
 
   readonly helpdeskRating = {
+    findMany: async ({ where }: { where?: Where }) =>
+      this.ratings
+        .filter((r) => this.matches(r, where))
+        .map((r) => ({
+          ...r,
+          ticket: { ...this.tickets.find((t) => t.id === r.ticketId) },
+        })),
+
     findFirst: async ({ where }: { where?: Where }) => {
       const found = this.ratings.find((r) => this.matches(r, where));
       return found ? { ...found } : null;

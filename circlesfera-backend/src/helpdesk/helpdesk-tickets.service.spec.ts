@@ -917,10 +917,14 @@ describe('HelpdeskTicketsService', () => {
 
       expect(await service.closeSolvedTickets()).toBe(2);
 
+      const after = Date.now();
+
+      // Seven days before the moment the service read the clock, which is
+      // somewhere between the two readings taken here.
       const moment = store.ticketsSolvedBefore.mock.calls[0][0] as Date;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
-      expect(before - moment.getTime()).toBeGreaterThanOrEqual(sevenDays);
-      expect(before - moment.getTime()).toBeLessThan(sevenDays + 5_000);
+      expect(moment.getTime()).toBeGreaterThanOrEqual(before - sevenDays);
+      expect(moment.getTime()).toBeLessThanOrEqual(after - sevenDays);
       expect(store.updateTicket).toHaveBeenCalledTimes(2);
       expect(store.updateTicket).toHaveBeenCalledWith(
         't-2',

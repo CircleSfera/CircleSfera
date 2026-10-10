@@ -11,6 +11,16 @@ import {
   type OrganizationScope,
 } from './helpdesk-host.contracts.js';
 
+/** What makes an open ticket be past its target at a moment. */
+const pastTarget = (moment: Date): Prisma.SupportTicketWhereInput => ({
+  status: 'OPEN',
+  OR: [
+    // Not answered yet, and the first response is late.
+    { firstRespondedAt: null, firstResponseDueAt: { lt: moment } },
+    { resolutionDueAt: { lt: moment } },
+  ],
+});
+
 /** One change of a ticket and who made it. */
 export interface TicketEventInput {
   kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
@@ -339,14 +349,7 @@ export class HelpdeskStore {
     const where: Prisma.SupportTicketWhereInput = {
       ...filters,
       organizationId: this.organizationId,
-      ...(pastTargetAt && {
-        status: 'OPEN',
-        OR: [
-          // Not answered yet, and the first response is late.
-          { firstRespondedAt: null, firstResponseDueAt: { lt: pastTargetAt } },
-          { resolutionDueAt: { lt: pastTargetAt } },
-        ],
-      }),
+      ...(pastTargetAt && pastTarget(pastTargetAt)),
     };
     const [tickets, total] = await Promise.all([
       this.prisma.supportTicket.findMany({
@@ -673,6 +676,43 @@ export class HelpdeskStore {
       },
       update: { score, comment },
       select: { score: true, comment: true, updatedAt: true },
+    });
+  }
+
+  /** How many open tickets are past their target at a moment. */
+  countPastTarget(moment: Date): Promise<number> {
+    return this.prisma.supportTicket.count({
+      where: { organizationId: this.organizationId, ...pastTarget(moment) },
+    });
+  }
+
+  /** The times and the state of the tickets opened since a moment. Nothing written by anyone. */
+  measuredTicketsSince(moment: Date) {
+    return this.prisma.supportTicket.findMany({
+      where: {
+        organizationId: this.organizationId,
+        createdAt: { gte: moment },
+      },
+      select: {
+        serviceLevel: true,
+        status: true,
+        createdAt: true,
+        firstResponseDueAt: true,
+        firstRespondedAt: true,
+        resolutionDueAt: true,
+        resolvedAt: true,
+      },
+    });
+  }
+
+  /** The ratings of tickets opened since a moment: the score and the level, not the comment. */
+  ratingsSince(moment: Date) {
+    return this.prisma.helpdeskRating.findMany({
+      where: {
+        organizationId: this.organizationId,
+        ticket: { createdAt: { gte: moment } },
+      },
+      select: { score: true, ticket: { select: { serviceLevel: true } } },
     });
   }
 }

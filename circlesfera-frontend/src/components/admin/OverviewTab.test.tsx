@@ -39,7 +39,12 @@ describe('OverviewTab', () => {
       _page: number,
       _limit: number,
       status: string,
-    ) => Promise.resolve(total(status === 'OPEN' ? 4 : 1))) as never);
+      _category: string,
+      team?: { target?: string },
+    ) =>
+      Promise.resolve(
+        total(team?.target === 'past' ? 2 : status === 'OPEN' ? 4 : 1),
+      )) as never);
     vi.mocked(adminApi.getPromotions).mockResolvedValue(total(6) as never);
     vi.mocked(adminApi.getDisputes).mockResolvedValue({
       data: { data: [], meta: { total: 2, openCount: 2 } },
@@ -70,7 +75,7 @@ describe('OverviewTab', () => {
 
     const tickets = screen.getByRole('link', { name: /Open tickets/ });
     await waitFor(() => expect(tickets).toHaveTextContent('4'));
-    expect(tickets).toHaveTextContent('1 with moderation');
+    expect(tickets).toHaveTextContent('2 past target · 1 with moderation');
     expect(tickets).toHaveAttribute('href', '/support');
 
     const promotions = screen.getByRole('link', {

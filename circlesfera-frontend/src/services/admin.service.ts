@@ -535,6 +535,29 @@ export interface AdminSavedReply {
   updatedAt: string;
 }
 
+// How one group of tickets was attended, in numbers.
+export interface AdminServiceFigures {
+  opened: number;
+  solved: number;
+  firstResponse: {
+    answered: number;
+    // Shares go from 0 to 1; null with nothing to measure.
+    withinTarget: number | null;
+    medianMinutes: number | null;
+  };
+  resolution: { withinTarget: number | null; medianMinutes: number | null };
+  ratings: { count: number; good: number | null };
+}
+
+export interface AdminSupportFigures {
+  days: 7 | 30;
+  // Open tickets past their target, right now.
+  pastTarget: number;
+  total: AdminServiceFigures;
+  standard: AdminServiceFigures;
+  priority: AdminServiceFigures;
+}
+
 // An agent a ticket can be given to.
 export interface AdminSupportAgent {
   ref: string;
@@ -1165,6 +1188,12 @@ export const adminApi = {
     apiClient.patch<AdminSavedReply>(`admin/support/saved-replies/${id}`, data),
   deleteSavedReply: (id: string) =>
     apiClient.delete<{ deleted: boolean }>(`admin/support/saved-replies/${id}`),
+
+  // How fast and how well support answered; only for who leads the team.
+  getSupportFigures: (days: 7 | 30) =>
+    apiClient.get<AdminSupportFigures>('admin/support/tickets/figures', {
+      params: { days },
+    }),
 
   // The agents a ticket can be given to.
   getSupportAgents: () =>

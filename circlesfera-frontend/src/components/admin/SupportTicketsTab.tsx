@@ -37,6 +37,7 @@ import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination } from './AdminTable';
 import { staffTabHref } from './adminNav';
 import { SavedReplies } from './SavedReplies';
+import { SupportFigures } from './SupportFigures';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -479,6 +480,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
       <AdminPageHeader
         title={t('admin.support.title')}
         subtitle={t('admin.support.subtitle')}
+        actions={leadsTeam ? <SupportFigures /> : undefined}
       />
 
       <AdminFilterBar>

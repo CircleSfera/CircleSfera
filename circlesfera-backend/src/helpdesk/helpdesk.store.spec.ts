@@ -16,6 +16,7 @@ describe('HelpdeskStore', () => {
     },
     helpdeskMessage: { findMany: vi.fn().mockResolvedValue([]) },
     helpdeskTicketEvent: { findMany: vi.fn().mockResolvedValue([]) },
+    helpdeskRating: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const organization = { current: vi.fn() };
   let store: HelpdeskStore;
@@ -412,6 +413,56 @@ describe('HelpdeskStore', () => {
         orderBy: { resolvedAt: 'desc' },
         take: 100,
         select: { createdAt: true, resolvedAt: true },
+      });
+    });
+  });
+
+  describe('figures', () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    it('counts the open tickets of the organization past their target', async () => {
+      await store.countPastTarget(moment);
+
+      expect(prisma.supportTicket.count).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          status: 'OPEN',
+          OR: [
+            { firstRespondedAt: null, firstResponseDueAt: { lt: moment } },
+            { resolutionDueAt: { lt: moment } },
+          ],
+        },
+      });
+    });
+
+    it('reads times and state of the tickets opened since a moment, and nothing anyone wrote', async () => {
+      await store.measuredTicketsSince(moment);
+
+      const query = prisma.supportTicket.findMany.mock.calls[0][0];
+      expect(query.where).toEqual({
+        organizationId: 'org-1',
+        createdAt: { gte: moment },
+      });
+      expect(Object.keys(query.select).sort()).toEqual([
+        'createdAt',
+        'firstRespondedAt',
+        'firstResponseDueAt',
+        'resolutionDueAt',
+        'resolvedAt',
+        'serviceLevel',
+        'status',
+      ]);
+    });
+
+    it('reads the score of the ratings of those tickets, not the comment', async () => {
+      await store.ratingsSince(moment);
+
+      expect(prisma.helpdeskRating.findMany).toHaveBeenCalledWith({
+        where: {
+          organizationId: 'org-1',
+          ticket: { createdAt: { gte: moment } },
+        },
+        select: { score: true, ticket: { select: { serviceLevel: true } } },
       });
     });
   });
