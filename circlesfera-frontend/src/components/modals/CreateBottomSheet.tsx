@@ -215,6 +215,9 @@ export default function CreateBottomSheet() {
             }}
             className="fixed bottom-0 left-0 right-0 z-101 bg-black/60 backdrop-blur-2xl border border-white/10 rounded-t-4xl md:top-0 md:bottom-0 md:h-fit md:m-auto md:max-w-md md:rounded-4xl shadow-[0_0_40px_rgba(140, 82, 255,0.2)] overflow-hidden flex flex-col max-h-[85vh]"
             data-testid="create-bottom-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('create_menu.title')}
           >
             <div
               className="w-full flex md:hidden justify-center pt-4 pb-2 cursor-grab active:cursor-grabbing touch-none"

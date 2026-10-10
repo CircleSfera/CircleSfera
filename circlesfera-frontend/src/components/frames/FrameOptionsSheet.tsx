@@ -221,6 +221,7 @@ export default function FrameOptionsSheet({
                   onClick={onClose}
                   variant="ghost"
                   size="icon"
+                  aria-label={t('common.close')}
                   className="text-white hover:bg-white/10 rounded-full"
                 >
                   <X size={20} />

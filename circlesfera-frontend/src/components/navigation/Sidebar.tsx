@@ -162,8 +162,10 @@ export default function Sidebar({ compact = false }: { compact?: boolean }) {
             item.label === t('nav.profile')
               ? isProfileActive
               : item.to
-                ? path === item.to ||
-                  (item.to !== '/' && path.startsWith(item.to))
+                ? // A section is open at its address and under it: "/explore"
+                  // is, the profile of someone called "explorer" is not.
+                  path === item.to ||
+                  (item.to !== '/' && path.startsWith(`${item.to}/`))
                 : false;
 
           const content = (
