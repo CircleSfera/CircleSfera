@@ -1108,6 +1108,7 @@
     "delete_highlight": "Delete highlight",
     "delete_highlight_confirm": "Delete this highlight?",
     "edit_highlight": "Edit highlight",
+    "rename_highlight": "Rename highlight",
     "highlight_delete_error": "Could not delete",
     "highlight_deleted": "Highlight deleted",
     "highlight_update_error": "Could not update",

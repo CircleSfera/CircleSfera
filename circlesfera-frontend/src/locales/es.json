@@ -1108,6 +1108,7 @@
     "delete_highlight": "Eliminar destacado",
     "delete_highlight_confirm": "¿Eliminar este destacado?",
     "edit_highlight": "Editar destacado",
+    "rename_highlight": "Renombrar destacado",
     "highlight_delete_error": "No se pudo eliminar",
     "highlight_deleted": "Destacado eliminado",
     "highlight_update_error": "No se pudo actualizar",

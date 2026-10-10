@@ -136,7 +136,8 @@ export default function HighlightViewerPage() {
               <input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="bg-black/70 border border-white/20 rounded-lg px-3 py-2 text-sm text-white"
+                aria-label={t('story.rename_highlight')}
+                className="min-h-12 bg-black/70 border border-white/20 rounded-lg px-3 text-base text-white"
                 placeholder={highlight.title}
               />
               <button
@@ -163,7 +164,7 @@ export default function HighlightViewerPage() {
                   setEditingTitle(true);
                 }}
                 className="w-11 h-11 flex items-center justify-center rounded-full bg-black/60 border border-white/10 text-white hover:bg-white/10"
-                aria-label={t('story.edit_highlight')}
+                aria-label={t('story.rename_highlight')}
               >
                 <Pencil size={16} />
               </button>
