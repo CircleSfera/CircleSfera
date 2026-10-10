@@ -24,6 +24,7 @@ import type { UpdateProfileDto } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
+import { keepSavedOwnProfile } from '../../utils/ownProfileCache';
 import { hasElitePlan } from '../../utils/plans';
 import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
 import UserAvatar from '../UserAvatar';
@@ -85,8 +86,7 @@ export default function ProfileSettings() {
   const updateProfileMutation = useMutation({
     mutationFn: (data: UpdateProfileDto) => profileApi.updateProfile(data),
     onSuccess: (response) => {
-      queryClient.setQueryData(['myProfile'], response);
-      setProfile(response.data);
+      setProfile(keepSavedOwnProfile(queryClient, response));
       setFullName(response.data.fullName || '');
       setUsername(response.data.username || '');
       setBio(response.data.bio || '');
