@@ -31,7 +31,7 @@ export default function PostDetailPanel({ post }: Props) {
             </p>
           </div>
           <a
-            href={`${platformOrigin()}/post/${post.id}`}
+            href={`${platformOrigin()}/p/${post.id}`}
             target="_blank"
             rel="noopener noreferrer"
             className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 shrink-0"
