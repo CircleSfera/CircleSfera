@@ -151,6 +151,17 @@ export default function Studio() {
       const fps = store.project?.fps || 30;
       const frame = 1 / fps;
 
+      // Undo and redo are the only keys of the studio that take a modifier.
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault();
+        if (e.shiftKey) redo();
+        else undo();
+        return;
+      }
+      // Every other key acts only when pressed alone: with Control, Command
+      // or Alt it belongs to the browser (zooming the page, saving it...).
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+
       if (e.code === 'Space' || e.key.toLowerCase() === 'k') {
         e.preventDefault();
         togglePlayback();
@@ -189,20 +200,6 @@ export default function Studio() {
         setExportProgress(0);
         setShowExportModal(true);
       } else if (
-        (e.metaKey || e.ctrlKey) &&
-        !e.shiftKey &&
-        e.key.toLowerCase() === 'z'
-      ) {
-        e.preventDefault();
-        undo();
-      } else if (
-        (e.metaKey || e.ctrlKey) &&
-        e.shiftKey &&
-        e.key.toLowerCase() === 'z'
-      ) {
-        e.preventDefault();
-        redo();
-      } else if (
         (e.key === 'Delete' || e.key === 'Backspace') &&
         selectedClipId
       ) {
@@ -228,6 +225,12 @@ export default function Studio() {
     setZoom,
     isExporting,
   ]);
+
+  // Leaving the studio stops an export in progress: its result would have
+  // nowhere to go.
+  useEffect(() => {
+    return () => exportAbortRef.current?.abort();
+  }, []);
 
   const uploadAndResolveUrl = async (file: File): Promise<string> => {
     setIsUploading(true);
