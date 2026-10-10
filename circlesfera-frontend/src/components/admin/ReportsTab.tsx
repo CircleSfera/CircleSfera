@@ -19,6 +19,7 @@ import type { AdminReport } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
+import { platformOrigin } from '../../utils/adminPanel';
 import { formatDate, formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -56,6 +57,19 @@ function timeAgo(
   const days = Math.floor(hrs / 24);
   if (days < 7) return t('admin.shared.time_ago_days', { count: days });
   return formatDate(date, language);
+}
+
+// Where the reported post or profile is seen by participants. The staff
+// sites do not serve those pages, and the other kinds have no page of
+// their own.
+function originalAddress(report: AdminReport): string | null {
+  if (report.targetType === 'POST') {
+    return `${platformOrigin()}/p/${report.targetId}`;
+  }
+  if (report.targetType === 'USER' && report.targetContent?.author) {
+    return `${platformOrigin()}/${report.targetContent.author}`;
+  }
+  return null;
 }
 
 interface Props {
@@ -516,25 +530,19 @@ export default function ReportsTab({ onToast }: Props) {
                     <div className="min-w-0">
                       <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
                         {t('admin.reports.detail_title')}
-                        {selectedReport.targetType !== 'MESSAGE' && (
+                        {originalAddress(selectedReport) && (
                           <button
                             type="button"
                             onClick={() => {
-                              if (selectedReport.targetType === 'POST')
+                              const address = originalAddress(selectedReport);
+                              if (address)
                                 window.open(
-                                  `/p/${selectedReport.targetId}`,
+                                  address,
                                   '_blank',
-                                );
-                              if (
-                                selectedReport.targetType === 'USER' &&
-                                selectedReport.targetContent?.author
-                              )
-                                window.open(
-                                  `/${selectedReport.targetContent.author}`,
-                                  '_blank',
+                                  'noopener,noreferrer',
                                 );
                             }}
-                            className="text-xs font-semibold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-2 py-1 rounded transition-colors min-h-6"
+                            className="text-xs font-semibold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-3 py-1 rounded transition-colors min-h-11"
                           >
                             {t('admin.reports.view_original')}
                           </button>
@@ -550,7 +558,7 @@ export default function ReportsTab({ onToast }: Props) {
                                 ),
                               )
                             }
-                            className="text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/15 px-2 py-1 rounded transition-colors min-h-6"
+                            className="text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/15 px-3 py-1 rounded transition-colors min-h-11"
                           >
                             {t('admin.reports.open_user')}
                           </button>
@@ -566,7 +574,7 @@ export default function ReportsTab({ onToast }: Props) {
                       <Button
                         onClick={() => claimMutation.mutate(selectedReport.id)}
                         isLoading={claimMutation.isPending}
-                        className="bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 border border-brand-primary/40 text-xs sm:text-sm font-semibold min-h-10 sm:min-h-11 px-2 sm:px-4"
+                        className="bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 border border-brand-primary/40 text-xs sm:text-sm font-semibold min-h-11 px-2 sm:px-4"
                       >
                         <Hand size={16} className="mr-1 sm:mr-2 shrink-0" />
                         <span className="truncate">
@@ -584,7 +592,7 @@ export default function ReportsTab({ onToast }: Props) {
                           }
                           isLoading={unclaimMutation.isPending}
                           variant="secondary"
-                          className="text-xs sm:text-sm font-semibold border-white/10 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                          className="text-xs sm:text-sm font-semibold border-white/10 min-h-11 px-2 sm:px-4"
                         >
                           <UserMinus
                             size={16}
@@ -610,7 +618,7 @@ export default function ReportsTab({ onToast }: Props) {
                           }
                           isLoading={reassignMutation.isPending}
                           variant="secondary"
-                          className="text-xs sm:text-sm font-semibold border-brand-primary/30 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                          className="text-xs sm:text-sm font-semibold border-brand-primary/30 min-h-11 px-2 sm:px-4"
                         >
                           <Hand size={16} className="mr-1 sm:mr-2 shrink-0" />
                           <span className="truncate">
@@ -634,7 +642,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={penaltyMutation.isPending}
                             variant="secondary"
-                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-11 px-2 sm:px-4"
                           >
                             <X size={16} className="mr-1 sm:mr-2 shrink-0" />{' '}
                             <span className="truncate">
@@ -649,7 +657,7 @@ export default function ReportsTab({ onToast }: Props) {
                               })
                             }
                             isLoading={penaltyMutation.isPending}
-                            className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 text-xs sm:text-sm font-semibold min-h-10 sm:min-h-11 px-2 sm:px-4"
+                            className="bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500/30 border border-yellow-500/50 text-xs sm:text-sm font-semibold min-h-11 px-2 sm:px-4"
                           >
                             <Gavel
                               size={16}
@@ -679,7 +687,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={penaltyMutation.isPending}
                             variant="danger"
-                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-11 px-2 sm:px-4"
                           >
                             <AlertOctagon
                               size={16}
@@ -702,7 +710,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={updateMutation.isPending}
                             variant="secondary"
-                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-10 sm:min-h-11 px-2 sm:px-4"
+                            className="text-xs sm:text-sm font-semibold border-white/5 min-h-11 px-2 sm:px-4"
                           >
                             <X size={16} className="mr-1 sm:mr-2 shrink-0" />{' '}
                             <span className="truncate">
@@ -756,7 +764,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={updateMutation.isPending}
                             variant="danger"
-                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-10 sm:min-h-11 px-2 sm:px-4 col-span-2 sm:col-span-1"
+                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-11 px-2 sm:px-4 col-span-2 sm:col-span-1"
                           >
                             <Trash2
                               size={16}
@@ -946,7 +954,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={updateMutation.isPending}
                             variant="secondary"
-                            className="mt-2 text-xs font-semibold border-white/10 min-h-9 px-3"
+                            className="mt-2 text-xs font-semibold border-white/10 min-h-11 px-3"
                           >
                             {t('admin.reports.save_notes')}
                           </Button>
