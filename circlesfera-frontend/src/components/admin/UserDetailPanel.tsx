@@ -87,7 +87,7 @@ function ActivityChip({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass-panel border border-white/10 hover:border-brand-primary/30 hover:bg-brand-primary/10 transition-colors text-left min-h-9"
+      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass-panel border border-white/10 hover:border-brand-primary/30 hover:bg-brand-primary/10 transition-colors text-left min-h-11"
     >
       <Icon size={13} className="text-brand-primary shrink-0" />
       <span className="text-[11px] font-semibold text-white/70">{label}</span>
@@ -249,7 +249,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
                 href={profileHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 min-h-9 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 transition-colors"
               >
                 <ExternalLink size={13} />
                 {t('admin.user_preview.open_profile')}
@@ -291,7 +291,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
               type="button"
               variant="ghost"
               size="icon"
-              className="w-8 h-8 shrink-0 text-white/50 hover:text-white"
+              className="shrink-0 text-white/50 hover:text-white"
               aria-label={t('admin.user_preview.copy_id')}
               onClick={() => copyId(user.id)}
             >
@@ -368,7 +368,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
               type="button"
               variant="outline"
               size="sm"
-              className="h-9 text-xs"
+              className="min-h-11 text-xs"
               disabled={botLabelMutation.isPending || botLabeled}
               onClick={() => botLabelMutation.mutate('apply')}
             >
@@ -378,7 +378,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
               type="button"
               variant="ghost"
               size="sm"
-              className="h-9 text-xs"
+              className="min-h-11 text-xs"
               disabled={botLabelMutation.isPending || !botLabeled}
               onClick={() => botLabelMutation.mutate('clear')}
             >
