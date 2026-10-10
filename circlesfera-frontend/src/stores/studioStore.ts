@@ -7,6 +7,7 @@ import type {
   Track,
 } from '../types/studio';
 import { resolutionForAspect } from '../utils/studioExportHelpers';
+import { withLengthOfClips } from '../utils/studioProject';
 
 interface StudioState {
   project: StudioProject | null;
@@ -195,10 +196,10 @@ export const useStudioStore = create<StudioState>((set) => ({
       const selectedOnTrack = track?.clips.some(
         (c) => c.id === state.selectedClipId,
       );
-      const updated = {
+      const updated = withLengthOfClips({
         ...state.project,
         tracks: state.project.tracks.filter((t) => t.id !== trackId),
-      };
+      });
       const historyResult = pushHistory(state, updated);
       return {
         ...historyResult,
@@ -244,12 +245,9 @@ export const useStudioStore = create<StudioState>((set) => ({
         return t;
       });
 
-      const maxEnd = Math.max(
-        ...tracks.flatMap((t) => t.clips.map((c) => c.startAt + c.duration)),
-        state.project.duration,
-      );
-
-      const updated = { ...state.project, tracks, duration: maxEnd };
+      // The length of the project follows its clips, both ways: it is not
+      // only raised when one is added.
+      const updated = withLengthOfClips({ ...state.project, tracks });
       return pushHistory(state, updated);
     }),
 
@@ -262,7 +260,7 @@ export const useStudioStore = create<StudioState>((set) => ({
           c.id === clipId ? ({ ...c, ...updates } as Clip) : c,
         ),
       }));
-      const updated = { ...state.project, tracks };
+      const updated = withLengthOfClips({ ...state.project, tracks });
       if (options?.history) {
         return pushHistory(state, updated);
       }
@@ -276,7 +274,7 @@ export const useStudioStore = create<StudioState>((set) => ({
         ...t,
         clips: t.clips.filter((c) => c.id !== clipId),
       }));
-      const updated = { ...state.project, tracks };
+      const updated = withLengthOfClips({ ...state.project, tracks });
       const historyResult = pushHistory(state, updated);
       return {
         ...historyResult,
@@ -353,14 +351,6 @@ export const useStudioStore = create<StudioState>((set) => ({
   calculateDuration: () =>
     set((state) => {
       if (!state.project) return state;
-      const maxEnd = Math.max(
-        ...state.project.tracks.flatMap((t) =>
-          t.clips.map((c) => c.startAt + c.duration),
-        ),
-        0,
-      );
-      return {
-        project: { ...state.project, duration: Math.max(5, maxEnd) },
-      };
+      return { project: withLengthOfClips(state.project) };
     }),
 }));
