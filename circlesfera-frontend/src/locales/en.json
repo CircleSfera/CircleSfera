@@ -5,7 +5,7 @@
   },
   "cookieConsent": {
     "title": "Cookies",
-    "description": "We use necessary cookies to run the app. Analytics cookies help us improve CircleSfera and are optional.",
+    "description": "We use necessary cookies to run the app. Analytics cookies are optional: they help us detect errors and performance problems.",
     "essential_only": "Essential only",
     "accept": "Accept all",
     "dismiss": "Dismiss"
@@ -122,6 +122,7 @@
       "uploading": "Uploading...",
       "upload_new": "Upload New",
       "avatar_desc": "Update your profile picture to personalize your CircleSfera experience.",
+      "avatar_error": "The picture could not be uploaded. Try again.",
       "public_identity": "Public Identity",
       "username": "Username",
       "display_name": "Display Name",
@@ -269,6 +270,9 @@
     "billing": {
       "title": "Subscription",
       "subtitle": "Manage your platform plan",
+      "subtitle_profile": "The plan of @{{username}}. Each profile has its own; you pay for those of all your profiles.",
+      "other_profiles": "Plans of your other profiles",
+      "other_profiles_desc": "They are managed in the same billing.",
       "current_plan": "Current plan",
       "free": "Free",
       "free_desc": "Basic level without advanced features",
@@ -309,6 +313,8 @@
         "qr_alt": "Authenticator QR code",
         "verify_btn": "Verify",
         "confirm_disable": "Are you sure you want to disable 2FA? This will make your account less secure.",
+        "disable_instructions": "Enter a code from your authenticator app to turn it off.",
+        "code_label": "6-digit code",
         "disabling": "Disabling...",
         "disable_btn": "Disable 2FA",
         "generate_error": "Failed to generate 2FA secret",
@@ -480,9 +486,61 @@
       "update_error": "Failed to update settings",
       "updated": "Settings updated"
     },
+    "signIns": {
+      "title": "How each profile signs in",
+      "description": "A profile can sign in with the same email and password as another, or have its own. Your identity, payments and payouts are the same for all your profiles, however each one signs in.",
+      "shared": "Shares a sign-in",
+      "own": "Has its own sign-in",
+      "unverified": "Email not verified",
+      "give_own": "Own email and password",
+      "share_again": "Share a sign-in again",
+      "load_failed": "We could not load how your profiles sign in.",
+      "current_password": "Your current password",
+      "current_password_hint": "The password you signed in with. We ask for it to confirm it is you.",
+      "current_password_required": "Enter your current password.",
+      "own_form": {
+        "title": "Own email and password for @{{username}}",
+        "effect_new": "This profile will sign in with the new email and password.",
+        "effect_others": "Your other profiles keep signing in as they do now.",
+        "effect_notices": "Notices about this profile will go to the new email once you verify it.",
+        "effect_security": "Two-step verification and passkeys are set up again for this sign-in.",
+        "email": "New email",
+        "password": "New password",
+        "email_invalid": "Enter a valid email.",
+        "password_short": "The password must be at least 8 characters.",
+        "submit": "Create sign-in",
+        "done": "@{{username}} now has its own sign-in. Check the new email to verify it."
+      },
+      "share_form": {
+        "title": "Share a sign-in again for @{{username}}",
+        "effect_stops": "The email {{email}} and its password will stop working to sign in.",
+        "effect_sessions": "Sessions opened with that email will be closed.",
+        "effect_security": "Its passkeys and its two-step verification will be removed.",
+        "target": "It will sign in with",
+        "submit": "Share again",
+        "done": "@{{username}} shares a sign-in again."
+      },
+      "create": {
+        "legend": "How this profile will sign in",
+        "share": "With the same email and password",
+        "share_desc": "You sign in once and switch profiles whenever you want.",
+        "own": "With its own email and password",
+        "own_desc": "To sign in to this profile separately.",
+        "own_failed": "The profile was created sharing the sign-in. You can give it its own from this screen."
+      },
+      "errors": {
+        "SIGN_IN_EMAIL_TAKEN": "That email is already used to sign in. Choose another.",
+        "SIGN_IN_PROOF_INVALID": "The password is not correct.",
+        "SIGN_IN_PROOF_REQUIRED": "Enter your current password.",
+        "SIGN_IN_ALREADY_OWN": "This profile already has its own sign-in.",
+        "SIGN_IN_NOT_FOUND": "We could not find that profile or that sign-in.",
+        "SIGN_IN_LIMIT_REACHED": "You have just created a sign-in. Wait a while before creating another.",
+        "generic": "The change could not be saved. Try again."
+      }
+    },
     "profiles": {
       "title": "Your profiles",
-      "description": "One account can have up to {{max}} profiles, each with its own posts, followers and messages. Your login, security and plan are shared.",
+      "description": "An account can have up to {{max}} profiles, each with its own posts, followers and messages. Each profile shares a sign-in or has its own, and has its own plan.",
       "current": "Current",
       "suspended": "Suspended",
       "banned": "Banned",
@@ -1083,6 +1141,8 @@
     "reply_placeholder": "Reply...",
     "send_reply": "Send reply",
     "close_viewer": "Close story viewer",
+    "like": "Like story",
+    "position": "Story {{current}} of {{total}} from {{username}}",
     "delete_this": "Delete this story",
     "you": "You",
     "yours": "Your story",
@@ -1654,6 +1714,8 @@
     "title": "Activity",
     "no_activity": "No activity yet",
     "view_post": "View the post",
+    "from_support": "Support",
+    "view_request": "See the request",
     "unknown_user": "Unknown",
     "error_title": "Couldn't load notifications",
     "error_message": "Something went wrong. Please try again.",
@@ -1745,6 +1807,7 @@
     "decline": "Decline",
     "accept": "Accept",
     "in_call": "In Call...",
+    "end_call": "End call",
     "remote_user": "Remote user",
     "delete_confirm": {
       "me_title": "Delete the conversation for you?",
@@ -2157,6 +2220,9 @@
       "audit": "Audit Log",
       "appeals": "Appeals",
       "support": "Support",
+      "plans": "Plans",
+      "subscriptions": "Subscriptions",
+      "disputes": "Disputes",
       "trust": "Trust Queue",
       "live": "Live Streams",
       "roles": "Roles",
@@ -2548,7 +2614,253 @@
       "gifts": "Gifts",
       "viewers": "Viewers"
     },
+    "plans": {
+      "title": "Plans",
+      "subtitle": "What each plan includes and whether it is on sale. Changes apply to every subscriber of the plan.",
+      "price_month": "{{price}} a month",
+      "price_year": "{{price}} a year",
+      "price_note": "Stripe charges the price; it cannot be changed here.",
+      "on_sale": "On sale",
+      "on_sale_hint": "If you turn it off, it is no longer shown in Pricing. Those who already have it keep it.",
+      "includes": "Includes",
+      "description": "Description",
+      "save": "Save changes",
+      "toast_saved": "Plan saved",
+      "toast_failed": "The plan could not be saved",
+      "load_failed": "The plan catalogue could not be loaded",
+      "empty": "There are no plans in the catalogue"
+    },
+    "disputes": {
+      "title": "Disputes",
+      "subtitle": "Payments a customer has disputed with their bank. They are answered in Stripe, within the deadline.",
+      "filter_open": "Open",
+      "filter_closed": "Closed",
+      "filter_all": "All",
+      "status": {
+        "needs_response": "Needs response",
+        "under_review": "Under review",
+        "won": "Won",
+        "lost": "Lost",
+        "warning_needs_response": "Warning: needs response",
+        "warning_under_review": "Warning under review",
+        "warning_closed": "Warning closed"
+      },
+      "reason": {
+        "fraudulent": "Payment not recognised (fraud)",
+        "duplicate": "Duplicate charge",
+        "product_not_received": "Product not received",
+        "product_unacceptable": "Product not as described",
+        "subscription_canceled": "Subscription cancelled",
+        "credit_not_processed": "Refund not received",
+        "unrecognized": "Charge not recognised",
+        "general": "General reason"
+      },
+      "opened_on": "Opened on {{date}}",
+      "due_in_one": "Answer before {{date}} ({{count}} day left)",
+      "due_in_other": "Answer before {{date}} ({{count}} days left)",
+      "due_passed": "The deadline ended on {{date}}",
+      "answer_in_stripe": "Answer in Stripe",
+      "open_in_stripe": "Open in Stripe",
+      "no_transaction": "Payment of a plan",
+      "empty_open_title": "No open disputes",
+      "empty_title": "No disputes",
+      "empty_description": "When a customer disputes a payment with their bank, it shows here with its deadline.",
+      "load_failed": "The disputes could not be loaded"
+    },
+    "subscriptions": {
+      "title": "Subscriptions",
+      "subtitle": "Who has each plan and in what state. To change, cancel or refund a subscription, open it in Stripe.",
+      "search_placeholder": "Search by username or email",
+      "filter_status": "State",
+      "all_statuses": "All states",
+      "filter_plan": "Plan",
+      "all_plans": "All plans",
+      "status": {
+        "ACTIVE": "Active",
+        "TRIALING": "Trialing",
+        "PAST_DUE": "Payment pending",
+        "INCOMPLETE": "Incomplete",
+        "CANCELLED": "Cancelled",
+        "EXPIRED": "Expired"
+      },
+      "renews_on": "Renews on {{date}}",
+      "ends_on": "Ends on {{date}}",
+      "period_ended_on": "Period until {{date}}",
+      "open_in_stripe": "Open in Stripe",
+      "account_deleted": "Deleted account",
+      "empty_title": "No subscriptions",
+      "empty_description": "Subscriptions to the plans will show here once someone buys one.",
+      "load_failed": "The subscriptions could not be loaded"
+    },
     "support": {
+      "whose_all": "All",
+      "whose_mine": "Mine",
+      "whose_unassigned": "Unassigned",
+      "filter_priority": "Priority",
+      "set_priority": "Priority of the ticket",
+      "priority_all": "Any priority",
+      "priority": {
+        "HIGH": "High",
+        "NORMAL": "Normal",
+        "LOW": "Low"
+      },
+      "assignee": "Handled by",
+      "assignee_nobody": "Nobody",
+      "assignee_me": "You",
+      "assignee_former": "Former agent",
+      "assignee_me_named": "{{name}} (you)",
+      "assign_to": "Assign to",
+      "help_centre": {
+        "open": "Help centre",
+        "title": "Help centre",
+        "new": "New article",
+        "empty": "There are no articles yet. Write here the answers to what people ask most.",
+        "edit": "Edit",
+        "edit_named": "Edit “{{title}}”",
+        "status": {
+          "DRAFT": "Draft",
+          "PUBLISHED": "Published"
+        },
+        "language": {
+          "es": "Spanish",
+          "en": "English"
+        },
+        "useful_counts": "useful: {{yes}} yes, {{no}} no",
+        "missing": "The title is missing in: {{languages}}",
+        "field_topic": "Topic",
+        "field_position": "Position",
+        "field_slug": "Address of the article",
+        "slug_hint": "Lowercase letters, numbers and hyphens only. It is the same in every language and cannot be changed later.",
+        "slug_fixed_hint": "The address of an article does not change, so that links keep working.",
+        "field_title": "Title",
+        "field_body": "Text",
+        "body_hint": "Leave a blank line between paragraphs. Start a line with “## ” for a section heading and with “- ” for a list item. Web addresses become links.",
+        "preview": "Preview",
+        "write": "Keep writing",
+        "save": "Save",
+        "back": "Back to the list",
+        "publish": "Publish",
+        "take_back": "Take back",
+        "delete": "Delete draft",
+        "delete_confirm": "Confirm deletion",
+        "published_hint": "This article is published: what you save is seen at once.",
+        "toast_saved": "Article saved",
+        "toast_published": "Article published",
+        "toast_taken_back": "Article taken back",
+        "toast_deleted": "Draft deleted",
+        "toast_language_missing": "It cannot be published: the title or the text is missing in {{languages}}."
+      },
+      "figures": {
+        "open": "Figures",
+        "title": "Support figures",
+        "days_7": "Last 7 days",
+        "days_30": "Last 30 days",
+        "measure": "Measure",
+        "total": "Total",
+        "priority": "Priority",
+        "standard": "Standard",
+        "opened": "Tickets received",
+        "solved": "Tickets solved",
+        "first_answered": "With a first response",
+        "first_within": "First response within target",
+        "first_median": "Time to first response (median)",
+        "resolution_within": "Solved within target",
+        "resolution_median": "Time to solve (median, waits left out)",
+        "ratings": "Ratings",
+        "ratings_good": "Good ratings",
+        "past_target_one": "Right now {{count}} open ticket is past its target.",
+        "past_target_other": "Right now {{count}} open tickets are past their target.",
+        "note": "Each ticket counts in the period in which it was opened. A dash means there is nothing to measure."
+      },
+      "rating": {
+        "label": "Requester's rating",
+        "GOOD": "Good",
+        "BAD": "Bad"
+      },
+      "target": {
+        "label": "Target",
+        "filter": "Target",
+        "filter_all": "On time or late",
+        "filter_past": "Past target",
+        "first_response": "First response",
+        "resolution": "Resolution",
+        "near": "{{target}}: {{time}} left",
+        "past": "{{target}}: past target by {{time}}"
+      },
+      "by_email": "by email",
+      "saved_replies": {
+        "title": "Saved replies",
+        "insert": "Insert a saved reply",
+        "manage": "Manage saved replies",
+        "new": "New reply",
+        "empty": "There are no saved replies yet. Keep here what you answer often.",
+        "field_title": "Title",
+        "field_body": "Text",
+        "placeholders_hint": "You can use {{name}}, {{subject}} and {{reference}}: they are filled with the person's name, the subject and the number of the request when the reply is inserted.",
+        "share": "Share with the team",
+        "share_hint": "Every agent will see it. Only who leads the team can change it.",
+        "save": "Save",
+        "edit": "Edit",
+        "edit_named": "Edit “{{title}}”",
+        "delete": "Delete",
+        "delete_named": "Delete “{{title}}”",
+        "delete_confirm": "Confirm deletion",
+        "kind_shared": "Shared",
+        "kind_personal": "Personal",
+        "toast_saved": "Reply saved",
+        "toast_deleted": "Reply deleted"
+      },
+      "new_message_title": "A new message arrived while you were writing",
+      "new_message_hint": "Read it before you send. What you wrote is kept.",
+      "new_message_read": "I have read it",
+      "event": {
+        "state": "Status: {{from}} → {{to}}",
+        "topic": "Topic: {{from}} → {{to}}",
+        "priority": "Priority: {{from}} → {{to}}",
+        "assignment": "Handled by: {{from}} → {{to}}",
+        "handover": "Handed to moderation",
+        "state_name": {
+          "OPEN": "Open",
+          "WAITING": "Waiting for requester",
+          "RESOLVED": "Resolved",
+          "CLOSED": "Closed",
+          "ESCALATED": "With moderation"
+        }
+      },
+      "take": "Take",
+      "release": "Release",
+      "status_waiting": "Waiting for requester",
+      "leave_waiting": "Leave waiting for requester",
+      "system": {
+        "handover_RESOLVED": "Moderation resolved the report. The ticket is back with support.",
+        "handover_REJECTED": "Moderation dismissed the report. The ticket is back with support.",
+        "handover_GONE": "The report no longer exists. The ticket is back with support.",
+        "attachments_left_out_one": "The email had {{count}} attachment, which was not received.",
+        "attachments_left_out_other": "The email had {{count}} attachments, which were not received."
+      },
+      "conversation": "Conversation",
+      "kind_answer": "Answer",
+      "kind_note": "Internal note",
+      "note_placeholder": "Write a note for the team...",
+      "answer_hint": "The person receives it by email.",
+      "note_hint": "Only the team sees it. It is not sent to the person.",
+      "leave_as": "Leave the ticket",
+      "leave_resolved": "Leave solved",
+      "leave_open": "Leave open",
+      "send_answer": "Send answer",
+      "save_note": "Save note",
+      "toast_answered": "Answer sent",
+      "toast_note_added": "Note saved",
+      "author_team": "Support",
+      "author_system": "System",
+      "internal_note": "Internal note",
+      "filter_category": "Topic",
+      "category_all": "All topics",
+      "waiting_under_hour": "Waiting under 1 hour",
+      "waiting_hours_one": "Waiting {{count}} hour",
+      "waiting_hours_other": "Waiting {{count}} hours",
+      "waiting_days_one": "Waiting {{count}} day",
+      "waiting_days_other": "Waiting {{count}} days",
       "title": "Support Tickets",
       "subtitle": "Manage user support requests and replies",
       "filter_status": "Status",
@@ -3377,6 +3689,48 @@
     "renamed": "Collection renamed"
   },
   "supportPage": {
+    "requests": {
+      "continues": "Continues an earlier request",
+      "title": "Your requests",
+      "seo_title": "Your request to support",
+      "back": "Support",
+      "conversation": "Conversation",
+      "you": "You",
+      "team": "CircleSfera Support",
+      "reply_label": "Reply",
+      "reply_placeholder": "Write your reply...",
+      "send": "Send",
+      "reopen_hint": "If you reply, the request opens again.",
+      "closed_notice": "This request is closed. If you write, a new one opens that continues it.",
+      "write_again": "Write again about this",
+      "not_found": "We could not find this request.",
+      "rating": {
+        "question": "Did the answer help?",
+        "GOOD": "Yes",
+        "BAD": "No",
+        "comment_label": "Anything else you want to tell us? (optional)",
+        "send": "Send rating",
+        "change": "Change rating",
+        "thanks": "Thank you for your rating.",
+        "yours": "Your rating of the answer: {{score}}",
+        "error": "Your rating could not be saved. Try again."
+      },
+      "status": {
+        "WAITING": "Waiting for your reply",
+        "OPEN": "Open",
+        "ESCALATED": "Under review",
+        "RESOLVED": "Solved",
+        "CLOSED": "Closed"
+      }
+    },
+    "category_label": "What is it about?",
+    "category_placeholder": "Choose a topic",
+    "category": {
+      "ACCOUNT": "My account",
+      "PAYMENTS": "Payments and plans",
+      "CONTENT": "Content or reports",
+      "OTHER": "Something else"
+    },
     "badge": "Support",
     "seo_title": "Support — CircleSfera",
     "seo_desc": "Direct assistance and specialized support for CircleSfera users. Our team is ready to help.",
@@ -3396,8 +3750,8 @@
     "error_generic": "Could not send the message. Try again.",
     "steps_title": "How we help",
     "help": {
-      "faq_title": "Frequently asked questions",
-      "faq_desc": "Plans, verification, the feed and mobile.",
+      "help_title": "Help centre",
+      "help_desc": "Answers about your account, payments and content.",
       "rules_title": "Community guidelines",
       "rules_desc": "What can be posted and how moderation works.",
       "privacy_title": "Privacy and data",
@@ -3416,7 +3770,7 @@
     "badge": "Pricing",
     "heading": "Start for free.",
     "heading_highlight": "Upgrade whenever you want.",
-    "subtitle": "Everything social is free, and support is the same for everyone. Plans are optional.",
+    "subtitle": "Everything social is free. Plans are optional.",
     "most_popular": "Most popular",
     "current_plan": "Your plan",
     "manage_subscription": "Manage subscription",
@@ -3468,7 +3822,11 @@
       "manage_title": "You are in charge",
       "manage_desc": "Change or manage your subscription from Settings.",
       "support_title": "Support for everyone",
-      "support_desc": "Any account can write to Support, with or without a plan."
+      "support_desc": "Any account can write to Support. With a plan, we answer you first."
+    },
+    "for_profile": {
+      "CREATOR": "For creator profiles. Change the type of this profile in Settings to choose it.",
+      "BUSINESS": "For business profiles. Change the type of this profile in Settings to choose it."
     },
     "all_questions": "See all questions"
   },
@@ -3949,6 +4307,7 @@
     "options": "Options",
     "caption_more": "more",
     "caption_less": "less",
+    "caption_error": "Could not save the caption. Try again.",
     "original_audio": "{{username}} • Original audio",
     "artist_fallback": "Artist",
     "audio_disc": "Audio disc",
@@ -4056,35 +4415,7 @@
       }
     },
     "faq": {
-      "badge": "FAQ",
-      "title": "Frequently asked questions",
-      "subtitle": "Plans, the feed, verification and how to use CircleSfera on your phone.",
-      "items": {
-        "free": {
-          "q": "Is CircleSfera free?",
-          "a": "Yes. The main social features are free. There are optional plans (Premium, Elite Creator and Business) and tools for creators to earn money. Payments go through Stripe and the price is shown before you pay."
-        },
-        "verify": {
-          "q": "How does identity verification work?",
-          "a": "You do it from Settings with Stripe Identity, when you need it to earn money or to build trust. Plan badges (Verified, Elite and Business) depend on having an active subscription."
-        },
-        "control": {
-          "q": "Do I control what I see?",
-          "a": "Yes. In Settings you can change your feed preferences, mute and hide, and appeal decisions. You choose what you see and who can interact with you."
-        },
-        "mobile": {
-          "q": "Is there a mobile app?",
-          "a": "CircleSfera works in the browser on your phone and on desktop. You can add it to your home screen. There is no App Store or Google Play app yet."
-        },
-        "plans": {
-          "q": "What do the plans unlock?",
-          "a": "Premium, Elite Creator and Business are optional subscriptions billed through Stripe. They give a badge, which requires verifying your identity. Pricing shows what each one includes and what it costs before you pay."
-        },
-        "support": {
-          "q": "How do I contact support?",
-          "a": "Log in, write from Support and a person replies to the email on your account. Support is the same for everyone, with or without a plan."
-        }
-      }
+      "title": "Frequently asked questions"
     },
     "cta": {
       "title": "Start on CircleSfera today",
@@ -4099,10 +4430,6 @@
       "principles": {
         "seo_title": "Principles — CircleSfera",
         "seo_desc": "User control, why you see what you see, clear moderation, and responsible data handling."
-      },
-      "faq": {
-        "seo_title": "FAQ — CircleSfera",
-        "seo_desc": "Straight answers about CircleSfera: free plan, verification, feed control, phone use, and optional subscriptions."
       }
     },
     "footer": {
@@ -4124,7 +4451,27 @@
   "backoffice": {
     "title": "Backoffice",
     "nav": {
-      "business": "Business"
+      "business": "Business",
+      "overview": "Overview"
+    },
+    "overview": {
+      "title": "Overview",
+      "open_disputes": "Open disputes",
+      "open_disputes_hint": "They have a deadline to answer in Stripe",
+      "subtitle": "What is worth a look every day. Each figure opens its section.",
+      "subscriptions": "Active subscriptions",
+      "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
+      "recurring_revenue": "Monthly recurring revenue",
+      "recurring_revenue_hint": "Sum of the monthly price of the active subscriptions",
+      "failed_payouts": "Failed payouts",
+      "pending_payouts_one": "{{count}} pending",
+      "pending_payouts_other": "{{count}} pending",
+      "open_tickets": "Open tickets",
+      "tickets_past_target_one": "{{count}} past target",
+      "tickets_past_target_other": "{{count}} past target",
+      "tickets_with_moderation_one": "{{count}} with moderation",
+      "tickets_with_moderation_other": "{{count}} with moderation",
+      "pending_promotions": "Promotions to review"
     },
     "home": {
       "title": "The business of CircleSfera",
@@ -4203,6 +4550,36 @@
     "stop": "Stop recording",
     "uploading": "Uploading voice note..."
   },
+  "helpCentre": {
+    "feedback": {
+      "question": "Was this article useful?",
+      "yes": "Yes",
+      "no": "No",
+      "thanks": "Thanks for telling us.",
+      "error": "Your answer could not be sent. Try again."
+    },
+    "topic_general": "General",
+    "badge": "Help centre",
+    "title": "How can we help?",
+    "subtitle": "Answers about your account, payments and content.",
+    "seo_title": "Help centre — CircleSfera",
+    "seo_desc": "Straight answers about CircleSfera: your account, plans and payments, verification, content and how to write to support.",
+    "article_seo_title": "{{title}} — CircleSfera Help",
+    "search_label": "Search the help centre",
+    "search_placeholder": "Search for an answer",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "no_results": "No articles about “{{words}}”. Try other words or write to us.",
+    "empty": "There are no published articles yet.",
+    "load_error": "The help centre could not be loaded. Try again.",
+    "back": "Help centre",
+    "missing_title": "This article does not exist",
+    "missing_desc": "It may have been withdrawn, or the address may be wrong.",
+    "contact_title": "Can't find the answer?",
+    "contact_desc": "Write to us and a person on the team replies.",
+    "contact_cta": "Write to support",
+    "suggested_title": "This may already answer it"
+  },
   "errors": {
     "action_limit": {
       "follow": "You've reached the limit of accounts you can follow for now. Try again at {{time}}.",
@@ -4211,6 +4588,7 @@
       "other": "You've reached an activity limit. Try again later."
     },
     "codes": {
+      "PLAN_NOT_FOR_PROFILE_TYPE": "This plan is for another type of profile.",
       "INTERNAL_SERVER_ERROR": "Something went wrong on our side. Please try again.",
       "NOT_FOUND": "We couldn't find that.",
       "BAD_REQUEST": "That request isn't valid. Check the details and try again.",
@@ -4238,7 +4616,7 @@
       "STRIPE_ONBOARDING_FAILED": "We couldn't start the payout setup. Try again.",
       "PLAN_NOT_FOUND": "That plan isn't available.",
       "PRICE_NOT_FOUND": "That price isn't available.",
-      "ACTIVE_SUBSCRIPTION_EXISTS": "You already have an active subscription.",
+      "ACTIVE_SUBSCRIPTION_EXISTS": "This profile already has an active plan. Manage it from billing.",
       "STRIPE_CUSTOMER_MISSING": "We couldn't find your billing details. Contact support.",
       "PROMOTION_ID_MISSING": "That promotion is missing. Try again.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Switch to a Creator or Business profile to earn money.",

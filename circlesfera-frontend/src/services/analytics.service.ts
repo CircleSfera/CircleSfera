@@ -72,7 +72,12 @@ class AnalyticsService {
         const blob = new Blob([JSON.stringify({ events: this.eventQueue })], {
           type: 'application/json',
         });
-        navigator.sendBeacon(url, blob);
+        // False means the browser did not take it (its queue is full, or
+        // the payload is too large): it goes the usual way instead of being
+        // dropped.
+        if (!navigator.sendBeacon(url, blob)) {
+          apiClient.post('/analytics/batch', { events: this.eventQueue });
+        }
       } else {
         // Fallback (might be cancelled by browser)
         apiClient.post('/analytics/batch', { events: this.eventQueue });

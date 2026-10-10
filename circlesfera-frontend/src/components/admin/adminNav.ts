@@ -1,8 +1,10 @@
 import {
   Activity,
+  BadgeCheck,
   Bot,
   Briefcase,
   Clock,
+  CreditCard,
   DollarSign,
   Flag,
   FlaskConical,
@@ -32,6 +34,7 @@ import {
 } from '../../utils/adminPanel';
 
 export type AdminTab =
+  | 'overview'
   | 'analytics'
   | 'reports'
   | 'users'
@@ -54,6 +57,9 @@ export type AdminTab =
   | 'appeals'
   | 'spam-review'
   | 'support'
+  | 'plans'
+  | 'subscriptions'
+  | 'disputes'
   | 'roles'
   | 'trust'
   | 'live'
@@ -72,8 +78,12 @@ export interface AdminNavGroup {
   items: AdminNavItem[];
 }
 
-// Admin Panel permission required per tab.
-export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
+// Permission required per section. The home of the Backoffice has none of
+// its own: see canOpenTab.
+export const ADMIN_TAB_PERMISSIONS: Record<
+  Exclude<AdminTab, 'overview'>,
+  string
+> = {
   analytics: 'users.read',
   monetization: 'payments',
   payouts: 'payments',
@@ -100,6 +110,9 @@ export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   appeals: 'appeals',
   'spam-review': 'users.read',
   support: 'support',
+  plans: 'plans',
+  subscriptions: 'payments',
+  disputes: 'payments',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -252,9 +265,29 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Bot,
       },
       {
+        id: 'overview',
+        labelKey: 'backoffice.nav.overview',
+        icon: LayoutDashboard,
+      },
+      {
         id: 'support',
         labelKey: 'admin.nav.support',
         icon: LifeBuoy,
+      },
+      {
+        id: 'plans',
+        labelKey: 'admin.nav.plans',
+        icon: BadgeCheck,
+      },
+      {
+        id: 'subscriptions',
+        labelKey: 'admin.nav.subscriptions',
+        icon: CreditCard,
+      },
+      {
+        id: 'disputes',
+        labelKey: 'admin.nav.disputes',
+        icon: ShieldAlert,
       },
     ],
   },
@@ -266,7 +299,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
 export type StaffSite = 'admin' | 'backoffice';
 
 const BACKOFFICE_TABS: readonly AdminTab[] = [
+  'overview',
   'support',
+  'plans',
+  'subscriptions',
+  'disputes',
   'promotions',
   'payouts',
   'monetization',
@@ -275,6 +312,21 @@ const BACKOFFICE_TABS: readonly AdminTab[] = [
 
 export function tabSite(tab: AdminTab): StaffSite {
   return BACKOFFICE_TABS.includes(tab) ? 'backoffice' : 'admin';
+}
+
+// Whether the operator can open a section. The home of the Backoffice opens
+// for anyone who can open at least one of its sections.
+export function canOpenTab(
+  hasPermission: (key: string) => boolean,
+  tab: AdminTab,
+): boolean {
+  if (tab === 'overview') {
+    return BACKOFFICE_TABS.some(
+      (other) =>
+        other !== 'overview' && hasPermission(ADMIN_TAB_PERMISSIONS[other]),
+    );
+  }
+  return hasPermission(ADMIN_TAB_PERMISSIONS[tab]);
 }
 
 export function currentStaffSite(): StaffSite {
@@ -341,11 +393,11 @@ export function getAdminHomeTab(
     return 'trust';
   }
   for (const item of navItemsFor(site)) {
-    if (hasPermission(ADMIN_TAB_PERMISSIONS[item.id])) {
+    if (canOpenTab(hasPermission, item.id)) {
       return item.id;
     }
   }
-  return site === 'backoffice' ? 'support' : 'analytics';
+  return site === 'backoffice' ? 'overview' : 'analytics';
 }
 
 // Whether the operator can open any section of a site.
@@ -353,7 +405,5 @@ export function canOpenSite(
   hasPermission: (key: string) => boolean,
   site: StaffSite,
 ): boolean {
-  return navItemsFor(site).some((item) =>
-    hasPermission(ADMIN_TAB_PERMISSIONS[item.id]),
-  );
+  return navItemsFor(site).some((item) => canOpenTab(hasPermission, item.id));
 }

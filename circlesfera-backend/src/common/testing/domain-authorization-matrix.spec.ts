@@ -533,7 +533,7 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
       // User has no subscription
       mockPrisma.platformSubscription.findFirst.mockResolvedValue(null);
       const deniedCtx = createMockContext(
-        { userId: 'u-basic' },
+        { userId: 'u-basic', profileId: 'p-basic' },
         {},
         { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
       );
@@ -547,7 +547,7 @@ describe('Domain Authorization Policy Matrix (15 Domains)', () => {
         plan: { name: 'Elite Creator', priceCents: 2999 },
       });
       const allowedCtx = createMockContext(
-        { userId: 'u-elite' },
+        { userId: 'u-elite', profileId: 'p-elite' },
         {},
         { [REQUIRES_PLAN_KEY]: 'Elite Creator' },
       );

@@ -314,6 +314,69 @@ describe('SlackService', () => {
     });
   });
 
+  describe('sendSupportReplyAlert', () => {
+    it('tells the support channel the number and subject of the ticket, and not what was written', async () => {
+      await service.sendSupportReplyAlert({
+        id: 'tick-1',
+        reference: 42,
+        subject: 'Cannot login',
+        // Fields a caller may hold; none of them belongs in the alert.
+        email: 'user@example.com',
+        requesterRef: 'u-1',
+      } as never);
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/support',
+        expect.anything(),
+        { timeout: 5_000 },
+      );
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain('#42');
+      expect(sent).toContain('Cannot login');
+      expect(sent).not.toContain('user@example.com');
+    });
+  });
+
+  describe('what a requester wrote, in an alert', () => {
+    it('shows as written, and cannot build a link or call the channel', async () => {
+      await service.sendSupportReplyAlert({
+        id: 'tick-1',
+        reference: 42,
+        subject: '<!channel> see <https://evil.example|your account> & more',
+      });
+
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain(
+        '&lt;!channel&gt; see &lt;https://evil.example|your account&gt; &amp; more',
+      );
+      expect(sent).not.toContain('<!channel>');
+      expect(sent).not.toContain('<https://evil.example');
+    });
+  });
+
+  describe('sendSupportEmailInAlert', () => {
+    it('tells the support channel the three counts and nothing of anyone’s email', async () => {
+      await service.sendSupportEmailInAlert({
+        noTicket: 7,
+        senderMismatch: 4,
+        stuck: 2,
+        // Nothing but the counts belongs in the alert.
+        fromAddress: 'user@example.com',
+      } as never);
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/support',
+        expect.anything(),
+        { timeout: 5_000 },
+      );
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain('\\n7');
+      expect(sent).toContain('\\n4');
+      expect(sent).toContain('\\n2');
+      expect(sent).not.toContain('user@example.com');
+    });
+  });
+
   describe('sendSupportAlert', () => {
     it('sends support alert with ticket details and reply button', async () => {
       const ticket: any = {
@@ -841,75 +904,57 @@ describe('SlackService', () => {
       expect(res).toEqual({ response_action: 'clear' });
     });
 
-    it('processes support_reply_modal and sends email to user', async () => {
-      const ticket = {
-        id: 'tick-77',
-        email: 'customer@domain.com',
-        subject: 'Invoice request',
-        status: 'PENDING',
-        resolvedAt: null,
-      };
-      mockPrismaService.supportTicket.findUnique.mockResolvedValue(ticket);
-
-      const payload = {
-        view: {
-          callback_id: 'support_reply_modal_tick-77',
-          state: {
-            values: {
-              reply_input_block: {
-                reply_text: { value: 'Here is your invoice link.' },
-              },
-            },
-          },
+    const replyPayload = (ticketId: string, value: string) => ({
+      view: {
+        callback_id: `support_reply_modal_${ticketId}`,
+        state: {
+          values: { reply_input_block: { reply_text: { value } } },
         },
+      },
+    });
+
+    it('hands an answer written in the channel to the Help Desk, which owns the ticket', async () => {
+      const helpdeskData = {
+        answerFromTeamChannel: vi.fn().mockResolvedValue(true),
       };
+      Object.assign(service, { helpdeskData });
 
-      const res = await service.handleViewSubmission(payload);
+      const res = await service.handleViewSubmission(
+        replyPayload('tick-77', 'Here is your invoice link.'),
+      );
 
-      expect(mockEmailService.sendSupportReplyEmail).toHaveBeenCalledWith(
-        'customer@domain.com',
-        'Invoice request',
+      expect(helpdeskData.answerFromTeamChannel).toHaveBeenCalledWith(
+        'tick-77',
         'Here is your invoice link.',
       );
-      expect(mockPrismaService.supportTicket.update).toHaveBeenCalledWith({
-        where: { id: 'tick-77' },
-        data: {
-          status: 'RESOLVED',
-          reply: 'Here is your invoice link.',
-          resolvedAt: expect.any(Date),
-        },
-      });
+      // The channel no longer writes the ticket or sends the email itself.
+      expect(mockPrismaService.supportTicket.update).not.toHaveBeenCalled();
+      expect(mockEmailService.sendSupportReplyEmail).not.toHaveBeenCalled();
       expect(res).toEqual({ response_action: 'clear' });
     });
 
-    it('skips email if ticket is already RESOLVED', async () => {
-      mockPrismaService.supportTicket.findUnique.mockResolvedValue({
-        id: 'tick-resolved',
-        status: 'RESOLVED',
-      });
-
-      const payload = {
-        view: {
-          callback_id: 'support_reply_modal_tick-resolved',
-          state: {
-            values: {
-              reply_input_block: {
-                reply_text: { value: 'Duplicate reply' },
-              },
-            },
-          },
-        },
+    it('does nothing more when the Help Desk refuses the answer', async () => {
+      const helpdeskData = {
+        answerFromTeamChannel: vi.fn().mockResolvedValue(false),
       };
+      Object.assign(service, { helpdeskData });
 
-      await service.handleViewSubmission(payload);
+      const res = await service.handleViewSubmission(
+        replyPayload('tick-resolved', 'Duplicate reply'),
+      );
 
       expect(mockEmailService.sendSupportReplyEmail).not.toHaveBeenCalled();
+      expect(res).toEqual({ response_action: 'clear' });
     });
 
     it('catches and handles exceptions gracefully during view submission', async () => {
-      mockPrismaService.supportTicket.findUnique.mockRejectedValue(
-        new Error('DB crash'),
-      );
+      Object.assign(service, {
+        helpdeskData: {
+          answerFromTeamChannel: vi
+            .fn()
+            .mockRejectedValue(new Error('DB crash')),
+        },
+      });
 
       const payload = {
         view: {

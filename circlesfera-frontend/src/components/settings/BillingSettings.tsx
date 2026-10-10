@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { paymentsApi } from '../../services/payments.service';
+import { useAuthStore } from '../../stores/authStore';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
@@ -13,6 +14,7 @@ export default function BillingSettings() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [isProcessingPortal, setIsProcessingPortal] = useState(false);
+  const username = useAuthStore((state) => state.profile?.username);
 
   const { data: billingStatus, isLoading } = useQuery({
     queryKey: ['billingStatus'],
@@ -46,12 +48,18 @@ export default function BillingSettings() {
 
   const subscription = billingStatus?.subscription;
   const hasActiveSubscription = !!billingStatus?.hasActiveSubscription;
+  // The other profiles of the person that have a plan: one payer for all.
+  const otherProfiles: {
+    profileId: string;
+    username: string;
+    planName: string;
+  }[] = billingStatus?.otherProfiles ?? [];
 
   return (
     <div className="max-w-xl space-y-5">
       <SettingsSection
         title={t('settings.billing.title')}
-        description={t('settings.billing.subtitle')}
+        description={t('settings.billing.subtitle_profile', { username })}
         card={false}
       >
         <div className="rounded-xl border border-white/5 bg-brand-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -96,6 +104,41 @@ export default function BillingSettings() {
           </Button>
         </div>
       </SettingsSection>
+
+      {otherProfiles.length > 0 && (
+        <SettingsSection
+          title={t('settings.billing.other_profiles')}
+          description={t('settings.billing.other_profiles_desc')}
+        >
+          <ul className="divide-y divide-white/5">
+            {otherProfiles.map((other) => (
+              <li
+                key={other.profileId}
+                className="flex items-center justify-between gap-3 px-4 py-3"
+              >
+                <span className="min-w-0 truncate text-sm font-semibold text-white">
+                  @{other.username}
+                </span>
+                <span className="shrink-0 text-sm text-white/70">
+                  {other.planName}
+                </span>
+              </li>
+            ))}
+          </ul>
+          {!hasActiveSubscription && (
+            <div className="px-4 pb-4">
+              <Button
+                onClick={handleBillingPortal}
+                isLoading={isProcessingPortal}
+                variant="secondary"
+                className="min-h-11 w-full text-sm font-semibold"
+              >
+                {t('settings.billing.manage')}
+              </Button>
+            </div>
+          )}
+        </SettingsSection>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3">

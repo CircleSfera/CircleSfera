@@ -77,7 +77,8 @@ what risk remains open. Never claim a check you did not run.
 - Never move authorization to the client. Never trust client-supplied amounts, prices or
   entitlements.
 - Critical business rules live in backend services, not only in the UI.
-- Social content attaches to `Profile.id`. Identity, billing and GDPR concerns attach to `User.id`.
+- Social content attaches to `Profile.id`. A Platform Plan belongs to one `Profile.id`. Identity,
+  the payer and billing account, and GDPR concerns attach to `User.id`.
   Credentials are on `User` today and move to `SignIn` records: Profiles of one `User` may share a
   `SignIn` or use separate `SignIn` records, as defined in
   `docs/adr/0025-sign-in-per-profile-one-identity.md`: check which step is on `main` before

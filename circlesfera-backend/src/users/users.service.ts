@@ -150,6 +150,18 @@ export class UsersService {
               lastSeenAt: true,
             },
           },
+          // Every way the person signs in: the email and since when. Never
+          // a password, a token or a second-step secret.
+          signIns: {
+            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+            select: {
+              email: true,
+              emailVerified: true,
+              isTwoFactorEnabled: true,
+              createdAt: true,
+              profiles: { select: { username: true } },
+            },
+          },
         },
       }),
       this.prisma.user.findUnique({
@@ -234,7 +246,6 @@ export class UsersService {
           },
           settings: true,
           appeals: true,
-          supportTickets: true,
           sentTransactions: {
             select: {
               id: true,
@@ -275,6 +286,13 @@ export class UsersService {
       dateOfBirth: account.dateOfBirth,
       identityVerifiedAt: account.identityVerifiedAt,
       emailVerified: account.emailVerified,
+      signIns: (account.signIns ?? []).map((signIn) => ({
+        email: signIn.email,
+        emailVerified: signIn.emailVerified,
+        twoFactorEnabled: signIn.isTwoFactorEnabled,
+        createdAt: signIn.createdAt,
+        profiles: signIn.profiles.map((profile) => profile.username),
+      })),
       signupCountry: account.signupCountry,
       signupIp: account.signupIp,
       lastIp: account.lastIp,
@@ -302,7 +320,6 @@ export class UsersService {
       })),
       settings: relations.settings,
       appeals: relations.appeals,
-      supportTickets: relations.supportTickets,
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,

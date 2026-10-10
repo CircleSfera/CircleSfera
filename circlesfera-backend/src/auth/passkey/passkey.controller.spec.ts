@@ -144,6 +144,7 @@ describe('PasskeyController', () => {
     mockPasskey.verifyAuthentication.mockResolvedValue({
       verified: true,
       userId: 'user-1',
+      signInId: 'sign-in-1',
     });
     mockAuth.loginById.mockResolvedValue({
       accessToken: 'access-test',
@@ -166,9 +167,11 @@ describe('PasskeyController', () => {
       'test@example.com',
       { id: 'cred-1' },
     );
+    // The session is opened by the sign-in the passkey belongs to.
     expect(mockAuth.loginById).toHaveBeenCalledWith(
       'user-1',
       expectedAbuseMeta,
+      'sign-in-1',
     );
   });
 
@@ -223,6 +226,7 @@ describe('PasskeyController', () => {
 
     expect(mockPasskey.generateStepUpOptions).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.signInId,
     );
   });
 });

@@ -1,5 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
+import { emailForProfile } from '../../../../common/auth/sign-in-lookup.js';
 import { EmailService } from '../../../../email/email.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 import { LogAdminActionUseCase } from './log-admin-action.use-case.js';
@@ -40,14 +41,12 @@ export class DeletePostUseCase {
       where: { id: postId },
     });
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: post.profile?.userId },
-      select: { email: true },
-    });
+    // About a Profile: to the email that Profile signs in with.
+    const email = await emailForProfile(this.prisma, post.profileId);
 
-    if (user?.email) {
+    if (email) {
       await this.emailService.sendPostRemovedEmail(
-        user.email,
+        email,
         post.profile?.fullName || post.profile?.username,
         reason,
       );

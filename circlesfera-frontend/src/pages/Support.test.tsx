@@ -1,11 +1,16 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../services/api';
 import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
 import { Support } from './Support';
 
-vi.mock('../services/api', () => ({ apiClient: { post: vi.fn() } }));
+vi.mock('../services/api', () => ({
+  apiClient: {
+    post: vi.fn(),
+    get: vi.fn().mockResolvedValue({ data: { data: [], meta: {} } }),
+  },
+}));
 vi.mock('../components/common/SEO', () => ({ default: () => null }));
 
 const clientError = (status: number | undefined, extra: object = {}) =>
@@ -71,5 +76,23 @@ describe('Support', () => {
     expect(
       await screen.findByText(i18n!.t('supportPage.error_generic')),
     ).toBeInTheDocument();
+  });
+
+  it('sends the topic the participant chose with the ticket', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: {} } as never);
+    const { i18n } = renderWithProviders(<Support />);
+    const t = i18n!.t.bind(i18n);
+
+    fireEvent.change(screen.getByLabelText(t('supportPage.category_label')), {
+      target: { value: 'PAYMENTS' },
+    });
+    submit(t);
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith(
+        '/support/tickets',
+        expect.objectContaining({ category: 'PAYMENTS' }),
+      ),
+    );
   });
 });

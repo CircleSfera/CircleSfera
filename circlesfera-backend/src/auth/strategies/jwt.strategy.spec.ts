@@ -16,6 +16,7 @@ describe('JwtStrategy', () => {
       findFirst: ReturnType<typeof vi.fn>;
       findMany: ReturnType<typeof vi.fn>;
     };
+    signIn: { findFirst: ReturnType<typeof vi.fn> };
   };
   let mockConfigService: {
     getOrThrow: ReturnType<typeof vi.fn>;
@@ -25,6 +26,12 @@ describe('JwtStrategy', () => {
     mockPrisma = {
       user: { findUnique: vi.fn() },
       profile: { findFirst: vi.fn(), findMany: vi.fn() },
+      // The sign-in of the session, with the email it signs in with.
+      signIn: {
+        findFirst: vi
+          .fn()
+          .mockResolvedValue({ id: 'sign-in-1', email: 'test@example.com' }),
+      },
     };
     // The strategy reads the account's Profiles; tests configure them
     // through findFirst (one call per Profile).
@@ -197,7 +204,61 @@ describe('JwtStrategy', () => {
         email: 'test@example.com',
         role: 'CREATOR',
         profileId: 'prof-1',
+        signInId: 'sign-in-1',
         isTestAccount: false,
+      });
+    });
+
+    describe('the sign-in of the session', () => {
+      const account = {
+        id: 'u-1',
+        isActive: true,
+        isRootBanned: false,
+        email: 'account@example.com',
+      };
+      beforeEach(() => {
+        mockPrisma.user.findUnique.mockResolvedValue(account);
+        mockPrisma.profile.findFirst.mockResolvedValue({
+          id: 'prof-1',
+          suspendedUntil: null,
+        });
+      });
+
+      it('is the one the token names, looked for inside the account, and gives the session its email', async () => {
+        mockPrisma.signIn.findFirst.mockResolvedValue({
+          id: 'sign-in-own',
+          email: 'own@example.com',
+        });
+
+        const result = await strategy.validate({
+          ...payload,
+          signInId: 'sign-in-own',
+        });
+
+        expect(mockPrisma.signIn.findFirst).toHaveBeenCalledWith({
+          where: { userId: 'u-1', id: 'sign-in-own' },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          select: { id: true, email: true },
+        });
+        expect(result.signInId).toBe('sign-in-own');
+        expect(result.email).toBe('own@example.com');
+      });
+
+      it('is the first of the account for a token issued before sessions carried it', async () => {
+        const result = await strategy.validate(payload);
+
+        expect(mockPrisma.signIn.findFirst.mock.calls[0][0].where).toEqual({
+          userId: 'u-1',
+        });
+        expect(result.signInId).toBe('sign-in-1');
+      });
+
+      it('refuses a token whose sign-in is of another account or is gone', async () => {
+        mockPrisma.signIn.findFirst.mockResolvedValue(null);
+
+        await expect(
+          strategy.validate({ ...payload, signInId: 'sign-in-of-another' }),
+        ).rejects.toThrow(UnauthorizedException);
       });
     });
 
@@ -304,6 +365,7 @@ describe('JwtStrategy', () => {
         email: 'test@example.com',
         role: 'USER',
         profileId: '',
+        signInId: 'sign-in-1',
         isTestAccount: false,
       });
     });

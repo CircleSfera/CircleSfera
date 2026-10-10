@@ -8,6 +8,8 @@ export interface EmailCopy {
   htmlLang: string;
   footer: string;
   automated: string;
+  // In place of the line above, on an email that can be answered.
+  replyable: string;
   buttonFallback: string;
   privacy: string;
   welcome: { subject: string; title: string; body: string; button: string };
@@ -38,7 +40,19 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
-  supportReply: { subject: string; title: string };
+  supportReply: { subject: string; title: string; button: string };
+  supportReminder: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
+  supportUnmatched: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   subscriptionReceipt: {
     subject: string;
     title: string;
@@ -53,6 +67,7 @@ const en: EmailCopy = {
   htmlLang: 'en',
   footer: '© {year} CircleSfera. All rights reserved.',
   automated: 'This is an automated email, please do not reply to it.',
+  replyable: 'You can answer this email: your answer is added to your request.',
   buttonFallback:
     'If the button does not work, copy and paste this link into your browser:',
   privacy: 'Privacy policy',
@@ -111,6 +126,19 @@ const en: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - CircleSfera Support',
     title: 'Reply to your request',
+    button: 'See your request',
+  },
+  supportReminder: {
+    subject: 'Do you still need help? {subject} - CircleSfera Support',
+    title: 'Do you still need help?',
+    body: 'We answered your request #{reference}, <strong>{subject}</strong>, and have not heard back from you.<br><br>If you still need help, answer in the request. If we do not hear from you in {days} days, we will mark it as solved.',
+    button: 'See your request',
+  },
+  supportUnmatched: {
+    subject: 'We could not add your email to a request - CircleSfera Support',
+    title: 'Your email did not reach a request',
+    body: 'This address only receives answers to support requests, sent from the address that opened the request.<br><br>If you need help, open a request from the support page. If you were answering one, answer from the email address of your account, or write in the request itself.',
+    button: 'Go to support',
   },
   subscriptionReceipt: {
     subject: 'Subscription receipt - {plan}',
@@ -127,6 +155,8 @@ const es: EmailCopy = {
   footer: '© {year} CircleSfera. Todos los derechos reservados.',
   automated:
     'Este es un correo automático, por favor no respondas directamente.',
+  replyable:
+    'Puedes responder a este correo: tu respuesta se añade a tu solicitud.',
   buttonFallback:
     'Si el botón no funciona, copia y pega este enlace en tu navegador:',
   privacy: 'Política de privacidad',
@@ -186,6 +216,20 @@ const es: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - Soporte de CircleSfera',
     title: 'Respuesta a tu consulta',
+    button: 'Ver tu solicitud',
+  },
+  supportReminder: {
+    subject: '¿Sigues necesitando ayuda? {subject} - Soporte de CircleSfera',
+    title: '¿Sigues necesitando ayuda?',
+    body: 'Respondimos a tu solicitud n.º {reference}, <strong>{subject}</strong>, y no hemos vuelto a saber de ti.<br><br>Si sigues necesitando ayuda, responde en la solicitud. Si no recibimos respuesta en {days} días, la marcaremos como resuelta.',
+    button: 'Ver tu solicitud',
+  },
+  supportUnmatched: {
+    subject:
+      'No hemos podido añadir tu correo a una solicitud - Soporte de CircleSfera',
+    title: 'Tu correo no ha llegado a ninguna solicitud',
+    body: 'Esta dirección solo recibe respuestas a solicitudes de soporte, enviadas desde la dirección que abrió la solicitud.<br><br>Si necesitas ayuda, abre una solicitud desde la página de soporte. Si estabas respondiendo a una, responde desde el correo de tu cuenta o escribe en la propia solicitud.',
+    button: 'Ir a soporte',
   },
   subscriptionReceipt: {
     subject: 'Recibo de suscripción - {plan}',

@@ -227,7 +227,8 @@ describe('OutboxService', () => {
         'export-data',
         { requestId: 'req-1', userId: 'user-1' },
         {
-          jobId: 'export:req-1',
+          // Stored with a colon by an earlier version; published without it.
+          jobId: 'export-req-1',
           removeOnComplete: true,
         },
       );
@@ -244,7 +245,7 @@ describe('OutboxService', () => {
       expect(stats).toEqual({ published: 1, failed: 0, skipped: 0 });
     });
 
-    it('should use outbox:id as fallback deterministic jobId when options.jobId is not provided', async () => {
+    it('should use outbox-id as fallback deterministic jobId when options.jobId is not provided', async () => {
       const now = new Date();
       const mockEvent = {
         id: 'outbox-2',
@@ -270,7 +271,7 @@ describe('OutboxService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'user-cleanup',
         { userId: 'u2' },
-        { jobId: 'outbox:outbox-2' },
+        { jobId: 'outbox-outbox-2' },
       );
       expect(stats.published).toBe(1);
     });
@@ -327,7 +328,7 @@ describe('OutboxService', () => {
       expect(mockQueue.add).toHaveBeenCalledWith(
         'export-data',
         { requestId: 'req-stuck' },
-        { jobId: 'outbox:outbox-stuck' },
+        { jobId: 'outbox-outbox-stuck' },
       );
       expect(stats.published).toBe(1);
     });

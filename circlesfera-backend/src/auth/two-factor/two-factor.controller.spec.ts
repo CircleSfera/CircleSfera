@@ -72,6 +72,7 @@ describe('TwoFactorController', () => {
     ).toHaveBeenCalledWith({
       id: TEST_USER.userId,
       email: TEST_USER.email,
+      signInId: TEST_USER.signInId,
     });
     expect(mockService.generateQrCodeDataURL).toHaveBeenCalledWith(
       'otpauth://test',
@@ -106,6 +107,7 @@ describe('TwoFactorController', () => {
     expect(mockService.turnOnTwoFactorAuthentication).toHaveBeenCalledWith(
       TEST_USER.userId,
       '123456',
+      TEST_USER.signInId,
     );
   });
 
@@ -124,6 +126,7 @@ describe('TwoFactorController', () => {
     expect(mockService.turnOffTwoFactorAuthentication).toHaveBeenCalledWith(
       TEST_USER.userId,
       '123456',
+      TEST_USER.signInId,
     );
   });
 });

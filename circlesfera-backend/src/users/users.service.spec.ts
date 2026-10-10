@@ -206,6 +206,26 @@ describe('UsersService', () => {
         lastIp: '1.2.3.5',
         botLabeledAt: null,
         deviceSignals: [{ firstSeenAt: new Date(), lastSeenAt: new Date() }],
+        signIns: [
+          {
+            email: 'exp@test.com',
+            emailVerified: new Date('2026-01-01'),
+            isTwoFactorEnabled: true,
+            createdAt: new Date('2026-01-01'),
+            profiles: [{ username: 'exporter' }],
+            // Never part of the export, whatever the row carries.
+            password: 'hash',
+            twoFactorSecret: 'secret',
+            resetToken: 'token',
+          },
+          {
+            email: 'shop@test.com',
+            emailVerified: null,
+            isTwoFactorEnabled: false,
+            createdAt: new Date('2026-02-01'),
+            profiles: [{ username: 'exporter.shop' }],
+          },
+        ],
       };
 
       const mockRelations = {
@@ -241,7 +261,6 @@ describe('UsersService', () => {
         ],
         settings: { privacyLevel: 'PUBLIC' },
         appeals: [],
-        supportTickets: [],
         sentTransactions: [
           {
             id: 'tx_s1',
@@ -271,6 +290,26 @@ describe('UsersService', () => {
         .mockResolvedValueOnce(mockRelations);
 
       const res = await service.exportUserData('u_exp');
+      // Every way the person signs in, and nothing secret about any.
+      expect(res.signIns).toEqual([
+        {
+          email: 'exp@test.com',
+          emailVerified: new Date('2026-01-01'),
+          twoFactorEnabled: true,
+          createdAt: new Date('2026-01-01'),
+          profiles: ['exporter'],
+        },
+        {
+          email: 'shop@test.com',
+          emailVerified: null,
+          twoFactorEnabled: false,
+          createdAt: new Date('2026-02-01'),
+          profiles: ['exporter.shop'],
+        },
+      ]);
+      expect(JSON.stringify(res.signIns)).not.toMatch(
+        /password|twoFactorSecret|resetToken|hash/,
+      );
 
       expect(res.id).toBe('u_exp');
       expect(res.email).toBe('exp@test.com');

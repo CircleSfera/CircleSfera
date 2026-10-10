@@ -50,7 +50,7 @@ export default function LayoutWrapper({
   const marketingRoutes = [
     '/features',
     '/principles',
-    '/faq',
+    '/help',
     '/terms',
     '/privacy',
     '/support',

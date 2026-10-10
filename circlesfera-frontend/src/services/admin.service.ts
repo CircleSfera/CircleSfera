@@ -378,6 +378,71 @@ export interface UserExperiment {
 }
 
 // What support sees about who wrote a ticket. It is read-only.
+export interface AdminDispute {
+  id: string;
+  stripeDisputeId: string;
+  amountCents: number;
+  currency: string;
+  // The provider's own values (e.g. fraudulent; needs_response, won, lost).
+  reason: string;
+  status: string;
+  evidenceDueBy: string | null;
+  openedAt: string;
+  closedAt: string | null;
+  transaction: {
+    id: string;
+    type: string;
+    sender: { id: string; email: string } | null;
+  } | null;
+}
+
+export interface AdminSubscription {
+  id: string;
+  status:
+    | 'ACTIVE'
+    | 'TRIALING'
+    | 'PAST_DUE'
+    | 'INCOMPLETE'
+    | 'CANCELLED'
+    | 'EXPIRED';
+  stripeSubscriptionId: string;
+  currentPeriodEnd: string;
+  cancelAtPeriodEnd: boolean;
+  createdAt: string;
+  plan: { id: string; name: string; priceCents: number; currency: string };
+  profile: {
+    id: string;
+    username: string;
+    fullName: string | null;
+    avatar: string | null;
+  } | null;
+  // Null once the account was deleted; the row is kept for tax records.
+  user: { id: string; email: string } | null;
+}
+
+export interface AdminPlan {
+  id: string;
+  name: string;
+  description: string | null;
+  priceCents: number;
+  yearlyPriceCents: number | null;
+  currency: string;
+  interval: string;
+  features: string[];
+  isActive: boolean;
+  updatedAt: string;
+}
+
+export interface AdminPlanCatalogue {
+  plans: AdminPlan[];
+  /** The features the code acts on; a plan can only include these. */
+  featureKeys: string[];
+}
+
+export type AdminPlanChanges = Partial<
+  Pick<AdminPlan, 'features' | 'isActive'> & { description: string }
+>;
+
 export interface AdminSupportAccount {
   userId: string;
   isActive: boolean;
@@ -395,13 +460,36 @@ export interface AdminSupportAccount {
   }[];
 }
 
+export interface AdminSupportMessage {
+  id: string;
+  authorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
+  // Empty for the system and for answers from before authors were stored.
+  authorRef: string | null;
+  visibility: 'PUBLIC' | 'INTERNAL';
+  body: string;
+  channel: 'PRODUCT' | 'EMAIL';
+  createdAt: string;
+}
+
 export interface AdminSupportTicket {
   id: string;
+  // Short number shown to requester and agent.
+  reference?: number;
   email: string;
   subject: string;
   message: string;
   // ESCALATED: handed to moderation, which decides its report.
-  status: 'OPEN' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  status: 'OPEN' | 'WAITING' | 'RESOLVED' | 'CLOSED' | 'ESCALATED';
+  // Only agents see these two.
+  priority?: 'LOW' | 'NORMAL' | 'HIGH';
+  assignedAgentRef?: string | null;
+  // What the ticket is measured by. Empty for a ticket that is not measured.
+  serviceLevel?: 'STANDARD' | 'PRIORITY';
+  firstResponseDueAt?: string | null;
+  firstRespondedAt?: string | null;
+  resolutionDueAt?: string | null;
+  // What the ticket is about, chosen by who wrote it.
+  category: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
   escalatedReport?: { id: string; status: string } | null;
   reply: string | null;
   createdAt: string;
@@ -409,8 +497,96 @@ export interface AdminSupportTicket {
   user?: {
     id: string;
     email: string;
-    profile?: { username: string; avatar: string | null } | null;
+    profile?: {
+      username: string;
+      avatar: string | null;
+      fullName?: string | null;
+    } | null;
   } | null;
+}
+
+// One change of a ticket: what, from what to what, and who made it.
+export interface AdminSupportEvent {
+  id: string;
+  kind: 'STATE' | 'TOPIC' | 'PRIORITY' | 'ASSIGNMENT' | 'HANDOVER';
+  fromValue: string | null;
+  toValue: string | null;
+  actorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM';
+  // Empty for the system and for an answer from the team channel.
+  actorRef: string | null;
+  createdAt: string;
+}
+
+export interface AdminSupportTicketDetail extends AdminSupportTicket {
+  messages: AdminSupportMessage[];
+  events?: AdminSupportEvent[];
+  // The names of the agents the ticket mentions, by reference.
+  agents?: Record<string, string>;
+  // What the requester thought of the answer, when they said.
+  rating?: { score: 'GOOD' | 'BAD'; comment: string | null } | null;
+}
+
+// An answer kept for a repeated question: the agent's own, or shared.
+export interface AdminSavedReply {
+  id: string;
+  title: string;
+  body: string;
+  shared: boolean;
+  updatedAt: string;
+}
+
+// How one group of tickets was attended, in numbers.
+export interface AdminServiceFigures {
+  opened: number;
+  solved: number;
+  firstResponse: {
+    answered: number;
+    // Shares go from 0 to 1; null with nothing to measure.
+    withinTarget: number | null;
+    medianMinutes: number | null;
+  };
+  resolution: { withinTarget: number | null; medianMinutes: number | null };
+  ratings: { count: number; good: number | null };
+}
+
+export interface AdminSupportFigures {
+  days: 7 | 30;
+  // Open tickets past their target, right now.
+  pastTarget: number;
+  total: AdminServiceFigures;
+  standard: AdminServiceFigures;
+  priority: AdminServiceFigures;
+}
+
+// An article of the help centre, in the list of who writes them.
+export interface AdminArticleSummary {
+  id: string;
+  slug: string;
+  topic: 'ACCOUNT' | 'PAYMENTS' | 'CONTENT' | 'OTHER';
+  status: 'DRAFT' | 'PUBLISHED';
+  position: number;
+  usefulYes: number;
+  usefulNo: number;
+  updatedAt: string;
+  // Its title in each language it has one.
+  titles: Record<string, string>;
+  // The languages it still lacks a title in.
+  missing: string[];
+}
+
+export interface AdminArticle
+  extends Omit<AdminArticleSummary, 'titles' | 'missing'> {
+  // The languages an article is written in here.
+  locales: string[];
+  texts: { locale: string; title: string; body: string }[];
+}
+
+type ArticleTexts = { locale: string; title: string; body: string }[];
+
+// An agent a ticket can be given to.
+export interface AdminSupportAgent {
+  ref: string;
+  name: string;
 }
 
 export interface AdminFeatureFlag {
@@ -1010,16 +1186,103 @@ export const adminApi = {
     apiClient.delete(`admin/experiments/users/${id}`),
 
   // Support tickets
-  getSupportTickets: (page = 1, limit = 20, status?: string) =>
+  getSupportTickets: (
+    page = 1,
+    limit = 20,
+    status?: string,
+    category?: string,
+    // Whose tickets and of which priority.
+    team: {
+      assignment?: 'mine' | 'unassigned';
+      priority?: string;
+      // Only the open tickets past their target.
+      target?: 'past';
+    } = {},
+  ) =>
     apiClient.get<PaginatedResponse<AdminSupportTicket>>(
       'admin/support/tickets',
-      { params: { page, limit, status } },
+      { params: { page, limit, status, category, ...team } },
+    ),
+
+  // Saved replies: the shared ones and the agent's own.
+  getSavedReplies: () =>
+    apiClient.get<AdminSavedReply[]>('admin/support/saved-replies'),
+  createSavedReply: (data: { title: string; body: string; shared?: boolean }) =>
+    apiClient.post<AdminSavedReply>('admin/support/saved-replies', data),
+  updateSavedReply: (id: string, data: { title?: string; body?: string }) =>
+    apiClient.patch<AdminSavedReply>(`admin/support/saved-replies/${id}`, data),
+  deleteSavedReply: (id: string) =>
+    apiClient.delete<{ deleted: boolean }>(`admin/support/saved-replies/${id}`),
+
+  // How fast and how well support answered; only for who leads the team.
+  getSupportFigures: (days: 7 | 30) =>
+    apiClient.get<AdminSupportFigures>('admin/support/tickets/figures', {
+      params: { days },
+    }),
+
+  // The help centre, for who leads support.
+  getArticles: () =>
+    apiClient.get<AdminArticleSummary[]>('admin/support/articles'),
+  getArticle: (id: string) =>
+    apiClient.get<AdminArticle>(`admin/support/articles/${id}`),
+  createArticle: (data: {
+    slug: string;
+    topic: AdminArticle['topic'];
+    position: number;
+    texts: ArticleTexts;
+  }) => apiClient.post<AdminArticle>('admin/support/articles', data),
+  updateArticle: (
+    id: string,
+    data: {
+      topic?: AdminArticle['topic'];
+      position?: number;
+      texts?: ArticleTexts;
+    },
+  ) => apiClient.patch<AdminArticle>(`admin/support/articles/${id}`, data),
+  publishArticle: (id: string) =>
+    apiClient.post<AdminArticle>(`admin/support/articles/${id}/publish`),
+  takeBackArticle: (id: string) =>
+    apiClient.post<AdminArticle>(`admin/support/articles/${id}/take-back`),
+  deleteArticle: (id: string) =>
+    apiClient.delete<{ deleted: boolean }>(`admin/support/articles/${id}`),
+
+  // The agents a ticket can be given to.
+  getSupportAgents: () =>
+    apiClient.get<AdminSupportAgent[]>('admin/support/tickets/agents'),
+
+  // Takes the ticket (the agent's own reference) or lets go of it (null).
+  assignSupportTicket: (id: string, agentRef: string | null) =>
+    apiClient.post<AdminSupportTicket>(
+      `admin/support/tickets/${id}/assignment`,
+      { agentRef },
     ),
 
   updateSupportTicket: (
     id: string,
-    data: { status?: 'OPEN' | 'RESOLVED' | 'CLOSED'; reply?: string },
+    data: {
+      status?: 'OPEN' | 'RESOLVED' | 'CLOSED';
+      reply?: string;
+      priority?: 'LOW' | 'NORMAL' | 'HIGH';
+    },
   ) => apiClient.patch<AdminSupportTicket>(`admin/support/tickets/${id}`, data),
+
+  // One ticket with its whole conversation, internal notes included.
+  getSupportTicket: (id: string) =>
+    apiClient.get<AdminSupportTicketDetail>(`admin/support/tickets/${id}`),
+
+  // An answer the requester receives, or an internal note only agents see.
+  addSupportMessage: (
+    id: string,
+    data: {
+      body: string;
+      visibility: 'PUBLIC' | 'INTERNAL';
+      status?: 'OPEN' | 'WAITING' | 'RESOLVED';
+    },
+  ) =>
+    apiClient.post<AdminSupportTicketDetail>(
+      `admin/support/tickets/${id}/messages`,
+      data,
+    ),
 
   // Hands the ticket to moderation: a report in the trust queues.
   escalateSupportTicket: (id: string) =>
@@ -1030,6 +1293,35 @@ export const adminApi = {
     apiClient.get<AdminSupportAccount | null>(
       `admin/support/tickets/${id}/account`,
     ),
+
+  // Disputes mirrored from the payment provider. Read only.
+  getDisputes: (params: {
+    page?: number;
+    limit?: number;
+    state?: 'open' | 'closed';
+  }) =>
+    apiClient.get<
+      PaginatedResponse<AdminDispute> & { meta: { openCount: number } }
+    >('admin/disputes', { params }),
+
+  // Platform plan subscriptions. Read only.
+  getSubscriptions: (params: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    planId?: string;
+    search?: string;
+  }) =>
+    apiClient.get<PaginatedResponse<AdminSubscription>>('admin/subscriptions', {
+      params,
+    }),
+
+  // Plan catalogue: what each platform plan includes. Prices are read-only.
+  getPlans: () => apiClient.get<AdminPlanCatalogue>('admin/plans'),
+
+  // Saving asks for a recent identity confirmation (authenticator code).
+  updatePlan: (id: string, changes: AdminPlanChanges) =>
+    apiClient.patch<AdminPlan>(`admin/plans/${id}`, changes),
 
   // Feature flags
   getFeatureFlags: () =>

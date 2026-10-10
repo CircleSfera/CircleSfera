@@ -329,7 +329,11 @@ export default function StoryViewer({
     >
       {' '}
       <div className="sr-only" aria-live="polite" aria-atomic="true">
-        {`Story ${currentIndex + 1} of ${stories.length} from ${currentStory.profile?.username}`}
+        {t('story.position', {
+          current: currentIndex + 1,
+          total: stories.length,
+          username: currentStory.profile?.username,
+        })}
       </div>
       {/* Desktop: the app background. Phones: the story itself, blurred. */}
       <BrandAmbientBackground placement="editor" />
@@ -554,6 +558,7 @@ export default function StoryViewer({
                     <button
                       type="button"
                       onClick={handleLike}
+                      aria-label={t('story.like')}
                       className="text-white bg-white/10 backdrop-blur-xl p-3 rounded-full border border-white/10"
                     >
                       <Heart

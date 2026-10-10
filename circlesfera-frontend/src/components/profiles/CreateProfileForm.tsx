@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useProfileSwitch } from '../../hooks/useProfileSwitch';
 import { type ProfileAccountType, profileApi } from '../../services';
+import { SIGN_INS_QUERY_KEY, signInsApi } from '../../services/signIns.service';
 import { Button, Input } from '../ui';
 import { MY_PROFILES_QUERY_KEY } from './OwnedProfileList';
 
@@ -12,6 +13,11 @@ import { MY_PROFILES_QUERY_KEY } from './OwnedProfileList';
 const USERNAME_PATTERN = /^[a-zA-Z0-9._]{3,30}$/;
 const FULL_NAME_MAX = 50;
 const ACCOUNT_TYPES: ProfileAccountType[] = ['PERSONAL', 'CREATOR', 'BUSINESS'];
+// How the new Profile signs in: with the sign-in of the session, or its own.
+const SIGN_IN_CHOICES = ['share', 'own'] as const;
+type SignInChoice = (typeof SIGN_IN_CHOICES)[number];
+const PASSWORD_MIN = 8;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type Availability = 'idle' | 'invalid' | 'checking' | 'available' | 'taken';
 
@@ -61,6 +67,10 @@ export default function CreateProfileForm({
   const [fullName, setFullName] = useState('');
   const [accountType, setAccountType] =
     useState<ProfileAccountType>('PERSONAL');
+  const [signInChoice, setSignInChoice] = useState<SignInChoice>('share');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
   const availability = useUsernameAvailability(username.trim());
   const queryClient = useQueryClient();
   const { switchTo } = useProfileSwitch();
@@ -76,8 +86,24 @@ export default function CreateProfileForm({
           accountType,
         })
       ).data,
-    onSuccess: (profile) => {
+    onSuccess: async (profile) => {
       void queryClient.invalidateQueries({ queryKey: MY_PROFILES_QUERY_KEY });
+      // The Profile exists and shares the sign-in. Giving it its own is a
+      // second step that can be refused on its own (an email in use, a wrong
+      // password); the Profile stays, and the screen says how to finish.
+      if (signInChoice === 'own') {
+        try {
+          await signInsApi.giveOwn({
+            profileId: profile.id,
+            email: email.trim(),
+            password,
+            currentPassword,
+          });
+        } catch {
+          toast.error(t('settings.signIns.create.own_failed'));
+        }
+      }
+      void queryClient.invalidateQueries({ queryKey: SIGN_INS_QUERY_KEY });
       onCancel();
       switchTo(profile.id);
     },
@@ -86,8 +112,16 @@ export default function CreateProfileForm({
     },
   });
 
+  const ownSignInReady =
+    signInChoice === 'share' ||
+    (EMAIL_PATTERN.test(email.trim()) &&
+      password.length >= PASSWORD_MIN &&
+      currentPassword.length > 0);
   const canSubmit =
-    availability === 'available' && !create.isPending && !create.isSuccess;
+    availability === 'available' &&
+    ownSignInReady &&
+    !create.isPending &&
+    !create.isSuccess;
 
   const onSubmit = (event: FormEvent) => {
     event.preventDefault();
@@ -206,6 +240,92 @@ export default function CreateProfileForm({
             );
           })}
         </div>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="block text-xs font-bold text-gray-400/80 uppercase tracking-widest mb-1 px-0.5">
+          {t('settings.signIns.create.legend')}
+        </legend>
+        <div className="grid grid-cols-1 gap-2">
+          {SIGN_IN_CHOICES.map((choice) => {
+            const selected = signInChoice === choice;
+            return (
+              <label
+                key={choice}
+                className={`flex items-center gap-3 min-h-12 px-4 py-2 rounded-xl border cursor-pointer transition-colors ${
+                  selected
+                    ? 'border-brand-primary/60 bg-brand-primary/10'
+                    : 'border-white/10 bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="new-profile-sign-in"
+                  value={choice}
+                  checked={selected}
+                  onChange={() => setSignInChoice(choice)}
+                  className="sr-only"
+                />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium text-white">
+                    {t(`settings.signIns.create.${choice}`)}
+                  </span>
+                  <span className="block text-xs text-white/50">
+                    {t(`settings.signIns.create.${choice}_desc`)}
+                  </span>
+                </span>
+                {selected ? (
+                  <Check
+                    size={16}
+                    className="text-brand-primary shrink-0"
+                    aria-hidden
+                  />
+                ) : null}
+              </label>
+            );
+          })}
+        </div>
+        {signInChoice === 'own' ? (
+          <div className="space-y-4 pt-2">
+            <Input
+              id="new-profile-email"
+              type="email"
+              label={t('settings.signIns.own_form.email')}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              maxLength={254}
+              required
+            />
+            <Input
+              id="new-profile-password"
+              type="password"
+              label={t('settings.signIns.own_form.password')}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              maxLength={128}
+              required
+            />
+            <div className="space-y-1.5">
+              <Input
+                id="new-profile-current-password"
+                type="password"
+                label={t('settings.signIns.current_password')}
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                autoComplete="current-password"
+                maxLength={128}
+                required
+              />
+              <p className="text-xs text-white/50 px-0.5">
+                {t('settings.signIns.current_password_hint')}
+              </p>
+            </div>
+          </div>
+        ) : null}
       </fieldset>
 
       <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">

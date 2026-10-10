@@ -10,6 +10,7 @@ import {
   AudioTab,
   AuditLogTab,
   CommentsTab,
+  DisputesTab,
   ExperimentsTab,
   FirewallTab,
   HashtagsTab,
@@ -17,7 +18,9 @@ import {
   ModerationTab,
   MonetizationTab,
   NewsletterTab,
+  OverviewTab,
   PayoutsTab,
+  PlansTab,
   PostsTab,
   PromotionsTab,
   ReportsTab,
@@ -26,6 +29,7 @@ import {
   SpamReviewTab,
   StatsTab,
   StoriesTab,
+  SubscriptionsTab,
   SupportTicketsTab,
   SystemHealthTab,
   TrustTab,
@@ -36,9 +40,9 @@ import {
 import AdminShell from '../components/admin/AdminShell';
 import type { AdminTab } from '../components/admin/adminNav';
 import {
-  ADMIN_TAB_PERMISSIONS,
   adminTabPath,
   canOpenSite,
+  canOpenTab,
   currentStaffSite,
   getAdminHomeTab,
   isAdminTab,
@@ -70,7 +74,7 @@ export default function Admin() {
   const homeTab = getAdminHomeTab(hasPermission);
   const isInvalidTab = !!tab && !isAdminTab(tab);
   const activeTab: AdminTab = isAdminTab(tab) ? tab : homeTab;
-  const canOpenActiveTab = hasPermission(ADMIN_TAB_PERMISSIONS[activeTab]);
+  const canOpenActiveTab = canOpenTab(hasPermission, activeTab);
 
   const handleTabChange = useCallback(
     (newTab: AdminTab) => {
@@ -108,6 +112,7 @@ export default function Admin() {
   return (
     <AdminShell activeTab={activeTab} onTabChange={handleTabChange}>
       <div className="min-h-0">
+        {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'analytics' && <StatsTab />}
         {activeTab === 'reports' && <ReportsTab onToast={addToast} />}
         {activeTab === 'users' && <UsersTab onToast={addToast} />}
@@ -123,6 +128,9 @@ export default function Admin() {
         {activeTab === 'appeals' && <AppealsTab />}
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
+        {activeTab === 'plans' && <PlansTab onToast={addToast} />}
+        {activeTab === 'subscriptions' && <SubscriptionsTab />}
+        {activeTab === 'disputes' && <DisputesTab />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}

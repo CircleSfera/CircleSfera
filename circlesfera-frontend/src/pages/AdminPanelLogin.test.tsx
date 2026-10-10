@@ -130,7 +130,8 @@ describe('Admin Panel sign-in', () => {
         replace: true,
       }),
     );
-    expect(ADMIN_TAB_PERMISSIONS[expectedTab]).toBe('audit');
+    expect(expectedTab).toBe('audit');
+    expect(ADMIN_TAB_PERMISSIONS.audit).toBe('audit');
   });
 
   it('gives a staff manager the same first tab as a super admin', async () => {

@@ -134,10 +134,11 @@ export class ProfilesService {
 
     await this.assertNotBlocked(viewerProfileId, profile.id);
 
-    // Check if user is verified via subscription (PlatformSubscription is on User)
+    // The badge comes from a plan of this Profile, not of another Profile of
+    // the same person.
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
-        userId: profile.userId,
+        profileId: profile.id,
         status: SubscriptionStatus.ACTIVE,
         plan: { features: { has: 'verified_badge' } },
       },
@@ -439,7 +440,9 @@ export class ProfilesService {
     };
   }
 
-  async getMyProfile(profileId: string) {
+  // Param signInId: the sign-in of the session; its email and whether it is
+  // verified are what the person reads about how they are signed in
+  async getMyProfile(profileId: string, signInId?: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
       include: {
@@ -481,10 +484,10 @@ export class ProfilesService {
       );
     }
 
-    // Check if user is verified via subscription
+    // The badge comes from a plan of this Profile.
     const isVerifiedResult = await this.prisma.platformSubscription.findFirst({
       where: {
-        userId: profile.userId,
+        profileId: profile.id,
         status: SubscriptionStatus.ACTIVE,
         plan: { features: { has: 'verified_badge' } },
       },
@@ -498,6 +501,15 @@ export class ProfilesService {
       profile.verificationLevel === 'BUSINESS';
 
     const companyVerified = await this.isVerifiedCompany(profile);
+    // The sign-in of the session, inside the account of this Profile. A
+    // session that names none reads the account, which mirrors its first.
+    const sessionSignIn = signInId
+      ? await this.prisma.signIn.findFirst({
+          where: { id: signInId, userId: profile.userId },
+          select: { email: true, emailVerified: true },
+        })
+      : null;
+    const signedInWith = sessionSignIn ?? profile.user;
 
     // Flatten for UI convenience
     return {
@@ -509,8 +521,8 @@ export class ProfilesService {
       referredById: profile.user?.referredById,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
       identityVerified: !!profile.user?.identityVerifiedAt,
-      emailConfirmed: !!profile.user?.emailVerified,
-      emailVerified: profile.user?.emailVerified,
+      emailConfirmed: !!signedInWith?.emailVerified,
+      emailVerified: signedInWith?.emailVerified,
       joinedAt: profile.user?.createdAt,
       signupCountry: profile.user?.signupCountry ?? null,
       strikeCount: profile._count.strikes,
@@ -522,6 +534,12 @@ export class ProfilesService {
       }),
       isPrivate: profile.user?.settings?.privacyLevel === 'PRIVATE',
       isVerified: planVerified,
+      // The email shown is the one the person is signed in with.
+      user: profile.user && {
+        ...profile.user,
+        email: signedInWith?.email ?? profile.user.email,
+        emailVerified: signedInWith?.emailVerified ?? null,
+      },
     };
   }
 

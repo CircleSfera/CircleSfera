@@ -75,6 +75,19 @@ export class EnvironmentVariables {
   @IsString()
   @IsOptional()
   SLACK_WEBHOOK_SUPPORT?: string;
+
+  // Help Desk email in. With any of the three missing it is off.
+  @IsString()
+  @IsOptional()
+  HELPDESK_REPLY_DOMAIN?: string;
+
+  @IsString()
+  @IsOptional()
+  HELPDESK_REPLY_SECRET?: string;
+
+  @IsString()
+  @IsOptional()
+  HELPDESK_INBOUND_TOKEN?: string;
 }
 
 /**

@@ -5,7 +5,7 @@
   },
   "cookieConsent": {
     "title": "Cookies",
-    "description": "Usamos cookies necesarias para que la app funcione. Las cookies de analítica son opcionales y nos ayudan a mejorar CircleSfera.",
+    "description": "Usamos cookies necesarias para que la app funcione. Las de análisis son opcionales: sirven para detectar errores y fallos de rendimiento.",
     "essential_only": "Solo esenciales",
     "accept": "Aceptar todas",
     "dismiss": "Cerrar"
@@ -122,6 +122,7 @@
       "uploading": "Subiendo...",
       "upload_new": "Subir Nueva",
       "avatar_desc": "Actualiza tu foto de perfil para personalizar tu experiencia en CircleSfera.",
+      "avatar_error": "No se pudo subir la foto. Inténtalo de nuevo.",
       "public_identity": "Identidad Pública",
       "username": "Nombre de usuario",
       "display_name": "Nombre visible",
@@ -269,6 +270,9 @@
     "billing": {
       "title": "Suscripción",
       "subtitle": "Gestiona tu plan en la plataforma",
+      "subtitle_profile": "El plan de @{{username}}. Cada perfil tiene el suyo; tú pagas los de todos tus perfiles.",
+      "other_profiles": "Planes de tus otros perfiles",
+      "other_profiles_desc": "Se gestionan en la misma facturación.",
       "current_plan": "Plan actual",
       "free": "Gratis",
       "free_desc": "Nivel básico sin funciones avanzadas",
@@ -309,6 +313,8 @@
         "qr_alt": "Código QR del autenticador",
         "verify_btn": "Verificar",
         "confirm_disable": "¿Seguro que quieres desactivar el 2FA? Tu cuenta quedará menos protegida.",
+        "disable_instructions": "Introduce un código de tu app autenticadora para desactivarlo.",
+        "code_label": "Código de 6 dígitos",
         "disabling": "Desactivando...",
         "disable_btn": "Desactivar 2FA",
         "generate_error": "No se pudo generar el secreto 2FA",
@@ -480,9 +486,61 @@
       "update_error": "No se pudieron actualizar los ajustes",
       "updated": "Ajustes actualizados"
     },
+    "signIns": {
+      "title": "Cómo entra cada perfil",
+      "description": "Un perfil puede entrar con el mismo correo y contraseña que otro, o tener los suyos. La identidad, los pagos y los cobros son los mismos para todos tus perfiles, entren como entren.",
+      "shared": "Comparte el inicio de sesión",
+      "own": "Tiene su propio inicio de sesión",
+      "unverified": "Correo sin verificar",
+      "give_own": "Correo y contraseña propios",
+      "share_again": "Volver a compartir",
+      "load_failed": "No se ha podido cargar cómo entran tus perfiles.",
+      "current_password": "Tu contraseña actual",
+      "current_password_hint": "La contraseña con la que has entrado. La pedimos para confirmar que eres tú.",
+      "current_password_required": "Escribe tu contraseña actual.",
+      "own_form": {
+        "title": "Correo y contraseña propios para @{{username}}",
+        "effect_new": "Este perfil entrará con el correo y la contraseña nuevos.",
+        "effect_others": "Tus otros perfiles siguen entrando como hasta ahora.",
+        "effect_notices": "Los avisos de este perfil irán al correo nuevo cuando lo verifiques.",
+        "effect_security": "La verificación en dos pasos y las passkeys se configuran de nuevo para este inicio de sesión.",
+        "email": "Correo nuevo",
+        "password": "Contraseña nueva",
+        "email_invalid": "Escribe un correo válido.",
+        "password_short": "La contraseña debe tener al menos 8 caracteres.",
+        "submit": "Crear inicio de sesión",
+        "done": "@{{username}} ya tiene su propio inicio de sesión. Revisa el correo nuevo para verificarlo."
+      },
+      "share_form": {
+        "title": "Volver a compartir el inicio de sesión de @{{username}}",
+        "effect_stops": "El correo {{email}} y su contraseña dejarán de servir para entrar.",
+        "effect_sessions": "Se cerrarán las sesiones abiertas con ese correo.",
+        "effect_security": "Se eliminarán sus passkeys y su verificación en dos pasos.",
+        "target": "Entrará con",
+        "submit": "Volver a compartir",
+        "done": "@{{username}} vuelve a compartir el inicio de sesión."
+      },
+      "create": {
+        "legend": "Cómo entrará este perfil",
+        "share": "Con el mismo correo y contraseña",
+        "share_desc": "Entras una vez y cambias de perfil cuando quieras.",
+        "own": "Con su propio correo y contraseña",
+        "own_desc": "Para entrar a este perfil por separado.",
+        "own_failed": "El perfil se ha creado compartiendo el inicio de sesión. Puedes darle el suyo desde esta pantalla."
+      },
+      "errors": {
+        "SIGN_IN_EMAIL_TAKEN": "Ese correo ya se usa para entrar. Elige otro.",
+        "SIGN_IN_PROOF_INVALID": "La contraseña no es correcta.",
+        "SIGN_IN_PROOF_REQUIRED": "Escribe tu contraseña actual.",
+        "SIGN_IN_ALREADY_OWN": "Este perfil ya tiene su propio inicio de sesión.",
+        "SIGN_IN_NOT_FOUND": "No hemos encontrado ese perfil o ese inicio de sesión.",
+        "SIGN_IN_LIMIT_REACHED": "Acabas de crear un inicio de sesión. Espera un rato antes de crear otro.",
+        "generic": "No se ha podido guardar el cambio. Inténtalo de nuevo."
+      }
+    },
     "profiles": {
       "title": "Tus perfiles",
-      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. El inicio de sesión, la seguridad y el plan son compartidos.",
+      "description": "Una cuenta puede tener hasta {{max}} perfiles, cada uno con sus propias publicaciones, seguidores y mensajes. Cada perfil comparte el inicio de sesión o tiene el suyo, y tiene su propio plan.",
       "current": "Actual",
       "suspended": "Suspendido",
       "banned": "Bloqueado",
@@ -1083,6 +1141,8 @@
     "reply_placeholder": "Responder...",
     "send_reply": "Enviar respuesta",
     "close_viewer": "Cerrar visor de historia",
+    "like": "Me gusta esta historia",
+    "position": "Historia {{current}} de {{total}} de {{username}}",
     "delete_this": "Eliminar esta historia",
     "you": "Tú",
     "yours": "Tu historia",
@@ -1654,6 +1714,8 @@
     "title": "Actividad",
     "no_activity": "No hay actividad aún",
     "view_post": "Ver la publicación",
+    "from_support": "Soporte",
+    "view_request": "Ver la solicitud",
     "unknown_user": "Desconocido",
     "error_title": "No se pudieron cargar las notificaciones",
     "error_message": "Algo salió mal. Inténtalo de nuevo.",
@@ -1745,6 +1807,7 @@
     "decline": "Rechazar",
     "accept": "Aceptar",
     "in_call": "En Llamada...",
+    "end_call": "Colgar",
     "remote_user": "Usuario remoto",
     "delete_confirm": {
       "me_title": "¿Eliminar la conversación para ti?",
@@ -2157,6 +2220,9 @@
       "audit": "Audit Log",
       "appeals": "Apelaciones",
       "support": "Soporte",
+      "plans": "Planes",
+      "subscriptions": "Suscripciones",
+      "disputes": "Disputas",
       "trust": "Cola de confianza",
       "live": "Directos",
       "roles": "Roles",
@@ -2548,7 +2614,253 @@
       "gifts": "Regalos",
       "viewers": "Espectadores"
     },
+    "plans": {
+      "title": "Planes",
+      "subtitle": "Qué incluye cada plan y si está a la venta. Los cambios se aplican a todos los suscriptores del plan.",
+      "price_month": "{{price}} al mes",
+      "price_year": "{{price}} al año",
+      "price_note": "El precio lo cobra Stripe y no se cambia desde aquí.",
+      "on_sale": "A la venta",
+      "on_sale_hint": "Si lo desactivas, deja de mostrarse en Precios. Quien ya lo tiene lo conserva.",
+      "includes": "Incluye",
+      "description": "Descripción",
+      "save": "Guardar cambios",
+      "toast_saved": "Plan guardado",
+      "toast_failed": "No se pudo guardar el plan",
+      "load_failed": "No se pudo cargar el catálogo de planes",
+      "empty": "No hay planes en el catálogo"
+    },
+    "disputes": {
+      "title": "Disputas",
+      "subtitle": "Pagos que un cliente ha disputado con su banco. Se contestan en Stripe, dentro del plazo.",
+      "filter_open": "Abiertas",
+      "filter_closed": "Cerradas",
+      "filter_all": "Todas",
+      "status": {
+        "needs_response": "Hay que responder",
+        "under_review": "En revisión",
+        "won": "Ganada",
+        "lost": "Perdida",
+        "warning_needs_response": "Aviso: hay que responder",
+        "warning_under_review": "Aviso en revisión",
+        "warning_closed": "Aviso cerrado"
+      },
+      "reason": {
+        "fraudulent": "Pago no reconocido (fraude)",
+        "duplicate": "Cobro duplicado",
+        "product_not_received": "Producto no recibido",
+        "product_unacceptable": "Producto no conforme",
+        "subscription_canceled": "Suscripción cancelada",
+        "credit_not_processed": "Reembolso no recibido",
+        "unrecognized": "Cargo no reconocido",
+        "general": "Motivo general"
+      },
+      "opened_on": "Abierta el {{date}}",
+      "due_in_one": "Responder antes del {{date}} (queda {{count}} día)",
+      "due_in_other": "Responder antes del {{date}} (quedan {{count}} días)",
+      "due_passed": "El plazo terminó el {{date}}",
+      "answer_in_stripe": "Responder en Stripe",
+      "open_in_stripe": "Abrir en Stripe",
+      "no_transaction": "Pago de un plan",
+      "empty_open_title": "No hay disputas abiertas",
+      "empty_title": "No hay disputas",
+      "empty_description": "Cuando un cliente dispute un pago con su banco, aparecerá aquí con su plazo.",
+      "load_failed": "No se pudieron cargar las disputas"
+    },
+    "subscriptions": {
+      "title": "Suscripciones",
+      "subtitle": "Quién tiene cada plan y en qué estado. Para cambiar, cancelar o reembolsar una suscripción, ábrela en Stripe.",
+      "search_placeholder": "Buscar por usuario o correo",
+      "filter_status": "Estado",
+      "all_statuses": "Todos los estados",
+      "filter_plan": "Plan",
+      "all_plans": "Todos los planes",
+      "status": {
+        "ACTIVE": "Activa",
+        "TRIALING": "En prueba",
+        "PAST_DUE": "Pago pendiente",
+        "INCOMPLETE": "Sin completar",
+        "CANCELLED": "Cancelada",
+        "EXPIRED": "Caducada"
+      },
+      "renews_on": "Se renueva el {{date}}",
+      "ends_on": "Termina el {{date}}",
+      "period_ended_on": "Periodo hasta el {{date}}",
+      "open_in_stripe": "Abrir en Stripe",
+      "account_deleted": "Cuenta eliminada",
+      "empty_title": "No hay suscripciones",
+      "empty_description": "Aquí aparecerán las suscripciones a los planes cuando alguien contrate uno.",
+      "load_failed": "No se pudieron cargar las suscripciones"
+    },
     "support": {
+      "whose_all": "Todos",
+      "whose_mine": "Míos",
+      "whose_unassigned": "Sin asignar",
+      "filter_priority": "Prioridad",
+      "set_priority": "Prioridad del ticket",
+      "priority_all": "Toda prioridad",
+      "priority": {
+        "HIGH": "Alta",
+        "NORMAL": "Normal",
+        "LOW": "Baja"
+      },
+      "assignee": "Lo lleva",
+      "assignee_nobody": "Nadie",
+      "assignee_me": "Tú",
+      "assignee_former": "Antiguo agente",
+      "assignee_me_named": "{{name}} (tú)",
+      "assign_to": "Asignar a",
+      "help_centre": {
+        "open": "Centro de ayuda",
+        "title": "Centro de ayuda",
+        "new": "Nuevo artículo",
+        "empty": "Todavía no hay artículos. Escribe aquí las respuestas a lo que más preguntan.",
+        "edit": "Editar",
+        "edit_named": "Editar «{{title}}»",
+        "status": {
+          "DRAFT": "Borrador",
+          "PUBLISHED": "Publicado"
+        },
+        "language": {
+          "es": "Español",
+          "en": "Inglés"
+        },
+        "useful_counts": "útil: {{yes}} sí, {{no}} no",
+        "missing": "Falta el título en: {{languages}}",
+        "field_topic": "Tema",
+        "field_position": "Posición",
+        "field_slug": "Dirección del artículo",
+        "slug_hint": "Solo minúsculas, números y guiones. Es la misma en todos los idiomas y no se puede cambiar después.",
+        "slug_fixed_hint": "La dirección de un artículo no cambia, para que los enlaces sigan funcionando.",
+        "field_title": "Título",
+        "field_body": "Texto",
+        "body_hint": "Deja una línea en blanco entre párrafos. Empieza una línea con «## » para un título de sección y con «- » para un elemento de lista. Las direcciones web se convierten en enlaces.",
+        "preview": "Vista previa",
+        "write": "Seguir escribiendo",
+        "save": "Guardar",
+        "back": "Volver a la lista",
+        "publish": "Publicar",
+        "take_back": "Retirar",
+        "delete": "Eliminar borrador",
+        "delete_confirm": "Confirmar eliminación",
+        "published_hint": "Este artículo está publicado: lo que guardes se ve al momento.",
+        "toast_saved": "Artículo guardado",
+        "toast_published": "Artículo publicado",
+        "toast_taken_back": "Artículo retirado",
+        "toast_deleted": "Borrador eliminado",
+        "toast_language_missing": "No se puede publicar: falta el título o el texto en {{languages}}."
+      },
+      "figures": {
+        "open": "Cifras",
+        "title": "Cifras de soporte",
+        "days_7": "Últimos 7 días",
+        "days_30": "Últimos 30 días",
+        "measure": "Medida",
+        "total": "Total",
+        "priority": "Preferente",
+        "standard": "Estándar",
+        "opened": "Tickets recibidos",
+        "solved": "Tickets resueltos",
+        "first_answered": "Con primera respuesta",
+        "first_within": "Primera respuesta en objetivo",
+        "first_median": "Tiempo de primera respuesta (mediana)",
+        "resolution_within": "Resueltos en objetivo",
+        "resolution_median": "Tiempo hasta resolver (mediana, sin esperas)",
+        "ratings": "Valoraciones",
+        "ratings_good": "Valoraciones buenas",
+        "past_target_one": "Ahora mismo hay {{count}} ticket abierto fuera de objetivo.",
+        "past_target_other": "Ahora mismo hay {{count}} tickets abiertos fuera de objetivo.",
+        "note": "Cada ticket cuenta en el periodo en que se abrió. Un guion significa que no hay nada que medir."
+      },
+      "rating": {
+        "label": "Valoración de la persona",
+        "GOOD": "Buena",
+        "BAD": "Mala"
+      },
+      "target": {
+        "label": "Objetivo",
+        "filter": "Objetivo",
+        "filter_all": "Con o sin retraso",
+        "filter_past": "Fuera de objetivo",
+        "first_response": "1.ª respuesta",
+        "resolution": "Resolución",
+        "near": "{{target}}: quedan {{time}}",
+        "past": "{{target}}: fuera de objetivo hace {{time}}"
+      },
+      "by_email": "por correo",
+      "saved_replies": {
+        "title": "Respuestas guardadas",
+        "insert": "Insertar una respuesta guardada",
+        "manage": "Gestionar respuestas guardadas",
+        "new": "Nueva respuesta",
+        "empty": "Todavía no hay respuestas guardadas. Guarda aquí lo que respondes a menudo.",
+        "field_title": "Título",
+        "field_body": "Texto",
+        "placeholders_hint": "Puedes usar {{name}}, {{subject}} y {{reference}}: se rellenan con el nombre de la persona, el asunto y el número de la solicitud al insertar la respuesta.",
+        "share": "Compartir con el equipo",
+        "share_hint": "La verán todos los agentes. Solo quien lleva el equipo puede cambiarla.",
+        "save": "Guardar",
+        "edit": "Editar",
+        "edit_named": "Editar «{{title}}»",
+        "delete": "Eliminar",
+        "delete_named": "Eliminar «{{title}}»",
+        "delete_confirm": "Confirmar eliminación",
+        "kind_shared": "Compartida",
+        "kind_personal": "Personal",
+        "toast_saved": "Respuesta guardada",
+        "toast_deleted": "Respuesta eliminada"
+      },
+      "new_message_title": "Ha llegado un mensaje nuevo mientras escribías",
+      "new_message_hint": "Léelo antes de enviar. Lo que has escrito se conserva.",
+      "new_message_read": "Lo he leído",
+      "event": {
+        "state": "Estado: {{from}} → {{to}}",
+        "topic": "Tema: {{from}} → {{to}}",
+        "priority": "Prioridad: {{from}} → {{to}}",
+        "assignment": "Lo lleva: {{from}} → {{to}}",
+        "handover": "Pasado a moderación",
+        "state_name": {
+          "OPEN": "Abierto",
+          "WAITING": "Esperando al cliente",
+          "RESOLVED": "Resuelto",
+          "CLOSED": "Cerrado",
+          "ESCALATED": "En moderación"
+        }
+      },
+      "take": "Tomar",
+      "release": "Soltar",
+      "status_waiting": "Esperando al cliente",
+      "leave_waiting": "Dejar esperando al cliente",
+      "system": {
+        "handover_RESOLVED": "Moderación ha resuelto la denuncia. El ticket vuelve a soporte.",
+        "handover_REJECTED": "Moderación ha desestimado la denuncia. El ticket vuelve a soporte.",
+        "handover_GONE": "La denuncia ya no existe. El ticket vuelve a soporte.",
+        "attachments_left_out_one": "El correo traía {{count}} archivo adjunto que no se ha recibido.",
+        "attachments_left_out_other": "El correo traía {{count}} archivos adjuntos que no se han recibido."
+      },
+      "conversation": "Conversación",
+      "kind_answer": "Respuesta",
+      "kind_note": "Nota interna",
+      "note_placeholder": "Escribe una nota para el equipo...",
+      "answer_hint": "La persona la recibe por correo.",
+      "note_hint": "Solo la ve el equipo. No se envía a la persona.",
+      "leave_as": "Dejar el ticket",
+      "leave_resolved": "Dejar resuelto",
+      "leave_open": "Dejar abierto",
+      "send_answer": "Enviar respuesta",
+      "save_note": "Guardar nota",
+      "toast_answered": "Respuesta enviada",
+      "toast_note_added": "Nota guardada",
+      "author_team": "Soporte",
+      "author_system": "Sistema",
+      "internal_note": "Nota interna",
+      "filter_category": "Tema",
+      "category_all": "Todos los temas",
+      "waiting_under_hour": "Esperando menos de 1 hora",
+      "waiting_hours_one": "Esperando {{count}} hora",
+      "waiting_hours_other": "Esperando {{count}} horas",
+      "waiting_days_one": "Esperando {{count}} día",
+      "waiting_days_other": "Esperando {{count}} días",
       "title": "Tickets de Soporte",
       "subtitle": "Gestión de solicitudes de soporte y respuestas",
       "filter_status": "Estado",
@@ -3377,6 +3689,48 @@
     "renamed": "Colección renombrada"
   },
   "supportPage": {
+    "requests": {
+      "continues": "Continúa una solicitud anterior",
+      "title": "Tus solicitudes",
+      "seo_title": "Tu solicitud a soporte",
+      "back": "Soporte",
+      "conversation": "Conversación",
+      "you": "Tú",
+      "team": "Soporte de CircleSfera",
+      "reply_label": "Responder",
+      "reply_placeholder": "Escribe tu respuesta...",
+      "send": "Enviar",
+      "reopen_hint": "Si respondes, la solicitud se vuelve a abrir.",
+      "closed_notice": "Esta solicitud está cerrada. Si escribes, se abre una nueva que continúa esta.",
+      "write_again": "Escribir de nuevo sobre esto",
+      "not_found": "No encontramos esta solicitud.",
+      "rating": {
+        "question": "¿Te ha servido la respuesta?",
+        "GOOD": "Sí",
+        "BAD": "No",
+        "comment_label": "¿Quieres contarnos algo más? (opcional)",
+        "send": "Enviar valoración",
+        "change": "Cambiar valoración",
+        "thanks": "Gracias por tu valoración.",
+        "yours": "Tu valoración de la respuesta: {{score}}",
+        "error": "No se ha podido guardar tu valoración. Inténtalo de nuevo."
+      },
+      "status": {
+        "WAITING": "Esperando tu respuesta",
+        "OPEN": "Abierta",
+        "ESCALATED": "En revisión",
+        "RESOLVED": "Resuelta",
+        "CLOSED": "Cerrada"
+      }
+    },
+    "category_label": "¿Sobre qué es?",
+    "category_placeholder": "Elige un tema",
+    "category": {
+      "ACCOUNT": "Mi cuenta",
+      "PAYMENTS": "Pagos y planes",
+      "CONTENT": "Contenido o denuncias",
+      "OTHER": "Otra cosa"
+    },
     "badge": "Soporte",
     "seo_title": "Soporte — CircleSfera",
     "seo_desc": "Asistencia directa y soporte especializado para usuarios de CircleSfera. Nuestro equipo está listo para ayudarte.",
@@ -3396,8 +3750,8 @@
     "error_generic": "No se pudo enviar el mensaje. Inténtalo de nuevo.",
     "steps_title": "Así te ayudamos",
     "help": {
-      "faq_title": "Preguntas frecuentes",
-      "faq_desc": "Planes, verificación, el feed y el móvil.",
+      "help_title": "Centro de ayuda",
+      "help_desc": "Respuestas sobre la cuenta, los pagos y el contenido.",
       "rules_title": "Normas de la comunidad",
       "rules_desc": "Qué se puede publicar y cómo se modera.",
       "privacy_title": "Privacidad y datos",
@@ -3416,7 +3770,7 @@
     "badge": "Precios",
     "heading": "Empieza gratis.",
     "heading_highlight": "Mejora cuando quieras.",
-    "subtitle": "Todo lo social es gratis, y el soporte es el mismo para todos. Los planes son opcionales.",
+    "subtitle": "Todo lo social es gratis. Los planes son opcionales.",
     "most_popular": "Más popular",
     "current_plan": "Tu plan",
     "manage_subscription": "Gestionar suscripción",
@@ -3468,7 +3822,11 @@
       "manage_title": "Lo gestionas tú",
       "manage_desc": "Cambia o gestiona tu suscripción desde Ajustes.",
       "support_title": "Soporte para todos",
-      "support_desc": "Cualquier cuenta puede escribir a Soporte, tenga o no un plan."
+      "support_desc": "Cualquier cuenta puede escribir a Soporte. Con un plan, te respondemos antes."
+    },
+    "for_profile": {
+      "CREATOR": "Para perfiles de creador. Cambia el tipo de este perfil en Ajustes para elegirlo.",
+      "BUSINESS": "Para perfiles de empresa. Cambia el tipo de este perfil en Ajustes para elegirlo."
     },
     "all_questions": "Ver todas las preguntas"
   },
@@ -3949,6 +4307,7 @@
     "options": "Opciones",
     "caption_more": "más",
     "caption_less": "menos",
+    "caption_error": "No se ha podido guardar el texto. Inténtalo de nuevo.",
     "original_audio": "{{username}} • Audio original",
     "artist_fallback": "Artista",
     "audio_disc": "Disco de audio",
@@ -4056,35 +4415,7 @@
       }
     },
     "faq": {
-      "badge": "Preguntas frecuentes",
-      "title": "Preguntas frecuentes",
-      "subtitle": "Planes, el feed, la verificación y cómo usar CircleSfera en el móvil.",
-      "items": {
-        "free": {
-          "q": "¿CircleSfera es gratis?",
-          "a": "Sí. Las funciones sociales principales son gratis. Hay planes opcionales (Premium, Elite Creator y Business) y herramientas para que los creadores ganen dinero. Los pagos van por Stripe y el precio se ve antes de pagar."
-        },
-        "verify": {
-          "q": "¿Cómo funciona la verificación de identidad?",
-          "a": "Se hace desde Ajustes con Stripe Identity, cuando la necesitas para ganar dinero o para dar más confianza. Las insignias de plan (Verified, Elite y Business) dependen de tener una suscripción activa."
-        },
-        "control": {
-          "q": "¿Controlo lo que veo?",
-          "a": "Sí. En Ajustes puedes cambiar las preferencias del feed, silenciar y ocultar, y apelar decisiones. Tú eliges qué ves y quién puede interactuar contigo."
-        },
-        "mobile": {
-          "q": "¿Hay app móvil?",
-          "a": "CircleSfera funciona en el navegador del móvil y del escritorio. Puedes añadirla a la pantalla de inicio. Todavía no hay app en App Store ni en Google Play."
-        },
-        "plans": {
-          "q": "¿Qué desbloquean los planes?",
-          "a": "Premium, Elite Creator y Business son suscripciones opcionales que se cobran con Stripe. Dan una insignia, que exige verificar tu identidad. En Precios ves qué incluye cada una y cuánto cuesta antes de pagar."
-        },
-        "support": {
-          "q": "¿Cómo contacto con soporte?",
-          "a": "Entra en tu cuenta, escribe desde Soporte y una persona te responde al correo de tu cuenta. El soporte es el mismo para todos, tengas o no un plan."
-        }
-      }
+      "title": "Preguntas frecuentes"
     },
     "cta": {
       "title": "Empieza hoy en CircleSfera",
@@ -4099,10 +4430,6 @@
       "principles": {
         "seo_title": "Principios — CircleSfera",
         "seo_desc": "Control del usuario, por qué ves lo que ves, moderación clara y datos responsables."
-      },
-      "faq": {
-        "seo_title": "FAQ — CircleSfera",
-        "seo_desc": "Respuestas claras sobre CircleSfera: plan gratuito, verificación, control del feed, uso en el móvil y suscripciones opcionales."
       }
     },
     "footer": {
@@ -4124,7 +4451,27 @@
   "backoffice": {
     "title": "Backoffice",
     "nav": {
-      "business": "Negocio"
+      "business": "Negocio",
+      "overview": "Resumen"
+    },
+    "overview": {
+      "title": "Resumen",
+      "open_disputes": "Disputas abiertas",
+      "open_disputes_hint": "Tienen plazo de respuesta en Stripe",
+      "subtitle": "Lo que conviene mirar cada día. Cada cifra abre su sección.",
+      "subscriptions": "Suscripciones activas",
+      "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
+      "recurring_revenue": "Ingresos recurrentes al mes",
+      "recurring_revenue_hint": "Suma del precio mensual de las suscripciones activas",
+      "failed_payouts": "Retiros fallidos",
+      "pending_payouts_one": "{{count}} pendiente",
+      "pending_payouts_other": "{{count}} pendientes",
+      "open_tickets": "Tickets abiertos",
+      "tickets_past_target_one": "{{count}} fuera de objetivo",
+      "tickets_past_target_other": "{{count}} fuera de objetivo",
+      "tickets_with_moderation_one": "{{count}} en moderación",
+      "tickets_with_moderation_other": "{{count}} en moderación",
+      "pending_promotions": "Promociones por revisar"
     },
     "home": {
       "title": "El negocio de CircleSfera",
@@ -4203,6 +4550,36 @@
     "stop": "Detener grabación",
     "uploading": "Subiendo nota de voz..."
   },
+  "helpCentre": {
+    "feedback": {
+      "question": "¿Te ha servido este artículo?",
+      "yes": "Sí",
+      "no": "No",
+      "thanks": "Gracias por decírnoslo.",
+      "error": "No se ha podido enviar tu respuesta. Inténtalo de nuevo."
+    },
+    "topic_general": "General",
+    "badge": "Centro de ayuda",
+    "title": "¿En qué podemos ayudarte?",
+    "subtitle": "Respuestas sobre tu cuenta, los pagos y el contenido.",
+    "seo_title": "Centro de ayuda — CircleSfera",
+    "seo_desc": "Respuestas claras sobre CircleSfera: la cuenta, los planes y los pagos, la verificación, el contenido y cómo escribir a soporte.",
+    "article_seo_title": "{{title}} — Ayuda de CircleSfera",
+    "search_label": "Buscar en el centro de ayuda",
+    "search_placeholder": "Busca una respuesta",
+    "results_one": "{{count}} resultado",
+    "results_other": "{{count}} resultados",
+    "no_results": "No hay artículos sobre «{{words}}». Prueba con otras palabras o escríbenos.",
+    "empty": "Todavía no hay artículos publicados.",
+    "load_error": "No se ha podido cargar el centro de ayuda. Inténtalo de nuevo.",
+    "back": "Centro de ayuda",
+    "missing_title": "Este artículo no existe",
+    "missing_desc": "Puede que se haya retirado o que la dirección no sea correcta.",
+    "contact_title": "¿No encuentras la respuesta?",
+    "contact_desc": "Escríbenos y una persona del equipo te responde.",
+    "contact_cta": "Escribir a soporte",
+    "suggested_title": "Puede que esto lo resuelva"
+  },
   "errors": {
     "action_limit": {
       "follow": "Has alcanzado el límite de cuentas que puedes seguir por ahora. Vuelve a intentarlo a las {{time}}.",
@@ -4211,6 +4588,7 @@
       "other": "Has alcanzado un límite de actividad. Vuelve a intentarlo más tarde."
     },
     "codes": {
+      "PLAN_NOT_FOR_PROFILE_TYPE": "Este plan es para otro tipo de perfil.",
       "INTERNAL_SERVER_ERROR": "Algo ha fallado por nuestra parte. Inténtalo de nuevo.",
       "NOT_FOUND": "No hemos encontrado lo que buscas.",
       "BAD_REQUEST": "La solicitud no es válida. Revisa los datos e inténtalo de nuevo.",
@@ -4238,7 +4616,7 @@
       "STRIPE_ONBOARDING_FAILED": "No hemos podido iniciar la configuración de cobros. Inténtalo de nuevo.",
       "PLAN_NOT_FOUND": "Ese plan no está disponible.",
       "PRICE_NOT_FOUND": "Ese precio no está disponible.",
-      "ACTIVE_SUBSCRIPTION_EXISTS": "Ya tienes una suscripción activa.",
+      "ACTIVE_SUBSCRIPTION_EXISTS": "Este perfil ya tiene un plan activo. Gestiónalo desde la facturación.",
       "STRIPE_CUSTOMER_MISSING": "No hemos encontrado tus datos de facturación. Contacta con soporte.",
       "PROMOTION_ID_MISSING": "Falta la promoción. Inténtalo de nuevo.",
       "ACCOUNT_TYPE_NOT_ELIGIBLE_FOR_MONETIZATION": "Cambia a un perfil de Creador o Negocio para ganar dinero.",

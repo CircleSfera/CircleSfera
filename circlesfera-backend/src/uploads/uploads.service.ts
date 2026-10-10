@@ -13,6 +13,7 @@ import { ConfigService } from '@nestjs/config';
 import { OnEvent } from '@nestjs/event-emitter';
 import type { Prisma } from '@prisma/client';
 import type { Queue } from 'bullmq';
+import { queueJobId } from '../common/utils/queue-job-id.util.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import {
   STORAGE_PROVIDER,
@@ -169,7 +170,7 @@ export class UploadsService {
 
       if (file.mimetype.startsWith('video/')) {
         const baseName = path.basename(result.url, path.extname(result.url));
-        const deterministicJobId = `transcode:${baseName}`;
+        const deterministicJobId = queueJobId('transcode', baseName);
         this.logger.log(
           `Enqueuing video for HLS transcoding: ${result.url} (user: ${userId ?? 'anonymous'}, jobId: ${deterministicJobId})`,
         );

@@ -1,0 +1,357 @@
+import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
+import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { AdminAction } from '@prisma/client';
+import {
+  primaryProfileIdForUser,
+  withPrimaryProfile,
+} from '../common/utils/user-profile-shape.util.js';
+import { EmailService } from '../email/email.service.js';
+import type {
+  AccountCardProvider,
+  AgentDirectory,
+  EmailInTrouble,
+  HandoverCase,
+  HandoverGateway,
+  OrganizationScope,
+  RequesterDirectory,
+  RequesterNotifier,
+  RequesterSummary,
+  ServiceLevelProvider,
+  StaffActionLog,
+  TeamChannel,
+  TicketNotice,
+} from '../helpdesk/helpdesk-host.contracts.js';
+import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
+
+// CircleSfera as the host of the Help Desk: how each thing the Help Desk
+// asks for is answered from CircleSfera's own records. A requester is a
+// User; an agent is an AdminIdentity; the other team is moderation.
+
+/** The one Help Desk organization of today, created by its migration. */
+export const CIRCLESFERA_HELPDESK_ORGANIZATION_ID =
+  '7c1a4f0e-5b1d-4c7e-9a44-c1dc1e5fe7a0';
+
+// Every requester and every agent of CircleSfera belongs to CircleSfera's
+// own Help Desk organization.
+@Injectable()
+export class CircleSferaOrganizationScope implements OrganizationScope {
+  current() {
+    return CIRCLESFERA_HELPDESK_ORGANIZATION_ID;
+  }
+}
+
+@Injectable()
+export class CircleSferaRequesterDirectory implements RequesterDirectory {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async describe(requesterRefs: string[]) {
+    const found = new Map<string, RequesterSummary>();
+    if (requesterRefs.length === 0) return found;
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: requesterRefs } },
+      select: {
+        id: true,
+        email: true,
+        profiles: {
+          select: { username: true, avatar: true, fullName: true },
+        },
+      },
+    });
+    for (const user of users) found.set(user.id, withPrimaryProfile(user));
+    return found;
+  }
+}
+
+@Injectable()
+export class CircleSferaAccountCard implements AccountCardProvider {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  // Plan, payout account and standing of each Profile.
+  async accountCard(requesterRef: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: requesterRef },
+      select: {
+        id: true,
+        isActive: true,
+        createdAt: true,
+        identityVerifiedAt: true,
+        stripeConnectAccountId: true,
+        monetization: { select: { transfersEnabled: true } },
+        profiles: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            username: true,
+            accountType: true,
+            verificationLevel: true,
+            isAccountBanned: true,
+            suspendedUntil: true,
+          },
+        },
+        platformSubscriptions: {
+          where: { status: 'ACTIVE' },
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            currentPeriodEnd: true,
+            cancelAtPeriodEnd: true,
+            plan: { select: { name: true } },
+          },
+        },
+      },
+    });
+    if (!user) return null;
+
+    const [subscription] = user.platformSubscriptions;
+    const now = new Date();
+    return {
+      userId: user.id,
+      isActive: user.isActive,
+      memberSince: user.createdAt,
+      identityVerified: !!user.identityVerifiedAt,
+      plan: subscription
+        ? {
+            name: subscription.plan.name,
+            renewsAt: subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+          }
+        : null,
+      payouts: {
+        connected: !!user.stripeConnectAccountId,
+        enabled: !!user.monetization?.transfersEnabled,
+      },
+      profiles: user.profiles.map((profile) => ({
+        id: profile.id,
+        username: profile.username,
+        accountType: profile.accountType,
+        verificationLevel: profile.verificationLevel,
+        banned: profile.isAccountBanned,
+        suspended: !!profile.suspendedUntil && profile.suspendedUntil > now,
+      })),
+    };
+  }
+}
+
+// Handing a ticket over opens a report in the trust queues.
+@Injectable()
+export class ModerationHandover implements HandoverGateway {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async open(ticket: {
+    id: string;
+    requesterRef: string | null;
+    subject: string;
+    message: string;
+  }) {
+    // A report is filed by a Profile: the first one of whoever wrote in.
+    const reporter = ticket.requesterRef
+      ? await this.prisma.profile.findFirst({
+          where: { userId: ticket.requesterRef },
+          orderBy: { createdAt: 'asc' },
+          select: { id: true },
+        })
+      : null;
+    if (!reporter) return null;
+
+    const report = await this.prisma.report.create({
+      data: {
+        reporterId: reporter.id,
+        reason: 'OTHER',
+        targetType: 'SYSTEM',
+        targetId: ticket.id,
+        details: `Support ticket: ${ticket.subject}\n\n${ticket.message}`,
+      },
+      select: { id: true },
+    });
+    return { caseRef: report.id };
+  }
+
+  async withdraw(caseRef: string) {
+    await this.prisma.report.deleteMany({
+      where: { id: caseRef, targetType: 'SYSTEM', status: 'PENDING' },
+    });
+  }
+
+  async cases(caseRefs: string[]) {
+    const found = new Map<string, HandoverCase>();
+    if (caseRefs.length === 0) return found;
+    const reports = await this.prisma.report.findMany({
+      where: { id: { in: caseRefs } },
+      select: { id: true, status: true },
+    });
+    for (const report of reports) {
+      found.set(report.id, {
+        id: report.id,
+        status: report.status,
+        pending: ['PENDING', 'REVIEWING'].includes(report.status),
+      });
+    }
+    return found;
+  }
+}
+
+// The answer of the team reaches the requester by email, with a link to the
+// request, and as a notice in the app on their main Profile.
+@Injectable()
+export class CircleSferaRequesterNotifier implements RequesterNotifier {
+  private readonly logger = new Logger(CircleSferaRequesterNotifier.name);
+
+  constructor(
+    @Inject(EmailService) private readonly email: EmailService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+  ) {}
+
+  async answer(ticket: TicketNotice, body: string) {
+    await this.email.sendSupportReplyEmail(
+      ticket.email,
+      ticket.subject,
+      body,
+      ticket.id,
+      ticket.replyTo,
+    );
+
+    // The answer is stored and its email sent by now. A notice in the app
+    // that cannot be made must not turn the answer into an error: the agent
+    // would send it again. It is recorded instead.
+    try {
+      const recipientId = ticket.requesterRef
+        ? await primaryProfileIdForUser(this.prisma, ticket.requesterRef)
+        : null;
+      if (!recipientId) return;
+      this.eventEmitter.emit('notification.create', {
+        recipientId,
+        type: 'SYSTEM',
+        notice: { key: 'support_answered', subject: ticket.subject },
+        targetType: 'support_ticket',
+        targetId: ticket.id,
+      });
+    } catch (error) {
+      this.logger.error(
+        `No in-app notice for the answer to ticket ${ticket.id}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+    }
+  }
+
+  async remind(ticket: TicketNotice, solvedInDays: number) {
+    await this.email.sendSupportReminderEmail(
+      ticket.email,
+      ticket.subject,
+      ticket.reference,
+      ticket.id,
+      solvedInDays,
+      ticket.replyTo,
+    );
+  }
+
+  async unmatchedSender(address: string) {
+    await this.email.sendSupportUnmatchedEmail(address);
+  }
+}
+
+// A requester has preference when any of their Profiles is on a paid plan.
+// The level of a Profile is the one sign of its plan.
+@Injectable()
+export class PlanServiceLevel implements ServiceLevelProvider {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async levelOf(requesterRef: string) {
+    const paid = await this.prisma.profile.count({
+      where: { userId: requesterRef, verificationLevel: { not: 'BASIC' } },
+    });
+    return paid > 0 ? ('PRIORITY' as const) : ('STANDARD' as const);
+  }
+}
+
+// Agents are staff identities. A ticket can be given to the active ones
+// whose roles let them answer support.
+@Injectable()
+export class StaffAgentDirectory implements AgentDirectory {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async describe(agentRefs: string[]) {
+    const staff = await this.prisma.adminIdentity.findMany({
+      where: { id: { in: agentRefs } },
+      select: { id: true, displayName: true },
+    });
+    return new Map(staff.map((one) => [one.id, one.displayName]));
+  }
+
+  async assignable() {
+    const staff = await this.prisma.adminIdentity.findMany({
+      where: {
+        status: 'ACTIVE',
+        roles: {
+          some: {
+            role: {
+              OR: [
+                { name: 'SUPER_ADMIN' },
+                {
+                  permissions: {
+                    some: {
+                      permission: { key: { in: ['support', 'admins.manage'] } },
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      },
+      orderBy: { displayName: 'asc' },
+      select: { id: true, displayName: true },
+    });
+    return staff.map((one) => ({ ref: one.id, name: one.displayName }));
+  }
+}
+
+// The team hears about a new ticket through the event the internal channel
+// already listens to, and about a reply through the same channel.
+@Injectable()
+export class CircleSferaTeamChannel implements TeamChannel {
+  constructor(
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(SlackService) private readonly slack: SlackService,
+  ) {}
+
+  ticketOpened(ticket: object) {
+    this.eventEmitter.emit(
+      'support.ticket_created',
+      ticket as SupportTicketCreatedEvent['payload'],
+    );
+  }
+
+  async requesterReplied(ticket: TicketNotice) {
+    await this.slack.sendSupportReplyAlert(ticket);
+  }
+
+  async emailInTrouble(trouble: EmailInTrouble) {
+    await this.slack.sendSupportEmailInAlert(trouble);
+  }
+}
+
+@Injectable()
+export class AdminAuditStaffActionLog implements StaffActionLog {
+  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+
+  async record(
+    agentRef: string,
+    targetId: string,
+    details: string,
+    target: 'ticket' | 'article' = 'ticket',
+  ) {
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId: agentRef,
+        action: AdminAction.MANUAL_OVERRIDE,
+        targetType:
+          target === 'article' ? 'helpdesk_article' : 'support_ticket',
+        targetId,
+        details,
+      },
+    });
+  }
+}

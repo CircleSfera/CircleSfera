@@ -23,7 +23,18 @@ export const USER_SECRET_OMIT = {
   currentChallenge: true,
 } as const;
 
-const clientOmit = { user: USER_SECRET_OMIT } as const;
+// The same rule for the sign-in, which holds a copy of the credentials.
+export const SIGN_IN_SECRET_OMIT = {
+  password: true,
+  twoFactorSecret: true,
+  resetToken: true,
+  verificationToken: true,
+} as const;
+
+const clientOmit = {
+  user: USER_SECRET_OMIT,
+  signIn: SIGN_IN_SECRET_OMIT,
+} as const;
 
 @Injectable()
 export class PrismaService
