@@ -34,6 +34,7 @@ describe('HelpdeskAgentController', () => {
     accountCard: vi.fn(),
     getTicket: vi.fn(),
     addMessage: vi.fn(),
+    assign: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -199,5 +200,61 @@ describe('HelpdeskAgentController', () => {
       .expect(400);
 
     expect(mockService.addMessage).not.toHaveBeenCalled();
+  });
+
+  it('takes or releases a ticket as the agent, who cannot yet assign it to others', async () => {
+    mockService.assign.mockResolvedValue({ id: 't-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/support/tickets/t-1/assignment')
+      .set(ADMIN_BEARER)
+      .send({ agentRef: TEST_ADMIN.adminId })
+      .expect(201);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/support/tickets/t-1/assignment')
+      .set(ADMIN_BEARER)
+      .send({})
+      .expect(201);
+
+    expect(mockService.assign).toHaveBeenNthCalledWith(
+      1,
+      { ref: TEST_ADMIN.adminId, canManage: false },
+      't-1',
+      TEST_ADMIN.adminId,
+    );
+    expect(mockService.assign).toHaveBeenNthCalledWith(
+      2,
+      { ref: TEST_ADMIN.adminId, canManage: false },
+      't-1',
+      null,
+    );
+  });
+
+  it.each([
+    ['a state that does not exist', { status: 'ESCALATED' }],
+    ['a priority that does not exist', { priority: 'URGENT' }],
+    ['a topic that does not exist', { category: 'BILLING' }],
+    [
+      'a field an agent cannot set',
+      { assignedAgentRef: 'someone', status: 'OPEN' },
+    ],
+  ])('rejects a change with %s', async (_case, body) => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/support/tickets/t-1')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.updateTicket).not.toHaveBeenCalled();
+  });
+
+  it('accepts the waiting state for an answer', async () => {
+    mockService.addMessage.mockResolvedValue({ id: 't-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/support/tickets/t-1/messages')
+      .set(ADMIN_BEARER)
+      .send({ body: 'Which day?', visibility: 'PUBLIC', status: 'WAITING' })
+      .expect(201);
   });
 });

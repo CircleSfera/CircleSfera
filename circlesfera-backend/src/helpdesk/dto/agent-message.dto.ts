@@ -17,9 +17,10 @@ export class AgentMessageDto {
   @IsIn(['PUBLIC', 'INTERNAL'])
   visibility!: 'PUBLIC' | 'INTERNAL';
 
-  // The state an answer leaves the ticket in. Without one the ticket is
-  // solved. A note never changes the state.
+  // The state an answer leaves the ticket in: open, waiting for the
+  // requester, or solved. Without one the ticket is solved. A note never
+  // changes the state.
   @IsOptional()
-  @IsIn(['OPEN', 'RESOLVED'])
-  status?: 'OPEN' | 'RESOLVED';
+  @IsIn(['OPEN', 'WAITING', 'RESOLVED'])
+  status?: 'OPEN' | 'WAITING' | 'RESOLVED';
 }

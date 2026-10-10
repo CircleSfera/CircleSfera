@@ -2634,6 +2634,8 @@
       "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
+      "status_waiting": "Esperando al cliente",
+      "leave_waiting": "Dejar esperando al cliente",
       "system": {
         "handover_RESOLVED": "Moderación ha resuelto la denuncia. El ticket vuelve a soporte.",
         "handover_REJECTED": "Moderación ha desestimado la denuncia. El ticket vuelve a soporte.",
@@ -3506,6 +3508,7 @@
       "write_again": "Escribir de nuevo sobre esto",
       "not_found": "No encontramos esta solicitud.",
       "status": {
+        "WAITING": "Esperando tu respuesta",
         "OPEN": "Abierta",
         "ESCALATED": "En revisión",
         "RESOLVED": "Resuelta",

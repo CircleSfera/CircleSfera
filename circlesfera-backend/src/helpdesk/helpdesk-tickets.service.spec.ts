@@ -11,7 +11,7 @@ describe('HelpdeskTicketsService', () => {
     findRequesterTicket: vi.fn(),
     listRequesterTickets: vi.fn(),
     ticketsWithOtherTeam: vi.fn(),
-    closeSolvedBefore: vi.fn(),
+    ticketsSolvedBefore: vi.fn(),
     listTickets: vi.fn(),
     updateTicket: vi.fn(),
     messages: vi.fn(),
@@ -33,7 +33,16 @@ describe('HelpdeskTicketsService', () => {
     status: 'OPEN',
     escalatedReportId: null,
     resolvedAt: null,
+    category: 'OTHER',
+    priority: 'NORMAL',
+    assignedAgentRef: null,
   };
+  const stateEvent = (
+    fromValue: string,
+    toValue: string,
+    actorKind: 'REQUESTER' | 'AGENT' | 'SYSTEM',
+    actorRef: string | null,
+  ) => ({ kind: 'STATE', fromValue, toValue, actorKind, actorRef });
   const caseOf = (status: string) =>
     new Map([
       [
@@ -228,13 +237,29 @@ describe('HelpdeskTicketsService', () => {
 
       expect(store.updateTicket).toHaveBeenCalledWith(
         't-1',
-        { status: 'RESOLVED', resolvedAt: expect.any(Date) },
+        {
+          status: 'RESOLVED',
+          resolvedAt: expect.any(Date),
+          waitingRemindedAt: null,
+          // Nobody had it: it is now of who answered.
+          assignedAgentRef: 'admin-1',
+        },
         {
           authorKind: 'AGENT',
           authorRef: 'admin-1',
           visibility: 'PUBLIC',
           body: 'Fixed.',
         },
+        [
+          stateEvent('OPEN', 'RESOLVED', 'AGENT', 'admin-1'),
+          {
+            kind: 'ASSIGNMENT',
+            fromValue: null,
+            toValue: 'admin-1',
+            actorKind: 'AGENT',
+            actorRef: 'admin-1',
+          },
+        ],
       );
       // What the notice needs, and nothing else of the ticket.
       expect(notifier.answer).toHaveBeenCalledWith(
@@ -260,10 +285,51 @@ describe('HelpdeskTicketsService', () => {
 
       await service.addMessage('admin-1', 't-1', { ...answer, status: 'OPEN' });
 
-      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+      expect(store.updateTicket.mock.calls[0][1]).toMatchObject({
         status: 'OPEN',
         resolvedAt: null,
       });
+      // The state did not change, so no event says it did.
+      expect(
+        store.updateTicket.mock.calls[0][3].map(
+          (e: { kind: string }) => e.kind,
+        ),
+      ).toEqual(['ASSIGNMENT']);
+    });
+
+    it('leaves the ticket waiting for the requester, with no reminder sent yet', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-1',
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.addMessage('admin-1', 't-1', {
+        ...answer,
+        status: 'WAITING',
+      });
+
+      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+        status: 'WAITING',
+        waitingRemindedAt: null,
+      });
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([
+        stateEvent('OPEN', 'WAITING', 'AGENT', 'admin-1'),
+      ]);
+    });
+
+    it('does not take a ticket that someone else already has', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-2',
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.addMessage('admin-1', 't-1', answer);
+
+      expect(store.updateTicket.mock.calls[0][1]).not.toHaveProperty(
+        'assignedAgentRef',
+      );
     });
 
     it('reopens a solved ticket that is answered and left open', async () => {
@@ -276,10 +342,13 @@ describe('HelpdeskTicketsService', () => {
 
       await service.addMessage('admin-1', 't-1', { ...answer, status: 'OPEN' });
 
-      expect(store.updateTicket.mock.calls[0][1]).toEqual({
+      expect(store.updateTicket.mock.calls[0][1]).toMatchObject({
         status: 'OPEN',
         resolvedAt: null,
       });
+      expect(store.updateTicket.mock.calls[0][3]).toContainEqual(
+        stateEvent('RESOLVED', 'OPEN', 'AGENT', 'admin-1'),
+      );
     });
 
     it('adds an internal note: no email, no change of state', async () => {
@@ -457,6 +526,7 @@ describe('HelpdeskTicketsService', () => {
           visibility: 'PUBLIC',
           body: 'On the 2nd.',
         },
+        [],
       );
     });
 
@@ -472,7 +542,27 @@ describe('HelpdeskTicketsService', () => {
       expect(store.updateTicket.mock.calls[0][1]).toEqual({
         status: 'OPEN',
         resolvedAt: null,
+        waitingRemindedAt: null,
       });
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([
+        stateEvent('RESOLVED', 'OPEN', 'REQUESTER', 'u-1'),
+      ]);
+    });
+
+    it('ends the wait when they reply to a ticket that waits for them', async () => {
+      store.findRequesterTicket.mockResolvedValue({
+        ...stored,
+        status: 'WAITING',
+      });
+
+      await service.replyToMyTicket('u-1', 't-1', { body: 'Here it is' });
+
+      expect(store.updateTicket.mock.calls[0][1]).toMatchObject({
+        status: 'OPEN',
+      });
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([
+        stateEvent('WAITING', 'OPEN', 'REQUESTER', 'u-1'),
+      ]);
     });
 
     it('keeps a ticket that is with another team where it is', async () => {
@@ -589,10 +679,21 @@ describe('HelpdeskTicketsService', () => {
         subject: ticket.subject,
         message: ticket.message,
       });
-      expect(store.updateTicket).toHaveBeenCalledWith('t-1', {
-        status: 'ESCALATED',
-        escalatedReportId: 'r-1',
-      });
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        { status: 'ESCALATED', escalatedReportId: 'r-1' },
+        undefined,
+        [
+          stateEvent('OPEN', 'ESCALATED', 'AGENT', 'admin-1'),
+          {
+            kind: 'HANDOVER',
+            fromValue: null,
+            toValue: 'r-1',
+            actorKind: 'AGENT',
+            actorRef: 'admin-1',
+          },
+        ],
+      );
       expect(result.status).toBe('ESCALATED');
       expect(result.escalatedReport).toEqual({ id: 'r-1', status: 'PENDING' });
       expect(staffLog.record).toHaveBeenCalledWith(
@@ -646,16 +747,26 @@ describe('HelpdeskTicketsService', () => {
   });
 
   describe('closing solved tickets', () => {
-    it('closes the ones solved more than seven days ago', async () => {
-      store.closeSolvedBefore.mockResolvedValue(2);
+    it('closes the ones solved more than seven days ago, each with its event', async () => {
+      store.ticketsSolvedBefore.mockResolvedValue([
+        { id: 't-1', status: 'RESOLVED' },
+        { id: 't-2', status: 'RESOLVED' },
+      ]);
       const before = Date.now();
 
       expect(await service.closeSolvedTickets()).toBe(2);
 
-      const moment = store.closeSolvedBefore.mock.calls[0][0] as Date;
+      const moment = store.ticketsSolvedBefore.mock.calls[0][0] as Date;
       const sevenDays = 7 * 24 * 60 * 60 * 1000;
       expect(before - moment.getTime()).toBeGreaterThanOrEqual(sevenDays);
       expect(before - moment.getTime()).toBeLessThan(sevenDays + 5_000);
+      expect(store.updateTicket).toHaveBeenCalledTimes(2);
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-2',
+        { status: 'CLOSED' },
+        undefined,
+        [stateEvent('RESOLVED', 'CLOSED', 'SYSTEM', null)],
+      );
     });
   });
 
@@ -703,6 +814,7 @@ describe('HelpdeskTicketsService', () => {
           visibility: 'INTERNAL',
           body: 'handover.decided:RESOLVED',
         },
+        [stateEvent('ESCALATED', 'OPEN', 'SYSTEM', null)],
       );
       expect(notifier.answer).not.toHaveBeenCalled();
     });
@@ -752,6 +864,7 @@ describe('HelpdeskTicketsService', () => {
           visibility: 'PUBLIC',
           body: 'Fixed.',
         },
+        [stateEvent('OPEN', 'RESOLVED', 'AGENT', null)],
       );
       expect(notifier.answer).toHaveBeenCalledWith(
         expect.objectContaining({ id: 't-1', email: 'ana@example.com' }),
@@ -877,7 +990,12 @@ describe('HelpdeskTicketsService', () => {
 
       await service.updateTicket('admin-1', 't-1', { reply: '   ' });
 
-      expect(store.updateTicket.mock.calls[0]).toEqual(['t-1', {}, undefined]);
+      expect(store.updateTicket.mock.calls[0]).toEqual([
+        't-1',
+        {},
+        undefined,
+        [],
+      ]);
       expect(notifier.answer).not.toHaveBeenCalled();
     });
 
@@ -887,6 +1005,131 @@ describe('HelpdeskTicketsService', () => {
       await expect(
         service.updateTicket('admin-1', 'missing', { status: 'CLOSED' }),
       ).rejects.toMatchObject({ status: 404 });
+    });
+  });
+
+  describe('priority, topic and who has the ticket', () => {
+    it('changes priority and topic, each with its event', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.updateTicket('admin-1', 't-1', {
+        priority: 'HIGH',
+        category: 'PAYMENTS',
+      });
+
+      const [, changes, , events] = store.updateTicket.mock.calls[0];
+      expect(changes).toEqual({ priority: 'HIGH', category: 'PAYMENTS' });
+      expect(events).toEqual([
+        {
+          kind: 'TOPIC',
+          fromValue: 'OTHER',
+          toValue: 'PAYMENTS',
+          actorKind: 'AGENT',
+          actorRef: 'admin-1',
+        },
+        {
+          kind: 'PRIORITY',
+          fromValue: 'NORMAL',
+          toValue: 'HIGH',
+          actorKind: 'AGENT',
+          actorRef: 'admin-1',
+        },
+      ]);
+    });
+
+    it('records nothing for a value that stays the same', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.updateTicket('admin-1', 't-1', { priority: 'NORMAL' });
+
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([]);
+    });
+
+    const agent = { ref: 'admin-1', canManage: false };
+    const assignment = (fromValue: string | null, toValue: string | null) => ({
+      kind: 'ASSIGNMENT',
+      fromValue,
+      toValue,
+      actorKind: 'AGENT',
+      actorRef: 'admin-1',
+    });
+
+    it('lets an agent take a ticket nobody has', async () => {
+      store.findTicket.mockResolvedValue(ticket);
+      store.updateTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-1',
+      });
+
+      await service.assign(agent, 't-1', 'admin-1');
+
+      expect(store.updateTicket).toHaveBeenCalledWith(
+        't-1',
+        { assignedAgentRef: 'admin-1' },
+        undefined,
+        [assignment(null, 'admin-1')],
+      );
+      expect(staffLog.record).toHaveBeenCalled();
+    });
+
+    it('lets an agent let go of their own ticket', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-1',
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.assign(agent, 't-1', null);
+
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([
+        assignment('admin-1', null),
+      ]);
+    });
+
+    it.each([
+      ['take a ticket from someone else', 'admin-2', 'admin-1'],
+      ['give a ticket to someone else', null, 'admin-2'],
+      ['let go of a ticket of someone else', 'admin-2', null],
+    ])('does not let an agent %s', async (_case, current, wanted) => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: current,
+      });
+
+      await expect(service.assign(agent, 't-1', wanted)).rejects.toMatchObject({
+        status: 403,
+      });
+      expect(store.updateTicket).not.toHaveBeenCalled();
+    });
+
+    it('lets who manages the team assign a ticket to anyone', async () => {
+      store.findTicket.mockResolvedValue({
+        ...ticket,
+        assignedAgentRef: 'admin-2',
+      });
+      store.updateTicket.mockResolvedValue(ticket);
+
+      await service.assign(
+        { ref: 'admin-1', canManage: true },
+        't-1',
+        'admin-3',
+      );
+
+      expect(store.updateTicket.mock.calls[0][3]).toEqual([
+        assignment('admin-2', 'admin-3'),
+      ]);
+    });
+
+    it('says so when the ticket does not exist', async () => {
+      store.findTicket.mockResolvedValue(null);
+
+      await expect(
+        service.assign(agent, 'missing', 'admin-1'),
+      ).rejects.toMatchObject({
+        status: 404,
+      });
     });
   });
 

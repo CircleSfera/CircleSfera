@@ -165,17 +165,37 @@ describe('HelpdeskStore', () => {
     });
   });
 
-  it('closes only solved tickets of the organization that were solved before the moment', async () => {
+  it('finds only solved tickets of the organization that were solved before the moment', async () => {
     const moment = new Date('2026-09-01T00:00:00Z');
 
-    expect(await store.closeSolvedBefore(moment)).toBe(3);
-    expect(prisma.supportTicket.updateMany).toHaveBeenCalledWith({
+    await store.ticketsSolvedBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
       where: {
         organizationId: 'org-1',
         status: 'RESOLVED',
         resolvedAt: { lt: moment },
       },
-      data: { status: 'CLOSED' },
+      orderBy: { resolvedAt: 'asc' },
+      take: 100,
+      select: { id: true, status: true },
+    });
+  });
+
+  it('writes what changed and who changed it with the change itself', async () => {
+    const event = {
+      kind: 'STATE' as const,
+      fromValue: 'OPEN',
+      toValue: 'RESOLVED',
+      actorKind: 'AGENT' as const,
+      actorRef: 'admin-1',
+    };
+
+    await store.updateTicket('t-1', { status: 'RESOLVED' }, undefined, [event]);
+
+    expect(prisma.supportTicket.update).toHaveBeenCalledWith({
+      where: { id: 't-1', organizationId: 'org-1' },
+      data: { status: 'RESOLVED', events: { create: [event] } },
     });
   });
 
