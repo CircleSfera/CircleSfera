@@ -28,7 +28,9 @@ export function useStudioAutosave() {
     if (!state.project) return;
 
     const serialized = serializeStudioProject(state.project);
-    const payload = JSON.stringify(serialized);
+    // What was last saved is told apart by its content: serializing stamps
+    // the time, which would make every project look changed.
+    const payload = JSON.stringify({ ...serialized, updatedAt: null });
     if (payload === lastSerializedRef.current) return;
 
     const mediaUrl = getPrimaryMediaUrl(serialized);

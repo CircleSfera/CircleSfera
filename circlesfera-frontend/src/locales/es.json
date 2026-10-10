@@ -4533,6 +4533,10 @@
   "voice": {
     "discard": "Descartar",
     "pause_preview": "Pausar vista previa",
+    "pause": "Pausar audio",
+    "play": "Reproducir audio",
+    "position": "Posición en el audio",
+    "speed": "Velocidad de reproducción, ahora {{speed}}x",
     "play_preview": "Escuchar borrador",
     "ready": "Listo",
     "record": "Grabar voz",
