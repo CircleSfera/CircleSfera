@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { platformOrigin } from '../../utils/adminPanel';
 import { formatDate, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
@@ -168,7 +169,7 @@ export default function PromotionsTab({ onToast }: Props) {
       </AdminFilterBar>
 
       <AdminSplitView
-        hasSelection={!!selectedPromoId}
+        hasSelection={!!selectedPromo}
         onBack={() => setSelectedPromoId(null)}
         onClearSelection={() => setSelectedPromoId(null)}
         listTitle={t('admin.promotions.list_title', {
@@ -294,7 +295,8 @@ export default function PromotionsTab({ onToast }: Props) {
                           onClick={() => setConfirmRejectOpen(true)}
                           isLoading={updateMutation.isPending}
                           variant="danger"
-                          className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-red-500/20"
+                          aria-label={t('admin.promotions.action_reject')}
+                          className="min-h-11 min-w-11 px-3 md:px-4 py-2 text-sm font-semibold border-red-500/20"
                         >
                           <XCircle size={16} className="mr-2 hidden md:block" />{' '}
                           <span className="hidden md:inline">
@@ -311,7 +313,8 @@ export default function PromotionsTab({ onToast }: Props) {
                           }
                           isLoading={updateMutation.isPending}
                           variant="success"
-                          className="min-h-11 px-3 md:px-4 py-2 text-sm font-semibold border-green-500/20"
+                          aria-label={t('admin.promotions.action_approve')}
+                          className="min-h-11 min-w-11 px-3 md:px-4 py-2 text-sm font-semibold border-green-500/20"
                         >
                           <CheckCircle
                             size={16}
@@ -324,15 +327,19 @@ export default function PromotionsTab({ onToast }: Props) {
                         </Button>
                       </>
                     )}
-                    <a
-                      href={`/post/${selectedPromo.targetId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand-primary hover:bg-brand-primary/10 transition-colors shrink-0"
-                      title={t('admin.promotions.open_new_tab')}
-                    >
-                      <ExternalLink size={18} />
-                    </a>
+                    {/* Only a post has an address of its own to open. */}
+                    {selectedPromo.targetType === 'POST' && (
+                      <a
+                        href={`${platformOrigin()}/p/${selectedPromo.targetId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand-primary hover:bg-brand-primary/10 transition-colors shrink-0"
+                        title={t('admin.promotions.open_new_tab')}
+                        aria-label={t('admin.promotions.open_new_tab')}
+                      >
+                        <ExternalLink size={18} />
+                      </a>
+                    )}
                   </div>
                 </div>
 

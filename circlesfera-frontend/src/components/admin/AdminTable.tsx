@@ -7,6 +7,7 @@ import {
   Clock,
   Ghost,
 } from 'lucide-react';
+import { useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Input, Select } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -56,8 +57,11 @@ export function Table({
                   key={rowId}
                   className="animate-pulse hover:bg-white/3 transition-colors"
                 >
-                  {headers.map((h) => (
-                    <td key={`${rowId}-${h}`} className="px-3 py-4">
+                  {headers.map((_heading, idx) => (
+                    // A heading can be an element, which has no text to
+                    // tell one cell from the next: the position does.
+                    // biome-ignore lint/suspicious/noArrayIndexKey: fixed columns of a placeholder row
+                    <td key={`${rowId}-${idx}`} className="px-3 py-4">
                       <div className="h-4 bg-white/10 rounded-md w-full max-w-35" />
                     </td>
                   ))}
@@ -272,9 +276,11 @@ export function FilterDropdown({
   options,
   onChange,
 }: FilterDropdownProps) {
+  // One id for each filter: a screen often shows two of them.
+  const id = useId();
   return (
     <Select
-      id="admin-filter-select"
+      id={id}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="min-w-35"
@@ -308,6 +314,7 @@ export function SearchInput({
       placeholder={placeholder}
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      aria-label={placeholder}
       className="max-w-md"
       icon={
         <svg
