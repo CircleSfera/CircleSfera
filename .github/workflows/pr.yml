@@ -1,4 +1,8 @@
 name: Pull Request CI
+# A run for the merge queue has no pull request to take its title from: it is
+# named after the commit the queue is about to merge, which carries the title
+# of the pull request.
+run-name: ${{ github.event.pull_request.title || github.event.merge_group.head_commit.message || 'Pull Request CI' }}
 
 on:
   pull_request:
