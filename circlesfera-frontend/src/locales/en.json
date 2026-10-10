@@ -1656,6 +1656,8 @@
     "title": "Activity",
     "no_activity": "No activity yet",
     "view_post": "View the post",
+    "from_support": "Support",
+    "view_request": "See the request",
     "unknown_user": "Unknown",
     "error_title": "Couldn't load notifications",
     "error_message": "Something went wrong. Please try again.",

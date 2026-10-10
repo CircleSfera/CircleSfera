@@ -104,4 +104,34 @@ describe('Notifications written for the reader', () => {
       }),
     ).toHaveAttribute('href', '/accounts/appeals?targetType=BOT_LABEL');
   });
+
+  it('shows an answer of support as coming from Support, with the way to the request', async () => {
+    show([
+      notice({
+        type: 'SYSTEM',
+        senderId: null,
+        sender: null,
+        content: 'ha respondido a tu solicitud «Me han cobrado dos veces»',
+        targetType: 'support_ticket',
+        targetId: 't-1',
+      }),
+    ]);
+
+    renderWithProviders(<Notifications />, { lng: 'es' });
+
+    expect(
+      await screen.findByText(
+        'ha respondido a tu solicitud «Me han cobrado dos veces»',
+      ),
+    ).toBeInTheDocument();
+    const from = screen.getByRole('link', { name: 'Soporte' });
+    expect(from).toHaveAttribute('href', '/support/requests/t-1');
+    for (const link of screen.getAllByRole('link', {
+      name: 'Ver la solicitud',
+    })) {
+      expect(link).toHaveAttribute('href', '/support/requests/t-1');
+    }
+    // Nobody unknown: the notice does not come from a profile.
+    expect(screen.queryByText('Desconocido')).not.toBeInTheDocument();
+  });
 });

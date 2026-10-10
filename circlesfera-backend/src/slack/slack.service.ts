@@ -333,6 +333,31 @@ export class SlackService {
     await this.sendMessage(this.supportWebhookUrl, payload);
   }
 
+  // A requester answered in their ticket: the team hears of it. Only the
+  // number and the subject; the conversation is read in the Help Desk.
+  async sendSupportReplyAlert(ticket: {
+    id: string;
+    reference: number;
+    subject: string;
+  }): Promise<void> {
+    await this.sendMessage(this.supportWebhookUrl, {
+      blocks: [
+        {
+          type: 'header',
+          text: { type: 'plain_text', text: '💬 Respuesta en un ticket' },
+        },
+        {
+          type: 'section',
+          fields: [
+            { type: 'mrkdwn', text: `*Ticket:*\n#${ticket.reference}` },
+            { type: 'mrkdwn', text: `*Asunto:*\n${ticket.subject}` },
+            { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
+          ],
+        },
+      ],
+    });
+  }
+
   // Phase 2: Slash Commands
   async handleStatsCommand(): Promise<any> {
     try {

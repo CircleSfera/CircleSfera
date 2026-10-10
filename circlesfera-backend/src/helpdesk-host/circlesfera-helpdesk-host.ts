@@ -2,7 +2,10 @@ import type { SupportTicketCreatedEvent } from '@circlesfera/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { AdminAction } from '@prisma/client';
-import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
+import {
+  primaryProfileIdForUser,
+  withPrimaryProfile,
+} from '../common/utils/user-profile-shape.util.js';
 import { EmailService } from '../email/email.service.js';
 import type {
   AccountCardProvider,
@@ -14,8 +17,10 @@ import type {
   RequesterSummary,
   StaffActionLog,
   TeamChannel,
+  TicketNotice,
 } from '../helpdesk/helpdesk-host.contracts.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackService } from '../slack/slack.service.js';
 
 // CircleSfera as the host of the Help Desk: how each thing the Help Desk
 // asks for is answered from CircleSfera's own records. A requester is a
@@ -184,21 +189,45 @@ export class ModerationHandover implements HandoverGateway {
   }
 }
 
+// The answer of the team reaches the requester by email, with a link to the
+// request, and as a notice in the app on their main Profile.
 @Injectable()
-export class EmailRequesterNotifier implements RequesterNotifier {
-  constructor(@Inject(EmailService) private readonly email: EmailService) {}
+export class CircleSferaRequesterNotifier implements RequesterNotifier {
+  constructor(
+    @Inject(EmailService) private readonly email: EmailService,
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+  ) {}
 
-  async answer(ticket: { email: string; subject: string }, body: string) {
-    await this.email.sendSupportReplyEmail(ticket.email, ticket.subject, body);
+  async answer(ticket: TicketNotice, body: string) {
+    await this.email.sendSupportReplyEmail(
+      ticket.email,
+      ticket.subject,
+      body,
+      ticket.id,
+    );
+
+    const recipientId = ticket.requesterRef
+      ? await primaryProfileIdForUser(this.prisma, ticket.requesterRef)
+      : null;
+    if (!recipientId) return;
+    this.eventEmitter.emit('notification.create', {
+      recipientId,
+      type: 'SYSTEM',
+      notice: { key: 'support_answered', subject: ticket.subject },
+      targetType: 'support_ticket',
+      targetId: ticket.id,
+    });
   }
 }
 
 // The team hears about a new ticket through the event the internal channel
-// already listens to.
+// already listens to, and about a reply through the same channel.
 @Injectable()
-export class EventTeamChannel implements TeamChannel {
+export class CircleSferaTeamChannel implements TeamChannel {
   constructor(
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    @Inject(SlackService) private readonly slack: SlackService,
   ) {}
 
   ticketOpened(ticket: object) {
@@ -206,6 +235,10 @@ export class EventTeamChannel implements TeamChannel {
       'support.ticket_created',
       ticket as SupportTicketCreatedEvent['payload'],
     );
+  }
+
+  async requesterReplied(ticket: TicketNotice) {
+    await this.slack.sendSupportReplyAlert(ticket);
   }
 }
 
