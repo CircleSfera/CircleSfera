@@ -135,8 +135,17 @@ export default function AudioTab({ onToast }: AudioTabProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title || !form.artist || !form.url || form.duration <= 0) return;
-    const payload = { ...form, thumbnailUrl: form.thumbnailUrl || undefined };
+    const title = form.title.trim();
+    const artist = form.artist.trim();
+    const url = form.url.trim();
+    if (!title || !artist || !url || form.duration <= 0) return;
+    const payload = {
+      title,
+      artist,
+      url,
+      duration: form.duration,
+      thumbnailUrl: form.thumbnailUrl.trim() || undefined,
+    };
 
     if (editingTrack) {
       updateMutation.mutate({ id: editingTrack.id, data: payload });
