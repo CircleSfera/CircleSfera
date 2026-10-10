@@ -1,5 +1,20 @@
 # CircleSfera Internal Proxy Configuration (Port 80 inside Docker)
 
+# The web app's Content Security Policy, sent in report-only mode. Origins:
+# the app and its API (self), realtime sockets, LiveKit, Sentry, Mapbox,
+# Cloudflare Turnstile and Google Fonts; blob: and wasm for the video editor
+# (ffmpeg) and map workers.
+#
+# It describes the pages of the app, so API answers do not carry it: they are
+# data, and the backend sends its own policy with them. An empty value sends
+# no header. Every header added here also counts against the response header
+# buffer of the server in front of this proxy, and a sign-in answer already
+# carries two session cookies.
+map $uri $web_app_csp_report_only {
+    ~^/api/ "";
+    default "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss://circlesfera.com wss://www.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report";
+}
+
 # 1. Unified Proxy (Landing & API)
 server {
     listen 80;
@@ -18,11 +33,10 @@ server {
     add_header Permissions-Policy "camera=(self), microphone=(self), geolocation=(self)" always;
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" always;
     # Content Security Policy for the web app, in report-only mode: browsers
-    # report violations to the backend and block nothing yet. Origins: the app
-    # and its API (self), realtime sockets, LiveKit, Sentry, Mapbox, Cloudflare
-    # Turnstile and Google Fonts; blob: and wasm for the video editor (ffmpeg)
-    # and map workers. Enforce it once the reports are clean.
-    add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; connect-src 'self' wss://circlesfera.com wss://www.circlesfera.com https://*.livekit.cloud wss://*.livekit.cloud https://*.ingest.de.sentry.io https://api.mapbox.com https://events.mapbox.com https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'; report-uri /api/v1/security/csp-report" always;
+    # report violations to the backend and block nothing yet. Enforce it once
+    # the reports are clean. The policy and the answers that carry it are
+    # defined at the top of this file.
+    add_header Content-Security-Policy-Report-Only $web_app_csp_report_only always;
     # nginx owns these headers; drop the backend copies so each is sent once.
     proxy_hide_header X-Frame-Options;
     proxy_hide_header Strict-Transport-Security;
