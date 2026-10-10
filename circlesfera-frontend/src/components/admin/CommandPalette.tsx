@@ -8,9 +8,9 @@ import { adminApi } from '../../services';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { Dialog } from '../ui/Dialog';
 import {
-  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
   adminTabPath,
+  canOpenTab as canOpenStaffTab,
   currentStaffSite,
   findAdminNavItem,
   navItemsFor,
@@ -60,7 +60,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   });
 
   const canOpenTab = useCallback(
-    (tabId: AdminTab) => hasPermission(ADMIN_TAB_PERMISSIONS[tabId]),
+    (tabId: AdminTab) => canOpenStaffTab(hasPermission, tabId),
     [hasPermission],
   );
 

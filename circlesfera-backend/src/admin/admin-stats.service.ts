@@ -319,27 +319,23 @@ export class AdminStatsService {
 
   // Payouts
 
+  // How many payouts are in each state. A cancelled payout counts with the
+  // failed ones: the screen shows them as one figure.
   async getPayoutStats() {
     const stats = await this.prisma.stripePayoutLog.groupBy({
       by: ['status'],
       _count: true,
-      _sum: { amountCents: true },
     });
 
-    let pendingCount = 0,
-      totalPending = 0,
-      completedCount = 0,
-      totalCompleted = 0;
+    const counts = { paid: 0, pending: 0, failed: 0, total: 0 };
     for (const stat of stats) {
-      if (stat.status === 'pending') {
-        pendingCount = stat._count;
-        totalPending = stat._sum.amountCents || 0;
-      } else if (stat.status === 'paid') {
-        completedCount = stat._count;
-        totalCompleted = stat._sum.amountCents || 0;
-      }
+      counts.total += stat._count;
+      if (stat.status === 'paid') counts.paid += stat._count;
+      else if (stat.status === 'pending') counts.pending += stat._count;
+      else if (stat.status === 'failed' || stat.status === 'canceled')
+        counts.failed += stat._count;
     }
-    return { pendingCount, totalPending, completedCount, totalCompleted };
+    return counts;
   }
 
   async getPayouts(page = 1, limit = 20, status?: string, search?: string) {

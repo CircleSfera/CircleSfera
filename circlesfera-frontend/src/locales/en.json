@@ -309,6 +309,8 @@
         "qr_alt": "Authenticator QR code",
         "verify_btn": "Verify",
         "confirm_disable": "Are you sure you want to disable 2FA? This will make your account less secure.",
+        "disable_instructions": "Enter a code from your authenticator app to turn it off.",
+        "code_label": "6-digit code",
         "disabling": "Disabling...",
         "disable_btn": "Disable 2FA",
         "generate_error": "Failed to generate 2FA secret",
@@ -4167,7 +4169,23 @@
   "backoffice": {
     "title": "Backoffice",
     "nav": {
-      "business": "Business"
+      "business": "Business",
+      "overview": "Overview"
+    },
+    "overview": {
+      "title": "Overview",
+      "subtitle": "What is worth a look every day. Each figure opens its section.",
+      "subscriptions": "Active subscriptions",
+      "subscriptions_by_plan": "Premium {{premium}} · Elite {{elite}} · Business {{business}}",
+      "recurring_revenue": "Monthly recurring revenue",
+      "recurring_revenue_hint": "Sum of the monthly price of the active subscriptions",
+      "failed_payouts": "Failed payouts",
+      "pending_payouts_one": "{{count}} pending",
+      "pending_payouts_other": "{{count}} pending",
+      "open_tickets": "Open tickets",
+      "tickets_with_moderation_one": "{{count}} with moderation",
+      "tickets_with_moderation_other": "{{count}} with moderation",
+      "pending_promotions": "Promotions to review"
     },
     "home": {
       "title": "The business of CircleSfera",
