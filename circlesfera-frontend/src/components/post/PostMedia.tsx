@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
@@ -25,6 +26,10 @@ export default function PostMedia({
 }: PostMediaProps) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+  // The setting promises a blur "until you click": the person lifts it, for
+  // this post, by pressing on it.
+  const [revealed, setRevealed] = useState(false);
+  const isBlurred = !!post.shouldBlurSensitive && !revealed;
 
   const unlockMutation = useMutation({
     mutationFn: () => monetizationApi.unlockPost(post.id, window.location.href),
@@ -62,7 +67,7 @@ export default function PostMedia({
     >
       <div
         className={`w-full ${isFullHeight ? 'h-full' : ''} ${
-          post.shouldBlurSensitive ? 'blur-xl brightness-75 select-none' : ''
+          isBlurred ? 'blur-xl brightness-75 select-none' : ''
         }`}
       >
         <Carousel
@@ -81,12 +86,19 @@ export default function PostMedia({
           libraryAudioStartMs={post.audioStartMs ?? 0}
         />
       </div>
-      {post.shouldBlurSensitive && !post.isLocked && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 z-10">
+      {isBlurred && !post.isLocked && (
+        <button
+          type="button"
+          onClick={() => setRevealed(true)}
+          className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40 z-10"
+        >
           <span className="text-xs font-bold uppercase tracking-wide text-white/90 px-3 py-2 rounded-lg bg-black/50 border border-white/10">
             {t('post.media.sensitive')}
           </span>
-        </div>
+          <span className="text-xs font-semibold text-white/80">
+            {t('post.media.sensitive_reveal')}
+          </span>
+        </button>
       )}
       {post.isLocked && (
         <PaywallOverlay
