@@ -21,6 +21,7 @@ import {
   SearchInput,
   StatusBadge,
 } from './AdminTable';
+import { adminToast } from './adminToast';
 
 export default function WhitelistTab() {
   const { t, i18n } = useTranslation();
@@ -57,7 +58,9 @@ export default function WhitelistTab() {
       setShowCreate(false);
       setCreateEmail('');
       setCreateName('');
+      adminToast(t('admin.whitelist.toast_added'), 'success');
     },
+    onError: () => adminToast(t('admin.whitelist.toast_add_error'), 'error'),
   });
 
   const updateMutation = useMutation({
@@ -66,7 +69,9 @@ export default function WhitelistTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'whitelist'] });
       setSelectedId(null);
+      adminToast(t('admin.whitelist.toast_saved'), 'success');
     },
+    onError: () => adminToast(t('admin.whitelist.toast_save_error'), 'error'),
   });
 
   const deleteMutation = useMutation({
@@ -74,7 +79,9 @@ export default function WhitelistTab() {
     onSuccess: (_data, id) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'whitelist'] });
       if (selectedId === id) setSelectedId(null);
+      adminToast(t('admin.whitelist.toast_deleted'), 'success');
     },
+    onError: () => adminToast(t('admin.whitelist.toast_delete_error'), 'error'),
   });
 
   const handleDelete = (id: string) => {
@@ -291,12 +298,14 @@ export default function WhitelistTab() {
             value={createEmail}
             onChange={(e) => setCreateEmail(e.target.value)}
             placeholder={t('admin.whitelist.email_placeholder')}
+            aria-label={t('admin.whitelist.label_email')}
             className="min-h-11"
           />
           <Input
             value={createName}
             onChange={(e) => setCreateName(e.target.value)}
             placeholder={t('admin.whitelist.name_placeholder')}
+            aria-label={t('admin.whitelist.label_name')}
             className="min-h-11"
           />
         </div>
