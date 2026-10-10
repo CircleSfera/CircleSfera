@@ -39,6 +39,12 @@ export interface EmailCopy {
     button: string;
   };
   supportReply: { subject: string; title: string; button: string };
+  supportReminder: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   subscriptionReceipt: {
     subject: string;
     title: string;
@@ -111,6 +117,12 @@ const en: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - CircleSfera Support',
     title: 'Reply to your request',
+    button: 'See your request',
+  },
+  supportReminder: {
+    subject: 'Do you still need help? {subject} - CircleSfera Support',
+    title: 'Do you still need help?',
+    body: 'We answered your request #{reference}, <strong>{subject}</strong>, and have not heard back from you.<br><br>If you still need help, answer in the request. If we do not hear from you in {days} days, we will mark it as solved.',
     button: 'See your request',
   },
   subscriptionReceipt: {
@@ -187,6 +199,12 @@ const es: EmailCopy = {
   supportReply: {
     subject: 'Re: {subject} - Soporte de CircleSfera',
     title: 'Respuesta a tu consulta',
+    button: 'Ver tu solicitud',
+  },
+  supportReminder: {
+    subject: '¿Sigues necesitando ayuda? {subject} - Soporte de CircleSfera',
+    title: '¿Sigues necesitando ayuda?',
+    body: 'Respondimos a tu solicitud n.º {reference}, <strong>{subject}</strong>, y no hemos vuelto a saber de ti.<br><br>Si sigues necesitando ayuda, responde en la solicitud. Si no recibimos respuesta en {days} días, la marcaremos como resuelta.',
     button: 'Ver tu solicitud',
   },
   subscriptionReceipt: {

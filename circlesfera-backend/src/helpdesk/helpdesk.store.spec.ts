@@ -182,6 +182,76 @@ describe('HelpdeskStore', () => {
     });
   });
 
+  it('finds the tickets of the organization that wait since before the moment and were not reminded', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.ticketsWaitingSinceBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          status: 'WAITING',
+          waitingRemindedAt: null,
+          messages: {
+            none: { visibility: 'PUBLIC', createdAt: { gte: moment } },
+          },
+          events: {
+            none: {
+              kind: 'STATE',
+              toValue: 'WAITING',
+              createdAt: { gte: moment },
+            },
+          },
+        },
+        take: 100,
+      }),
+    );
+  });
+
+  it('marks a reminder only on a ticket of the organization that waits and has none, and takes it back', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+    prisma.supportTicket.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 })
+      .mockResolvedValueOnce({ count: 1 });
+
+    expect(await store.claimReminder('t-1', moment)).toBe(true);
+    expect(await store.claimReminder('t-1', moment)).toBe(false);
+    await store.releaseReminder('t-1', moment);
+
+    expect(prisma.supportTicket.updateMany).toHaveBeenNthCalledWith(1, {
+      where: {
+        id: 't-1',
+        organizationId: 'org-1',
+        status: 'WAITING',
+        waitingRemindedAt: null,
+      },
+      data: { waitingRemindedAt: moment },
+    });
+    expect(prisma.supportTicket.updateMany).toHaveBeenNthCalledWith(3, {
+      where: { id: 't-1', organizationId: 'org-1', waitingRemindedAt: moment },
+      data: { waitingRemindedAt: null },
+    });
+  });
+
+  it('finds the waiting tickets of the organization reminded before the moment', async () => {
+    const moment = new Date('2026-09-01T00:00:00Z');
+
+    await store.ticketsRemindedBefore(moment, 100);
+
+    expect(prisma.supportTicket.findMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        status: 'WAITING',
+        waitingRemindedAt: { lt: moment },
+      },
+      orderBy: { waitingRemindedAt: 'asc' },
+      take: 100,
+      select: { id: true, status: true },
+    });
+  });
+
   it('writes what changed and who changed it with the change itself', async () => {
     const event = {
       kind: 'STATE' as const,

@@ -68,6 +68,11 @@ export interface RequesterNotifier {
    * product when the requester still exists there.
    */
   answer(ticket: TicketNotice, body: string): Promise<void>;
+  /**
+   * Reminds the requester that the team is waiting for their answer, and
+   * that the ticket will be solved in this many days without one.
+   */
+  remind(ticket: TicketNotice, solvedInDays: number): Promise<void>;
 }
 
 export interface TeamChannel {
