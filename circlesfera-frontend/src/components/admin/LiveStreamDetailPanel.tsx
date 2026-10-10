@@ -46,11 +46,11 @@ export default function LiveStreamDetailPanel({
               {isLive ? (
                 <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-500/10 text-red-500 text-xs font-bold tracking-wider">
                   <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-                  LIVE
+                  {t('admin.live.badge_live')}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 rounded-full bg-white/10 text-white/50 text-xs font-bold tracking-wider">
-                  ENDED
+                  {t('admin.live.badge_ended')}
                 </span>
               )}
               <span className="text-sm text-white/50">{startedAtString}</span>
@@ -59,7 +59,8 @@ export default function LiveStreamDetailPanel({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-white/50 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
+            aria-label={t('common.close')}
+            className="min-h-11 min-w-11 inline-flex items-center justify-center shrink-0 text-white/50 hover:text-white rounded-xl hover:bg-white/5 transition-colors"
           >
             ✕
           </button>
@@ -120,7 +121,7 @@ export default function LiveStreamDetailPanel({
           {/* Hosts Info */}
           <div className="space-y-2.5 sm:space-y-3">
             <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider">
-              Participantes
+              {t('admin.live.participants')}
             </h3>
 
             {/* Host */}
@@ -135,7 +136,9 @@ export default function LiveStreamDetailPanel({
                   <div className="font-semibold text-white">
                     @{stream.host?.profile?.username}
                   </div>
-                  <div className="text-xs text-white/50">Host Principal</div>
+                  <div className="text-xs text-white/50">
+                    {t('admin.live.role_host')}
+                  </div>
                 </div>
               </div>
             </div>
@@ -154,7 +157,7 @@ export default function LiveStreamDetailPanel({
                       @{stream.coHost?.profile?.username}
                     </div>
                     <div className="text-xs text-white/50">
-                      Co-Host Invitado
+                      {t('admin.live.role_cohost')}
                     </div>
                   </div>
                 </div>
@@ -166,7 +169,7 @@ export default function LiveStreamDetailPanel({
           {isLive && (
             <div className="pt-6 border-t border-white/5 space-y-3">
               <h3 className="text-sm font-semibold text-white/50 uppercase tracking-wider mb-4">
-                Acciones de Moderación
+                {t('admin.live.moderation_actions')}
               </h3>
 
               <Button
@@ -175,9 +178,11 @@ export default function LiveStreamDetailPanel({
               >
                 <TriangleAlert className="w-5 h-5" />
                 <div className="text-left">
-                  <div className="font-semibold">Enviar Advertencia</div>
+                  <div className="font-semibold">
+                    {t('admin.live.warn_title')}
+                  </div>
                   <div className="text-xs opacity-70">
-                    El usuario recibirá un aviso oficial.
+                    {t('admin.live.warn_description')}
                   </div>
                 </div>
               </Button>
@@ -190,10 +195,10 @@ export default function LiveStreamDetailPanel({
                 <Square className="w-5 h-5" />
                 <div className="text-left">
                   <div className="font-semibold">
-                    Forzar Cierre de Transmisión
+                    {t('admin.live.force_end_title')}
                   </div>
                   <div className="text-xs opacity-70">
-                    El directo terminará inmediatamente.
+                    {t('admin.live.force_end_description')}
                   </div>
                 </div>
               </Button>

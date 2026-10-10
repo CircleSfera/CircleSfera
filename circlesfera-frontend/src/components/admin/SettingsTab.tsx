@@ -184,7 +184,7 @@ export default function SettingsTab({ onToast }: Props) {
                         onChange={(e) =>
                           handleChange(setting.key, e.target.value)
                         }
-                        className="w-full sm:w-64 rounded-lg bg-surface-elevated border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
+                        className="w-full sm:w-64 min-h-12 rounded-lg bg-surface-elevated border border-white/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-brand-primary/50"
                       />
                     )}
                   </div>
