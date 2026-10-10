@@ -3447,7 +3447,15 @@
       "tab_experiments": "Experimentos A/B",
       "user_search_placeholder": "Buscar usuario por nombre o email...",
       "searching_users": "Buscando usuarios...",
-      "no_users_found": "No se encontraron usuarios."
+      "no_users_found": "No se encontraron usuarios.",
+      "toast_flag_saved": "Flag guardada",
+      "toast_flag_save_error": "No se pudo guardar la flag",
+      "toast_flag_deleted": "Flag eliminada",
+      "toast_flag_delete_error": "No se pudo eliminar la flag",
+      "toast_assigned": "Asignación guardada",
+      "toast_assign_error": "No se pudo guardar la asignación",
+      "toast_removed": "Asignación eliminada",
+      "toast_remove_error": "No se pudo eliminar la asignación"
     },
     "health": {
       "title": "Estado del Sistema",
