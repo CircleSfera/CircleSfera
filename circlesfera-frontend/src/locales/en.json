@@ -519,6 +519,10 @@
     }
   },
   "auth": {
+    "security_check": {
+      "unavailable": "The security check is not available. Reload the page in a minute and try again.",
+      "reset": "Reset the security check"
+    },
     "login": {
       "title": "CircleSfera",
       "welcome": "Welcome back, creator.",
@@ -1035,7 +1039,8 @@
       "previous_slide": "Previous photo or video",
       "next_slide": "Next photo or video",
       "position": "{{n}} of {{total}}",
-      "sensitive": "Sensitive content blurred"
+      "sensitive": "Sensitive content blurred",
+      "sensitive_reveal": "Tap to view"
     },
     "menu": {
       "edit": "Edit",
@@ -3850,6 +3855,7 @@
     "search": "Search"
   },
   "common": {
+    "default_user": "User",
     "cancel": "Cancel",
     "loading": "Loading...",
     "close": "Close",

@@ -68,6 +68,9 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
 
         try {
           await onRefresh();
+        } catch {
+          // The screen that refreshes reports its own failure; here the
+          // content only has to come back up.
         } finally {
           setIsRefreshing(false);
           controls.start({ y: 0 });
@@ -80,6 +83,15 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       }
     };
 
+    // The system can take the touch away (a call, a gesture of its own):
+    // the content goes back up, and nothing is refreshed.
+    const handleTouchCancel = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      controls.start({ y: 0 });
+      y.set(0);
+    };
+
     const element = containerRef.current;
     if (element) {
       element.addEventListener('touchstart', handleTouchStart, {
@@ -89,6 +101,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         passive: false,
       });
       element.addEventListener('touchend', handleTouchEnd);
+      element.addEventListener('touchcancel', handleTouchCancel);
     }
 
     return () => {
@@ -96,6 +109,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
         element.removeEventListener('touchstart', handleTouchStart);
         element.removeEventListener('touchmove', handleTouchMove);
         element.removeEventListener('touchend', handleTouchEnd);
+        element.removeEventListener('touchcancel', handleTouchCancel);
       }
     };
   }, [isRefreshing, onRefresh, controls, y]);
