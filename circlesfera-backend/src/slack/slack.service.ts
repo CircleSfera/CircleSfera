@@ -367,6 +367,43 @@ export class SlackService {
     });
   }
 
+  // Email that answers support requests needs a look. Counts only: no
+  // address, subject or text of anyone's email.
+  async sendSupportEmailInAlert(trouble: {
+    noTicket: number;
+    senderMismatch: number;
+    stuck: number;
+  }): Promise<void> {
+    await this.sendMessage(this.supportWebhookUrl, {
+      blocks: [
+        {
+          type: 'header',
+          text: {
+            type: 'plain_text',
+            text: '📭 Correo de soporte: revisar',
+          },
+        },
+        {
+          type: 'section',
+          fields: [
+            {
+              type: 'mrkdwn',
+              text: `*Sin solicitud (última hora):*\n${trouble.noTicket}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*De otro remitente (última hora):*\n${trouble.senderMismatch}`,
+            },
+            {
+              type: 'mrkdwn',
+              text: `*Sin procesar tras 15 min:*\n${trouble.stuck}`,
+            },
+          ],
+        },
+      ],
+    });
+  }
+
   // Phase 2: Slash Commands
   async handleStatsCommand(): Promise<any> {
     try {

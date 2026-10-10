@@ -25,7 +25,11 @@ describe('HelpdeskTicketsService', () => {
     remind: vi.fn(),
     unmatchedSender: vi.fn(),
   };
-  const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
+  const teamChannel = {
+    ticketOpened: vi.fn(),
+    requesterReplied: vi.fn(),
+    emailInTrouble: vi.fn(),
+  };
   const staffLog = { record: vi.fn() };
   const agents = { describe: vi.fn(), assignable: vi.fn() };
   // Email in is off unless a test turns it on.

@@ -337,6 +337,29 @@ describe('SlackService', () => {
     });
   });
 
+  describe('sendSupportEmailInAlert', () => {
+    it('tells the support channel the three counts and nothing of anyone’s email', async () => {
+      await service.sendSupportEmailInAlert({
+        noTicket: 7,
+        senderMismatch: 4,
+        stuck: 2,
+        // Nothing but the counts belongs in the alert.
+        fromAddress: 'user@example.com',
+      } as never);
+
+      expect(axios.post).toHaveBeenCalledWith(
+        'https://hooks.slack.com/services/support',
+        expect.anything(),
+        { timeout: 5_000 },
+      );
+      const sent = JSON.stringify(vi.mocked(axios.post).mock.calls.at(-1)?.[1]);
+      expect(sent).toContain('\\n7');
+      expect(sent).toContain('\\n4');
+      expect(sent).toContain('\\n2');
+      expect(sent).not.toContain('user@example.com');
+    });
+  });
+
   describe('sendSupportAlert', () => {
     it('sends support alert with ticket details and reply button', async () => {
       const ticket: any = {

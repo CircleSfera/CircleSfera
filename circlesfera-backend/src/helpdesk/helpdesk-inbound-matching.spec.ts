@@ -19,7 +19,11 @@ describe('Help Desk: matching an email to its ticket', () => {
     remind: vi.fn(),
     unmatchedSender: vi.fn(),
   };
-  const teamChannel = { ticketOpened: vi.fn(), requesterReplied: vi.fn() };
+  const teamChannel = {
+    ticketOpened: vi.fn(),
+    requesterReplied: vi.fn(),
+    emailInTrouble: vi.fn(),
+  };
   let ticketId: string;
   let address: string;
   let n = 0;
@@ -76,7 +80,13 @@ describe('Help Desk: matching an email to its ticket', () => {
       { describe: vi.fn().mockResolvedValue(new Map()), assignable: vi.fn() },
       addresses,
     );
-    inbound = new HelpdeskInboundService(store, addresses, tickets, notifier);
+    inbound = new HelpdeskInboundService(
+      store,
+      addresses,
+      tickets,
+      notifier,
+      teamChannel,
+    );
     ticketId = (
       await tickets.createTicket({
         email: 'ana@example.com',

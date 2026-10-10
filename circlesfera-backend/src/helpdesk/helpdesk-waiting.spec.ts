@@ -54,6 +54,7 @@ describe('Help Desk: tickets waiting for their requester', () => {
       {
         ticketOpened: vi.fn(),
         requesterReplied: vi.fn().mockResolvedValue(undefined),
+        emailInTrouble: vi.fn(),
       },
       { record: vi.fn() },
       agents,
