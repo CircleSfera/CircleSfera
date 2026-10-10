@@ -27,12 +27,19 @@ export default function ReferralsSettings() {
   const referrals = data?.data?.referrals || [];
   const maxReferrals = data?.data?.maxReferrals || 3;
   const referralCount = data?.data?.referralCount || 0;
-  const inviteLink = `${window.location.origin}/accounts/signup?inviteCode=${inviteCode}`;
+  // No link is shown without a code: it would invite with no code at all.
+  const inviteLink = inviteCode
+    ? `${window.location.origin}/accounts/signup?inviteCode=${inviteCode}`
+    : '';
   const atMax = referralCount >= maxReferrals;
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(inviteLink);
-    toast.success(t('referralsSettings.copied'));
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success(t('referralsSettings.copied'));
+    } catch {
+      toast.error(t('referralsSettings.copy_error'));
+    }
   };
 
   return (
@@ -64,7 +71,7 @@ export default function ReferralsSettings() {
             <Button
               type="button"
               onClick={handleCopyLink}
-              disabled={atMax}
+              disabled={atMax || !inviteLink}
               className="shrink-0"
             >
               {t('referralsSettings.copy')}

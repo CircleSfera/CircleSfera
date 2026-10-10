@@ -198,7 +198,9 @@
       "confirm": "Confirm",
       "delete": "Delete",
       "accept": "Confirm",
-      "reject": "Delete"
+      "reject": "Delete",
+      "accept_error": "The request could not be confirmed. Try again.",
+      "reject_error": "The request could not be deleted. Try again."
     },
     "mutes": {
       "title": "Blocked accounts",
@@ -4011,6 +4013,7 @@
     "used_count": "{{count}} / {{max}} used",
     "copy": "Copy",
     "copied": "Invite link copied",
+    "copy_error": "The link could not be copied. Select it and copy it by hand.",
     "max_reached": "You have used all invites for this beta.",
     "users_invited": "People you invited",
     "no_invites": "You have not invited anyone yet.",

@@ -198,7 +198,9 @@
       "confirm": "Confirmar",
       "delete": "Eliminar",
       "accept": "Confirmar",
-      "reject": "Eliminar"
+      "reject": "Eliminar",
+      "accept_error": "No se pudo confirmar la solicitud. Inténtalo de nuevo.",
+      "reject_error": "No se pudo eliminar la solicitud. Inténtalo de nuevo."
     },
     "mutes": {
       "title": "Cuentas bloqueadas",
@@ -4011,6 +4013,7 @@
     "used_count": "{{count}} / {{max}} usados",
     "copy": "Copiar",
     "copied": "Enlace de invitación copiado",
+    "copy_error": "No se pudo copiar el enlace. Selecciónalo y cópialo a mano.",
     "max_reached": "Has usado todas las invitaciones de esta fase beta.",
     "users_invited": "Personas que invitaste",
     "no_invites": "Todavía no has invitado a nadie.",
