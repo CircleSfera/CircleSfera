@@ -1,6 +1,7 @@
 import { Pause, Play } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface VoicePlayerProps {
   voiceUrl: string;
@@ -13,6 +14,7 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
   durationSeconds = 0,
   waveform,
 }) => {
+  const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -35,7 +37,10 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
     audioRef.current = audio;
 
     audio.onloadedmetadata = () => {
-      if (audio.duration && !Number.isNaN(audio.duration)) {
+      // A recording made in the browser often carries no length: the
+      // browser then reports an endless one, and the length sent with the
+      // message is the one to keep.
+      if (Number.isFinite(audio.duration) && audio.duration > 0) {
         setDuration(Math.round(audio.duration));
       }
     };
@@ -103,7 +108,8 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
       <button
         type="button"
         onClick={togglePlay}
-        className="w-9 h-9 rounded-full bg-accent-blue text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 shadow-md"
+        aria-label={isPlaying ? t('voice.pause') : t('voice.play')}
+        className="w-11 h-11 rounded-full bg-accent-blue text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-all shrink-0 shadow-md"
       >
         {isPlaying ? (
           <Pause className="w-4 h-4 fill-white" />
@@ -125,7 +131,12 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
               key={`bar-${barValue}-${idx}`}
               type="button"
               onClick={() => handleBarClick(idx)}
-              title={`Saltar a ${formatTime((idx / bars.length) * duration)}`}
+              // One stop for the keyboard is the play button; the bars are
+              // a shortcut for the pointer.
+              tabIndex={-1}
+              aria-label={t('voice.seek', {
+                time: formatTime((idx / bars.length) * duration),
+              })}
               className={`w-1 rounded-full transition-all duration-150 group-hover/bars:opacity-90 ${
                 isFilled
                   ? 'bg-accent-blue hover:brightness-125'
@@ -143,7 +154,8 @@ export const VoicePlayer: React.FC<VoicePlayerProps> = ({
         <button
           type="button"
           onClick={cycleSpeed}
-          className="px-1.5 py-0.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-md text-[10px] text-accent-blue font-extrabold transition-all"
+          aria-label={t('voice.speed', { speed: speeds[speedIndex] })}
+          className="min-h-11 min-w-11 px-1.5 py-0.5 bg-white/10 hover:bg-white/20 active:scale-95 rounded-md text-[10px] text-accent-blue font-extrabold transition-all"
         >
           {speeds[speedIndex]}x
         </button>
