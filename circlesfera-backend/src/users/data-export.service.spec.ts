@@ -106,7 +106,7 @@ describe('DataExportService', () => {
             userId: 'user-1',
           },
           options: {
-            jobId: 'export:export-1',
+            jobId: 'export-export-1',
             removeOnComplete: true,
             removeOnFail: false,
           },

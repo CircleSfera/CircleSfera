@@ -901,8 +901,17 @@ describe('MonetizationService', () => {
       });
       expect(mockPrismaService.monetization.upsert).toHaveBeenCalledWith({
         where: { userId: 'u-1' },
-        update: { transfersEnabled: true, chargesEnabled: true },
-        create: { userId: 'u-1', transfersEnabled: true, chargesEnabled: true },
+        update: {
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
+        create: {
+          userId: 'u-1',
+          transfersEnabled: true,
+          chargesEnabled: true,
+          verifiedCompany: false,
+        },
       });
     });
 

@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   BarChart3,
+  Building2,
   Camera,
   Check,
   Loader2,
@@ -14,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useDebounce } from '../../hooks/useDebounce';
 import { authApi, profileApi, uploadApi } from '../../services';
 import { useAuthStore } from '../../stores/authStore';
@@ -23,6 +24,8 @@ import type { UpdateProfileDto } from '../../types';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
 import { logger } from '../../utils/logger';
 import { pickNativeImage } from '../../utils/nativeFilePicker';
+import { hasElitePlan } from '../../utils/plans';
+import { PROFILE_COLOR_KEYS, PROFILE_COLORS } from '../../utils/profileColors';
 import UserAvatar from '../UserAvatar';
 import { Button, Input, Textarea } from '../ui';
 import SettingsRow from './SettingsRow';
@@ -66,6 +69,8 @@ export default function ProfileSettings() {
   const [accountType, setAccountType] = useState<
     'PERSONAL' | 'CREATOR' | 'BUSINESS'
   >('PERSONAL');
+  // Colour of the profile page; null is the colour of the app.
+  const [accentColor, setAccentColor] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [usernameStatus, setUsernameStatus] = useState<{
     checking: boolean;
@@ -75,6 +80,7 @@ export default function ProfileSettings() {
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarSuccess, setAvatarSuccess] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const updateProfileMutation = useMutation({
     mutationFn: (data: UpdateProfileDto) => profileApi.updateProfile(data),
@@ -98,6 +104,7 @@ export default function ProfileSettings() {
       setBio(profile.bio || '');
       setWebsite(profile.website || '');
       setAccountType(profile.accountType || 'PERSONAL');
+      setAccentColor(profile.accentColor ?? null);
       setInitialized(true);
     }
   }, [profile, initialized]);
@@ -154,11 +161,20 @@ export default function ProfileSettings() {
   const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Emptied so the same picture can be chosen again, to retry a failed
+    // upload: a choice equal to the last one is not a change.
+    e.target.value = '';
+    // A picture that could not be saved is not shown, also when the device
+    // finishes reading it after the upload has already failed.
+    let failed = false;
     const reader = new FileReader();
-    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.onloadend = () => {
+      if (!failed) setAvatarPreview(reader.result as string);
+    };
     reader.readAsDataURL(file);
     setAvatarUploading(true);
     setAvatarSuccess(false);
+    setAvatarFailed(false);
     try {
       const formData = new FormData();
       formData.append('file', file);
@@ -171,11 +187,15 @@ export default function ProfileSettings() {
       setTimeout(() => setAvatarSuccess(false), 3000);
     } catch (error) {
       logger.error('Failed to upload avatar:', error);
+      failed = true;
       setAvatarPreview(null);
+      setAvatarFailed(true);
     } finally {
       setAvatarUploading(false);
     }
   };
+
+  const canChooseColour = hasElitePlan(profile?.verificationLevel);
 
   const isDirty =
     initialized &&
@@ -183,7 +203,8 @@ export default function ProfileSettings() {
       username !== (profile?.username || '') ||
       bio !== (profile?.bio || '') ||
       website !== (profile?.website || '') ||
-      accountType !== (profile?.accountType || 'PERSONAL'));
+      accountType !== (profile?.accountType || 'PERSONAL') ||
+      accentColor !== (profile?.accentColor ?? null));
 
   const canSubmit =
     isDirty &&
@@ -205,6 +226,11 @@ export default function ProfileSettings() {
     }
     if (username !== profile?.username && usernameStatus.available) {
       data.username = username;
+    }
+    // Sent only when it changes: choosing a colour needs a plan, and a
+    // profile without one must still be able to save everything else.
+    if (accentColor !== (profile?.accentColor ?? null)) {
+      data.accentColor = accentColor;
     }
     updateProfileMutation.mutate(data);
   };
@@ -263,14 +289,24 @@ export default function ProfileSettings() {
           aria-label={t('settings.profile.change_avatar')}
         >
           <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 group-hover:border-brand-primary/50 transition-colors bg-surface-raised">
-            <UserAvatar
-              src={avatarPreview || profile?.avatar || undefined}
-              thumbnailUrl={avatarPreview ? null : profile?.thumbnailUrl}
-              standardUrl={avatarPreview ? null : profile?.standardUrl}
-              alt=""
-              size="full"
-              className="w-full h-full object-cover"
-            />
+            {avatarPreview ? (
+              // The picture just chosen, read from the device. Shown as it
+              // is: the avatar piece expects an address on a server.
+              <img
+                src={avatarPreview}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <UserAvatar
+                src={profile?.avatar || undefined}
+                thumbnailUrl={profile?.thumbnailUrl}
+                standardUrl={profile?.standardUrl}
+                alt=""
+                size="full"
+                className="w-full h-full object-cover"
+              />
+            )}
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
               <Camera size={18} className="text-white" />
             </div>
@@ -289,14 +325,17 @@ export default function ProfileSettings() {
               <Check size={12} strokeWidth={4} />
             </motion.div>
           )}
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleAvatarChange}
-          />
         </button>
+        {/* Outside the button: a press on it would reach the button again,
+            which cancels the file dialog and asks for it once more, without
+            end. */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-white truncate">
             @{profile?.username}
@@ -320,6 +359,11 @@ export default function ProfileSettings() {
               ? t('settings.profile.uploading')
               : t('settings.profile.upload_new')}
           </button>
+          {avatarFailed && (
+            <p role="alert" className="text-xs text-brand-secondary">
+              {t('settings.profile.avatar_error')}
+            </p>
+          )}
         </div>
       </div>
 
@@ -417,6 +461,86 @@ export default function ProfileSettings() {
         </div>
       </SettingsSection>
 
+      <SettingsSection title={t('settings.profile.colour.title')}>
+        <div className="p-4">
+          <p className="mb-3 text-sm text-white/60">
+            {canChooseColour
+              ? t('settings.profile.colour.hint')
+              : t('settings.profile.colour.plan_hint')}
+          </p>
+          <div
+            role="radiogroup"
+            aria-label={t('settings.profile.colour.title')}
+            className="flex flex-wrap gap-2"
+          >
+            {[null, ...PROFILE_COLOR_KEYS].map((key) => {
+              const selected = accentColor === key;
+              return (
+                // biome-ignore lint/a11y/useSemanticElements: a swatch, not a native radio
+                <button
+                  key={key ?? 'default'}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={t(
+                    `settings.profile.colour.options.${key ?? 'default'}`,
+                  )}
+                  disabled={!canChooseColour && key !== null}
+                  onClick={() => setAccentColor(key)}
+                  className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:cursor-not-allowed disabled:opacity-35 ${
+                    selected ? 'border-white' : 'border-transparent'
+                  }`}
+                >
+                  <span
+                    className="h-8 w-8 rounded-full"
+                    style={{
+                      background: key ? PROFILE_COLORS[key].hex : '#884cff',
+                    }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+          {!canChooseColour && (
+            <Link
+              to="/pricing"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary hover:underline"
+            >
+              {t('creator.advanced.plan_cta')}
+            </Link>
+          )}
+        </div>
+      </SettingsSection>
+
+      {profile?.verificationLevel === 'BUSINESS' && (
+        <SettingsSection title={t('settings.profile.company.title')}>
+          <div className="p-4">
+            {profile.companyVerified ? (
+              <p className="flex items-center gap-2 text-sm font-semibold text-white">
+                <Building2
+                  size={18}
+                  className="text-brand-primary"
+                  aria-hidden
+                />
+                {t('profile.company_verified')}
+              </p>
+            ) : (
+              <>
+                <p className="mb-3 text-sm text-white/60">
+                  {t('settings.profile.company.hint')}
+                </p>
+                <Link
+                  to="/creator/monetization"
+                  className="inline-flex h-11 items-center justify-center rounded-xl border border-brand-primary/30 px-5 text-sm font-semibold text-white btn-gradient-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+                >
+                  {t('settings.profile.company.verify')}
+                </Link>
+              </>
+            )}
+          </div>
+        </SettingsSection>
+      )}
+
       <SettingsSection title={t('settings.profile.account_type')}>
         {accountTypes.map((type) => {
           const selected = accountType === type.id;
@@ -465,12 +589,19 @@ export default function ProfileSettings() {
               control={
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={isBiometricEnabled}
+                  aria-label={t('settings.security.biometric_label')}
                   onClick={() => setBiometricEnabled(!isBiometricEnabled)}
-                  className={`w-11 h-6 rounded-full transition-colors relative ${isBiometricEnabled ? 'bg-brand-primary' : 'bg-white/20'}`}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center"
                 >
                   <span
-                    className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isBiometricEnabled ? 'translate-x-5' : ''}`}
-                  />
+                    className={`w-11 h-6 rounded-full transition-colors relative ${isBiometricEnabled ? 'bg-brand-primary' : 'bg-white/20'}`}
+                  >
+                    <span
+                      className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isBiometricEnabled ? 'translate-x-5' : ''}`}
+                    />
+                  </span>
                 </button>
               }
             />

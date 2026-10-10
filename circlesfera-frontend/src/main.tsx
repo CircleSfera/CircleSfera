@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode, startTransition } from 'react';
 import { createRoot } from 'react-dom/client';
 import { HelmetProvider } from 'react-helmet-async';
-import { Toaster } from 'react-hot-toast';
 import { BrowserRouter } from 'react-router-dom';
+import { AppToaster } from './components/ui/AppToaster';
 import { i18nReady } from './i18n';
 import { initSentry } from './sentry.ts';
 import './index.css';
@@ -55,12 +55,7 @@ const renderApp = () =>
             <QueryClientProvider client={queryClient}>
               <BrowserRouter useTransitions={false}>
                 <App />
-                <Toaster
-                  position="bottom-center"
-                  containerStyle={{
-                    bottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))',
-                  }}
-                />
+                <AppToaster />
               </BrowserRouter>
             </QueryClientProvider>
           </HelmetProvider>

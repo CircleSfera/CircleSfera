@@ -280,9 +280,19 @@ export class SearchService {
 
     const keywordProfileIds = new Set(users.map((u: { id: string }) => u.id));
     const uniqueSemanticProfiles = (semanticProfiles || []).filter(
-      (p: { user?: { id?: string }; profileId?: string }) => {
+      (p: {
+        user?: { id?: string };
+        profileId?: string;
+        verificationLevel?: string;
+      }) => {
         const id = p.user?.id || p.profileId;
-        return id && !keywordProfileIds.has(id);
+        if (!id || keywordProfileIds.has(id)) return false;
+        // The people found by meaning obey the same filter as the ones
+        // found by name: with it on, only Profiles with a plan badge.
+        return (
+          !verifiedOnly ||
+          (p.verificationLevel !== undefined && p.verificationLevel !== 'BASIC')
+        );
       },
     );
 

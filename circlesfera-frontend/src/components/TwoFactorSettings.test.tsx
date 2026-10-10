@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { authApi } from '../services/auth.service';
 import { useAuthStore } from '../stores/authStore';
@@ -131,5 +132,156 @@ describe('TwoFactorSettings', () => {
         name: i18n!.t('settings.security.2fa.setup_btn'),
       }),
     ).toBeInTheDocument();
+  });
+
+  const code = () => screen.getByRole('textbox', { name: '6-digit code' });
+
+  describe('turning it on', () => {
+    async function showQr() {
+      renderWithProviders(<TwoFactorSettings />);
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Set Up Authenticator App' }),
+      );
+      await screen.findByAltText('Authenticator QR code');
+    }
+
+    it('sends the typed code and says it is on', async () => {
+      vi.mocked(authApi.enable2fa).mockResolvedValue({ data: {} } as never);
+      await showQr();
+
+      fireEvent.change(code(), { target: { value: '12a34 56' } });
+      expect(code()).toHaveValue('123456');
+      fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          'Two-Factor Authentication enabled!',
+        ),
+      );
+      expect(authApi.enable2fa).toHaveBeenCalledWith({ code: '123456' });
+      expect(
+        screen.queryByAltText('Authenticator QR code'),
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not send a code that is not six digits', async () => {
+      await showQr();
+
+      fireEvent.change(code(), { target: { value: '123' } });
+
+      expect(screen.getByRole('button', { name: 'Verify' })).toBeDisabled();
+      fireEvent.submit(code());
+      expect(authApi.enable2fa).not.toHaveBeenCalled();
+    });
+
+    it('says the code is wrong when the server refuses it', async () => {
+      vi.mocked(authApi.enable2fa).mockRejectedValue({
+        response: { status: 400 },
+      });
+      await showQr();
+
+      fireEvent.change(code(), { target: { value: '000000' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Verify' }));
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith('Invalid verification code'),
+      );
+      expect(screen.getByAltText('Authenticator QR code')).toBeInTheDocument();
+    });
+
+    it('says so when the QR cannot be made', async () => {
+      vi.mocked(authApi.generate2fa).mockRejectedValue(new Error('down'));
+      renderWithProviders(<TwoFactorSettings />);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Set Up Authenticator App' }),
+      );
+
+      await waitFor(() =>
+        expect(toast.error).toHaveBeenCalledWith(
+          'Failed to generate 2FA secret',
+        ),
+      );
+    });
+  });
+
+  describe('turning it off', () => {
+    const on: ProfileWithUser = {
+      ...me,
+      user: { ...me.user!, isTwoFactorEnabled: true },
+    };
+    const off = () => screen.getByRole('button', { name: 'Disable 2FA' });
+
+    beforeEach(() => mockAuth(on));
+
+    it('asks for a current code before anything is sent', () => {
+      renderWithProviders(<TwoFactorSettings />);
+      expect(
+        screen.getByText('Your account is secured with 2FA.'),
+      ).toBeInTheDocument();
+
+      fireEvent.click(off());
+
+      expect(code()).toBeInTheDocument();
+      expect(
+        screen.getByText(/Enter a code from your authenticator app/),
+      ).toBeInTheDocument();
+      expect(off()).toBeDisabled();
+      expect(authApi.disable2fa).not.toHaveBeenCalled();
+    });
+
+    it('sends the code and says it is off', async () => {
+      vi.mocked(authApi.disable2fa).mockResolvedValue({ data: {} } as never);
+      renderWithProviders(<TwoFactorSettings />);
+
+      fireEvent.click(off());
+      fireEvent.change(code(), { target: { value: '654321' } });
+      fireEvent.click(off());
+
+      await waitFor(() =>
+        expect(toast.success).toHaveBeenCalledWith(
+          'Two-Factor Authentication disabled',
+        ),
+      );
+      expect(authApi.disable2fa).toHaveBeenCalledWith({ code: '654321' });
+      expect(
+        screen.queryByRole('textbox', { name: '6-digit code' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it.each([
+      [400, 'Invalid verification code'],
+      [500, 'Failed to disable 2FA'],
+    ])(
+      'keeps the form and explains a refusal with status %s',
+      async (status, message) => {
+        vi.mocked(authApi.disable2fa).mockRejectedValue({
+          response: { status },
+        });
+        renderWithProviders(<TwoFactorSettings />);
+
+        fireEvent.click(off());
+        fireEvent.change(code(), { target: { value: '000000' } });
+        fireEvent.click(off());
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith(message));
+        expect(code()).toBeInTheDocument();
+      },
+    );
+
+    it('can be left without turning anything off', () => {
+      renderWithProviders(<TwoFactorSettings />);
+
+      fireEvent.click(off());
+      fireEvent.change(code(), { target: { value: '123456' } });
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+
+      expect(
+        screen.queryByRole('textbox', { name: '6-digit code' }),
+      ).not.toBeInTheDocument();
+      expect(authApi.disable2fa).not.toHaveBeenCalled();
+      fireEvent.click(off());
+      expect(code()).toHaveValue('');
+    });
   });
 });

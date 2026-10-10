@@ -150,6 +150,8 @@ export class ProfilesService {
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
 
+    const companyVerified = await this.isVerifiedCompany(profile);
+
     // Never expose email, role, or abuse hashes on the public profile.
     const { user, ...profileRest } = profile;
     const profileWithFields = {
@@ -165,6 +167,7 @@ export class ProfilesService {
       privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
       isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
+      companyVerified,
       // The chosen colour shows only while the plan that includes it is
       // active; the choice itself stays stored.
       accentColor: canPersonalizeProfile(profile.verificationLevel)
@@ -494,9 +497,12 @@ export class ProfilesService {
       profile.verificationLevel === 'ELITE' ||
       profile.verificationLevel === 'BUSINESS';
 
+    const companyVerified = await this.isVerifiedCompany(profile);
+
     // Flatten for UI convenience
     return {
       ...profile,
+      companyVerified,
       accountType: profile.accountType,
       verificationLevel: profile.verificationLevel,
       inviteCode: profile.user?.inviteCode,
@@ -590,6 +596,21 @@ export class ProfilesService {
       ...p,
       isSuspended: !!(p.suspendedUntil && p.suspendedUntil > new Date()),
     }));
+  }
+
+  // "Verified company": the Business plan, and a payout account that the
+  // payment provider has verified as a company. The account is looked up only
+  // for a Profile on that plan.
+  private async isVerifiedCompany(profile: {
+    userId: string;
+    verificationLevel: string | null;
+  }): Promise<boolean> {
+    if (profile.verificationLevel !== 'BUSINESS') return false;
+    const monetization = await this.prisma.monetization.findUnique({
+      where: { userId: profile.userId },
+      select: { verifiedCompany: true },
+    });
+    return !!monetization?.verifiedCompany;
   }
 
   // Create an additional profile under the authenticated user identity:

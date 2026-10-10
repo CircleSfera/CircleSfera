@@ -345,6 +345,32 @@ export function classifyStripeError(error: unknown): StripeFailureClass {
   return 'permanent';
 }
 
+// What of a Connect account tells whether it is a verified company.
+export interface ConnectAccountCompanyFields {
+  business_type?: string | null;
+  details_submitted?: boolean | null;
+  capabilities?: { transfers?: string | null } | null;
+  requirements?: {
+    currently_due?: string[] | null;
+    disabled_reason?: string | null;
+  } | null;
+}
+
+// A payout account counts as a verified company when its holder is a company
+// and the provider has nothing left to ask: details submitted, transfers
+// active, nothing due and not disabled. An account of a person never counts.
+export function isVerifiedCompanyAccount(
+  account: ConnectAccountCompanyFields,
+): boolean {
+  return (
+    account.business_type === 'company' &&
+    account.details_submitted === true &&
+    account.capabilities?.transfers === 'active' &&
+    !account.requirements?.disabled_reason &&
+    (account.requirements?.currently_due?.length ?? 0) === 0
+  );
+}
+
 export interface ConnectAccountCapabilityFlags {
   transfersEnabled: boolean;
   chargesEnabled: boolean;

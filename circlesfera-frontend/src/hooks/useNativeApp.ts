@@ -3,17 +3,25 @@ import { Capacitor } from '@capacitor/core';
 import { Keyboard } from '@capacitor/keyboard';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSecurityStore } from '../stores/securityStore';
 
 export function useNativeApp() {
   const navigate = useNavigate();
+  // Kept in a ref so the set-up below runs once for the life of the app,
+  // whatever the router does with this function between pages: a second
+  // run would add a second listener and a link would open twice.
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
 
   useEffect(() => {
-    const initNativeFeatures = async () => {
-      if (!Capacitor.isNativePlatform()) return;
+    if (!Capacitor.isNativePlatform()) return;
+    const listeners: Promise<void | { remove: () => Promise<void> }>[] = [];
 
+    const initNativeFeatures = async () => {
       try {
         // Set Status Bar to dark mode style (white text, transparent background)
         await StatusBar.setStyle({ style: Style.Dark });
@@ -41,33 +49,44 @@ export function useNativeApp() {
       }
 
       // Universal Links / Deep Linking listener
-      App.addListener('appUrlOpen', (event) => {
-        // Extract the path from the URL
-        const domain = 'circlesfera.com';
-        const url = new URL(event.url);
+      listeners.push(
+        App.addListener('appUrlOpen', (event) => {
+          // Extract the path from the URL
+          const domain = 'circlesfera.com';
+          const url = new URL(event.url);
 
-        // Ensure it's our domain (or handle all if needed)
-        if (url.hostname === domain || url.hostname.endsWith(`.${domain}`)) {
-          // Navigate to the internal path
-          navigate(url.pathname + url.search + url.hash);
-        }
-      }).catch((err) => {
-        console.warn('App URL Open listener failed to attach', err);
-      });
+          // Ensure it's our domain (or handle all if needed)
+          if (url.hostname === domain || url.hostname.endsWith(`.${domain}`)) {
+            // Navigate to the internal path
+            navigateRef.current(url.pathname + url.search + url.hash);
+          }
+        }).catch((err) => {
+          console.warn('App URL Open listener failed to attach', err);
+        }),
+      );
 
       // Biometric App Lock listener
-      App.addListener('appStateChange', ({ isActive }) => {
-        if (!isActive) {
-          const state = useSecurityStore.getState();
-          if (state.isBiometricEnabled) {
-            state.setLocked(true);
+      listeners.push(
+        App.addListener('appStateChange', ({ isActive }) => {
+          if (!isActive) {
+            const state = useSecurityStore.getState();
+            if (state.isBiometricEnabled) {
+              state.setLocked(true);
+            }
           }
-        }
-      }).catch((err) => {
-        console.warn('App State listener failed to attach', err);
-      });
+        }).catch((err) => {
+          console.warn('App State listener failed to attach', err);
+        }),
+      );
     };
 
-    initNativeFeatures();
-  }, [navigate]);
+    const ready = initNativeFeatures();
+    return () => {
+      void ready.then(() => {
+        for (const listener of listeners) {
+          void listener.then((handle) => handle?.remove());
+        }
+      });
+    };
+  }, []);
 }

@@ -91,6 +91,7 @@ describe('Queue Processors Reliability & Error Handling', () => {
         mockUsersService,
         {} as any,
         {} as any,
+        { exportForRequester: vi.fn().mockResolvedValue([]) } as any,
       );
 
       await expect(
@@ -126,6 +127,7 @@ describe('Queue Processors Reliability & Error Handling', () => {
         mockUsersService,
         {} as any,
         {} as any,
+        { exportForRequester: vi.fn().mockResolvedValue([]) } as any,
       );
 
       const job = {

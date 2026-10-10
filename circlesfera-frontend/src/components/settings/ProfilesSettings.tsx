@@ -1,7 +1,7 @@
 import { UserRoundPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { MAX_PROFILES_PER_ACCOUNT } from '../../services';
+import { profileLimit } from '../../services';
 import CreateProfileForm from '../profiles/CreateProfileForm';
 import OwnedProfileList, { useMyProfiles } from '../profiles/OwnedProfileList';
 import { Button, Card } from '../ui';
@@ -12,14 +12,15 @@ export default function ProfilesSettings() {
   const { t } = useTranslation();
   const [creating, setCreating] = useState(false);
   const { data: profiles } = useMyProfiles();
-  const atLimit = (profiles?.length ?? 0) >= MAX_PROFILES_PER_ACCOUNT;
+  const max = profileLimit(profiles);
+  const atLimit = (profiles?.length ?? 0) >= max;
 
   return (
     <div className="max-w-xl space-y-6">
       <SettingsSection
         title={t('settings.profiles.title')}
         description={t('settings.profiles.description', {
-          max: MAX_PROFILES_PER_ACCOUNT,
+          max,
         })}
       >
         <OwnedProfileList />
@@ -44,7 +45,7 @@ export default function ProfilesSettings() {
           {atLimit ? (
             <p className="text-xs text-white/50 text-center">
               {t('settings.profiles.limit_reached', {
-                max: MAX_PROFILES_PER_ACCOUNT,
+                max,
               })}
             </p>
           ) : null}

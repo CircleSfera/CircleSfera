@@ -28,6 +28,8 @@ export interface UpdateProfileDto {
   website?: string | null;
   isPrivate?: boolean;
   accountType?: 'PERSONAL' | 'CREATOR' | 'BUSINESS';
+  // Colour of the Profile page, from the closed list; null = the default.
+  accentColor?: string | null;
 }
 
 export interface CreatePostDto {
