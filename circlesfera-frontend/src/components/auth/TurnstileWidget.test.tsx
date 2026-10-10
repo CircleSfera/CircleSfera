@@ -1,11 +1,6 @@
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react';
+import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { renderWithProviders } from '../../test/test-utils';
 
 // The site key is read once, when the module loads: each case sets the
 // environment first and loads the widget afresh.
@@ -50,7 +45,7 @@ describe('TurnstileWidget', () => {
     vi.stubEnv('VITE_TURNSTILE_SITE_KEY', '');
     const Widget = await load();
 
-    const { container } = render(<Widget onToken={onToken} />);
+    const { container } = renderWithProviders(<Widget onToken={onToken} />);
 
     expect(container).toBeEmptyDOMElement();
     expect(onToken).toHaveBeenCalledWith(null);
@@ -62,9 +57,37 @@ describe('TurnstileWidget', () => {
     vi.stubEnv('PROD', true);
     const Widget = await load();
 
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
 
-    expect(screen.getByText(/Security check unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'The security check is not available right now. Reload the page in a minute.',
+    );
+  });
+
+  it('says it in Spanish to someone who reads Spanish', async () => {
+    vi.stubEnv('VITE_TURNSTILE_SITE_KEY', '');
+    vi.stubEnv('PROD', true);
+    const Widget = await load();
+
+    renderWithProviders(<Widget onToken={onToken} />, { lng: 'es' });
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'La verificación de seguridad no está disponible ahora. Recarga la página dentro de un minuto.',
+    );
+  });
+
+  it('names its restart control in the language of the person', async () => {
+    vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key-1');
+    window.turnstile = provider().api;
+    const Widget = await load();
+
+    renderWithProviders(<Widget onToken={onToken} />, { lng: 'es' });
+
+    expect(
+      screen.getByRole('button', {
+        name: 'Reiniciar la verificación de seguridad',
+      }),
+    ).toBeInTheDocument();
   });
 
   it('draws the check with the site key once the provider is there, and passes the token on', async () => {
@@ -73,7 +96,7 @@ describe('TurnstileWidget', () => {
     window.turnstile = api;
     const Widget = await load();
 
-    const { container } = render(<Widget onToken={onToken} />);
+    const { container } = renderWithProviders(<Widget onToken={onToken} />);
 
     await waitFor(() => expect(api.render).toHaveBeenCalledTimes(1));
     expect(made[0].options).toMatchObject({
@@ -95,7 +118,7 @@ describe('TurnstileWidget', () => {
     const { api, made } = provider();
     window.turnstile = api;
     const Widget = await load();
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
     await waitFor(() => expect(api.render).toHaveBeenCalled());
 
     act(() => made[0].options.callback('token-1'));
@@ -112,11 +135,13 @@ describe('TurnstileWidget', () => {
     const { api } = provider();
     window.turnstile = api;
     const Widget = await load();
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
     await waitFor(() => expect(api.render).toHaveBeenCalled());
     onToken.mockClear();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Reset captcha' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Restart the security check' }),
+    );
 
     expect(api.reset).toHaveBeenCalledWith('widget-1');
     expect(onToken).toHaveBeenCalledWith(null);
@@ -130,7 +155,7 @@ describe('TurnstileWidget', () => {
     });
     window.turnstile = api;
     const Widget = await load();
-    const { unmount } = render(<Widget onToken={onToken} />);
+    const { unmount } = renderWithProviders(<Widget onToken={onToken} />);
     await waitFor(() => expect(api.render).toHaveBeenCalled());
 
     expect(() => unmount()).not.toThrow();
@@ -140,7 +165,7 @@ describe('TurnstileWidget', () => {
   it('loads the script of the provider when it is not there, and draws once it arrives', async () => {
     vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key-1');
     const Widget = await load();
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
 
     const added = script() as HTMLScriptElement;
     expect(added.src).toBe(
@@ -158,7 +183,7 @@ describe('TurnstileWidget', () => {
   it('gives no token when the script of the provider cannot be loaded', async () => {
     vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key-1');
     const Widget = await load();
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
     onToken.mockClear();
 
     act(() => void script()?.onerror?.(new Event('error')));
@@ -169,8 +194,8 @@ describe('TurnstileWidget', () => {
   it('waits for a script another form already asked for, instead of adding a second', async () => {
     vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key-1');
     const Widget = await load();
-    render(<Widget onToken={onToken} />);
-    render(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
+    renderWithProviders(<Widget onToken={onToken} />);
 
     expect(document.querySelectorAll('#cf-turnstile-script')).toHaveLength(1);
 
@@ -187,7 +212,7 @@ describe('TurnstileWidget', () => {
   it('draws nothing if the form went away before the script arrived', async () => {
     vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key-1');
     const Widget = await load();
-    const { unmount } = render(<Widget onToken={onToken} />);
+    const { unmount } = renderWithProviders(<Widget onToken={onToken} />);
     const added = script() as HTMLScriptElement;
 
     unmount();

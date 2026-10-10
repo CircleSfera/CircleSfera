@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 declare global {
   interface Window {
@@ -49,6 +50,7 @@ export default function TurnstileWidget({
 }: {
   onToken: (token: string | null) => void;
 }) {
+  const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -96,9 +98,8 @@ export default function TurnstileWidget({
   if (!SITE_KEY) {
     if (import.meta.env.PROD) {
       return (
-        <p className="text-amber-400/90 text-xs text-center px-2">
-          Security check unavailable. Refresh the page in a minute or try again
-          after the latest deploy finishes.
+        <p role="status" className="text-amber-400/90 text-xs text-center px-2">
+          {t('auth.captcha_unavailable_notice')}
         </p>
       );
     }
@@ -109,7 +110,7 @@ export default function TurnstileWidget({
     <div className="flex justify-center min-h-16" data-ready={ready}>
       <div ref={containerRef} />
       <button type="button" className="sr-only" onClick={reset}>
-        Reset captcha
+        {t('auth.captcha_reset')}
       </button>
     </div>
   );

@@ -637,7 +637,9 @@
       "cancel": "Cancelar y volver al login"
     },
     "captcha_required": "Completa la verificación de seguridad.",
-    "captcha_unavailable": "La verificación de seguridad aún no está lista. Espera a que termine el despliegue y actualiza."
+    "captcha_reset": "Reiniciar la verificación de seguridad",
+    "captcha_unavailable_notice": "La verificación de seguridad no está disponible ahora. Recarga la página dentro de un minuto.",
+    "captcha_unavailable": "La verificación de seguridad aún no está lista. Recarga la página dentro de un minuto."
   },
   "legal": {
     "nav": {
