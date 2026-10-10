@@ -185,6 +185,7 @@ describe('CircleSfera as the host of the Help Desk', () => {
     const email = {
       sendSupportReplyEmail: vi.fn(),
       sendSupportReminderEmail: vi.fn(),
+      sendSupportUnmatchedEmail: vi.fn(),
     };
     const eventEmitter = { emit: vi.fn() };
     const notifier = new CircleSferaRequesterNotifier(
@@ -211,6 +212,15 @@ describe('CircleSfera as the host of the Help Desk', () => {
         7,
         undefined,
       );
+    });
+
+    it('tells a sender whose email matched no request, by email and nowhere else', async () => {
+      await notifier.unmatchedSender('mallory@example.com');
+
+      expect(email.sendSupportUnmatchedEmail).toHaveBeenCalledWith(
+        'mallory@example.com',
+      );
+      expect(eventEmitter.emit).not.toHaveBeenCalled();
     });
 
     it('passes the address of the request on, so that both emails can be answered', async () => {

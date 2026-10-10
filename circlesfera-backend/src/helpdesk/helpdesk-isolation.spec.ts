@@ -25,7 +25,11 @@ describe('Help Desk: isolation between two organizations', () => {
     withdraw: vi.fn(),
     cases: vi.fn(),
   };
-  const notifier = { answer: vi.fn(), remind: vi.fn() };
+  const notifier = {
+    answer: vi.fn(),
+    remind: vi.fn(),
+    unmatchedSender: vi.fn(),
+  };
   const accountCards = { accountCard: vi.fn() };
   // The agents of the host: the same for whoever asks.
   const agents = {
@@ -45,7 +49,9 @@ describe('Help Desk: isolation between two organizations', () => {
   };
   const sameEmail = {
     messageId: '<same@mail.example.com>',
-    from: 'ana@example.com',
+    // Not the requester of the ticket with that number: it stays a kept
+    // email and writes nothing.
+    from: 'someone@else.example.com',
     to: ['ticket+1.0123456789abcdef@reply.example.com'],
     subject: 'Re: Help',
     text: 'An answer by email',
@@ -117,11 +123,23 @@ describe('Help Desk: isolation between two organizations', () => {
       agents,
       { for: () => undefined } as never,
     );
-    inbound = new HelpdeskInboundService(store, {
-      enabled: true,
-      isReplyDomain: (address: string) =>
-        address.endsWith('@reply.example.com'),
-    } as never);
+    inbound = new HelpdeskInboundService(
+      store,
+      {
+        enabled: true,
+        isReplyDomain: (address: string) =>
+          address.endsWith('@reply.example.com'),
+        // Every address is signed for whatever ticket has its number, so
+        // that only the organization keeps the two apart.
+        referenceIn: (address: string) => {
+          const found = /^ticket\+(\d+)\./.exec(address);
+          return found ? { reference: Number(found[1]), signature: 'x' } : null;
+        },
+        signed: () => true,
+      } as never,
+      tickets,
+      notifier,
+    );
     port = new HelpdeskDataPort(store, {
       get: (wanted: unknown) =>
         wanted === HelpdeskInboundService ? inbound : tickets,
@@ -261,6 +279,18 @@ describe('Help Desk: isolation between two organizations', () => {
         ),
     }),
 
+    // An answer by email for a ticket of the first organization, arriving
+    // at the second: there is no such ticket there.
+    replyByEmail: async () => ({
+      leaked: (await tickets.replyByEmail(a.open, 'hello')) !== null,
+    }),
+    addSystemNote: async () => ({
+      leaked: await tickets.addSystemNote(a.open, 'note').then(
+        () => true,
+        (error) => error.code !== 'P2025',
+      ),
+    }),
+
     // --- on a schedule ---
     closeSolvedTickets: async () => {
       const closed = await tickets.closeSolvedTickets();
@@ -374,6 +404,7 @@ describe('Help Desk: isolation between two organizations', () => {
       'ticketOrFail',
       'isHeldByOtherTeam',
       'agentNames',
+      'addRequesterMessage',
     ]);
     const all = [
       ...publicMethods(HelpdeskTicketsService.prototype),

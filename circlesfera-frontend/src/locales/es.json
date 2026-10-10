@@ -2651,6 +2651,7 @@
       "assignee_former": "Antiguo agente",
       "assignee_me_named": "{{name}} (tú)",
       "assign_to": "Asignar a",
+      "by_email": "por correo",
       "saved_replies": {
         "title": "Respuestas guardadas",
         "insert": "Insertar una respuesta guardada",
@@ -2697,7 +2698,9 @@
       "system": {
         "handover_RESOLVED": "Moderación ha resuelto la denuncia. El ticket vuelve a soporte.",
         "handover_REJECTED": "Moderación ha desestimado la denuncia. El ticket vuelve a soporte.",
-        "handover_GONE": "La denuncia ya no existe. El ticket vuelve a soporte."
+        "handover_GONE": "La denuncia ya no existe. El ticket vuelve a soporte.",
+        "attachments_left_out_one": "El correo traía {{count}} archivo adjunto que no se ha recibido.",
+        "attachments_left_out_other": "El correo traía {{count}} archivos adjuntos que no se han recibido."
       },
       "conversation": "Conversación",
       "kind_answer": "Respuesta",

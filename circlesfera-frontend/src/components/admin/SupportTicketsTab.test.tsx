@@ -655,6 +655,61 @@ describe('SupportTicketsTab', () => {
     expect(thread.queryByText(/r-1/)).not.toBeInTheDocument();
   });
 
+  it('says which messages arrived by email, and how many attachments were left out', async () => {
+    vi.mocked(adminApi.getSupportTicket).mockResolvedValue({
+      data: {
+        ...ticket(),
+        messages: [
+          message({}),
+          message({
+            id: 'm-2',
+            body: 'With BBVA.',
+            channel: 'EMAIL',
+            createdAt: '2026-09-02T10:00:00.000Z',
+          }),
+          message({
+            id: 'm-3',
+            authorKind: 'SYSTEM',
+            authorRef: null,
+            visibility: 'INTERNAL',
+            body: 'inbound.attachments:2',
+            createdAt: '2026-09-02T10:00:01.000Z',
+          }),
+          message({
+            id: 'm-4',
+            authorKind: 'SYSTEM',
+            authorRef: null,
+            visibility: 'INTERNAL',
+            body: 'inbound.attachments:1',
+            createdAt: '2026-09-02T10:00:02.000Z',
+          }),
+        ],
+      },
+    } as never);
+    const i18n = await open([ticket()]);
+
+    const thread = within(
+      await screen.findByRole('region', {
+        name: i18n.t('admin.support.conversation'),
+      }),
+    );
+    await thread.findByText('With BBVA.');
+    const lines = thread
+      .getAllByRole('listitem')
+      .map((item) => item.textContent ?? '');
+    const byEmail = i18n.t('admin.support.by_email');
+    expect(lines[0]).not.toContain(byEmail);
+    expect(lines[1]).toContain(byEmail);
+    expect(lines[1]).toContain('With BBVA.');
+    expect(lines[2]).toContain(
+      'The email had 2 attachments, which were not received.',
+    );
+    expect(lines[3]).toContain(
+      'The email had 1 attachment, which was not received.',
+    );
+    expect(lines.join(' ')).not.toContain('inbound.attachments');
+  });
+
   it('sends an answer that leaves the ticket waiting for the requester', async () => {
     vi.mocked(adminApi.addSupportMessage).mockResolvedValue({
       data: ticket(),

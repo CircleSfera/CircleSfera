@@ -185,4 +185,18 @@ describe('fill and escapeHtml', () => {
       EMAIL_COPY.en.automated,
     );
   });
+
+  it('tells an unmatched sender where requests are opened, in both languages, and cannot be answered', () => {
+    const url = 'https://circlesfera.com/support';
+    const inEnglish = EmailTemplates.supportUnmatched(en, url);
+    const inSpanish = EmailTemplates.supportUnmatched(es, url);
+
+    expect(inEnglish.subject).toBe(
+      'We could not add your email to a request - CircleSfera Support',
+    );
+    expect(inEnglish.html).toContain(url);
+    expect(inEnglish.html).toContain(EMAIL_COPY.en.automated);
+    expect(inSpanish.subject).toContain('No hemos podido añadir tu correo');
+    expect(inSpanish.html).toContain('Ir a soporte');
+  });
 });

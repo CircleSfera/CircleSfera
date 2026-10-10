@@ -80,4 +80,30 @@ describe('HelpdeskScheduler', () => {
     inbound.deleteOld.mockResolvedValue(0);
     await expect(scheduler.deleteOldInboundEmails()).resolves.toBeUndefined();
   });
+
+  it('looks again at kept emails only while email in is on, and survives a failed run', async () => {
+    const late = {
+      enabled: false,
+      processPending: vi.fn().mockResolvedValue(2),
+    };
+    const scheduler = new HelpdeskScheduler({} as never, late as never);
+
+    await scheduler.processPendingInboundEmails();
+    expect(late.processPending).not.toHaveBeenCalled();
+
+    late.enabled = true;
+    await scheduler.processPendingInboundEmails();
+    expect(late.processPending).toHaveBeenCalledTimes(1);
+
+    late.processPending.mockResolvedValue(0);
+    await scheduler.processPendingInboundEmails();
+    late.processPending.mockRejectedValue(new Error('db down'));
+    await expect(
+      scheduler.processPendingInboundEmails(),
+    ).resolves.toBeUndefined();
+    late.processPending.mockRejectedValue('db down');
+    await expect(
+      scheduler.processPendingInboundEmails(),
+    ).resolves.toBeUndefined();
+  });
 });

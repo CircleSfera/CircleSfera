@@ -13,7 +13,11 @@ describe('Help Desk: tickets waiting for their requester', () => {
 
   let db: InMemoryHelpdeskDb;
   let tickets: HelpdeskTicketsService;
-  const notifier = { answer: vi.fn(), remind: vi.fn() };
+  const notifier = {
+    answer: vi.fn(),
+    remind: vi.fn(),
+    unmatchedSender: vi.fn(),
+  };
   const agents = { describe: vi.fn(), assignable: vi.fn() };
 
   const row = (id: string) => db.tickets.find((t) => t.id === id);
