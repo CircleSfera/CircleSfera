@@ -2634,6 +2634,11 @@
       "load_failed": "No se pudieron cargar las suscripciones"
     },
     "support": {
+      "system": {
+        "handover_RESOLVED": "Moderación ha resuelto la denuncia. El ticket vuelve a soporte.",
+        "handover_REJECTED": "Moderación ha desestimado la denuncia. El ticket vuelve a soporte.",
+        "handover_GONE": "La denuncia ya no existe. El ticket vuelve a soporte."
+      },
       "conversation": "Conversación",
       "kind_answer": "Respuesta",
       "kind_note": "Nota interna",
