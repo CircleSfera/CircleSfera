@@ -15,10 +15,10 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
-import { SupportController } from './support.controller.js';
-import { SupportService } from './support.service.js';
+import { HelpdeskRequesterController } from './helpdesk-requester.controller.js';
+import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
-describe('SupportController', () => {
+describe('HelpdeskRequesterController', () => {
   let app: INestApplication;
 
   const mockService = {
@@ -27,8 +27,8 @@ describe('SupportController', () => {
 
   beforeAll(async () => {
     app = await createControllerApp({
-      controllers: [SupportController],
-      providers: [{ provide: SupportService, useValue: mockService }],
+      controllers: [HelpdeskRequesterController],
+      providers: [{ provide: HelpdeskTicketsService, useValue: mockService }],
       guards: [{ guard: JwtAuthGuard, mode: 'session' }],
     });
   });

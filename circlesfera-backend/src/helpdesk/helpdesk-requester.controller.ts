@@ -1,15 +1,20 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Inject, Post, UseGuards } from '@nestjs/common';
 import {
   CurrentUser,
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { CreateTicketDto } from './dto/create-ticket.dto.js';
-import { SupportService } from './support.service.js';
+import { HelpdeskTicketsService } from './helpdesk-tickets.service.js';
 
+// What a requester does: the identity and the email come from the session,
+// never from the form.
 @Controller('support')
-export class SupportController {
-  constructor(private readonly supportService: SupportService) {}
+export class HelpdeskRequesterController {
+  constructor(
+    @Inject(HelpdeskTicketsService)
+    private readonly tickets: HelpdeskTicketsService,
+  ) {}
 
   @Post('tickets')
   @UseGuards(JwtAuthGuard)
@@ -17,7 +22,7 @@ export class SupportController {
     @CurrentUser() user: CurrentUserData,
     @Body() createTicketDto: CreateTicketDto,
   ) {
-    return this.supportService.createTicket({
+    return this.tickets.createTicket({
       ...createTicketDto,
       email: user.email,
       userId: user.userId,
