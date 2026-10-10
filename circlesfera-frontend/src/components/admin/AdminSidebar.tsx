@@ -5,9 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
-  ADMIN_NAV_GROUPS,
   ADMIN_TAB_PERMISSIONS,
   type AdminTab,
+  currentStaffSite,
+  navGroupsFor,
 } from './adminNav';
 
 interface Props {
@@ -18,6 +19,8 @@ interface Props {
 export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   const { t } = useTranslation();
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
+  // The sections of the staff site this is: Admin Panel or Backoffice.
+  const navGroups = navGroupsFor(currentStaffSite());
 
   const { data: trustQueue } = useQuery({
     queryKey: ['admin', 'trust-queue'],
@@ -47,16 +50,14 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
     if (itemId === 'support' && trustQueue?.counts?.tickets) {
       return String(trustQueue.counts.tickets);
     }
-    const item = ADMIN_NAV_GROUPS.flatMap((g) => g.items).find(
-      (i) => i.id === itemId,
-    );
+    const item = navGroups.flatMap((g) => g.items).find((i) => i.id === itemId);
     return item?.badge;
   };
 
   return (
     <aside className="hidden lg:flex w-56 xl:w-64 flex-col h-[calc(100vh-5rem)] sticky top-4 overflow-hidden z-20 glass-panel rounded-xl p-3">
       <div className="flex-1 overflow-y-auto space-y-4 pr-0.5 custom-scrollbar">
-        {ADMIN_NAV_GROUPS.map((group) => {
+        {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) =>
             hasPermission(ADMIN_TAB_PERMISSIONS[item.id]),
           );

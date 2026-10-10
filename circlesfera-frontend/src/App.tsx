@@ -30,11 +30,16 @@ import { Support } from './pages/Support';
 import { useAdminAuthStore } from './stores/adminAuthStore';
 import { useAuthStore } from './stores/authStore';
 import { useExperimentStore } from './stores/useExperimentStore';
-import { adminPanelOrigin, isAdminPanelHost } from './utils/adminPanel';
+import {
+  adminPanelOrigin,
+  isAdminPanelHost,
+  isBackofficeHost,
+} from './utils/adminPanel';
 
 // Loaded on demand, so the first visit downloads only the entry pages.
 const Admin = lazy(() => import('./pages/Admin'));
 const AdminPanelLogin = lazy(() => import('./pages/AdminPanelLogin'));
+const BackofficeApp = lazy(() => import('./pages/backoffice/BackofficeApp'));
 const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'));
 const ContentComposerPage = lazy(
@@ -191,7 +196,9 @@ function App() {
   const isSessionChecked = useAuthStore((state) => state.isSessionChecked);
   const checkSession = useAuthStore((state) => state.checkSession);
   const fetchFlags = useExperimentStore((state) => state.fetchFlags);
-  const adminPanel = isAdminPanelHost();
+  const backoffice = isBackofficeHost();
+  // Staff sites have their own session; the participant one is not checked.
+  const adminPanel = backoffice || isAdminPanelHost();
 
   usePushNotifications();
   useNativeApp();
@@ -208,6 +215,14 @@ function App() {
       fetchFlags();
     }
   }, [fetchFlags, isAuthenticated, adminPanel]);
+
+  if (backoffice) {
+    return (
+      <Suspense fallback={null}>
+        <BackofficeApp />
+      </Suspense>
+    );
+  }
 
   if (adminPanel) {
     return <AdminPanelApp />;

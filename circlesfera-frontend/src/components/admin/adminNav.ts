@@ -1,6 +1,8 @@
 import {
   Activity,
+  BadgeCheck,
   Bot,
+  Briefcase,
   Clock,
   DollarSign,
   Flag,
@@ -24,6 +26,11 @@ import {
   ShieldCheck,
   Users,
 } from 'lucide-react';
+import {
+  adminPanelOrigin,
+  backofficeOrigin,
+  isBackofficeHost,
+} from '../../utils/adminPanel';
 
 export type AdminTab =
   | 'analytics'
@@ -48,6 +55,7 @@ export type AdminTab =
   | 'appeals'
   | 'spam-review'
   | 'support'
+  | 'plans'
   | 'roles'
   | 'trust'
   | 'live'
@@ -94,6 +102,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<AdminTab, string> = {
   appeals: 'appeals',
   'spam-review': 'users.read',
   support: 'support',
+  plans: 'plans',
 };
 
 export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
@@ -250,9 +259,67 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         labelKey: 'admin.nav.support',
         icon: LifeBuoy,
       },
+      {
+        id: 'plans',
+        labelKey: 'admin.nav.plans',
+        icon: BadgeCheck,
+      },
     ],
   },
 ];
+
+// The two staff sites. The sections that run the business live in the
+// Backoffice; the ones that protect the community and run the platform live
+// in the Admin Panel. A section lives in one site only.
+export type StaffSite = 'admin' | 'backoffice';
+
+const BACKOFFICE_TABS: readonly AdminTab[] = [
+  'support',
+  'plans',
+  'promotions',
+  'payouts',
+  'monetization',
+  'newsletter',
+];
+
+export function tabSite(tab: AdminTab): StaffSite {
+  return BACKOFFICE_TABS.includes(tab) ? 'backoffice' : 'admin';
+}
+
+export function currentStaffSite(): StaffSite {
+  return isBackofficeHost() ? 'backoffice' : 'admin';
+}
+
+// The navigation of one site: the Admin Panel keeps its groups without the
+// sections that moved; the Backoffice shows the moved ones as one group.
+export function navGroupsFor(site: StaffSite): AdminNavGroup[] {
+  if (site === 'backoffice') {
+    const items = BACKOFFICE_TABS.map((tab) =>
+      ADMIN_NAV_GROUPS.flatMap((group) => group.items).find(
+        (item) => item.id === tab,
+      ),
+    ).filter((item): item is AdminNavItem => !!item);
+    return [{ labelKey: 'backoffice.nav.business', icon: Briefcase, items }];
+  }
+  return ADMIN_NAV_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => tabSite(item.id) === 'admin'),
+  })).filter((group) => group.items.length > 0);
+}
+
+export function navItemsFor(site: StaffSite): AdminNavItem[] {
+  return navGroupsFor(site).flatMap((group) => group.items);
+}
+
+// Where a section is opened from the current site: its path when it lives
+// here, its full address in the other site when it does not.
+export function staffTabHref(tab: AdminTab, query = ''): string {
+  const site = tabSite(tab);
+  if (site === currentStaffSite()) return adminTabPath(tab, query);
+  const origin =
+    site === 'backoffice' ? backofficeOrigin() : adminPanelOrigin();
+  return `${origin}${adminTabPath(tab, query)}`;
+}
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = ADMIN_NAV_GROUPS.flatMap(
   (g) => g.items,
@@ -277,16 +344,25 @@ export function adminTabPath(tab: AdminTab, query = ''): string {
 // Operator can open, else analytics.
 export function getAdminHomeTab(
   hasPermission: (key: string) => boolean,
+  site: StaffSite = currentStaffSite(),
 ): AdminTab {
-  if (hasPermission(ADMIN_TAB_PERMISSIONS.trust)) {
+  if (site === 'admin' && hasPermission(ADMIN_TAB_PERMISSIONS.trust)) {
     return 'trust';
   }
-  for (const group of ADMIN_NAV_GROUPS) {
-    for (const item of group.items) {
-      if (hasPermission(ADMIN_TAB_PERMISSIONS[item.id])) {
-        return item.id;
-      }
+  for (const item of navItemsFor(site)) {
+    if (hasPermission(ADMIN_TAB_PERMISSIONS[item.id])) {
+      return item.id;
     }
   }
-  return 'analytics';
+  return site === 'backoffice' ? 'support' : 'analytics';
+}
+
+// Whether the operator can open any section of a site.
+export function canOpenSite(
+  hasPermission: (key: string) => boolean,
+  site: StaffSite,
+): boolean {
+  return navItemsFor(site).some((item) =>
+    hasPermission(ADMIN_TAB_PERMISSIONS[item.id]),
+  );
 }

@@ -40,7 +40,10 @@ jobs:
       options: --user 1001 --ipc=host
     services:
       postgres:
-        image: pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
+        # Service images come from public mirrors of Docker Hub, at the same
+        # pinned digests: Docker Hub limits anonymous downloads per address and
+        # the runners share theirs.
+        image: mirror.gcr.io/pgvector/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         env:
           POSTGRES_USER: prisma
           POSTGRES_PASSWORD: prisma
@@ -51,7 +54,7 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        image: public.ecr.aws/docker/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -158,7 +161,7 @@ jobs:
       - name: Check control sizes of the editor and the live, and undo
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts --project=chromium
+          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts e2e/explore-notifications.spec.ts e2e/messages-sizes.spec.ts e2e/messages.spec.ts e2e/frames-viewer.spec.ts e2e/settings-sizes.spec.ts e2e/entry-screens.spec.ts --project=chromium
 
       - name: Dump server logs on failure
         if: failure()

@@ -12,7 +12,7 @@ interface GuestAppChromeProps {
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'h-9 px-4 inline-flex items-center text-[13px] font-semibold rounded-full transition-all duration-300',
+    'h-11 px-4 inline-flex items-center text-[13px] font-semibold rounded-full transition-all duration-300',
     'focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50',
     isActive
       ? 'text-white bg-white/10'
@@ -57,7 +57,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
         <Link
           to="/"
           onClick={closeMenu}
-          className="flex items-center gap-2 min-w-0 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+          className="min-h-11 flex items-center gap-2 min-w-0 shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
           aria-label="CircleSfera"
         >
           <img
@@ -93,7 +93,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
           <Link
             to="/accounts/login"
             onClick={closeMenu}
-            className="hidden sm:inline-flex h-9 px-4 items-center text-[13px] font-semibold text-white/70 hover:text-white transition-colors rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+            className="hidden sm:inline-flex h-11 px-4 items-center text-[13px] font-semibold text-white/70 hover:text-white transition-colors rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
           >
             {t('landing.nav.log_in')}
           </Link>
@@ -102,7 +102,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
             to="/accounts/signup"
             variant="primary"
             size="md"
-            className="px-4! h-8! text-[12px] rounded-full font-bold shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 transition-all duration-300"
+            className="px-4! h-11! text-xs rounded-full font-bold shadow-lg shadow-brand-primary/20 hover:shadow-brand-primary/40 transition-all duration-300"
           >
             {t('landing.nav.sign_up')}
           </MarketingCTA>
@@ -110,7 +110,7 @@ export function GuestAppChrome({ showLinks = true }: GuestAppChromeProps) {
           {showLinks && (
             <button
               type="button"
-              className="md:hidden ml-1 w-9 h-9 inline-flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors focus:outline-none"
+              className="md:hidden ml-1 w-11 h-11 inline-flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-colors focus:outline-none"
               aria-expanded={menuOpen}
               aria-controls={menuId}
               aria-label={

@@ -16,7 +16,7 @@ export function ProductFaqList() {
   const { t } = useTranslation();
 
   return (
-    <div className="glass-panel rounded-xl overflow-hidden divide-y divide-white/8">
+    <div className="glass-panel rounded-3xl overflow-hidden divide-y divide-white/8">
       {FAQ_KEYS.map((key) => (
         <FAQItem
           key={key}

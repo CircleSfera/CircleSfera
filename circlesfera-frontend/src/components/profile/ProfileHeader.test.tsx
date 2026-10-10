@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import type { ProfileWithUser } from '../../types';
@@ -90,5 +90,80 @@ describe('ProfileHeader', () => {
     expect(
       screen.getByText(i18n!.t('profile.private_label')),
     ).toBeInTheDocument();
+  });
+
+  it('says a profile is a verified company only when the server says so', () => {
+    const { i18n, unmount } = renderWithProviders(
+      <ProfileHeader
+        {...headerProps}
+        profile={{
+          data: { ...ownProfile.data, companyVerified: true },
+        }}
+      />,
+    );
+    expect(
+      screen.getByText(i18n!.t('profile.company_verified')),
+    ).toBeInTheDocument();
+    unmount();
+
+    renderWithProviders(<ProfileHeader {...headerProps} />);
+    expect(
+      screen.queryByText(i18n!.t('profile.company_verified')),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers the creator mode switch to creator and business accounts only', () => {
+    const withAccount = (accountType: string) => ({
+      data: { ...ownProfile.data, accountType } as ProfileWithUser,
+    });
+    const { i18n, rerender } = renderWithProviders(
+      <ProfileHeader {...headerProps} profile={withAccount('PERSONAL')} />,
+    );
+    const name = i18n!.t('profile.creator_mode.label');
+
+    expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+
+    for (const accountType of ['CREATOR', 'BUSINESS']) {
+      rerender(
+        <ProfileHeader {...headerProps} profile={withAccount(accountType)} />,
+      );
+      // One switch, the one of the phone layout: on desktop it changes nothing.
+      expect(screen.getAllByRole('button', { name })).toHaveLength(1);
+    }
+  });
+
+  it('shows the creator mode switch on or off, and flips it', () => {
+    const setCreatorMode = vi.fn();
+    const creator = {
+      data: { ...ownProfile.data, accountType: 'CREATOR' } as ProfileWithUser,
+    };
+    const { i18n, rerender } = renderWithProviders(
+      <ProfileHeader
+        {...headerProps}
+        profile={creator}
+        setCreatorMode={setCreatorMode}
+      />,
+    );
+    const name = i18n!.t('profile.creator_mode.label');
+
+    expect(screen.getByRole('button', { name })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    fireEvent.click(screen.getByRole('button', { name }));
+    expect(setCreatorMode).toHaveBeenCalledWith(true);
+
+    rerender(
+      <ProfileHeader
+        {...headerProps}
+        profile={creator}
+        isCreatorModeActive
+        setCreatorMode={setCreatorMode}
+      />,
+    );
+    expect(screen.getByRole('button', { name })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });

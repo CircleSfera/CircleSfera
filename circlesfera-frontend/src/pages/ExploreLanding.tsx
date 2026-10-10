@@ -3,8 +3,7 @@ import { Hash, Search, Sparkles, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/common/SEO';
 import {
-  BentoCard,
-  GuestSurfaceMedia,
+  ExploreVisual,
   MarketingCTA,
   MarketingPage,
   MarketingPageHeader,
@@ -33,7 +32,7 @@ export default function ExploreLanding() {
 
       <div className="mx-auto w-full max-w-6xl px-4 sm:px-5 pb-10 sm:pb-12">
         <MarketingPageHeader
-          className="pt-8 sm:pt-10 pb-6 sm:pb-8"
+          className="pt-12 sm:pt-20 pb-10 sm:pb-14"
           align="center"
           eyebrow={t('explore.landing.the_platform')}
           title={
@@ -52,26 +51,27 @@ export default function ExploreLanding() {
           }
         />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {BLOCKS.map(({ key, icon }) => (
-            <BentoCard
-              key={key}
-              title={t(`explore.landing.blocks.${key}.title`)}
-              description={t(`explore.landing.blocks.${key}.desc`)}
-              icon={icon}
-            />
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {BLOCKS.map(({ key, icon: Icon }) => (
+            <li key={key} className="rounded-3xl glass-panel p-6">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+                <Icon size={22} strokeWidth={1.75} aria-hidden />
+              </span>
+              <h2 className="mt-4 text-lg font-bold tracking-tight text-white">
+                {t(`explore.landing.blocks.${key}.title`)}
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-white/60">
+                {t(`explore.landing.blocks.${key}.desc`)}
+              </p>
+            </li>
           ))}
+        </ul>
+
+        <div className="mt-14 pb-14 sm:mt-20 sm:pb-20">
+          <ExploreVisual />
         </div>
 
-        <div className="relative mx-auto flex justify-center mt-32 sm:mt-48 lg:mt-64 pb-16 sm:pb-20">
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-75 h-75 bg-brand-primary/20 blur-[100px] rounded-full pointer-events-none" />
-          <GuestSurfaceMedia
-            surface="explore"
-            className="relative z-10 w-full shadow-[0_-20px_80px_rgba(var(--brand-primary-rgb),0.15)] ring-4 ring-white/5"
-          />
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-6 md:p-10 text-center max-w-3xl mx-auto">
+        <div className="rounded-3xl glass-panel p-6 md:p-12 text-center max-w-3xl mx-auto">
           <h2 className="text-2xl md:text-3xl font-black tracking-tight mb-3">
             {t('explore.landing.join_title')}
           </h2>

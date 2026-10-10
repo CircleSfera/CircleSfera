@@ -6,7 +6,7 @@ test.describe('Support', () => {
     await prepareGuest(page);
     await page.goto('/support');
     await expect(
-      page.getByRole('heading', { name: 'Asistencia técnica directa.' }),
+      page.getByRole('heading', { name: '¿Necesitas ayuda?' }),
     ).toBeVisible();
   });
 

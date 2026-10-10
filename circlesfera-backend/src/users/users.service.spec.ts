@@ -1,4 +1,5 @@
 import { getQueueToken } from '@nestjs/bullmq';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import {
@@ -19,6 +20,7 @@ import {
 import { UsersService } from './users.service.js';
 
 describe('UsersService', () => {
+  const mockCacheManager = { del: vi.fn() };
   let service: UsersService;
 
   const mockPrismaService = {
@@ -86,6 +88,7 @@ describe('UsersService', () => {
         { provide: StripeService, useValue: mockStripeService },
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
+        { provide: CACHE_MANAGER, useValue: mockCacheManager },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -725,6 +728,32 @@ describe('UsersService', () => {
   });
 
   describe('syncUserTier', () => {
+    it('clears the cached public profile when the level changes, and only then', async () => {
+      const profile = (verificationLevel: VerificationLevel) => ({
+        id: 'p_down',
+        username: 'ana',
+        accountType: AccountType.CREATOR,
+        verificationLevel,
+        platformSubscriptions: [],
+      });
+      mockCacheManager.del.mockClear();
+
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u_down',
+        profiles: [profile(VerificationLevel.ELITE)],
+      });
+      await service.syncUserTier('u_down');
+      expect(mockCacheManager.del).toHaveBeenCalledWith('profile:ana');
+
+      mockCacheManager.del.mockClear();
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u_down',
+        profiles: [profile(VerificationLevel.BASIC)],
+      });
+      await service.syncUserTier('u_down');
+      expect(mockCacheManager.del).not.toHaveBeenCalled();
+    });
+
     it('returns early when user is not found', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue(null);
       await service.syncUserTier('u_none');

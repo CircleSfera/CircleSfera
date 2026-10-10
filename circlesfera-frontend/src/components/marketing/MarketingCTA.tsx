@@ -17,11 +17,11 @@ const variantClass: Record<Variant, string> = {
 
 const sizeClass: Record<Size, string> = {
   md: 'h-11 px-5 text-sm font-semibold',
-  lg: 'h-12 px-6 text-sm font-bold',
+  lg: 'h-12 px-6 text-[15px] font-bold',
 };
 
 const baseClass =
-  'inline-flex items-center justify-center gap-2 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:opacity-50 disabled:pointer-events-none';
+  'inline-flex items-center justify-center gap-2 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50 disabled:opacity-50 disabled:pointer-events-none';
 
 interface BaseProps {
   variant?: Variant;
@@ -62,7 +62,16 @@ export function MarketingCTA(props: MarketingCTAProps) {
     );
   }
 
-  const { type = 'button', size: _size, ...btnRest } = props as BtnProps;
+  // The look is already in `classes`: what is left over must not carry
+  // the caller's class, or it would replace it.
+  const {
+    type = 'button',
+    size: _size,
+    variant: _variant,
+    className: _className,
+    children: _children,
+    ...btnRest
+  } = props as BtnProps & BaseProps;
   return (
     <button type={type} className={classes} {...btnRest}>
       {children}

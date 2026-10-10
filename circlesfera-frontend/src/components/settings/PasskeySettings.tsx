@@ -30,6 +30,8 @@ export const PasskeySettings: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [passkeys, setPasskeys] = useState<PasskeyInfo[]>([]);
   const [loadingPasskeys, setLoadingPasskeys] = useState(true);
+  // The list could not be read: how many there are is not known.
+  const [loadFailed, setLoadFailed] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isBiometricSupported, setIsBiometricSupported] = useState<
     boolean | null
@@ -39,9 +41,15 @@ export const PasskeySettings: React.FC = () => {
     try {
       setLoadingPasskeys(true);
       const response = await passkeyApi.listPasskeys();
+      // Anything but a list is a failed load, not "no passkeys".
+      if (!Array.isArray(response.data)) {
+        throw new Error('The list of passkeys is not a list');
+      }
       setPasskeys(response.data);
+      setLoadFailed(false);
     } catch (err) {
       logger.error('Failed to fetch passkeys:', err);
+      setLoadFailed(true);
     } finally {
       setLoadingPasskeys(false);
     }
@@ -142,7 +150,7 @@ export const PasskeySettings: React.FC = () => {
                 {t('settings.passkey_settings.title')}
               </h3>
               {isBiometricSupported === true && (
-                <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-green-500/10 text-green-400 border border-green-500/20 rounded-full">
+                <span className="px-2 py-0.5 text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 rounded-full">
                   {t('settings.passkey_settings.biometric_available')}
                 </span>
               )}
@@ -156,8 +164,8 @@ export const PasskeySettings: React.FC = () => {
         <button
           type="button"
           onClick={handleRegister}
-          disabled={loading || loadingPasskeys || atLimit}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white font-bold text-[11px] uppercase tracking-wider rounded-lg transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
+          disabled={loading || loadingPasskeys || loadFailed || atLimit}
+          className="flex items-center justify-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white min-h-11 text-xs font-semibold rounded-full transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 shrink-0"
         >
           {loading ? (
             <Loader2 size={16} className="animate-spin" />
@@ -197,7 +205,7 @@ export const PasskeySettings: React.FC = () => {
             {t('settings.passkey_settings.registered')}
           </span>
           <span className="text-xs font-bold text-gray-500">
-            {passkeys.length} / {MAX_PASSKEYS_PER_ACCOUNT}
+            {loadFailed ? '–' : passkeys.length} / {MAX_PASSKEYS_PER_ACCOUNT}
           </span>
         </div>
 
@@ -205,6 +213,10 @@ export const PasskeySettings: React.FC = () => {
           <div className="p-8 flex justify-center">
             <Loader2 size={24} className="animate-spin text-gray-500" />
           </div>
+        ) : loadFailed ? (
+          <p role="alert" className="p-8 text-center text-sm text-red-400">
+            {t('settings.passkey_settings.load_error')}
+          </p>
         ) : passkeys.length === 0 ? (
           <div className="p-8 text-center text-gray-400 text-sm font-medium">
             <Key size={32} className="mx-auto mb-2 opacity-30" />

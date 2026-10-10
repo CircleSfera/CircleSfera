@@ -7,6 +7,7 @@ import { liveApi, storiesApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { useStoryStore } from '../stores/storyStore';
 import type { Story } from '../types';
+import { asList } from '../utils/asList';
 import UserAvatar from './UserAvatar';
 import type { VerificationLevel } from './VerificationBadge';
 
@@ -30,7 +31,7 @@ export default function StoryList() {
 
   const groupedStories = useMemo(() => {
     if (!storiesResponse?.data) return [];
-    const stories = storiesResponse.data as Story[];
+    const stories = asList<Story>(storiesResponse.data);
     const grouped: { profile: any; stories: Story[] }[] = Object.values(
       stories.reduce(
         (acc, story) => {
@@ -180,7 +181,7 @@ export default function StoryList() {
             <Link
               to="/create?mode=story"
               className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
-              style={{ width: 52 }}
+              style={{ minWidth: 52 }}
             >
               <div
                 className="relative transition-transform duration-200 group-hover:scale-105"
@@ -228,7 +229,7 @@ export default function StoryList() {
                 )}
               </div>
               <span
-                className="text-gray-400 group-hover:text-white transition-colors text-center w-full truncate"
+                className="text-gray-400 group-hover:text-white transition-colors text-center whitespace-nowrap"
                 style={{ fontSize: 'var(--text-badge, 11px)' }}
               >
                 {t('story.yours')}

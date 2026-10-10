@@ -9,9 +9,10 @@ import { canMonetize } from '../../common/constants/monetization.constants.js';
 import { AppException } from '../../common/errors/app.exception.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 
-// Creator tools (dashboard, analytics, promotions) are available to any
-// Creator or Business Profile. They never depend on a paid platform plan:
-// plans sell verification and status, not tools.
+// The core creator tools (dashboard summary, content lists, promotions) are
+// available to any Creator or Business Profile and never depend on a paid
+// platform plan. What a plan adds on top, such as the advanced analytics,
+// has its own guard.
 @Injectable()
 export class CreatorAccountGuard implements CanActivate {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}

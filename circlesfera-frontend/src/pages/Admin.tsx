@@ -1,5 +1,10 @@
-import { useCallback } from 'react';
-import { Navigate, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect } from 'react';
+import {
+  Navigate,
+  useLocation,
+  useNavigate,
+  useParams,
+} from 'react-router-dom';
 import {
   AppealsTab,
   AudioTab,
@@ -13,6 +18,7 @@ import {
   MonetizationTab,
   NewsletterTab,
   PayoutsTab,
+  PlansTab,
   PostsTab,
   PromotionsTab,
   ReportsTab,
@@ -33,15 +39,34 @@ import type { AdminTab } from '../components/admin/adminNav';
 import {
   ADMIN_TAB_PERMISSIONS,
   adminTabPath,
+  canOpenSite,
+  currentStaffSite,
   getAdminHomeTab,
   isAdminTab,
+  staffTabHref,
+  tabSite,
 } from '../components/admin/adminNav';
 import { adminToast } from '../components/admin/adminToast';
 import { useAdminAuthStore } from '../stores/adminAuthStore';
+import { backofficeOrigin } from '../utils/adminPanel';
+
+// Leaves this staff site for the other one. A full page load: each site has
+// its own session.
+function OtherStaffSite({ to }: { to: string }) {
+  useEffect(() => {
+    window.location.replace(to);
+  }, [to]);
+  return (
+    <div className="flex h-screen items-center justify-center">
+      <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+}
 
 export default function Admin() {
   const { tab } = useParams<{ tab: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   const homeTab = getAdminHomeTab(hasPermission);
   const isInvalidTab = !!tab && !isAdminTab(tab);
@@ -59,7 +84,25 @@ export default function Admin() {
     adminToast(message, type);
   }, []);
 
+  // A section that lives in the other staff site is opened there. Links to
+  // it from this site keep working: they land here and are sent on.
+  if (isAdminTab(tab) && tabSite(tab) !== currentStaffSite()) {
+    return <OtherStaffSite to={staffTabHref(tab, location.search)} />;
+  }
+
   if (isInvalidTab || (isAdminTab(tab) && !canOpenActiveTab)) {
+    // Nothing to open in this site: the home of the Backoffice says so; the
+    // Admin Panel has no such page, so the operator is sent to the other
+    // site when that is where their sections are.
+    if (!canOpenSite(hasPermission, currentStaffSite())) {
+      return currentStaffSite() === 'backoffice' ? (
+        <Navigate to="/" replace />
+      ) : canOpenSite(hasPermission, 'backoffice') ? (
+        <OtherStaffSite to={backofficeOrigin()} />
+      ) : (
+        <Navigate to="/login" replace />
+      );
+    }
     return <Navigate to={adminTabPath(homeTab)} replace />;
   }
 
@@ -81,6 +124,7 @@ export default function Admin() {
         {activeTab === 'appeals' && <AppealsTab />}
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
+        {activeTab === 'plans' && <PlansTab onToast={addToast} />}
         {activeTab === 'moderation' && <ModerationTab onToast={addToast} />}
         {activeTab === 'firewall' && <FirewallTab onToast={addToast} />}
         {activeTab === 'monetization' && <MonetizationTab />}

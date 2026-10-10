@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const adminPanel = vi.hoisted(() => ({ value: false }));
 vi.mock('../utils/adminPanel', () => ({
-  isAdminPanelHost: () => adminPanel.value,
+  // The client asks whether it is on a staff site: the Admin Panel or the
+  // Backoffice.
+  isStaffHost: () => adminPanel.value,
 }));
 const notifyActionLimit = vi.hoisted(() => vi.fn());
 vi.mock('../utils/actionLimit', () => ({ notifyActionLimit }));

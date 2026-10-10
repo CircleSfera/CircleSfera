@@ -378,6 +378,28 @@ describe('SearchService', () => {
       ]);
     });
 
+    it('leaves out of the people found by meaning the ones without a plan badge when asked for verified only', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([]);
+      mockPrismaService.hashtag.findMany.mockResolvedValue([]);
+      mockPrismaService.follow.findMany.mockResolvedValue([]);
+      mockPrismaService.$queryRaw.mockResolvedValue([]);
+      const byMeaning = [
+        { profileId: 'no-badge', verificationLevel: 'BASIC' },
+        { profileId: 'badge', verificationLevel: 'VERIFIED' },
+        { profileId: 'unknown' },
+      ];
+      const semantic = vi
+        .spyOn(service, 'semanticSearchProfiles')
+        .mockResolvedValue(byMeaning);
+
+      const all = await service.search('artists', 'viewer-1');
+      expect(all.semanticProfiles).toEqual(byMeaning);
+
+      const verified = await service.search('artists', 'viewer-1', true);
+      expect(verified.semanticProfiles).toEqual([byMeaning[1]]);
+      semantic.mockRestore();
+    });
+
     it('limits people to profiles with a plan badge when asked for verified only', async () => {
       mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
 

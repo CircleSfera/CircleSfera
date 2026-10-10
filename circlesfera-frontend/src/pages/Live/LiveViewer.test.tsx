@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
+import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
 import LiveViewer from './LiveViewer';
 
@@ -182,6 +183,41 @@ describe('LiveViewer', () => {
       }
     });
 
+    it('keeps the plan reactions out of sight without the plan', async () => {
+      useAuthStore.setState({
+        profile: { verificationLevel: 'VERIFIED' },
+      } as never);
+      mockJoin();
+      const { i18n } = renderViewer();
+      await screen.findByText(i18n!.t('live.now'));
+
+      expect(
+        screen.queryByRole('button', {
+          name: i18n!.t('live.send_reaction', { emoji: '💎' }),
+        }),
+      ).not.toBeInTheDocument();
+      useAuthStore.setState({ profile: null } as never);
+    });
+
+    it.each(['ELITE', 'BUSINESS'])(
+      'offers the plan reactions to a profile on the %s plan',
+      async (verificationLevel) => {
+        useAuthStore.setState({ profile: { verificationLevel } } as never);
+        mockJoin();
+        const { i18n } = renderViewer();
+        await screen.findByText(i18n!.t('live.now'));
+
+        for (const emoji of ['💎', '👑', '⚡', '🎉', '💯']) {
+          expect(
+            screen.getByRole('button', {
+              name: i18n!.t('live.send_reaction', { emoji }),
+            }),
+          ).toBeInTheDocument();
+        }
+        useAuthStore.setState({ profile: null } as never);
+      },
+    );
+
     it('offers the gift until a comment is typed, then offers to send it', async () => {
       mockJoin();
       const { i18n } = renderViewer();
@@ -207,8 +243,10 @@ describe('LiveViewer', () => {
       await screen.findByText(i18n!.t('live.now'));
 
       const picture = screen.getByRole('img', { name: 'alice' });
-      expect(picture.getAttribute('src')).toContain('ui-avatars.com');
-      expect(picture.getAttribute('src')).toContain('alice');
+      // Drawn in the app: the name is not sent to another site.
+      const src = picture.getAttribute('src') ?? '';
+      expect(src).toMatch(/^data:image\/svg\+xml,/);
+      expect(decodeURIComponent(src)).toContain('>AL</text>');
     });
   });
 });

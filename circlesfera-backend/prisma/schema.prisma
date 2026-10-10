@@ -87,6 +87,7 @@ model User {
 
   // Relations (account-scoped; social content lives on Profile)
   profiles              Profile[]
+  signIns               SignIn[]
   refreshTokens         RefreshToken[]
   passkeys              Passkey[]
   passkeyChallenges     PasskeyChallenge[]
@@ -120,6 +121,36 @@ model User {
   @@index([lastIpHash])
   @@index([botLabeledAt])
   @@map("users")
+}
+
+// The credentials one or more Profiles of a person sign in with: email,
+// password, two-factor and the tokens for verifying the email and resetting the
+// password. The person (KYC, payouts, the payer, data rights) stays on User.
+//
+// While sign-in still reads User, the database keeps this row equal to the
+// credential columns of its User: see the migration that creates the table.
+model SignIn {
+  id     String @id @default(uuid())
+  userId String
+
+  email                   String    @unique
+  password                String
+  emailVerified           DateTime?
+  verificationToken       String?   @unique
+  resetToken              String?   @unique
+  resetTokenExpires       DateTime?
+  passwordResetRequiredAt DateTime?
+  isTwoFactorEnabled      Boolean   @default(false)
+  twoFactorSecret         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  profiles Profile[]
+
+  @@index([userId])
+  @@map("sign_ins")
 }
 
 model RefreshToken {
@@ -305,6 +336,8 @@ model Profile {
 
   verificationLevel VerificationLevel @default(BASIC)
   accountType       AccountType       @default(PERSONAL)
+  // Colour of the Profile page, from the closed list of the app; empty = default.
+  accentColor       String?
 
   // Account Ban Flags
 
@@ -321,6 +354,12 @@ model Profile {
   strikeCount        Int       @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // The sign-in this Profile is entered with. Several Profiles of one person
+  // may share one. Filled for every Profile by the database; optional in the
+  // type only until the readers have moved to it.
+  signInId String?
+  signIn   SignIn? @relation(fields: [signInId], references: [id], onDelete: NoAction)
 
   // Social Relations Moved from User
 
@@ -367,6 +406,7 @@ model Profile {
   platformSubscriptions PlatformSubscription[]
 
   @@index([userId])
+  @@index([signInId])
   @@map("profiles")
 }
 
@@ -1316,6 +1356,8 @@ model Monetization {
   // Cached from Stripe account.updated webhook
   transfersEnabled      Boolean @default(false)
   chargesEnabled        Boolean @default(false)
+  // The payout account belongs to a company and the provider has verified it
+  verifiedCompany       Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1595,7 +1637,10 @@ model SupportTicket {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user              User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  // The report created when the ticket was handed to moderation
+  escalatedReportId String? @unique
+  escalatedReport   Report? @relation(fields: [escalatedReportId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([status])
@@ -1631,6 +1676,8 @@ model Report {
   reporter      Profile         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
   notifications Notification[]
   strikes       ProfileStrike[]
+  // Set when the report came from a support ticket handed to moderation
+  supportTicket SupportTicket?
 
   @@index([reporterId])
   @@index([targetType, targetId])
@@ -2105,6 +2152,8 @@ enum TicketStatus {
   OPEN
   RESOLVED
   CLOSED
+  // Handed to moderation: a report in the trust queues decides it
+  ESCALATED
 }
 
 enum TransactionStatus {

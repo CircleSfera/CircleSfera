@@ -9,6 +9,7 @@ import { chatApi } from '../../services/chat.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import type { Conversation, Message, Participant } from '../../types';
+import { asList } from '../../utils/asList';
 import { getMessagePreviewText } from '../../utils/chatMessageDisplay';
 import { EmptyState } from '../ErrorEmptyStates';
 import { LoadingSpinner } from '../LoadingStates';
@@ -25,7 +26,7 @@ export default function ConversationList() {
     queryKey: ['conversations', folder],
     queryFn: async () => {
       const res = await chatApi.getConversations(folder);
-      return res.data as Conversation[];
+      return asList<Conversation>(res.data);
     },
   });
 
@@ -33,7 +34,7 @@ export default function ConversationList() {
     queryKey: ['conversations', 'requests'],
     queryFn: async () => {
       const res = await chatApi.getConversations('requests');
-      return res.data as Conversation[];
+      return asList<Conversation>(res.data);
     },
   });
   const requestsCount = requests.length;
@@ -50,7 +51,7 @@ export default function ConversationList() {
   const [isNewChatOpen, setIsNewChatOpen] = useState(false);
   const me = useAuthStore((state) => state.profile);
   const [searchQuery, setSearchQuery] = useState('');
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const { socket, userStatuses } = useSocketStore();
 
@@ -194,7 +195,7 @@ export default function ConversationList() {
             placeholder={t('chat.search')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full h-11 bg-white/10 text-sm text-white rounded-xl pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
+            className="w-full h-12 bg-white/10 text-sm text-white rounded-2xl pl-9 pr-4 focus:bg-white/20 outline-none placeholder-gray-400 transition-all font-medium"
           />
         </div>
 
@@ -203,7 +204,7 @@ export default function ConversationList() {
           <button
             type="button"
             onClick={() => setFolder('inbox')}
-            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
+            className={`min-h-11 transition-all relative flex items-center gap-1.5 ${
               folder === 'inbox'
                 ? 'text-white font-semibold'
                 : 'text-white/50 hover:text-white/80'
@@ -211,7 +212,7 @@ export default function ConversationList() {
           >
             <span>{t('chat.inbox')}</span>
             {unreadCount > 0 && (
-              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
+              <span className="min-w-5 px-1.5 text-xs font-bold bg-brand-primary text-white rounded-full text-center">
                 {unreadCount}
               </span>
             )}
@@ -222,7 +223,7 @@ export default function ConversationList() {
           <button
             type="button"
             onClick={() => setFolder('requests')}
-            className={`pb-2 transition-all relative flex items-center gap-1.5 ${
+            className={`min-h-11 transition-all relative flex items-center gap-1.5 ${
               folder === 'requests'
                 ? 'text-white font-semibold'
                 : 'text-white/50 hover:text-white/80'
@@ -230,7 +231,7 @@ export default function ConversationList() {
           >
             <span>{t('chat.requests')}</span>
             {requestsCount > 0 && (
-              <span className="px-1.5 py-0.2 text-[10px] font-bold bg-brand-primary text-white rounded-full">
+              <span className="min-w-5 px-1.5 text-xs font-bold bg-brand-primary text-white rounded-full text-center">
                 {requestsCount}
               </span>
             )}
@@ -347,9 +348,9 @@ export default function ConversationList() {
                           </span>
                           {lastMsg && (
                             <span
-                              className={`text-[11px] font-bold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
+                              className={`text-xs font-semibold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
                             >
-                              {getTimeString(lastMsg.createdAt)}
+                              {getTimeString(lastMsg.createdAt, i18n.language)}
                             </span>
                           )}
                         </div>
@@ -395,18 +396,22 @@ export default function ConversationList() {
   );
 }
 
-function getTimeString(dateStr: string | Date) {
+// In the language of the app, not the one of the browser.
+function getTimeString(dateStr: string | Date, locale: string) {
   const date = new Date(dateStr);
   const now = new Date();
   const diff = now.getTime() - date.getTime();
 
   if (diff < 86400000 && now.getDate() === date.getDate()) {
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return date.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
   if (diff < 604800000) {
-    return date.toLocaleDateString([], { weekday: 'short' });
+    return date.toLocaleDateString(locale, { weekday: 'short' });
   }
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 function renderMessageContent(msg: Message, t: TFunction) {

@@ -2,8 +2,11 @@ import type { Post, Profile, SearchHistoryItem, SearchResult } from '../types';
 import { apiClient } from './api';
 
 export const searchApi = {
-  search: (query: string) =>
-    apiClient.get<SearchResult>(`search?q=${encodeURIComponent(query)}`),
+  // `verifiedOnly` limits the people of the answer to profiles with a badge.
+  search: (query: string, verifiedOnly = false) =>
+    apiClient.get<SearchResult>(
+      `search?q=${encodeURIComponent(query)}${verifiedOnly ? '&verified=true' : ''}`,
+    ),
 
   searchUsers: (query: string) =>
     apiClient.get<Profile[]>(`search/users?q=${encodeURIComponent(query)}`),

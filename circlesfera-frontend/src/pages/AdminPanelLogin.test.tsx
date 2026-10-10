@@ -118,19 +118,19 @@ describe('Admin Panel sign-in', () => {
       data: { status: 'OK' },
     } as never);
     vi.mocked(adminAuthApi.me).mockResolvedValue({
-      data: { ...SUPER_ADMIN, roles: ['FINANCE'], permissions: ['payments'] },
+      data: { ...SUPER_ADMIN, roles: ['AUDITOR'], permissions: ['audit'] },
     } as never);
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
     submitCredentials(i18n!);
 
-    const expectedTab = getAdminHomeTab((key) => key === 'payments');
+    const expectedTab = getAdminHomeTab((key) => key === 'audit');
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith(adminTabPath(expectedTab), {
         replace: true,
       }),
     );
-    expect(ADMIN_TAB_PERMISSIONS[expectedTab]).toBe('payments');
+    expect(ADMIN_TAB_PERMISSIONS[expectedTab]).toBe('audit');
   });
 
   it('gives a staff manager the same first tab as a super admin', async () => {
