@@ -40,7 +40,9 @@ export function AdminMobileDrawer({
   const [mounted, setMounted] = useState(isOpen);
   const [entered, setEntered] = useState(false);
 
-  useFocusTrap(isOpen, sheetRef, { onEscape: onClose });
+  // The sheet is in the page one render after it is asked to open: the trap
+  // waits for it, or it would find nothing to hold and never start.
+  useFocusTrap(isOpen && mounted, sheetRef, { onEscape: onClose });
 
   const { data: trustQueue } = useQuery({
     queryKey: ['admin', 'trust-queue'],
@@ -199,6 +201,7 @@ export function AdminMobileDrawer({
                         type="button"
                         key={item.id}
                         onClick={() => handleSelect(item.id)}
+                        aria-current={isSelected ? 'page' : undefined}
                         className={clsx(
                           'w-full flex items-center justify-between px-3 py-3 rounded-xl text-sm font-semibold border text-left min-h-11',
                           isSelected

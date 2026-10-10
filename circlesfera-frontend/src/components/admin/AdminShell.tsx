@@ -167,7 +167,8 @@ function AdminAccountMenu() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1.5 max-w-40 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all min-h-9"
+        className="flex items-center gap-1.5 max-w-40 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all min-h-11 min-w-11 justify-center"
+        aria-label={t('admin.account_menu', { name: admin.displayName })}
         aria-expanded={open}
         aria-haspopup="menu"
       >

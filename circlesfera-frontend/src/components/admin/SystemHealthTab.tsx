@@ -23,6 +23,7 @@ import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminPageHeader } from './AdminPageHeader';
 import { FilterDropdown, Pagination } from './AdminTable';
+import { adminToast } from './adminToast';
 
 function MetricCell({
   label,
@@ -103,6 +104,9 @@ export default function SystemHealthTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'webhooks'] });
       queryClient.invalidateQueries({ queryKey: ['systemHealth'] });
+    },
+    onError: () => {
+      adminToast(t('admin.health.replay_error'), 'error');
     },
   });
 
@@ -444,8 +448,12 @@ export default function SystemHealthTab() {
                             variant="secondary"
                             size="compact"
                             onClick={() => replayMutation.mutate(event.id)}
-                            isLoading={replayMutation.isPending}
-                            className="min-h-10 text-xs"
+                            isLoading={
+                              replayMutation.isPending &&
+                              replayMutation.variables === event.id
+                            }
+                            disabled={replayMutation.isPending}
+                            className="min-h-11 text-xs"
                           >
                             <RotateCcw size={14} className="mr-1.5 shrink-0" />
                             {t('admin.health.replay')}
@@ -457,7 +465,7 @@ export default function SystemHealthTab() {
                           onClick={() =>
                             setExpandedWebhookId(isExpanded ? null : event.id)
                           }
-                          className="min-h-10 min-w-10 text-white/50"
+                          className="min-h-11 min-w-11 text-white/50"
                           aria-label={
                             isExpanded
                               ? t('common.collapse')

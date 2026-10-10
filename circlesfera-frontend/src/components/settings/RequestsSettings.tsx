@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { followsApi } from '../../services';
@@ -24,12 +25,19 @@ export default function RequestsSettings() {
       refetch();
       queryClient.invalidateQueries({ queryKey: ['myProfile'] });
     },
+    onError: () => toast.error(t('settings.requests.accept_error')),
   });
 
   const rejectRequestMutation = useMutation({
     mutationFn: (username: string) => followsApi.rejectRequest(username),
     onSuccess: () => refetch(),
+    onError: () => toast.error(t('settings.requests.reject_error')),
   });
+
+  // One request is answered at a time: the row being answered shows it, and
+  // the others wait.
+  const answering =
+    acceptRequestMutation.isPending || rejectRequestMutation.isPending;
 
   return (
     <div className="max-w-xl space-y-5">
@@ -74,7 +82,11 @@ export default function RequestsSettings() {
                       user.username &&
                       acceptRequestMutation.mutate(user.username)
                     }
-                    isLoading={acceptRequestMutation.isPending}
+                    isLoading={
+                      acceptRequestMutation.isPending &&
+                      acceptRequestMutation.variables === user.username
+                    }
+                    disabled={answering}
                     variant="primary"
                     className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
                   >
@@ -85,7 +97,11 @@ export default function RequestsSettings() {
                       user.username &&
                       rejectRequestMutation.mutate(user.username)
                     }
-                    isLoading={rejectRequestMutation.isPending}
+                    isLoading={
+                      rejectRequestMutation.isPending &&
+                      rejectRequestMutation.variables === user.username
+                    }
+                    disabled={answering}
                     variant="outline"
                     className="flex-1 sm:flex-none min-h-11 text-sm font-semibold px-4"
                   >
