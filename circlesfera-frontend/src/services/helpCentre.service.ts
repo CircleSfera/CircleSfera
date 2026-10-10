@@ -31,4 +31,11 @@ export const helpCentreApi = {
     apiClient.get<HelpArticle>(`/help/articles/${encodeURIComponent(slug)}`, {
       params: { locale },
     }),
+
+  // Whether an article helped. Nothing about who answers is sent.
+  feedback: (slug: string, useful: boolean) =>
+    apiClient.post<void>(
+      `/help/articles/${encodeURIComponent(slug)}/feedback`,
+      { useful },
+    ),
 };
