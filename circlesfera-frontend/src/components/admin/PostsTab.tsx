@@ -139,8 +139,9 @@ export default function PostsTab({ onToast }: Props) {
       />
 
       {/* KPI Dashboard */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-2">
         <AdminKpiWidget
+          compact
           title={t('admin.posts.kpi_total')}
           value={formatNumber(statsData?.posts, i18n.language) || '0'}
           icon={<ImageIcon size={16} />}
@@ -150,6 +151,7 @@ export default function PostsTab({ onToast }: Props) {
           }}
         />
         <AdminKpiWidget
+          compact
           title={t('admin.posts.kpi_new_week')}
           value={
             formatNumber(statsData?.newPostsThisWeek, i18n.language) || '0'
@@ -158,6 +160,7 @@ export default function PostsTab({ onToast }: Props) {
           iconColorClass="text-green-400 bg-green-400/10"
         />
         <AdminKpiWidget
+          compact
           title={t('admin.posts.kpi_reported_pct')}
           value={`${statsData?.reportedContentPercent || 0}%`}
           icon={<Flag size={16} />}
