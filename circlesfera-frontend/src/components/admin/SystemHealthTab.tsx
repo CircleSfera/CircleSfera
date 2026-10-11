@@ -228,7 +228,12 @@ export default function SystemHealthTab() {
           <div className="grid grid-cols-2 divide-x divide-white/5">
             <MetricCell
               label={t('admin.health.status_label')}
-              value={health.database.status}
+              value={t(
+                `admin.health.database_status.${health.database.status}`,
+                {
+                  defaultValue: health.database.status,
+                },
+              )}
               tone={isDbHealthy ? 'success' : 'danger'}
             />
             <MetricCell
@@ -432,7 +437,9 @@ export default function SystemHealthTab() {
                                   : 'bg-green-500/20 text-green-500'
                             }`}
                           >
-                            {event.status}
+                            {t(`admin.health.event_status.${event.status}`, {
+                              defaultValue: event.status,
+                            })}
                           </span>
                         </div>
                         <p className="text-xs font-mono text-white/40 truncate mt-0.5">
@@ -504,7 +511,9 @@ export default function SystemHealthTab() {
                               {t('admin.health.status')}
                             </span>
                             <p className="text-white font-mono mt-0.5">
-                              {event.status}
+                              {t(`admin.health.event_status.${event.status}`, {
+                                defaultValue: event.status,
+                              })}
                             </p>
                           </div>
                         </div>

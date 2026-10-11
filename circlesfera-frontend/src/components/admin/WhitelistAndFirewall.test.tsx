@@ -100,7 +100,7 @@ describe('WhitelistTab', () => {
     expect(
       within(rowOf('Person p1')).getByText('p1@example.com'),
     ).toBeInTheDocument();
-    expect(within(rowOf('Person p1')).getByText('VALID')).toBeInTheDocument();
+    expect(within(rowOf('Person p1')).getByText('Valid')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByText('Person p2');
@@ -115,7 +115,7 @@ describe('WhitelistTab', () => {
     );
     const row = await waitFor(() => rowOf('No name'));
     expect(within(row).getByText('found@example.com')).toBeInTheDocument();
-    expect(within(row).getByText('REGISTERED')).toBeInTheDocument();
+    expect(within(row).getByText('Registered')).toBeInTheDocument();
   });
 
   it('adds a person by email, with the name when given', async () => {

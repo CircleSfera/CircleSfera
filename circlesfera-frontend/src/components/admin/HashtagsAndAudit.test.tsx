@@ -134,7 +134,7 @@ describe('AuditLogTab', () => {
     expect(await screen.findByText('Banned user')).toBeInTheDocument();
     expect(screen.getByText('something new')).toBeInTheDocument();
     expect(screen.getByText('@root')).toBeInTheDocument();
-    expect(screen.getByText('USER')).toBeInTheDocument();
+    expect(screen.getByText('Account')).toBeInTheDocument();
     expect(adminApi.getAuditLogs).toHaveBeenCalledWith(1, 15, {
       action: undefined,
       search: undefined,

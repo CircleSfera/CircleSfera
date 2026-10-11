@@ -405,14 +405,20 @@ describe('the pieces of a staff table', () => {
   });
 
   it.each([
-    ['BANNED', 'text-red-400'],
-    ['Resolved', 'text-green-400'],
-    ['valid', 'text-brand-blue'],
-    ['DISMISSED', 'text-white/45'],
-    ['something else', 'text-yellow-400'],
-  ])('paints the status "%s"', (status, tone) => {
+    ['BANNED', 'Banned', 'text-red-400'],
+    ['Resolved', 'Resolved', 'text-green-400'],
+    ['valid', 'Valid', 'text-brand-blue'],
+    ['DISMISSED', 'Dismissed', 'text-white/45'],
+    // A state with no text of its own is shown as stored.
+    ['something else', 'something else', 'text-yellow-400'],
+  ])('paints the status "%s" and says it in words', (status, words, tone) => {
     renderWithProviders(<StatusBadge status={status} />);
-    expect(screen.getByText(status).className).toContain(tone);
+    expect(screen.getByText(words).className).toContain(tone);
+  });
+
+  it('says the label it is given instead of the state', () => {
+    renderWithProviders(<StatusBadge status="ACTIVE" label="On sale" />);
+    expect(screen.getByText('On sale')).toBeInTheDocument();
   });
 
   describe('ActionButton', () => {

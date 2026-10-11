@@ -2301,7 +2301,18 @@
       "add": "Añadir",
       "delete": "Eliminar",
       "select_item_title": "Selecciona un elemento",
-      "select_item_description": "Elige un elemento de la lista para ver los detalles."
+      "select_item_description": "Elige un elemento de la lista para ver los detalles.",
+      "status": {
+        "pending": "Pendiente",
+        "valid": "Válido",
+        "resolved": "Resuelto",
+        "dismissed": "Descartado",
+        "active": "Activo",
+        "banned": "Baneado",
+        "registered": "Registrado",
+        "disabled": "Desactivado",
+        "suspended": "Suspendido"
+      }
     },
     "users": {
       "title": "Usuarios",
@@ -3009,7 +3020,40 @@
         "CREATE_AUDIO": "Creó audio",
         "UPDATE_AUDIO": "Actualizó audio",
         "DELETE_AUDIO": "Eliminó audio",
-        "MANUAL_OVERRIDE": "Override manual"
+        "MANUAL_OVERRIDE": "Override manual",
+        "ADMIN_LOGIN": "Inició sesión",
+        "ADMIN_LOGIN_FAILED": "Inicio de sesión fallido",
+        "ADMIN_LOGOUT": "Cerró sesión",
+        "ADMIN_MFA_ENABLED": "Activó el segundo factor",
+        "ADMIN_STEP_UP": "Confirmó su identidad",
+        "UPDATE_SETTINGS": "Cambió la configuración",
+        "BLOCK": "Bloqueó contenido",
+        "IGNORE": "Descartó un caso",
+        "STRIKE": "Puso un aviso"
+      },
+      "targets": {
+        "USER": "Cuenta",
+        "PROFILE": "Perfil",
+        "POST": "Publicación",
+        "COMMENT": "Comentario",
+        "STORY": "Historia",
+        "PROMOTION": "Promoción",
+        "PLATFORM_PLAN": "Plan",
+        "SYSTEM": "Sistema",
+        "STRIKE": "Aviso",
+        "RESTRICTION": "Restricción",
+        "ACCOUNT_BAN": "Baneo",
+        "POST_REMOVAL": "Retirada de publicación",
+        "BOT_LABEL": "Marca de bot",
+        "ADMIN": "Equipo",
+        "APPEAL": "Apelación",
+        "SUPPORT_TICKET": "Ticket",
+        "PROFILE_BAN": "Baneo de perfil",
+        "PROFILE_RESTRICTION": "Restricción de perfil",
+        "PROFILE_STRIKE": "Aviso a un perfil",
+        "PROFILE_SUSPENSION": "Suspensión de perfil",
+        "PROFILE_WARNING": "Advertencia a un perfil",
+        "ACCOUNT_BOT_LABEL": "Marca de bot"
       }
     },
     "stats": {
@@ -3124,7 +3168,12 @@
       "confirm_delete_title": "¿Eliminar historia?",
       "confirm_delete_message": "¿Estás seguro de que deseas eliminar esta historia permanentemente?",
       "confirm_delete": "Eliminar",
-      "moderation_all": "Todos los estados de moderación"
+      "moderation_all": "Todos los estados de moderación",
+      "moderation": {
+        "VISIBLE": "Visibles",
+        "FLAGGED": "Marcadas",
+        "HIDDEN": "Ocultas"
+      }
     },
     "comments": {
       "title": "Comentarios",
@@ -3522,7 +3571,7 @@
       "status_label": "Estado",
       "latency_label": "Latencia",
       "latency_ms": "ms",
-      "ai_queue_title": "Cola IA",
+      "ai_queue_title": "Cola de IA",
       "ai_queue_subtitle": "Moderación y vectores",
       "analytics_queue_title": "Cola de analítica",
       "analytics_queue_subtitle": "Métricas y tareas programadas",
@@ -3547,7 +3596,16 @@
       "external_id": "External ID",
       "status": "Estado",
       "processed_at": "Procesado",
-      "replay_error": "No se pudo reenviar el evento"
+      "replay_error": "No se pudo reenviar el evento",
+      "database_status": {
+        "ONLINE": "En línea",
+        "OFFLINE": "Caída"
+      },
+      "event_status": {
+        "PENDING": "Pendiente",
+        "PROCESSED": "Procesado",
+        "FAILED": "Fallido"
+      }
     },
     "user_preview": {
       "title": "Expediente de usuario",
@@ -3641,14 +3699,18 @@
         "registration_open": "Registro abierto",
         "require_invite_code": "Requiere código de invitación",
         "content_posting_enabled": "Publicación de contenido habilitada",
-        "live_streams_enabled": "Directos habilitados"
+        "live_streams_enabled": "Directos habilitados",
+        "turnstile_required": "Comprobación anti-bots obligatoria",
+        "email_verification_required": "Correo verificado obligatorio"
       },
       "descriptions": {
         "maintenance_mode": "Si está activo, la API de consumidores responde 503 salvo health, CSRF, webhooks y Admin Panel.",
         "registration_open": "Permite que nuevos usuarios creen cuentas.",
         "require_invite_code": "Las cuentas nuevas deben aportar un código de invitación válido.",
         "content_posting_enabled": "Permite crear publicaciones e historias.",
-        "live_streams_enabled": "Permite iniciar transmisiones en vivo."
+        "live_streams_enabled": "Permite iniciar transmisiones en vivo.",
+        "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
+        "email_verification_required": "Exige un correo verificado para publicar, seguir, escribir mensajes, dar me gusta, subir archivos y editar el perfil."
       }
     },
     "payouts": {
@@ -3715,7 +3777,17 @@
       "mfa_reset": "MFA reseteado",
       "mfa_error": "No se pudo resetear MFA",
       "unlocked": "Bloqueo quitado",
-      "unlock_error": "No se pudo quitar el bloqueo"
+      "unlock_error": "No se pudo quitar el bloqueo",
+      "role_names": {
+        "SUPER_ADMIN": "Administración total",
+        "PLATFORM_ADMIN": "Plataforma",
+        "MODERATION_ADMIN": "Moderación",
+        "CONTENT_ADMIN": "Contenido",
+        "SUPPORT_ADMIN": "Soporte",
+        "FINANCE_ADMIN": "Finanzas",
+        "SECURITY_ADMIN": "Seguridad",
+        "ANALYTICS_ADMIN": "Analítica"
+      }
     },
     "split": {
       "select_item": "Selecciona un elemento de la lista",

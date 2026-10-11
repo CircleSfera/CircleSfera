@@ -182,9 +182,18 @@ export default function StoriesTab({ onToast }: Props) {
           }}
           options={[
             { value: '', label: t('admin.stories.moderation_all') },
-            { value: 'VISIBLE', label: 'VISIBLE' },
-            { value: 'FLAGGED', label: 'FLAGGED' },
-            { value: 'HIDDEN', label: 'HIDDEN' },
+            {
+              value: 'VISIBLE',
+              label: t('admin.stories.moderation.VISIBLE'),
+            },
+            {
+              value: 'FLAGGED',
+              label: t('admin.stories.moderation.FLAGGED'),
+            },
+            {
+              value: 'HIDDEN',
+              label: t('admin.stories.moderation.HIDDEN'),
+            },
             { value: 'REMOVED', label: 'REMOVED' },
           ]}
         />

@@ -185,14 +185,14 @@ describe('UserVerificationTab', () => {
       'text-white/50',
     );
     expect(within(fresh).getByText('now')).toBeInTheDocument();
-    expect(within(fresh).getByText('PERSONAL')).toBeInTheDocument();
+    expect(within(fresh).getByText('Personal account')).toBeInTheDocument();
 
     const done = rowOf('@person_done');
     expect(within(done).getByText('Identity verified')).toHaveClass(
       'text-green-400',
     );
     expect(within(done).getByText('45m ago')).toBeInTheDocument();
-    expect(within(done).getByText('CREATOR')).toBeInTheDocument();
+    expect(within(done).getByText('Creator account')).toBeInTheDocument();
 
     const waiting = rowOf('@person_wait');
     expect(within(waiting).getByText('Verification in progress')).toHaveClass(

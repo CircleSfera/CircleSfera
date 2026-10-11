@@ -147,7 +147,7 @@ describe('UsersTab', () => {
     const first = await waitFor(() => rowOf('@person_1'));
     expect(within(first).getByText('1@example.com')).toBeInTheDocument();
     expect(within(first).getByText(/User · 3 posts/)).toBeInTheDocument();
-    expect(within(first).getByText('active')).toBeInTheDocument();
+    expect(within(first).getByText('Active')).toBeInTheDocument();
     // The ban is in the menu of the row, not a button of its own on it.
     expect(
       within(first).queryByRole('button', { name: 'Ban' }),
@@ -156,14 +156,14 @@ describe('UsersTab', () => {
     const second = rowOf('@person_2');
     expect(within(second).getByText(/Operator · 3 posts/)).toBeInTheDocument();
     expect(within(second).getByText('Test account')).toBeInTheDocument();
-    expect(within(second).getByText('banned')).toBeInTheDocument();
+    expect(within(second).getByText('Banned')).toBeInTheDocument();
     expect(
       within(second).queryByRole('button', { name: 'Unban' }),
     ).not.toBeInTheDocument();
 
     const third = rowOf('@person_3');
     expect(within(third).getByText(/Suspended until/)).toBeInTheDocument();
-    expect(within(third).getByText('banned')).toBeInTheDocument();
+    expect(within(third).getByText('Banned')).toBeInTheDocument();
 
     expect(rowOf('@user')).toBeTruthy();
   });

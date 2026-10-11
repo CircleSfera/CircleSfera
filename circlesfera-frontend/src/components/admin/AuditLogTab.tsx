@@ -94,6 +94,7 @@ export default function AuditLogTab() {
 
   const formatActionLabel = (action: string) =>
     t(`admin.audit.actions.${action}`, {
+      // An action with no text yet: its stored name, readable.
       defaultValue: action.replace(/_/g, ' ').toLowerCase(),
     });
 
@@ -192,7 +193,10 @@ export default function AuditLogTab() {
                     }
                     badge={
                       <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/5">
-                        {log.targetType}
+                        {t(
+                          `admin.audit.targets.${log.targetType.toUpperCase()}`,
+                          { defaultValue: log.targetType },
+                        )}
                       </span>
                     }
                     meta={

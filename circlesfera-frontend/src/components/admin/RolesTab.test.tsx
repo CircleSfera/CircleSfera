@@ -126,9 +126,9 @@ describe('RolesTab', () => {
     const row = await waitFor(() => rowOf('Operator a'));
     expect(within(row).getByText('a@circlesfera.test')).toBeInTheDocument();
     expect(within(row).getByText('Support, Finance')).toBeInTheDocument();
-    expect(within(row).getByText('active')).toBeInTheDocument();
+    expect(within(row).getByText('Active')).toBeInTheDocument();
     expect(
-      within(rowOf('Operator b')).getByText('disabled'),
+      within(rowOf('Operator b')).getByText('Disabled'),
     ).toBeInTheDocument();
   });
 

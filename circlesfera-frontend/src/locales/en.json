@@ -2301,7 +2301,18 @@
       "add": "Add",
       "delete": "Delete",
       "select_item_title": "Select an item",
-      "select_item_description": "Choose an item from the list to see details."
+      "select_item_description": "Choose an item from the list to see details.",
+      "status": {
+        "pending": "Pending",
+        "valid": "Valid",
+        "resolved": "Resolved",
+        "dismissed": "Dismissed",
+        "active": "Active",
+        "banned": "Banned",
+        "registered": "Registered",
+        "disabled": "Disabled",
+        "suspended": "Suspended"
+      }
     },
     "users": {
       "title": "Users",
@@ -3009,7 +3020,40 @@
         "CREATE_AUDIO": "Created audio",
         "UPDATE_AUDIO": "Updated audio",
         "DELETE_AUDIO": "Deleted audio",
-        "MANUAL_OVERRIDE": "Manual override"
+        "MANUAL_OVERRIDE": "Manual override",
+        "ADMIN_LOGIN": "Signed in",
+        "ADMIN_LOGIN_FAILED": "Failed sign-in",
+        "ADMIN_LOGOUT": "Signed out",
+        "ADMIN_MFA_ENABLED": "Turned on the second factor",
+        "ADMIN_STEP_UP": "Confirmed their identity",
+        "UPDATE_SETTINGS": "Changed the settings",
+        "BLOCK": "Blocked content",
+        "IGNORE": "Dismissed a case",
+        "STRIKE": "Issued a strike"
+      },
+      "targets": {
+        "USER": "Account",
+        "PROFILE": "Profile",
+        "POST": "Post",
+        "COMMENT": "Comment",
+        "STORY": "Story",
+        "PROMOTION": "Promotion",
+        "PLATFORM_PLAN": "Plan",
+        "SYSTEM": "System",
+        "STRIKE": "Strike",
+        "RESTRICTION": "Restriction",
+        "ACCOUNT_BAN": "Ban",
+        "POST_REMOVAL": "Post removal",
+        "BOT_LABEL": "Bot label",
+        "ADMIN": "Staff",
+        "APPEAL": "Appeal",
+        "SUPPORT_TICKET": "Ticket",
+        "PROFILE_BAN": "Profile ban",
+        "PROFILE_RESTRICTION": "Profile restriction",
+        "PROFILE_STRIKE": "Profile strike",
+        "PROFILE_SUSPENSION": "Profile suspension",
+        "PROFILE_WARNING": "Profile warning",
+        "ACCOUNT_BOT_LABEL": "Bot label"
       }
     },
     "stats": {
@@ -3124,7 +3168,12 @@
       "confirm_delete_title": "Delete this story?",
       "confirm_delete_message": "Are you sure you want to permanently delete this story?",
       "confirm_delete": "Delete",
-      "moderation_all": "All moderation states"
+      "moderation_all": "All moderation states",
+      "moderation": {
+        "VISIBLE": "Visible",
+        "FLAGGED": "Flagged",
+        "HIDDEN": "Hidden"
+      }
     },
     "comments": {
       "title": "Comments",
@@ -3547,7 +3596,16 @@
       "external_id": "External ID",
       "status": "Status",
       "processed_at": "Processed",
-      "replay_error": "The event could not be replayed"
+      "replay_error": "The event could not be replayed",
+      "database_status": {
+        "ONLINE": "Online",
+        "OFFLINE": "Down"
+      },
+      "event_status": {
+        "PENDING": "Pending",
+        "PROCESSED": "Processed",
+        "FAILED": "Failed"
+      }
     },
     "user_preview": {
       "title": "User record",
@@ -3641,14 +3699,18 @@
         "registration_open": "Registration open",
         "require_invite_code": "Require invite code",
         "content_posting_enabled": "Content posting enabled",
-        "live_streams_enabled": "Live streams enabled"
+        "live_streams_enabled": "Live streams enabled",
+        "turnstile_required": "Bot check required",
+        "email_verification_required": "Verified email required"
       },
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
         "registration_open": "Allow new users to create accounts.",
         "require_invite_code": "New accounts must provide a valid invite code.",
         "content_posting_enabled": "Allow creating posts and stories.",
-        "live_streams_enabled": "Allow starting live streams."
+        "live_streams_enabled": "Allow starting live streams.",
+        "turnstile_required": "Asks for the bot check when signing up and signing in.",
+        "email_verification_required": "Requires a verified email to post, follow, message, like, upload and edit the profile."
       }
     },
     "payouts": {
@@ -3715,7 +3777,17 @@
       "mfa_reset": "MFA reset",
       "mfa_error": "Could not reset MFA",
       "unlocked": "Lockout cleared",
-      "unlock_error": "Could not clear the lockout"
+      "unlock_error": "Could not clear the lockout",
+      "role_names": {
+        "SUPER_ADMIN": "Full administration",
+        "PLATFORM_ADMIN": "Platform",
+        "MODERATION_ADMIN": "Moderation",
+        "CONTENT_ADMIN": "Content",
+        "SUPPORT_ADMIN": "Support",
+        "FINANCE_ADMIN": "Finance",
+        "SECURITY_ADMIN": "Security",
+        "ANALYTICS_ADMIN": "Analytics"
+      }
     },
     "split": {
       "select_item": "Select an item from the list",

@@ -96,7 +96,7 @@ describe('SystemHealthTab', () => {
     renderWithProviders(<SystemHealthTab />);
 
     await screen.findByText('Database');
-    expect(figure('Database', 'Status')).toHaveTextContent('ONLINE');
+    expect(figure('Database', 'Status')).toHaveTextContent('Online');
     expect(figure('Database', 'Latency')).toHaveTextContent('12 ms');
 
     expect(figure('AI queue', 'Waiting')).toHaveTextContent('3');
@@ -128,7 +128,7 @@ describe('SystemHealthTab', () => {
 
     await screen.findByText('Database');
     const status = within(figure('Database', 'Status')).getByText(
-      database.status,
+      database.status === 'ONLINE' ? 'Online' : 'Down',
     );
     expect(status).toHaveClass(healthy ? 'text-emerald-400' : 'text-red-400');
   });
@@ -246,11 +246,11 @@ describe('SystemHealthTab', () => {
       within(row('c')).queryByRole('button', { name: 'Retry' }),
     ).not.toBeInTheDocument();
 
-    expect(within(row('a')).getByText('FAILED')).toHaveClass('text-red-400');
-    expect(within(row('b')).getByText('PENDING')).toHaveClass(
+    expect(within(row('a')).getByText('Failed')).toHaveClass('text-red-400');
+    expect(within(row('b')).getByText('Pending')).toHaveClass(
       'text-yellow-500',
     );
-    expect(within(row('c')).getByText('PROCESSED')).toHaveClass(
+    expect(within(row('c')).getByText('Processed')).toHaveClass(
       'text-green-500',
     );
   });

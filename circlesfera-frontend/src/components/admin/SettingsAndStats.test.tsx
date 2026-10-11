@@ -319,7 +319,9 @@ describe('StatsTab', () => {
     expect(within(first).getByText('70')).toBeInTheDocument();
     expect(within(first).getByText('20')).toBeInTheDocument();
     const second = screen.getByText('@ben').closest('.relative') as HTMLElement;
-    expect(within(second).getByText('#2 · 11 interactions')).toBeInTheDocument();
+    expect(
+      within(second).getByText('#2 · 11 interactions'),
+    ).toBeInTheDocument();
     expect(screen.queryByText('No data')).not.toBeInTheDocument();
   });
 

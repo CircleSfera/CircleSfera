@@ -267,11 +267,10 @@ export default function UserVerificationTab({
                           />
                         </span>
                       }
-                      subtitle={
-                        <span className="uppercase tracking-wide">
-                          {user.accountType}
-                        </span>
-                      }
+                      subtitle={t(
+                        `admin.verification.account_${(user.accountType || 'PERSONAL').toLowerCase()}`,
+                        { defaultValue: user.accountType },
+                      )}
                       badge={
                         <span
                           className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${

@@ -402,7 +402,13 @@ export default function RolesTab({ onToast }: Props) {
                     badge={<StatusBadge status={op.status.toLowerCase()} />}
                     meta={
                       <span className="text-[11px] text-white/40 truncate">
-                        {op.roles.map((r) => r.name).join(', ')}
+                        {op.roles
+                          .map((r) =>
+                            t(`admin.operators.role_names.${r.name}`, {
+                              defaultValue: r.name,
+                            }),
+                          )
+                          .join(', ')}
                       </span>
                     }
                     avatar={
@@ -522,6 +528,8 @@ function RoleChecklist({
   selected: string[];
   onChange: (roleIds: string[]) => void;
 }) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex flex-wrap gap-2">
       {catalog.map((role) => {
@@ -543,7 +551,9 @@ function RoleChecklist({
                 : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
             }`}
           >
-            {role.name}
+            {t(`admin.operators.role_names.${role.name}`, {
+              defaultValue: role.name,
+            })}
           </button>
         );
       })}
