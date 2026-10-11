@@ -586,7 +586,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
         hasSelection={!!selectedTicketId}
         onBack={() => setSelectedTicketId(null)}
         onClearSelection={() => setSelectedTicketId(null)}
-        listTitle={t('admin.support.list_title')}
+        listAriaLabel={t('admin.support.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">

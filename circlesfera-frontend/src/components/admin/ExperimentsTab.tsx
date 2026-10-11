@@ -462,7 +462,7 @@ export default function ExperimentsTab() {
             hasSelection={isCreatingFlag || !!editingFlag}
             onBack={() => setSelectedFlagId(null)}
             onClearSelection={() => setSelectedFlagId(null)}
-            listTitle={t('admin.experiments.flags_title')}
+            listAriaLabel={t('admin.experiments.flags_title')}
             list={
               <div className="flex flex-col h-full min-h-0">
                 <div className="flex-1 overflow-y-auto space-y-2 pb-2">
@@ -694,7 +694,7 @@ export default function ExperimentsTab() {
             hasSelection={isAssigning}
             onBack={() => setSelectedExperimentId(null)}
             onClearSelection={() => setSelectedExperimentId(null)}
-            listTitle={t('admin.experiments.ab_title')}
+            listAriaLabel={t('admin.experiments.ab_title')}
             list={
               <div className="flex flex-col h-full min-h-0">
                 <div className="flex-1 overflow-y-auto space-y-2 pb-2">

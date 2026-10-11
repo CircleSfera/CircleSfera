@@ -3797,7 +3797,6 @@
       }
     },
     "split": {
-      "select_item": "Selecciona un elemento de la lista",
       "list_region": "Lista",
       "detail_region": "Detalle"
     },

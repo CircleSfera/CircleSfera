@@ -278,7 +278,7 @@ export default function ModerationTab({ onToast }: Props) {
         hasSelection={!!selectedItemKey}
         onBack={() => setSelectedItemKey(null)}
         onClearSelection={() => setSelectedItemKey(null)}
-        listTitle={t('admin.moderation.list_title')}
+        listAriaLabel={t('admin.moderation.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             {items.length > 0 && (

@@ -357,7 +357,7 @@ export default function ReportsTab({ onToast }: Props) {
         hasSelection={!!selectedReportId}
         onBack={() => setSelectedReportId(null)}
         onClearSelection={() => setSelectedReportId(null)}
-        listTitle={t('admin.reports.list_title')}
+        listAriaLabel={t('admin.reports.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             {reports.length > 0 && (

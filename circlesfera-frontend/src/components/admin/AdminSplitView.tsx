@@ -2,8 +2,13 @@ import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
-import { AdminEmptyState } from './AdminEmptyState';
 import { useAdminEscapeClear } from './useAdminEscapeClear';
+
+// The important marks win over the unlayered rules of the glass panel.
+const UNBOXED_ON_PHONE =
+  'max-lg:bg-transparent! max-lg:border-0! max-lg:shadow-none! max-lg:backdrop-filter-none! max-lg:rounded-none max-lg:overflow-visible';
+const UNBOXED_ON_DESKTOP =
+  'lg:bg-transparent! lg:border-0! lg:shadow-none! lg:backdrop-filter-none! lg:rounded-none lg:overflow-visible';
 
 interface AdminSplitViewProps {
   hasSelection: boolean;
@@ -12,16 +17,19 @@ interface AdminSplitViewProps {
   onClearSelection?: () => void;
   list: ReactNode;
   detail: ReactNode;
+  // A heading over the list on desktop. Not the title of the page again:
+  // a list that has nothing more to say names itself with listAriaLabel.
   listTitle?: string;
   listAriaLabel?: string;
   detailAriaLabel?: string;
-  // Shown on desktop when nothing is selected
+  // Something to show beside the list on desktop while nothing is selected.
+  // Without it the list takes the whole width until a row is chosen.
   emptyDetail?: ReactNode;
   className?: string;
 }
 
-// Master-detail layout: one pane at a time on mobile, two columns on lg+.
-// Flush panes — subtle dividers, no heavy nested cards.
+// Master-detail layout. On a phone one pane at a time. On lg+ the list uses
+// the width until a row is chosen, then the record opens beside it.
 export function AdminSplitView({
   hasSelection,
   onBack,
@@ -37,33 +45,49 @@ export function AdminSplitView({
   const { t } = useTranslation();
   const clear = onClearSelection ?? onBack;
   useAdminEscapeClear(!!hasSelection && !!clear, () => clear?.());
+  // Two columns on desktop: a record is open, or the caller fills the side.
+  const twoPanes = hasSelection || emptyDetail !== undefined;
 
   return (
     <div
-      // On a phone the list is a stack of cards of its own: the pane around
-      // them is not drawn, so there is no card inside a card.
-      className={`flex flex-col lg:flex-row min-h-0 lg:min-h-[18rem] lg:h-[calc(100vh-13rem)] glass-panel rounded-xl overflow-hidden ${
+      // The list alone is a stack of cards of its own: the pane around them
+      // is not drawn, so there is no card inside a card.
+      className={`flex flex-col lg:flex-row min-h-0 glass-panel rounded-xl overflow-hidden ${
+        twoPanes ? 'lg:min-h-[18rem] lg:h-[calc(100vh-13rem)]' : ''
+      } ${
         hasSelection
           ? ''
-          : 'max-lg:bg-transparent! max-lg:border-0! max-lg:shadow-none! max-lg:backdrop-filter-none! max-lg:rounded-none max-lg:overflow-visible'
+          : `${UNBOXED_ON_PHONE} ${twoPanes ? '' : UNBOXED_ON_DESKTOP}`
       } ${className || ''}`}
     >
       <section
         aria-label={listAriaLabel || listTitle || t('admin.split.list_region')}
         className={`
           flex flex-col min-h-0 min-w-0
-          lg:w-[min(100%,340px)] xl:w-[360px] lg:shrink-0 lg:border-r lg:border-white/5 lg:overflow-hidden
+          ${
+            twoPanes
+              ? 'lg:w-[min(100%,340px)] xl:w-[360px] lg:shrink-0 lg:border-r lg:border-white/5 lg:overflow-hidden'
+              : 'lg:flex-1'
+          }
           ${hasSelection ? 'hidden lg:flex' : 'flex'}
         `}
       >
         {listTitle && (
-          <div className="px-3 py-2.5 border-b border-white/5 shrink-0 hidden lg:block">
+          <div
+            className={`shrink-0 hidden lg:block ${
+              twoPanes ? 'px-3 py-2.5 border-b border-white/5' : 'px-1 pb-2'
+            }`}
+          >
             <h3 className="text-[11px] font-semibold text-white/45 uppercase tracking-wide">
               {listTitle}
             </h3>
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar lg:p-3">
+        <div
+          className={`flex-1 min-h-0 ${
+            twoPanes ? 'overflow-y-auto custom-scrollbar lg:p-3' : ''
+          }`}
+        >
           {list}
         </div>
       </section>
@@ -73,7 +97,7 @@ export function AdminSplitView({
         aria-live="polite"
         className={`
           flex flex-col min-h-0 min-w-0 flex-1 lg:overflow-hidden
-          ${hasSelection ? 'flex' : 'hidden lg:flex'}
+          ${hasSelection ? 'flex' : twoPanes ? 'hidden lg:flex' : 'hidden'}
         `}
       >
         {hasSelection && onBack && (
@@ -94,15 +118,7 @@ export function AdminSplitView({
             hasSelection ? 'flex-1' : 'flex-1 flex items-start justify-start'
           }`}
         >
-          {hasSelection
-            ? detail
-            : (emptyDetail ?? (
-                <AdminEmptyState
-                  title={t('admin.split.select_item')}
-                  compact
-                  className="py-4 px-2 items-start text-left mx-0 max-w-none"
-                />
-              ))}
+          {hasSelection ? detail : emptyDetail}
         </div>
       </section>
     </div>

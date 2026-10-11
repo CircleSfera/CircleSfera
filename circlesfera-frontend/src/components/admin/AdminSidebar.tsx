@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
@@ -16,11 +17,37 @@ interface Props {
   onTabChange: (tab: AdminTab) => void;
 }
 
+// Which groups the person left open, kept on this device only.
+const OPEN_GROUPS_KEY = 'cs.staff.nav.open-groups';
+
+function readOpenGroups(): Record<string, boolean> {
+  try {
+    const stored = window.localStorage.getItem(OPEN_GROUPS_KEY);
+    return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export default function AdminSidebar({ activeTab, onTabChange }: Props) {
   const { t } = useTranslation();
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   // The sections of the staff site this is: Admin Panel or Backoffice.
   const navGroups = navGroupsFor(currentStaffSite());
+  // With several groups the list is longer than the screen: a group is
+  // folded until it is opened, and the group of the open section is always
+  // shown. A site with one group shows it whole.
+  const foldable = navGroups.length > 1;
+  const [openGroups, setOpenGroups] = useState(readOpenGroups);
+  const toggleGroup = (labelKey: string, open: boolean) => {
+    const next = { ...openGroups, [labelKey]: open };
+    setOpenGroups(next);
+    try {
+      window.localStorage.setItem(OPEN_GROUPS_KEY, JSON.stringify(next));
+    } catch {
+      // Kept for this visit only.
+    }
+  };
 
   const { data: trustQueue } = useQuery({
     queryKey: ['admin', 'trust-queue'],
@@ -56,7 +83,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
 
   return (
     <aside className="hidden lg:flex w-56 xl:w-64 flex-col h-[calc(100vh-5rem)] sticky top-4 overflow-hidden z-20 glass-panel rounded-xl p-3">
-      <div className="flex-1 overflow-y-auto space-y-4 pr-0.5 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto space-y-2 pr-0.5 custom-scrollbar">
         {navGroups.map((group) => {
           const visibleItems = group.items.filter((item) =>
             canOpenTab(hasPermission, item.id),
@@ -64,16 +91,61 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
 
           if (visibleItems.length === 0) return null;
 
+          const holdsOpenSection = visibleItems.some(
+            (item) => item.id === activeTab,
+          );
+          const isOpen =
+            !foldable ||
+            holdsOpenSection ||
+            openGroups[group.labelKey] === true;
+          // What waits inside a folded group is said on its heading.
+          const waiting = visibleItems.reduce(
+            (sum, item) => sum + (Number(getItemBadge(item.id)) || 0),
+            0,
+          );
+          const listId = `staff-nav-${group.labelKey.replace(/\W+/g, '-')}`;
+          const heading = (
+            <>
+              <group.icon size={11} className="text-brand-primary opacity-80" />
+              <span>{t(group.labelKey)}</span>
+            </>
+          );
+
           return (
             <div key={group.labelKey} className="space-y-1">
-              <h3 className="px-2.5 text-[10px] font-semibold uppercase tracking-wider text-white/40 flex items-center gap-1.5 mb-1.5">
-                <group.icon
-                  size={11}
-                  className="text-brand-primary opacity-80"
-                />
-                <span>{t(group.labelKey)}</span>
-              </h3>
-              <div className="space-y-1">
+              {foldable ? (
+                <h3>
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    aria-controls={listId}
+                    // The group of the open section cannot be folded away.
+                    disabled={holdsOpenSection}
+                    onClick={() => toggleGroup(group.labelKey, !isOpen)}
+                    className="w-full min-h-11 px-2.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-white/40 flex items-center gap-1.5 text-left enabled:hover:bg-white/5 enabled:hover:text-white/70"
+                  >
+                    {heading}
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {!isOpen && waiting > 0 && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                          {waiting}
+                        </span>
+                      )}
+                      {!holdsOpenSection &&
+                        (isOpen ? (
+                          <ChevronDown size={12} aria-hidden />
+                        ) : (
+                          <ChevronRight size={12} aria-hidden />
+                        ))}
+                    </span>
+                  </button>
+                </h3>
+              ) : (
+                <h3 className="px-2.5 text-[10px] font-semibold uppercase tracking-wider text-white/40 flex items-center gap-1.5 mb-1.5">
+                  {heading}
+                </h3>
+              )}
+              <div id={listId} className="space-y-0.5" hidden={!isOpen}>
                 {visibleItems.map((item) => {
                   const isSelected = activeTab === item.id;
                   const ItemIcon = item.icon;
