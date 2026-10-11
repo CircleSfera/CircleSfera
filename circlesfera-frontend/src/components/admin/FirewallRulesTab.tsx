@@ -12,6 +12,7 @@ import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
@@ -19,6 +20,8 @@ import { ActionButton, Pagination } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
+  // The choice between the views of the section, shown in this view's bar.
+  views?: React.ReactNode;
 }
 
 function ActionBadge({ action }: { action: string }) {
@@ -38,7 +41,7 @@ function ActionBadge({ action }: { action: string }) {
   );
 }
 
-export default function FirewallRulesTab({ onToast }: Props) {
+export default function FirewallRulesTab({ onToast, views }: Props) {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -121,36 +124,38 @@ export default function FirewallRulesTab({ onToast }: Props) {
   };
 
   return (
-    <>
+    <div className="space-y-2.5">
+      <AdminFilterBar>
+        {views}
+        <input
+          type="text"
+          placeholder={t('admin.shared.search')}
+          aria-label={t('admin.firewall.search_rules')}
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+          className="flex-1 min-w-0 min-h-11 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
+        />
+        <Button
+          onClick={openCreate}
+          aria-label={t('admin.shared.add')}
+          variant="primary"
+          className="gap-2 shrink-0 px-4 min-h-11"
+        >
+          <Plus className="w-4 h-4" />
+          <span>{t('admin.shared.add')}</span>
+        </Button>
+      </AdminFilterBar>
+
       <AdminSplitView
         hasSelection={hasSelection}
         onBack={clearSelection}
         onClearSelection={clearSelection}
+        listAriaLabel={t('admin.firewall.tab_rules')}
         list={
           <div className="flex flex-col h-full">
-            <div className="flex items-center gap-3 p-4 border-b border-white/5">
-              <input
-                type="text"
-                placeholder={t('admin.shared.search')}
-                aria-label={t('admin.firewall.search_rules')}
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
-                className="flex-1 min-w-0 min-h-11 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
-              />
-              <Button
-                onClick={openCreate}
-                aria-label={t('admin.shared.add')}
-                variant="primary"
-                className="gap-2 shrink-0 px-4 min-h-11"
-              >
-                <Plus className="w-4 h-4" />
-                <span>{t('admin.shared.add')}</span>
-              </Button>
-            </div>
-
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
                 <AdminListSkeleton />
@@ -404,6 +409,6 @@ export default function FirewallRulesTab({ onToast }: Props) {
         isDestructive
         isLoading={deleteMutation.isPending}
       />
-    </>
+    </div>
   );
 }

@@ -244,10 +244,12 @@ export default function StatsTab() {
             </h3>
           </div>
           {topUsers && topUsers.length > 0 ? (
-            <div className="space-y-2">
+            // Lines of the one panel, not cards inside it.
+            <div className="divide-y divide-white/5">
               {topUsers.map((user, i) => (
                 <AdminListRow
                   key={user.id}
+                  className="border-0 bg-transparent rounded-none px-0"
                   title={`@${user.username}`}
                   subtitle={t('admin.stats.rank_engagement', {
                     rank: i + 1,
@@ -271,11 +273,6 @@ export default function StatsTab() {
                       alt={user.username}
                       size="sm"
                     />
-                  }
-                  badge={
-                    <span className="text-brand-primary font-semibold text-sm">
-                      {user.engagement}
-                    </span>
                   }
                 />
               ))}
@@ -319,7 +316,11 @@ export default function StatsTab() {
                       </span>
                     </p>
                     <p className="text-white/30 text-xs truncate">
-                      {log.targetType} · {log.targetId.slice(0, 8)}...
+                      {t(
+                        `admin.audit.targets.${log.targetType.toUpperCase()}`,
+                        { defaultValue: log.targetType },
+                      )}{' '}
+                      · {log.targetId.slice(0, 8)}
                     </p>
                   </div>
                 </div>

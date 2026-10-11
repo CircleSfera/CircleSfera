@@ -355,14 +355,14 @@ describe('StatsTab', () => {
     await screen.findByText('Recent staff activity');
     const banned = screen.getByText('Banned user').closest('.flex-col');
     expect(banned).toHaveTextContent('Ana Banned user');
-    expect(banned).toHaveTextContent('user · 01234567...');
+    expect(banned).toHaveTextContent('Account · 01234567');
     expect(screen.queryByText('BAN_USER')).not.toBeInTheDocument();
 
     const other = screen.getByText('something new').closest('.flex-col');
     // Staff are listed by name or email: neither is a handle.
     expect(other).toHaveTextContent('ben@staff.test something new');
     expect(other).not.toHaveTextContent('@ben@staff.test');
-    expect(other).toHaveTextContent('post · abc...');
+    expect(other).toHaveTextContent('Post · abc');
   });
 
   it('names the staff actions in Spanish too', async () => {

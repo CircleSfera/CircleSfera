@@ -22,17 +22,37 @@ vi.mock('react-hot-toast', () => ({
   default: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }),
 }));
 vi.mock('./FirewallRulesTab', () => ({
-  default: ({ onToast }: { onToast: (m: string, t: string) => void }) => (
-    <button type="button" onClick={() => onToast('from rules', 'success')}>
-      rules view
-    </button>
+  default: ({
+    onToast,
+    views,
+  }: {
+    onToast: (m: string, t: string) => void;
+    views: React.ReactNode;
+  }) => (
+    <>
+      {/* The section hands each view its switch, to show in its own bar. */}
+      {views}
+      <button type="button" onClick={() => onToast('from rules', 'success')}>
+        rules view
+      </button>
+    </>
   ),
 }));
 vi.mock('./FirewallSignaturesTab', () => ({
-  default: ({ onToast }: { onToast: (m: string, t: string) => void }) => (
-    <button type="button" onClick={() => onToast('from signatures', 'error')}>
-      signatures view
-    </button>
+  default: ({
+    onToast,
+    views,
+  }: {
+    onToast: (m: string, t: string) => void;
+    views: React.ReactNode;
+  }) => (
+    <>
+      {/* The section hands each view its switch, to show in its own bar. */}
+      {views}
+      <button type="button" onClick={() => onToast('from signatures', 'error')}>
+        signatures view
+      </button>
+    </>
   ),
 }));
 
@@ -340,23 +360,23 @@ describe('FirewallTab', () => {
     const onToast = vi.fn();
     renderWithProviders(<FirewallTab onToast={onToast} />);
 
-    const rules = screen.getByRole('button', { name: en('tab_rules') });
-    const signatures = screen.getByRole('button', {
-      name: en('tab_signatures'),
-    });
+    // The switch sits in the bar of each view, so it is read again.
+    const rules = () => screen.getByRole('button', { name: en('tab_rules') });
+    const signatures = () =>
+      screen.getByRole('button', { name: en('tab_signatures') });
     expect(screen.getByText('rules view')).toBeInTheDocument();
-    expect(rules).toHaveAttribute('aria-pressed', 'true');
-    expect(signatures).toHaveAttribute('aria-pressed', 'false');
+    expect(rules()).toHaveAttribute('aria-pressed', 'true');
+    expect(signatures()).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByText('rules view'));
     expect(onToast).toHaveBeenLastCalledWith('from rules', 'success');
 
-    fireEvent.click(signatures);
+    fireEvent.click(signatures());
     expect(screen.queryByText('rules view')).not.toBeInTheDocument();
-    expect(signatures).toHaveAttribute('aria-pressed', 'true');
+    expect(signatures()).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByText('signatures view'));
     expect(onToast).toHaveBeenLastCalledWith('from signatures', 'error');
 
-    fireEvent.click(rules);
+    fireEvent.click(rules());
     expect(screen.getByText('rules view')).toBeInTheDocument();
   });
 });
