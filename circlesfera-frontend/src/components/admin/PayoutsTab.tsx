@@ -13,7 +13,11 @@ import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminListRow } from './AdminList';
+import {
+  ADMIN_PAGE_LIST_STATE,
+  ADMIN_PAGE_ROW,
+  AdminListRow,
+} from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
@@ -80,6 +84,8 @@ export default function PayoutsTab() {
     setSearchQuery(val);
   };
 
+  const hasRows = !isLoading && !!data?.data.length;
+
   return (
     <div className="space-y-2.5">
       <AdminPageHeader
@@ -138,7 +144,8 @@ export default function PayoutsTab() {
         />
       </AdminFilterBar>
 
-      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+      {/* Each row is a card of its own; a state with no rows gets one card. */}
+      <div className={hasRows ? undefined : ADMIN_PAGE_LIST_STATE}>
         {isLoading ? (
           <AdminListSkeleton rows={10} />
         ) : data?.data.length === 0 ? (
@@ -148,7 +155,7 @@ export default function PayoutsTab() {
             description={t('admin.payouts.empty_description')}
           />
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="space-y-3">
             {data?.data.map((payout) => {
               const StatusIcon = STATUS_ICONS[payout.status] || Clock;
               const statusColor =
@@ -156,6 +163,7 @@ export default function PayoutsTab() {
 
               return (
                 <AdminListRow
+                  className={ADMIN_PAGE_ROW}
                   key={payout.id}
                   title={payout.user.profile?.fullName || payout.user.email}
                   subtitle={`@${payout.user.profile?.username || 'user'}`}

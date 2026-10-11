@@ -7,7 +7,11 @@ import { formatDate } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminListRow } from './AdminList';
+import {
+  ADMIN_PAGE_LIST_STATE,
+  ADMIN_PAGE_ROW,
+  AdminListRow,
+} from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -52,6 +56,8 @@ export default function DisputesTab() {
 
   const now = Date.now();
 
+  const hasRows = !isLoading && !isError && !!data?.data.length;
+
   return (
     <div className="space-y-2.5">
       <AdminPageHeader
@@ -74,7 +80,8 @@ export default function DisputesTab() {
         />
       </AdminFilterBar>
 
-      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+      {/* Each row is a card of its own; a state with no rows gets one card. */}
+      <div className={hasRows ? undefined : ADMIN_PAGE_LIST_STATE}>
         {isLoading ? (
           <AdminListSkeleton rows={6} />
         ) : isError || !data ? (
@@ -93,13 +100,14 @@ export default function DisputesTab() {
             description={t('admin.disputes.empty_description')}
           />
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="space-y-3">
             {data.data.map((dispute) => {
               const left = daysLeft(dispute, now);
               const urgent = left !== null && left <= 3;
 
               return (
                 <AdminListRow
+                  className={ADMIN_PAGE_ROW}
                   key={dispute.id}
                   title={formatCents(
                     dispute.amountCents,

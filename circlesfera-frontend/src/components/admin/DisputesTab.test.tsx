@@ -70,6 +70,20 @@ describe('DisputesTab', () => {
     expect(screen.getByText(/2 days left/)).toBeInTheDocument();
   });
 
+  it('gives each dispute a card of its own, not a row inside one card', async () => {
+    vi.mocked(adminApi.getDisputes).mockResolvedValue(
+      list([dispute(), dispute({ id: 'd-2' })]) as never,
+    );
+    renderWithProviders(<DisputesTab />);
+
+    const amounts = await screen.findAllByText(/19[.,]99/);
+    expect(amounts).toHaveLength(2);
+    const rows = amounts.map((one) => one.closest('.rounded-xl'));
+    expect(rows[0]).not.toBe(rows[1]);
+    // No card around the two cards.
+    expect(rows[0]?.parentElement?.closest('.rounded-xl')).toBeNull();
+  });
+
   it('links an open dispute to the provider to answer it', async () => {
     vi.mocked(adminApi.getDisputes).mockResolvedValue(
       list([dispute()]) as never,

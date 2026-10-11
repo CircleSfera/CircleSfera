@@ -1,3 +1,6 @@
+import { clsx } from 'clsx';
+import { useInFilterBar } from './AdminFilterBar';
+
 interface Option {
   value: string;
   label: string;
@@ -10,8 +13,15 @@ interface Props {
 }
 
 export function AdminSegmentedControl({ options, value, onChange }: Props) {
+  const inFilterBar = useInFilterBar();
+
   return (
-    <div className="flex glass-panel p-0.5 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
+    <div
+      className={clsx(
+        'flex rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar',
+        !inFilterBar && 'glass-panel p-0.5',
+      )}
+    >
       {options.map((opt) => (
         <button
           key={opt.value}
