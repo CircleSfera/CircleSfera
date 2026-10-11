@@ -212,20 +212,19 @@ interface PaginationProps {
 export function Pagination({ meta, onPageChange }: PaginationProps) {
   const { t } = useTranslation();
 
-  if (!meta) return null;
+  // With nothing to count, the empty state of the list already says so.
+  if (!meta || meta.total === 0) return null;
 
   const showPager = meta.totalPages > 1;
 
   return (
-    <div className="px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
+    <div className="mt-2 px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
       <p className="text-xs text-white/40">
-        {meta.total === 0
-          ? t('admin.table.results_count', { count: 0 })
-          : t('admin.table.pagination_from_to', {
-              from: (meta.page - 1) * meta.limit + 1,
-              to: Math.min(meta.page * meta.limit, meta.total),
-              total: meta.total,
-            })}
+        {t('admin.table.pagination_from_to', {
+          from: (meta.page - 1) * meta.limit + 1,
+          to: Math.min(meta.page * meta.limit, meta.total),
+          total: meta.total,
+        })}
       </p>
       {showPager && (
         <div className="flex items-center gap-2 ml-auto">

@@ -283,7 +283,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
               )}
             </div>
             {meta && meta.totalPages > 1 && (
-              <div className="shrink-0 pt-2 border-t border-white/5">
+              <div className="shrink-0">
                 <Pagination meta={meta} onPageChange={setPage} />
               </div>
             )}

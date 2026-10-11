@@ -5,7 +5,6 @@ import {
   ExternalLink,
   Ghost,
   Megaphone,
-  Target,
   TrendingUp,
   XCircle,
 } from 'lucide-react';
@@ -177,15 +176,6 @@ export default function PromotionsTab({ onToast }: Props) {
         })}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="p-3 border-b border-white/5 shrink-0 flex justify-between items-center lg:hidden">
-              <h3 className="font-semibold text-white text-sm flex items-center gap-2">
-                <Target size={16} className="text-brand-primary" />
-                {t('admin.promotions.list_title', {
-                  count: data?.meta.total || 0,
-                })}
-              </h3>
-            </div>
-
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
@@ -256,7 +246,7 @@ export default function PromotionsTab({ onToast }: Props) {
               )}
             </div>
 
-            <div className="shrink-0 pt-2 border-t border-white/5">
+            <div className="shrink-0">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>

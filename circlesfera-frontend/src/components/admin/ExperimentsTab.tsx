@@ -777,7 +777,7 @@ export default function ExperimentsTab() {
                   )}
                 </div>
                 {data && data.meta?.totalPages > 1 && (
-                  <div className="shrink-0 pt-2 border-t border-white/5">
+                  <div className="shrink-0">
                     <Pagination meta={data.meta} onPageChange={setPage} />
                   </div>
                 )}

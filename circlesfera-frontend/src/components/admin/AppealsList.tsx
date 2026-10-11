@@ -192,7 +192,7 @@ export default function AppealsList({
         />
       ))}
       {showPagination && (
-        <div className="pt-2 border-t border-white/5">
+        <div>
           <Pagination meta={data?.meta} onPageChange={handlePageChange} />
         </div>
       )}

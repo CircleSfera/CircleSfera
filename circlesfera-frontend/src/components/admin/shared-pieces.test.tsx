@@ -546,7 +546,7 @@ describe('the pieces of a staff table', () => {
       ).toBeInTheDocument();
     });
 
-    it('offers no page buttons for a single page, and says so when there is nothing', () => {
+    it('offers no page buttons for a single page, and shows nothing when there is nothing to count', () => {
       const one = renderWithProviders(
         <Pagination meta={meta(1, 5)} onPageChange={vi.fn()} />,
       );
@@ -559,11 +559,8 @@ describe('the pieces of a staff table', () => {
           onPageChange={vi.fn()}
         />,
       );
-      expect(
-        screen.getByText(
-          none.i18n!.t('admin.table.results_count', { count: 0 }),
-        ),
-      ).toBeInTheDocument();
+      // The empty state of the list says it; a count of zero under it adds nothing.
+      expect(none.container).toBeEmptyDOMElement();
     });
   });
 

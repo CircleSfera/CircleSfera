@@ -653,7 +653,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 ))
               )}
             </div>
-            <div className="shrink-0 pt-2 border-t border-white/5">
+            <div className="shrink-0">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
