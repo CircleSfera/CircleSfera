@@ -12,7 +12,11 @@ import { slugFromTitle } from '../../utils/articleBody';
 import { ArticleBody } from '../support/ArticleBody';
 import { Button, Input, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
-import { AdminListRow } from './AdminList';
+import {
+  ADMIN_PAGE_LIST_STATE,
+  ADMIN_PAGE_ROW,
+  AdminListRow,
+} from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -192,7 +196,7 @@ export default function HelpCentreTab({ onToast }: Props) {
   );
   const row = (article: AdminArticleSummary) => (
     <AdminListRow
-      className="rounded-xl border-white/10 bg-white/5 p-3 sm:p-4"
+      className={ADMIN_PAGE_ROW}
       title={nameOf(article)}
       subtitle={`${t(`supportPage.category.${article.topic}`)} · /help/${article.slug}`}
       badge={statusBadge(article.status)}
@@ -445,15 +449,15 @@ export default function HelpCentreTab({ onToast }: Props) {
       {/* Each article is a card of its own; only a state with no rows gets
           the one card of the list. */}
       {isLoading ? (
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <div className={ADMIN_PAGE_LIST_STATE}>
           <AdminListSkeleton rows={6} />
         </div>
       ) : isError ? (
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <div className={ADMIN_PAGE_LIST_STATE}>
           <AdminEmptyState icon={BookOpen} title={tr('load_failed')} />
         </div>
       ) : visible.length === 0 ? (
-        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+        <div className={ADMIN_PAGE_LIST_STATE}>
           <AdminEmptyState
             icon={BookOpen}
             title={tr(articles.length === 0 ? 'empty_title' : 'empty_filtered')}
