@@ -13,20 +13,33 @@ const control = (
     ]}
   />
 );
-const boxOfControl = () =>
-  screen.getByRole('button', { name: 'All' }).parentElement;
 
-describe('the option control and the filter bar', () => {
-  it('draws its own box when it stands alone', () => {
-    render(control);
+describe('the option control', () => {
+  it('shows its options as separate buttons with no box around them', () => {
+    const { container } = render(control);
 
-    expect(boxOfControl()).toHaveClass('glass-panel');
+    expect(container.querySelector('.glass-panel')).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'All' }).parentElement,
+    ).toHaveClass('gap-2');
   });
 
-  it('draws no box of its own inside a filter bar, which already has one', () => {
+  it('says which option is chosen', () => {
+    render(control);
+
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'Mine' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+  });
+
+  it('adds no second box inside a filter bar', () => {
     const { container } = render(<AdminFilterBar>{control}</AdminFilterBar>);
 
-    expect(boxOfControl()).not.toHaveClass('glass-panel');
     expect(container.querySelectorAll('.glass-panel')).toHaveLength(1);
   });
 });

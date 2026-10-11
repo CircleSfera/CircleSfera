@@ -6,7 +6,6 @@ import { type AdminDispute, adminApi } from '../../services/admin.service';
 import { formatDate } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { AdminEmptyState } from './AdminEmptyState';
-import { AdminFilterBar } from './AdminFilterBar';
 import {
   ADMIN_PAGE_LIST_STATE,
   ADMIN_PAGE_ROW,
@@ -65,20 +64,18 @@ export default function DisputesTab() {
         subtitle={t('admin.disputes.subtitle')}
       />
 
-      <AdminFilterBar>
-        <AdminSegmentedControl
-          value={state}
-          onChange={(value) => {
-            setState(value as typeof state);
-            setPage(1);
-          }}
-          options={[
-            { value: 'open', label: t('admin.disputes.filter_open') },
-            { value: 'closed', label: t('admin.disputes.filter_closed') },
-            { value: 'all', label: t('admin.disputes.filter_all') },
-          ]}
-        />
-      </AdminFilterBar>
+      <AdminSegmentedControl
+        value={state}
+        onChange={(value) => {
+          setState(value as typeof state);
+          setPage(1);
+        }}
+        options={[
+          { value: 'open', label: t('admin.disputes.filter_open') },
+          { value: 'closed', label: t('admin.disputes.filter_closed') },
+          { value: 'all', label: t('admin.disputes.filter_all') },
+        ]}
+      />
 
       {/* Each row is a card of its own; a state with no rows gets one card. */}
       <div className={hasRows ? undefined : ADMIN_PAGE_LIST_STATE}>
