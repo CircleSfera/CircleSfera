@@ -42,72 +42,122 @@ describe('AppealsTab', () => {
     vi.clearAllMocks();
   });
 
-  it('shows the empty queue', async () => {
+  /** Opens the case of the appeal sent by this address. */
+  const openCase = async (email = 'ana@example.com') => {
+    fireEvent.click((await screen.findAllByText(email))[0]);
+    return screen.findByRole('region', { name: 'Appeal' });
+  };
+
+  it('opens on what waits and says when the queue is empty', async () => {
     vi.mocked(getAdminAppeals).mockResolvedValue(page([]) as never);
     const { i18n } = renderWithProviders(<AppealsTab />);
 
     expect(
       await screen.findByText(i18n!.t('admin.appeals.empty_title')),
     ).toBeInTheDocument();
-    expect(getAdminAppeals).toHaveBeenCalledWith(1, 20, undefined);
+    expect(getAdminAppeals).toHaveBeenCalledWith(1, 20, 'PENDING');
+    expect(screen.getByRole('button', { name: 'Pending' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
-  it('filters by status and says when nothing matches', async () => {
+  it('changes view and says when nothing matches', async () => {
     vi.mocked(getAdminAppeals).mockResolvedValue(page([]) as never);
     const { i18n } = renderWithProviders(<AppealsTab />);
 
-    fireEvent.change(
-      await screen.findByLabelText(i18n!.t('admin.appeals.filter_status')),
-      { target: { value: 'REJECTED' } },
-    );
+    fireEvent.click(await screen.findByRole('button', { name: 'Rejected' }));
 
     expect(
       await screen.findByText(i18n!.t('admin.appeals.empty_filtered_title')),
     ).toBeInTheDocument();
     expect(getAdminAppeals).toHaveBeenLastCalledWith(1, 20, 'REJECTED');
+
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    await waitFor(() =>
+      expect(getAdminAppeals).toHaveBeenLastCalledWith(1, 20, undefined),
+    );
   });
 
-  it('shows who appealed, what was removed and a translated status', async () => {
+  it('lists who appealed and what, in words, with no decision in the row', async () => {
     vi.mocked(getAdminAppeals).mockResolvedValue(
       page([
-        appeal({}),
-        appeal({ id: 'a2', status: 'APPROVED', adminNotes: 'Context ok' }),
+        appeal({ targetType: 'POST_REMOVAL' }),
+        appeal({
+          id: 'a2',
+          status: 'APPROVED',
+          targetType: 'ACCOUNT_BAN',
+          user: { email: 'ben@example.com', profile: { username: 'ben' } },
+        }),
       ]) as never,
     );
-    const { i18n } = renderWithProviders(<AppealsTab />);
-    const t = i18n!.t.bind(i18n);
+    renderWithProviders(<AppealsTab />);
 
+    expect(await screen.findByText('ana@example.com')).toBeInTheDocument();
+    expect(screen.getByText('@ana · Post removal')).toBeInTheDocument();
+    expect(screen.getByText('@ben · Ban')).toBeInTheDocument();
     expect(
-      await screen.findAllByText(
-        t('admin.appeals.user_label', { email: 'ana@example.com' }),
-      ),
-    ).toHaveLength(2);
-    expect(screen.getAllByText(/the removed caption \(REMOVED\)/)).toHaveLength(
-      2,
+      screen.getByText('Pending', { selector: 'span' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Approved', { selector: 'span' }),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/POST_REMOVAL|ACCOUNT_BAN/)).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull();
+  });
+
+  it('shows the whole case, with the state of the sanction in words', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(
+      page([
+        appeal({ targetType: 'POST_REMOVAL', adminNotes: 'Context ok' }),
+      ]) as never,
     );
-    expect(screen.getByText(/Context ok/)).toBeInTheDocument();
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    expect(within(open).getByText('Post removal')).toBeInTheDocument();
+    expect(within(open).getByText('Removed')).toBeInTheDocument();
+    expect(within(open).getByText('the removed caption')).toBeInTheDocument();
     expect(
-      screen.getByText(t('admin.appeals.status_pending'), { selector: 'span' }),
+      within(open).getByText('It was a joke between friends'),
     ).toBeInTheDocument();
+    expect(within(open).getByText('Context ok')).toBeInTheDocument();
+    expect(within(open).queryByText('REMOVED')).toBeNull();
+  });
+
+  it('quotes nothing more for an account, and offers no decision once decided', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(
+      page([
+        appeal({
+          status: 'REJECTED',
+          targetType: 'ACCOUNT_BAN',
+          targetPreview: {
+            text: 'Account inactive',
+            moderationStatus: 'BANNED',
+            type: 'ACCOUNT',
+          },
+        }),
+      ]) as never,
+    );
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    expect(within(open).getByText('Banned')).toBeInTheDocument();
+    expect(within(open).queryByText('Account inactive')).toBeNull();
+    expect(within(open).queryByRole('button', { name: 'Approve' })).toBeNull();
+    expect(within(open).queryByRole('button', { name: 'Reject' })).toBeNull();
     expect(
-      screen.getByText(t('admin.appeals.status_approved'), {
-        selector: 'span',
-      }),
+      within(open).getByRole('button', { name: 'Open in Users' }),
     ).toBeInTheDocument();
-    // Only the pending appeal can still be decided.
-    expect(
-      screen.getAllByRole('button', { name: t('admin.appeals.approve') }),
-    ).toHaveLength(1);
   });
 
   it('opens the account of the person who appealed', async () => {
     vi.mocked(getAdminAppeals).mockResolvedValue(page([appeal({})]) as never);
-    const { i18n } = renderWithProviders(<AppealsTab />);
+    renderWithProviders(<AppealsTab />);
 
+    const open = await openCase();
     fireEvent.click(
-      await screen.findByRole('button', {
-        name: i18n!.t('admin.appeals.open_user'),
-      }),
+      within(open).getByRole('button', { name: 'Open in Users' }),
     );
 
     expect(navigate).toHaveBeenCalledWith(
@@ -121,8 +171,9 @@ describe('AppealsTab', () => {
     const { i18n } = renderWithProviders(<AppealsTab />);
     const t = i18n!.t.bind(i18n);
 
+    const open = await openCase();
     fireEvent.click(
-      await screen.findByRole('button', { name: t('admin.appeals.approve') }),
+      within(open).getByRole('button', { name: t('admin.appeals.approve') }),
     );
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox'), {
@@ -153,8 +204,9 @@ describe('AppealsTab', () => {
     const { i18n } = renderWithProviders(<AppealsTab />);
     const t = i18n!.t.bind(i18n);
 
+    const open = await openCase();
     fireEvent.click(
-      await screen.findByRole('button', { name: t('admin.appeals.reject') }),
+      within(open).getByRole('button', { name: t('admin.appeals.reject') }),
     );
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(
@@ -174,5 +226,46 @@ describe('AppealsTab', () => {
       ),
     );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
+  });
+
+  it('closes the case with Back and with Escape, and a dialog with Cancel', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(page([appeal({})]) as never);
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    fireEvent.click(within(open).getByRole('button', { name: 'Approve' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(updateAdminAppeal).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull(),
+    );
+
+    await openCase();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull(),
+    );
+  });
+
+  it('closes the case once it is decided', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(page([appeal({})]) as never);
+    vi.mocked(updateAdminAppeal).mockResolvedValue({} as never);
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    fireEvent.click(within(open).getByRole('button', { name: 'Reject' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+
+    // The list still holds the pending copy until it is read again: the
+    // case must not stay open on it.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Reject' })).toBeNull(),
+    );
+    expect(updateAdminAppeal).toHaveBeenCalledTimes(1);
   });
 });

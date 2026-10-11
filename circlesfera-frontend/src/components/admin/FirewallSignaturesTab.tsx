@@ -113,7 +113,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
         hasSelection={hasSelection}
         onBack={clearSelection}
         onClearSelection={clearSelection}
-        listTitle={t('admin.firewall.title')}
+        listAriaLabel={t('admin.firewall.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">

@@ -5,7 +5,12 @@ import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import AdminShell from './AdminShell';
-import { ADMIN_TAB_PERMISSIONS, type AdminTab, navItemsFor } from './adminNav';
+import {
+  ADMIN_TAB_PERMISSIONS,
+  type AdminTab,
+  navGroupsFor,
+  navItemsFor,
+} from './adminNav';
 
 const site = vi.hoisted(() => ({ backoffice: false }));
 
@@ -74,6 +79,14 @@ const sidebar = () => screen.getByRole('complementary');
 /** The name of a section button, without the count or tag next to it. */
 const sectionName = (button: HTMLElement) =>
   button.querySelector('span.truncate')?.textContent;
+/** Every section of the side list, the ones in a folded group included. */
+const sectionNames = () =>
+  within(sidebar())
+    .getAllByRole('button', { hidden: true })
+    .map(sectionName)
+    .filter(Boolean);
+const group = (name: string) =>
+  within(sidebar()).getByRole('button', { name: new RegExp(`^${name}`) });
 const openDrawer = async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Open navigation' }));
   return screen.findByRole('dialog', { name: 'Navigation' });
@@ -123,8 +136,7 @@ describe('staff panel navigation', () => {
   it('lists every section of the Admin Panel to someone who may open them all', () => {
     show('users');
 
-    const names = within(sidebar()).getAllByRole('button').map(sectionName);
-    expect(names).toEqual(
+    expect(sectionNames()).toEqual(
       navItemsFor('admin').map((item) => text(item.labelKey)),
     );
   });
@@ -137,20 +149,82 @@ describe('staff panel navigation', () => {
         item.id !== 'overview' && ADMIN_TAB_PERMISSIONS[item.id] === 'content',
     );
     expect(allowed.length).toBeGreaterThan(0);
-    expect(within(sidebar()).getAllByRole('button').map(sectionName)).toEqual(
-      allowed.map((item) => text(item.labelKey)),
-    );
+    expect(sectionNames()).toEqual(allowed.map((item) => text(item.labelKey)));
     expect(within(sidebar()).getAllByRole('heading', { level: 3 }).length).toBe(
       new Set(
         allowed.map(
           (item) =>
             within(sidebar())
-              .getByRole('button', { name: text(item.labelKey) })
-              .closest('.space-y-1')
+              .getByRole('button', {
+                name: text(item.labelKey),
+                hidden: true,
+              })
+              .closest('[id^="staff-nav-"]')
               ?.parentElement?.querySelector('h3')?.textContent,
         ),
       ).size,
     );
+  });
+
+  it('folds the groups the person is not in, and keeps what they open', () => {
+    window.localStorage.clear();
+    const groups = navGroupsFor('admin');
+    const own = groups.find((g) => g.items.some((i) => i.id === 'users'));
+    const other = groups.find((g) => g !== own);
+    if (!own || !other) throw new Error('two groups expected');
+    const { unmount } = show('users');
+
+    // The group of the open section is shown and cannot be folded away.
+    expect(group(text(own.labelKey))).toHaveAttribute('aria-expanded', 'true');
+    expect(group(text(own.labelKey))).toBeDisabled();
+    const first = text(other.items[0].labelKey);
+    expect(
+      within(sidebar()).queryByRole('button', { name: first }),
+    ).not.toBeInTheDocument();
+
+    const heading = group(text(other.labelKey));
+    expect(heading).toHaveAttribute('aria-expanded', 'false');
+    expect(heading).toHaveClass('min-h-11');
+    fireEvent.click(heading);
+    expect(heading).toHaveAttribute('aria-expanded', 'true');
+    expect(
+      within(sidebar()).getByRole('button', { name: first }),
+    ).toBeInTheDocument();
+
+    // Opened once, it is open on the next visit.
+    unmount();
+    show('users');
+    expect(group(text(other.labelKey))).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+    fireEvent.click(group(text(other.labelKey)));
+    expect(
+      within(sidebar()).queryByRole('button', { name: first }),
+    ).not.toBeInTheDocument();
+    window.localStorage.clear();
+  });
+
+  it.each(['null', '[]', '"open"', '{"x":"yes"}', 'not json'])(
+    'forgets a stored choice of groups that is not one (%s)',
+    (stored) => {
+      window.localStorage.setItem('cs.staff.nav.open-groups', stored);
+      show('users');
+
+      const folded = within(sidebar())
+        .getAllByRole('button')
+        .filter((b) => b.getAttribute('aria-expanded') === 'false');
+      expect(folded.length).toBe(navGroupsFor('admin').length - 1);
+      window.localStorage.clear();
+    },
+  );
+
+  it('shows the one group of the Backoffice whole, with nothing to fold', () => {
+    site.backoffice = true;
+    show('plans');
+
+    expect(navGroupsFor('backoffice')).toHaveLength(1);
+    expect(sidebar().querySelector('[aria-expanded]')).toBeNull();
   });
 
   it('marks the open section and changes section on a click', () => {

@@ -38,8 +38,9 @@ interface MenuPosition {
 }
 
 // The look of a row that is a card of its own on a page, not inside a pane.
+// Roomy under the thumb on a phone, dense where a list is read with a pointer.
 export const ADMIN_PAGE_ROW =
-  'rounded-xl border-white/10 bg-white/5 p-3 sm:p-4';
+  'rounded-xl border-white/10 bg-white/5 p-4 sm:px-4 sm:py-2.5';
 // The one card of a page list while it has no rows to show.
 export const ADMIN_PAGE_LIST_STATE =
   'bg-white/5 border border-white/10 rounded-xl overflow-hidden';
@@ -128,7 +129,9 @@ export function AdminListRow({
   // kept for the menu alone.
   const menu =
     secondaryActions && secondaryActions.length > 0 ? (
-      <div className="relative">
+      // The button keeps its 44 px to press; from 640 px it does not make
+      // the row taller than its two lines.
+      <div className="relative sm:-my-2">
         <Button
           ref={triggerRef}
           type="button"
@@ -215,7 +218,7 @@ export function AdminListRow({
     // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
     <div
       className={clsx(
-        'relative flex items-start gap-2.5 p-2.5 rounded-lg border transition-colors',
+        'relative flex items-start gap-3 sm:gap-2.5 p-3.5 sm:p-2.5 rounded-lg border transition-colors',
         selected
           ? 'bg-brand-primary/15 border-brand-primary/30'
           : 'border-white/5 bg-white/2',
@@ -243,14 +246,25 @@ export function AdminListRow({
       {avatar && <div className="shrink-0 mt-0.5">{avatar}</div>}
 
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <div className="text-sm font-semibold text-white truncate">
+        <div className="flex items-start sm:items-center justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <div className="text-[15px] sm:text-sm font-semibold text-white truncate">
               {title}
             </div>
-            {subtitle && (
-              <div className="text-xs text-white/50 mt-0.5 truncate">
-                {subtitle}
+            {/* What the row is and when share a line while they fit, so a
+                row is two lines tall; in a narrow row the second wraps. */}
+            {(subtitle || meta) && (
+              <div className="mt-1 sm:mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:gap-y-0.5 text-[13px] sm:text-xs">
+                {subtitle && (
+                  <div className="min-w-0 max-w-full text-white/50 truncate">
+                    {subtitle}
+                  </div>
+                )}
+                {meta && (
+                  <div className="min-w-0 max-w-full text-white/40 flex flex-wrap gap-x-3 gap-y-1 sm:gap-y-0.5">
+                    {meta}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -266,16 +280,11 @@ export function AdminListRow({
             </div>
           )}
         </div>
-        {meta && (
-          <div className="mt-2 text-xs text-white/40 flex flex-wrap gap-x-3 gap-y-1">
-            {meta}
-          </div>
-        )}
         {primaryAction && (
           // Stop row click when interacting with actions
           // biome-ignore lint/a11y/noStaticElementInteractions: action bar only stops propagation
           <div
-            className="mt-3 flex flex-wrap items-center gap-2"
+            className="mt-2 flex flex-wrap items-center gap-2"
             onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.stopPropagation()}
           >

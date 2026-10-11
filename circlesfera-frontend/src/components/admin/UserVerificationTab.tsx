@@ -156,20 +156,23 @@ export default function UserVerificationTab({
         subtitle={t('admin.verification.subtitle')}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 shrink-0">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
         <StatCard
+          compact
           label={t('admin.verification.kyc_completed', 'Verified users')}
           value={statsData?.verified || 0}
           icon={CheckCircle2}
           color="green"
         />
         <StatCard
+          compact
           label={t('admin.verification.kpi_kyc_pending')}
           value={statsData?.pending || 0}
           icon={Clock}
           color="yellow"
         />
         <StatCard
+          compact
           label={t('admin.verification.filter_not_started')}
           value={statsData?.notStarted || 0}
           icon={UserX}
@@ -214,7 +217,7 @@ export default function UserVerificationTab({
         hasSelection={!!selectedUserId}
         onBack={() => setSelectedUserId(null)}
         onClearSelection={() => setSelectedUserId(null)}
-        listTitle={t('admin.verification.list_title')}
+        listAriaLabel={t('admin.verification.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">

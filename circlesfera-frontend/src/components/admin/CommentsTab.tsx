@@ -155,7 +155,7 @@ export default function CommentsTab({ onToast }: Props) {
         hasSelection={!!selected}
         onBack={() => setSelectedId(null)}
         onClearSelection={() => setSelectedId(null)}
-        listTitle={t('admin.comments.title')}
+        listAriaLabel={t('admin.comments.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">

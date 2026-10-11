@@ -34,6 +34,7 @@ import {
   FilterDropdown,
   Pagination,
   SearchInput,
+  StatusBadge,
 } from './AdminTable';
 import {
   AdminUserFilterChip,
@@ -60,6 +61,8 @@ interface Props {
 
 export default function ReportsTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
+  const targetName = (targetType: string) =>
+    t(`admin.audit.targets.${targetType}`, { defaultValue: targetType });
   const navigate = useNavigate();
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
@@ -304,10 +307,12 @@ export default function ReportsTab({ onToast }: Props) {
             setMineOnly((v) => !v);
             setPage(1);
           }}
-          className={`min-h-11 px-3 rounded-lg border text-xs font-semibold transition-colors ${
+          aria-pressed={mineOnly}
+          // The look of the view buttons: it is on or off, not a field.
+          className={`px-4 min-h-11 sm:min-h-9 text-xs font-semibold rounded-full border whitespace-nowrap transition-all ${
             mineOnly
-              ? 'border-brand-primary/40 bg-brand-primary/15 text-brand-primary'
-              : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
+              ? 'bg-brand-primary/20 text-white border-brand-primary/40'
+              : 'bg-white/5 text-white/60 border-white/10 hover:text-white/80 hover:bg-white/10'
           }`}
         >
           {t('admin.reports.filter_mine')}
@@ -357,7 +362,7 @@ export default function ReportsTab({ onToast }: Props) {
         hasSelection={!!selectedReportId}
         onBack={() => setSelectedReportId(null)}
         onClearSelection={() => setSelectedReportId(null)}
-        listTitle={t('admin.reports.list_title')}
+        listAriaLabel={t('admin.reports.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             {reports.length > 0 && (
@@ -425,7 +430,7 @@ export default function ReportsTab({ onToast }: Props) {
                       title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
                       subtitle={
                         <span className="flex flex-col gap-0.5">
-                          <span>{report.targetType}</span>
+                          <span>{targetName(report.targetType)}</span>
                           {assignee && (
                             <span className="text-[11px] text-brand-primary/80">
                               {t('admin.reports.assigned_to', {
@@ -437,7 +442,9 @@ export default function ReportsTab({ onToast }: Props) {
                       }
                       badge={
                         <span className="text-xs font-semibold uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
-                          {report.reason}
+                          {t(`admin.reports.reasons.${report.reason}`, {
+                            defaultValue: report.reason,
+                          })}
                         </span>
                       }
                       meta={
@@ -512,45 +519,49 @@ export default function ReportsTab({ onToast }: Props) {
                 <div className="p-4 border-b border-white/5 flex flex-col gap-3 shrink-0">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <h3 className="text-base sm:text-lg font-semibold text-white flex items-center gap-2 flex-wrap">
-                        {t('admin.reports.detail_title')}
-                        {originalAddress(selectedReport) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const address = originalAddress(selectedReport);
-                              if (address)
-                                window.open(
-                                  address,
-                                  '_blank',
-                                  'noopener,noreferrer',
-                                );
-                            }}
-                            className="text-xs font-semibold bg-brand-primary/10 text-brand-primary hover:bg-brand-primary/20 px-3 py-1 rounded transition-colors min-h-11"
-                          >
-                            {t('admin.reports.view_original')}
-                          </button>
-                        )}
-                        {selectedReport.targetType === 'USER' && (
-                          <button
-                            type="button"
-                            onClick={() =>
-                              navigate(
-                                adminTabPath(
-                                  'users',
-                                  `?userId=${encodeURIComponent(selectedReport.targetId)}`,
-                                ),
-                              )
-                            }
-                            className="text-xs font-semibold bg-white/10 text-white/80 hover:bg-white/15 px-3 py-1 rounded transition-colors min-h-11"
-                          >
-                            {t('admin.reports.open_user')}
-                          </button>
-                        )}
+                      <h3 className="text-base sm:text-lg font-semibold text-white break-words">
+                        {selectedReport.targetContent?.author
+                          ? `@${selectedReport.targetContent.author} · ${targetName(selectedReport.targetType)}`
+                          : t('admin.reports.detail_title')}
                       </h3>
-                      <p className="text-xs text-white/50 truncate">
-                        ID: {selectedReport.id}
-                      </p>
+                      {(originalAddress(selectedReport) ||
+                        selectedReport.targetType === 'USER') && (
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {originalAddress(selectedReport) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const address = originalAddress(selectedReport);
+                                if (address)
+                                  window.open(
+                                    address,
+                                    '_blank',
+                                    'noopener,noreferrer',
+                                  );
+                              }}
+                              className="inline-flex items-center justify-center min-h-11 px-4 rounded-xl text-sm font-semibold text-white border border-white/12 hover:bg-white/6 transition-colors"
+                            >
+                              {t('admin.reports.view_original')}
+                            </button>
+                          )}
+                          {selectedReport.targetType === 'USER' && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                navigate(
+                                  adminTabPath(
+                                    'users',
+                                    `?userId=${encodeURIComponent(selectedReport.targetId)}`,
+                                  ),
+                                )
+                              }
+                              className="inline-flex items-center justify-center min-h-11 px-4 rounded-xl text-sm font-semibold text-white border border-white/12 hover:bg-white/6 transition-colors"
+                            >
+                              {t('admin.reports.open_user')}
+                            </button>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   {selectedReport.status === 'PENDING' && (
@@ -613,7 +624,7 @@ export default function ReportsTab({ onToast }: Props) {
                     )}
                   {(selectedReport.status === 'PENDING' ||
                     selectedReport.status === 'REVIEWING') && (
-                    <div className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-row sm:flex-wrap">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:flex-wrap">
                       {selectedReport.targetType === 'USER' &&
                       selectedReport.details?.includes('[URGENT]') ? (
                         <>
@@ -748,7 +759,7 @@ export default function ReportsTab({ onToast }: Props) {
                             }
                             isLoading={updateMutation.isPending}
                             variant="danger"
-                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-11 px-2 sm:px-4 col-span-2 sm:col-span-1"
+                            className="text-xs sm:text-sm font-semibold border-red-500/30 min-h-11 px-2 sm:px-4"
                           >
                             <Trash2
                               size={16}
@@ -829,7 +840,9 @@ export default function ReportsTab({ onToast }: Props) {
                           {t('admin.reports.reason_label')}
                         </dt>
                         <dd className="text-red-400 font-semibold text-right">
-                          {selectedReport.reason}
+                          {t(`admin.reports.reasons.${selectedReport.reason}`, {
+                            defaultValue: selectedReport.reason,
+                          })}
                         </dd>
                       </div>
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
@@ -870,19 +883,19 @@ export default function ReportsTab({ onToast }: Props) {
                           {t('admin.reports.status_label')}
                         </dt>
                         <dd>
-                          <span
-                            className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${
-                              selectedReport.status === 'PENDING'
-                                ? 'bg-yellow-500/15 text-yellow-500'
+                          <StatusBadge
+                            status={
+                              selectedReport.status === 'REJECTED'
+                                ? 'dismissed'
                                 : selectedReport.status === 'REVIEWING'
-                                  ? 'bg-blue-500/15 text-blue-400'
-                                  : selectedReport.status === 'RESOLVED'
-                                    ? 'bg-green-500/15 text-green-400'
-                                    : 'bg-white/10 text-white/70'
-                            }`}
-                          >
-                            {selectedReport.status}
-                          </span>
+                                  ? 'valid'
+                                  : selectedReport.status
+                            }
+                            label={t(
+                              `admin.reports.badge.${selectedReport.status}`,
+                              { defaultValue: selectedReport.status },
+                            )}
+                          />
                         </dd>
                       </div>
                       {(selectedReport.assignedAdmin?.displayName ||
@@ -912,6 +925,14 @@ export default function ReportsTab({ onToast }: Props) {
                           </dd>
                         </div>
                       )}
+                      <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
+                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                          {t('admin.reports.reference_label')}
+                        </dt>
+                        <dd className="text-xs text-white/60 text-right break-all">
+                          {selectedReport.id}
+                        </dd>
+                      </div>
                       <div className="py-2.5">
                         <dt className="text-xs font-medium text-white/40 mb-1.5">
                           {t('admin.reports.internal_notes_label')}

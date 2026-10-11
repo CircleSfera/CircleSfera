@@ -396,16 +396,17 @@ describe('ExperimentsTab', () => {
   describe('assignments', () => {
     it('marks which of the two sections is open', async () => {
       show();
-      const flags = screen.getByRole('button', { name: 'Feature rollout' });
-      const assignments = screen.getByRole('button', {
-        name: 'A/B experiments',
-      });
-      expect(flags).toHaveAttribute('aria-pressed', 'true');
-      expect(assignments).toHaveAttribute('aria-pressed', 'false');
+      // The switch sits in the bar of each view, so it is read again.
+      const flags = () =>
+        screen.getByRole('button', { name: 'Feature rollout' });
+      const assignments = () =>
+        screen.getByRole('button', { name: 'A/B experiments' });
+      expect(flags()).toHaveAttribute('aria-pressed', 'true');
+      expect(assignments()).toHaveAttribute('aria-pressed', 'false');
 
       await openAssignments();
-      expect(flags).toHaveAttribute('aria-pressed', 'false');
-      expect(assignments).toHaveAttribute('aria-pressed', 'true');
+      expect(flags()).toHaveAttribute('aria-pressed', 'false');
+      expect(assignments()).toHaveAttribute('aria-pressed', 'true');
     });
 
     it('offers to assign the first one when there is none', async () => {

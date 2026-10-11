@@ -44,11 +44,11 @@ function MetricCell({
           : 'text-white';
   return (
     <div className="min-w-0 px-3 py-2.5">
-      <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide truncate">
+      <p className="text-[10px] sm:text-xs font-semibold text-white/50 uppercase tracking-wider leading-tight line-clamp-2">
         {label}
       </p>
       <p
-        className={`text-lg font-semibold font-mono tabular-nums leading-tight mt-0.5 ${valueClass}`}
+        className={`text-lg sm:text-xl font-bold tabular-nums tracking-tight leading-tight mt-0.5 ${valueClass}`}
       >
         {value}
       </p>
@@ -215,7 +215,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.database_title')}
               </h3>
-              <p className="text-[11px] text-white/40 font-mono">
+              <p className="text-[11px] text-white/40">
                 {t('admin.health.database_subtitle')}
               </p>
             </div>
@@ -256,7 +256,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.ai_queue_title')}
               </h3>
-              <p className="text-[11px] text-white/40 font-mono">
+              <p className="text-[11px] text-white/40">
                 {t('admin.health.ai_queue_subtitle')}
               </p>
             </div>
@@ -299,7 +299,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.analytics_queue_title')}
               </h3>
-              <p className="text-[11px] text-white/40 font-mono">
+              <p className="text-[11px] text-white/40">
                 {t('admin.health.analytics_queue_subtitle')}
               </p>
             </div>
@@ -355,7 +355,7 @@ export default function SystemHealthTab() {
               <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">
                 {t('admin.health.success_rate')}
               </p>
-              <p className="text-lg font-semibold font-mono text-white tabular-nums mt-0.5">
+              <p className="text-lg font-semibold text-white tabular-nums mt-0.5">
                 {webhookSuccessRate.toFixed(1)}%
               </p>
               <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">

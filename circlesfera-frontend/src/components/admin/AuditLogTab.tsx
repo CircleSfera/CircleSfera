@@ -146,7 +146,7 @@ export default function AuditLogTab() {
         hasSelection={!!selected}
         onBack={() => setSelectedId(null)}
         onClearSelection={() => setSelectedId(null)}
-        listTitle={t('admin.audit.title')}
+        listAriaLabel={t('admin.audit.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
