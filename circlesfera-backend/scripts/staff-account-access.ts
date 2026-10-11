@@ -16,9 +16,15 @@ const hashFormat = (hash: string) =>
       ? 'bcrypt'
       : 'not recognised';
 
-// Audit details may quote the address of the account they are about.
-const withoutAddresses = (text: string) =>
-  text.replace(/\S+@\S+/g, '[address]');
+// Audit details are free text and may name a person or another record, so only
+// these fixed ones are printed. Any other entry is told by its action alone.
+const PRINTABLE_DETAILS = new Set([
+  'Invalid credentials',
+  'Invalid MFA code',
+  'Lockout cleared by operator admin',
+  'Status set to ACTIVE',
+  'Status set to DISABLED',
+]);
 
 // For when nobody can get into the staff sites. It changes nothing: for every
 // staff account it reports why a sign-in would be refused. A staff member signs
@@ -26,10 +32,11 @@ const withoutAddresses = (text: string) =>
 // neither a disabled account nor a lockout comes from that account: missing,
 // not linked, or with a password that must be reset first.
 //
-// Accounts are told apart by their roles, never by their address. Neither
-// addresses, IP addresses nor hashes are printed: the workflow log that carries
-// this output is public. Runs with plain Node inside the production image,
-// through the "Ops — staff account access" workflow.
+// Accounts are told apart by their reference, the first eight characters of
+// their id, which the Operators screen shows too, never by their address.
+// Neither addresses, IP addresses nor hashes are printed: the workflow log that
+// carries this output is public. Runs with plain Node inside the production
+// image, through the "Ops — staff account access" workflow.
 async function main() {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) throw new Error('DATABASE_URL is not set');
@@ -67,7 +74,7 @@ async function main() {
       `${Math.floor((now - date.getTime()) / DAY_MS)} days ago`;
     console.log(`Staff accounts: ${accounts.length}`);
 
-    for (const [index, account] of accounts.entries()) {
+    for (const account of accounts) {
       const locked =
         !!account.lockedUntil && account.lockedUntil.getTime() > now;
       const lockMinutes = locked
@@ -94,7 +101,7 @@ async function main() {
               : hashFormat(signIn.password) === 'not recognised'
                 ? 'no: its stored password is in a format sign-in refuses'
                 : 'yes';
-      const recent = await prisma.adminAuditLog.groupBy({
+      const entries = await prisma.adminAuditLog.groupBy({
         by: ['action', 'details'],
         where: {
           targetType: 'admin',
@@ -104,6 +111,19 @@ async function main() {
         _count: { _all: true },
         _max: { createdAt: true },
       });
+      const recent = new Map<string, { count: number; last: Date | null }>();
+      for (const entry of entries) {
+        const label =
+          entry.details && PRINTABLE_DETAILS.has(entry.details)
+            ? `${entry.action} (${entry.details})`
+            : entry.action;
+        const seen = recent.get(label) ?? { count: 0, last: null };
+        const last = entry._max.createdAt;
+        recent.set(label, {
+          count: seen.count + entry._count._all,
+          last: last && (!seen.last || last > seen.last) ? last : seen.last,
+        });
+      }
       const failedDay = await prisma.adminAuditLog.count({
         where: {
           adminId: account.id,
@@ -114,7 +134,7 @@ async function main() {
 
       console.log('');
       console.log(
-        `Account ${index + 1} — roles: ${rolesOf(account).join(', ') || 'none'}`,
+        `Account ${account.id.slice(0, 8)} — roles: ${rolesOf(account).join(', ') || 'none'}`,
       );
       console.log(`  Status: ${account.status}`);
       console.log(
@@ -136,13 +156,10 @@ async function main() {
       );
       console.log(`  Passkeys: ${account._count.passkeys}`);
       console.log(`  Recorded on this account, last ${RECENT_DAYS} days:`);
-      if (recent.length === 0) console.log('    nothing');
-      for (const entry of recent) {
-        const last = entry._max.createdAt;
+      if (recent.size === 0) console.log('    nothing');
+      for (const [label, { count, last }] of recent) {
         console.log(
-          `    ${entry.action}${entry.details ? ` (${withoutAddresses(entry.details)})` : ''}: ${
-            entry._count._all
-          }, last ${last ? daysAgo(last) : 'unknown'}`,
+          `    ${label}: ${count}, last ${last ? daysAgo(last) : 'unknown'}`,
         );
       }
     }

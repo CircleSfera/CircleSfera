@@ -1,8 +1,8 @@
 name: Ops — staff account access
 
 # For when nobody can get into the staff sites. It changes nothing: it reports
-# the state of every staff account, told apart by their roles, never by their
-# address. A staff member signs in with the password of their CircleSfera
+# the state of every staff account, told apart by the reference the Operators
+# screen shows, never by their address. A staff member signs in with the password of their CircleSfera
 # account, so a forgotten password is recovered the way any CircleSfera
 # password is, and a lockout is cleared from the Operators screen by another
 # staff member.

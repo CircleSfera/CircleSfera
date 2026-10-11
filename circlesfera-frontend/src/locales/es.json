@@ -3667,6 +3667,7 @@
       "unlock": "Desbloquear cuenta",
       "mfa_on": "MFA configurado",
       "mfa_off": "MFA pendiente de enrolar",
+      "reference": "Referencia {{reference}}",
       "step_up_required": "Confirma con tu código de autenticador",
       "step_up_hint": "Introduce el código del autenticador para confirmar esta acción.",
       "step_up_ok": "Verificado",
