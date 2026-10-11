@@ -245,11 +245,11 @@ export default function StatsTab() {
           </div>
           {topUsers && topUsers.length > 0 ? (
             // Lines of the one panel, not cards inside it.
-            <div className="divide-y divide-white/5">
+            <div>
               {topUsers.map((user, i) => (
                 <AdminListRow
                   key={user.id}
-                  className="border-0 bg-transparent rounded-none px-0"
+                  className="border-0! border-b! border-white/5! last:border-b-0! bg-transparent! rounded-none! px-0!"
                   title={`@${user.username}`}
                   subtitle={t('admin.stats.rank_engagement', {
                     rank: i + 1,
