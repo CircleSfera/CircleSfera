@@ -19,7 +19,10 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-function moderationBadge(status: AdminStory['moderationStatus']) {
+function moderationBadge(
+  status: AdminStory['moderationStatus'],
+  t: (key: string, options?: Record<string, unknown>) => string,
+) {
   const styles: Record<string, string> = {
     VISIBLE: 'text-green-400 bg-green-400/10',
     FLAGGED: 'text-amber-400 bg-amber-400/10',
@@ -30,7 +33,7 @@ function moderationBadge(status: AdminStory['moderationStatus']) {
     <span
       className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${styles[status] || styles.VISIBLE}`}
     >
-      {status}
+      {t(`admin.stories.moderation.${status}`, { defaultValue: status })}
     </span>
   );
 }
@@ -194,7 +197,10 @@ export default function StoriesTab({ onToast }: Props) {
               value: 'HIDDEN',
               label: t('admin.stories.moderation.HIDDEN'),
             },
-            { value: 'REMOVED', label: 'REMOVED' },
+            {
+              value: 'REMOVED',
+              label: t('admin.stories.moderation.REMOVED'),
+            },
           ]}
         />
         {userId && (
@@ -237,7 +243,7 @@ export default function StoriesTab({ onToast }: Props) {
                 }
                 badge={
                   <div className="flex flex-col items-end gap-1">
-                    {moderationBadge(story.moderationStatus)}
+                    {moderationBadge(story.moderationStatus, t)}
                     {expiryBadge(isExpired(story.expiresAt))}
                   </div>
                 }
@@ -317,7 +323,7 @@ export default function StoriesTab({ onToast }: Props) {
                   </span>
                 </td>
                 <td className="px-2 py-1">
-                  {moderationBadge(story.moderationStatus)}
+                  {moderationBadge(story.moderationStatus, t)}
                 </td>
                 <td className="px-2 py-1">
                   {expiryBadge(isExpired(story.expiresAt))}

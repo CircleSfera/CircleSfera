@@ -233,7 +233,10 @@ export default function AuditLogTab() {
                 />
                 <MetaRow
                   label={t('admin.audit.col_type')}
-                  value={selected.targetType}
+                  value={t(
+                    `admin.audit.targets.${selected.targetType.toUpperCase()}`,
+                    { defaultValue: selected.targetType },
+                  )}
                 />
                 <MetaRow
                   label={t('admin.audit.col_target')}

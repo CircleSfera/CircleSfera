@@ -2526,7 +2526,13 @@
       "toast_reassigned": "Reporte reasignado",
       "toast_reassign_error": "No se pudo reasignar",
       "open_user": "Abrir en Usuarios",
-      "select_report": "Seleccionar la denuncia sobre @{{author}}"
+      "select_report": "Seleccionar la denuncia sobre @{{author}}",
+      "badge": {
+        "PENDING": "Pendiente",
+        "REVIEWING": "En revisión",
+        "RESOLVED": "Resuelto",
+        "REJECTED": "Descartado"
+      }
     },
     "monetization": {
       "title": "Monetización",
@@ -3172,7 +3178,8 @@
       "moderation": {
         "VISIBLE": "Visibles",
         "FLAGGED": "Marcadas",
-        "HIDDEN": "Ocultas"
+        "HIDDEN": "Ocultas",
+        "REMOVED": "Retiradas"
       }
     },
     "comments": {

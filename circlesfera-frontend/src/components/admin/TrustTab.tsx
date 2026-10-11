@@ -313,7 +313,7 @@ export default function TrustTab() {
                 onClick={() => navigate(adminTabPath('reports'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
-                    {t(`admin.shared.status.${item.status.toLowerCase()}`, {
+                    {t(`admin.reports.badge.${item.status}`, {
                       defaultValue: item.status,
                     })}
                   </span>

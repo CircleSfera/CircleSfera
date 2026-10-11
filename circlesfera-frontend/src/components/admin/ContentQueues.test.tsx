@@ -852,7 +852,7 @@ describe('StoriesTab', () => {
     await screen.findAllByText('@teller_a');
 
     for (const place of [card('teller_a'), tableRow('teller_a')]) {
-      expect(within(place).getByText('FLAGGED')).toHaveClass('text-amber-400');
+      expect(within(place).getByText('Flagged')).toHaveClass('text-amber-400');
       expect(within(place).getByText('Active')).toBeInTheDocument();
       expect(within(place).getByText('image')).toBeInTheDocument();
       expect(place.querySelector('img')).toHaveAttribute(
@@ -871,7 +871,7 @@ describe('StoriesTab', () => {
     expect(tableRow('teller_a')).toHaveTextContent('Active 30 4');
 
     for (const place of [card('Unknown'), tableRow('Unknown')]) {
-      expect(within(place).getByText('HIDDEN')).toHaveClass('text-white/50');
+      expect(within(place).getByText('Hidden')).toHaveClass('text-white/50');
       expect(within(place).getByText('Expired')).toBeInTheDocument();
       expect(place.querySelector('video')).toHaveAttribute(
         'src',

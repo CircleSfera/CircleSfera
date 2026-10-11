@@ -2526,7 +2526,13 @@
       "toast_reassigned": "Report reassigned",
       "toast_reassign_error": "Could not reassign report",
       "open_user": "Open in Users",
-      "select_report": "Select the report about @{{author}}"
+      "select_report": "Select the report about @{{author}}",
+      "badge": {
+        "PENDING": "Pending",
+        "REVIEWING": "In review",
+        "RESOLVED": "Resolved",
+        "REJECTED": "Dismissed"
+      }
     },
     "monetization": {
       "title": "Monetization",
@@ -3172,7 +3178,8 @@
       "moderation": {
         "VISIBLE": "Visible",
         "FLAGGED": "Flagged",
-        "HIDDEN": "Hidden"
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed"
       }
     },
     "comments": {

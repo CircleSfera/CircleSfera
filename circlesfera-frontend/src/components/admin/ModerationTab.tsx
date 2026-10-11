@@ -290,6 +290,7 @@ export default function ModerationTab({ onToast }: Props) {
                     selectedKeys.size === items.length && items.length > 0
                   }
                   onChange={toggleSelectAll}
+                  aria-label={t('admin.shared.select_all')}
                 />
                 <h3 className="font-semibold text-white text-sm">
                   {t('admin.shared.select_all')}
