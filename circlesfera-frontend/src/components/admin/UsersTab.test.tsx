@@ -279,7 +279,7 @@ describe('UsersTab', () => {
         name: 'Ban',
       }),
     );
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban user' }));
 
     await waitFor(() =>
       expect(refreshed).toHaveBeenCalledWith({
