@@ -98,10 +98,10 @@ describe('ExperimentsTab', () => {
       show();
 
       expect(
-        await screen.findByText('No feature flags configured.'),
+        await screen.findByText('No features configured.'),
       ).toBeInTheDocument();
       expect(
-        screen.getAllByRole('button', { name: 'New Flag' }).length,
+        screen.getAllByRole('button', { name: 'New feature' }).length,
       ).toBeGreaterThanOrEqual(2);
     });
 
@@ -152,7 +152,7 @@ describe('ExperimentsTab', () => {
         }),
       );
       await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith('Flag saved'),
+        expect(toast.success).toHaveBeenCalledWith('Feature saved'),
       );
     });
 
@@ -180,7 +180,7 @@ describe('ExperimentsTab', () => {
 
       expect(
         within(dialog()).getByText(
-          'This flag is active with 40% rollout. Deactivating it will affect included users.',
+          'It is active for 40% of people. Deactivating it will affect those who have it.',
         ),
       ).toBeInTheDocument();
       fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
@@ -232,8 +232,10 @@ describe('ExperimentsTab', () => {
 
     it('creates a flag only with a valid key and a name', async () => {
       show();
-      await screen.findByText('No feature flags configured.');
-      fireEvent.click(screen.getAllByRole('button', { name: 'New Flag' })[0]);
+      await screen.findByText('No features configured.');
+      fireEvent.click(
+        screen.getAllByRole('button', { name: 'New feature' })[0],
+      );
 
       const form = detail();
       const save = within(form).getByRole('button', { name: 'Save' });
@@ -286,7 +288,7 @@ describe('ExperimentsTab', () => {
       show();
 
       const card = await waitFor(() => cardOf('Flag a'));
-      fireEvent.click(within(card).getByRole('button', { name: 'Edit Flag' }));
+      fireEvent.click(within(card).getByRole('button', { name: 'Edit' }));
 
       const form = detail();
       expect(within(form).getByLabelText('Key')).toBeDisabled();
@@ -311,7 +313,7 @@ describe('ExperimentsTab', () => {
       show();
 
       const card = await waitFor(() => cardOf('Flag a'));
-      fireEvent.click(within(card).getByRole('button', { name: 'Edit Flag' }));
+      fireEvent.click(within(card).getByRole('button', { name: 'Edit' }));
       fireEvent.change(within(detail()).getByRole('spinbutton'), {
         target: { value: '90' },
       });
@@ -330,8 +332,10 @@ describe('ExperimentsTab', () => {
 
     it('closes the form on Cancel without saving', async () => {
       show();
-      await screen.findByText('No feature flags configured.');
-      fireEvent.click(screen.getAllByRole('button', { name: 'New Flag' })[1]);
+      await screen.findByText('No features configured.');
+      fireEvent.click(
+        screen.getAllByRole('button', { name: 'New feature' })[1],
+      );
       fireEvent.click(within(detail()).getByRole('button', { name: 'Cancel' }));
 
       expect(within(detail()).queryByLabelText('Key')).not.toBeInTheDocument();
@@ -343,26 +347,20 @@ describe('ExperimentsTab', () => {
       show();
 
       const card = await waitFor(() => cardOf('Flag a'));
-      fireEvent.click(
-        within(card).getByRole('button', { name: 'Delete Flag' }),
-      );
+      fireEvent.click(within(card).getByRole('button', { name: 'Delete' }));
       fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
       await waitFor(() =>
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
       );
       expect(api.deleteFeatureFlag).not.toHaveBeenCalled();
 
-      fireEvent.click(
-        within(card).getByRole('button', { name: 'Delete Flag' }),
-      );
-      fireEvent.click(
-        within(dialog()).getByRole('button', { name: 'Delete Flag' }),
-      );
+      fireEvent.click(within(card).getByRole('button', { name: 'Delete' }));
+      fireEvent.click(within(dialog()).getByRole('button', { name: 'Delete' }));
       await waitFor(() =>
         expect(api.deleteFeatureFlag).toHaveBeenCalledWith('flag_a'),
       );
       await waitFor(() =>
-        expect(toast.success).toHaveBeenCalledWith('Flag deleted'),
+        expect(toast.success).toHaveBeenCalledWith('Feature deleted'),
       );
     });
 
@@ -378,20 +376,18 @@ describe('ExperimentsTab', () => {
       });
       fireEvent.click(within(card).getByRole('button', { name: 'Save' }));
       await waitFor(() =>
-        expect(toast.error).toHaveBeenCalledWith('The flag could not be saved'),
+        expect(toast.error).toHaveBeenCalledWith(
+          'The feature could not be saved',
+        ),
       );
       // What was being changed stays, to try again.
       expect(within(card).getByText(/Active · 5%/)).toBeInTheDocument();
 
-      fireEvent.click(
-        within(card).getByRole('button', { name: 'Delete Flag' }),
-      );
-      fireEvent.click(
-        within(dialog()).getByRole('button', { name: 'Delete Flag' }),
-      );
+      fireEvent.click(within(card).getByRole('button', { name: 'Delete' }));
+      fireEvent.click(within(dialog()).getByRole('button', { name: 'Delete' }));
       await waitFor(() =>
         expect(toast.error).toHaveBeenCalledWith(
-          'The flag could not be deleted',
+          'The feature could not be deleted',
         ),
       );
     });
@@ -400,7 +396,7 @@ describe('ExperimentsTab', () => {
   describe('assignments', () => {
     it('marks which of the two sections is open', async () => {
       show();
-      const flags = screen.getByRole('button', { name: 'Feature Flags' });
+      const flags = screen.getByRole('button', { name: 'Feature rollout' });
       const assignments = screen.getByRole('button', {
         name: 'A/B Experiments',
       });

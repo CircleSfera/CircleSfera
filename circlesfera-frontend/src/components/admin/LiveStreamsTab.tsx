@@ -79,7 +79,7 @@ export default function LiveStreamsTab() {
       />
 
       {/* Summary Widgets */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         <AdminKpiWidget
           title={t('admin.lives.kpi_active')}
           value={activeStreams.length}
@@ -91,12 +91,6 @@ export default function LiveStreamsTab() {
           value={formatNumber(totalViewers, i18n.language)}
           icon={<Users size={16} />}
           iconColorClass="text-brand-primary bg-brand-primary/10"
-        />
-        <AdminKpiWidget
-          title={t('admin.lives.kpi_traffic')}
-          value={t('admin.lives.kpi_traffic_normal')}
-          icon={<Eye size={16} />}
-          iconColorClass="text-green-400 bg-green-400/10"
         />
       </div>
 

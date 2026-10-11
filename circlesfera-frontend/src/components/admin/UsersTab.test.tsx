@@ -1,4 +1,5 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -25,8 +26,11 @@ vi.mock('../../utils/adminPanel', () => ({
   platformOrigin: () => 'https://platform.test',
 }));
 vi.mock('./UserDetailPanel', () => ({
-  default: ({ userId }: { userId: string }) => (
-    <div data-testid="user-detail">{userId}</div>
+  default: ({ userId, actions }: { userId: string; actions?: ReactNode }) => (
+    <div data-testid="user-detail">
+      {userId}
+      {actions}
+    </div>
   ),
 }));
 
@@ -144,15 +148,18 @@ describe('UsersTab', () => {
     expect(within(first).getByText('1@example.com')).toBeInTheDocument();
     expect(within(first).getByText(/User · 3 posts/)).toBeInTheDocument();
     expect(within(first).getByText('active')).toBeInTheDocument();
-    expect(within(first).getByRole('button', { name: 'Ban' })).toBeEnabled();
+    // The ban is in the menu of the row, not a button of its own on it.
+    expect(
+      within(first).queryByRole('button', { name: 'Ban' }),
+    ).not.toBeInTheDocument();
 
     const second = rowOf('@person_2');
     expect(within(second).getByText(/Operator · 3 posts/)).toBeInTheDocument();
     expect(within(second).getByText('Test account')).toBeInTheDocument();
     expect(within(second).getByText('banned')).toBeInTheDocument();
     expect(
-      within(second).getByRole('button', { name: 'Unban' }),
-    ).toBeInTheDocument();
+      within(second).queryByRole('button', { name: 'Unban' }),
+    ).not.toBeInTheDocument();
 
     const third = rowOf('@person_3');
     expect(within(third).getByText(/Suspended until/)).toBeInTheDocument();
@@ -249,12 +256,23 @@ describe('UsersTab', () => {
     expect(screen.getByTestId('user-detail')).toHaveTextContent('1');
   });
 
+  it('offers the ban in the open record, and asks before doing it', async () => {
+    api.getUsers.mockResolvedValue(list([user('1')]) as never);
+    show();
+
+    fireEvent.click(await waitFor(() => rowOf('@person_1')));
+    const record = screen.getByTestId('user-detail');
+    fireEvent.click(within(record).getByRole('button', { name: 'Ban' }));
+
+    expect(within(dialog()).getByText('Ban this user?')).toBeInTheDocument();
+    expect(api.banUser).not.toHaveBeenCalled();
+  });
+
   it('bans only after confirming', async () => {
     api.getUsers.mockResolvedValue(list([user('1')]) as never);
     show();
 
-    const row = await waitFor(() => rowOf('@person_1'));
-    fireEvent.click(within(row).getByRole('button', { name: 'Ban' }));
+    await choose('@person_1', 'Ban');
     expect(within(dialog()).getByText('Ban this user?')).toBeInTheDocument();
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
@@ -262,7 +280,7 @@ describe('UsersTab', () => {
     );
     expect(api.banUser).not.toHaveBeenCalled();
 
-    fireEvent.click(within(row).getByRole('button', { name: 'Ban' }));
+    await choose('@person_1', 'Ban');
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
     await waitFor(() => expect(api.banUser).toHaveBeenCalledWith('1'));
     await waitFor(() =>
@@ -279,8 +297,7 @@ describe('UsersTab', () => {
     );
     show();
 
-    const row = await waitFor(() => rowOf('@person_1'));
-    fireEvent.click(within(row).getByRole('button', { name: 'Unban' }));
+    await choose('@person_1', 'Unban');
     fireEvent.click(
       within(dialog()).getByRole('button', { name: 'Unban User' }),
     );
@@ -495,8 +512,7 @@ describe('UsersTab', () => {
     api.deleteUser.mockRejectedValue(new Error('no'));
     show();
 
-    const row = await waitFor(() => rowOf('@person_1'));
-    fireEvent.click(within(row).getByRole('button', { name: 'Ban' }));
+    await choose('@person_1', 'Ban');
     fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Failed to ban user', 'error'),

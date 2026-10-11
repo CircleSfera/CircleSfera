@@ -91,8 +91,8 @@ describe('UserVerificationTab', () => {
     );
     await waitFor(
       () => {
-        expect(card('KYC Completed')).toHaveTextContent('40');
-        expect(card('KYC pending')).toHaveTextContent('7');
+        expect(card('Identity verified')).toHaveTextContent('40');
+        expect(card('Verification pending')).toHaveTextContent('7');
         expect(card('Not started')).toHaveTextContent('300');
       },
       { timeout: 4000 },
@@ -104,7 +104,7 @@ describe('UserVerificationTab', () => {
     show();
 
     await screen.findByText('No users found');
-    expect(card('KYC pending')).toHaveTextContent('0');
+    expect(card('Verification pending')).toHaveTextContent('0');
   });
 
   it('asks again from the first page on a search or a status', async () => {
@@ -142,9 +142,12 @@ describe('UserVerificationTab', () => {
         undefined,
       ),
     );
-    fireEvent.change(screen.getByRole('combobox', { name: 'KYC status' }), {
-      target: { value: 'pending' },
-    });
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'Verification status' }),
+      {
+        target: { value: 'pending' },
+      },
+    );
     await waitFor(() =>
       expect(api.getUsers).toHaveBeenLastCalledWith(
         1,
@@ -178,21 +181,21 @@ describe('UserVerificationTab', () => {
 
     await screen.findByText('@person_new');
     const fresh = rowOf('@person_new');
-    expect(within(fresh).getByText('KYC Not Started')).toHaveClass(
+    expect(within(fresh).getByText('Not verified')).toHaveClass(
       'text-white/50',
     );
     expect(within(fresh).getByText('now')).toBeInTheDocument();
     expect(within(fresh).getByText('PERSONAL')).toBeInTheDocument();
 
     const done = rowOf('@person_done');
-    expect(within(done).getByText('KYC Completed')).toHaveClass(
+    expect(within(done).getByText('Identity verified')).toHaveClass(
       'text-green-400',
     );
     expect(within(done).getByText('45m ago')).toBeInTheDocument();
     expect(within(done).getByText('CREATOR')).toBeInTheDocument();
 
     const waiting = rowOf('@person_wait');
-    expect(within(waiting).getByText('KYC In Progress')).toHaveClass(
+    expect(within(waiting).getByText('Verification in progress')).toHaveClass(
       'text-yellow-400',
     );
     expect(within(waiting).getByText('5h ago')).toBeInTheDocument();
@@ -216,7 +219,7 @@ describe('UserVerificationTab', () => {
     ).not.toBeInTheDocument();
     expect(
       within(open).queryByRole('button', {
-        name: 'Revoke Verification and Force KYC',
+        name: 'Revoke the verification and ask for it again',
       }),
     ).not.toBeInTheDocument();
     expect(
@@ -244,7 +247,7 @@ describe('UserVerificationTab', () => {
     await waitFor(() => expect(api.syncUserKYC).toHaveBeenCalledWith('a'));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        'KYC synced: identity verified',
+        'Synced: identity verified',
         'success',
       ),
     );
@@ -252,9 +255,9 @@ describe('UserVerificationTab', () => {
   });
 
   it.each([
-    [{ data: { status: 'already_verified' } }, 'KYC synced: identity verified'],
-    [{ data: { status: 'processing' } }, 'KYC synced: processing'],
-    [{ data: {} }, 'KYC synced: ok'],
+    [{ data: { status: 'already_verified' } }, 'Synced: identity verified'],
+    [{ data: { status: 'processing' } }, 'Synced: processing'],
+    [{ data: {} }, 'Synced: ok'],
   ])('reports a sync that answers %j', async (answer, message) => {
     api.syncUserKYC.mockResolvedValue(answer as never);
     api.getUsers.mockResolvedValue(
@@ -288,7 +291,7 @@ describe('UserVerificationTab', () => {
 
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        'Failed to sync KYC with Stripe',
+        'Could not sync with Stripe',
         'error',
       ),
     );
@@ -320,13 +323,13 @@ describe('UserVerificationTab', () => {
     const revoke = () =>
       fireEvent.click(
         within(detail()).getByRole('button', {
-          name: 'Revoke Verification and Force KYC',
+          name: 'Revoke the verification and ask for it again',
         }),
       );
     revoke();
     let dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText('Revoke KYC verification?'),
+      within(dialog).getByText('Revoke the identity verification?'),
     ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
@@ -341,7 +344,7 @@ describe('UserVerificationTab', () => {
     await waitFor(() => expect(api.revokeUserKYC).toHaveBeenCalledWith('a'));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(
-        'KYC verification revoked',
+        'Identity verification revoked',
         'success',
       ),
     );
@@ -359,7 +362,7 @@ describe('UserVerificationTab', () => {
 
     fireEvent.click(
       within(detail()).getByRole('button', {
-        name: 'Revoke Verification and Force KYC',
+        name: 'Revoke the verification and ask for it again',
       }),
     );
     fireEvent.click(
@@ -369,7 +372,10 @@ describe('UserVerificationTab', () => {
     );
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to revoke KYC', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'The verification could not be revoked',
+        'error',
+      ),
     );
   });
 

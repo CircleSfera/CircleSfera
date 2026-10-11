@@ -342,6 +342,9 @@ export default function Dashboard({ onToast }: Props) {
 
   const isPending = actionMutation.isPending;
   const users = data?.data ?? [];
+  // The open record offers the ban only while its row is on this page of the
+  // list: the state of the account comes from the row.
+  const selectedUser = users.find((user) => user.id === selectedUserId);
 
   const openProfile = (user: AdminUser) => {
     const handle = usernameOf(user);
@@ -545,25 +548,6 @@ export default function Dashboard({ onToast }: Props) {
                           size="sm"
                         />
                       }
-                      primaryAction={
-                        user.isActive ? (
-                          <ActionButton
-                            onClick={() => askConfirm('ban', user)}
-                            label={t('admin.users.action_ban')}
-                            variant="danger"
-                            icon={Ban}
-                            disabled={isPending}
-                          />
-                        ) : (
-                          <ActionButton
-                            onClick={() => askConfirm('unban', user)}
-                            label={t('admin.users.action_unban')}
-                            variant="success"
-                            icon={UserCheck}
-                            disabled={isPending}
-                          />
-                        )
-                      }
                       secondaryActions={[
                         {
                           label: t('admin.users.action_view_detail'),
@@ -601,6 +585,21 @@ export default function Dashboard({ onToast }: Props) {
                               user,
                             ),
                         },
+                        user.isActive
+                          ? {
+                              label: t('admin.users.action_ban'),
+                              icon: Ban,
+                              variant: 'danger' as const,
+                              dividerBefore: true,
+                              disabled: isPending,
+                              onClick: () => askConfirm('ban', user),
+                            }
+                          : {
+                              label: t('admin.users.action_unban'),
+                              icon: UserCheck,
+                              disabled: isPending,
+                              onClick: () => askConfirm('unban', user),
+                            },
                         {
                           label: t('admin.users.action_view_profile'),
                           icon: ExternalLink,
@@ -625,7 +624,32 @@ export default function Dashboard({ onToast }: Props) {
           </div>
         }
         detail={
-          selectedUserId ? <UserDetailPanel userId={selectedUserId} /> : null
+          selectedUser ? (
+            <UserDetailPanel
+              userId={selectedUser.id}
+              actions={
+                selectedUser.isActive ? (
+                  <ActionButton
+                    onClick={() => askConfirm('ban', selectedUser)}
+                    label={t('admin.users.action_ban')}
+                    variant="danger"
+                    icon={Ban}
+                    disabled={isPending}
+                  />
+                ) : (
+                  <ActionButton
+                    onClick={() => askConfirm('unban', selectedUser)}
+                    label={t('admin.users.action_unban')}
+                    variant="success"
+                    icon={UserCheck}
+                    disabled={isPending}
+                  />
+                )
+              }
+            />
+          ) : selectedUserId ? (
+            <UserDetailPanel userId={selectedUserId} />
+          ) : null
         }
       />
 

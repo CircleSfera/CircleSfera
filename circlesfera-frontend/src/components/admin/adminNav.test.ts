@@ -5,6 +5,7 @@ import {
   canOpenTab,
   getAdminHomeTab,
   isAdminTab,
+  navGroupsFor,
   navItemsFor,
   tabSite,
 } from './adminNav';
@@ -45,6 +46,24 @@ describe('the two staff sites', () => {
       'monetization',
       'newsletter',
     ]);
+  });
+
+  it('keeps the queues of moderation work together, after Users', () => {
+    const groups = navGroupsFor('admin');
+    const idsOf = (labelKey: string) =>
+      groups
+        .find((group) => group.labelKey === labelKey)
+        ?.items.map((item) => item.id) ?? [];
+
+    expect(idsOf('admin.nav.moderation').slice(0, 4)).toEqual([
+      'users',
+      'reports',
+      'appeals',
+      'spam-review',
+    ]);
+    expect(idsOf('admin.nav.system')).not.toContain('reports');
+    expect(idsOf('admin.nav.system')).not.toContain('appeals');
+    expect(idsOf('admin.nav.system')).not.toContain('spam-review');
   });
 
   it('keeps every other section in the Admin Panel, and none in both', () => {

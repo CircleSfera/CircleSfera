@@ -78,7 +78,9 @@ describe('WhitelistTab', () => {
   it('says the list is empty and counts nobody', async () => {
     renderWithProviders(<WhitelistTab />);
 
-    expect(await screen.findByText('No whitelist entries')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Nobody on the waitlist'),
+    ).toBeInTheDocument();
     expect(api.getWhitelist).toHaveBeenCalledWith(1, 10, undefined);
     expect(screen.getByText('Total: 0 interested')).toBeInTheDocument();
   });
@@ -105,7 +107,7 @@ describe('WhitelistTab', () => {
     expect(api.getWhitelist).toHaveBeenLastCalledWith(2, 10, undefined);
 
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Search whitelist...' }),
+      screen.getByRole('textbox', { name: 'Search the waitlist...' }),
       { target: { value: 'found' } },
     );
     await waitFor(() =>
@@ -118,11 +120,11 @@ describe('WhitelistTab', () => {
 
   it('adds a person by email, with the name when given', async () => {
     renderWithProviders(<WhitelistTab />);
-    await screen.findByText('No whitelist entries');
+    await screen.findByText('Nobody on the waitlist');
 
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Add to whitelist')).toBeInTheDocument();
+    expect(within(dialog).getByText('Add to the waitlist')).toBeInTheDocument();
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Email' }), {
       target: { value: '  new@example.com ' },
     });
@@ -140,7 +142,7 @@ describe('WhitelistTab', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     );
-    expect(toast.success).toHaveBeenCalledWith('Added to the whitelist');
+    expect(toast.success).toHaveBeenCalledWith('Added to the waitlist');
     expect(api.getWhitelist).toHaveBeenCalledTimes(2);
 
     // The form starts empty the next time.
@@ -154,7 +156,7 @@ describe('WhitelistTab', () => {
 
   it('adds without a name, and adds nothing without an email', async () => {
     renderWithProviders(<WhitelistTab />);
-    await screen.findByText('No whitelist entries');
+    await screen.findByText('Nobody on the waitlist');
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     const dialog = await screen.findByRole('dialog');
 
@@ -179,7 +181,7 @@ describe('WhitelistTab', () => {
   it('says so when a person cannot be added and keeps what was typed', async () => {
     api.createWhitelist.mockRejectedValue(new Error('duplicate'));
     renderWithProviders(<WhitelistTab />);
-    await screen.findByText('No whitelist entries');
+    await screen.findByText('Nobody on the waitlist');
     fireEvent.click(screen.getByRole('button', { name: 'Add' }));
     const dialog = await screen.findByRole('dialog');
     fireEvent.change(within(dialog).getByRole('textbox', { name: 'Email' }), {
@@ -189,9 +191,7 @@ describe('WhitelistTab', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Add' }));
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith(
-        'Could not add to the whitelist',
-      ),
+      expect(toast.error).toHaveBeenCalledWith('Could not add to the waitlist'),
     );
     expect(
       within(screen.getByRole('dialog')).getByRole('textbox', {
