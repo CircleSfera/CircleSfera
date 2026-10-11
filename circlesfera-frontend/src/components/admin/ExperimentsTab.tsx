@@ -439,8 +439,6 @@ export default function ExperimentsTab() {
 
   return (
     <div className="space-y-2.5">
-      <SubTabToggle activeTab={subTab} onTabChange={setSubTab} />
-
       {/* ═══ Feature Flags Section ═══ */}
       {subTab === 'flags' && (
         <div className="space-y-2.5">
@@ -457,6 +455,11 @@ export default function ExperimentsTab() {
               </Button>
             }
           />
+
+          {/* Like every section: the title first, then what narrows the list. */}
+          <AdminFilterBar>
+            <SubTabToggle activeTab={subTab} onTabChange={setSubTab} />
+          </AdminFilterBar>
 
           <AdminSplitView
             hasSelection={isCreatingFlag || !!editingFlag}
@@ -680,6 +683,7 @@ export default function ExperimentsTab() {
           />
 
           <AdminFilterBar>
+            <SubTabToggle activeTab={subTab} onTabChange={setSubTab} />
             <SearchInput
               value={search}
               onChange={(v) => {
