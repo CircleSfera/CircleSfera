@@ -486,7 +486,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
         actions={leadsTeam ? <SupportFigures /> : undefined}
       />
 
-      <AdminFilterBar>
+      {/* On a phone an open ticket takes the screen: the filters of the
+          list wait until it is closed. */}
+      <AdminFilterBar
+        className={selectedTicketId ? 'max-lg:hidden' : undefined}
+      >
         <AdminSegmentedControl
           value={whose}
           onChange={(value) => {
@@ -500,7 +504,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
             { value: 'unassigned', label: t('admin.support.whose_unassigned') },
           ]}
         />
-        <div className="sm:w-44">
+        <div>
           <FilterDropdown
             label={t('admin.support.filter_priority')}
             value={priorityFilter}
@@ -617,13 +621,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     subtitle={ticket.email}
                     badge={
                       <span
-                        className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${statusBadgeClass(ticket.status)}`}
+                        className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusBadgeClass(ticket.status)}`}
                       >
-                        {ticket.status === 'ESCALATED'
-                          ? t('admin.support.status_escalated')
-                          : ticket.status === 'WAITING'
-                            ? t('admin.support.status_waiting')
-                            : ticket.status}
+                        {t(`admin.support.badge.${ticket.status}`, {
+                          defaultValue: ticket.status,
+                        })}
                       </span>
                     }
                     meta={
@@ -753,13 +755,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </dt>
                       <dd>
                         <span
-                          className={`px-2 py-0.5 rounded-md text-[11px] font-semibold uppercase tracking-wide ${statusBadgeClass(selectedTicket.status)}`}
+                          className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusBadgeClass(selectedTicket.status)}`}
                         >
-                          {selectedTicket.status === 'ESCALATED'
-                            ? t('admin.support.status_escalated')
-                            : selectedTicket.status === 'WAITING'
-                              ? t('admin.support.status_waiting')
-                              : selectedTicket.status}
+                          {t(`admin.support.badge.${selectedTicket.status}`, {
+                            defaultValue: selectedTicket.status,
+                          })}
                         </span>
                       </dd>
                     </div>
@@ -800,7 +800,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       <dt className="text-xs font-medium text-white/40">
                         {t('admin.support.filter_priority')}
                       </dt>
-                      <dd className="w-40">
+                      <dd>
                         <FilterDropdown
                           label={t('admin.support.set_priority')}
                           value={selectedTicket.priority ?? 'NORMAL'}

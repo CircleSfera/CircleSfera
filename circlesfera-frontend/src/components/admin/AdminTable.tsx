@@ -124,7 +124,14 @@ const STATUS_STYLES: Record<
   },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+// `label` is the state in words; without it the state is shown as stored.
+export function StatusBadge({
+  status,
+  label,
+}: {
+  status: string;
+  label?: string;
+}) {
   const entry = STATUS_STYLES[status.toLowerCase()] || STATUS_STYLES.pending;
   const Icon = entry.icon;
 
@@ -136,7 +143,7 @@ export function StatusBadge({ status }: { status: string }) {
       )}
     >
       <Icon size={12} />
-      {status}
+      {label ?? status}
     </span>
   );
 }
@@ -280,21 +287,28 @@ export function FilterDropdown({
   // One id for each filter: a screen often shows two of them.
   const id = useId();
   return (
-    <Select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="min-w-35"
-      // In a form the name is shown above the field; in a filter bar it is
-      // read out only, and the first option says what is being filtered.
-      {...(visibleLabel ? { label } : { 'aria-label': label })}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="bg-surface-raised">
-          {opt.label}
-        </option>
-      ))}
-    </Select>
+    // The width is set on the box around the field: set on the field it
+    // spilled over the next filter.
+    <div className="min-w-40 lg:min-w-52">
+      <Select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        // In a form the name is shown above the field; in a filter bar it is
+        // read out only, and the first option says what is being filtered.
+        {...(visibleLabel ? { label } : { 'aria-label': label })}
+      >
+        {options.map((opt) => (
+          <option
+            key={opt.value}
+            value={opt.value}
+            className="bg-surface-raised"
+          >
+            {opt.label}
+          </option>
+        ))}
+      </Select>
+    </div>
   );
 }
 

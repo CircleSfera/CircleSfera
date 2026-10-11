@@ -143,7 +143,7 @@ describe('PromotionsTab', () => {
     );
   });
 
-  it('shows each request with its budget in units and its estimated reach', async () => {
+  it('shows each request with its budget as money, its estimated reach and its state in words', async () => {
     api.getPromotions.mockResolvedValue(
       list([
         promo('a', {
@@ -165,18 +165,16 @@ describe('PromotionsTab', () => {
     await screen.findByText('@brand_a');
     const first = rowOf('@brand_a');
     expect(
-      within(first).getByText('25.50 EUR · 12,000 est. reach'),
+      within(first).getByText(/25\.50.*· 12,000 reach/),
     ).toBeInTheDocument();
-    expect(within(first).getByText('PENDING')).toBeInTheDocument();
+    expect(within(first).getByText('Pending')).toBeInTheDocument();
     expect(first.querySelector('img')).toHaveAttribute(
       'src',
       'https://media.test/a-thumb.jpg',
     );
 
     const bare = rowOf('@—');
-    expect(
-      within(bare).getByText('5.00 EUR · 0 est. reach'),
-    ).toBeInTheDocument();
+    expect(within(bare).getByText(/5\.00.*· 0 reach/)).toBeInTheDocument();
     expect(bare.querySelector('img')).toBeNull();
     expect(rowOf('@brand_c').querySelector('img')).toHaveAttribute(
       'src',

@@ -2957,6 +2957,13 @@
         "banned": "Banned",
         "suspended": "Suspended",
         "in_good_standing": "In good standing"
+      },
+      "badge": {
+        "OPEN": "Open",
+        "RESOLVED": "Solved",
+        "CLOSED": "Closed",
+        "WAITING": "Waiting for requester",
+        "ESCALATED": "With moderation"
       }
     },
     "audit": {
@@ -3217,7 +3224,7 @@
       "empty_title": "No promotions",
       "empty_filtered_description": "Try another term or adjust the status filter.",
       "empty_description": "There are no promotion requests at this time.",
-      "reach_estimate": "{{budget}} {{currency}} · {{reach}} est. reach",
+      "reach_estimate": "{{budget}} · {{reach}} reach",
       "detail_select_title": "Select a promotion",
       "detail_select_description": "Review details and approve the campaign",
       "action_reject": "Reject",
@@ -3236,7 +3243,16 @@
       "confirm_reject_message": "You can optionally provide a reason for rejection.",
       "confirm_reject": "Reject",
       "reject_reason_label": "Rejection reason",
-      "reject_reason_placeholder": "Enter the rejection reason..."
+      "reject_reason_placeholder": "Enter the rejection reason...",
+      "badge": {
+        "PENDING": "Pending",
+        "ACTIVE": "Active",
+        "COMPLETED": "Completed",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled",
+        "FAILED": "Payment failed",
+        "PAUSED": "Paused"
+      }
     },
     "newsletter": {
       "title": "Newsletter",

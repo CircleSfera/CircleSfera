@@ -2957,6 +2957,13 @@
         "banned": "Bloqueado",
         "suspended": "Suspendido",
         "in_good_standing": "En regla"
+      },
+      "badge": {
+        "OPEN": "Abierto",
+        "RESOLVED": "Resuelto",
+        "CLOSED": "Cerrado",
+        "WAITING": "Esperando al cliente",
+        "ESCALATED": "En moderación"
       }
     },
     "audit": {
@@ -3217,7 +3224,7 @@
       "empty_title": "No hay promociones",
       "empty_filtered_description": "Prueba otro término o ajusta el filtro de estado.",
       "empty_description": "No hay solicitudes de promoción en este momento.",
-      "reach_estimate": "{{budget}} {{currency}} · {{reach}} alcance est.",
+      "reach_estimate": "{{budget}} · {{reach}} de alcance",
       "detail_select_title": "Selecciona una promoción",
       "detail_select_description": "Para revisar los detalles y aprobar la campaña",
       "action_reject": "Rechazar",
@@ -3236,7 +3243,16 @@
       "confirm_reject_message": "Opcionalmente puedes proporcionar un motivo para el rechazo.",
       "confirm_reject": "Rechazar",
       "reject_reason_label": "Motivo del rechazo",
-      "reject_reason_placeholder": "Escribe el motivo del rechazo..."
+      "reject_reason_placeholder": "Escribe el motivo del rechazo...",
+      "badge": {
+        "PENDING": "Pendiente",
+        "ACTIVE": "Activa",
+        "COMPLETED": "Completada",
+        "REJECTED": "Rechazada",
+        "CANCELLED": "Cancelada",
+        "FAILED": "Pago fallido",
+        "PAUSED": "En pausa"
+      }
     },
     "newsletter": {
       "title": "Newsletter",

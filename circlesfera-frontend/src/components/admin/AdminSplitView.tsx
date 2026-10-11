@@ -40,7 +40,13 @@ export function AdminSplitView({
 
   return (
     <div
-      className={`flex flex-col lg:flex-row min-h-0 lg:min-h-[18rem] lg:h-[calc(100vh-13rem)] glass-panel rounded-xl overflow-hidden ${className || ''}`}
+      // On a phone the list is a stack of cards of its own: the pane around
+      // them is not drawn, so there is no card inside a card.
+      className={`flex flex-col lg:flex-row min-h-0 lg:min-h-[18rem] lg:h-[calc(100vh-13rem)] glass-panel rounded-xl overflow-hidden ${
+        hasSelection
+          ? ''
+          : 'max-lg:bg-transparent! max-lg:border-0! max-lg:shadow-none! max-lg:backdrop-filter-none! max-lg:rounded-none max-lg:overflow-visible'
+      } ${className || ''}`}
     >
       <section
         aria-label={listAriaLabel || listTitle || t('admin.split.list_region')}
@@ -57,7 +63,7 @@ export function AdminSplitView({
             </h3>
           </div>
         )}
-        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-2 sm:p-2.5 lg:p-3">
+        <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar lg:p-3">
           {list}
         </div>
       </section>
