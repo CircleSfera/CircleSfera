@@ -27,6 +27,7 @@ import {
   ShieldAlert,
   ShieldCheck,
   Users,
+  Wallet,
 } from 'lucide-react';
 import {
   adminPanelOrigin,
@@ -142,7 +143,7 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       {
         id: 'payouts',
         labelKey: 'admin.nav.payouts',
-        icon: DollarSign,
+        icon: Wallet,
       },
       {
         id: 'promotions',

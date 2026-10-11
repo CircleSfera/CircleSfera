@@ -16,6 +16,7 @@ import { adminApi } from '../../services/admin.service';
 import { paymentsApi } from '../../services/payments.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDateTime } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
@@ -173,6 +174,10 @@ export default function MonetizationTab() {
         <StatCard
           label={t('admin.monetization.mrr_label')}
           value={analytics?.activeMRR || 0}
+          // The same amount, written the same way, as on the Backoffice home.
+          formatValue={(amount) =>
+            formatCents(Math.round(amount * 100), i18n.language)
+          }
           icon={Zap}
           color="blue"
           growth={analytics?.subscriptionGrowth}

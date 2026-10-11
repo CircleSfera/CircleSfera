@@ -3654,7 +3654,15 @@
       "filter_all": "All states",
       "filter_failed_cancelled": "Failed/Cancelled",
       "empty_title": "No payouts recorded",
-      "empty_description": "Stripe Connect withdrawals will appear here."
+      "empty_description": "Stripe Connect withdrawals will appear here.",
+      "badge": {
+        "paid": "Paid",
+        "pending": "Pending",
+        "in_transit": "In transit",
+        "failed": "Failed",
+        "canceled": "Cancelled"
+      },
+      "arrives_on": "Arrival: {{date}}"
     },
     "roles": {
       "search_placeholder": "Search administrators..."

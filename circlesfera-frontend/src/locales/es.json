@@ -3654,7 +3654,15 @@
       "filter_all": "Todos los estados",
       "filter_failed_cancelled": "Fallidos/Cancelados",
       "empty_title": "No hay pagos registrados",
-      "empty_description": "Los retiros de Stripe Connect aparecerán aquí."
+      "empty_description": "Los retiros de Stripe Connect aparecerán aquí.",
+      "badge": {
+        "paid": "Pagado",
+        "pending": "Pendiente",
+        "in_transit": "En camino",
+        "failed": "Fallido",
+        "canceled": "Cancelado"
+      },
+      "arrives_on": "Llegada: {{date}}"
     },
     "roles": {
       "search_placeholder": "Buscar administradores..."
