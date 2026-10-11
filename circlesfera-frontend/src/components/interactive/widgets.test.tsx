@@ -147,6 +147,17 @@ describe('QnaWidget', () => {
   const send = () => screen.getByRole('button', { name: 'Send answer' });
 
   describe('for someone answering', () => {
+    beforeEach(() => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          id: 'box-1',
+          prompt: 'Where should I go next?',
+          totalAnswers: 0,
+          answers: [],
+        },
+      });
+    });
+
     it('shows the question it is given and asks the server for nothing', () => {
       renderWithProviders(
         <QnaWidget qnaBoxId="box-1" prompt="Where should I go next?" />,
@@ -157,9 +168,55 @@ describe('QnaWidget', () => {
       expect(send()).toBeDisabled();
     });
 
-    it('shows a general invitation when it is given no question', () => {
+    it('reads the question the creator wrote when it is not given one', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          id: 'box-1',
+          prompt: 'Where should I go next?',
+          totalAnswers: 0,
+          answers: [],
+        },
+      });
       renderWithProviders(<QnaWidget qnaBoxId="box-1" />);
+
+      expect(
+        await screen.findByText('Where should I go next?'),
+      ).toBeInTheDocument();
+      expect(apiClient.get).toHaveBeenCalledWith('interactive/qna/box-1');
+      expect(field()).toBeInTheDocument();
+    });
+
+    it('shows a general invitation while the question is on its way, or cannot be read', async () => {
+      vi.mocked(apiClient.get).mockRejectedValue(new Error('down'));
+      renderWithProviders(<QnaWidget qnaBoxId="box-1" />);
+
       expect(screen.getByText('Ask me anything…')).toBeInTheDocument();
+      await waitFor(() => expect(apiClient.get).toHaveBeenCalled());
+      expect(screen.getByText('Ask me anything…')).toBeInTheDocument();
+      expect(field()).toBeInTheDocument();
+    });
+
+    it('never shows the answers of others to someone answering', async () => {
+      vi.mocked(apiClient.get).mockResolvedValue({
+        data: {
+          id: 'box-1',
+          prompt: 'Where should I go next?',
+          totalAnswers: 1,
+          answers: [
+            {
+              id: 'a1',
+              answerText: 'Lisbon',
+              createdAt: '',
+              user: { id: 'u1', username: 'ana' },
+            },
+          ],
+        },
+      });
+      renderWithProviders(<QnaWidget qnaBoxId="box-1" />);
+
+      await screen.findByText('Where should I go next?');
+      expect(screen.queryByText('Lisbon')).not.toBeInTheDocument();
+      expect(screen.queryByText('@ana')).not.toBeInTheDocument();
     });
 
     it('sends the answer and says it was sent', async () => {

@@ -23,6 +23,7 @@ describe('InteractiveService', () => {
     },
     qnaAnswer: {
       create: vi.fn(),
+      findMany: vi.fn(),
     },
     post: {
       findUnique: vi.fn(),
@@ -427,45 +428,113 @@ describe('InteractiveService', () => {
   });
 
   describe('getQnaBox', () => {
+    const answers = [
+      {
+        id: 'ans-1',
+        answerText: 'Hello',
+        createdAt: new Date('2026-01-01'),
+        profile: {
+          id: 'profile-1',
+          username: 'alice',
+          avatar: 'https://cdn/a.png',
+          fullName: 'Alice',
+          user: { id: 'user-1' },
+        },
+      },
+      {
+        id: 'ans-2',
+        answerText: 'Anonymous answer',
+        createdAt: new Date('2026-01-02'),
+        profile: null,
+      },
+    ];
+    const boxOnStory = {
+      id: 'qna-1',
+      prompt: 'Ask me anything',
+      post: null,
+      story: { profileId: 'owner-profile' },
+    };
+
+    beforeEach(() => {
+      mockPrismaService.qnaAnswer.findMany.mockReset();
+      mockPrismaService.qnaAnswer.findMany.mockResolvedValue(answers);
+    });
+
     it('throws NotFound if Q&A box does not exist', async () => {
       mockPrismaService.qnaBox.findUnique.mockResolvedValueOnce(null);
       await expect(service.getQnaBox('qna-none')).rejects.toThrow(AppException);
     });
 
-    it('maps answer profile onto user shape for clients with fallback', async () => {
+    it.each([
+      ['someone not signed in', undefined],
+      ['another profile', 'viewer-profile'],
+    ])(
+      'gives %s the question and no answer, without reading the answers',
+      async (_who, viewer) => {
+        mockPrismaService.qnaBox.findUnique.mockResolvedValue(boxOnStory);
+
+        const res = await service.getQnaBox('qna-1', viewer);
+
+        expect(res).toEqual({
+          id: 'qna-1',
+          prompt: 'Ask me anything',
+          totalAnswers: 0,
+          answers: [],
+        });
+        expect(mockPrismaService.qnaAnswer.findMany).not.toHaveBeenCalled();
+      },
+    );
+
+    it('gives no answer when the box has no owner to compare with', async () => {
       mockPrismaService.qnaBox.findUnique.mockResolvedValue({
-        id: 'qna-1',
-        prompt: 'Ask me anything',
-        answers: [
-          {
-            id: 'ans-1',
-            answerText: 'Hello',
-            createdAt: new Date('2026-01-01'),
-            profile: {
-              id: 'profile-1',
-              username: 'alice',
-              avatar: 'https://cdn/a.png',
-              fullName: 'Alice',
-              user: { id: 'user-1' },
-            },
-          },
-          {
-            id: 'ans-2',
-            answerText: 'Anonymous answer',
-            createdAt: new Date('2026-01-02'),
-            profile: null,
-          },
-        ],
+        ...boxOnStory,
+        story: null,
       });
 
-      const res = await service.getQnaBox('qna-1');
-      expect(res.answers[0].user).toEqual({
-        id: 'user-1',
-        username: 'alice',
-        fullName: 'Alice',
-        avatar: 'https://cdn/a.png',
-      });
-      expect(res.answers[1].user.username).toBe('usuario');
+      const res = await service.getQnaBox('qna-1', 'owner-profile');
+
+      expect(res.answers).toEqual([]);
+      expect(mockPrismaService.qnaAnswer.findMany).not.toHaveBeenCalled();
     });
+
+    it.each([
+      ['a story', { post: null, story: { profileId: 'owner-profile' } }],
+      ['a post', { post: { profileId: 'owner-profile' }, story: null }],
+    ])(
+      'gives the owner of %s every answer, newest first, with who gave it',
+      async (_where, owner) => {
+        mockPrismaService.qnaBox.findUnique.mockResolvedValue({
+          ...boxOnStory,
+          ...owner,
+        });
+
+        const res = await service.getQnaBox('qna-1', 'owner-profile');
+
+        expect(mockPrismaService.qnaAnswer.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            where: { qnaBoxId: 'qna-1' },
+            orderBy: { createdAt: 'desc' },
+          }),
+        );
+        expect(res.totalAnswers).toBe(2);
+        expect(res.answers[0]).toMatchObject({
+          id: 'ans-1',
+          answerText: 'Hello',
+          user: {
+            id: 'user-1',
+            username: 'alice',
+            fullName: 'Alice',
+            avatar: 'https://cdn/a.png',
+          },
+        });
+        // An answer whose profile is gone keeps a neutral name.
+        expect(res.answers[1].user).toEqual({
+          id: '',
+          username: 'usuario',
+          fullName: 'usuario',
+          avatar: null,
+        });
+      },
+    );
   });
 });
