@@ -2413,7 +2413,7 @@
       "tab_appeals": "Appeals",
       "search_placeholder": "Search...",
       "filter_type": "Type",
-      "type_all": "All",
+      "type_all": "All types",
       "type_post": "Posts",
       "type_story": "Stories",
       "type_comment": "Comments",
@@ -2454,7 +2454,7 @@
       "subtitle": "Pending report moderation queue",
       "search_placeholder": "Search reports...",
       "filter_status": "Status",
-      "status_all": "All",
+      "status_all": "All states",
       "status_pending": "Pending",
       "status_reviewing": "Reviewing",
       "status_resolved": "Resolved",
@@ -2556,13 +2556,14 @@
       "col_type": "Type",
       "col_parties": "Parties",
       "col_amount": "Amount",
-      "col_status": "Status"
+      "col_status": "Status",
+      "status_all": "All states"
     },
     "appeals": {
       "title": "Appeals",
       "subtitle": "Review user appeals for bans and content removals",
       "filter_status": "Status",
-      "status_all": "All",
+      "status_all": "All states",
       "status_pending": "Pending",
       "status_approved": "Approved",
       "status_rejected": "Rejected",
@@ -2737,7 +2738,7 @@
       "whose_unassigned": "Unassigned",
       "filter_priority": "Priority",
       "set_priority": "Priority of the ticket",
-      "priority_all": "Any priority",
+      "priority_all": "All priorities",
       "priority": {
         "HIGH": "High",
         "NORMAL": "Normal",
@@ -2910,7 +2911,7 @@
       "title": "Support tickets",
       "subtitle": "Manage user support requests and replies",
       "filter_status": "Status",
-      "status_all": "All",
+      "status_all": "All states",
       "status_open": "Open",
       "status_resolved": "Resolved",
       "status_closed": "Closed",
@@ -2956,6 +2957,13 @@
         "banned": "Banned",
         "suspended": "Suspended",
         "in_good_standing": "In good standing"
+      },
+      "badge": {
+        "OPEN": "Open",
+        "RESOLVED": "Solved",
+        "CLOSED": "Closed",
+        "WAITING": "Waiting for requester",
+        "ESCALATED": "With moderation"
       }
     },
     "audit": {
@@ -3096,7 +3104,7 @@
       "status_expired": "Expired",
       "status_active": "Active",
       "filter_expired": "Expiry",
-      "expired_all": "All",
+      "expired_all": "Active and expired",
       "filter_moderation": "Moderation",
       "views_count": "{{count}} views",
       "action_delete": "Delete",
@@ -3117,7 +3125,8 @@
       "toast_moderation_error": "Failed to update story moderation",
       "confirm_delete_title": "Delete this story?",
       "confirm_delete_message": "Are you sure you want to permanently delete this story?",
-      "confirm_delete": "Delete"
+      "confirm_delete": "Delete",
+      "moderation_all": "All moderation states"
     },
     "comments": {
       "title": "Comments",
@@ -3205,7 +3214,7 @@
       "subtitle": "Ad requests and sponsored posts",
       "search_placeholder": "Search user...",
       "filter_status": "Status",
-      "status_all": "All",
+      "status_all": "All states",
       "status_pending": "Pending",
       "status_active": "Active",
       "status_completed": "Completed",
@@ -3215,7 +3224,7 @@
       "empty_title": "No promotions",
       "empty_filtered_description": "Try another term or adjust the status filter.",
       "empty_description": "There are no promotion requests at this time.",
-      "reach_estimate": "{{budget}} {{currency}} · {{reach}} est. reach",
+      "reach_estimate": "{{budget}} · {{reach}} reach",
       "detail_select_title": "Select a promotion",
       "detail_select_description": "Review details and approve the campaign",
       "action_reject": "Reject",
@@ -3234,7 +3243,16 @@
       "confirm_reject_message": "You can optionally provide a reason for rejection.",
       "confirm_reject": "Reject",
       "reject_reason_label": "Rejection reason",
-      "reject_reason_placeholder": "Enter the rejection reason..."
+      "reject_reason_placeholder": "Enter the rejection reason...",
+      "badge": {
+        "PENDING": "Pending",
+        "ACTIVE": "Active",
+        "COMPLETED": "Completed",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled",
+        "FAILED": "Payment failed",
+        "PAUSED": "Paused"
+      }
     },
     "newsletter": {
       "title": "Newsletter",
@@ -3649,10 +3667,18 @@
       "kpi_pending": "Pending",
       "kpi_failed": "Failed",
       "filter_status": "Status",
-      "filter_all": "All",
+      "filter_all": "All states",
       "filter_failed_cancelled": "Failed/Cancelled",
       "empty_title": "No payouts recorded",
-      "empty_description": "Stripe Connect withdrawals will appear here."
+      "empty_description": "Stripe Connect withdrawals will appear here.",
+      "badge": {
+        "paid": "Paid",
+        "pending": "Pending",
+        "in_transit": "In transit",
+        "failed": "Failed",
+        "canceled": "Cancelled"
+      },
+      "arrives_on": "Arrival: {{date}}"
     },
     "roles": {
       "search_placeholder": "Search administrators..."

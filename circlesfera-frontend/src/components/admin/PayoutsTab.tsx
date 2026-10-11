@@ -93,20 +93,23 @@ export default function PayoutsTab() {
         subtitle={t('admin.payouts.description')}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 shrink-0">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
         <StatCard
+          compact
           label={t('admin.payouts.kpi_paid')}
           value={statsData?.paid || 0}
           icon={CheckCircle2}
           color="green"
         />
         <StatCard
+          compact
           label={t('admin.payouts.kpi_pending')}
           value={statsData?.pending || 0}
           icon={Clock}
           color="yellow"
         />
         <StatCard
+          compact
           label={t('admin.payouts.kpi_failed')}
           value={statsData?.failed || 0}
           icon={AlertCircle}
@@ -179,22 +182,26 @@ export default function PayoutsTab() {
                       className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] uppercase font-bold tracking-wider ${statusColor}`}
                     >
                       <StatusIcon size={12} />
-                      {payout.status}
+                      {t(`admin.payouts.badge.${payout.status}`, {
+                        defaultValue: payout.status,
+                      })}
                     </div>
                   }
                   meta={
-                    <div className="text-right">
-                      <div className="text-white font-semibold">
+                    <>
+                      <span className="text-white font-semibold">
                         {formatCents(
                           payout.amountCents,
                           i18n.language,
                           payout.currency,
                         )}
-                      </div>
-                      <div className="text-xs text-white/50">
-                        {formatDate(payout.arrivalDate, i18n.language)}
-                      </div>
-                    </div>
+                      </span>
+                      <span>
+                        {t('admin.payouts.arrives_on', {
+                          date: formatDate(payout.arrivalDate, i18n.language),
+                        })}
+                      </span>
+                    </>
                   }
                   primaryAction={
                     payout.failureReason ? (

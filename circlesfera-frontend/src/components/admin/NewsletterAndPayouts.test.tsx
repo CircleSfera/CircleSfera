@@ -252,7 +252,7 @@ describe('PayoutsTab', () => {
     expect(screen.getByText('figure Paid: 0')).toBeInTheDocument();
   });
 
-  it('shows the state of each withdrawal as the payment provider names it, and why one failed', async () => {
+  it('shows the state of each withdrawal in words, and why one failed', async () => {
     vi.mocked(adminApi.getPayouts).mockResolvedValue(
       page([
         payout('ana', { status: 'failed', failureReason: 'Account closed' }),
@@ -261,8 +261,8 @@ describe('PayoutsTab', () => {
     );
     show();
 
-    expect(await screen.findByText('failed')).toBeInTheDocument();
-    expect(screen.getByText('in_transit')).toBeInTheDocument();
+    expect(await screen.findByText('Failed')).toBeInTheDocument();
+    expect(screen.getByText('In transit')).toBeInTheDocument();
     expect(screen.getByText('Account closed')).toBeInTheDocument();
   });
 

@@ -5,7 +5,6 @@ import {
   ExternalLink,
   Ghost,
   Megaphone,
-  Target,
   TrendingUp,
   XCircle,
 } from 'lucide-react';
@@ -16,6 +15,7 @@ import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDate, formatNumber } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
@@ -177,15 +177,6 @@ export default function PromotionsTab({ onToast }: Props) {
         })}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="p-3 border-b border-white/5 shrink-0 flex justify-between items-center lg:hidden">
-              <h3 className="font-semibold text-white text-sm flex items-center gap-2">
-                <Target size={16} className="text-brand-primary" />
-                {t('admin.promotions.list_title', {
-                  count: data?.meta.total || 0,
-                })}
-              </h3>
-            </div>
-
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
@@ -227,11 +218,21 @@ export default function PromotionsTab({ onToast }: Props) {
                     }
                     title={`@${promo.user?.profile?.username || '—'}`}
                     subtitle={t('admin.promotions.reach_estimate', {
-                      budget: (promo.budgetCents / 100).toFixed(2),
-                      currency: promo.currency,
+                      budget: formatCents(
+                        promo.budgetCents,
+                        i18n.language,
+                        promo.currency,
+                      ),
                       reach: formatNumber(promo.reach, i18n.language),
                     })}
-                    badge={<StatusBadge status={promo.status} />}
+                    badge={
+                      <StatusBadge
+                        status={promo.status}
+                        label={t(`admin.promotions.badge.${promo.status}`, {
+                          defaultValue: promo.status,
+                        })}
+                      />
+                    }
                     avatar={
                       <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
                         {promo.target?.media?.[0]?.url || promo.target?.url ? (
@@ -256,7 +257,7 @@ export default function PromotionsTab({ onToast }: Props) {
               )}
             </div>
 
-            <div className="shrink-0 pt-2 border-t border-white/5">
+            <div className="shrink-0">
               <Pagination meta={data?.meta} onPageChange={setPage} />
             </div>
           </div>
@@ -377,7 +378,13 @@ export default function PromotionsTab({ onToast }: Props) {
                       <p className="text-[10px] text-white/40 font-semibold uppercase tracking-wide mb-0.5">
                         {t('admin.promotions.status_label')}
                       </p>
-                      <StatusBadge status={selectedPromo.status} />
+                      <StatusBadge
+                        status={selectedPromo.status}
+                        label={t(
+                          `admin.promotions.badge.${selectedPromo.status}`,
+                          { defaultValue: selectedPromo.status },
+                        )}
+                      />
                     </div>
                   </div>
 

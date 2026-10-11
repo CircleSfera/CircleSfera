@@ -201,7 +201,7 @@ export default function SpamReviewTab() {
               }
             />
           ))}
-          <div className="pt-2 border-t border-white/5">
+          <div>
             <Pagination meta={data?.meta} onPageChange={setPage} />
           </div>
         </div>

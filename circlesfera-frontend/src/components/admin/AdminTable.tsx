@@ -124,7 +124,14 @@ const STATUS_STYLES: Record<
   },
 };
 
-export function StatusBadge({ status }: { status: string }) {
+// `label` is the state in words; without it the state is shown as stored.
+export function StatusBadge({
+  status,
+  label,
+}: {
+  status: string;
+  label?: string;
+}) {
   const entry = STATUS_STYLES[status.toLowerCase()] || STATUS_STYLES.pending;
   const Icon = entry.icon;
 
@@ -136,7 +143,7 @@ export function StatusBadge({ status }: { status: string }) {
       )}
     >
       <Icon size={12} />
-      {status}
+      {label ?? status}
     </span>
   );
 }
@@ -212,20 +219,19 @@ interface PaginationProps {
 export function Pagination({ meta, onPageChange }: PaginationProps) {
   const { t } = useTranslation();
 
-  if (!meta) return null;
+  // With nothing to count, the empty state of the list already says so.
+  if (!meta || meta.total === 0) return null;
 
   const showPager = meta.totalPages > 1;
 
   return (
-    <div className="px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
+    <div className="mt-2 px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
       <p className="text-xs text-white/40">
-        {meta.total === 0
-          ? t('admin.table.results_count', { count: 0 })
-          : t('admin.table.pagination_from_to', {
-              from: (meta.page - 1) * meta.limit + 1,
-              to: Math.min(meta.page * meta.limit, meta.total),
-              total: meta.total,
-            })}
+        {t('admin.table.pagination_from_to', {
+          from: (meta.page - 1) * meta.limit + 1,
+          to: Math.min(meta.page * meta.limit, meta.total),
+          total: meta.total,
+        })}
       </p>
       {showPager && (
         <div className="flex items-center gap-2 ml-auto">
@@ -268,6 +274,7 @@ interface FilterDropdownProps {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  visibleLabel?: boolean;
 }
 
 export function FilterDropdown({
@@ -275,23 +282,33 @@ export function FilterDropdown({
   value,
   options,
   onChange,
+  visibleLabel = false,
 }: FilterDropdownProps) {
   // One id for each filter: a screen often shows two of them.
   const id = useId();
   return (
-    <Select
-      id={id}
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      className="min-w-35"
-      aria-label={label}
-    >
-      {options.map((opt) => (
-        <option key={opt.value} value={opt.value} className="bg-surface-raised">
-          {opt.label}
-        </option>
-      ))}
-    </Select>
+    // The width is set on the box around the field: set on the field it
+    // spilled over the next filter.
+    <div className="min-w-40 lg:min-w-52">
+      <Select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        // In a form the name is shown above the field; in a filter bar it is
+        // read out only, and the first option says what is being filtered.
+        {...(visibleLabel ? { label } : { 'aria-label': label })}
+      >
+        {options.map((opt) => (
+          <option
+            key={opt.value}
+            value={opt.value}
+            className="bg-surface-raised"
+          >
+            {opt.label}
+          </option>
+        ))}
+      </Select>
+    </div>
   );
 }
 

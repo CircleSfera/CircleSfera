@@ -15,6 +15,10 @@ export interface StatCardProps {
   suffix?: string;
   isCounter?: boolean;
   sparklineData?: number[];
+  // How the figure is written when it is not a plain count (an amount).
+  formatValue?: (value: number) => string;
+  // Three or more in a row on a phone: the icon waits for a wider screen.
+  compact?: boolean;
 }
 
 const colorMap: Record<string, string> = {
@@ -96,6 +100,8 @@ export default function StatCard({
   suffix = '',
   isCounter = true,
   sparklineData,
+  formatValue,
+  compact = false,
 }: StatCardProps) {
   const { i18n } = useTranslation();
   const displayValue = useCountUp(value);
@@ -151,13 +157,19 @@ export default function StatCard({
 
       <div className="flex items-start justify-between gap-2 sm:gap-3 relative z-10">
         <div className="min-w-0">
-          <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 truncate">
+          <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 leading-tight line-clamp-2">
             {label}
           </p>
           <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
-            {prefix}
-            {formatNumber(formattedValue, i18n.language)}
-            {suffix}
+            {formatValue ? (
+              formatValue(value)
+            ) : (
+              <>
+                {prefix}
+                {formatNumber(formattedValue, i18n.language)}
+                {suffix}
+              </>
+            )}
           </p>
           {growth !== undefined && growth !== null && (
             <div
@@ -186,6 +198,7 @@ export default function StatCard({
         <div
           className={clsx(
             'p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-white/5 shrink-0 bg-white/4',
+            compact && 'hidden sm:block',
             colorMap[color],
           )}
         >
