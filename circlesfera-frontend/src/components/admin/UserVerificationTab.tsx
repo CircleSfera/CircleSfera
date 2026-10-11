@@ -25,7 +25,12 @@ import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
-import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
+import {
+  FilterDropdown,
+  Pagination,
+  SearchInput,
+  StatusBadge,
+} from './AdminTable';
 import StatCard from './StatCard';
 
 export default function UserVerificationTab({
@@ -259,21 +264,22 @@ export default function UserVerificationTab({
                         { defaultValue: user.accountType },
                       )}
                       badge={
-                        <span
-                          className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
+                        <StatusBadge
+                          status={
                             isVerified
-                              ? 'text-green-400 bg-green-400/10'
+                              ? 'resolved'
                               : isPending
-                                ? 'text-yellow-400 bg-yellow-400/10'
-                                : 'text-white/50 bg-white/10'
-                          }`}
-                        >
-                          {isVerified
-                            ? t('admin.verification.kyc_completed')
-                            : isPending
-                              ? t('admin.verification.kyc_pending')
-                              : t('admin.verification.kyc_not_started')}
-                        </span>
+                                ? 'pending'
+                                : 'dismissed'
+                          }
+                          label={
+                            isVerified
+                              ? t('admin.verification.kyc_completed')
+                              : isPending
+                                ? t('admin.verification.kyc_pending')
+                                : t('admin.verification.kyc_not_started')
+                          }
+                        />
                       }
                       meta={formatDay(user.createdAt, i18n.language)}
                       avatar={
@@ -339,7 +345,7 @@ export default function UserVerificationTab({
                         />
                       </h3>
                       <p className="text-xs text-white/50 truncate">
-                        ID: {selectedUser.id}
+                        {t('admin.shared.reference', { id: selectedUser.id })}
                       </p>
                     </div>
                   </div>
