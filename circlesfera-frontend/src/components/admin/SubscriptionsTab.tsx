@@ -9,7 +9,11 @@ import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminListRow } from './AdminList';
+import {
+  ADMIN_PAGE_LIST_STATE,
+  ADMIN_PAGE_ROW,
+  AdminListRow,
+} from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
@@ -74,6 +78,8 @@ export default function SubscriptionsTab() {
 
   const firstPage = () => setPage(1);
 
+  const hasRows = !isLoading && !isError && !!data?.data.length;
+
   return (
     <div className="space-y-2.5">
       <AdminPageHeader
@@ -130,7 +136,8 @@ export default function SubscriptionsTab() {
         )}
       </AdminFilterBar>
 
-      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+      {/* Each row is a card of its own; a state with no rows gets one card. */}
+      <div className={hasRows ? undefined : ADMIN_PAGE_LIST_STATE}>
         {isLoading ? (
           <AdminListSkeleton rows={8} />
         ) : isError || !data ? (
@@ -145,7 +152,7 @@ export default function SubscriptionsTab() {
             description={t('admin.subscriptions.empty_description')}
           />
         ) : (
-          <div className="divide-y divide-white/10">
+          <div className="space-y-3">
             {data.data.map((subscription) => {
               const holder =
                 subscription.profile?.fullName ||
@@ -161,6 +168,7 @@ export default function SubscriptionsTab() {
 
               return (
                 <AdminListRow
+                  className={ADMIN_PAGE_ROW}
                   key={subscription.id}
                   title={holder}
                   subtitle={
