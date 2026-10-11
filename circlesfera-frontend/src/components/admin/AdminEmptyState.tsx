@@ -1,6 +1,15 @@
 import { clsx } from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import { Inbox } from 'lucide-react';
+import { createContext, useContext } from 'react';
+
+// The one card of a page list while it has no rows to show.
+export const ADMIN_PAGE_LIST_STATE =
+  'bg-white/5 border border-white/10 rounded-xl overflow-hidden';
+
+// True inside a list that stands on the page with no pane around it: what
+// it shows instead of rows is then drawn as that one card.
+export const AdminPageListContext = createContext(false);
 
 interface AdminEmptyStateProps {
   icon?: LucideIcon;
@@ -11,7 +20,8 @@ interface AdminEmptyStateProps {
   compact?: boolean;
 }
 
-// Flat empty state — no nested glass card (parent panes are already glass).
+// Flat empty state inside a pane (the pane is the box). In a list that stands
+// on the page it draws the one card of an empty list itself.
 // Supports left-aligned hint via className (e.g. split empty detail).
 export function AdminEmptyState({
   icon: Icon = Inbox,
@@ -21,11 +31,12 @@ export function AdminEmptyState({
   className,
   compact = false,
 }: AdminEmptyStateProps) {
+  const onPage = useContext(AdminPageListContext);
   const isStart =
     typeof className === 'string' &&
     (className.includes('items-start') || className.includes('text-left'));
 
-  return (
+  const state = (
     <div
       className={clsx(
         'flex flex-col mx-auto max-w-xs w-full',
@@ -53,4 +64,6 @@ export function AdminEmptyState({
       {action && <div className="mt-1 w-full sm:w-auto">{action}</div>}
     </div>
   );
+
+  return onPage ? <div className={ADMIN_PAGE_LIST_STATE}>{state}</div> : state;
 }

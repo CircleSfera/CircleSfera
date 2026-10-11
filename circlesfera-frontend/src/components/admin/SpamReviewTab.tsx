@@ -23,7 +23,7 @@ import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { ADMIN_PAGE_LIST_STATE, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -177,13 +177,11 @@ export default function SpamReviewTab() {
           isLoading ? (
             <AdminListSkeleton />
           ) : cases.length === 0 ? (
-            <div className={ADMIN_PAGE_LIST_STATE}>
-              <AdminEmptyState
-                title={t('admin.spam_review.empty_title')}
-                description={t('admin.spam_review.empty_description')}
-                compact
-              />
-            </div>
+            <AdminEmptyState
+              title={t('admin.spam_review.empty_title')}
+              description={t('admin.spam_review.empty_description')}
+              compact
+            />
           ) : (
             <div className="space-y-2">
               {cases.map((riskCase) => (

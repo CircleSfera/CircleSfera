@@ -210,16 +210,8 @@ export default function PostsTab({ onToast }: Props) {
               ) : posts.length === 0 ? (
                 <AdminEmptyState
                   icon={ImageIcon}
-                  title={
-                    search.length > 0
-                      ? t('admin.posts.empty_title')
-                      : t('admin.posts.empty_title')
-                  }
-                  description={
-                    search.length > 0
-                      ? t('admin.posts.empty_description')
-                      : t('admin.posts.empty_description')
-                  }
+                  title={t('admin.posts.empty_title')}
+                  description={t('admin.posts.empty_description')}
                   action={
                     search.length > 0 ? (
                       <Button

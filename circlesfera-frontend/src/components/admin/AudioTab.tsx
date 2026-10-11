@@ -313,7 +313,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     onChange={(e) =>
                       setForm({ ...form, title: e.target.value })
                     }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl min-h-12 py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                     placeholder={t('admin.audio.placeholder_title')}
                   />
                 </div>
@@ -333,7 +333,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     onChange={(e) =>
                       setForm({ ...form, artist: e.target.value })
                     }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl min-h-12 py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                     placeholder={t('admin.audio.placeholder_artist')}
                   />
                 </div>
@@ -351,7 +351,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     required
                     value={form.url}
                     onChange={(e) => setForm({ ...form, url: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl min-h-12 py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                     placeholder={t('admin.audio.placeholder_url')}
                   />
                 </div>
@@ -370,7 +370,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                     onChange={(e) =>
                       setForm({ ...form, thumbnailUrl: e.target.value })
                     }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl min-h-12 py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                     placeholder={t('admin.audio.placeholder_thumbnail')}
                   />
                 </div>
@@ -394,7 +394,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                         duration: Number.parseInt(e.target.value, 10) || 0,
                       })
                     }
-                    className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl min-h-12 py-2.5 px-4 text-white text-sm focus:outline-none focus:border-brand-primary transition-colors"
                     placeholder={t('admin.audio.placeholder_duration')}
                   />
                 </div>

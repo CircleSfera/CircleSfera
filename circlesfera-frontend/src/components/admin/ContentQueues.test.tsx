@@ -117,8 +117,8 @@ describe('PostsTab', () => {
 
   it.each([
     ['All (recent)', undefined, undefined],
-    ['Type: Post', 'POST', undefined],
-    ['Type: Frame', 'FRAME', undefined],
+    ['Posts', 'POST', undefined],
+    ['Frames', 'FRAME', undefined],
   ])('asks for "%s" when that group is chosen', async (label, type, status) => {
     show();
     await screen.findByText('No posts');

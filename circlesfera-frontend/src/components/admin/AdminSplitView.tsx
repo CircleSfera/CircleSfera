@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
+import { AdminPageListContext } from './AdminEmptyState';
 import { useAdminEscapeClear } from './useAdminEscapeClear';
 
 // The important marks win over the unlayered rules of the glass panel.
@@ -88,7 +89,9 @@ export function AdminSplitView({
             twoPanes ? 'overflow-y-auto custom-scrollbar lg:p-3' : ''
           }`}
         >
-          {list}
+          <AdminPageListContext.Provider value={!twoPanes}>
+            {list}
+          </AdminPageListContext.Provider>
         </div>
       </section>
 

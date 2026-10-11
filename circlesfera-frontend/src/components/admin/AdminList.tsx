@@ -41,9 +41,7 @@ interface MenuPosition {
 // Roomy under the thumb on a phone, dense where a list is read with a pointer.
 export const ADMIN_PAGE_ROW =
   'rounded-xl border-white/10 bg-white/5 p-4 sm:px-4 sm:py-2.5';
-// The one card of a page list while it has no rows to show.
-export const ADMIN_PAGE_LIST_STATE =
-  'bg-white/5 border border-white/10 rounded-xl overflow-hidden';
+export { ADMIN_PAGE_LIST_STATE } from './AdminEmptyState';
 
 // Touch-friendly card row for mobile admin lists.
 export function AdminListRow({

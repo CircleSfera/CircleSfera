@@ -13,7 +13,7 @@ import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { ADMIN_PAGE_LIST_STATE, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminDetailSkeleton, AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
@@ -304,14 +304,12 @@ export default function ModerationTab({ onToast }: Props) {
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : items.length === 0 ? (
-                <div className={ADMIN_PAGE_LIST_STATE}>
-                  <AdminEmptyState
-                    icon={ShieldAlert}
-                    title={t('admin.moderation.empty_title')}
-                    description={t('admin.moderation.empty_description')}
-                    compact
-                  />
-                </div>
+                <AdminEmptyState
+                  icon={ShieldAlert}
+                  title={t('admin.moderation.empty_title')}
+                  description={t('admin.moderation.empty_description')}
+                  compact
+                />
               ) : (
                 items.map((item) => {
                   const key = itemKey(item);

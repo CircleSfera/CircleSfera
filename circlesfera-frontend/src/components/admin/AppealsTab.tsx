@@ -14,7 +14,7 @@ import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { ADMIN_PAGE_LIST_STATE, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -121,22 +121,20 @@ export default function AppealsTab() {
           isLoading ? (
             <AdminListSkeleton rows={4} />
           ) : appeals.length === 0 ? (
-            <div className={ADMIN_PAGE_LIST_STATE}>
-              <AdminEmptyState
-                icon={CheckCircle}
-                title={
-                  view === 'PENDING'
-                    ? t('admin.appeals.empty_title')
-                    : t('admin.appeals.empty_filtered_title')
-                }
-                description={
-                  view === 'PENDING'
-                    ? t('admin.appeals.empty_description')
-                    : t('admin.appeals.empty_filtered_description')
-                }
-                compact
-              />
-            </div>
+            <AdminEmptyState
+              icon={CheckCircle}
+              title={
+                view === 'PENDING'
+                  ? t('admin.appeals.empty_title')
+                  : t('admin.appeals.empty_filtered_title')
+              }
+              description={
+                view === 'PENDING'
+                  ? t('admin.appeals.empty_description')
+                  : t('admin.appeals.empty_filtered_description')
+              }
+              compact
+            />
           ) : (
             <div className="space-y-2">
               {appeals.map((appeal) => (
