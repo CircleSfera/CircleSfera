@@ -3277,7 +3277,7 @@
       "label_title": "Título *",
       "label_artist": "Artista *",
       "label_url": "URL del audio *",
-      "label_thumbnail": "Thumbnail URL",
+      "label_thumbnail": "URL de la portada",
       "label_duration": "Duración (seg) *",
       "placeholder_title": "Nombre de la canción",
       "placeholder_artist": "Nombre del artista",
