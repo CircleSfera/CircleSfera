@@ -62,7 +62,8 @@ describe('ModerationTab', () => {
     show();
 
     expect(await screen.findByText('No pending content')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    // Nothing to select: "Select all" is not offered.
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('lists each flagged piece with its author, kind and the reason without its prefix', async () => {

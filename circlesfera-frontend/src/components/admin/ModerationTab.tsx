@@ -281,17 +281,21 @@ export default function ModerationTab({ onToast }: Props) {
         listTitle={t('admin.moderation.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                checked={selectedKeys.size === items.length && items.length > 0}
-                onChange={toggleSelectAll}
-              />
-              <h3 className="font-semibold text-white text-sm">
-                {t('admin.shared.select_all')}
-              </h3>
-            </div>
+            {items.length > 0 && (
+              <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                  checked={
+                    selectedKeys.size === items.length && items.length > 0
+                  }
+                  onChange={toggleSelectAll}
+                />
+                <h3 className="font-semibold text-white text-sm">
+                  {t('admin.shared.select_all')}
+                </h3>
+              </div>
+            )}
 
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (

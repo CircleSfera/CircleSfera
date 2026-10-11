@@ -101,19 +101,6 @@ export default function SettingsTab({ onToast }: Props) {
       <AdminPageHeader
         title={t('admin.settings.title')}
         subtitle={t('admin.settings.subtitle')}
-        actions={
-          <Button
-            onClick={handleSave}
-            disabled={!hasChanges || updateMutation.isPending}
-            variant="primary"
-            className="gap-2"
-          >
-            <Save className="w-4 h-4" />
-            {updateMutation.isPending
-              ? t('admin.settings.saving')
-              : t('admin.settings.save')}
-          </Button>
-        }
       />
 
       <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 md:p-4">
@@ -133,7 +120,11 @@ export default function SettingsTab({ onToast }: Props) {
                 return (
                   <div
                     key={setting.key}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 py-3 border-b border-white/5 last:border-0"
+                    className={`flex justify-between gap-3 py-3 border-b border-white/5 last:border-0 ${
+                      isBoolean
+                        ? 'items-center'
+                        : 'flex-col sm:flex-row sm:items-center'
+                    }`}
                   >
                     <label
                       htmlFor={fieldId}
@@ -191,6 +182,21 @@ export default function SettingsTab({ onToast }: Props) {
                 );
               })}
             </div>
+          </div>
+
+          {/* After what it saves, not above it. */}
+          <div className="flex justify-end">
+            <Button
+              onClick={handleSave}
+              disabled={!hasChanges || updateMutation.isPending}
+              variant="primary"
+              className="gap-2 min-h-11 w-full sm:w-auto"
+            >
+              <Save className="w-4 h-4" />
+              {updateMutation.isPending
+                ? t('admin.settings.saving')
+                : t('admin.settings.save')}
+            </Button>
           </div>
         </div>
       </div>
