@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { renderWithProviders } from '../../test/test-utils';
-import { HelpCentreEditor } from './HelpCentreEditor';
+import HelpCentreTab from './HelpCentreTab';
 
 vi.mock('../../services/admin.service', () => ({
   adminApi: {
@@ -46,7 +46,7 @@ const summary = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-describe('HelpCentreEditor', () => {
+describe('HelpCentreTab', () => {
   const onToast = vi.fn();
 
   beforeEach(() => {
@@ -79,13 +79,13 @@ describe('HelpCentreEditor', () => {
   });
 
   const openPanel = async () => {
-    const { i18n } = renderWithProviders(
-      <HelpCentreEditor onToast={onToast} />,
+    const { i18n, container } = renderWithProviders(
+      <HelpCentreTab onToast={onToast} />,
     );
     const t = (key: string, values?: Record<string, unknown>) =>
       i18n!.t(`admin.support.help_centre.${key}`, values);
-    fireEvent.click(screen.getByRole('button', { name: t('open') }));
-    return { t, panel: within(await screen.findByRole('dialog')) };
+    await screen.findByRole('heading', { name: t('title') });
+    return { t, panel: within(container) };
   };
   const edit = async () => {
     const opened = await openPanel();
@@ -98,19 +98,83 @@ describe('HelpCentreEditor', () => {
     return opened;
   };
 
-  it('asks for nothing until it is opened', () => {
-    renderWithProviders(<HelpCentreEditor onToast={onToast} />);
+  it('is a page with its title and the way to a new article', async () => {
+    const { t, panel } = await openPanel();
 
-    expect(adminApi.getArticles).not.toHaveBeenCalled();
+    expect(panel.getByRole('button', { name: t('new') })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('shows only the published or only the drafts when asked', async () => {
+    vi.mocked(adminApi.getArticles).mockResolvedValue({
+      data: [
+        summary(),
+        summary({
+          id: 'a-2',
+          slug: 'verify',
+          status: 'PUBLISHED',
+          titles: { es: 'Verificación', en: 'Verification' },
+        }),
+      ],
+    } as never);
+    const { t, panel } = await openPanel();
+    await panel.findByText('Reembolsos');
+
+    fireEvent.click(panel.getByRole('button', { name: t('filter_published') }));
+    expect(panel.queryByText('Reembolsos')).not.toBeInTheDocument();
+    expect(panel.getByText('Verificación')).toBeInTheDocument();
+
+    fireEvent.click(panel.getByRole('button', { name: t('filter_drafts') }));
+    expect(panel.getByText('Reembolsos')).toBeInTheDocument();
+    expect(panel.queryByText('Verificación')).not.toBeInTheDocument();
+  });
+
+  it('says so when a filter leaves nothing', async () => {
+    const first = await openPanel();
+    await first.panel.findByText('Reembolsos');
+    fireEvent.click(
+      first.panel.getByRole('button', { name: first.t('filter_published') }),
+    );
+    expect(
+      first.panel.getByText(first.t('empty_filtered')),
+    ).toBeInTheDocument();
+  });
+
+  it('invites to write the first article when there is none', async () => {
+    vi.mocked(adminApi.getArticles).mockResolvedValue({ data: [] } as never);
+    const { t, panel } = await openPanel();
+
+    expect(await panel.findByText(t('empty_title'))).toBeInTheDocument();
+    expect(panel.getByText(t('empty'))).toBeInTheDocument();
+  });
+
+  it('says that the articles could not be loaded', async () => {
+    vi.mocked(adminApi.getArticles).mockRejectedValue(new Error('down'));
+    const { t, panel } = await openPanel();
+
+    expect(await panel.findByText(t('load_failed'))).toBeInTheDocument();
+  });
+
+  it('goes back from an article to the list', async () => {
+    const { t, panel } = await edit();
+
+    fireEvent.click(panel.getByRole('button', { name: t('back') }));
+
+    expect(
+      await panel.findByRole('heading', { name: t('title') }),
+    ).toBeInTheDocument();
+    expect(panel.queryByDisplayValue('Reembolsos')).not.toBeInTheDocument();
   });
 
   it('lists drafts and published with their counts and what they lack', async () => {
     const { t, panel } = await openPanel();
 
     expect(await panel.findByText('Reembolsos')).toBeInTheDocument();
-    expect(panel.getByText(/\/help\/how-refunds-work/)).toHaveTextContent(
-      t('useful_counts', { yes: 7, no: 2 }),
-    );
+    expect(panel.getByText(/\/help\/how-refunds-work/)).toBeInTheDocument();
+    expect(
+      panel.getAllByText(t('useful_counts', { yes: 7, no: 2 })),
+    ).toHaveLength(2);
+    expect(panel.getAllByText(t('status.DRAFT'))).toHaveLength(2);
     expect(
       panel.getByText(t('missing', { languages: t('language.en') })),
     ).toBeInTheDocument();
