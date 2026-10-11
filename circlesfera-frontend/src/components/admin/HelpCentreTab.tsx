@@ -12,7 +12,6 @@ import { slugFromTitle } from '../../utils/articleBody';
 import { ArticleBody } from '../support/ArticleBody';
 import { Button, Input, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
-import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
@@ -431,17 +430,16 @@ export default function HelpCentreTab({ onToast }: Props) {
         }
       />
 
-      <AdminFilterBar>
-        <AdminSegmentedControl
-          value={shown}
-          onChange={(value) => setShown(value as typeof shown)}
-          options={[
-            { value: 'all', label: tr('filter_all') },
-            { value: 'PUBLISHED', label: tr('filter_published') },
-            { value: 'DRAFT', label: tr('filter_drafts') },
-          ]}
-        />
-      </AdminFilterBar>
+      {/* The control draws its own box: no filter bar around it. */}
+      <AdminSegmentedControl
+        value={shown}
+        onChange={(value) => setShown(value as typeof shown)}
+        options={[
+          { value: 'all', label: tr('filter_all') },
+          { value: 'PUBLISHED', label: tr('filter_published') },
+          { value: 'DRAFT', label: tr('filter_drafts') },
+        ]}
+      />
 
       {/* Each article is a card of its own; only a state with no rows gets
           the one card of the list. */}
