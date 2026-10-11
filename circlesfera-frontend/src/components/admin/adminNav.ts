@@ -195,7 +195,6 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'moderation',
         labelKey: 'admin.nav.ai_queue',
         icon: ShieldAlert,
-        badge: 'AI',
       },
       {
         id: 'firewall',

@@ -138,18 +138,16 @@ export default function FirewallRulesTab({ onToast }: Props) {
                   setSearch(e.target.value);
                   setPage(1);
                 }}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
+                className="flex-1 min-w-0 min-h-11 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
               />
               <Button
                 onClick={openCreate}
                 aria-label={t('admin.shared.add')}
                 variant="primary"
-                className="gap-2 shrink-0 px-4 min-h-10"
+                className="gap-2 shrink-0 px-4 min-h-11"
               >
                 <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">
-                  {t('admin.shared.add')}
-                </span>
+                <span>{t('admin.shared.add')}</span>
               </Button>
             </div>
 
