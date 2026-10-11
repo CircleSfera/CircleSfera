@@ -201,7 +201,7 @@ export default function PostsTab({ onToast }: Props) {
         hasSelection={!!selectedPost}
         onBack={() => setSelectedPostId(null)}
         onClearSelection={() => setSelectedPostId(null)}
-        listTitle={t('admin.posts.title')}
+        listAriaLabel={t('admin.posts.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">

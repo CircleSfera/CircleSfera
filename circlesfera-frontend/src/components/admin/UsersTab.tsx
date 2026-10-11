@@ -442,7 +442,7 @@ export default function Dashboard({ onToast }: Props) {
         hasSelection={!!selectedUserId}
         onBack={() => setSelectedUserId(null)}
         onClearSelection={() => setSelectedUserId(null)}
-        listTitle={t('admin.users.title')}
+        listAriaLabel={t('admin.users.title')}
         list={
           <div className="flex flex-col h-full min-h-0">
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
