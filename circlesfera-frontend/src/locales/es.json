@@ -3184,7 +3184,14 @@
       "action_delete": "Eliminar",
       "action_hide": "Ocultar",
       "action_restore": "Restaurar",
-      "col_preview": "Preview",
+      "moderation_state": {
+        "VISIBLE": "Visible",
+        "FLAGGED": "Marcada",
+        "HIDDEN": "Oculta",
+        "REMOVED": "Retirada"
+      },
+      "media": { "image": "Imagen", "video": "Vídeo" },
+      "col_preview": "Vista previa",
       "col_author": "Autor",
       "col_type": "Tipo",
       "col_moderation": "Moderación",
@@ -3788,6 +3795,7 @@
       "status_all": "Todos los estados",
       "empty": "Aún no hay operadores",
       "load_error": "No se pudieron cargar operadores",
+      "email_label": "Correo electrónico",
       "display_name": "Nombre visible",
       "create_hint": "La persona necesita una cuenta de CircleSfera con este correo. Entra a los sitios de personal con la contraseña de esa cuenta.",
       "save": "Crear",

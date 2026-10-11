@@ -3184,6 +3184,13 @@
       "action_delete": "Delete",
       "action_hide": "Hide",
       "action_restore": "Restore",
+      "moderation_state": {
+        "VISIBLE": "Visible",
+        "FLAGGED": "Marked",
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed"
+      },
+      "media": { "image": "Image", "video": "Video" },
       "col_preview": "Preview",
       "col_author": "Author",
       "col_type": "Type",
@@ -3788,6 +3795,7 @@
       "status_all": "All statuses",
       "empty": "No operators yet",
       "load_error": "Could not load operators",
+      "email_label": "Email",
       "display_name": "Display name",
       "create_hint": "The person needs a CircleSfera account with this email. They sign in to the staff sites with that account's password.",
       "save": "Create",

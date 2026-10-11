@@ -852,9 +852,9 @@ describe('StoriesTab', () => {
     await screen.findAllByText('@teller_a');
 
     for (const place of [card('teller_a'), tableRow('teller_a')]) {
-      expect(within(place).getByText('Flagged')).toHaveClass('text-amber-400');
+      expect(within(place).getByText('Marked')).toHaveClass('text-amber-400');
       expect(within(place).getByText('Active')).toBeInTheDocument();
-      expect(within(place).getByText('image')).toBeInTheDocument();
+      expect(within(place).getByText('Image')).toBeInTheDocument();
       expect(place.querySelector('img')).toHaveAttribute(
         'src',
         'https://media.test/a.jpg',

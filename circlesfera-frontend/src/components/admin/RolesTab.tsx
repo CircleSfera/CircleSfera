@@ -324,14 +324,14 @@ export default function RolesTab({ onToast }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               type="email"
-              placeholder="email"
+              label={t('admin.operators.email_label')}
               value={createForm.email}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, email: e.target.value }))
               }
             />
             <Input
-              placeholder={t('admin.operators.display_name')}
+              label={t('admin.operators.display_name')}
               value={createForm.displayName}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, displayName: e.target.value }))
