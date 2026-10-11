@@ -40,8 +40,11 @@ export const QnaWidget: React.FC<{
   const displayPrompt =
     prompt || box?.prompt || t('interactive.qna.default_prompt');
 
-  const loadAnswers = useCallback(async () => {
-    if (!isOwner) return;
+  // The story or post carries the id of the box, not its question: it is
+  // read here. The server gives the question to everyone and the answers
+  // only to the creator, so the same request serves both.
+  const loadBox = useCallback(async () => {
+    if (!isOwner && prompt) return;
     try {
       setLoadingAnswers(true);
       const res = await apiClient.get<QnaBoxData>(
@@ -49,15 +52,15 @@ export const QnaWidget: React.FC<{
       );
       setBox(res.data);
     } catch (err) {
-      logger.error('Failed to load Q&A answers:', err);
+      logger.error('Failed to load Q&A box:', err);
     } finally {
       setLoadingAnswers(false);
     }
-  }, [isOwner, qnaBoxId]);
+  }, [isOwner, prompt, qnaBoxId]);
 
   useEffect(() => {
-    void loadAnswers();
-  }, [loadAnswers]);
+    void loadBox();
+  }, [loadBox]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

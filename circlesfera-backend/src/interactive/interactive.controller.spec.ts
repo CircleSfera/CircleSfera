@@ -145,14 +145,28 @@ describe('InteractiveController', () => {
     });
   });
 
-  it('loads a Q&A box without a viewer profile', async () => {
+  it('loads a Q&A box for someone not signed in, as nobody', async () => {
     mockService.getQnaBox.mockResolvedValue({ id: 'qna-1' });
 
     await request(app.getHttpServer())
       .get('/api/v1/interactive/qna/qna-1')
       .expect(200);
 
-    expect(mockService.getQnaBox).toHaveBeenCalledWith('qna-1');
+    expect(mockService.getQnaBox).toHaveBeenCalledWith('qna-1', undefined);
+  });
+
+  it('loads a Q&A box as the session profile, which decides who reads the answers', async () => {
+    mockService.getQnaBox.mockResolvedValue({ id: 'qna-1' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/interactive/qna/qna-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockService.getQnaBox).toHaveBeenCalledWith(
+      'qna-1',
+      TEST_USER.profileId,
+    );
   });
 
   it('answers a Q&A box as the session profile and unwraps the body', async () => {

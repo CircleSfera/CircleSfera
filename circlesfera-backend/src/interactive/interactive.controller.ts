@@ -71,9 +71,15 @@ export class InteractiveController {
     return this.interactiveService.createQnaBox(user.profileId, dto);
   }
 
+  // Open to everyone for the question; the answers only reach the profile
+  // that owns the box, which the service decides from the session.
   @Get('qna/:id')
-  async getQnaBox(@Param('id') id: string) {
-    return this.interactiveService.getQnaBox(id);
+  @UseGuards(JwtOptionalGuard)
+  async getQnaBox(
+    @Param('id') id: string,
+    @CurrentUser('profileId') profileId: string | null,
+  ) {
+    return this.interactiveService.getQnaBox(id, profileId ?? undefined);
   }
 
   @Post('qna/answer')
