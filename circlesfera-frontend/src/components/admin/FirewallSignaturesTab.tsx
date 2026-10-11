@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -15,16 +16,6 @@ import { ActionButton, Pagination } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
-}
-
-function formatCreatedAt(date: string) {
-  return new Date(date).toLocaleDateString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -40,7 +31,7 @@ function getTextPreview(item: FirewallSignature) {
 }
 
 export default function FirewallSignaturesTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [newText, setNewText] = useState('');
@@ -155,7 +146,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                       id: item.id.split('-')[0],
                     })}
                     badge={<CategoryBadge category={item.category} />}
-                    meta={formatCreatedAt(item.createdAt)}
+                    meta={formatDateTime(item.createdAt, i18n.language)}
                     primaryAction={
                       <ActionButton
                         variant="danger"
@@ -288,7 +279,7 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
                     {t('admin.firewall.col_created')}
                   </p>
                   <p className="text-sm text-white/70 mt-2">
-                    {formatCreatedAt(selectedItem.createdAt)}
+                    {formatDateTime(selectedItem.createdAt, i18n.language)}
                   </p>
                 </div>
               </div>

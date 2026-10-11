@@ -120,9 +120,9 @@ describe('TrustTab', () => {
     expect(screen.getByText('POST · Ana')).toBeInTheDocument();
     expect(screen.getByText('COMMENT · ben@staff.test')).toBeInTheDocument();
     expect(screen.getByText('STORY')).toBeInTheDocument();
-    expect(screen.getByText('30m')).toBeInTheDocument();
-    expect(screen.getByText('5h')).toBeInTheDocument();
-    expect(screen.getByText('3d')).toBeInTheDocument();
+    expect(screen.getByText('30m ago')).toBeInTheDocument();
+    expect(screen.getByText('5h ago')).toBeInTheDocument();
+    expect(screen.getByText('3d ago')).toBeInTheDocument();
     expect(screen.getByText('eve@example.com')).toBeInTheDocument();
     expect(screen.getByText('It was a joke')).toBeInTheDocument();
     expect(screen.getByText('Cannot log in')).toBeInTheDocument();

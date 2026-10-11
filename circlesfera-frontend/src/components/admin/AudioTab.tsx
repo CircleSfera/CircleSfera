@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminAudio } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -243,9 +243,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                           <Clock size={12} />
                           {formatDuration(track.duration)}
                         </span>
-                        <span>
-                          {formatDate(track.createdAt, i18n.language)}
-                        </span>
+                        <span>{formatDay(track.createdAt, i18n.language)}</span>
                       </>
                     }
                     avatar={

@@ -20,7 +20,7 @@ import type {
 } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select, Switch, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -523,12 +523,12 @@ export default function ExperimentsTab() {
                             <span className="inline-flex items-center gap-1">
                               <Clock size={12} />
                               {t('admin.experiments.created_at')}{' '}
-                              {formatDate(flag.createdAt, i18n.language)}
+                              {formatDay(flag.createdAt, i18n.language)}
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <Calendar size={12} />
                               {t('admin.experiments.updated_at')}{' '}
-                              {formatDate(flag.updatedAt, i18n.language)}
+                              {formatDay(flag.updatedAt, i18n.language)}
                             </span>
                           </div>
 
@@ -737,7 +737,7 @@ export default function ExperimentsTab() {
                         meta={
                           <span className="inline-flex items-center gap-1">
                             <Calendar size={12} />
-                            {formatDate(entry.createdAt, i18n.language)}
+                            {formatDay(entry.createdAt, i18n.language)}
                           </span>
                         }
                         primaryAction={

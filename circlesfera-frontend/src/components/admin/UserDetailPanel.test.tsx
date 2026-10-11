@@ -117,9 +117,7 @@ describe('UserDetailPanel', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
 
     expect(within(row('Email')).getByText('ana@example.com')).toBeTruthy();
-    expect(
-      within(row('Member since')).getByText('January 15, 2026'),
-    ).toBeTruthy();
+    expect(within(row('Member since')).getByText('Jan 15, 2026')).toBeTruthy();
     expect(within(row('Signup IP')).getByText('203.0.113.7')).toBeTruthy();
     expect(within(row('Last IP')).getByText('203.0.113.9')).toBeTruthy();
     expect(within(row('Internal identifier')).getByText('user-1')).toBeTruthy();
@@ -175,7 +173,7 @@ describe('UserDetailPanel', () => {
     } as never);
     show();
     await screen.findByRole('heading', { name: 'Ana Ruiz' });
-    expect(field('Identity verified on').textContent).toMatch(/2\/1\/2026/);
+    expect(field('Identity verified on').textContent).toMatch(/Feb 1, 2026/);
     expect(
       within(field('Stripe session')).getByText('vs_test_123'),
     ).toHaveAttribute('title', 'vs_test_123');

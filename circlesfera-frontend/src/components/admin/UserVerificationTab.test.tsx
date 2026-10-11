@@ -160,7 +160,7 @@ describe('UserVerificationTab', () => {
     );
   });
 
-  it('shows where each person stands and since when they are here', async () => {
+  it('shows where each person stands and the day they joined', async () => {
     api.getUsers.mockResolvedValue(
       list([
         user('new', { createdAt: ago(0) }),
@@ -184,23 +184,25 @@ describe('UserVerificationTab', () => {
     expect(within(fresh).getByText('Not verified')).toHaveClass(
       'text-white/50',
     );
-    expect(within(fresh).getByText('now')).toBeInTheDocument();
+    expect(within(fresh).getByText('Mar 10, 2026')).toBeInTheDocument();
     expect(within(fresh).getByText('Personal account')).toBeInTheDocument();
 
     const done = rowOf('@person_done');
     expect(within(done).getByText('Identity verified')).toHaveClass(
       'text-green-400',
     );
-    expect(within(done).getByText('45m ago')).toBeInTheDocument();
+    expect(within(done).getByText('Mar 10, 2026')).toBeInTheDocument();
     expect(within(done).getByText('Creator account')).toBeInTheDocument();
 
     const waiting = rowOf('@person_wait');
     expect(within(waiting).getByText('Verification in progress')).toHaveClass(
       'text-yellow-400',
     );
-    expect(within(waiting).getByText('5h ago')).toBeInTheDocument();
+    expect(within(waiting).getByText('Mar 10, 2026')).toBeInTheDocument();
 
-    expect(within(rowOf('@Unknown')).getByText('3d ago')).toBeInTheDocument();
+    expect(
+      within(rowOf('@Unknown')).getByText('Mar 7, 2026'),
+    ).toBeInTheDocument();
   });
 
   it('opens someone who has not started: nothing to sync or revoke', async () => {
