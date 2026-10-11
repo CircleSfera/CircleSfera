@@ -97,6 +97,10 @@ describe('SpamReviewTab', () => {
         undefined,
       );
     });
+    // Decided, the case closes.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: label })).toBeNull(),
+    );
   });
 
   it('opens the case with every signal, the five decisions and the way to the account', async () => {
