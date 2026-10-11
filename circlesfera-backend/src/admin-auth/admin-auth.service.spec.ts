@@ -50,6 +50,18 @@ describe('AdminAuthService', () => {
   const adminSecret = 'test-admin-dedicated-jwt-secret-min-32-chars';
   const platformSecret = 'test-user-platform-jwt-secret-min-32-chars';
 
+  // The CircleSfera sign-in of user-1, whose password is the staff password.
+  const withSignInPassword = (
+    password: string,
+    extra: Record<string, unknown> = {},
+  ) =>
+    mockPrisma.signIn.findUnique.mockResolvedValue({
+      userId: 'user-1',
+      password,
+      passwordResetRequiredAt: null,
+      ...extra,
+    });
+
   const mockCryptoService = {
     encrypt: vi.fn((val: string) => `enc:${val}`),
     decrypt: vi.fn((val: string) =>
@@ -65,6 +77,7 @@ describe('AdminAuthService', () => {
         findUnique: vi.fn(),
         update: vi.fn().mockResolvedValue({}),
       },
+      signIn: { findUnique: vi.fn() },
       adminSession: {
         create: vi.fn(),
         findUnique: vi.fn(),
@@ -155,10 +168,11 @@ describe('AdminAuthService', () => {
   describe('TOTP encryption at rest', () => {
     it('encrypts newly generated TOTP secret during first-time MFA enrollment', async () => {
       const passwordHash = await argon2.hash('admin-password-123');
+      withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
-        passwordHash,
+        linkedUserId: 'user-1',
         status: 'ACTIVE',
         failedLoginCount: 0,
         lockedUntil: null,
@@ -189,10 +203,11 @@ describe('AdminAuthService', () => {
 
     it('decrypts existing pending secret when generating enrollment QR on subsequent login', async () => {
       const passwordHash = await argon2.hash('admin-password-123');
+      withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
-        passwordHash,
+        linkedUserId: 'user-1',
         status: 'ACTIVE',
         failedLoginCount: 0,
         lockedUntil: null,
@@ -385,10 +400,11 @@ describe('AdminAuthService', () => {
 
     it('increments failedLoginCount and locks out account on 5th failure', async () => {
       const passwordHash = await argon2.hash('correct-password');
+      withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
-        passwordHash,
+        linkedUserId: 'user-1',
         status: 'ACTIVE',
         failedLoginCount: 4,
         lockedUntil: null,
@@ -450,20 +466,22 @@ describe('AdminAuthService', () => {
       ).rejects.toThrow('Account temporarily locked');
     });
 
-    it('supports legacy bcrypt hashes and triggers argon2 upgrade', async () => {
-      // bcrypt.compare mock or test with bcrypt.hash
-      const bcrypt = await import('bcrypt');
-      const realBcryptHash = await bcrypt.hash('admin-bcrypt-pass', 10);
+    const activeStaff = {
+      id: 'admin-1',
+      email: 'admin@circlesfera.com',
+      linkedUserId: 'user-1',
+      status: 'ACTIVE',
+      failedLoginCount: 0,
+      lockedUntil: null,
+      mfaRequired: false,
+      totpEnabled: false,
+      roles: [],
+    };
 
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        passwordHash: realBcryptHash,
-        status: 'ACTIVE',
-        mfaRequired: false,
-        totpEnabled: false,
-        roles: [],
-      });
+    it('accepts the password of the linked sign-in, whatever hash format it uses', async () => {
+      const bcrypt = await import('bcrypt');
+      withSignInPassword(await bcrypt.hash('admin-bcrypt-pass', 10));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(activeStaff);
 
       const result = await service.login(
         'admin@circlesfera.com',
@@ -472,44 +490,66 @@ describe('AdminAuthService', () => {
       );
 
       expect(result.status).toBe('OK');
-      if (result.status === 'OK') {
-        expect(result.tokens.accessToken).toBeDefined();
-        expect(result.tokens.refreshToken).toBeDefined();
-      }
-      expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith(
+      expect(mockPrisma.signIn.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { email: 'admin@circlesfera.com' } }),
+      );
+      // The staff account never stores a password of its own any more.
+      expect(mockPrisma.adminIdentity.update).toHaveBeenCalledWith({
+        where: { id: 'admin-1' },
+        data: { failedLoginCount: 0, lockedUntil: null },
+      });
+    });
+
+    it.each([
+      ['an unknown stored hash format', { password: 'plain-or-sha1-hash' }],
+      [
+        'a sign-in that must set a new password',
+        { passwordResetRequiredAt: new Date() },
+      ],
+      ['a sign-in that belongs to another user', { userId: 'user-2' }],
+    ])('refuses the right password on %s', async (_label, signIn) => {
+      withSignInPassword(await argon2.hash('right-pass'), signIn);
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(activeStaff);
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
+      });
+
+      await expect(
+        service.login('admin@circlesfera.com', 'right-pass', {}),
+      ).rejects.toThrow('Invalid credentials');
+      expect(mockPrisma.adminAuditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
-            passwordHash: expect.stringMatching(/^\$argon2/),
-          }),
+          data: expect.objectContaining({ action: 'ADMIN_LOGIN_FAILED' }),
         }),
       );
     });
 
-    it('rejects unknown password hash formats', async () => {
+    it.each([
+      ['a staff account linked to no user', { linkedUserId: null }, 'sign-in'],
+      ['a linked user with no sign-in on the staff email', {}, 'none'],
+    ])('refuses on %s', async (_label, staff, kind) => {
+      if (kind === 'none') mockPrisma.signIn.findUnique.mockResolvedValue(null);
+      else withSignInPassword(await argon2.hash('right-pass'));
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        passwordHash: 'plain-or-sha1-hash',
-        status: 'ACTIVE',
+        ...activeStaff,
+        ...staff,
       });
       mockPrisma.adminIdentity.update.mockResolvedValue({
         failedLoginCount: 1,
       });
 
       await expect(
-        service.login('admin@circlesfera.com', 'password', {}),
+        service.login('admin@circlesfera.com', 'right-pass', {}),
       ).rejects.toThrow('Invalid credentials');
     });
 
-    it('returns invalid credentials when password does not match bcrypt hash', async () => {
-      const bcrypt = await import('bcrypt');
-      const realBcryptHash = await bcrypt.hash('admin-bcrypt-pass', 10);
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        passwordHash: realBcryptHash,
-        status: 'ACTIVE',
+    it('returns invalid credentials when the password does not match', async () => {
+      withSignInPassword(await argon2.hash('admin-pass'));
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(activeStaff);
+      mockPrisma.adminIdentity.update.mockResolvedValue({
+        failedLoginCount: 1,
       });
+
       await expect(
         service.login('admin@circlesfera.com', 'wrong-pass', {}),
       ).rejects.toThrow('Invalid credentials');
@@ -517,10 +557,11 @@ describe('AdminAuthService', () => {
 
     it('returns MFA_REQUIRED when admin has MFA enabled and configured', async () => {
       const passwordHash = await argon2.hash('admin-password');
+      withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
-        passwordHash,
+        linkedUserId: 'user-1',
         status: 'ACTIVE',
         mfaRequired: true,
         totpEnabled: true,
@@ -540,10 +581,11 @@ describe('AdminAuthService', () => {
 
     it('returns OK and issues tokens directly when MFA is not required', async () => {
       const passwordHash = await argon2.hash('admin-password');
+      withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
-        passwordHash,
+        linkedUserId: 'user-1',
         status: 'ACTIVE',
         mfaRequired: false,
         totpEnabled: false,
@@ -866,13 +908,28 @@ describe('AdminAuthService', () => {
       });
     });
 
-    it('stepUp verifies password when provided', async () => {
-      const passwordHash = await argon2.hash('stepup-pass');
+    it("stepUp refuses the staff account's own old password and a missing sign-in", async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         email: 'admin@circlesfera.com',
         status: 'ACTIVE',
-        passwordHash,
+        linkedUserId: 'user-1',
+      });
+      mockPrisma.signIn.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.stepUp('admin-1', { password: 'stepup-pass' }),
+      ).rejects.toThrow('Step-up verification failed');
+    });
+
+    it('stepUp verifies password when provided', async () => {
+      const passwordHash = await argon2.hash('stepup-pass');
+      withSignInPassword(passwordHash);
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@circlesfera.com',
+        status: 'ACTIVE',
+        linkedUserId: 'user-1',
       });
 
       const result = await service.stepUp('admin-1', {
@@ -898,7 +955,7 @@ describe('AdminAuthService', () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         status: 'ACTIVE',
-        passwordHash: await argon2.hash('pass'),
+        linkedUserId: 'user-1',
         totpSecret: 'enc:base32-admin-secret',
       });
       await expect(

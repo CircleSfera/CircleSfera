@@ -68,6 +68,8 @@ async function main() {
         lockedUntil: true,
         lastLoginAt: true,
         updatedAt: true,
+        email: true,
+        linkedUserId: true,
         passwordHash: true,
         totpEnabled: true,
         mfaRequired: true,
@@ -105,6 +107,21 @@ async function main() {
           : /^\$2[aby]\$/.test(account.passwordHash)
             ? 'bcrypt'
             : 'not recognised';
+        // Staff sign in with the password of the CircleSfera sign-in that has
+        // their email and belongs to their linked user.
+        const signIn = await prisma.signIn.findUnique({
+          where: { email: account.email },
+          select: { userId: true, passwordResetRequiredAt: true },
+        });
+        const signInState = !account.linkedUserId
+          ? 'no: the staff account is linked to no user'
+          : !signIn
+            ? 'no: no sign-in has the staff email'
+            : signIn.userId !== account.linkedUserId
+              ? 'no: that sign-in belongs to another user'
+              : signIn.passwordResetRequiredAt
+                ? 'yes, but it must set a new password first'
+                : 'yes';
         const recent = await prisma.adminAuditLog.groupBy({
           by: ['action', 'details'],
           where: {
@@ -139,7 +156,10 @@ async function main() {
           `  Last sign-in: ${account.lastLoginAt ? daysAgo(account.lastLoginAt) : 'never'}`,
         );
         console.log(`  Record last changed: ${daysAgo(account.updatedAt)}`);
-        console.log(`  Stored password format: ${passwordFormat}`);
+        console.log(`  Password comes from the user sign-in: ${signInState}`);
+        console.log(
+          `  Own stored password format (no longer used): ${passwordFormat}`,
+        );
         console.log(
           `  Second factor: ${account.totpEnabled ? 'set up' : 'not set up'}${
             account.mfaRequired ? ', required' : ''
