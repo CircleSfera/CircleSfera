@@ -3711,6 +3711,10 @@
       "empty_description": "No se encontraron directos con los filtros actuales.",
       "kpi_active": "Directos activos",
       "kpi_viewers": "Espectadores totales",
+      "state": {
+        "LIVE": "En vivo",
+        "ENDED": "Finalizado"
+      },
       "status_live": "En vivo ahora",
       "status_ended": "Finalizados",
       "status_all": "Todos",

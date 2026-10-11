@@ -78,6 +78,14 @@ const panel = () =>
   screen.getByRole('button', { name: 'Close' }).parentElement
     ?.parentElement as HTMLElement;
 
+/** Opens the menu of a broadcast's row and asks to end it. */
+const askToEnd = (title: string) => {
+  fireEvent.click(
+    within(rowOf(title)).getByRole('button', { name: 'More actions' }),
+  );
+  fireEvent.click(screen.getByRole('menuitem', { name: 'End' }));
+};
+
 describe('LiveStreamsTab', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -131,15 +139,21 @@ describe('LiveStreamsTab', () => {
     await screen.findByText('Stream a');
     const live = rowOf('Stream a');
     expect(within(live).getByText('@host_a')).toBeInTheDocument();
-    expect(within(live).getByText('LIVE')).toHaveClass('text-red-400');
+    expect(within(live).getByText('Live')).toHaveClass('text-red-400');
     expect(within(live).getByText('7')).toBeInTheDocument();
-    expect(within(live).getByRole('button', { name: 'End' })).toBeEnabled();
+    // Ending is in the menu of the row, not a button of the row.
+    expect(
+      within(live).queryByRole('button', { name: 'End' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(live).getByRole('button', { name: 'More actions' }),
+    ).toBeInTheDocument();
 
     const ended = rowOf('Stream b');
-    expect(within(ended).getByText('ENDED')).toHaveClass('text-white/50');
+    expect(within(ended).getByText('Ended')).toHaveClass('text-white/50');
     expect(within(ended).queryByText('7')).not.toBeInTheDocument();
     expect(
-      within(ended).queryByRole('button', { name: 'End' }),
+      within(ended).queryByRole('button', { name: 'More actions' }),
     ).not.toBeInTheDocument();
 
     const unnamed = rowOf('Unknown');
@@ -222,9 +236,7 @@ describe('LiveStreamsTab', () => {
     show();
     await screen.findByText('Stream a');
 
-    fireEvent.click(
-      within(rowOf('Stream a')).getByRole('button', { name: 'End' }),
-    );
+    askToEnd('Stream a');
 
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('End live')).toBeInTheDocument();
@@ -249,9 +261,7 @@ describe('LiveStreamsTab', () => {
     show();
     await screen.findByText('Stream a');
 
-    fireEvent.click(
-      within(rowOf('Stream a')).getByRole('button', { name: 'End' }),
-    );
+    askToEnd('Stream a');
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
@@ -267,9 +277,7 @@ describe('LiveStreamsTab', () => {
     show();
     await screen.findByText('Stream a');
 
-    fireEvent.click(
-      within(rowOf('Stream a')).getByRole('button', { name: 'End' }),
-    );
+    askToEnd('Stream a');
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'End' }));
 
@@ -421,9 +429,7 @@ describe('LiveStreamsTab', () => {
     await screen.findByText('Stream a');
 
     fireEvent.click(rowOf('Stream a'));
-    fireEvent.click(
-      within(rowOf('Stream b')).getByRole('button', { name: 'End' }),
-    );
+    askToEnd('Stream b');
     const dialog = await screen.findByRole('dialog');
     fireEvent.click(within(dialog).getByRole('button', { name: 'End' }));
 

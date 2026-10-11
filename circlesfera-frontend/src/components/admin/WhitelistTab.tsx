@@ -15,12 +15,7 @@ import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
-import {
-  ActionButton,
-  Pagination,
-  SearchInput,
-  StatusBadge,
-} from './AdminTable';
+import { Pagination, SearchInput, StatusBadge } from './AdminTable';
 import { adminToast } from './adminToast';
 
 export default function WhitelistTab() {
@@ -151,13 +146,6 @@ export default function WhitelistTab() {
                     subtitle={entry.email}
                     badge={<StatusBadge status={entry.status} />}
                     meta={formatDay(entry.createdAt, i18n.language)}
-                    primaryAction={
-                      <ActionButton
-                        variant="ghost"
-                        label={t('admin.whitelist.action_edit')}
-                        onClick={() => setSelectedId(entry.id)}
-                      />
-                    }
                     secondaryActions={[
                       {
                         label: t('admin.whitelist.action_delete'),
@@ -246,10 +234,10 @@ export default function WhitelistTab() {
                     defaultValue={selectedEntry.status}
                   >
                     <option value="VALID" className="bg-surface-raised">
-                      VALID
+                      {t('admin.shared.status.valid')}
                     </option>
                     <option value="REGISTERED" className="bg-surface-raised">
-                      REGISTERED
+                      {t('admin.shared.status.registered')}
                     </option>
                   </Select>
                 </div>

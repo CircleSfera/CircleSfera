@@ -234,9 +234,8 @@ describe('WhitelistTab', () => {
     renderWithProviders(<WhitelistTab />);
     await screen.findByText('Person a');
 
-    fireEvent.click(
-      within(rowOf('Person a')).getByRole('button', { name: 'Edit' }),
-    );
+    // The row itself opens the person: it has no button to say so.
+    fireEvent.click(rowOf('Person a'));
     const form = detail();
     expect(within(form).getByText('Edit entry')).toBeInTheDocument();
     expect(within(form).getByRole('textbox', { name: 'Name' })).toHaveValue(

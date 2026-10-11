@@ -15,7 +15,7 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
-import { ActionButton, Pagination } from './AdminTable';
+import { Pagination } from './AdminTable';
 import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
@@ -154,7 +154,9 @@ export default function LiveStreamsTab() {
                             : 'bg-white/5 text-white/50 border border-white/5'
                         }`}
                       >
-                        {stream.status}
+                        {t(`admin.lives.state.${stream.status}`, {
+                          defaultValue: stream.status,
+                        })}
                       </span>
                     }
                     meta={
@@ -165,16 +167,20 @@ export default function LiveStreamsTab() {
                         </div>
                       )
                     }
-                    primaryAction={
-                      stream.status === 'LIVE' ? (
-                        <ActionButton
-                          onClick={() => setConfirmEndId(stream.id)}
-                          label={t('admin.lives.action_end')}
-                          variant="danger"
-                          icon={StopCircle}
-                          disabled={endStreamMutation.isPending}
-                        />
-                      ) : undefined
+                    // Ending a stream is not the visible action of a row: it
+                    // waits in the row menu, with its confirmation.
+                    secondaryActions={
+                      stream.status === 'LIVE'
+                        ? [
+                            {
+                              label: t('admin.lives.action_end'),
+                              variant: 'danger',
+                              icon: StopCircle,
+                              disabled: endStreamMutation.isPending,
+                              onClick: () => setConfirmEndId(stream.id),
+                            },
+                          ]
+                        : undefined
                     }
                   />
                 ))
