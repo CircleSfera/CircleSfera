@@ -36,6 +36,7 @@ describe('the two staff sites', () => {
     expect(backoffice).toEqual([
       'overview',
       'support',
+      'help-centre',
       'plans',
       'subscriptions',
       'disputes',
@@ -72,6 +73,11 @@ describe('the two staff sites', () => {
   it('opens any other section only with its own permission', () => {
     expect(canOpenTab((key) => key === 'payments', 'subscriptions')).toBe(true);
     expect(canOpenTab((key) => key === 'support', 'subscriptions')).toBe(false);
+    // Writing the help centre is for who leads support, not for every agent.
+    expect(canOpenTab((key) => key === 'support', 'help-centre')).toBe(false);
+    expect(canOpenTab((key) => key === 'support.manage', 'help-centre')).toBe(
+      true,
+    );
   });
 
   it('knows when an operator has nothing to open in a site', () => {

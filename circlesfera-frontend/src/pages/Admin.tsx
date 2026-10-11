@@ -14,6 +14,7 @@ import {
   ExperimentsTab,
   FirewallTab,
   HashtagsTab,
+  HelpCentreTab,
   LiveStreamsTab,
   ModerationTab,
   MonetizationTab,
@@ -128,6 +129,7 @@ export default function Admin() {
         {activeTab === 'appeals' && <AppealsTab />}
         {activeTab === 'spam-review' && <SpamReviewTab />}
         {activeTab === 'support' && <SupportTicketsTab onToast={addToast} />}
+        {activeTab === 'help-centre' && <HelpCentreTab onToast={addToast} />}
         {activeTab === 'plans' && <PlansTab onToast={addToast} />}
         {activeTab === 'subscriptions' && <SubscriptionsTab />}
         {activeTab === 'disputes' && <DisputesTab />}

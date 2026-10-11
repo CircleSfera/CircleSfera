@@ -1,6 +1,7 @@
 import {
   Activity,
   BadgeCheck,
+  BookOpen,
   Bot,
   Briefcase,
   Clock,
@@ -57,6 +58,7 @@ export type AdminTab =
   | 'appeals'
   | 'spam-review'
   | 'support'
+  | 'help-centre'
   | 'plans'
   | 'subscriptions'
   | 'disputes'
@@ -110,6 +112,8 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   appeals: 'appeals',
   'spam-review': 'users.read',
   support: 'support',
+  // Writing the help centre is for who leads support.
+  'help-centre': 'support.manage',
   plans: 'plans',
   subscriptions: 'payments',
   disputes: 'payments',
@@ -275,6 +279,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: LifeBuoy,
       },
       {
+        id: 'help-centre',
+        labelKey: 'admin.nav.help_centre',
+        icon: BookOpen,
+      },
+      {
         id: 'plans',
         labelKey: 'admin.nav.plans',
         icon: BadgeCheck,
@@ -301,6 +310,7 @@ export type StaffSite = 'admin' | 'backoffice';
 const BACKOFFICE_TABS: readonly AdminTab[] = [
   'overview',
   'support',
+  'help-centre',
   'plans',
   'subscriptions',
   'disputes',
