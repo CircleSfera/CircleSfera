@@ -86,7 +86,7 @@ describe('PromotionsTab', () => {
   it('asks for every request and says when there are none', async () => {
     show();
 
-    expect(await screen.findByText('No promotions found')).toBeInTheDocument();
+    expect(await screen.findByText('No promotions')).toBeInTheDocument();
     expect(api.getPromotions).toHaveBeenCalledWith(1, 20, undefined, undefined);
     expect(
       screen.queryByRole('button', { name: 'Clear filters' }),
@@ -478,7 +478,7 @@ describe('MonetizationTab', () => {
     ).toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse .h-28')).toHaveLength(2);
     expect(
-      screen.queryByRole('button', { name: 'Export financial ledger as CSV' }),
+      screen.queryByRole('button', { name: 'Export the transactions as CSV' }),
     ).not.toBeInTheDocument();
   });
 
@@ -493,24 +493,24 @@ describe('MonetizationTab', () => {
   it('shows revenue, subscriptions, growth and the share of each plan', async () => {
     show();
 
-    await screen.findByText('Platform MRR');
+    await screen.findByText('Monthly recurring revenue');
     await waitFor(
       () => {
-        expect(card('Platform MRR')).toHaveTextContent('120');
+        expect(card('Monthly recurring revenue')).toHaveTextContent('120');
         expect(card('Active Subscriptions')).toHaveTextContent('14');
       },
       { timeout: 4000 },
     );
-    expect(card('Platform MRR')).toHaveTextContent('+25%');
+    expect(card('Monthly recurring revenue')).toHaveTextContent('+25%');
     expect(
       screen.getByText('Subscription growth').closest('.flex-col'),
     ).toHaveTextContent('+25%');
 
-    expect(tier('Verified')).toHaveTextContent('6 Members');
-    expect(tier('Verified')).toHaveTextContent('60%');
-    expect(tier('Elite Creator')).toHaveTextContent('3 Members');
+    expect(tier('Premium')).toHaveTextContent('6 members');
+    expect(tier('Premium')).toHaveTextContent('60%');
+    expect(tier('Elite Creator')).toHaveTextContent('3 members');
     expect(tier('Elite Creator')).toHaveTextContent('30%');
-    expect(tier('Business')).toHaveTextContent('1 Members');
+    expect(tier('Business')).toHaveTextContent('1 members');
     expect(tier('Business')).toHaveTextContent('10%');
   });
 
@@ -534,9 +534,9 @@ describe('MonetizationTab', () => {
     api.getMonetizationAnalytics.mockResolvedValue({ data: {} } as never);
     show();
 
-    await screen.findByText('Platform MRR');
-    for (const name of ['Verified', 'Elite Creator', 'Business']) {
-      expect(tier(name)).toHaveTextContent('0 Members');
+    await screen.findByText('Monthly recurring revenue');
+    for (const name of ['Premium', 'Elite Creator', 'Business']) {
+      expect(tier(name)).toHaveTextContent('0 members');
       expect(tier(name)).toHaveTextContent('0%');
     }
     expect(card('Active Subscriptions')).toHaveTextContent('0');
@@ -668,14 +668,14 @@ describe('MonetizationTab', () => {
     });
     vi.mocked(paymentsApi.getAdminLedger).mockResolvedValue('date,amount');
     show();
-    await screen.findByText('Platform MRR');
+    await screen.findByText('Monthly recurring revenue');
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Export financial ledger as CSV' }),
+      screen.getByRole('button', { name: 'Export the transactions as CSV' }),
     );
 
     await waitFor(() =>
-      expect(toast.success).toHaveBeenCalledWith('Ledger exported'),
+      expect(toast.success).toHaveBeenCalledWith('Transactions exported'),
     );
     expect(name).toBe('circlesfera-ledger.csv');
     expect((created.mock.calls[0] as unknown as [Blob])[0].type).toBe(
@@ -687,14 +687,16 @@ describe('MonetizationTab', () => {
   it('says so when the ledger cannot be produced', async () => {
     vi.mocked(paymentsApi.getAdminLedger).mockRejectedValue(new Error('no'));
     show();
-    await screen.findByText('Platform MRR');
+    await screen.findByText('Monthly recurring revenue');
 
     fireEvent.click(
-      screen.getByRole('button', { name: 'Export financial ledger as CSV' }),
+      screen.getByRole('button', { name: 'Export the transactions as CSV' }),
     );
 
     await waitFor(() =>
-      expect(toast.error).toHaveBeenCalledWith('Failed to export ledger'),
+      expect(toast.error).toHaveBeenCalledWith(
+        'The transactions could not be exported',
+      ),
     );
   });
 });
