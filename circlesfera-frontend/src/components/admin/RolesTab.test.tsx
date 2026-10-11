@@ -13,7 +13,7 @@ vi.mock('../../services/admin.service', () => ({
     updateOperatorStatus: vi.fn(),
     replaceOperatorRoles: vi.fn(),
     resetOperatorMfa: vi.fn(),
-    resetOperatorPassword: vi.fn(),
+    unlockOperator: vi.fn(),
   },
 }));
 vi.mock('../../services/admin-auth.service', () => ({
@@ -73,16 +73,13 @@ const createPanel = () =>
   screen
     .getByRole('heading', { name: 'New operator' })
     .closest('.glass-panel') as HTMLElement;
-const fillNewOperator = (password = 'a-long-password') => {
+const fillNewOperator = () => {
   const panel = createPanel();
   fireEvent.change(within(panel).getByPlaceholderText('email'), {
     target: { value: 'new@circlesfera.test' },
   });
   fireEvent.change(within(panel).getByPlaceholderText('Display name'), {
     target: { value: 'New person' },
-  });
-  fireEvent.change(within(panel).getByPlaceholderText('Password (min 12)'), {
-    target: { value: password },
   });
   return panel;
 };
@@ -96,7 +93,7 @@ describe('RolesTab', () => {
     api.updateOperatorStatus.mockResolvedValue({} as never);
     api.replaceOperatorRoles.mockResolvedValue({} as never);
     api.resetOperatorMfa.mockResolvedValue({} as never);
-    api.resetOperatorPassword.mockResolvedValue({} as never);
+    api.unlockOperator.mockResolvedValue({} as never);
     auth.stepUp.mockResolvedValue({} as never);
   });
 
@@ -297,26 +294,20 @@ describe('RolesTab', () => {
     );
   });
 
-  it('sets a new password only from twelve characters, and empties the field after', async () => {
+  it('clears a lockout without asking for a password', async () => {
     api.getOperators.mockResolvedValue(list([operator('a')]) as never);
     show();
     const pane = await open('Operator a');
 
-    const field = within(pane).getByPlaceholderText('New password (min 12)');
-    const set = within(pane).getByRole('button', { name: 'Set password' });
-    fireEvent.change(field, { target: { value: 'elevenchars' } });
-    expect(set).toBeDisabled();
-    fireEvent.change(field, { target: { value: 'twelve-chars' } });
-    fireEvent.click(set);
-
-    await waitFor(() =>
-      expect(api.resetOperatorPassword).toHaveBeenCalledWith(
-        'a',
-        'twelve-chars',
-      ),
+    expect(
+      within(pane).queryByPlaceholderText(/password/i),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Unlock account' }),
     );
-    await waitFor(() => expect(field).toHaveValue(''));
-    expect(onToast).toHaveBeenCalledWith('Password updated', 'success');
+
+    await waitFor(() => expect(api.unlockOperator).toHaveBeenCalledWith('a'));
+    expect(onToast).toHaveBeenCalledWith('Lockout cleared', 'success');
   });
 
   it('says which change was refused', async () => {
@@ -324,7 +315,7 @@ describe('RolesTab', () => {
     api.updateOperatorStatus.mockRejectedValue(refused);
     api.replaceOperatorRoles.mockRejectedValue(refused);
     api.resetOperatorMfa.mockRejectedValue(refused);
-    api.resetOperatorPassword.mockRejectedValue(refused);
+    api.unlockOperator.mockRejectedValue(refused);
     show();
     const pane = await open('Operator a');
 
@@ -340,15 +331,14 @@ describe('RolesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Could not reset MFA', 'error'),
     );
-    fireEvent.change(
-      within(pane).getByPlaceholderText('New password (min 12)'),
-      {
-        target: { value: 'twelve-chars' },
-      },
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Unlock account' }),
     );
-    fireEvent.click(within(pane).getByRole('button', { name: 'Set password' }));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Could not reset password', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'Could not clear the lockout',
+        'error',
+      ),
     );
     expect(screen.queryByPlaceholderText('000000')).not.toBeInTheDocument();
   });
@@ -362,7 +352,9 @@ describe('RolesTab', () => {
     const panel = createPanel();
     const create = within(panel).getByRole('button', { name: 'Create' });
     expect(create).toBeDisabled();
-    fillNewOperator('short');
+    fireEvent.change(within(panel).getByPlaceholderText('email'), {
+      target: { value: 'new@circlesfera.test' },
+    });
     expect(create).toBeDisabled();
     fillNewOperator();
     expect(create).toBeEnabled();
@@ -377,7 +369,6 @@ describe('RolesTab', () => {
     await waitFor(() =>
       expect(api.createOperator).toHaveBeenCalledWith({
         email: 'new@circlesfera.test',
-        password: 'a-long-password',
         displayName: 'New person',
         roleIds: ['arole_support'],
       }),

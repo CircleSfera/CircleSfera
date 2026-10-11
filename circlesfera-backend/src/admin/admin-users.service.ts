@@ -21,6 +21,7 @@ import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
+import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 import { userListRoleWhere } from './utils/user-list-role-filter.js';
 
@@ -335,7 +336,7 @@ export class AdminUsersService {
       const created = await this.prisma.adminIdentity.create({
         data: {
           email: user.email,
-          passwordHash: '$2b$10$AdminPanel.ResetRequired.placeholderXXXXX',
+          passwordHash: UNUSED_STAFF_PASSWORD_HASH,
           displayName: user.email.split('@')[0],
           status: 'ACTIVE',
           mfaRequired: true,

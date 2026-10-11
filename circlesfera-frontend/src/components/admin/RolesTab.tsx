@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   KeyRound,
+  LockOpen,
   Plus,
   Shield,
   ShieldCheck,
@@ -66,11 +67,9 @@ export default function RolesTab({ onToast }: Props) {
 
   const [createForm, setCreateForm] = useState({
     email: '',
-    password: '',
     displayName: '',
     roleIds: ['arole_platform'] as string[],
   });
-  const [passwordReset, setPasswordReset] = useState('');
 
   const { data: rolesCatalog } = useQuery({
     queryKey: ['admin', 'operator-roles'],
@@ -139,7 +138,6 @@ export default function RolesTab({ onToast }: Props) {
           setShowCreate(false);
           setCreateForm({
             email: '',
-            password: '',
             displayName: '',
             roleIds: ['arole_platform'],
           });
@@ -213,19 +211,18 @@ export default function RolesTab({ onToast }: Props) {
     },
   });
 
-  const resetPasswordMutation = useMutation({
+  const unlockMutation = useMutation({
     mutationFn: () =>
       runWithStepUp(async () => {
-        if (!selectedId || passwordReset.length < 12) return;
-        await adminApi.resetOperatorPassword(selectedId, passwordReset);
-        setPasswordReset('');
-        onToast(t('admin.operators.password_reset'), 'success');
+        if (!selectedId) return;
+        await adminApi.unlockOperator(selectedId);
+        onToast(t('admin.operators.unlocked'), 'success');
         await invalidate();
       }),
     onError: (err: any) => {
       if (!isStepUpRequired(err)) {
         onToast(
-          apiErrorMessage(err, t, 'admin.operators.password_error'),
+          apiErrorMessage(err, t, 'admin.operators.unlock_error'),
           'error',
         );
       }
@@ -340,15 +337,10 @@ export default function RolesTab({ onToast }: Props) {
                 setCreateForm((f) => ({ ...f, displayName: e.target.value }))
               }
             />
-            <Input
-              type="password"
-              placeholder={t('admin.operators.password_min')}
-              value={createForm.password}
-              onChange={(e) =>
-                setCreateForm((f) => ({ ...f, password: e.target.value }))
-              }
-            />
           </div>
+          <p className="text-sm text-text-secondary">
+            {t('admin.operators.create_hint')}
+          </p>
           <RoleChecklist
             catalog={rolesCatalog || []}
             selected={createForm.roleIds}
@@ -361,7 +353,6 @@ export default function RolesTab({ onToast }: Props) {
               isLoading={createMutation.isPending}
               disabled={
                 !createForm.email ||
-                createForm.password.length < 12 ||
                 !createForm.displayName ||
                 createForm.roleIds.length === 0
               }
@@ -496,21 +487,15 @@ export default function RolesTab({ onToast }: Props) {
                     </Button>
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2">
-                    <Input
-                      type="password"
-                      placeholder={t('admin.operators.new_password')}
-                      value={passwordReset}
-                      onChange={(e) => setPasswordReset(e.target.value)}
-                    />
                     <Button
                       type="button"
-                      variant="primary"
+                      variant="secondary"
                       size="sm"
-                      className="min-h-11"
-                      disabled={passwordReset.length < 12}
-                      onClick={() => resetPasswordMutation.mutate()}
+                      className="min-h-11 gap-2"
+                      onClick={() => unlockMutation.mutate()}
                     >
-                      {t('admin.operators.set_password')}
+                      <LockOpen size={14} />
+                      {t('admin.operators.unlock')}
                     </Button>
                   </div>
                 </div>

@@ -3657,15 +3657,14 @@
       "empty": "No operators yet",
       "load_error": "Could not load operators",
       "display_name": "Display name",
-      "password_min": "Password (min 12)",
+      "create_hint": "The person needs a CircleSfera account with this email. They sign in to the staff sites with that account's password.",
       "save": "Create",
       "roles": "Roles",
       "actions": "Actions",
       "disable": "Disable",
       "enable": "Enable",
       "reset_mfa": "Reset MFA",
-      "new_password": "New password (min 12)",
-      "set_password": "Set password",
+      "unlock": "Unlock account",
       "mfa_on": "MFA enrolled",
       "mfa_off": "MFA enrollment pending",
       "step_up_required": "Confirm with your authenticator code",
@@ -3682,8 +3681,8 @@
       "roles_error": "Could not update roles",
       "mfa_reset": "MFA reset",
       "mfa_error": "Could not reset MFA",
-      "password_reset": "Password updated",
-      "password_error": "Could not reset password"
+      "unlocked": "Lockout cleared",
+      "unlock_error": "Could not clear the lockout"
     },
     "split": {
       "select_item": "Select an item from the list",

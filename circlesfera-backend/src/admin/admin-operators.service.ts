@@ -7,8 +7,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { AdminAction, type AdminIdentityStatus } from '@prisma/client';
-import * as argon2 from 'argon2';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
 
 const KNOWN_ROLE_IDS = new Set([
   'arole_super',
@@ -161,15 +161,11 @@ export class AdminOperatorsService {
     actorAdminId: string,
     dto: {
       email: string;
-      password: string;
       displayName: string;
       roleIds: string[];
     },
   ) {
     const email = dto.email.toLowerCase().trim();
-    if (dto.password.length < 12) {
-      throw new BadRequestException('Password must be at least 12 characters');
-    }
     this.validateRoleIds(dto.roleIds);
 
     const existing = await this.prisma.adminIdentity.findUnique({
@@ -179,18 +175,27 @@ export class AdminOperatorsService {
       throw new ConflictException('An operator with this email already exists');
     }
 
-    const linkedUser = await this.prisma.user.findUnique({ where: { email } });
-    const passwordHash = await argon2.hash(dto.password);
+    // A staff member signs in with the password of their CircleSfera account,
+    // so the account has to exist: the one whose sign-in has this email.
+    const signIn = await this.prisma.signIn.findUnique({
+      where: { email },
+      select: { userId: true },
+    });
+    if (!signIn) {
+      throw new BadRequestException(
+        'No CircleSfera account has this email: the person has to sign up first',
+      );
+    }
 
     const created = await this.prisma.adminIdentity.create({
       data: {
         email,
-        passwordHash,
+        passwordHash: UNUSED_STAFF_PASSWORD_HASH,
         displayName: dto.displayName.trim() || email.split('@')[0],
         status: 'ACTIVE',
         mfaRequired: true,
         totpEnabled: false,
-        linkedUserId: linkedUser?.id ?? null,
+        linkedUserId: signIn.userId,
         roles: {
           create: dto.roleIds.map((roleId) => ({ roleId })),
         },
@@ -305,32 +310,24 @@ export class AdminOperatorsService {
     return this.serialize(updated);
   }
 
-  async resetPassword(actorAdminId: string, id: string, password: string) {
-    if (password.length < 12) {
-      throw new BadRequestException('Password must be at least 12 characters');
-    }
+  // Clears a lockout after too many failed sign-ins. The password is not
+  // touched: it is the one of the person's CircleSfera account.
+  async unlock(actorAdminId: string, id: string) {
     const admin = await this.prisma.adminIdentity.findUnique({ where: { id } });
     if (!admin) throw new NotFoundException('Operator not found');
 
-    const passwordHash = await argon2.hash(password);
     const updated = await this.prisma.adminIdentity.update({
       where: { id },
-      data: {
-        passwordHash,
-        failedLoginCount: 0,
-        lockedUntil: null,
-      },
+      data: { failedLoginCount: 0, lockedUntil: null },
       include: { roles: { include: { role: true } } },
     });
 
-    await this.prisma.adminRefreshToken.deleteMany({ where: { adminId: id } });
-
     await this.logAction(
       actorAdminId,
-      AdminAction.ADMIN_IDENTITY_CREATED,
+      AdminAction.MANUAL_OVERRIDE,
       'admin',
       id,
-      'Password reset by operator admin',
+      'Lockout cleared by operator admin',
     );
 
     return this.serialize(updated);
