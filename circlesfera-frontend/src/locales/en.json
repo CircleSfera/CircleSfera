@@ -3169,8 +3169,8 @@
       "kpi_total": "Total posts",
       "kpi_new_week": "New (this week)",
       "kpi_reported_pct": "Reported content",
-      "segment_type_post": "Type: Post",
-      "segment_type_frame": "Type: Frame"
+      "segment_type_post": "Posts",
+      "segment_type_frame": "Frames"
     },
     "stories": {
       "title": "Stories",
@@ -3778,7 +3778,7 @@
     },
     "operators": {
       "title": "Operators",
-      "subtitle": "Admin Panel identities, roles and MFA",
+      "subtitle": "Staff accounts, their roles and two-step verification",
       "create": "New operator",
       "search": "Search by email or name…",
       "filter_status": "Status",
@@ -3792,10 +3792,10 @@
       "actions": "Actions",
       "disable": "Disable",
       "enable": "Enable",
-      "reset_mfa": "Reset MFA",
+      "reset_mfa": "Reset two-step verification",
       "unlock": "Unlock account",
-      "mfa_on": "MFA enrolled",
-      "mfa_off": "MFA enrollment pending",
+      "mfa_on": "Two-step verification set up",
+      "mfa_off": "Two-step verification not set up yet",
       "reference": "Reference {{reference}}",
       "step_up_required": "Confirm with your authenticator code",
       "step_up_hint": "Enter your authenticator code to confirm this action.",
@@ -3809,8 +3809,8 @@
       "status_error": "Could not update status",
       "roles_updated": "Roles updated",
       "roles_error": "Could not update roles",
-      "mfa_reset": "MFA reset",
-      "mfa_error": "Could not reset MFA",
+      "mfa_reset": "Two-step verification reset",
+      "mfa_error": "Could not reset two-step verification",
       "unlocked": "Lockout cleared",
       "unlock_error": "Could not clear the lockout",
       "role_names": {

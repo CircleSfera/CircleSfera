@@ -270,10 +270,10 @@ export default function RolesTab({ onToast }: Props) {
             {t('admin.operators.status_all')}
           </option>
           <option value="ACTIVE" className="bg-surface-raised">
-            ACTIVE
+            {t('admin.shared.status.active')}
           </option>
           <option value="DISABLED" className="bg-surface-raised">
-            DISABLED
+            {t('admin.shared.status.disabled')}
           </option>
         </select>
       </AdminFilterBar>
@@ -545,7 +545,7 @@ function RoleChecklist({
                 : [...selected, role.id];
               if (next.length) onChange(next);
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+            className={`px-3 min-h-11 sm:min-h-9 rounded-lg text-xs font-semibold border transition-colors ${
               active
                 ? 'bg-brand-primary/15 text-white border-brand-primary/30'
                 : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
