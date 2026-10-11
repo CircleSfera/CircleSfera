@@ -424,8 +424,10 @@ export default function RolesTab({ onToast }: Props) {
           }
           detail={
             selected ? (
-              <div className="space-y-2.5 sm:space-y-3 p-1">
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2">
+              // One box, the pane: the parts of the record are sections under a
+              // thin line, not boxes of their own.
+              <div className="divide-y divide-white/5">
+                <div className="pb-4 space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-bold text-white">
@@ -455,7 +457,7 @@ export default function RolesTab({ onToast }: Props) {
                   </p>
                 </div>
 
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
+                <div className="py-4 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
                     {t('admin.operators.roles')}
                   </h4>
@@ -466,7 +468,7 @@ export default function RolesTab({ onToast }: Props) {
                   />
                 </div>
 
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
+                <div className="py-4 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
                     {t('admin.operators.actions')}
                   </h4>
