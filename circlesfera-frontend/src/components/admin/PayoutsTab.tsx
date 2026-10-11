@@ -8,7 +8,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminStripePayoutLog } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -198,7 +198,7 @@ export default function PayoutsTab() {
                       </span>
                       <span>
                         {t('admin.payouts.arrives_on', {
-                          date: formatDate(payout.arrivalDate, i18n.language),
+                          date: formatDay(payout.arrivalDate, i18n.language),
                         })}
                       </span>
                     </>

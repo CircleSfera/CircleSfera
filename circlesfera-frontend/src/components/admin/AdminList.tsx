@@ -123,6 +123,94 @@ export function AdminListRow({
   }, [menuOpen]);
 
   // Interactive card uses role=button only when onClick is provided
+  // The menu of the row. With a button of its own on the row it sits on the
+  // line of that button; with none, beside the state, so that no line is
+  // kept for the menu alone.
+  const menu =
+    secondaryActions && secondaryActions.length > 0 ? (
+      <div className="relative">
+        <Button
+          ref={triggerRef}
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="w-11 h-11 text-white/50 hover:text-white"
+          aria-label={t('admin.shared.more_actions')}
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <MoreHorizontal size={18} />
+        </Button>
+        {menuOpen &&
+          menuPos &&
+          createPortal(
+            <div
+              ref={menuRef}
+              role="menu"
+              style={{
+                position: 'fixed',
+                top: menuPos.openUp ? undefined : menuPos.top,
+                bottom: menuPos.openUp
+                  ? window.innerHeight - menuPos.top
+                  : undefined,
+                left: menuPos.left,
+                zIndex: 100,
+              }}
+              className={clsx(
+                'min-w-52 py-1.5 rounded-2xl overflow-hidden',
+                'border border-white/10 shadow-2xl',
+                'bg-linear-to-br from-[rgba(18,12,32,0.96)] to-[rgba(10,8,20,0.98)]',
+                'backdrop-blur-xl saturate-150',
+                'shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(136,76,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]',
+              )}
+            >
+              {secondaryActions.map((action) => {
+                const Icon = action.icon;
+                const isDanger = action.variant === 'danger';
+                return (
+                  <div key={action.label}>
+                    {action.dividerBefore && (
+                      <div className="mx-3 my-1.5 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
+                    )}
+                    <button
+                      type="button"
+                      role="menuitem"
+                      disabled={action.disabled}
+                      onClick={(e) => {
+                        action.onClick(e);
+                        setMenuOpen(false);
+                      }}
+                      className={clsx(
+                        'w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-40 min-h-10',
+                        isDanger
+                          ? 'text-red-400 hover:bg-red-500/10'
+                          : 'text-white hover:bg-white/6',
+                      )}
+                    >
+                      {Icon ? (
+                        <span
+                          className={clsx(
+                            'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border',
+                            isDanger
+                              ? 'bg-red-500/10 border-red-500/20 text-red-400'
+                              : 'bg-white/5 border-white/10 text-white/60',
+                          )}
+                        >
+                          <Icon size={14} />
+                        </span>
+                      ) : null}
+                      <span className="truncate">{action.label}</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>,
+            document.body,
+          )}
+      </div>
+    ) : null;
+
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
     <div
@@ -166,15 +254,24 @@ export function AdminListRow({
               </div>
             )}
           </div>
-          {badge && <div className="shrink-0">{badge}</div>}
+          {(badge || (!primaryAction && menu)) && (
+            // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row click
+            <div
+              className="shrink-0 flex items-center gap-1"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+            >
+              {badge}
+              {!primaryAction && menu}
+            </div>
+          )}
         </div>
         {meta && (
           <div className="mt-2 text-xs text-white/40 flex flex-wrap gap-x-3 gap-y-1">
             {meta}
           </div>
         )}
-        {(primaryAction ||
-          (secondaryActions && secondaryActions.length > 0)) && (
+        {primaryAction && (
           // Stop row click when interacting with actions
           // biome-ignore lint/a11y/noStaticElementInteractions: action bar only stops propagation
           <div
@@ -183,89 +280,7 @@ export function AdminListRow({
             onKeyDown={(e) => e.stopPropagation()}
           >
             {primaryAction}
-            {secondaryActions && secondaryActions.length > 0 && (
-              <div className="relative ml-auto">
-                <Button
-                  ref={triggerRef}
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="w-11 h-11 text-white/50 hover:text-white"
-                  aria-label={t('admin.shared.more_actions')}
-                  aria-expanded={menuOpen}
-                  aria-haspopup="menu"
-                  onClick={() => setMenuOpen((o) => !o)}
-                >
-                  <MoreHorizontal size={18} />
-                </Button>
-                {menuOpen &&
-                  menuPos &&
-                  createPortal(
-                    <div
-                      ref={menuRef}
-                      role="menu"
-                      style={{
-                        position: 'fixed',
-                        top: menuPos.openUp ? undefined : menuPos.top,
-                        bottom: menuPos.openUp
-                          ? window.innerHeight - menuPos.top
-                          : undefined,
-                        left: menuPos.left,
-                        zIndex: 100,
-                      }}
-                      className={clsx(
-                        'min-w-52 py-1.5 rounded-2xl overflow-hidden',
-                        'border border-white/10 shadow-2xl',
-                        'bg-linear-to-br from-[rgba(18,12,32,0.96)] to-[rgba(10,8,20,0.98)]',
-                        'backdrop-blur-xl saturate-150',
-                        'shadow-[0_16px_48px_rgba(0,0,0,0.6),0_0_0_1px_rgba(136,76,255,0.08),inset_0_1px_0_rgba(255,255,255,0.06)]',
-                      )}
-                    >
-                      {secondaryActions.map((action) => {
-                        const Icon = action.icon;
-                        const isDanger = action.variant === 'danger';
-                        return (
-                          <div key={action.label}>
-                            {action.dividerBefore && (
-                              <div className="mx-3 my-1.5 h-px bg-linear-to-r from-transparent via-white/10 to-transparent" />
-                            )}
-                            <button
-                              type="button"
-                              role="menuitem"
-                              disabled={action.disabled}
-                              onClick={(e) => {
-                                action.onClick(e);
-                                setMenuOpen(false);
-                              }}
-                              className={clsx(
-                                'w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-40 min-h-10',
-                                isDanger
-                                  ? 'text-red-400 hover:bg-red-500/10'
-                                  : 'text-white hover:bg-white/6',
-                              )}
-                            >
-                              {Icon ? (
-                                <span
-                                  className={clsx(
-                                    'w-7 h-7 rounded-lg flex items-center justify-center shrink-0 border',
-                                    isDanger
-                                      ? 'bg-red-500/10 border-red-500/20 text-red-400'
-                                      : 'bg-white/5 border-white/10 text-white/60',
-                                  )}
-                                >
-                                  <Icon size={14} />
-                                </span>
-                              ) : null}
-                              <span className="truncate">{action.label}</span>
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>,
-                    document.body,
-                  )}
-              </div>
-            )}
+            {menu && <div className="ml-auto">{menu}</div>}
           </div>
         )}
       </div>

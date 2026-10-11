@@ -134,7 +134,7 @@ describe('AuditLogTab', () => {
     expect(await screen.findByText('Banned user')).toBeInTheDocument();
     expect(screen.getByText('something new')).toBeInTheDocument();
     expect(screen.getByText('@root')).toBeInTheDocument();
-    expect(screen.getByText('USER')).toBeInTheDocument();
+    expect(screen.getByText('Account')).toBeInTheDocument();
     expect(adminApi.getAuditLogs).toHaveBeenCalledWith(1, 15, {
       action: undefined,
       search: undefined,
@@ -148,7 +148,7 @@ describe('AuditLogTab', () => {
 
     expect(screen.getByText('user-123')).toBeInTheDocument();
     expect(screen.getByText('spam ring')).toBeInTheDocument();
-    expect(screen.getByText('Target ID')).toBeInTheDocument();
+    expect(screen.getByText('Target identifier')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.queryByText('user-123')).not.toBeInTheDocument();
@@ -179,7 +179,7 @@ describe('AuditLogTab', () => {
     );
 
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Admin or target ID...' }),
+      screen.getByRole('textbox', { name: 'Operator or identifier...' }),
       {
         target: { value: '  root ' },
       },
@@ -207,7 +207,7 @@ describe('AuditLogTab', () => {
     expect(await screen.findByText('No audit records')).toBeInTheDocument();
 
     fireEvent.change(
-      screen.getByRole('textbox', { name: 'Admin or target ID...' }),
+      screen.getByRole('textbox', { name: 'Operator or identifier...' }),
       {
         target: { value: 'nobody' },
       },

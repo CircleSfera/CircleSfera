@@ -17,7 +17,7 @@ import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { platformOrigin } from '../../utils/adminPanel';
-import { formatDate } from '../../utils/format';
+import { formatDateTime, formatDay } from '../../utils/format';
 import { UserAvatar } from '../index';
 import { Button } from '../ui';
 import VerificationBadge, {
@@ -162,7 +162,6 @@ export default function UserDetailPanel({
     },
   });
 
-  const locale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
   const username = user?.profile?.username;
   const profileHref = username ? `${platformOrigin()}/${username}` : null;
   const botLabeled = !!(
@@ -273,11 +272,7 @@ export default function UserDetailPanel({
           </span>
         </MetaRow>
         <MetaRow label={t('admin.user_preview.member_since')}>
-          {new Date(user.createdAt).toLocaleDateString(locale, {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
+          {formatDay(user.createdAt, i18n.language)}
         </MetaRow>
         <MetaRow label={t('admin.user_preview.signup_ip', 'Signup IP')}>
           <span className="font-mono text-xs text-white/70">
@@ -468,7 +463,7 @@ export default function UserDetailPanel({
           {user.identityVerifiedAt && (
             <SystemField label={t('admin.user_preview.kyc_verified_at')}>
               <span className="text-xs font-medium">
-                {new Date(user.identityVerifiedAt).toLocaleString(locale)}
+                {formatDateTime(user.identityVerifiedAt, i18n.language)}
               </span>
             </SystemField>
           )}
@@ -550,9 +545,9 @@ export default function UserDetailPanel({
                 </span>
               </div>
               <p className="text-white/40">
-                {formatDate(strike.createdAt, i18n.language)}
+                {formatDay(strike.createdAt, i18n.language)}
                 {' → '}
-                {formatDate(strike.expiresAt, i18n.language)}
+                {formatDay(strike.expiresAt, i18n.language)}
                 {strike.consequence === 'SUSPENDED'
                   ? ` · ${t('settings.appeals.strike_consequence_suspended')}`
                   : strike.consequence === 'BANNED'

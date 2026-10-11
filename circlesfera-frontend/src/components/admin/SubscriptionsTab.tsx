@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { type AdminSubscription, adminApi } from '../../services/admin.service';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { UserAvatar } from '../index';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -161,7 +161,7 @@ export default function SubscriptionsTab() {
               const ending =
                 subscription.cancelAtPeriodEnd &&
                 IN_FORCE.has(subscription.status);
-              const date = formatDate(
+              const date = formatDay(
                 subscription.currentPeriodEnd,
                 i18n.language,
               );

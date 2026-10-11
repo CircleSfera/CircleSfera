@@ -19,6 +19,7 @@ import {
   type TrustQueueReport,
 } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
+import { formatWaiting } from '../../utils/format';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -68,15 +69,6 @@ function MttrMetric({ mttr, title }: { mttr: TrustQueueMttr; title: string }) {
       )}
     </div>
   );
-}
-
-function timeAgo(date: string): string {
-  const diff = Date.now() - new Date(date).getTime();
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  return `${Math.floor(hrs / 24)}d`;
 }
 
 function TrustSection({
@@ -165,7 +157,7 @@ function AttentionChip({
 }
 
 export default function TrustTab() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const hasPermission = useAdminAuthStore((s) => s.hasPermission);
   const canOpenModeration = hasPermission(ADMIN_TAB_PERMISSIONS.moderation);
@@ -317,11 +309,13 @@ export default function TrustTab() {
                     ? `${item.targetType} · ${item.assignedAdmin.displayName || item.assignedAdmin.email}`
                     : item.targetType
                 }
-                meta={timeAgo(item.createdAt)}
+                meta={formatWaiting(item.createdAt, i18n.language, t)}
                 onClick={() => navigate(adminTabPath('reports'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
-                    {item.status}
+                    {t(`admin.reports.badge.${item.status}`, {
+                      defaultValue: item.status,
+                    })}
                   </span>
                 }
               />
@@ -343,7 +337,7 @@ export default function TrustTab() {
                 key={item.id}
                 title={item.user?.email || item.user?.profile?.username || '—'}
                 subtitle={item.reason}
-                meta={timeAgo(item.createdAt)}
+                meta={formatWaiting(item.createdAt, i18n.language, t)}
                 onClick={() => navigate(adminTabPath('appeals'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-amber-400 bg-amber-400/10 px-1.5 py-0.5 rounded">
@@ -369,11 +363,13 @@ export default function TrustTab() {
                 key={item.id}
                 title={item.subject}
                 subtitle={item.email}
-                meta={timeAgo(item.createdAt)}
+                meta={formatWaiting(item.createdAt, i18n.language, t)}
                 onClick={() => navigate(adminTabPath('support'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                    {item.status}
+                    {t(`admin.support.badge.${item.status}`, {
+                      defaultValue: item.status,
+                    })}
                   </span>
                 }
               />

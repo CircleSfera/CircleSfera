@@ -147,7 +147,7 @@ describe('UsersTab', () => {
     const first = await waitFor(() => rowOf('@person_1'));
     expect(within(first).getByText('1@example.com')).toBeInTheDocument();
     expect(within(first).getByText(/User · 3 posts/)).toBeInTheDocument();
-    expect(within(first).getByText('active')).toBeInTheDocument();
+    expect(within(first).getByText('Active')).toBeInTheDocument();
     // The ban is in the menu of the row, not a button of its own on it.
     expect(
       within(first).queryByRole('button', { name: 'Ban' }),
@@ -156,14 +156,14 @@ describe('UsersTab', () => {
     const second = rowOf('@person_2');
     expect(within(second).getByText(/Operator · 3 posts/)).toBeInTheDocument();
     expect(within(second).getByText('Test account')).toBeInTheDocument();
-    expect(within(second).getByText('banned')).toBeInTheDocument();
+    expect(within(second).getByText('Banned')).toBeInTheDocument();
     expect(
       within(second).queryByRole('button', { name: 'Unban' }),
     ).not.toBeInTheDocument();
 
     const third = rowOf('@person_3');
     expect(within(third).getByText(/Suspended until/)).toBeInTheDocument();
-    expect(within(third).getByText('banned')).toBeInTheDocument();
+    expect(within(third).getByText('Banned')).toBeInTheDocument();
 
     expect(rowOf('@user')).toBeTruthy();
   });
@@ -279,7 +279,7 @@ describe('UsersTab', () => {
         name: 'Ban',
       }),
     );
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban user' }));
 
     await waitFor(() =>
       expect(refreshed).toHaveBeenCalledWith({
@@ -301,7 +301,7 @@ describe('UsersTab', () => {
     expect(api.banUser).not.toHaveBeenCalled();
 
     await choose('@person_1', 'Ban');
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban user' }));
     await waitFor(() => expect(api.banUser).toHaveBeenCalledWith('1'));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('User banned', 'success'),
@@ -319,7 +319,7 @@ describe('UsersTab', () => {
 
     await choose('@person_1', 'Unban');
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Unban User' }),
+      within(dialog()).getByRole('button', { name: 'Unban user' }),
     );
 
     await waitFor(() => expect(api.unbanUser).toHaveBeenCalledWith('1'));
@@ -513,7 +513,7 @@ describe('UsersTab', () => {
       within(dialog()).getByText(/ALL data for @person_1 will be deleted/),
     ).toBeInTheDocument();
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Delete Permanently' }),
+      within(dialog()).getByRole('button', { name: 'Delete permanently' }),
     );
 
     await waitFor(() => expect(api.deleteUser).toHaveBeenCalledWith('1'));
@@ -533,7 +533,7 @@ describe('UsersTab', () => {
     show();
 
     await choose('@person_1', 'Ban');
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban user' }));
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Failed to ban user', 'error'),
     );
@@ -545,7 +545,7 @@ describe('UsersTab', () => {
 
     await choose('@person_1', 'Delete');
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Delete Permanently' }),
+      within(dialog()).getByRole('button', { name: 'Delete permanently' }),
     );
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Failed to delete account', 'error'),

@@ -18,7 +18,7 @@ import type {
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
-import { formatDate, formatDateTime } from '../../utils/format';
+import { formatDateTime, formatDay } from '../../utils/format';
 import {
   addToDraft,
   fillSavedReply,
@@ -646,7 +646,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                           </>
                         ) : (
                           <span>
-                            {formatDate(ticket.createdAt, i18n.language)}
+                            {formatDay(ticket.createdAt, i18n.language)}
                           </span>
                         )}
                       </>

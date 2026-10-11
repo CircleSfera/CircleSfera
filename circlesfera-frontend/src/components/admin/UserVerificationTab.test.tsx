@@ -160,7 +160,7 @@ describe('UserVerificationTab', () => {
     );
   });
 
-  it('shows where each person stands and since when they are here', async () => {
+  it('shows where each person stands and the day they joined', async () => {
     api.getUsers.mockResolvedValue(
       list([
         user('new', { createdAt: ago(0) }),
@@ -184,23 +184,25 @@ describe('UserVerificationTab', () => {
     expect(within(fresh).getByText('Not verified')).toHaveClass(
       'text-white/50',
     );
-    expect(within(fresh).getByText('now')).toBeInTheDocument();
-    expect(within(fresh).getByText('PERSONAL')).toBeInTheDocument();
+    expect(within(fresh).getByText('Mar 10, 2026')).toBeInTheDocument();
+    expect(within(fresh).getByText('Personal account')).toBeInTheDocument();
 
     const done = rowOf('@person_done');
     expect(within(done).getByText('Identity verified')).toHaveClass(
       'text-green-400',
     );
-    expect(within(done).getByText('45m ago')).toBeInTheDocument();
-    expect(within(done).getByText('CREATOR')).toBeInTheDocument();
+    expect(within(done).getByText('Mar 10, 2026')).toBeInTheDocument();
+    expect(within(done).getByText('Creator account')).toBeInTheDocument();
 
     const waiting = rowOf('@person_wait');
     expect(within(waiting).getByText('Verification in progress')).toHaveClass(
       'text-yellow-400',
     );
-    expect(within(waiting).getByText('5h ago')).toBeInTheDocument();
+    expect(within(waiting).getByText('Mar 10, 2026')).toBeInTheDocument();
 
-    expect(within(rowOf('@Unknown')).getByText('3d ago')).toBeInTheDocument();
+    expect(
+      within(rowOf('@Unknown')).getByText('Mar 7, 2026'),
+    ).toBeInTheDocument();
   });
 
   it('opens someone who has not started: nothing to sync or revoke', async () => {
@@ -212,7 +214,7 @@ describe('UserVerificationTab', () => {
 
     const open = detail();
     expect(within(open).getByText('ID: a')).toBeInTheDocument();
-    expect(within(open).getByText('Not Started')).toBeInTheDocument();
+    expect(within(open).getByText('Not started')).toBeInTheDocument();
     expect(within(open).getByText('N/A')).toBeInTheDocument();
     expect(
       within(open).queryByRole('button', { name: 'Sync from Stripe' }),
@@ -223,7 +225,7 @@ describe('UserVerificationTab', () => {
       }),
     ).not.toBeInTheDocument();
     expect(
-      within(open).queryByRole('button', { name: 'Save Changes' }),
+      within(open).queryByRole('button', { name: 'Save changes' }),
     ).not.toBeInTheDocument();
   });
 
@@ -237,7 +239,7 @@ describe('UserVerificationTab', () => {
 
     const open = detail();
     expect(
-      within(open).getByText('Session Created (Pending)'),
+      within(open).getByText('Session created (pending)'),
     ).toBeInTheDocument();
     expect(within(open).getByText('vs_9')).toBeInTheDocument();
     fireEvent.click(
@@ -311,7 +313,7 @@ describe('UserVerificationTab', () => {
     fireEvent.click(rowOf('@person_a'));
 
     const open = detail();
-    expect(within(open).getByText('Identity Verified')).toBeInTheDocument();
+    expect(within(open).getByText('Identity verified')).toBeInTheDocument();
     expect(
       within(open).getByText(/Stripe confirmed this user's identity on /),
     ).toBeInTheDocument();
@@ -386,27 +388,27 @@ describe('UserVerificationTab', () => {
     fireEvent.click(rowOf('@person_a'));
 
     const level = within(detail()).getByRole('combobox', {
-      name: 'Profile Verification Level',
+      name: 'Profile verification level',
     });
     const type = within(detail()).getByRole('combobox', {
-      name: 'Account Type',
+      name: 'Account type',
     });
     expect(level).toHaveValue('BASIC');
     expect(type).toHaveValue('PERSONAL');
 
     fireEvent.change(level, { target: { value: 'VERIFIED' } });
     expect(
-      within(detail()).getByRole('button', { name: 'Save Changes' }),
+      within(detail()).getByRole('button', { name: 'Save changes' }),
     ).toBeInTheDocument();
     fireEvent.change(level, { target: { value: 'BASIC' } });
     expect(
-      within(detail()).queryByRole('button', { name: 'Save Changes' }),
+      within(detail()).queryByRole('button', { name: 'Save changes' }),
     ).not.toBeInTheDocument();
 
     fireEvent.change(level, { target: { value: 'ELITE' } });
     fireEvent.change(type, { target: { value: 'CREATOR' } });
     fireEvent.click(
-      within(detail()).getByRole('button', { name: 'Save Changes' }),
+      within(detail()).getByRole('button', { name: 'Save changes' }),
     );
 
     await waitFor(() =>
@@ -430,12 +432,12 @@ describe('UserVerificationTab', () => {
     await screen.findByText('@person_a');
     fireEvent.click(rowOf('@person_a'));
     fireEvent.change(
-      within(detail()).getByRole('combobox', { name: 'Account Type' }),
+      within(detail()).getByRole('combobox', { name: 'Account type' }),
       { target: { value: 'BUSINESS' } },
     );
 
     fireEvent.click(
-      within(detail()).getByRole('button', { name: 'Save Changes' }),
+      within(detail()).getByRole('button', { name: 'Save changes' }),
     );
 
     await waitFor(() =>
@@ -457,7 +459,7 @@ describe('UserVerificationTab', () => {
     fireEvent.click(rowOf('@person_a'));
     fireEvent.change(
       within(detail()).getByRole('combobox', {
-        name: 'Profile Verification Level',
+        name: 'Profile verification level',
       }),
       { target: { value: 'ELITE' } },
     );
@@ -468,14 +470,14 @@ describe('UserVerificationTab', () => {
     );
     expect(
       within(detail()).getByRole('combobox', {
-        name: 'Profile Verification Level',
+        name: 'Profile verification level',
       }),
     ).toHaveValue('BUSINESS');
     expect(
-      within(detail()).getByRole('combobox', { name: 'Account Type' }),
+      within(detail()).getByRole('combobox', { name: 'Account type' }),
     ).toHaveValue('BUSINESS');
     expect(
-      within(detail()).queryByRole('button', { name: 'Save Changes' }),
+      within(detail()).queryByRole('button', { name: 'Save changes' }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(rowOf('@person_c'));
@@ -484,7 +486,7 @@ describe('UserVerificationTab', () => {
     );
     expect(
       within(detail()).getByRole('combobox', {
-        name: 'Profile Verification Level',
+        name: 'Profile verification level',
       }),
     ).toHaveValue('BASIC');
   });

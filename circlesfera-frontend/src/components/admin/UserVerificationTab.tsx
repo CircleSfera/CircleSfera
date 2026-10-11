@@ -12,7 +12,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
 import { Button, Select } from '../ui';
@@ -27,22 +27,6 @@ import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
 import StatCard from './StatCard';
-
-function timeAgo(
-  date: string | Date,
-  t: (key: string, opts?: Record<string, unknown>) => string,
-): string {
-  const now = Date.now();
-  const d = new Date(date).getTime();
-  const diff = Math.max(0, now - d);
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return t('admin.shared.time_ago_now');
-  if (mins < 60) return t('admin.shared.time_ago_minutes', { count: mins });
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return t('admin.shared.time_ago_hours', { count: hrs });
-  const days = Math.floor(hrs / 24);
-  return t('admin.shared.time_ago_days', { count: days });
-}
 
 export default function UserVerificationTab({
   onToast,
@@ -267,11 +251,10 @@ export default function UserVerificationTab({
                           />
                         </span>
                       }
-                      subtitle={
-                        <span className="uppercase tracking-wide">
-                          {user.accountType}
-                        </span>
-                      }
+                      subtitle={t(
+                        `admin.verification.account_${(user.accountType || 'PERSONAL').toLowerCase()}`,
+                        { defaultValue: user.accountType },
+                      )}
                       badge={
                         <span
                           className={`text-xs font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded ${
@@ -289,7 +272,7 @@ export default function UserVerificationTab({
                               : t('admin.verification.kyc_not_started')}
                         </span>
                       }
-                      meta={timeAgo(user.createdAt, t)}
+                      meta={formatDay(user.createdAt, i18n.language)}
                       avatar={
                         <UserAvatar
                           src={user.profile?.avatar || undefined}
@@ -390,7 +373,7 @@ export default function UserVerificationTab({
                               {t(
                                 'admin.verification.kyc_verified_description',
                                 {
-                                  date: formatDate(
+                                  date: formatDay(
                                     selectedUser.identityVerifiedAt,
                                     i18n.language,
                                   ),

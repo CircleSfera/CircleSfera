@@ -77,8 +77,8 @@ const rowOf = (text: string) =>
 const detail = () => screen.getByRole('region', { name: 'Detail' });
 const dialog = () => screen.getByRole('dialog');
 const openAssignments = async () => {
-  fireEvent.click(screen.getByRole('button', { name: 'A/B Experiments' }));
-  await screen.findAllByRole('heading', { name: 'A/B Experiments' });
+  fireEvent.click(screen.getByRole('button', { name: 'A/B experiments' }));
+  await screen.findAllByRole('heading', { name: 'A/B experiments' });
 };
 
 describe('ExperimentsTab', () => {
@@ -124,7 +124,7 @@ describe('ExperimentsTab', () => {
       expect(within(first).getByText(/Active · 40%/)).toBeInTheDocument();
       expect(within(cardOf('Flag b')).getByText('Off')).toBeInTheDocument();
       expect(
-        within(cardOf('Flag c')).getByText('Full rollout'),
+        within(cardOf('Flag c')).getByText('On for everyone'),
       ).toBeInTheDocument();
       expect(
         within(cardOf('Flag d')).getByText('No reach'),
@@ -398,7 +398,7 @@ describe('ExperimentsTab', () => {
       show();
       const flags = screen.getByRole('button', { name: 'Feature rollout' });
       const assignments = screen.getByRole('button', {
-        name: 'A/B Experiments',
+        name: 'A/B experiments',
       });
       expect(flags).toHaveAttribute('aria-pressed', 'true');
       expect(assignments).toHaveAttribute('aria-pressed', 'false');
@@ -414,7 +414,7 @@ describe('ExperimentsTab', () => {
 
       expect(await screen.findByText('No experiments')).toBeInTheDocument();
       expect(
-        screen.getAllByRole('button', { name: 'Assign Experiment' }).length,
+        screen.getAllByRole('button', { name: 'Assign experiment' }).length,
       ).toBeGreaterThanOrEqual(2);
     });
 
@@ -474,7 +474,7 @@ describe('ExperimentsTab', () => {
       await openAssignments();
       await screen.findByText('No experiments');
       fireEvent.click(
-        screen.getAllByRole('button', { name: 'Assign Experiment' })[0],
+        screen.getAllByRole('button', { name: 'Assign experiment' })[0],
       );
 
       const form = detail();
@@ -497,7 +497,7 @@ describe('ExperimentsTab', () => {
       );
       expect(who).toHaveValue('@person_abcdefgh-1 (abcdefgh…)');
 
-      fireEvent.change(within(form).getByLabelText('Experiment Key'), {
+      fireEvent.change(within(form).getByLabelText('Experiment key'), {
         target: { value: 'beta_feature' },
       });
       fireEvent.change(within(form).getByLabelText('Variant'), {
@@ -523,7 +523,7 @@ describe('ExperimentsTab', () => {
       await openAssignments();
       await screen.findByText('No experiments');
       fireEvent.click(
-        screen.getAllByRole('button', { name: 'Assign Experiment' })[0],
+        screen.getAllByRole('button', { name: 'Assign experiment' })[0],
       );
 
       const form = detail();
@@ -536,7 +536,7 @@ describe('ExperimentsTab', () => {
           name: /@person_abcdefgh-1/,
         }),
       );
-      fireEvent.change(within(form).getByLabelText('Experiment Key'), {
+      fireEvent.change(within(form).getByLabelText('Experiment key'), {
         target: { value: 'beta_feature' },
       });
       expect(within(form).getByRole('button', { name: 'Save' })).toBeEnabled();
@@ -567,9 +567,9 @@ describe('ExperimentsTab', () => {
 
       const form = detail();
       expect(
-        within(form).getByRole('heading', { name: 'Edit Experiment' }),
+        within(form).getByRole('heading', { name: 'Edit experiment' }),
       ).toBeInTheDocument();
-      expect(within(form).getByLabelText('Experiment Key')).toBeDisabled();
+      expect(within(form).getByLabelText('Experiment key')).toBeDisabled();
       expect(within(form).getByDisplayValue('user-1')).toBeDisabled();
       fireEvent.change(within(form).getByLabelText('Variant'), {
         target: { value: 'false' },
@@ -592,7 +592,7 @@ describe('ExperimentsTab', () => {
       const row = await waitFor(() => rowOf('@person_1'));
       fireEvent.click(row);
       expect(
-        within(detail()).getByRole('heading', { name: 'Edit Experiment' }),
+        within(detail()).getByRole('heading', { name: 'Edit experiment' }),
       ).toBeInTheDocument();
 
       fireEvent.click(
@@ -611,7 +611,7 @@ describe('ExperimentsTab', () => {
       );
       await waitFor(() =>
         expect(
-          within(detail()).queryByRole('heading', { name: 'Edit Experiment' }),
+          within(detail()).queryByRole('heading', { name: 'Edit experiment' }),
         ).not.toBeInTheDocument(),
       );
       expect(toast.success).toHaveBeenCalledWith('Assignment removed');
@@ -633,7 +633,7 @@ describe('ExperimentsTab', () => {
       );
       // The form stays open to try again.
       expect(
-        within(detail()).getByRole('heading', { name: 'Edit Experiment' }),
+        within(detail()).getByRole('heading', { name: 'Edit experiment' }),
       ).toBeInTheDocument();
 
       fireEvent.click(

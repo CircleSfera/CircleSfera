@@ -20,7 +20,7 @@ import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
-import { formatDate, formatDateTime } from '../../utils/format';
+import { formatDateTime, formatDay, formatWaiting } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -40,24 +40,6 @@ import {
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
 import { adminTabPath } from './adminNav';
-
-function timeAgo(
-  date: string | Date,
-  t: (key: string, opts?: Record<string, unknown>) => string,
-  language: string,
-): string {
-  const now = Date.now();
-  const d = new Date(date).getTime();
-  const diff = Math.max(0, now - d);
-  const mins = Math.floor(diff / 60_000);
-  if (mins < 1) return t('admin.shared.time_ago_now');
-  if (mins < 60) return t('admin.shared.time_ago_minutes', { count: mins });
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return t('admin.shared.time_ago_hours', { count: hrs });
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return t('admin.shared.time_ago_days', { count: days });
-  return formatDate(date, language);
-}
 
 // Where the reported post or profile is seen by participants. The staff
 // sites do not serve those pages, and the other kinds have no page of
@@ -378,20 +360,22 @@ export default function ReportsTab({ onToast }: Props) {
         listTitle={t('admin.reports.list_title')}
         list={
           <div className="flex flex-col h-full min-h-0">
-            <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
-              <input
-                type="checkbox"
-                className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                checked={
-                  selectedIds.size === reports.length && reports.length > 0
-                }
-                onChange={toggleSelectAll}
-                aria-label={t('admin.shared.select_all')}
-              />
-              <h3 className="font-semibold text-white text-sm">
-                {t('admin.shared.select_all')}
-              </h3>
-            </div>
+            {reports.length > 0 && (
+              <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                  checked={
+                    selectedIds.size === reports.length && reports.length > 0
+                  }
+                  onChange={toggleSelectAll}
+                  aria-label={t('admin.shared.select_all')}
+                />
+                <h3 className="font-semibold text-white text-sm">
+                  {t('admin.shared.select_all')}
+                </h3>
+              </div>
+            )}
             <div className="flex-1 overflow-y-auto space-y-2 pb-2">
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
@@ -459,12 +443,12 @@ export default function ReportsTab({ onToast }: Props) {
                       meta={
                         <span className="flex flex-col items-end gap-0.5">
                           <span>
-                            {timeAgo(report.createdAt, t, i18n.language)}
+                            {formatWaiting(report.createdAt, i18n.language, t)}
                           </span>
                           {report.resolvedAt && (
                             <span className="text-[11px] text-white/40">
                               {t('admin.reports.resolved_at', {
-                                date: formatDate(
+                                date: formatDay(
                                   report.resolvedAt,
                                   i18n.language,
                                 ),

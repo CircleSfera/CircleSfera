@@ -6,7 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminComment } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDate, formatNumber } from '../../utils/format';
+import { formatDay, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -204,7 +204,7 @@ export default function CommentsTab({ onToast }: Props) {
                     subtitle={`@${
                       comment.user?.profile?.username ||
                       t('admin.shared.unknown')
-                    } • ${formatDate(comment.createdAt, i18n.language)}`}
+                    } • ${formatDay(comment.createdAt, i18n.language)}`}
                     avatar={
                       <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50">
                         {comment.user?.profile?.username

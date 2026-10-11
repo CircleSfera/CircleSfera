@@ -8,6 +8,7 @@ import {
   adminApi,
 } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -18,16 +19,6 @@ import { ActionButton, Pagination } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
-}
-
-function formatCreatedAt(date: string) {
-  return new Date(date).toLocaleDateString(undefined, {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
 }
 
 function ActionBadge({ action }: { action: string }) {
@@ -48,7 +39,7 @@ function ActionBadge({ action }: { action: string }) {
 }
 
 export default function FirewallRulesTab({ onToast }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const debouncedSearch = useDebouncedValue(search, 400);
@@ -178,7 +169,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                       key={item.id}
                       title={item.keyword}
                       subtitle={t('admin.firewall.added_on', {
-                        date: formatCreatedAt(item.createdAt),
+                        date: formatDateTime(item.createdAt, i18n.language),
                       })}
                       selected={selectedId === item.id}
                       onClick={() => setSelectedId(item.id)}
@@ -311,7 +302,7 @@ export default function FirewallRulesTab({ onToast }: Props) {
                         {t('admin.firewall.created_on')}
                       </p>
                       <p className="text-sm text-white/80">
-                        {formatCreatedAt(selectedItem.createdAt)}
+                        {formatDateTime(selectedItem.createdAt, i18n.language)}
                       </p>
                     </div>
                   </div>

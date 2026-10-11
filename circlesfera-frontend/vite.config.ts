@@ -102,6 +102,9 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './src/test/setup.ts',
+    // Dates are written in the zone of the machine. The tests read fixed
+    // dates, so they run in one zone wherever they run.
+    env: { TZ: 'UTC' },
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {
       provider: 'v8',

@@ -14,7 +14,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
-import { formatDate, formatNumber } from '../../utils/format';
+import { formatDay, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
@@ -371,7 +371,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         {t('admin.promotions.start_date_label')}
                       </p>
                       <p className="text-sm font-semibold text-white">
-                        {formatDate(selectedPromo.startDate, i18n.language)}
+                        {formatDay(selectedPromo.startDate, i18n.language)}
                       </p>
                     </div>
                     <div className="px-3 py-2.5">

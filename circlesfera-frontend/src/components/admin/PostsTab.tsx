@@ -15,7 +15,7 @@ import type { AdminPost } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
-import { formatDate, formatNumber } from '../../utils/format';
+import { formatDay, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -263,7 +263,7 @@ export default function PostsTab({ onToast }: Props) {
                     }
                     meta={
                       <>
-                        <span>{formatDate(post.createdAt, i18n.language)}</span>
+                        <span>{formatDay(post.createdAt, i18n.language)}</span>
                         {post._count && (
                           <span>
                             {t('admin.posts.likes_comments', {

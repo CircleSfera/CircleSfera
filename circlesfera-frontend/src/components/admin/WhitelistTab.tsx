@@ -6,7 +6,7 @@ import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { WhitelistEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Select } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -94,8 +94,8 @@ export default function WhitelistTab() {
         title={t('admin.whitelist.title')}
         subtitle={t('admin.whitelist.subtitle')}
         actions={
-          <div className="flex items-center gap-2">
-            <div className="text-xs text-white/50 bg-white/5 px-3 py-2 rounded-lg border border-white/10 italic min-h-11 flex items-center">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs text-white/50">
               {t('admin.whitelist.total_count', {
                 count: data?.meta.total || 0,
               })}
@@ -150,7 +150,7 @@ export default function WhitelistTab() {
                     title={entry.name || t('admin.whitelist.no_name')}
                     subtitle={entry.email}
                     badge={<StatusBadge status={entry.status} />}
-                    meta={formatDate(entry.createdAt, i18n.language)}
+                    meta={formatDay(entry.createdAt, i18n.language)}
                     primaryAction={
                       <ActionButton
                         variant="ghost"

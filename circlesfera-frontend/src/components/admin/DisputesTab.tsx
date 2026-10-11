@@ -3,7 +3,7 @@ import { ExternalLink, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type AdminDispute, adminApi } from '../../services/admin.service';
-import { formatDate } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { AdminEmptyState } from './AdminEmptyState';
 import {
@@ -133,7 +133,7 @@ export default function DisputesTab() {
                       </span>
                       <span className="text-white/60">
                         {t('admin.disputes.opened_on', {
-                          date: formatDate(dispute.openedAt, i18n.language),
+                          date: formatDay(dispute.openedAt, i18n.language),
                         })}
                       </span>
                       {left !== null && dispute.evidenceDueBy && (
@@ -146,14 +146,14 @@ export default function DisputesTab() {
                         >
                           {left < 0
                             ? t('admin.disputes.due_passed', {
-                                date: formatDate(
+                                date: formatDay(
                                   dispute.evidenceDueBy,
                                   i18n.language,
                                 ),
                               })
                             : t('admin.disputes.due_in', {
                                 count: left,
-                                date: formatDate(
+                                date: formatDay(
                                   dispute.evidenceDueBy,
                                   i18n.language,
                                 ),

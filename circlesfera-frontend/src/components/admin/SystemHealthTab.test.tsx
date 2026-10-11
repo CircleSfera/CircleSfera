@@ -72,7 +72,7 @@ describe('SystemHealthTab', () => {
     const { container } = renderWithProviders(<SystemHealthTab />);
 
     expect(
-      screen.getByRole('heading', { name: 'System Status' }),
+      screen.getByRole('heading', { name: 'System status' }),
     ).toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse .h-24')).toHaveLength(3);
     expect(screen.queryByText('Database')).not.toBeInTheDocument();
@@ -83,10 +83,10 @@ describe('SystemHealthTab', () => {
     renderWithProviders(<SystemHealthTab />);
 
     expect(
-      await screen.findByText('Critical Monitoring Error'),
+      await screen.findByText('Critical monitoring error'),
     ).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry Connection' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry connection' }));
 
     expect(await screen.findByText('Database')).toBeInTheDocument();
     expect(api.getSystemHealth).toHaveBeenCalledTimes(2);
@@ -96,23 +96,23 @@ describe('SystemHealthTab', () => {
     renderWithProviders(<SystemHealthTab />);
 
     await screen.findByText('Database');
-    expect(figure('Database', 'Status')).toHaveTextContent('ONLINE');
-    expect(figure('Database', 'Raw Latency')).toHaveTextContent('12 ms');
+    expect(figure('Database', 'Status')).toHaveTextContent('Online');
+    expect(figure('Database', 'Latency')).toHaveTextContent('12 ms');
 
-    expect(figure('AI Queue', 'Waiting')).toHaveTextContent('3');
-    expect(figure('AI Queue', 'Failed')).toHaveTextContent('0');
-    expect(figure('AI Queue', 'Completed')).toHaveTextContent('480');
-    expect(figure('AI Queue', 'Active')).toHaveTextContent('1');
+    expect(figure('AI queue', 'Waiting')).toHaveTextContent('3');
+    expect(figure('AI queue', 'Failed')).toHaveTextContent('0');
+    expect(figure('AI queue', 'Completed')).toHaveTextContent('480');
+    expect(figure('AI queue', 'Active')).toHaveTextContent('1');
 
-    expect(figure('Analytics Queue', 'Waiting')).toHaveTextContent('7');
-    expect(figure('Analytics Queue', 'Completed')).toHaveTextContent('950');
-    expect(figure('Analytics Queue', 'Active')).toHaveTextContent('2');
+    expect(figure('Analytics queue', 'Waiting')).toHaveTextContent('7');
+    expect(figure('Analytics queue', 'Completed')).toHaveTextContent('950');
+    expect(figure('Analytics queue', 'Active')).toHaveTextContent('2');
 
     expect(
-      figure('Stripe Webhooks', 'Processed Successfully'),
+      figure('Stripe webhooks', 'Processed successfully'),
     ).toHaveTextContent('98');
-    expect(figure('Stripe Webhooks', 'Failed Webhooks')).toHaveTextContent('2');
-    expect(figure('Stripe Webhooks', 'Success Rate')).toHaveTextContent(
+    expect(figure('Stripe webhooks', 'Failed webhooks')).toHaveTextContent('2');
+    expect(figure('Stripe webhooks', 'Success rate')).toHaveTextContent(
       '98.0%',
     );
     expect(screen.getByText(/· \d+s ago/)).toBeInTheDocument();
@@ -128,7 +128,7 @@ describe('SystemHealthTab', () => {
 
     await screen.findByText('Database');
     const status = within(figure('Database', 'Status')).getByText(
-      database.status,
+      database.status === 'ONLINE' ? 'Online' : 'Down',
     );
     expect(status).toHaveClass(healthy ? 'text-emerald-400' : 'text-red-400');
   });
@@ -150,7 +150,7 @@ describe('SystemHealthTab', () => {
       renderWithProviders(<SystemHealthTab />);
 
       await screen.findByText('Database');
-      const cell = figure('Stripe Webhooks', 'Success Rate');
+      const cell = figure('Stripe webhooks', 'Success rate');
       expect(cell).toHaveTextContent(rate);
       const bar = cell.querySelector('.h-full') as HTMLElement;
       expect(bar).toHaveClass(good ? 'bg-emerald-400' : 'bg-red-400');
@@ -170,7 +170,7 @@ describe('SystemHealthTab', () => {
     renderWithProviders(<SystemHealthTab />);
 
     await screen.findByText('Database');
-    for (const title of ['AI Queue', 'Analytics Queue']) {
+    for (const title of ['AI queue', 'Analytics queue']) {
       const head = screen.getByRole('heading', { name: title }).parentElement
         ?.parentElement as HTMLElement;
       expect(head.querySelector('svg')).toHaveClass('text-amber-400');
@@ -194,7 +194,7 @@ describe('SystemHealthTab', () => {
     renderWithProviders(<SystemHealthTab />);
     await screen.findByText('Database');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Retry Connection' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Retry connection' }));
 
     await waitFor(() => expect(api.getSystemHealth).toHaveBeenCalledTimes(2));
   });
@@ -246,11 +246,11 @@ describe('SystemHealthTab', () => {
       within(row('c')).queryByRole('button', { name: 'Retry' }),
     ).not.toBeInTheDocument();
 
-    expect(within(row('a')).getByText('FAILED')).toHaveClass('text-red-400');
-    expect(within(row('b')).getByText('PENDING')).toHaveClass(
+    expect(within(row('a')).getByText('Failed')).toHaveClass('text-red-400');
+    expect(within(row('b')).getByText('Pending')).toHaveClass(
       'text-yellow-500',
     );
-    expect(within(row('c')).getByText('PROCESSED')).toHaveClass(
+    expect(within(row('c')).getByText('Processed')).toHaveClass(
       'text-green-500',
     );
   });

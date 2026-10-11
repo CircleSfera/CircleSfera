@@ -20,7 +20,7 @@ import type { AdminUser } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
-import { formatNumber } from '../../utils/format';
+import { formatDay, formatNumber } from '../../utils/format';
 import { UserAvatar } from '../index';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -78,7 +78,6 @@ export default function Dashboard({ onToast }: Props) {
   const [segment, setSegment] = useState('ALL');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
-  const dateLocale = i18n.language?.startsWith('en') ? 'en-US' : 'es-ES';
 
   const [confirmAction, setConfirmAction] = useState<{
     type: ConfirmType | null;
@@ -517,16 +516,15 @@ export default function Dashboard({ onToast }: Props) {
                             })}
                           </span>
                           <span>
-                            {new Date(user.createdAt).toLocaleDateString(
-                              dateLocale,
-                            )}
+                            {formatDay(user.createdAt, i18n.language)}
                           </span>
                           {user.suspendedUntil && (
                             <span className="text-amber-400/90">
                               {t('admin.users.suspended_until', {
-                                date: new Date(
+                                date: formatDay(
                                   user.suspendedUntil,
-                                ).toLocaleDateString(dateLocale),
+                                  i18n.language,
+                                ),
                               })}
                             </span>
                           )}

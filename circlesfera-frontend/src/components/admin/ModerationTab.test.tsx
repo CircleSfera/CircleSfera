@@ -62,7 +62,8 @@ describe('ModerationTab', () => {
     show();
 
     expect(await screen.findByText('No pending content')).toBeInTheDocument();
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    // Nothing to select: "Select all" is not offered.
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
   it('lists each flagged piece with its author, kind and the reason without its prefix', async () => {
@@ -207,7 +208,7 @@ describe('ModerationTab', () => {
     show();
     fireEvent.click(await waitFor(() => rowOf('Caption 1')));
     fireEvent.click(
-      await within(detail()).findByRole('button', { name: 'Approve (Safe)' }),
+      await within(detail()).findByRole('button', { name: 'Approve (safe)' }),
     );
 
     await waitFor(() =>
@@ -250,7 +251,7 @@ describe('ModerationTab', () => {
 
     fireEvent.click(within(detail()).getByRole('button', { name: 'Delete' }));
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Yes, Delete' }),
+      within(dialog()).getByRole('button', { name: 'Yes, delete' }),
     );
     await waitFor(() =>
       expect(api.updateModerationStatus).toHaveBeenCalledWith(
@@ -277,7 +278,7 @@ describe('ModerationTab', () => {
     show();
     fireEvent.click(await waitFor(() => rowOf('Caption 1')));
     fireEvent.click(
-      await within(detail()).findByRole('button', { name: 'Approve (Safe)' }),
+      await within(detail()).findByRole('button', { name: 'Approve (safe)' }),
     );
 
     await waitFor(() =>
@@ -328,7 +329,7 @@ describe('ModerationTab', () => {
     await waitFor(() => expect(openedHandle()).toBe('@person_1'));
     press('R');
     fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Yes, Delete' }),
+      within(dialog()).getByRole('button', { name: 'Yes, delete' }),
     );
     await waitFor(() =>
       expect(api.updateModerationStatus).toHaveBeenCalledWith(
@@ -375,7 +376,7 @@ describe('ModerationTab', () => {
     fireEvent.click(within(first).getByRole('checkbox'));
     expect(screen.getByText('1 selected')).toBeInTheDocument();
     fireEvent.click(
-      screen.getByRole('button', { name: 'Approve (False Positive)' }),
+      screen.getByRole('button', { name: 'Approve (false positive)' }),
     );
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith(

@@ -120,9 +120,9 @@ describe('TrustTab', () => {
     expect(screen.getByText('POST · Ana')).toBeInTheDocument();
     expect(screen.getByText('COMMENT · ben@staff.test')).toBeInTheDocument();
     expect(screen.getByText('STORY')).toBeInTheDocument();
-    expect(screen.getByText('30m')).toBeInTheDocument();
-    expect(screen.getByText('5h')).toBeInTheDocument();
-    expect(screen.getByText('3d')).toBeInTheDocument();
+    expect(screen.getByText('30m ago')).toBeInTheDocument();
+    expect(screen.getByText('5h ago')).toBeInTheDocument();
+    expect(screen.getByText('3d ago')).toBeInTheDocument();
     expect(screen.getByText('eve@example.com')).toBeInTheDocument();
     expect(screen.getByText('It was a joke')).toBeInTheDocument();
     expect(screen.getByText('Cannot log in')).toBeInTheDocument();
@@ -159,14 +159,14 @@ describe('TrustTab', () => {
   it('offers the moderation queue only to who may open it', async () => {
     const allowed = show();
     expect(
-      await screen.findByRole('link', { name: /Open AI moderation queue/ }),
+      await screen.findByRole('link', { name: /Open the AI queue/ }),
     ).toHaveAttribute('href', '/moderation');
     allowed.unmount();
 
     show([]);
     await screen.findByText('6 items need attention');
     expect(
-      screen.queryByRole('link', { name: /Open AI moderation queue/ }),
+      screen.queryByRole('link', { name: /Open the AI queue/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -204,7 +204,7 @@ describe('TrustTab', () => {
     expect(await screen.findByText('Appeals')).toBeInTheDocument();
     expect(screen.getByText('Support tickets')).toBeInTheDocument();
     expect(
-      screen.getAllByText('No resolved reports in the last 30 days.'),
+      screen.getAllByText('Nothing resolved in the last 30 days.'),
     ).toHaveLength(2);
   });
 
@@ -250,6 +250,6 @@ describe('TrustTab', () => {
     expect(
       screen.queryByText(/need attention|Queues clear/),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Trust Queue')).toBeInTheDocument();
+    expect(screen.getByText('Trust queue')).toBeInTheDocument();
   });
 });

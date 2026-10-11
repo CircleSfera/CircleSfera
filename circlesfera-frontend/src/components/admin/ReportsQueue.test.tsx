@@ -309,7 +309,7 @@ describe('ReportsTab, the rest of the queue', () => {
     const pane = await open('1');
 
     fireEvent.click(
-      within(pane).getByRole('button', { name: 'View Original' }),
+      within(pane).getByRole('button', { name: 'View original' }),
     );
     expect(opened).toHaveBeenCalledWith(
       'https://platform.test/p/target-1',
@@ -331,7 +331,7 @@ describe('ReportsTab, the rest of the queue', () => {
 
     expect(within(pane).getByText('Reported user')).toBeInTheDocument();
     fireEvent.click(
-      within(pane).getByRole('button', { name: 'View Original' }),
+      within(pane).getByRole('button', { name: 'View original' }),
     );
     expect(opened).toHaveBeenCalledWith(
       'https://platform.test/author_1',
@@ -357,7 +357,7 @@ describe('ReportsTab, the rest of the queue', () => {
       const pane = await open('1');
 
       expect(
-        within(pane).queryByRole('button', { name: 'View Original' }),
+        within(pane).queryByRole('button', { name: 'View original' }),
       ).toBeNull();
     },
   );
@@ -373,7 +373,7 @@ describe('ReportsTab, the rest of the queue', () => {
 
     await within(detail()).findByText('ID: 1');
     expect(
-      within(detail()).queryByRole('button', { name: 'View Original' }),
+      within(detail()).queryByRole('button', { name: 'View original' }),
     ).toBeNull();
     expect(
       within(detail()).getByRole('button', { name: 'Open in Users' }),
@@ -459,7 +459,7 @@ describe('ReportsTab, the rest of the queue', () => {
     expect(
       within(detail()).getByText('Third time this week'),
     ).toBeInTheDocument();
-    expect(within(line('Current Status')).getByText('RESOLVED')).toHaveClass(
+    expect(within(line('Current status')).getByText('RESOLVED')).toHaveClass(
       'text-green-400',
     );
     expect(within(line('Assigned to')).getByText('admin-22')).toBeTruthy();
@@ -471,21 +471,21 @@ describe('ReportsTab, the rest of the queue', () => {
 
     await open('2');
     expect(
-      within(line('Reported by')).getByText('AI System (Auto-Moderation)'),
+      within(line('Reported by')).getByText('AI system (automatic moderation)'),
     ).toBeTruthy();
     expect(within(detail()).getByText('Looks like spam')).toBeInTheDocument();
-    expect(within(line('Current Status')).getByText('REVIEWING')).toHaveClass(
+    expect(within(line('Current status')).getByText('REVIEWING')).toHaveClass(
       'text-blue-400',
     );
     expect(within(line('Assigned to')).getByText('Eva')).toBeTruthy();
 
     await open('3');
     expect(within(line('Reported by')).getByText('@Anonymous')).toBeTruthy();
-    expect(within(line('Current Status')).getByText('REJECTED')).toHaveClass(
+    expect(within(line('Current status')).getByText('REJECTED')).toHaveClass(
       'text-white/70',
     );
     expect(within(detail()).queryByText('Assigned to')).toBeNull();
-    expect(within(detail()).queryByText('Additional Details')).toBeNull();
+    expect(within(detail()).queryByText('Additional details')).toBeNull();
   });
 
   it('lets go of a report the operator holds', async () => {
@@ -693,7 +693,7 @@ describe('ReportsTab, the rest of the queue', () => {
     show();
     await waitFor(() => rowOf('@author_1'));
 
-    const all = screen.getByRole('checkbox', { name: 'Select All' });
+    const all = screen.getByRole('checkbox', { name: 'Select all' });
     fireEvent.click(all);
     expect(screen.getByText('3 selected')).toBeInTheDocument();
     expect(all).toBeChecked();

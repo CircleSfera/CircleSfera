@@ -124,7 +124,7 @@ const STATUS_STYLES: Record<
   },
 };
 
-// `label` is the state in words; without it the state is shown as stored.
+// The state in words: the label given, or the shared text of the state.
 export function StatusBadge({
   status,
   label,
@@ -132,8 +132,13 @@ export function StatusBadge({
   status: string;
   label?: string;
 }) {
+  const { t } = useTranslation();
   const entry = STATUS_STYLES[status.toLowerCase()] || STATUS_STYLES.pending;
   const Icon = entry.icon;
+  // A state with no text of its own is shown as stored.
+  const words =
+    label ??
+    t(`admin.shared.status.${status.toLowerCase()}`, { defaultValue: status });
 
   return (
     <span
@@ -143,7 +148,7 @@ export function StatusBadge({
       )}
     >
       <Icon size={12} />
-      {label ?? status}
+      {words}
     </span>
   );
 }

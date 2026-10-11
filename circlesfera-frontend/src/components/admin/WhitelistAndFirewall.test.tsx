@@ -100,7 +100,7 @@ describe('WhitelistTab', () => {
     expect(
       within(rowOf('Person p1')).getByText('p1@example.com'),
     ).toBeInTheDocument();
-    expect(within(rowOf('Person p1')).getByText('VALID')).toBeInTheDocument();
+    expect(within(rowOf('Person p1')).getByText('Valid')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     await screen.findByText('Person p2');
@@ -115,7 +115,7 @@ describe('WhitelistTab', () => {
     );
     const row = await waitFor(() => rowOf('No name'));
     expect(within(row).getByText('found@example.com')).toBeInTheDocument();
-    expect(within(row).getByText('REGISTERED')).toBeInTheDocument();
+    expect(within(row).getByText('Registered')).toBeInTheDocument();
   });
 
   it('adds a person by email, with the name when given', async () => {
@@ -218,7 +218,7 @@ describe('WhitelistTab', () => {
       within(rowOf('Person a')).getByRole('button', { name: 'Edit' }),
     );
     const form = detail();
-    expect(within(form).getByText('Edit Entry')).toBeInTheDocument();
+    expect(within(form).getByText('Edit entry')).toBeInTheDocument();
     expect(within(form).getByRole('textbox', { name: 'Name' })).toHaveValue(
       'Person a',
     );
@@ -245,7 +245,7 @@ describe('WhitelistTab', () => {
       }),
     );
     await waitFor(() =>
-      expect(screen.queryByText('Edit Entry')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Edit entry')).not.toBeInTheDocument(),
     );
     expect(toast.success).toHaveBeenCalledWith('Entry saved');
     expect(api.getWhitelist).toHaveBeenCalledTimes(2);
@@ -264,7 +264,7 @@ describe('WhitelistTab', () => {
       '',
     );
     fireEvent.click(within(detail()).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByText('Edit Entry')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit entry')).not.toBeInTheDocument();
     expect(api.updateWhitelist).not.toHaveBeenCalled();
 
     fireEvent.click(rowOf('No name'));
@@ -276,7 +276,7 @@ describe('WhitelistTab', () => {
     await waitFor(() =>
       expect(toast.error).toHaveBeenCalledWith('Could not save the entry'),
     );
-    expect(within(detail()).getByText('Edit Entry')).toBeInTheDocument();
+    expect(within(detail()).getByText('Edit entry')).toBeInTheDocument();
   });
 
   it('deletes a person only after confirming, and closes them if open', async () => {
@@ -309,7 +309,7 @@ describe('WhitelistTab', () => {
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith('Entry deleted'),
     );
-    expect(screen.queryByText('Edit Entry')).not.toBeInTheDocument();
+    expect(screen.queryByText('Edit entry')).not.toBeInTheDocument();
   });
 
   it('says so when a person cannot be deleted', async () => {
@@ -345,14 +345,14 @@ describe('FirewallTab', () => {
       name: en('tab_signatures'),
     });
     expect(screen.getByText('rules view')).toBeInTheDocument();
-    expect(rules).toHaveClass('border-brand-primary');
-    expect(signatures).toHaveClass('border-transparent');
+    expect(rules).toHaveAttribute('aria-pressed', 'true');
+    expect(signatures).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByText('rules view'));
     expect(onToast).toHaveBeenLastCalledWith('from rules', 'success');
 
     fireEvent.click(signatures);
     expect(screen.queryByText('rules view')).not.toBeInTheDocument();
-    expect(signatures).toHaveClass('border-brand-primary');
+    expect(signatures).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByText('signatures view'));
     expect(onToast).toHaveBeenLastCalledWith('from signatures', 'error');
 
