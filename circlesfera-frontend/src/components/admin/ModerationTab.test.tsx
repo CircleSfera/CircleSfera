@@ -84,7 +84,7 @@ describe('ModerationTab', () => {
 
     const first = await waitFor(() => rowOf('Caption 1'));
     expect(within(first).getByText('@person_1')).toBeInTheDocument();
-    expect(within(first).getByText('POST')).toBeInTheDocument();
+    expect(within(first).getByText('Post')).toBeInTheDocument();
     expect(within(first).getByText('Reason 1')).toBeInTheDocument();
     expect(first.querySelector('img')).toHaveAttribute(
       'src',
@@ -93,8 +93,8 @@ describe('ModerationTab', () => {
 
     const second = rowOf('No text');
     expect(within(second).getByText('@—')).toBeInTheDocument();
-    expect(within(second).getByText('COMMENT')).toBeInTheDocument();
-    expect(within(second).getByText('Flagged')).toBeInTheDocument();
+    expect(within(second).getByText('Comment')).toBeInTheDocument();
+    expect(within(second).getByText('Marked for review')).toBeInTheDocument();
     expect(second.querySelector('img')).toBeNull();
   });
 
