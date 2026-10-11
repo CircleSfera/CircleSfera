@@ -313,7 +313,9 @@ export default function TrustTab() {
                 onClick={() => navigate(adminTabPath('reports'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-yellow-400 bg-yellow-400/10 px-1.5 py-0.5 rounded">
-                    {item.status}
+                    {t(`admin.shared.status.${item.status.toLowerCase()}`, {
+                      defaultValue: item.status,
+                    })}
                   </span>
                 }
               />
@@ -365,7 +367,9 @@ export default function TrustTab() {
                 onClick={() => navigate(adminTabPath('support'))}
                 badge={
                   <span className="text-xs font-semibold uppercase text-blue-400 bg-blue-400/10 px-1.5 py-0.5 rounded">
-                    {item.status}
+                    {t(`admin.support.badge.${item.status}`, {
+                      defaultValue: item.status,
+                    })}
                   </span>
                 }
               />

@@ -204,7 +204,7 @@ describe('TrustTab', () => {
     expect(await screen.findByText('Appeals')).toBeInTheDocument();
     expect(screen.getByText('Support tickets')).toBeInTheDocument();
     expect(
-      screen.getAllByText('No resolved reports in the last 30 days.'),
+      screen.getAllByText('Nothing resolved in the last 30 days.'),
     ).toHaveLength(2);
   });
 

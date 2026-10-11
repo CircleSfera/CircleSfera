@@ -2617,7 +2617,7 @@
       "mttr_subtitle": "Mediana de resolución (últimos {{days}} días)",
       "mttr_median": "Mediana: {{duration}}",
       "mttr_sample": "Basado en {{count}} reportes resueltos",
-      "mttr_empty": "Sin reportes resueltos en los últimos {{days}} días.",
+      "mttr_empty": "Nada resuelto en los últimos {{days}} días.",
       "mttr_duration_minutes": "{{count}} min",
       "mttr_duration_hours": "{{count}} h",
       "mttr_duration_days": "{{count}} d"
