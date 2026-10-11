@@ -193,7 +193,7 @@ export default function HelpCentreTab({ onToast }: Props) {
   );
   const row = (article: AdminArticleSummary) => (
     <AdminListRow
-      key={article.id}
+      className="rounded-xl border-white/10 bg-white/5 p-3 sm:p-4"
       title={nameOf(article)}
       subtitle={`${t(`supportPage.category.${article.topic}`)} · /help/${article.slug}`}
       badge={statusBadge(article.status)}
@@ -443,21 +443,31 @@ export default function HelpCentreTab({ onToast }: Props) {
         />
       </AdminFilterBar>
 
-      <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
-        {isLoading ? (
+      {/* Each article is a card of its own; only a state with no rows gets
+          the one card of the list. */}
+      {isLoading ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
           <AdminListSkeleton rows={6} />
-        ) : isError ? (
+        </div>
+      ) : isError ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
           <AdminEmptyState icon={BookOpen} title={tr('load_failed')} />
-        ) : visible.length === 0 ? (
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
           <AdminEmptyState
             icon={BookOpen}
             title={tr(articles.length === 0 ? 'empty_title' : 'empty_filtered')}
             description={articles.length === 0 ? tr('empty') : undefined}
           />
-        ) : (
-          <div className="divide-y divide-white/10">{visible.map(row)}</div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <ul className="space-y-3">
+          {visible.map((article) => (
+            <li key={article.id}>{row(article)}</li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
