@@ -156,20 +156,23 @@ export default function UserVerificationTab({
         subtitle={t('admin.verification.subtitle')}
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-3 shrink-0">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3 shrink-0">
         <StatCard
+          compact
           label={t('admin.verification.kyc_completed', 'Verified users')}
           value={statsData?.verified || 0}
           icon={CheckCircle2}
           color="green"
         />
         <StatCard
+          compact
           label={t('admin.verification.kpi_kyc_pending')}
           value={statsData?.pending || 0}
           icon={Clock}
           color="yellow"
         />
         <StatCard
+          compact
           label={t('admin.verification.filter_not_started')}
           value={statsData?.notStarted || 0}
           icon={UserX}

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface Props {
   title: string;
@@ -9,44 +9,50 @@ interface Props {
     value: number;
     label: string;
   };
+  // Three in a row on a phone: the icon waits for a wider screen.
+  compact?: boolean;
 }
 
-// Dense KPI strip — icon + value in one short row for ops dashboards.
+// A figure whose value is already written (a text, a rate). It is drawn as
+// StatCard draws a count, so that a page has one design of figure.
 export function AdminKpiWidget({
   title,
   value,
   icon,
   iconColorClass = 'text-brand-primary bg-brand-primary/10',
   trend,
+  compact = false,
 }: Props) {
   return (
-    <div className="glass-panel rounded-lg px-2.5 py-2 flex items-center gap-2.5 min-h-0">
-      <div
-        className={`w-8 h-8 rounded-md flex items-center justify-center shrink-0 border border-white/5 ${iconColorClass}`}
-      >
-        {icon}
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-[11px] font-semibold text-white/45 truncate leading-tight">
-          {title}
-        </p>
-        <div className="flex items-baseline gap-1.5 flex-wrap">
-          <p className="text-lg font-bold text-white tabular-nums leading-tight">
+    <div className="glass-panel p-2 sm:p-2.5 rounded-lg relative overflow-hidden">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
+        <div className="min-w-0">
+          <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 leading-tight line-clamp-2">
+            {title}
+          </p>
+          <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
             {value}
           </p>
           {trend && (
-            <>
+            <p className="flex items-baseline gap-1.5 mt-0.5 sm:mt-1 text-[10px] sm:text-xs">
               <span
-                className={`text-[10px] font-bold ${
-                  trend.value >= 0 ? 'text-green-400' : 'text-red-400'
+                className={`font-bold ${
+                  trend.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
                 {trend.value >= 0 ? '+' : ''}
                 {trend.value}%
               </span>
-              <span className="text-[10px] text-white/35">{trend.label}</span>
-            </>
+              <span className="text-white/40">{trend.label}</span>
+            </p>
           )}
+        </div>
+        <div
+          className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-white/5 shrink-0 ${
+            compact ? 'hidden sm:block' : ''
+          } ${iconColorClass}`}
+        >
+          {icon}
         </div>
       </div>
     </div>
