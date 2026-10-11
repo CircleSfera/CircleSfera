@@ -50,89 +50,95 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
         )}
       </div>
 
-      <div className="rounded-xl overflow-hidden bg-black aspect-video relative">
-        {videoUrl ? (
-          <HlsVideoPlayer
-            src={videoUrl}
-            autoPlay
-            controls
-            muted
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-white/40 text-sm">
-            <Play className="w-10 h-10 mb-2 opacity-20" />
-            <p>{t('admin.lives.no_video_source')}</p>
+      {/* A broadcast is filmed upright: the player keeps that shape, and
+          from 1280 px what is known about it sits beside the player. */}
+      <div className="space-y-4 xl:space-y-0 xl:grid xl:grid-cols-[16rem_minmax(0,1fr)] xl:gap-6 xl:items-start">
+        <div className="mx-auto w-full max-w-72 rounded-xl overflow-hidden bg-black aspect-9/16 relative">
+          {videoUrl ? (
+            <HlsVideoPlayer
+              src={videoUrl}
+              autoPlay
+              controls
+              muted
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 text-white/40 text-sm">
+              <Play className="w-10 h-10 mb-2 opacity-20" />
+              <p>{t('admin.lives.no_video_source')}</p>
+            </div>
+          )}
+          {isLive && (
+            <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 text-white text-sm font-semibold">
+              <Eye className="w-4 h-4 text-red-400" />
+              {stream.viewerCount}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4 min-w-0">
+          <dl className="text-sm border-t border-white/5">
+            <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
+              <dt className="text-xs font-medium text-white/40">
+                {t('admin.live.viewers')}
+              </dt>
+              <dd className="text-white font-semibold tabular-nums">
+                {stream.viewerCount}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
+              <dt className="text-xs font-medium text-white/40">
+                {t('admin.live.gifts')}
+              </dt>
+              <dd className="text-white font-semibold tabular-nums">
+                {stream._count?.gifts || 0}
+              </dd>
+            </div>
+          </dl>
+
+          <div>
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">
+              {t('admin.live.participants')}
+            </h4>
+            <ul className="divide-y divide-white/5">
+              {people.map(({ who, role }) => (
+                <li key={role} className="flex items-center gap-3 py-2.5">
+                  <UserAvatar
+                    src={who?.profile?.avatar || undefined}
+                    alt={who?.profile?.username || '?'}
+                    size="sm"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">
+                      @{who?.profile?.username}
+                    </p>
+                    <p className="text-xs text-white/50">{role}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
-        )}
-        {isLive && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/60 text-white text-sm font-semibold">
-            <Eye className="w-4 h-4 text-red-400" />
-            {stream.viewerCount}
-          </div>
-        )}
+
+          {isLive && (
+            <div className="pt-4 border-t border-white/5 space-y-2">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
+                {t('admin.live.moderation_actions')}
+              </h4>
+              <p className="text-xs text-white/50">
+                {t('admin.live.force_end_description')}
+              </p>
+              <Button
+                variant="danger"
+                className="min-h-11"
+                onClick={() => onEndStream(stream.id)}
+              >
+                <Square size={16} className="mr-2 shrink-0" />
+                {t('admin.live.force_end_title')}
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
-
-      <dl className="text-sm border-t border-white/5">
-        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-          <dt className="text-xs font-medium text-white/40">
-            {t('admin.live.viewers')}
-          </dt>
-          <dd className="text-white font-semibold tabular-nums">
-            {stream.viewerCount}
-          </dd>
-        </div>
-        <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-          <dt className="text-xs font-medium text-white/40">
-            {t('admin.live.gifts')}
-          </dt>
-          <dd className="text-white font-semibold tabular-nums">
-            {stream._count?.gifts || 0}
-          </dd>
-        </div>
-      </dl>
-
-      <div>
-        <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">
-          {t('admin.live.participants')}
-        </h4>
-        <ul className="divide-y divide-white/5">
-          {people.map(({ who, role }) => (
-            <li key={role} className="flex items-center gap-3 py-2.5">
-              <UserAvatar
-                src={who?.profile?.avatar || undefined}
-                alt={who?.profile?.username || '?'}
-                size="sm"
-              />
-              <div className="min-w-0">
-                <p className="text-sm font-semibold text-white truncate">
-                  @{who?.profile?.username}
-                </p>
-                <p className="text-xs text-white/50">{role}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      {isLive && (
-        <div className="pt-4 border-t border-white/5 space-y-2">
-          <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
-            {t('admin.live.moderation_actions')}
-          </h4>
-          <p className="text-xs text-white/50">
-            {t('admin.live.force_end_description')}
-          </p>
-          <Button
-            variant="danger"
-            className="min-h-11"
-            onClick={() => onEndStream(stream.id)}
-          >
-            <Square size={16} className="mr-2 shrink-0" />
-            {t('admin.live.force_end_title')}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
