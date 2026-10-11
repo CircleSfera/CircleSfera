@@ -2692,8 +2692,6 @@
       "role_host": "Host",
       "role_cohost": "Guest co-host",
       "moderation_actions": "Moderation actions",
-      "warn_title": "Send a warning",
-      "warn_description": "The user will receive an official notice.",
       "force_end_title": "Force the broadcast to end",
       "force_end_description": "The live will end immediately."
     },
@@ -3711,6 +3709,7 @@
       "empty_description": "No streams found with the current filters.",
       "kpi_active": "Active lives",
       "kpi_viewers": "Total viewers",
+      "record_title": "Broadcast",
       "state": {
         "LIVE": "Live",
         "ENDED": "Ended"

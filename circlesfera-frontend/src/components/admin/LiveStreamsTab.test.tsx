@@ -74,9 +74,10 @@ const rowOf = (title: string) =>
     .find(Boolean) as HTMLElement;
 const kpi = (title: string) =>
   screen.getByText(title).parentElement as HTMLElement;
-const panel = () =>
-  screen.getByRole('button', { name: 'Close' }).parentElement
-    ?.parentElement as HTMLElement;
+/** The pane beside the list, where the record of a broadcast opens. */
+const panel = () => screen.getByRole('region', { name: 'Broadcast' });
+/** The title of the open record, or nothing when none is open. */
+const openRecord = () => within(panel()).queryByRole('heading', { level: 3 });
 
 /** Opens the menu of a broadcast's row and asks to end it. */
 const askToEnd = (title: string) => {
@@ -242,9 +243,7 @@ describe('LiveStreamsTab', () => {
     expect(within(dialog).getByText('End live')).toBeInTheDocument();
     expect(api.endLiveStream).not.toHaveBeenCalled();
     // Ending from the row does not open the broadcast.
-    expect(
-      screen.queryByRole('button', { name: 'Close' }),
-    ).not.toBeInTheDocument();
+    expect(openRecord()).not.toBeInTheDocument();
 
     fireEvent.click(within(dialog).getByRole('button', { name: 'End' }));
 
@@ -371,29 +370,21 @@ describe('LiveStreamsTab', () => {
     expect(within(open).queryByTestId('player')).not.toBeInTheDocument();
   });
 
-  it('closes the open broadcast from its button and with Escape', async () => {
+  it('closes the open broadcast with Back and with Escape', async () => {
     api.getLiveStreams.mockResolvedValue(list([stream('a')]) as never);
     show();
     await screen.findByText('Stream a');
 
     fireEvent.click(rowOf('Stream a'));
-    const close = screen.getByRole('button', { name: 'Close' });
-    expect(close).toHaveClass('min-h-11', 'min-w-11');
-    fireEvent.click(close);
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('button', { name: 'Close' }),
-      ).not.toBeInTheDocument(),
-    );
+    const back = screen.getByRole('button', { name: 'Back' });
+    expect(back).toHaveClass('min-h-11');
+    fireEvent.click(back);
+    await waitFor(() => expect(openRecord()).not.toBeInTheDocument());
 
     fireEvent.click(rowOf('Stream a'));
-    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+    expect(openRecord()).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('button', { name: 'Close' }),
-      ).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(openRecord()).not.toBeInTheDocument());
   });
 
   it('closes the open broadcast once it is ended from there', async () => {
@@ -414,11 +405,7 @@ describe('LiveStreamsTab', () => {
 
     await waitFor(() => expect(api.endLiveStream).toHaveBeenCalledWith('a'));
     // It was listed as on air: left open it would still say so.
-    await waitFor(() =>
-      expect(
-        screen.queryByRole('button', { name: 'Close' }),
-      ).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(openRecord()).not.toBeInTheDocument());
   });
 
   it('keeps another broadcast open when a different one is ended', async () => {
@@ -453,18 +440,18 @@ describe('LiveStreamsTab', () => {
 
     fireEvent.click(rowOf('Stream a'));
 
-    const open = screen.getByRole('button', { name: 'Cerrar' }).parentElement
-      ?.parentElement as HTMLElement;
+    const open = screen.getByRole('region', { name: 'Directo' });
     for (const text of [
       'En vivo',
       'Participantes',
       'Anfitrión principal',
       'Coanfitrión invitado',
       'Acciones de moderación',
-      'Enviar advertencia',
       'Forzar cierre de la transmisión',
     ]) {
       expect(within(open).getByText(text)).toBeInTheDocument();
     }
+    // A warning that sends nothing is not offered.
+    expect(within(open).queryByText('Enviar advertencia')).toBeNull();
   });
 });

@@ -2692,8 +2692,6 @@
       "role_host": "Anfitrión principal",
       "role_cohost": "Coanfitrión invitado",
       "moderation_actions": "Acciones de moderación",
-      "warn_title": "Enviar advertencia",
-      "warn_description": "El usuario recibirá un aviso oficial.",
       "force_end_title": "Forzar cierre de la transmisión",
       "force_end_description": "El directo terminará inmediatamente."
     },
@@ -3711,6 +3709,7 @@
       "empty_description": "No se encontraron directos con los filtros actuales.",
       "kpi_active": "Directos activos",
       "kpi_viewers": "Espectadores totales",
+      "record_title": "Directo",
       "state": {
         "LIVE": "En vivo",
         "ENDED": "Finalizado"

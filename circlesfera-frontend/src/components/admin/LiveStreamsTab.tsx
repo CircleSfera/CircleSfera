@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Eye, Radio, StopCircle, Users } from 'lucide-react';
+import { Radio, StopCircle, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminLiveStream } from '../../services/admin.service';
@@ -191,22 +191,16 @@ export default function LiveStreamsTab() {
             </div>
           </div>
         }
+        detailAriaLabel={t('admin.lives.record_title')}
         detail={
-          <AdminEmptyState
-            icon={Eye}
-            title={t('admin.shared.select_item_title')}
-            description={t('admin.shared.select_item_description')}
-          />
+          selectedStream && (
+            <LiveStreamDetailPanel
+              stream={selectedStream}
+              onEndStream={(id) => setConfirmEndId(id)}
+            />
+          )
         }
       />
-
-      {selectedStream && (
-        <LiveStreamDetailPanel
-          stream={selectedStream}
-          onClose={() => setSelectedStream(null)}
-          onEndStream={(id) => setConfirmEndId(id)}
-        />
-      )}
 
       <ConfirmModal
         isOpen={confirmEndId !== null}
