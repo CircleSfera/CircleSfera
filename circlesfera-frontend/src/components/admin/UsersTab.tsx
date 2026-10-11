@@ -215,6 +215,10 @@ export default function Dashboard({ onToast }: Props) {
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+      // The record of the account may be open next to the list.
+      queryClient.invalidateQueries({
+        queryKey: ['admin', 'user-detail', variables.id],
+      });
       if (variables.type === 'delete' && selectedUserId === variables.id) {
         setSelectedUserId(null);
       }

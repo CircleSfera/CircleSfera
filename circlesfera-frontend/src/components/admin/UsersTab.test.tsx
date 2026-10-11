@@ -268,6 +268,26 @@ describe('UsersTab', () => {
     expect(api.banUser).not.toHaveBeenCalled();
   });
 
+  it('refreshes the open record after a ban', async () => {
+    api.getUsers.mockResolvedValue(list([user('1')]) as never);
+    const { queryClient } = show();
+    const refreshed = vi.spyOn(queryClient, 'invalidateQueries');
+
+    fireEvent.click(await waitFor(() => rowOf('@person_1')));
+    fireEvent.click(
+      within(screen.getByTestId('user-detail')).getByRole('button', {
+        name: 'Ban',
+      }),
+    );
+    fireEvent.click(within(dialog()).getByRole('button', { name: 'Ban User' }));
+
+    await waitFor(() =>
+      expect(refreshed).toHaveBeenCalledWith({
+        queryKey: ['admin', 'user-detail', '1'],
+      }),
+    );
+  });
+
   it('bans only after confirming', async () => {
     api.getUsers.mockResolvedValue(list([user('1')]) as never);
     show();
