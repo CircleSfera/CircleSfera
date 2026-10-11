@@ -77,6 +77,9 @@ export default function SpamReviewTab() {
     onSuccess: () => {
       adminToast(t('admin.spam_review.toast_resolved'), 'success');
       setPending(null);
+      // The case is decided: it closes, so it cannot be decided twice from
+      // the copy the list still holds.
+      setSelectedId(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'risk-cases'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
     },
