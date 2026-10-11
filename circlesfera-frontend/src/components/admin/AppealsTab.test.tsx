@@ -227,4 +227,45 @@ describe('AppealsTab', () => {
     );
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  it('closes the case with Back and with Escape, and a dialog with Cancel', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(page([appeal({})]) as never);
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    fireEvent.click(within(open).getByRole('button', { name: 'Approve' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    expect(updateAdminAppeal).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull(),
+    );
+
+    await openCase();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Approve' })).toBeNull(),
+    );
+  });
+
+  it('closes the case once it is decided', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(page([appeal({})]) as never);
+    vi.mocked(updateAdminAppeal).mockResolvedValue({} as never);
+    renderWithProviders(<AppealsTab />);
+
+    const open = await openCase();
+    fireEvent.click(within(open).getByRole('button', { name: 'Reject' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
+
+    // The list still holds the pending copy until it is read again: the
+    // case must not stay open on it.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Reject' })).toBeNull(),
+    );
+    expect(updateAdminAppeal).toHaveBeenCalledTimes(1);
+  });
 });

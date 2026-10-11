@@ -205,6 +205,20 @@ describe('staff panel navigation', () => {
     window.localStorage.clear();
   });
 
+  it.each(['null', '[]', '"open"', '{"x":"yes"}', 'not json'])(
+    'forgets a stored choice of groups that is not one (%s)',
+    (stored) => {
+      window.localStorage.setItem('cs.staff.nav.open-groups', stored);
+      show('users');
+
+      const folded = within(sidebar())
+        .getAllByRole('button')
+        .filter((b) => b.getAttribute('aria-expanded') === 'false');
+      expect(folded.length).toBe(navGroupsFor('admin').length - 1);
+      window.localStorage.clear();
+    },
+  );
+
   it('shows the one group of the Backoffice whole, with nothing to fold', () => {
     site.backoffice = true;
     show('plans');

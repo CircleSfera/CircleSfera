@@ -23,7 +23,14 @@ const OPEN_GROUPS_KEY = 'cs.staff.nav.open-groups';
 function readOpenGroups(): Record<string, boolean> {
   try {
     const stored = window.localStorage.getItem(OPEN_GROUPS_KEY);
-    return stored ? (JSON.parse(stored) as Record<string, boolean>) : {};
+    const parsed: unknown = stored ? JSON.parse(stored) : null;
+    // Anything but a plain record of what is open is forgotten.
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, open]) => typeof open === 'boolean'),
+    ) as Record<string, boolean>;
   } catch {
     return {};
   }

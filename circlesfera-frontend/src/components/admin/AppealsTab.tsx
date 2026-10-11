@@ -66,6 +66,9 @@ export default function AppealsTab() {
       adminToast(t('admin.appeals.toast_updated'), 'success');
       queryClient.invalidateQueries({ queryKey: ['admin', 'appeals'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'trust-queue'] });
+      // The case is decided: it closes, so it cannot be decided twice from
+      // the copy the list still holds.
+      setSelectedId(null);
       setReview(null);
     },
     onError: () => {
@@ -256,14 +259,14 @@ export default function AppealsTab() {
       <ConfirmModal
         isOpen={review !== null}
         onClose={() => setReview(null)}
-        onConfirm={(notes) => {
-          if (!review) return;
+        onConfirm={(notes) =>
+          review &&
           updateMutation.mutate({
             id: review.id,
             status: review.status,
             adminNotes: notes || undefined,
-          });
-        }}
+          })
+        }
         title={
           review?.status === 'APPROVED'
             ? t('admin.appeals.approve_title')
