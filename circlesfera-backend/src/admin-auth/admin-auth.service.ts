@@ -7,10 +7,9 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
-import * as argon2 from 'argon2';
-import * as bcrypt from 'bcrypt';
 import { generateSecret, generateURI, verifySync } from 'otplib';
 import * as qrcode from 'qrcode';
+import { passwordMatches } from '../auth/password.util.js';
 import { ADMIN_JWT_AUDIENCE } from '../auth/strategies/admin-jwt.strategy.js';
 import { getAdminJwtSecret } from '../common/config/admin-jwt.config.js';
 import { CryptoService } from '../common/services/crypto.service.js';
@@ -45,24 +44,27 @@ export class AdminAuthService {
     return createHash('sha256').update(token).digest('hex');
   }
 
-  // Matches platform auth: argon2 primary, bcrypt legacy with optional upgrade.
-  private async verifyAdminPassword(
+  // The staff password is the password of the CircleSfera sign-in that has the
+  // staff account's email and belongs to its linked User: one password for the
+  // person, never a copy. A staff account without that sign-in, or whose
+  // sign-in must set a new password first, is refused like a wrong password.
+  private async passwordIsValid(
+    admin: { email: string; linkedUserId: string | null },
     password: string,
-    passwordHash: string,
-  ): Promise<{ valid: boolean; upgradeToArgon2?: string }> {
-    if (passwordHash.startsWith('$argon2')) {
-      return { valid: await argon2.verify(passwordHash, password) };
-    }
+  ): Promise<boolean> {
+    if (!admin.linkedUserId) return false;
+    const signIn = await this.prisma.signIn.findUnique({
+      where: { email: admin.email },
+      select: { userId: true, password: true, passwordResetRequiredAt: true },
+    });
     if (
-      passwordHash.startsWith('$2a$') ||
-      passwordHash.startsWith('$2b$') ||
-      passwordHash.startsWith('$2y$')
+      !signIn ||
+      signIn.userId !== admin.linkedUserId ||
+      signIn.passwordResetRequiredAt
     ) {
-      const valid = await bcrypt.compare(password, passwordHash);
-      if (!valid) return { valid: false };
-      return { valid: true, upgradeToArgon2: await argon2.hash(password) };
+      return false;
     }
-    return { valid: false };
+    return passwordMatches(signIn.password, password);
   }
 
   // Safe TOTP check — otplib throws on malformed secrets.
@@ -180,23 +182,13 @@ export class AdminAuthService {
       throw new ForbiddenException('Account temporarily locked');
     }
 
-    const passwordCheck = await this.verifyAdminPassword(
-      password,
-      admin.passwordHash,
-    );
-    if (!passwordCheck.valid) {
+    if (!(await this.passwordIsValid(admin, password))) {
       await fail(admin.id);
     }
 
     await this.prisma.adminIdentity.update({
       where: { id: admin.id },
-      data: {
-        failedLoginCount: 0,
-        lockedUntil: null,
-        ...(passwordCheck.upgradeToArgon2
-          ? { passwordHash: passwordCheck.upgradeToArgon2 }
-          : {}),
-      },
+      data: { failedLoginCount: 0, lockedUntil: null },
     });
 
     if (admin.mfaRequired && !admin.totpEnabled) {
@@ -452,8 +444,7 @@ export class AdminAuthService {
 
     let ok = false;
     if (dto.password) {
-      ok = (await this.verifyAdminPassword(dto.password, admin.passwordHash))
-        .valid;
+      ok = await this.passwordIsValid(admin, dto.password);
     }
     if (!ok && dto.totpCode && admin.totpSecret) {
       const rawSecret = admin.totpSecret;

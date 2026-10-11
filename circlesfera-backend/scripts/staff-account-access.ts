@@ -10,6 +10,15 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const RECENT_DAYS = 14;
 const OWNER_ROLE = 'SUPER_ADMIN';
 
+// Only the kind of hash is told, never the hash: sign-in accepts the first two
+// and refuses anything else.
+const hashFormat = (hash: string) =>
+  hash.startsWith('$argon2')
+    ? 'argon2'
+    : /^\$2[aby]\$/.test(hash)
+      ? 'bcrypt'
+      : 'not recognised';
+
 // Audit details may quote the address of the account they are about.
 const withoutAddresses = (text: string) =>
   text.replace(/\S+@\S+/g, '[address]');
@@ -68,6 +77,8 @@ async function main() {
         lockedUntil: true,
         lastLoginAt: true,
         updatedAt: true,
+        email: true,
+        linkedUserId: true,
         passwordHash: true,
         totpEnabled: true,
         mfaRequired: true,
@@ -98,13 +109,28 @@ async function main() {
         const lockMinutes = locked
           ? Math.ceil(((account.lockedUntil?.getTime() ?? now) - now) / 60000)
           : 0;
-        // Only the kind of hash is told, never the hash: sign-in accepts the
-        // first two and refuses anything else.
-        const passwordFormat = account.passwordHash.startsWith('$argon2')
-          ? 'argon2'
-          : /^\$2[aby]\$/.test(account.passwordHash)
-            ? 'bcrypt'
-            : 'not recognised';
+        const passwordFormat = hashFormat(account.passwordHash);
+        // Staff sign in with the password of the CircleSfera sign-in that has
+        // their email and belongs to their linked user.
+        const signIn = await prisma.signIn.findUnique({
+          where: { email: account.email },
+          select: {
+            userId: true,
+            password: true,
+            passwordResetRequiredAt: true,
+          },
+        });
+        const signInState = !account.linkedUserId
+          ? 'no: the staff account is linked to no user'
+          : !signIn
+            ? 'no: no sign-in has the staff email'
+            : signIn.userId !== account.linkedUserId
+              ? 'no: that sign-in belongs to another user'
+              : signIn.passwordResetRequiredAt
+                ? 'no: it must set a new password first'
+                : hashFormat(signIn.password) === 'not recognised'
+                  ? 'no: its stored password is in a format sign-in refuses'
+                  : 'yes';
         const recent = await prisma.adminAuditLog.groupBy({
           by: ['action', 'details'],
           where: {
@@ -139,7 +165,10 @@ async function main() {
           `  Last sign-in: ${account.lastLoginAt ? daysAgo(account.lastLoginAt) : 'never'}`,
         );
         console.log(`  Record last changed: ${daysAgo(account.updatedAt)}`);
-        console.log(`  Stored password format: ${passwordFormat}`);
+        console.log(`  Password comes from the user sign-in: ${signInState}`);
+        console.log(
+          `  Own stored password format (no longer used): ${passwordFormat}`,
+        );
         console.log(
           `  Second factor: ${account.totpEnabled ? 'set up' : 'not set up'}${
             account.mfaRequired ? ', required' : ''
