@@ -1,11 +1,4 @@
-import {
-  AlertTriangle,
-  CheckCircle2,
-  ExternalLink,
-  Layout,
-  Send,
-  Type,
-} from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
@@ -65,52 +58,16 @@ export default function NewsletterTab({
       <AdminPageHeader
         title={t('admin.newsletter.title')}
         subtitle={t('admin.newsletter.subtitle')}
-        actions={
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setShowPreview(!showPreview)}
-              className="min-h-11 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all border border-white/10 hover:bg-white/5 text-white/70 w-full sm:w-auto"
-            >
-              {showPreview
-                ? t('admin.newsletter.edit_content')
-                : t('admin.newsletter.preview')}
-            </Button>
-            <Button
-              onClick={handleSend}
-              disabled={isSending}
-              className="min-h-11 px-4 py-2.5 text-sm font-semibold w-full sm:w-auto"
-            >
-              {isSending ? (
-                <>
-                  <CheckCircle2 size={16} className="mr-2" />
-                  {t('admin.newsletter.sending')}
-                </>
-              ) : (
-                <>
-                  <Send size={16} className="mr-2" />
-                  {t('admin.newsletter.send_broadcast')}
-                </>
-              )}
-            </Button>
-          </div>
-        }
       />
 
-      <div className="p-3 sm:p-5 rounded-lg border border-white/5 bg-white/2">
+      <div className="p-3 sm:p-4 rounded-xl border border-white/10 bg-white/5">
         <div className="flex flex-col lg:flex-row gap-2.5 sm:gap-3">
           {!showPreview && (
             <div className="flex-1 space-y-3 order-1">
-              <div className="space-y-2">
-                <label
-                  htmlFor="subject"
-                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1 flex items-center gap-2"
-                >
-                  <Type size={12} /> {t('admin.newsletter.label_subject')}
-                </label>
+              <div>
                 <Input
                   id="subject"
+                  label={t('admin.newsletter.label_subject')}
                   type="text"
                   placeholder={t('admin.newsletter.placeholder_subject')}
                   value={formData.subject}
@@ -120,15 +77,10 @@ export default function NewsletterTab({
                 />
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="title"
-                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1 flex items-center gap-2"
-                >
-                  <Layout size={12} /> {t('admin.newsletter.label_title')}
-                </label>
+              <div>
                 <Input
                   id="title"
+                  label={t('admin.newsletter.label_title')}
                   type="text"
                   placeholder={t('admin.newsletter.placeholder_title')}
                   value={formData.title}
@@ -139,15 +91,10 @@ export default function NewsletterTab({
                 />
               </div>
 
-              <div className="space-y-2">
-                <label
-                  htmlFor="content"
-                  className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
-                >
-                  {t('admin.newsletter.label_content')}
-                </label>
+              <div>
                 <Textarea
                   id="content"
+                  label={t('admin.newsletter.label_content')}
                   placeholder={t('admin.newsletter.placeholder_content')}
                   value={formData.content}
                   onChange={(e) =>
@@ -158,15 +105,10 @@ export default function NewsletterTab({
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="buttonText"
-                    className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
-                  >
-                    {t('admin.newsletter.label_button_text')}
-                  </label>
+                <div>
                   <Input
                     id="buttonText"
+                    label={t('admin.newsletter.label_button_text')}
                     type="text"
                     placeholder={t('admin.newsletter.placeholder_button_text')}
                     value={formData.buttonText}
@@ -175,29 +117,17 @@ export default function NewsletterTab({
                     }
                   />
                 </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor="buttonUrl"
-                    className="text-xs font-semibold text-white/40 uppercase tracking-wide ml-1"
-                  >
-                    {t('admin.newsletter.label_button_url')}
-                  </label>
-                  <div className="relative">
-                    <ExternalLink
-                      size={14}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30"
-                    />
-                    <Input
-                      id="buttonUrl"
-                      type="text"
-                      placeholder={t('admin.newsletter.placeholder_button_url')}
-                      value={formData.buttonUrl}
-                      onChange={(e) =>
-                        setFormData({ ...formData, buttonUrl: e.target.value })
-                      }
-                      className="pr-10"
-                    />
-                  </div>
+                <div>
+                  <Input
+                    id="buttonUrl"
+                    label={t('admin.newsletter.label_button_url')}
+                    type="text"
+                    placeholder={t('admin.newsletter.placeholder_button_url')}
+                    value={formData.buttonUrl}
+                    onChange={(e) =>
+                      setFormData({ ...formData, buttonUrl: e.target.value })
+                    }
+                  />
                 </div>
               </div>
             </div>
@@ -266,6 +196,36 @@ export default function NewsletterTab({
             {t('admin.newsletter.security_description')}
           </p>
         </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => setShowPreview(!showPreview)}
+          className="min-h-11 text-sm w-full sm:w-auto"
+        >
+          {showPreview
+            ? t('admin.newsletter.edit_content')
+            : t('admin.newsletter.preview')}
+        </Button>
+        <Button
+          onClick={handleSend}
+          disabled={isSending}
+          className="min-h-11 text-sm w-full sm:w-auto"
+        >
+          {isSending ? (
+            <>
+              <CheckCircle2 size={16} className="mr-2" />
+              {t('admin.newsletter.sending')}
+            </>
+          ) : (
+            <>
+              <Send size={16} className="mr-2" />
+              {t('admin.newsletter.send_broadcast')}
+            </>
+          )}
+        </Button>
       </div>
 
       <ConfirmModal
