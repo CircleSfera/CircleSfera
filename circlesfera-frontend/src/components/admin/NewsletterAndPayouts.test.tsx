@@ -33,33 +33,33 @@ describe('NewsletterTab', () => {
     fireEvent.change(screen.getByLabelText(new RegExp(label)), {
       target: { value },
     });
-  const send = () => screen.getByRole('button', { name: 'Send Broadcast' });
+  const send = () => screen.getByRole('button', { name: 'Send to everyone' });
   const fillRequired = () => {
-    fill('Email Subject', 'News');
-    fill('Main Title', 'A new feature');
-    fill('Message Content', 'It is here.');
+    fill('Email subject', 'News');
+    fill('Message title', 'A new feature');
+    fill('Message content', 'It is here.');
   };
 
   it.each([
     [
       'the subject',
       () => {
-        fill('Main Title', 'T');
-        fill('Message Content', 'C');
+        fill('Message title', 'T');
+        fill('Message content', 'C');
       },
     ],
     [
       'the title',
       () => {
-        fill('Email Subject', 'S');
-        fill('Message Content', 'C');
+        fill('Email subject', 'S');
+        fill('Message content', 'C');
       },
     ],
     [
       'the content',
       () => {
-        fill('Email Subject', 'S');
-        fill('Main Title', 'T');
+        fill('Email subject', 'S');
+        fill('Message title', 'T');
       },
     ],
   ])('asks for %s before anything is sent', (_what, fillRest) => {
@@ -95,8 +95,8 @@ describe('NewsletterTab', () => {
     vi.mocked(adminApi.sendBroadcast).mockResolvedValue({} as never);
     renderWithProviders(<NewsletterTab onToast={onToast} />);
     fillRequired();
-    fill('Button Text', 'See it');
-    fill('Button URL', 'https://circlesfera.com/new');
+    fill('Button text', 'See it');
+    fill('Button address', 'https://circlesfera.com/new');
 
     fireEvent.click(send());
     fireEvent.click(
@@ -118,7 +118,7 @@ describe('NewsletterTab', () => {
       buttonText: 'See it',
       buttonUrl: 'https://circlesfera.com/new',
     });
-    expect(screen.getByLabelText(/Email Subject/)).toHaveValue('');
+    expect(screen.getByLabelText(/Email subject/)).toHaveValue('');
     expect(send()).toBeEnabled();
   });
 
@@ -141,7 +141,7 @@ describe('NewsletterTab', () => {
         'error',
       ),
     );
-    expect(screen.getByLabelText(/Email Subject/)).toHaveValue('News');
+    expect(screen.getByLabelText(/Email subject/)).toHaveValue('News');
   });
 
   it('says it is sending and takes no second press meanwhile', async () => {
@@ -175,7 +175,7 @@ describe('NewsletterTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Content' }));
     fillRequired();
-    fill('Button Text', 'See it');
+    fill('Button text', 'See it');
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByText('Subject: News')).toBeInTheDocument();
     expect(
@@ -184,7 +184,7 @@ describe('NewsletterTab', () => {
     expect(screen.queryByText('See it')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Edit Content' }));
-    fill('Button URL', 'https://circlesfera.com/new');
+    fill('Button address', 'https://circlesfera.com/new');
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByText('See it')).toBeInTheDocument();
   });
