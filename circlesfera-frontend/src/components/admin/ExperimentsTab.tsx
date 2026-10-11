@@ -3,7 +3,6 @@ import {
   Calendar,
   Clock,
   Edit2,
-  FlaskConical,
   Key,
   Plus,
   Save,
@@ -28,6 +27,7 @@ import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination, SearchInput } from './AdminTable';
@@ -129,7 +129,7 @@ function PercentageSlider({
   );
 }
 
-// Sub-tab pill toggle.
+// The two views of the section, as the shared choice between views.
 function SubTabToggle({
   activeTab,
   onTabChange,
@@ -140,34 +140,17 @@ function SubTabToggle({
   const { t } = useTranslation();
 
   return (
-    <div className="flex gap-1 p-1 rounded-xl bg-white/5 border border-white/5 w-fit">
-      <button
-        type="button"
-        onClick={() => onTabChange('flags')}
-        aria-pressed={activeTab === 'flags'}
-        className={`min-h-11 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-          activeTab === 'flags'
-            ? 'bg-white/10 text-white shadow-sm'
-            : 'text-white/50 hover:text-white/80 hover:bg-white/3'
-        }`}
-      >
-        <Key size={14} className="inline-block mr-1.5 -mt-0.5" />
-        {t('admin.experiments.tab_flags')}
-      </button>
-      <button
-        type="button"
-        onClick={() => onTabChange('experiments')}
-        aria-pressed={activeTab === 'experiments'}
-        className={`min-h-11 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-          activeTab === 'experiments'
-            ? 'bg-white/10 text-white shadow-sm'
-            : 'text-white/50 hover:text-white/80 hover:bg-white/3'
-        }`}
-      >
-        <FlaskConical size={14} className="inline-block mr-1.5 -mt-0.5" />
-        {t('admin.experiments.tab_experiments')}
-      </button>
-    </div>
+    <AdminSegmentedControl
+      value={activeTab}
+      onChange={(tab) => onTabChange(tab as SubTab)}
+      options={[
+        { value: 'flags', label: t('admin.experiments.tab_flags') },
+        {
+          value: 'experiments',
+          label: t('admin.experiments.tab_experiments'),
+        },
+      ]}
+    />
   );
 }
 

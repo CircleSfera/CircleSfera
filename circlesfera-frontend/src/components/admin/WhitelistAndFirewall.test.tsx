@@ -345,14 +345,14 @@ describe('FirewallTab', () => {
       name: en('tab_signatures'),
     });
     expect(screen.getByText('rules view')).toBeInTheDocument();
-    expect(rules).toHaveClass('border-brand-primary');
-    expect(signatures).toHaveClass('border-transparent');
+    expect(rules).toHaveAttribute('aria-pressed', 'true');
+    expect(signatures).toHaveAttribute('aria-pressed', 'false');
     fireEvent.click(screen.getByText('rules view'));
     expect(onToast).toHaveBeenLastCalledWith('from rules', 'success');
 
     fireEvent.click(signatures);
     expect(screen.queryByText('rules view')).not.toBeInTheDocument();
-    expect(signatures).toHaveClass('border-brand-primary');
+    expect(signatures).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByText('signatures view'));
     expect(onToast).toHaveBeenLastCalledWith('from signatures', 'error');
 
