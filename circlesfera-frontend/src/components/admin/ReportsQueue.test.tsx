@@ -86,13 +86,19 @@ const detail = () => screen.getByRole('region', { name: 'Detail' });
 const dialog = () => screen.getByRole('dialog');
 const open = async (id: string) => {
   fireEvent.click(await waitFor(() => rowOf(`@author_${id}`)));
-  await within(detail()).findByText(`ID: ${id}`);
+  await within(detail()).findByText(reference(id));
   return detail();
 };
 const line = (label: string) =>
   within(detail()).getByText(label, { selector: 'dt' })
     .parentElement as HTMLElement;
 const lastQuery = () => api.getReports.mock.calls.at(-1);
+
+/** The open case of this report: its reference is the last line of the case. */
+const reference = (id: string) => (_content: string, element: Element | null) =>
+  element?.tagName === 'DD' &&
+  element.textContent === id &&
+  element.previousElementSibling?.textContent === 'Reference';
 
 describe('ReportsTab, the rest of the queue', () => {
   beforeEach(() => {
@@ -371,7 +377,7 @@ describe('ReportsTab, the rest of the queue', () => {
     show();
     fireEvent.click(await waitFor(() => rowOf('@Unknown')));
 
-    await within(detail()).findByText('ID: 1');
+    await within(detail()).findByText(reference('1'));
     expect(
       within(detail()).queryByRole('button', { name: 'View original' }),
     ).toBeNull();
@@ -459,7 +465,7 @@ describe('ReportsTab, the rest of the queue', () => {
     expect(
       within(detail()).getByText('Third time this week'),
     ).toBeInTheDocument();
-    expect(within(line('Current status')).getByText('RESOLVED')).toHaveClass(
+    expect(within(line('Current status')).getByText('Resolved')).toHaveClass(
       'text-green-400',
     );
     expect(within(line('Assigned to')).getByText('admin-22')).toBeTruthy();
@@ -474,15 +480,15 @@ describe('ReportsTab, the rest of the queue', () => {
       within(line('Reported by')).getByText('AI system (automatic moderation)'),
     ).toBeTruthy();
     expect(within(detail()).getByText('Looks like spam')).toBeInTheDocument();
-    expect(within(line('Current status')).getByText('REVIEWING')).toHaveClass(
-      'text-blue-400',
+    expect(within(line('Current status')).getByText('In review')).toHaveClass(
+      'text-brand-blue',
     );
     expect(within(line('Assigned to')).getByText('Eva')).toBeTruthy();
 
     await open('3');
     expect(within(line('Reported by')).getByText('@Anonymous')).toBeTruthy();
-    expect(within(line('Current status')).getByText('REJECTED')).toHaveClass(
-      'text-white/70',
+    expect(within(line('Current status')).getByText('Dismissed')).toHaveClass(
+      'text-white/45',
     );
     expect(within(detail()).queryByText('Assigned to')).toBeNull();
     expect(within(detail()).queryByText('Additional details')).toBeNull();
@@ -577,7 +583,7 @@ describe('ReportsTab, the rest of the queue', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Failed to apply penalty', 'error'),
     );
-    expect(within(detail()).getByText('ID: 1')).toBeInTheDocument();
+    expect(within(detail()).getByText(reference('1'))).toBeInTheDocument();
 
     fireEvent.click(within(pane).getByRole('button', { name: 'Ignore' }));
     await waitFor(() =>
@@ -593,7 +599,7 @@ describe('ReportsTab, the rest of the queue', () => {
       ),
     );
     await waitFor(() =>
-      expect(within(detail()).queryByText('ID: 1')).toBeNull(),
+      expect(within(detail()).queryByText(reference('1'))).toBeNull(),
     );
   });
 
@@ -653,7 +659,7 @@ describe('ReportsTab, the rest of the queue', () => {
       expect(onToast).toHaveBeenCalledWith('Failed to delete', 'error'),
     );
     expect(api.updateReport).not.toHaveBeenCalled();
-    expect(within(detail()).getByText('ID: 1')).toBeInTheDocument();
+    expect(within(detail()).getByText(reference('1'))).toBeInTheDocument();
   });
 
   it('saves the notes without closing the report, and says so when it fails', async () => {
@@ -677,7 +683,7 @@ describe('ReportsTab, the rest of the queue', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Report updated', 'success'),
     );
-    expect(within(detail()).getByText('ID: 1')).toBeInTheDocument();
+    expect(within(detail()).getByText(reference('1'))).toBeInTheDocument();
 
     api.updateReport.mockRejectedValue(new Error('no'));
     fireEvent.click(within(pane).getByRole('button', { name: 'Save notes' }));
