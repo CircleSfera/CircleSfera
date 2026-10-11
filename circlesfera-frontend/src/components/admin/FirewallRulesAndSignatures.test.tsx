@@ -213,12 +213,12 @@ describe('FirewallRulesTab', () => {
     ).toHaveTextContent('word-a');
     expect(
       within(open).getByRole('button', {
-        name: 'FLAG - Send to the review queue',
+        name: 'FLAG - send to the review queue',
       }),
     ).toBeDisabled();
 
     fireEvent.click(
-      within(open).getByRole('button', { name: 'BLOCK - Refuse publication' }),
+      within(open).getByRole('button', { name: 'BLOCK - refuse publication' }),
     );
     await waitFor(() =>
       expect(api.updateFirewallRule).toHaveBeenCalledWith('a', {
@@ -231,7 +231,7 @@ describe('FirewallRulesTab', () => {
 
     fireEvent.click(
       within(open).getByRole('button', {
-        name: 'MUTE - Hide the content from others',
+        name: 'MUTE - hide the content from others',
       }),
     );
     await waitFor(() =>
@@ -242,11 +242,11 @@ describe('FirewallRulesTab', () => {
   });
 
   it.each([
-    ['BLOCK', 'BLOCK - Refuse publication', 'FLAG - Send to the review queue'],
+    ['BLOCK', 'BLOCK - refuse publication', 'FLAG - send to the review queue'],
     [
       'MUTE',
-      'MUTE - Hide the content from others',
-      'FLAG - Send to the review queue',
+      'MUTE - hide the content from others',
+      'FLAG - send to the review queue',
     ],
   ])(
     'holds the %s button on a rule that already does that',
@@ -437,7 +437,7 @@ describe('FirewallSignaturesTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
     const form = detail();
     const submit = within(form).getByRole('button', {
-      name: 'Generate Vector',
+      name: 'Generate vector',
     });
     expect(submit).toBeDisabled();
     fireEvent.change(
@@ -488,7 +488,7 @@ describe('FirewallSignaturesTab', () => {
     expect(text).toHaveValue('');
     fireEvent.change(text, { target: { value: 'again' } });
     fireEvent.click(
-      within(detail()).getByRole('button', { name: 'Generate Vector' }),
+      within(detail()).getByRole('button', { name: 'Generate vector' }),
     );
 
     await waitFor(() =>

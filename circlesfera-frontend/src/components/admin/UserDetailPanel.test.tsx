@@ -109,7 +109,7 @@ describe('UserDetailPanel', () => {
     ).toBeInTheDocument();
     expect(api.getUserDetail).toHaveBeenCalledWith('user-1');
     expect(screen.getByText('@ana')).toBeInTheDocument();
-    expect(screen.getByText('Active Account')).toBeInTheDocument();
+    expect(screen.getByText('Active account')).toBeInTheDocument();
     expect(screen.getByText('Role: User')).toBeInTheDocument();
     const link = screen.getByRole('link', { name: 'Open profile' });
     expect(link).toHaveAttribute('href', 'https://platform.test/ana');
@@ -122,7 +122,7 @@ describe('UserDetailPanel', () => {
     ).toBeTruthy();
     expect(within(row('Signup IP')).getByText('203.0.113.7')).toBeTruthy();
     expect(within(row('Last IP')).getByText('203.0.113.9')).toBeTruthy();
-    expect(within(row('Internal UUID')).getByText('user-1')).toBeTruthy();
+    expect(within(row('Internal identifier')).getByText('user-1')).toBeTruthy();
     expect(screen.getByText('870')).toBeInTheDocument();
     expect(screen.getByText('96')).toBeInTheDocument();
     expect(screen.getByText(/Photographer\./)).toBeInTheDocument();
@@ -146,25 +146,25 @@ describe('UserDetailPanel', () => {
       await screen.findByRole('heading', { name: 'User' }),
     ).toBeInTheDocument();
     expect(screen.getByText('@—')).toBeInTheDocument();
-    expect(screen.getByText('Banned Account')).toBeInTheDocument();
+    expect(screen.getByText('Banned account')).toBeInTheDocument();
     expect(screen.getByText('Role: Operator')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Open profile' })).toBeNull();
     expect(within(row('Signup IP')).getByText('—')).toBeTruthy();
     expect(within(row('Last IP')).getByText('—')).toBeTruthy();
     expect(screen.queryByText('Bio')).not.toBeInTheDocument();
-    expect(within(field('Verification Level')).getByText('None')).toBeTruthy();
-    expect(within(field('Account Type')).getByText('Personal')).toBeTruthy();
+    expect(within(field('Verification level')).getByText('None')).toBeTruthy();
+    expect(within(field('Account type')).getByText('Personal')).toBeTruthy();
   });
 
   it('shows the identity check data only when there is some', async () => {
     const first = show();
     await screen.findByRole('heading', { name: 'Ana Ruiz' });
     expect(
-      within(field('Verification Level')).getByText('VERIFIED'),
+      within(field('Verification level')).getByText('VERIFIED'),
     ).toBeTruthy();
-    expect(within(field('Account Type')).getByText('CREATOR')).toBeTruthy();
+    expect(within(field('Account type')).getByText('CREATOR')).toBeTruthy();
     expect(screen.queryByText('Identity verified on')).not.toBeInTheDocument();
-    expect(screen.queryByText('Stripe Session ID')).not.toBeInTheDocument();
+    expect(screen.queryByText('Stripe session')).not.toBeInTheDocument();
     first.unmount();
 
     api.getUserDetail.mockResolvedValue({
@@ -177,7 +177,7 @@ describe('UserDetailPanel', () => {
     await screen.findByRole('heading', { name: 'Ana Ruiz' });
     expect(field('Identity verified on').textContent).toMatch(/2\/1\/2026/);
     expect(
-      within(field('Stripe Session ID')).getByText('vs_test_123'),
+      within(field('Stripe session')).getByText('vs_test_123'),
     ).toHaveAttribute('title', 'vs_test_123');
   });
 

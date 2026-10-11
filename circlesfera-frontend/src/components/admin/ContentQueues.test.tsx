@@ -116,7 +116,7 @@ describe('PostsTab', () => {
   });
 
   it.each([
-    ['All (Recent)', undefined, undefined],
+    ['All (recent)', undefined, undefined],
     ['Type: Post', 'POST', undefined],
     ['Type: Frame', 'FRAME', undefined],
   ])('asks for "%s" when that group is chosen', async (label, type, status) => {
@@ -531,7 +531,7 @@ describe('CommentsTab', () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole('button', { name: 'All (Recent)' }));
+    fireEvent.click(screen.getByRole('button', { name: 'All (recent)' }));
     await waitFor(() =>
       expect(api.getComments).toHaveBeenLastCalledWith(
         1,

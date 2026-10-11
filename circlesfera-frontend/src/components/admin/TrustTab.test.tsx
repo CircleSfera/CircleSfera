@@ -159,14 +159,14 @@ describe('TrustTab', () => {
   it('offers the moderation queue only to who may open it', async () => {
     const allowed = show();
     expect(
-      await screen.findByRole('link', { name: /Open AI moderation queue/ }),
+      await screen.findByRole('link', { name: /Open the AI queue/ }),
     ).toHaveAttribute('href', '/moderation');
     allowed.unmount();
 
     show([]);
     await screen.findByText('6 items need attention');
     expect(
-      screen.queryByRole('link', { name: /Open AI moderation queue/ }),
+      screen.queryByRole('link', { name: /Open the AI queue/ }),
     ).not.toBeInTheDocument();
   });
 
@@ -250,6 +250,6 @@ describe('TrustTab', () => {
     expect(
       screen.queryByText(/need attention|Queues clear/),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Trust Queue')).toBeInTheDocument();
+    expect(screen.getByText('Trust queue')).toBeInTheDocument();
   });
 });

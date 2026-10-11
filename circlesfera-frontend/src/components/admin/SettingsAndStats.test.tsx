@@ -63,7 +63,7 @@ describe('SettingsTab', () => {
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Global settings' }),
+      screen.getByRole('heading', { name: 'Settings' }),
     ).toBeInTheDocument();
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument();
     expect(
@@ -218,7 +218,7 @@ describe('StatsTab', () => {
     const { container } = renderWithProviders(<StatsTab />);
 
     expect(
-      screen.getByRole('heading', { name: 'Global Statistics' }),
+      screen.getByRole('heading', { name: 'Analytics' }),
     ).toBeInTheDocument();
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(8);
   });
@@ -226,23 +226,23 @@ describe('StatsTab', () => {
   it('shows the totals, the growth and the ratios', async () => {
     renderWithProviders(<StatsTab />);
 
-    await screen.findByText('Total Users');
+    await screen.findByText('Total users');
     await waitFor(
       () => {
-        expect(card('Total Users')).toHaveTextContent('120');
+        expect(card('Total users')).toHaveTextContent('120');
         expect(card('Posts')).toHaveTextContent('45');
-        expect(card('Active Stories')).toHaveTextContent('8');
-        expect(card('Pending Reports')).toHaveTextContent('3');
-        expect(card('Active Users Today')).toHaveTextContent('30');
-        expect(card('New This Week')).toHaveTextContent('12');
+        expect(card('Active stories')).toHaveTextContent('8');
+        expect(card('Pending reports')).toHaveTextContent('3');
+        expect(card('Active users today')).toHaveTextContent('30');
+        expect(card('New this week')).toHaveTextContent('12');
       },
       { timeout: 4000 },
     );
-    expect(card('Total Users')).toHaveTextContent('+12%');
+    expect(card('Total users')).toHaveTextContent('+12%');
     expect(card('Posts')).toHaveTextContent('-3%');
-    expect(card('Active Stories')).not.toHaveTextContent('%');
-    expect(card('Engagement Ratio')).toHaveTextContent('4.2%');
-    expect(card('Reported Content')).toHaveTextContent('1.5%');
+    expect(card('Active stories')).not.toHaveTextContent('%');
+    expect(card('Engagement per post')).toHaveTextContent('4.2%');
+    expect(card('Reported content')).toHaveTextContent('1.5%');
   });
 
   it('marks growth that stood still without a sign', async () => {
@@ -251,8 +251,8 @@ describe('StatsTab', () => {
     );
     renderWithProviders(<StatsTab />);
 
-    await screen.findByText('Total Users');
-    expect(within(card('Total Users')).getByText('0%')).toBeInTheDocument();
+    await screen.findByText('Total users');
+    expect(within(card('Total users')).getByText('0%')).toBeInTheDocument();
     expect(card('Posts')).not.toHaveTextContent('%');
   });
 
@@ -260,10 +260,10 @@ describe('StatsTab', () => {
     api.getEnhancedStats.mockResolvedValue({} as never);
     renderWithProviders(<StatsTab />);
 
-    await screen.findByText('Total Users');
-    expect(card('Total Users')).toHaveTextContent('0');
-    expect(card('Engagement Ratio')).toHaveTextContent('0%');
-    expect(screen.queryByText('Recent Admin Activity')).not.toBeInTheDocument();
+    await screen.findByText('Total users');
+    expect(card('Total users')).toHaveTextContent('0');
+    expect(card('Engagement per post')).toHaveTextContent('0%');
+    expect(screen.queryByText('Recent staff activity')).not.toBeInTheDocument();
   });
 
   it('draws posts and new users per day, dated by month and day', async () => {
@@ -315,11 +315,11 @@ describe('StatsTab', () => {
     const first = (await screen.findByText('@ana')).closest(
       '.relative',
     ) as HTMLElement;
-    expect(within(first).getByText('#1 · engagement 90')).toBeInTheDocument();
+    expect(within(first).getByText('#1 · 90 interactions')).toBeInTheDocument();
     expect(within(first).getByText('70')).toBeInTheDocument();
     expect(within(first).getByText('20')).toBeInTheDocument();
     const second = screen.getByText('@ben').closest('.relative') as HTMLElement;
-    expect(within(second).getByText('#2 · engagement 11')).toBeInTheDocument();
+    expect(within(second).getByText('#2 · 11 interactions')).toBeInTheDocument();
     expect(screen.queryByText('No data')).not.toBeInTheDocument();
   });
 
@@ -350,7 +350,7 @@ describe('StatsTab', () => {
     );
     renderWithProviders(<StatsTab />);
 
-    await screen.findByText('Recent Admin Activity');
+    await screen.findByText('Recent staff activity');
     const banned = screen.getByText('Banned user').closest('.flex-col');
     expect(banned).toHaveTextContent('Ana Banned user');
     expect(banned).toHaveTextContent('user · 01234567...');

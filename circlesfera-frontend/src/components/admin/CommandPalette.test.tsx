@@ -81,7 +81,7 @@ describe('CommandPalette', () => {
       'Quick action: Appeals',
       'Quick action: Spam review',
       'Quick action: Reports',
-      'Quick action: AI Queue',
+      'Quick action: AI queue',
       'Quick action: Monetization',
     ]);
     expect(titles).toContain('Go to Users');
