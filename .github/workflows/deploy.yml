@@ -413,7 +413,12 @@ jobs:
                 docker pull "${REGISTRY}/frontend:${PREV_SHA}" || true
                 docker tag "${REGISTRY}/backend:${PREV_SHA}" "${REGISTRY}/backend:latest" || true
                 docker tag "${REGISTRY}/frontend:${PREV_SHA}" "${REGISTRY}/frontend:latest" || true
-                docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps backend frontend nginx-proxy || true
+                # The proxy reads its configuration from this checkout, not
+                # from an image: put back the one the previous version ran
+                # with, and recreate the proxy so that it reads it.
+                git checkout "$PREV_SHA" -- nginx/master.conf.template || true
+                docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps backend frontend || true
+                docker compose -f docker-compose.prod.yml --env-file .env.production up -d --no-deps --force-recreate nginx-proxy || true
               fi
               # Previously this only ran after a full success (bottom of script),
               # so a failed deploy never reclaimed the images/build cache its own
