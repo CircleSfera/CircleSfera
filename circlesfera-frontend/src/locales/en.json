@@ -1913,6 +1913,8 @@
     "back_to_app": "Back to CircleSfera",
     "back_short": "App",
     "open_nav": "Open navigation",
+    "mobile_nav_title": "Sections",
+    "mobile_nav_subtitle": "Choose a section",
     "loading_module": "Loading module...",
     "nav": {
       "dashboard": "Dashboard",
