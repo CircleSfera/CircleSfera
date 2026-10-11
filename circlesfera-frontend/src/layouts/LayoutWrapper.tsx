@@ -62,9 +62,15 @@ export default function LayoutWrapper({
   // bar and no bottom bar, so the message field sits at the bottom.
   const isConversationRoute = location.pathname.includes('/direct/inbox/t/');
 
-  const isMarketingRoute = marketingRoutes.some(
-    (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
-  );
+  // The root address is the landing for a visitor and the home feed once
+  // signed in; only the landing is a public page.
+  const isGuestLanding = location.pathname === '/' && !isAuthenticated;
+
+  const isMarketingRoute =
+    isGuestLanding ||
+    marketingRoutes.some(
+      (r) => location.pathname === r || location.pathname.startsWith(`${r}/`),
+    );
 
   const shouldShowNav =
     showNavigation &&
