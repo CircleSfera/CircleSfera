@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
@@ -26,7 +26,7 @@ const queue = (over: object = {}) => ({
     reports: [
       {
         id: 'r1',
-        reason: 'Spam',
+        reason: 'SPAM',
         targetType: 'POST',
         status: 'PENDING',
         createdAt: ago(30),
@@ -34,7 +34,7 @@ const queue = (over: object = {}) => ({
       },
       {
         id: 'r2',
-        reason: 'Abuse',
+        reason: 'HATE_SPEECH',
         targetType: 'COMMENT',
         status: 'PENDING',
         createdAt: ago(5 * 60),
@@ -96,6 +96,19 @@ describe('TrustTab', () => {
   it('says how much is waiting and offers a way into each queue', async () => {
     show();
 
+    // Each count is said once, on the heading of its queue.
+    for (const [name, count] of [
+      ['Reports', '3'],
+      ['Appeals', '1'],
+      ['Support tickets', '2'],
+    ]) {
+      const section = await screen.findByRole('region', { name });
+      expect(
+        within(section).getByRole('heading', { name }),
+      ).toBeInTheDocument();
+      expect(within(section).getByText(count)).toBeInTheDocument();
+    }
+
     expect(
       await screen.findByText('6 items need attention'),
     ).toBeInTheDocument();
@@ -117,14 +130,14 @@ describe('TrustTab', () => {
     show();
 
     expect(await screen.findByText('Spam')).toBeInTheDocument();
-    expect(screen.getByText('POST · Ana')).toBeInTheDocument();
-    expect(screen.getByText('COMMENT · ben@staff.test')).toBeInTheDocument();
-    expect(screen.getByText('STORY')).toBeInTheDocument();
+    expect(screen.getByText('Post · Ana')).toBeInTheDocument();
+    expect(screen.getByText('Comment · ben@staff.test')).toBeInTheDocument();
+    expect(screen.getByText('Story')).toBeInTheDocument();
     expect(screen.getByText('30m ago')).toBeInTheDocument();
     expect(screen.getByText('5h ago')).toBeInTheDocument();
     expect(screen.getByText('3d ago')).toBeInTheDocument();
     expect(screen.getByText('eve@example.com')).toBeInTheDocument();
-    expect(screen.getByText('It was a joke')).toBeInTheDocument();
+    expect(screen.getByText('Post · It was a joke')).toBeInTheDocument();
     expect(screen.getByText('Cannot log in')).toBeInTheDocument();
     expect(screen.getByText('dan@example.com')).toBeInTheDocument();
   });
@@ -171,10 +184,10 @@ describe('TrustTab', () => {
   });
 
   it.each([
-    [20_000, 'Median: 1 min'],
-    [45 * 60_000, 'Median: 45 min'],
-    [5 * 3_600_000, 'Median: 5 h'],
-    [3 * 86_400_000, 'Median: 3 d'],
+    [20_000, '1 min'],
+    [45 * 60_000, '45 min'],
+    [5 * 3_600_000, '5 h'],
+    [3 * 86_400_000, '3 d'],
   ])(
     'says how long reports take to resolve (%i ms)',
     async (medianMs, text) => {
@@ -185,9 +198,12 @@ describe('TrustTab', () => {
       );
       show();
 
-      expect(await screen.findByText(text)).toBeInTheDocument();
+      // The figure sits with the queue it describes.
+      const reports = await screen.findByRole('region', { name: 'Reports' });
       expect(
-        screen.getByText('Based on 12 resolved reports'),
+        within(reports).getByText(
+          `Median time to resolve: ${text} (12 in 30 days)`,
+        ),
       ).toBeInTheDocument();
     },
   );
@@ -201,18 +217,22 @@ describe('TrustTab', () => {
     );
     show();
 
-    expect(await screen.findByText('Appeals')).toBeInTheDocument();
-    expect(screen.getByText('Support tickets')).toBeInTheDocument();
+    const nothing = 'Nothing resolved in the last 30 days.';
+    const appeals = await screen.findByRole('region', { name: 'Appeals' });
+    expect(within(appeals).getByText(nothing)).toBeInTheDocument();
     expect(
-      screen.getAllByText('Nothing resolved in the last 30 days.'),
-    ).toHaveLength(2);
+      within(screen.getByRole('region', { name: 'Support tickets' })).getByText(
+        nothing,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText(nothing)).toHaveLength(2);
   });
 
   it('shows no resolution times when the server sends none', async () => {
     show();
     await screen.findByText('6 items need attention');
     expect(
-      screen.queryByText('Resolution time (30 days)'),
+      screen.queryByText(/Median time to resolve|Nothing resolved/),
     ).not.toBeInTheDocument();
   });
 
