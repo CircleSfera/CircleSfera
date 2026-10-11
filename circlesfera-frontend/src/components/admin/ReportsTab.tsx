@@ -437,7 +437,9 @@ export default function ReportsTab({ onToast }: Props) {
                       }
                       badge={
                         <span className="text-xs font-semibold uppercase tracking-wide text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">
-                          {report.reason}
+                          {t(`admin.reports.reasons.${report.reason}`, {
+                            defaultValue: report.reason,
+                          })}
                         </span>
                       }
                       meta={
@@ -829,7 +831,9 @@ export default function ReportsTab({ onToast }: Props) {
                           {t('admin.reports.reason_label')}
                         </dt>
                         <dd className="text-red-400 font-semibold text-right">
-                          {selectedReport.reason}
+                          {t(`admin.reports.reasons.${selectedReport.reason}`, {
+                            defaultValue: selectedReport.reason,
+                          })}
                         </dd>
                       </div>
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
