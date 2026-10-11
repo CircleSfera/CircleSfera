@@ -426,6 +426,11 @@ export default function RolesTab({ onToast }: Props) {
                         {selected.displayName}
                       </h3>
                       <p className="text-sm text-white/50">{selected.email}</p>
+                      <p className="text-xs text-white/40">
+                        {t('admin.operators.reference', {
+                          reference: selected.id.slice(0, 8),
+                        })}
+                      </p>
                     </div>
                     <StatusBadge status={selected.status.toLowerCase()} />
                   </div>

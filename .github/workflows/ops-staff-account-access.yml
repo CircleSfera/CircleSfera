@@ -1,31 +1,13 @@
 name: Ops — staff account access
 
-# For when nobody can get into the staff sites. Day to day, a staff member's
-# password, status and second factor are managed from the Operators screen.
-#
-# "check" changes nothing: it reports the state of every staff account, told
-# apart by their roles, never by their address. "reset" stores the
-# STAFF_ACCESS_PASSWORD secret on the only account with the owner role, clears
-# its lockout and closes its sessions; the second factor is left as it is.
-# After a reset, sign in and delete the STAFF_ACCESS_PASSWORD secret.
-#
-# No address is needed. Only when several accounts hold the owner role does a
-# reset ask which one, through the optional STAFF_ACCESS_EMAIL secret: a
-# secret, because inputs are shown on the public run page.
+# For when nobody can get into the staff sites. It changes nothing: it reports
+# the state of every staff account, told apart by the reference the Operators
+# screen shows, never by their address. A staff member signs in with the password of their CircleSfera
+# account, so a forgotten password is recovered the way any CircleSfera
+# password is, and a lockout is cleared from the Operators screen by another
+# staff member.
 on:
   workflow_dispatch:
-    inputs:
-      mode:
-        description: 'check reads the staff accounts; reset sets the owner account password from the secret'
-        type: choice
-        options:
-          - check
-          - reset
-        default: check
-      reactivate:
-        description: 'reset only: also make a disabled account active again'
-        type: boolean
-        default: false
 
 # Shares the deploy-production queue so it never runs during a deploy. GitHub
 # keeps only one *pending* run per queue: if a deploy is triggered (merge to
@@ -41,7 +23,7 @@ permissions:
 
 jobs:
   staff-account-access:
-    name: Staff account access (${{ inputs.mode }})
+    name: Staff account access
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: production-ops
@@ -56,27 +38,16 @@ jobs:
             echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
             exit 1
           fi
-      - name: Read or reset the account on the VPS
+      - name: Read the staff accounts on the VPS
         uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
-        env:
-          STAFF_ACCESS_MODE: ${{ inputs.mode }}
-          STAFF_ACCESS_REACTIVATE: ${{ inputs.reactivate }}
-          STAFF_ACCESS_EMAIL: ${{ secrets.STAFF_ACCESS_EMAIL }}
-          # Only a reset receives the password.
-          STAFF_ACCESS_PASSWORD: ${{ inputs.mode == 'reset' && secrets.STAFF_ACCESS_PASSWORD || '' }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: STAFF_ACCESS_MODE,STAFF_ACCESS_REACTIVATE,STAFF_ACCESS_EMAIL,STAFF_ACCESS_PASSWORD
           script: |
             set -euo pipefail
             cd /srv/circlesfera
-            # -e NAME without a value passes the variable from this shell, so
-            # neither the address nor the password appears in a command line.
             docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
-              -e STAFF_ACCESS_MODE -e STAFF_ACCESS_REACTIVATE \
-              -e STAFF_ACCESS_EMAIL -e STAFF_ACCESS_PASSWORD \
               backend node scripts/staff-account-access.ts

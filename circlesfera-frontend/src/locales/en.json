@@ -3667,6 +3667,7 @@
       "unlock": "Unlock account",
       "mfa_on": "MFA enrolled",
       "mfa_off": "MFA enrollment pending",
+      "reference": "Reference {{reference}}",
       "step_up_required": "Confirm with your authenticator code",
       "step_up_hint": "Enter your authenticator code to confirm this action.",
       "step_up_ok": "Verified",

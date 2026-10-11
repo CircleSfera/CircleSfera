@@ -209,6 +209,20 @@ describe('RolesTab', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the reference that tells an operator apart without its address', async () => {
+    api.getOperators.mockResolvedValue(
+      list([
+        operator('3f9c1a7e-52d4-4b8a-9e61-0c2d7f4a8b13', {
+          displayName: 'Operator a',
+        }),
+      ]) as never,
+    );
+    show();
+
+    const pane = await open('Operator a');
+    expect(within(pane).getByText('Reference 3f9c1a7e')).toBeInTheDocument();
+  });
+
   it('adds and removes a role, and never leaves an operator without one', async () => {
     api.getOperators.mockResolvedValue(list([operator('a')]) as never);
     show();
