@@ -131,6 +131,30 @@ describe('CreateBottomSheet', () => {
     expect(ui().isCreateMenuOpen).toBe(false);
   });
 
+  it('takes the focus, keeps it inside, and gives it back to what opened it', () => {
+    const opener = document.createElement('button');
+    document.body.appendChild(opener);
+    opener.focus();
+
+    show();
+    const buttons = within(sheet()).getAllByRole('button');
+    const firstButton = buttons[0];
+    const lastButton = buttons[buttons.length - 1];
+    expect(firstButton).toHaveFocus();
+
+    lastButton.focus();
+    fireEvent.keyDown(lastButton, { key: 'Tab' });
+    expect(firstButton).toHaveFocus();
+    fireEvent.keyDown(firstButton, { key: 'Tab', shiftKey: true });
+    expect(lastButton).toHaveFocus();
+
+    // Escape pressed inside the menu stops at the menu and still closes it.
+    fireEvent.keyDown(lastButton, { key: 'Escape' });
+    expect(ui().isCreateMenuOpen).toBe(false);
+    expect(opener).toHaveFocus();
+    opener.remove();
+  });
+
   it('ignores Escape while it is closed', () => {
     show(false);
     fireEvent.keyDown(window, { key: 'Escape' });

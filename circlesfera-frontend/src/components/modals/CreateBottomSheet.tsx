@@ -11,6 +11,7 @@ import {
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { useUIStore } from '../../stores/uiStore';
 
 type MenuItem = {
@@ -27,6 +28,12 @@ export default function CreateBottomSheet() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const dragControls = useDragControls();
+  // The focus goes into the menu, stays in it, and returns to what opened
+  // it. Escape is handled here too: inside the menu the key stops at the
+  // trap and never reaches the window.
+  const sheetRef = useFocusTrap<HTMLDivElement>(isCreateMenuOpen, undefined, {
+    onEscape: closeCreateMenu,
+  });
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -165,6 +172,7 @@ export default function CreateBottomSheet() {
             size={compact ? 22 : 26}
             className={`relative z-10 transition-transform group-hover:scale-110 md:w-8 md:h-8 ${iconColor}`}
             strokeWidth={1.5}
+            aria-hidden
           />
         </div>
 
@@ -199,6 +207,8 @@ export default function CreateBottomSheet() {
           />
 
           <motion.div
+            ref={sheetRef}
+            tabIndex={-1}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

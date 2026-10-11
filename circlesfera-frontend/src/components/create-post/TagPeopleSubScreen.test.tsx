@@ -111,6 +111,15 @@ describe('TagPeopleSubScreen', () => {
     );
   });
 
+  it('names the search field for a screen reader', () => {
+    show([file('blob:a')]);
+    tapAt(0.2, 0.2);
+
+    expect(
+      screen.getByRole('textbox', { name: 'Search user...' }),
+    ).toBeInTheDocument();
+  });
+
   it('does not search for a single letter', async () => {
     show([file('blob:a')]);
     tapAt(0.5, 0.5);
@@ -164,7 +173,13 @@ describe('TagPeopleSubScreen', () => {
       ],
     });
 
-    fireEvent.click(screen.getAllByRole('button', { name: 'Remove' })[0]);
+    // Each remove button says whose tag it takes away.
+    expect(
+      screen.getByRole('button', { name: 'Remove the tag of luis' }),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Remove the tag of ana' }),
+    );
 
     expect(seen.tags[0].map((tag) => tag.username)).toEqual(['luis']);
   });
@@ -191,11 +206,13 @@ describe('TagPeopleSubScreen', () => {
     });
     expect(screen.getByText('@luis')).toBeInTheDocument();
 
-    // The second thumbnail of the strip under the photo.
-    const thumbs = screen
-      .getAllByRole('button')
-      .filter((button) => button.querySelector('img[src="blob:b"]'));
-    fireEvent.click(thumbs[0]);
+    // The strip under the photo names each thumbnail and marks the open one.
+    const first = screen.getByRole('button', { name: 'Item 1 of 2' });
+    const second = screen.getByRole('button', { name: 'Item 2 of 2' });
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+    expect(second).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(second);
+    expect(second).toHaveAttribute('aria-pressed', 'true');
 
     expect(screen.queryByText('@luis')).toBeNull();
     expect(
