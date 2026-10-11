@@ -55,6 +55,8 @@ async function main() {
         failedLoginCount: true,
         lockedUntil: true,
         lastLoginAt: true,
+        updatedAt: true,
+        passwordHash: true,
         totpEnabled: true,
         mfaRequired: true,
         _count: { select: { roles: true, passkeys: true } },
@@ -99,9 +101,20 @@ async function main() {
       console.log(`Failed attempts counter: ${account.failedLoginCount}`);
       console.log(`Failed sign-ins in the last day: ${failedDay}`);
       console.log(`Failed sign-ins in the last week: ${failedWeek}`);
+      const daysAgo = (date: Date) =>
+        `${Math.floor((now - date.getTime()) / DAY_MS)} days ago`;
+      // Only the kind of hash is told, never the hash: sign-in accepts the
+      // first two and refuses anything else.
+      const passwordFormat = account.passwordHash.startsWith('$argon2')
+        ? 'argon2'
+        : /^\$2[aby]\$/.test(account.passwordHash)
+          ? 'bcrypt'
+          : 'not recognised';
       console.log(
-        `Has signed in before: ${account.lastLoginAt ? 'yes' : 'no'}`,
+        `Last sign-in: ${account.lastLoginAt ? daysAgo(account.lastLoginAt) : 'never'}`,
       );
+      console.log(`Record last changed: ${daysAgo(account.updatedAt)}`);
+      console.log(`Stored password format: ${passwordFormat}`);
       console.log(
         `Second factor: ${account.totpEnabled ? 'set up' : 'not set up'}${
           account.mfaRequired ? ', required' : ''
