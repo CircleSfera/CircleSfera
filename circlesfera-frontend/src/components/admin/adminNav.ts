@@ -177,6 +177,21 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: Users,
       },
       {
+        id: 'reports',
+        labelKey: 'admin.nav.reports',
+        icon: Flag,
+      },
+      {
+        id: 'appeals',
+        labelKey: 'admin.nav.appeals',
+        icon: Scale,
+      },
+      {
+        id: 'spam-review',
+        labelKey: 'admin.nav.spam_review',
+        icon: Bot,
+      },
+      {
         id: 'moderation',
         labelKey: 'admin.nav.ai_queue',
         icon: ShieldAlert,
@@ -250,24 +265,9 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         icon: FlaskConical,
       },
       {
-        id: 'reports',
-        labelKey: 'admin.nav.reports',
-        icon: Flag,
-      },
-      {
         id: 'audit',
         labelKey: 'admin.nav.audit',
         icon: ScrollText,
-      },
-      {
-        id: 'appeals',
-        labelKey: 'admin.nav.appeals',
-        icon: Scale,
-      },
-      {
-        id: 'spam-review',
-        labelKey: 'admin.nav.spam_review',
-        icon: Bot,
       },
       {
         id: 'overview',

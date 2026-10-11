@@ -1,16 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  CheckCircle,
-  ExternalLink,
-  Eye,
-  Ghost,
-  ShieldAlert,
-  Trash2,
-} from 'lucide-react';
+import { CheckCircle, Eye, Ghost, ShieldAlert, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminModerationItem } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
@@ -31,7 +23,6 @@ import {
   Pagination,
   SearchInput,
 } from './AdminTable';
-import AppealsList from './AppealsList';
 
 type ModerationEntityType = AdminModerationItem['entityType'];
 
@@ -45,7 +36,6 @@ interface Props {
 
 export default function ModerationTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
-  const [viewMode, setViewMode] = useState<'queue' | 'appeals'>('queue');
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -166,8 +156,6 @@ export default function ModerationTab({ onToast }: Props) {
   };
 
   useEffect(() => {
-    if (viewMode !== 'queue') return;
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
         document.activeElement instanceof HTMLInputElement ||
@@ -207,387 +195,338 @@ export default function ModerationTab({ onToast }: Props) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [items, selectedItemKey, selectedItem, viewMode]);
+  }, [items, selectedItemKey, selectedItem]);
 
   return (
     <div className="flex flex-col min-h-0 space-y-2.5">
       <AdminPageHeader
         title={t('admin.moderation.title')}
         subtitle={t('admin.moderation.subtitle')}
-        actions={
-          <div className="flex flex-col sm:flex-row gap-2 border border-white/5 bg-white/2 p-1 rounded-lg w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => setViewMode('queue')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full sm:w-auto ${viewMode === 'queue' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
-            >
-              {t('admin.moderation.tab_queue')}
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('appeals')}
-              className={`px-3 sm:px-4 py-2.5 min-h-11 rounded-md text-sm font-semibold transition-colors w-full sm:w-auto ${viewMode === 'appeals' ? 'bg-brand-primary text-white' : 'text-white/50 hover:text-white'}`}
-            >
-              {t('admin.moderation.tab_appeals')}
-            </button>
-          </div>
-        }
       />
 
-      {viewMode === 'queue' && (
-        <AdminFilterBar>
-          <div className="flex-1 min-w-0">
-            <SearchInput
-              value={search}
-              onChange={(val) => {
-                setSearch(val);
-                setPage(1);
-              }}
-              placeholder={t('admin.moderation.search_placeholder')}
-            />
-          </div>
-          <FilterDropdown
-            label={t('admin.moderation.filter_type')}
-            value={typeFilter}
-            onChange={(v) => {
-              setTypeFilter(v);
+      <AdminFilterBar>
+        <div className="flex-1 min-w-0">
+          <SearchInput
+            value={search}
+            onChange={(val) => {
+              setSearch(val);
               setPage(1);
             }}
-            options={[
-              { value: '', label: t('admin.moderation.type_all') },
-              { value: 'POST', label: t('admin.moderation.type_post') },
-              { value: 'STORY', label: t('admin.moderation.type_story') },
-              { value: 'COMMENT', label: t('admin.moderation.type_comment') },
-            ]}
-          />
-        </AdminFilterBar>
-      )}
-
-      {viewMode === 'appeals' ? (
-        <div className="space-y-2">
-          <div className="flex justify-end">
-            <Link
-              to="/appeals"
-              className="inline-flex items-center gap-2 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 transition-colors"
-            >
-              {t('admin.shared.view_full_panel')}
-              <ExternalLink size={12} />
-            </Link>
-          </div>
-          <AppealsList
-            statusFilter="PENDING"
-            limit={5}
-            showPagination={false}
+            placeholder={t('admin.moderation.search_placeholder')}
           />
         </div>
-      ) : (
-        <>
-          {/* Batch Actions Bar */}
-          <AnimatePresence>
-            {selectedKeys.size > 0 && (
-              <motion.div
-                initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
-                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/2 rounded-lg shrink-0"
-              >
-                <span className="px-2 sm:px-3 text-sm font-semibold text-white">
-                  {t('admin.shared.selected_count', {
-                    count: selectedKeys.size,
-                  })}
-                </span>
-                <ActionButton
-                  onClick={() =>
-                    batchModerationMutation.mutate({
-                      status: 'VISIBLE',
-                      note: t('admin.moderation.note_batch_approved'),
-                    })
-                  }
-                  label={t('admin.moderation.approve_false_positive')}
-                  variant="success"
-                  icon={CheckCircle}
-                  disabled={batchModerationMutation.isPending}
+        <FilterDropdown
+          label={t('admin.moderation.filter_type')}
+          value={typeFilter}
+          onChange={(v) => {
+            setTypeFilter(v);
+            setPage(1);
+          }}
+          options={[
+            { value: '', label: t('admin.moderation.type_all') },
+            { value: 'POST', label: t('admin.moderation.type_post') },
+            { value: 'STORY', label: t('admin.moderation.type_story') },
+            { value: 'COMMENT', label: t('admin.moderation.type_comment') },
+          ]}
+        />
+      </AdminFilterBar>
+
+      {/* Batch Actions Bar */}
+      <AnimatePresence>
+        {selectedKeys.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            className="flex flex-wrap items-center gap-2 px-3 py-2 border border-white/5 bg-white/2 rounded-lg shrink-0"
+          >
+            <span className="px-2 sm:px-3 text-sm font-semibold text-white">
+              {t('admin.shared.selected_count', {
+                count: selectedKeys.size,
+              })}
+            </span>
+            <ActionButton
+              onClick={() =>
+                batchModerationMutation.mutate({
+                  status: 'VISIBLE',
+                  note: t('admin.moderation.note_batch_approved'),
+                })
+              }
+              label={t('admin.moderation.approve_false_positive')}
+              variant="success"
+              icon={CheckCircle}
+              disabled={batchModerationMutation.isPending}
+            />
+            <ActionButton
+              onClick={() =>
+                batchModerationMutation.mutate({
+                  status: 'HIDDEN',
+                  note: t('admin.moderation.note_batch_hidden'),
+                })
+              }
+              label={t('admin.moderation.hide_shadowban')}
+              variant="warning"
+              icon={Eye}
+              disabled={batchModerationMutation.isPending}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Split Pane Layout */}
+      <AdminSplitView
+        hasSelection={!!selectedItemKey}
+        onBack={() => setSelectedItemKey(null)}
+        onClearSelection={() => setSelectedItemKey(null)}
+        listTitle={t('admin.moderation.list_title')}
+        list={
+          <div className="flex flex-col h-full min-h-0">
+            <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
+              <input
+                type="checkbox"
+                className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                checked={selectedKeys.size === items.length && items.length > 0}
+                onChange={toggleSelectAll}
+              />
+              <h3 className="font-semibold text-white text-sm">
+                {t('admin.shared.select_all')}
+              </h3>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pb-2">
+              {isLoading ? (
+                <AdminListSkeleton rows={5} />
+              ) : items.length === 0 ? (
+                <AdminEmptyState
+                  icon={ShieldAlert}
+                  title={t('admin.moderation.empty_title')}
+                  description={t('admin.moderation.empty_description')}
+                  compact
                 />
-                <ActionButton
-                  onClick={() =>
-                    batchModerationMutation.mutate({
-                      status: 'HIDDEN',
-                      note: t('admin.moderation.note_batch_hidden'),
-                    })
-                  }
-                  label={t('admin.moderation.hide_shadowban')}
-                  variant="warning"
-                  icon={Eye}
-                  disabled={batchModerationMutation.isPending}
+              ) : (
+                items.map((item) => {
+                  const key = itemKey(item);
+                  return (
+                    <AdminListRow
+                      key={key}
+                      onClick={() => setSelectedItemKey(key)}
+                      className={
+                        selectedItemKey === key
+                          ? 'border-brand-primary/30 bg-brand-primary/10'
+                          : undefined
+                      }
+                      title={item.caption || t('admin.shared.no_text')}
+                      subtitle={`@${item.user?.profile?.username || '—'}`}
+                      meta={
+                        <span className="text-red-400 truncate">
+                          {item.moderationNote?.replace(
+                            '[AI Automated Flag]: ',
+                            '',
+                          ) || 'Flagged'}
+                        </span>
+                      }
+                      badge={
+                        <span className="text-xs font-semibold uppercase text-amber-500">
+                          {item.entityType}
+                        </span>
+                      }
+                      avatar={
+                        <div className="flex items-start gap-2">
+                          <input
+                            type="checkbox"
+                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                            checked={selectedKeys.has(key)}
+                            onChange={(e) => toggleSelect(key, e)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
+                            {item.media?.[0]?.url ? (
+                              <img
+                                src={
+                                  item.media[0].thumbnailUrl ||
+                                  item.media[0].url
+                                }
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-white/25">
+                                <Ghost size={16} />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      }
+                    />
+                  );
+                })
+              )}
+            </div>
+
+            <div className="shrink-0">
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          </div>
+        }
+        detail={
+          <AnimatePresence mode="wait">
+            {isLoading && selectedItemKey && !selectedItem ? (
+              <AdminDetailSkeleton />
+            ) : selectedItem ? (
+              <motion.div
+                key={itemKey(selectedItem)}
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.15 }}
+                className="flex flex-col h-full"
+              >
+                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
+                  <div className="flex items-center gap-3">
+                    <UserAvatar
+                      src={selectedItem.user?.profile?.avatar || undefined}
+                      alt={selectedItem.user?.profile?.username || 'User'}
+                      size="compact"
+                    />
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">
+                        @{selectedItem.user?.profile?.username || '—'}
+                      </h3>
+                      <p className="text-xs text-white/70">
+                        {selectedItem.entityType} ·{' '}
+                        {formatDateTime(selectedItem.createdAt, i18n.language)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                    <Button
+                      onClick={() =>
+                        moderationMutation.mutate({
+                          id: selectedItem.id,
+                          entityType: selectedItem.entityType,
+                          status: 'VISIBLE',
+                          note: t('admin.moderation.note_false_positive'),
+                        })
+                      }
+                      isLoading={moderationMutation.isPending}
+                      variant="success"
+                      className="min-h-11 text-sm font-semibold border-green-500/20 w-full sm:w-auto"
+                    >
+                      <CheckCircle size={16} className="mr-2" />
+                      {t('admin.moderation.approve_safe')}
+                    </Button>
+                    <Button
+                      onClick={() =>
+                        setActionItem({
+                          id: selectedItem.id,
+                          entityType: selectedItem.entityType,
+                          status: 'REMOVED',
+                        })
+                      }
+                      variant="danger"
+                      className="min-h-11 text-sm font-semibold border-red-500/20 w-full sm:w-auto"
+                    >
+                      <Trash2 size={16} className="mr-2" />
+                      {t('admin.moderation.delete')}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
+                  <div className="w-full max-w-2xl mb-4 flex items-start gap-3 py-2.5 border-b border-red-500/20">
+                    <ShieldAlert
+                      className="text-red-400 shrink-0 mt-0.5"
+                      size={18}
+                    />
+                    <div className="min-w-0">
+                      <h4 className="text-red-400 font-semibold text-sm mb-0.5">
+                        {t('admin.moderation.ai_detection_title')}
+                      </h4>
+                      <p className="text-xs sm:text-sm text-white/50">
+                        {selectedItem.moderationNote ||
+                          t('admin.moderation.ai_detection_fallback')}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="w-full max-w-2xl bg-black/40 rounded-lg overflow-hidden">
+                    {selectedItem.media && selectedItem.media.length > 0 && (
+                      <div className="relative aspect-4/5 bg-black max-h-[min(60vh,28rem)]">
+                        {selectedItem.media[0].type?.includes('video') ? (
+                          <video
+                            src={selectedItem.media[0].url}
+                            className="w-full h-full object-contain"
+                            controls
+                            muted
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={selectedItem.media[0].url}
+                            alt=""
+                            className="w-full h-full object-contain"
+                          />
+                        )}
+                        {selectedItem.media.length > 1 && (
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
+                            1/{selectedItem.media.length}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="px-1 py-3">
+                      {selectedItem.caption ? (
+                        <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
+                          {selectedItem.caption}
+                        </p>
+                      ) : (
+                        <p className="text-white/40 text-sm italic">
+                          {t('admin.shared.no_text')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="flex-1 flex items-start justify-center pt-6 px-2"
+              >
+                <AdminEmptyState
+                  icon={ShieldAlert}
+                  title={t('admin.moderation.detail_empty_title')}
+                  description={t('admin.moderation.detail_empty_description')}
                 />
               </motion.div>
             )}
           </AnimatePresence>
+        }
+      />
 
-          {/* Split Pane Layout */}
-          <AdminSplitView
-            hasSelection={!!selectedItemKey}
-            onBack={() => setSelectedItemKey(null)}
-            onClearSelection={() => setSelectedItemKey(null)}
-            listTitle={t('admin.moderation.list_title')}
-            list={
-              <div className="flex flex-col h-full min-h-0">
-                <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                    checked={
-                      selectedKeys.size === items.length && items.length > 0
-                    }
-                    onChange={toggleSelectAll}
-                  />
-                  <h3 className="font-semibold text-white text-sm">
-                    {t('admin.shared.select_all')}
-                  </h3>
-                </div>
-
-                <div className="flex-1 overflow-y-auto space-y-2 pb-2">
-                  {isLoading ? (
-                    <AdminListSkeleton rows={5} />
-                  ) : items.length === 0 ? (
-                    <AdminEmptyState
-                      icon={ShieldAlert}
-                      title={t('admin.moderation.empty_title')}
-                      description={t('admin.moderation.empty_description')}
-                      compact
-                    />
-                  ) : (
-                    items.map((item) => {
-                      const key = itemKey(item);
-                      return (
-                        <AdminListRow
-                          key={key}
-                          onClick={() => setSelectedItemKey(key)}
-                          className={
-                            selectedItemKey === key
-                              ? 'border-brand-primary/30 bg-brand-primary/10'
-                              : undefined
-                          }
-                          title={item.caption || t('admin.shared.no_text')}
-                          subtitle={`@${item.user?.profile?.username || '—'}`}
-                          meta={
-                            <span className="text-red-400 truncate">
-                              {item.moderationNote?.replace(
-                                '[AI Automated Flag]: ',
-                                '',
-                              ) || 'Flagged'}
-                            </span>
-                          }
-                          badge={
-                            <span className="text-xs font-semibold uppercase text-amber-500">
-                              {item.entityType}
-                            </span>
-                          }
-                          avatar={
-                            <div className="flex items-start gap-2">
-                              <input
-                                type="checkbox"
-                                className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
-                                checked={selectedKeys.has(key)}
-                                onChange={(e) => toggleSelect(key, e)}
-                                onClick={(e) => e.stopPropagation()}
-                              />
-                              <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
-                                {item.media?.[0]?.url ? (
-                                  <img
-                                    src={
-                                      item.media[0].thumbnailUrl ||
-                                      item.media[0].url
-                                    }
-                                    alt=""
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-white/25">
-                                    <Ghost size={16} />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          }
-                        />
-                      );
-                    })
-                  )}
-                </div>
-
-                <div className="shrink-0">
-                  <Pagination meta={data?.meta} onPageChange={setPage} />
-                </div>
-              </div>
-            }
-            detail={
-              <AnimatePresence mode="wait">
-                {isLoading && selectedItemKey && !selectedItem ? (
-                  <AdminDetailSkeleton />
-                ) : selectedItem ? (
-                  <motion.div
-                    key={itemKey(selectedItem)}
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex flex-col h-full"
-                  >
-                    <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
-                      <div className="flex items-center gap-3">
-                        <UserAvatar
-                          src={selectedItem.user?.profile?.avatar || undefined}
-                          alt={selectedItem.user?.profile?.username || 'User'}
-                          size="compact"
-                        />
-                        <div>
-                          <h3 className="text-sm font-semibold text-white">
-                            @{selectedItem.user?.profile?.username || '—'}
-                          </h3>
-                          <p className="text-xs text-white/70">
-                            {selectedItem.entityType} ·{' '}
-                            {formatDateTime(
-                              selectedItem.createdAt,
-                              i18n.language,
-                            )}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-                        <Button
-                          onClick={() =>
-                            moderationMutation.mutate({
-                              id: selectedItem.id,
-                              entityType: selectedItem.entityType,
-                              status: 'VISIBLE',
-                              note: t('admin.moderation.note_false_positive'),
-                            })
-                          }
-                          isLoading={moderationMutation.isPending}
-                          variant="success"
-                          className="min-h-11 text-sm font-semibold border-green-500/20 w-full sm:w-auto"
-                        >
-                          <CheckCircle size={16} className="mr-2" />
-                          {t('admin.moderation.approve_safe')}
-                        </Button>
-                        <Button
-                          onClick={() =>
-                            setActionItem({
-                              id: selectedItem.id,
-                              entityType: selectedItem.entityType,
-                              status: 'REMOVED',
-                            })
-                          }
-                          variant="danger"
-                          className="min-h-11 text-sm font-semibold border-red-500/20 w-full sm:w-auto"
-                        >
-                          <Trash2 size={16} className="mr-2" />
-                          {t('admin.moderation.delete')}
-                        </Button>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 overflow-y-auto p-3 sm:p-4 flex flex-col items-center">
-                      <div className="w-full max-w-2xl mb-4 flex items-start gap-3 py-2.5 border-b border-red-500/20">
-                        <ShieldAlert
-                          className="text-red-400 shrink-0 mt-0.5"
-                          size={18}
-                        />
-                        <div className="min-w-0">
-                          <h4 className="text-red-400 font-semibold text-sm mb-0.5">
-                            {t('admin.moderation.ai_detection_title')}
-                          </h4>
-                          <p className="text-xs sm:text-sm text-white/50">
-                            {selectedItem.moderationNote ||
-                              t('admin.moderation.ai_detection_fallback')}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="w-full max-w-2xl bg-black/40 rounded-lg overflow-hidden">
-                        {selectedItem.media &&
-                          selectedItem.media.length > 0 && (
-                            <div className="relative aspect-4/5 bg-black max-h-[min(60vh,28rem)]">
-                              {selectedItem.media[0].type?.includes('video') ? (
-                                <video
-                                  src={selectedItem.media[0].url}
-                                  className="w-full h-full object-contain"
-                                  controls
-                                  muted
-                                  playsInline
-                                />
-                              ) : (
-                                <img
-                                  src={selectedItem.media[0].url}
-                                  alt=""
-                                  className="w-full h-full object-contain"
-                                />
-                              )}
-                              {selectedItem.media.length > 1 && (
-                                <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md">
-                                  1/{selectedItem.media.length}
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                        <div className="px-1 py-3">
-                          {selectedItem.caption ? (
-                            <p className="text-white text-sm whitespace-pre-wrap leading-relaxed">
-                              {selectedItem.caption}
-                            </p>
-                          ) : (
-                            <p className="text-white/40 text-sm italic">
-                              {t('admin.shared.no_text')}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex-1 flex items-start justify-center pt-6 px-2"
-                  >
-                    <AdminEmptyState
-                      icon={ShieldAlert}
-                      title={t('admin.moderation.detail_empty_title')}
-                      description={t(
-                        'admin.moderation.detail_empty_description',
-                      )}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            }
-          />
-
-          {/* Action Confirm Modal */}
-          <ConfirmModal
-            isOpen={actionItem !== null}
-            onClose={() => setActionItem(null)}
-            onConfirm={() => {
-              if (actionItem) {
-                moderationMutation.mutate({
-                  id: actionItem.id,
-                  entityType: actionItem.entityType,
-                  status: actionItem.status,
-                  note: t('admin.moderation.permanent_delete_note'),
-                });
-              }
-            }}
-            title={t('admin.moderation.confirm_title')}
-            message={t('admin.moderation.confirm_message')}
-            confirmText={t('admin.moderation.confirm_delete')}
-            cancelText={t('admin.shared.cancel')}
-            isDestructive={true}
-            isLoading={moderationMutation.isPending}
-          />
-        </>
-      )}
+      {/* Action Confirm Modal */}
+      <ConfirmModal
+        isOpen={actionItem !== null}
+        onClose={() => setActionItem(null)}
+        onConfirm={() => {
+          if (actionItem) {
+            moderationMutation.mutate({
+              id: actionItem.id,
+              entityType: actionItem.entityType,
+              status: actionItem.status,
+              note: t('admin.moderation.permanent_delete_note'),
+            });
+          }
+        }}
+        title={t('admin.moderation.confirm_title')}
+        message={t('admin.moderation.confirm_message')}
+        confirmText={t('admin.moderation.confirm_delete')}
+        cancelText={t('admin.shared.cancel')}
+        isDestructive={true}
+        isLoading={moderationMutation.isPending}
+      />
     </div>
   );
 }

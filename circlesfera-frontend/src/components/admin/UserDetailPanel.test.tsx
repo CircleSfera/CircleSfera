@@ -163,7 +163,7 @@ describe('UserDetailPanel', () => {
       within(field('Verification Level')).getByText('VERIFIED'),
     ).toBeTruthy();
     expect(within(field('Account Type')).getByText('CREATOR')).toBeTruthy();
-    expect(screen.queryByText('KYC Verified On')).not.toBeInTheDocument();
+    expect(screen.queryByText('Identity verified on')).not.toBeInTheDocument();
     expect(screen.queryByText('Stripe Session ID')).not.toBeInTheDocument();
     first.unmount();
 
@@ -175,7 +175,7 @@ describe('UserDetailPanel', () => {
     } as never);
     show();
     await screen.findByRole('heading', { name: 'Ana Ruiz' });
-    expect(field('KYC Verified On').textContent).toMatch(/2\/1\/2026/);
+    expect(field('Identity verified on').textContent).toMatch(/2\/1\/2026/);
     expect(
       within(field('Stripe Session ID')).getByText('vs_test_123'),
     ).toHaveAttribute('title', 'vs_test_123');

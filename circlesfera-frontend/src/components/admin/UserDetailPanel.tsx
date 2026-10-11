@@ -29,6 +29,9 @@ import { adminToast } from './adminToast';
 
 interface UserDetailPanelProps {
   userId: string;
+  // What can be done to the account from its record, given by the screen
+  // that opens it.
+  actions?: ReactNode;
 }
 
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
@@ -97,7 +100,10 @@ function ActivityChip({
 }
 
 // Compact user dossier for AdminSplitView detail pane (no overlay).
-export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
+export default function UserDetailPanel({
+  userId,
+  actions,
+}: UserDetailPanelProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -198,6 +204,7 @@ export default function UserDetailPanel({ userId }: UserDetailPanelProps) {
         <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
           {t('admin.user_preview.title')}
         </p>
+        {actions && <div className="mb-3 flex flex-wrap gap-2">{actions}</div>}
         <div className="space-y-3">
           <div className="flex items-center gap-3.5 min-w-0">
             <UserAvatar

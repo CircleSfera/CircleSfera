@@ -13,17 +13,6 @@ vi.mock('../../services/admin.service', () => ({
 vi.mock('../../hooks/useDebouncedValue', () => ({
   useDebouncedValue: <T,>(value: T) => value,
 }));
-vi.mock('./AppealsList', () => ({
-  default: (props: {
-    statusFilter: string;
-    limit: number;
-    showPagination: boolean;
-  }) => (
-    <div data-testid="appeals">
-      {props.statusFilter}/{props.limit}/{String(props.showPagination)}
-    </div>
-  ),
-}));
 
 const api = vi.mocked(adminApi);
 const onToast = vi.fn();
@@ -445,26 +434,5 @@ describe('ModerationTab', () => {
       expect(onToast).toHaveBeenCalledWith('Failed to process batch', 'error'),
     );
     expect(screen.getByText('1 selected')).toBeInTheDocument();
-  });
-
-  it('shows the pending appeals in its second view, with the way to the full screen', async () => {
-    api.getModerationQueue.mockResolvedValue(list([item('1')]) as never);
-    show();
-    await waitFor(() => rowOf('Caption 1'));
-
-    fireEvent.click(screen.getByRole('button', { name: 'Appeals' }));
-    expect(screen.getByTestId('appeals')).toHaveTextContent('PENDING/5/false');
-    expect(
-      screen.getByRole('link', { name: 'View full panel' }),
-    ).toHaveAttribute('href', '/appeals');
-    expect(
-      screen.queryByRole('textbox', { name: 'Search...' }),
-    ).not.toBeInTheDocument();
-
-    // The keyboard of the queue is off here.
-    press('ArrowRight');
-    fireEvent.click(screen.getByRole('button', { name: 'Moderation Queue' }));
-    await waitFor(() => rowOf('Caption 1'));
-    expect(openedHandle()).toBeUndefined();
   });
 });
