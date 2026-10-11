@@ -2492,6 +2492,7 @@
       "assigned_to": "Assigned: @{{username}}",
       "resolved_label": "Resolved at",
       "resolved_at": "Resolved {{date}}",
+      "reference_label": "Reference",
       "internal_notes_label": "Internal notes",
       "internal_notes_placeholder": "Moderator notes (not visible to reporters)…",
       "save_notes": "Save notes",
