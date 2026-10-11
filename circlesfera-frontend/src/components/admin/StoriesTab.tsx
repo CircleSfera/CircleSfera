@@ -117,8 +117,9 @@ export default function StoriesTab({ onToast }: Props) {
       </span>
     );
 
+  // The actions carry their words: an icon alone does not say what it does.
   const renderActions = (story: AdminStory) => (
-    <div className="flex gap-1">
+    <div className="flex flex-wrap lg:flex-nowrap gap-1">
       {story.moderationStatus === 'HIDDEN' ? (
         <ActionButton
           onClick={() =>
@@ -127,7 +128,6 @@ export default function StoriesTab({ onToast }: Props) {
           label={t('admin.stories.action_restore')}
           variant="success"
           icon={CheckCircle}
-          iconOnly
           disabled={moderationMutation.isPending}
         />
       ) : (
@@ -138,7 +138,6 @@ export default function StoriesTab({ onToast }: Props) {
           label={t('admin.stories.action_hide')}
           variant="warning"
           icon={EyeOff}
-          iconOnly
           disabled={moderationMutation.isPending}
         />
       )}
@@ -147,7 +146,6 @@ export default function StoriesTab({ onToast }: Props) {
         label={t('admin.stories.action_delete')}
         variant="danger"
         icon={Trash2}
-        iconOnly
         disabled={deleteMutation.isPending}
       />
     </div>
