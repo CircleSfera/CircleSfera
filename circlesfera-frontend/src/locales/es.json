@@ -2588,8 +2588,7 @@
     "appeals": {
       "title": "Apelaciones",
       "subtitle": "Revisión de apelaciones de usuarios sobre baneos y eliminaciones",
-      "filter_status": "Estado",
-      "status_all": "Todos los estados",
+      "status_all": "Todas",
       "status_pending": "Pendientes",
       "status_approved": "Aprobadas",
       "status_rejected": "Rechazadas",
@@ -2601,12 +2600,36 @@
       "toast_error": "Error al actualizar apelación",
       "approve": "Aprobar",
       "reject": "Rechazar",
-      "user_label": "Usuario: {{email}}",
-      "target_preview": "Contexto",
-      "open_user": "Abrir usuario",
-      "notes_prompt": "Notas opcionales (vacío para omitir):",
-      "notes_prompt_reject": "Motivo del rechazo (opcional):",
-      "admin_notes": "Notas"
+      "approve_title": "Aprobar la apelación",
+      "reject_title": "Rechazar la apelación",
+      "target_preview": "De qué trata",
+      "open_user": "Abrir en Usuarios",
+      "notes_prompt": "Una nota para el equipo (opcional).",
+      "notes_prompt_reject": "Por qué se rechaza (opcional).",
+      "admin_notes": "Notas",
+      "case_title": "Apelación",
+      "appealed_label": "Apela",
+      "sent_label": "Enviada",
+      "context_label": "Estado actual",
+      "reason_label": "Lo que dice la persona",
+      "state": {
+        "PENDING": "Pendiente",
+        "APPROVED": "Aprobada",
+        "REJECTED": "Rechazada"
+      },
+      "context_state": {
+        "ACTIVE": "En vigor",
+        "BANNED": "Baneada",
+        "SUSPENDED": "Suspendida",
+        "VISIBLE": "Visible",
+        "FLAGGED": "Marcada para revisión",
+        "HIDDEN": "Oculta",
+        "REMOVED": "Retirada",
+        "REVOKED": "Retirada tras apelación",
+        "EXPIRED": "Caducada",
+        "RESTRICTED": "Restringida",
+        "LABELED": "Etiquetada"
+      }
     },
     "trust": {
       "title": "Cola de confianza",

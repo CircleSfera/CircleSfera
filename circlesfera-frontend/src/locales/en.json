@@ -2588,8 +2588,7 @@
     "appeals": {
       "title": "Appeals",
       "subtitle": "Review user appeals for bans and content removals",
-      "filter_status": "Status",
-      "status_all": "All states",
+      "status_all": "All",
       "status_pending": "Pending",
       "status_approved": "Approved",
       "status_rejected": "Rejected",
@@ -2601,12 +2600,36 @@
       "toast_error": "Failed to update appeal",
       "approve": "Approve",
       "reject": "Reject",
-      "user_label": "User: {{email}}",
-      "target_preview": "Target",
-      "open_user": "Open user",
-      "notes_prompt": "Optional admin notes (leave empty to skip):",
-      "notes_prompt_reject": "Reason for rejection (optional):",
-      "admin_notes": "Notes"
+      "approve_title": "Approve the appeal",
+      "reject_title": "Reject the appeal",
+      "target_preview": "What it is about",
+      "open_user": "Open in Users",
+      "notes_prompt": "A note for the team (optional).",
+      "notes_prompt_reject": "Why it is rejected (optional).",
+      "admin_notes": "Notes",
+      "case_title": "Appeal",
+      "appealed_label": "Appeals against",
+      "sent_label": "Sent",
+      "context_label": "State now",
+      "reason_label": "What the person says",
+      "state": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "REJECTED": "Rejected"
+      },
+      "context_state": {
+        "ACTIVE": "In force",
+        "BANNED": "Banned",
+        "SUSPENDED": "Suspended",
+        "VISIBLE": "Visible",
+        "FLAGGED": "Marked for review",
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed",
+        "REVOKED": "Withdrawn",
+        "EXPIRED": "Expired",
+        "RESTRICTED": "Restricted",
+        "LABELED": "Labelled"
+      }
     },
     "trust": {
       "title": "Trust queue",
