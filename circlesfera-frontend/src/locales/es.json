@@ -4583,6 +4583,7 @@
       "verify": "Verificar",
       "invalid": "Credenciales inválidas",
       "invalid_mfa": "Código MFA inválido",
+      "locked": "Cuenta bloqueada temporalmente por demasiados intentos fallidos. Inténtalo de nuevo en 15 minutos.",
       "server_error": "Error del servidor. Inténtalo de nuevo en un momento.",
       "footer": "Sistema administrativo protegido",
       "heading": "Acceso administrativo",

@@ -10,7 +10,7 @@ import { Button } from '../components/ui';
 import { adminAuthApi } from '../services/admin-auth.service';
 import { useAdminAuthStore } from '../stores/adminAuthStore';
 import { isBackofficeHost } from '../utils/adminPanel';
-import { apiErrorMessage } from '../utils/apiErrorMessage';
+import { apiErrorMessage, apiErrorStatus } from '../utils/apiErrorMessage';
 
 type Step = 'credentials' | 'mfa' | 'mfa-setup';
 
@@ -88,9 +88,13 @@ export default function AdminPanelLogin() {
       }
     },
     onError: (err: unknown) => {
-      setError(
-        apiErrorMessage(err, t, 'adminPanel.login.invalid', { signIn: true }),
-      );
+      // A refused sign-in is wrong credentials, except 403: the account is
+      // locked after too many failed attempts, whatever is typed now.
+      const refusedKey =
+        apiErrorStatus(err) === 403
+          ? 'adminPanel.login.locked'
+          : 'adminPanel.login.invalid';
+      setError(apiErrorMessage(err, t, refusedKey, { signIn: true }));
     },
   });
 

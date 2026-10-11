@@ -176,6 +176,32 @@ describe('Admin Panel sign-in', () => {
     expect(useAdminAuthStore.getState().isAuthenticated).toBe(false);
   });
 
+  it('says the account is locked, not that the credentials are wrong', async () => {
+    vi.mocked(adminAuthApi.login).mockRejectedValue(
+      Object.assign(new Error('Account temporarily locked'), {
+        status: 403,
+        data: {
+          message: 'Account temporarily locked',
+          errorCode: 'HTTP_EXCEPTION',
+        },
+      }),
+    );
+    const { i18n } = renderWithProviders(<AdminPanelLogin />);
+
+    submitCredentials(i18n!);
+
+    expect(
+      await screen.findByText(i18n!.t('adminPanel.login.locked')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('adminPanel.login.invalid')),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Account temporarily locked'),
+    ).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
   it('does not count as signed in when the staff profile cannot be loaded', async () => {
     vi.mocked(adminAuthApi.login).mockResolvedValue({
       data: { status: 'OK' },

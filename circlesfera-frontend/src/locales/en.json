@@ -4583,6 +4583,7 @@
       "verify": "Verify",
       "invalid": "Invalid credentials",
       "invalid_mfa": "Invalid MFA code",
+      "locked": "Account temporarily locked after too many failed attempts. Try again in 15 minutes.",
       "server_error": "Server error. Try again in a moment.",
       "footer": "Protected administrative system",
       "heading": "Administrative access",
