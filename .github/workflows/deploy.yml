@@ -513,6 +513,70 @@ jobs:
             fi
             echo "✅ Post-deploy API smoke passed."
 
+            # Staff sites: the Admin Panel and the Backoffice are the same app
+            # and API under their own host name. Each one must serve the app
+            # from its own server block (the only ones whose pages deny the
+            # camera, the microphone and the location), reach the API, and
+            # refuse the staff session route without a session. Nobody is
+            # signed in.
+            echo "Running post-deploy staff sites check..."
+            staff_ok=1
+            staff_request() {
+              code="000"
+              for attempt in 1 2 3 4 5; do
+                code=$(curl -sS -o "$SMOKE_TMP"/cs-staff-body -D "$SMOKE_TMP"/cs-staff-headers \
+                  -w "%{http_code}" --max-time 15 \
+                  -H "Host: $1" "http://127.0.0.1:8082$2") || code="000"
+                case "$code" in
+                  502|503|000) sleep 2 ;;
+                  *) break ;;
+                esac
+              done
+            }
+            staff_fail() {
+              echo "  FAIL $1"
+              head -c 400 "$SMOKE_TMP"/cs-staff-body 2>/dev/null || true
+              echo
+              staff_ok=0
+            }
+            staff_site_check() {
+              host="$1"
+              staff_request "$host" "/"
+              if [ "$code" != "200" ]; then
+                staff_fail "$code  $host/"
+              elif ! grep -q 'id="root"' "$SMOKE_TMP"/cs-staff-body; then
+                staff_fail "$host/ is not the app"
+              elif ! grep -qi '^permissions-policy:.*camera=()' "$SMOKE_TMP"/cs-staff-headers; then
+                staff_fail "$host/ is not served by its own server block"
+              else
+                echo "  OK  $code  $host/"
+              fi
+              staff_request "$host" "/api/v1/health"
+              if [ "$code" = "200" ]; then
+                echo "  OK  $code  $host/api/v1/health"
+              else
+                staff_fail "$code  $host/api/v1/health"
+              fi
+              staff_request "$host" "/api/v1/admin-auth/me"
+              if [ "$code" = "401" ]; then
+                echo "  OK  $code  $host/api/v1/admin-auth/me (no session)"
+              else
+                staff_fail "$code  $host/api/v1/admin-auth/me (expected 401 without a session)"
+              fi
+            }
+            staff_site_check "admin.circlesfera.com"
+            staff_site_check "backoffice.circlesfera.com"
+
+            if [ "$staff_ok" != "1" ]; then
+              echo "❌ Post-deploy staff sites check FAILED."
+              rollback
+              if [ -n "$DEPLOY_WEBHOOK" ]; then
+                curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 *Deployment FAILED* staff sites check: the Admin Panel or the Backoffice does not answer as expected; rollback attempted."}' "$DEPLOY_WEBHOOK" || true
+              fi
+              exit 1
+            fi
+            echo "✅ Post-deploy staff sites check passed."
+
             # Authenticated smoke — login + CSRF + create/delete one PRIVATE
             # post as a dedicated low-privilege test account (scripts/create-smoke-test-user.ts).
             # Runs against the public HTTPS origin: access_token/CSRF cookies are
