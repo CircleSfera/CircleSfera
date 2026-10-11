@@ -1,0 +1,82 @@
+name: Ops — staff account access
+
+# Reports the state of one staff account in production, or gives it a new
+# password. "check" changes nothing. "reset" stores the STAFF_ACCESS_PASSWORD
+# secret, clears the lockout and closes the account's sessions; the second
+# factor is left as it is.
+#
+# The account is the one in the STAFF_ACCESS_EMAIL secret. The address and the
+# password are secrets, not inputs: inputs are shown on the public run page.
+# After a reset, sign in and delete the STAFF_ACCESS_PASSWORD secret.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check reads the account; reset sets the password from the secret'
+        type: choice
+        options:
+          - check
+          - reset
+        default: check
+      reactivate:
+        description: 'reset only: also make a disabled account active again'
+        type: boolean
+        default: false
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: if a deploy is triggered (merge to
+# main) while this run waits for approval or for a running deploy, the newer
+# deploy replaces it and this run is cancelled. Do not merge while it is
+# pending; re-run it if it was cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  staff-account-access:
+    name: Staff account access (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Read or reset the account on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          STAFF_ACCESS_MODE: ${{ inputs.mode }}
+          STAFF_ACCESS_REACTIVATE: ${{ inputs.reactivate }}
+          STAFF_ACCESS_EMAIL: ${{ secrets.STAFF_ACCESS_EMAIL }}
+          # Only a reset receives the password.
+          STAFF_ACCESS_PASSWORD: ${{ inputs.mode == 'reset' && secrets.STAFF_ACCESS_PASSWORD || '' }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: STAFF_ACCESS_MODE,STAFF_ACCESS_REACTIVATE,STAFF_ACCESS_EMAIL,STAFF_ACCESS_PASSWORD
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            if [ -z "${STAFF_ACCESS_EMAIL:-}" ]; then
+              echo "The STAFF_ACCESS_EMAIL secret must be set."
+              exit 1
+            fi
+            # -e NAME without a value passes the variable from this shell, so
+            # neither the address nor the password appears in a command line.
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              -e STAFF_ACCESS_MODE -e STAFF_ACCESS_REACTIVATE \
+              -e STAFF_ACCESS_EMAIL -e STAFF_ACCESS_PASSWORD \
+              backend node scripts/staff-account-access.ts
