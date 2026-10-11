@@ -425,7 +425,11 @@ export default function ReportsTab({ onToast }: Props) {
                       title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
                       subtitle={
                         <span className="flex flex-col gap-0.5">
-                          <span>{report.targetType}</span>
+                          <span>
+                            {t(`admin.audit.targets.${report.targetType}`, {
+                              defaultValue: report.targetType,
+                            })}
+                          </span>
                           {assignee && (
                             <span className="text-[11px] text-brand-primary/80">
                               {t('admin.reports.assigned_to', {
