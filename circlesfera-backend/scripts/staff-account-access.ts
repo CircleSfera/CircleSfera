@@ -160,13 +160,15 @@ async function main() {
       return;
     }
 
-    const candidates = email
-      ? accounts
-      : accounts.filter((account) => rolesOf(account).includes(OWNER_ROLE));
+    // The address only chooses among accounts with the owner role; it never
+    // widens the reset to another staff account.
+    const candidates = accounts.filter((account) =>
+      rolesOf(account).includes(OWNER_ROLE),
+    );
     if (candidates.length === 0) {
       throw new Error(
         email
-          ? 'No staff account with STAFF_ACCESS_EMAIL'
+          ? `No staff account with STAFF_ACCESS_EMAIL holds the ${OWNER_ROLE} role`
           : `No staff account holds the ${OWNER_ROLE} role`,
       );
     }
