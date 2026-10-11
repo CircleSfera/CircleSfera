@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import SpamReviewTab from './SpamReviewTab';
@@ -81,6 +81,11 @@ describe('SpamReviewTab', () => {
     const { i18n } = renderWithProviders(<SpamReviewTab />);
     const label = i18n!.t('admin.spam_review.decision.RESTRICTED');
 
+    // The decision is taken in the open case, not in the row.
+    expect(await screen.findByText('@spammy')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: label })).toBeNull();
+    fireEvent.click(screen.getByText('@spammy'));
+
     fireEvent.click(await screen.findByRole('button', { name: label }));
     const buttons = await screen.findAllByRole('button', { name: label });
     fireEvent.click(buttons[buttons.length - 1]);
@@ -92,5 +97,48 @@ describe('SpamReviewTab', () => {
         undefined,
       );
     });
+  });
+
+  it('opens the case with every signal, the five decisions and the way to the account', async () => {
+    renderWithProviders(<SpamReviewTab />);
+
+    fireEvent.click(await screen.findByText('@spammy'));
+    const open = await screen.findByRole('region', { name: 'Case' });
+    expect(within(open).getAllByRole('listitem')).toHaveLength(
+      riskCase.signals.length,
+    );
+    for (const name of [
+      'Dismiss (real person)',
+      'Keep limits for 7 days',
+      'Label as bot',
+      'Suspend the profile for 7 days',
+      'Ban the profile',
+      'Open in Users',
+    ]) {
+      expect(within(open).getByRole('button', { name })).toBeInTheDocument();
+    }
+  });
+
+  it('changes view with the shared buttons and shows a dash before any review', async () => {
+    vi.mocked(adminApi.getRiskCaseStats).mockResolvedValue({
+      open: 0,
+      reviewedLast90Days: 0,
+      actionedLast90Days: 0,
+      dismissedLast90Days: 0,
+      precision: null,
+    });
+    renderWithProviders(<SpamReviewTab />);
+
+    expect(await screen.findByTestId('spam-review-stats')).toHaveTextContent(
+      '—',
+    );
+    expect(screen.getByRole('button', { name: 'Open' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Dismissed' }));
+    await waitFor(() =>
+      expect(adminApi.getRiskCases).toHaveBeenLastCalledWith('DISMISSED', 1),
+    );
   });
 });

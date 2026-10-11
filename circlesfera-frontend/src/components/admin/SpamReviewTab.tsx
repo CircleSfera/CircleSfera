@@ -1,5 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Ban, Bot, CheckCircle, Clock, PauseCircle, User } from 'lucide-react';
+import {
+  Ban,
+  Bot,
+  CheckCircle,
+  Clock,
+  Inbox,
+  PauseCircle,
+  Target,
+  User,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -9,37 +18,42 @@ import {
   type RiskCaseDecision,
   type RiskCaseStatus,
 } from '../../services/admin.service';
-import { formatDateTime } from '../../utils/format';
+import { formatDateTime, formatWaiting } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
+import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminListRow } from './AdminList';
+import { ADMIN_PAGE_LIST_STATE, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { AdminSegmentedControl } from './AdminSegmentedControl';
 import { AdminListSkeleton } from './AdminSkeletons';
-import { ActionButton, FilterDropdown, Pagination } from './AdminTable';
+import { AdminSplitView } from './AdminSplitView';
+import { Pagination } from './AdminTable';
 import { adminTabPath } from './adminNav';
 import { adminToast } from './adminToast';
+import StatCard from './StatCard';
 
 const DECISIONS: Array<{
   decision: RiskCaseDecision;
   icon: typeof CheckCircle;
-  variant: 'success' | 'ghost' | 'danger';
+  variant: 'success' | 'outline' | 'danger';
 }> = [
   { decision: 'DISMISSED', icon: CheckCircle, variant: 'success' },
-  { decision: 'RESTRICTED', icon: Clock, variant: 'ghost' },
-  { decision: 'BOT_LABEL', icon: Bot, variant: 'ghost' },
+  { decision: 'RESTRICTED', icon: Clock, variant: 'outline' },
+  { decision: 'BOT_LABEL', icon: Bot, variant: 'outline' },
   { decision: 'SUSPENDED', icon: PauseCircle, variant: 'danger' },
   { decision: 'BANNED', icon: Ban, variant: 'danger' },
 ];
 
 // Review queue for Profiles the spam and bot detector flagged. The detector
-// only proposes; the decision is made here.
+// only proposes; the decision is made here, in the open case.
 export default function SpamReviewTab() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<RiskCaseStatus>('OPEN');
   const [page, setPage] = useState(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pending, setPending] = useState<{
     riskCase: AdminRiskCase;
     decision: RiskCaseDecision;
@@ -70,6 +84,20 @@ export default function SpamReviewTab() {
   });
 
   const cases = data?.data ?? [];
+  const selected = cases.find((c) => c.id === selectedId) ?? null;
+  const signalText = (signal: AdminRiskCase['signals'][number]) =>
+    t(`admin.spam_review.signal.${signal.key}`, { value: signal.value });
+  const riskPill = (riskCase: AdminRiskCase) => (
+    <span
+      className={`px-2 py-1 rounded text-xs font-semibold whitespace-nowrap ${
+        riskCase.score >= 70
+          ? 'bg-brand-secondary/10 text-brand-secondary'
+          : 'bg-brand-accent/10 text-brand-accent'
+      }`}
+    >
+      {t('admin.spam_review.score', { score: riskCase.score })}
+    </span>
+  );
 
   return (
     <div className="space-y-2.5">
@@ -79,25 +107,48 @@ export default function SpamReviewTab() {
       />
 
       {stats ? (
-        <p className="text-xs text-white/60" data-testid="spam-review-stats">
-          {t('admin.spam_review.stats', {
-            open: stats.open,
-            reviewed: stats.reviewedLast90Days,
-            precision:
-              stats.precision === null
-                ? '—'
-                : `${Math.round(stats.precision * 100)}%`,
-          })}
-        </p>
+        <div
+          className="grid grid-cols-3 gap-2 sm:gap-3"
+          data-testid="spam-review-stats"
+        >
+          <StatCard
+            compact
+            label={t('admin.spam_review.stat_open')}
+            value={stats.open}
+            icon={Inbox}
+            color="yellow"
+          />
+          <StatCard
+            compact
+            label={t('admin.spam_review.stat_reviewed')}
+            value={stats.reviewedLast90Days}
+            icon={CheckCircle}
+            color="purple"
+          />
+          <StatCard
+            compact
+            label={t('admin.spam_review.stat_precision')}
+            value={
+              stats.precision === null ? 0 : Math.round(stats.precision * 100)
+            }
+            // Before any review there is no share to show.
+            formatValue={
+              stats.precision === null ? () => '—' : (value) => `${value}%`
+            }
+            isCounter={false}
+            icon={Target}
+            color="green"
+          />
+        </div>
       ) : null}
 
       <AdminFilterBar>
-        <FilterDropdown
-          label={t('admin.spam_review.filter_status')}
+        <AdminSegmentedControl
           value={status}
-          onChange={(v) => {
-            setStatus(v as RiskCaseStatus);
+          onChange={(next) => {
+            setStatus(next as RiskCaseStatus);
             setPage(1);
+            setSelectedId(null);
           }}
           options={[
             { value: 'OPEN', label: t('admin.spam_review.status_open') },
@@ -113,99 +164,134 @@ export default function SpamReviewTab() {
         />
       </AdminFilterBar>
 
-      {isLoading ? (
-        <AdminListSkeleton />
-      ) : cases.length === 0 ? (
-        <AdminEmptyState
-          title={t('admin.spam_review.empty_title')}
-          description={t('admin.spam_review.empty_description')}
-        />
-      ) : (
-        <div className="space-y-2">
-          {cases.map((riskCase) => (
-            <AdminListRow
-              key={riskCase.id}
-              title={`@${riskCase.profile.username}`}
-              subtitle={
-                <>
-                  <span className="block">
-                    {riskCase.signals
-                      .map((s) =>
-                        t(`admin.spam_review.signal.${s.key}`, {
-                          value: s.value,
-                        }),
-                      )
-                      .join(' · ')}
-                  </span>
-                  {riskCase.restrictedUntil ? (
-                    <span className="block text-xs text-brand-accent mt-1">
-                      {t('admin.spam_review.restricted_until', {
-                        date: formatDateTime(
-                          riskCase.restrictedUntil,
-                          i18n.language,
-                        ),
-                      })}
-                    </span>
-                  ) : null}
-                  {riskCase.decision ? (
-                    <span className="block text-xs text-white/50 mt-1">
-                      {t(`admin.spam_review.decision.${riskCase.decision}`)}
-                      {riskCase.reviewedBy
-                        ? ` · ${riskCase.reviewedBy.displayName}`
-                        : ''}
-                    </span>
-                  ) : null}
-                </>
-              }
-              badge={
-                <span
-                  className={`px-2 py-1 rounded text-xs font-semibold ${
-                    riskCase.score >= 70
-                      ? 'bg-brand-secondary/10 text-brand-secondary'
-                      : 'bg-brand-accent/10 text-brand-accent'
-                  }`}
-                >
-                  {t('admin.spam_review.score', { score: riskCase.score })}
-                </span>
-              }
-              primaryAction={
-                <div className="flex flex-wrap gap-1 sm:gap-2">
-                  <ActionButton
-                    icon={User}
-                    label={t('admin.spam_review.open_user')}
-                    variant="ghost"
-                    iconOnly
-                    onClick={() =>
-                      navigate(
-                        adminTabPath(
-                          'users',
-                          `?userId=${encodeURIComponent(riskCase.profile.userId)}`,
-                        ),
-                      )
-                    }
-                  />
-                  {riskCase.status === 'OPEN'
-                    ? DECISIONS.map(({ decision, icon, variant }) => (
-                        <ActionButton
-                          key={decision}
-                          icon={icon}
-                          label={t(`admin.spam_review.decision.${decision}`)}
-                          variant={variant}
-                          iconOnly
-                          onClick={() => setPending({ riskCase, decision })}
-                          disabled={resolveMutation.isPending}
-                        />
-                      ))
-                    : null}
+      <AdminSplitView
+        hasSelection={!!selected}
+        onBack={() => setSelectedId(null)}
+        onClearSelection={() => setSelectedId(null)}
+        listAriaLabel={t('admin.spam_review.title')}
+        detailAriaLabel={t('admin.spam_review.case_title')}
+        list={
+          isLoading ? (
+            <AdminListSkeleton />
+          ) : cases.length === 0 ? (
+            <div className={ADMIN_PAGE_LIST_STATE}>
+              <AdminEmptyState
+                title={t('admin.spam_review.empty_title')}
+                description={t('admin.spam_review.empty_description')}
+                compact
+              />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {cases.map((riskCase) => (
+                <AdminListRow
+                  key={riskCase.id}
+                  onClick={() => setSelectedId(riskCase.id)}
+                  selected={selectedId === riskCase.id}
+                  title={`@${riskCase.profile.username}`}
+                  subtitle={
+                    riskCase.signals.length === 0
+                      ? undefined
+                      : riskCase.signals.length === 1
+                        ? signalText(riskCase.signals[0])
+                        : t('admin.spam_review.signal_more', {
+                            signal: signalText(riskCase.signals[0]),
+                            count: riskCase.signals.length - 1,
+                          })
+                  }
+                  meta={formatWaiting(riskCase.createdAt, i18n.language, t)}
+                  badge={riskPill(riskCase)}
+                />
+              ))}
+              <Pagination meta={data?.meta} onPageChange={setPage} />
+            </div>
+          )
+        }
+        detail={
+          selected && (
+            <div className="space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-white break-all">
+                    @{selected.profile.username}
+                  </h3>
+                  {selected.profile.fullName && (
+                    <p className="text-sm text-white/60">
+                      {selected.profile.fullName}
+                    </p>
+                  )}
                 </div>
-              }
-            />
-          ))}
-          <div>
-            <Pagination meta={data?.meta} onPageChange={setPage} />
-          </div>
-        </div>
-      )}
+                <span className="shrink-0">{riskPill(selected)}</span>
+              </div>
+
+              <div>
+                <h4 className="text-xs font-medium text-white/40 mb-1.5">
+                  {t('admin.spam_review.signals_label')}
+                </h4>
+                <ul className="text-sm text-white/80 divide-y divide-white/5 border-y border-white/5">
+                  {selected.signals.map((signal) => (
+                    <li key={signal.key} className="py-2">
+                      {signalText(signal)}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {selected.restrictedUntil && (
+                <p className="text-sm text-brand-accent">
+                  {t('admin.spam_review.restricted_until', {
+                    date: formatDateTime(
+                      selected.restrictedUntil,
+                      i18n.language,
+                    ),
+                  })}
+                </p>
+              )}
+              {selected.decision && (
+                <p className="text-sm text-white/60">
+                  {t(`admin.spam_review.decision.${selected.decision}`)}
+                  {selected.reviewedBy
+                    ? ` · ${selected.reviewedBy.displayName}`
+                    : ''}
+                </p>
+              )}
+
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+                {selected.status === 'OPEN' &&
+                  DECISIONS.map(({ decision, icon: Icon, variant }) => (
+                    <Button
+                      key={decision}
+                      variant={variant}
+                      className="min-h-11"
+                      disabled={resolveMutation.isPending}
+                      onClick={() =>
+                        setPending({ riskCase: selected, decision })
+                      }
+                    >
+                      <Icon size={16} className="mr-2 shrink-0" />
+                      {t(`admin.spam_review.decision.${decision}`)}
+                    </Button>
+                  ))}
+                <Button
+                  variant="outline"
+                  className="min-h-11"
+                  onClick={() =>
+                    navigate(
+                      adminTabPath(
+                        'users',
+                        `?userId=${encodeURIComponent(selected.profile.userId)}`,
+                      ),
+                    )
+                  }
+                >
+                  <User size={16} className="mr-2 shrink-0" />
+                  {t('admin.spam_review.open_user')}
+                </Button>
+              </div>
+            </div>
+          )
+        }
+      />
 
       <ConfirmModal
         isOpen={pending !== null}
