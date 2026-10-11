@@ -271,6 +271,7 @@ export default function HelpCentreTab({ onToast }: Props) {
             <div className="w-full sm:w-56">
               <FilterDropdown
                 label={tr('field_topic')}
+                visibleLabel
                 value={draft.topic}
                 onChange={(value) =>
                   setDraft({ ...draft, topic: value as Topic })

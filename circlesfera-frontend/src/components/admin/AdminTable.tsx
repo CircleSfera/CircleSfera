@@ -268,6 +268,7 @@ interface FilterDropdownProps {
   value: string;
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
+  visibleLabel?: boolean;
 }
 
 export function FilterDropdown({
@@ -275,6 +276,7 @@ export function FilterDropdown({
   value,
   options,
   onChange,
+  visibleLabel = false,
 }: FilterDropdownProps) {
   // One id for each filter: a screen often shows two of them.
   const id = useId();
@@ -284,7 +286,9 @@ export function FilterDropdown({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       className="min-w-35"
-      aria-label={label}
+      // In a form the name is shown above the field; in a filter bar it is
+      // read out only, and the first option says what is being filtered.
+      {...(visibleLabel ? { label } : { 'aria-label': label })}
     >
       {options.map((opt) => (
         <option key={opt.value} value={opt.value} className="bg-surface-raised">

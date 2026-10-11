@@ -379,7 +379,7 @@ export default function MonetizationTab() {
               setTxPage(1);
             }}
             options={[
-              { value: '', label: t('admin.shared.all') },
+              { value: '', label: t('admin.monetization.status_all') },
               { value: 'COMPLETED', label: 'COMPLETED' },
               { value: 'PENDING', label: 'PENDING' },
               { value: 'FAILED', label: 'FAILED' },
