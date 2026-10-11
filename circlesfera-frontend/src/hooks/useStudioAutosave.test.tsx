@@ -5,7 +5,10 @@ import { editsService } from '../services/edits.service';
 import { useStudioStore } from '../stores/studioStore';
 import type { StudioProject } from '../types/studio';
 import { saveLocalStudioDraft } from '../utils/studioLocalDraft';
-import { getPrimaryMediaUrl } from '../utils/studioProject';
+import {
+  getPrimaryMediaUrl,
+  serializeStudioProject,
+} from '../utils/studioProject';
 import { useStudioAutosave } from './useStudioAutosave';
 
 vi.mock('../services/edits.service', () => ({
@@ -41,6 +44,7 @@ describe('useStudioAutosave', () => {
       saveStatus: 'idle',
     } as never);
     vi.mocked(getPrimaryMediaUrl).mockReturnValue('https://cdn/clip.mp4');
+    vi.mocked(serializeStudioProject).mockImplementation((mine) => mine);
     vi.mocked(editsService.updateProjectState).mockResolvedValue({} as never);
     vi.mocked(editsService.createProject).mockResolvedValue({
       id: 'cloud-new',
@@ -107,6 +111,24 @@ describe('useStudioAutosave', () => {
     await act(() => result.current.saveNow());
 
     expect(editsService.updateProjectState).toHaveBeenCalledTimes(1);
+  });
+
+  it('tells an unchanged project by its content, not by the time it was written down', async () => {
+    // As the real one does: every call stamps the moment.
+    let stamp = 0;
+    vi.mocked(serializeStudioProject).mockImplementation(
+      (mine) => ({ ...mine, updatedAt: `t-${++stamp}` }) as never,
+    );
+    const { result } = renderHook(() => useStudioAutosave());
+    open({ project: project(), cloudProjectId: 'cloud-1' });
+
+    await act(() => result.current.saveNow());
+    await act(() => result.current.saveNow());
+    expect(editsService.updateProjectState).toHaveBeenCalledTimes(1);
+
+    open({ project: project('Renamed') });
+    await act(() => result.current.saveNow());
+    expect(editsService.updateProjectState).toHaveBeenCalledTimes(2);
   });
 
   it.each([
