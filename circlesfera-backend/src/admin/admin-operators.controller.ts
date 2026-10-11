@@ -25,7 +25,6 @@ import {
   CreateAdminOperatorDto,
   ListAdminOperatorsQueryDto,
   ReplaceAdminOperatorRolesDto,
-  ResetAdminOperatorPasswordDto,
   UpdateAdminOperatorStatusDto,
 } from './dto/admin-operators.dto.js';
 
@@ -93,13 +92,9 @@ export class AdminOperatorsController {
     return this.operatorsService.resetMfa(admin.adminId, id);
   }
 
-  @Post(':id/reset-password')
+  @Post(':id/unlock')
   @RequireAdminStepUp()
-  resetPassword(
-    @CurrentAdmin() admin: CurrentAdminData,
-    @Param('id') id: string,
-    @Body() dto: ResetAdminOperatorPasswordDto,
-  ) {
-    return this.operatorsService.resetPassword(admin.adminId, id, dto.password);
+  unlock(@CurrentAdmin() admin: CurrentAdminData, @Param('id') id: string) {
+    return this.operatorsService.unlock(admin.adminId, id);
   }
 }

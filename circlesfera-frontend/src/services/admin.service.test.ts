@@ -20,12 +20,8 @@ const q = (params: object) => ({ params });
 const blob = { responseType: 'blob' };
 const audio = { title: 't', artist: 'a', url: 'u', duration: 30 };
 const article = { slug: 's', topic: 'ACCOUNT', position: 1, texts: {} };
-// What a staff member types in the two operator forms. Made up: these
-// tests only check that it is passed on as given.
-const typed = 'typed-in-the-form';
 const operator = {
   email: 'a@b.c',
-  password: typed,
   displayName: 'Ana',
   roleIds: ['r1'],
 };
@@ -977,10 +973,10 @@ const cases: Case[] = [
     ['admin/operators/o1/reset-mfa'],
   ],
   [
-    'resetOperatorPassword',
-    () => adminApi.resetOperatorPassword('o1', typed),
+    'unlockOperator',
+    () => adminApi.unlockOperator('o1'),
     'post',
-    ['admin/operators/o1/reset-password', { password: typed }],
+    ['admin/operators/o1/unlock'],
   ],
 ];
 

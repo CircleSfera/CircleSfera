@@ -3657,15 +3657,14 @@
       "empty": "Aún no hay operadores",
       "load_error": "No se pudieron cargar operadores",
       "display_name": "Nombre visible",
-      "password_min": "Contraseña (mín. 12)",
+      "create_hint": "La persona necesita una cuenta de CircleSfera con este correo. Entra a los sitios de personal con la contraseña de esa cuenta.",
       "save": "Crear",
       "roles": "Roles",
       "actions": "Acciones",
       "disable": "Desactivar",
       "enable": "Activar",
       "reset_mfa": "Resetear MFA",
-      "new_password": "Nueva contraseña (mín. 12)",
-      "set_password": "Establecer contraseña",
+      "unlock": "Desbloquear cuenta",
       "mfa_on": "MFA configurado",
       "mfa_off": "MFA pendiente de enrolar",
       "step_up_required": "Confirma con tu código de autenticador",
@@ -3682,8 +3681,8 @@
       "roles_error": "No se pudieron actualizar los roles",
       "mfa_reset": "MFA reseteado",
       "mfa_error": "No se pudo resetear MFA",
-      "password_reset": "Contraseña actualizada",
-      "password_error": "No se pudo resetear la contraseña"
+      "unlocked": "Bloqueo quitado",
+      "unlock_error": "No se pudo quitar el bloqueo"
     },
     "split": {
       "select_item": "Selecciona un elemento de la lista",

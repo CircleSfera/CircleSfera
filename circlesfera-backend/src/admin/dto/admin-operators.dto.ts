@@ -14,10 +14,6 @@ export class CreateAdminOperatorDto {
   email!: string;
 
   @IsString()
-  @MinLength(12)
-  password!: string;
-
-  @IsString()
   @MinLength(1)
   displayName!: string;
 
@@ -37,12 +33,6 @@ export class ReplaceAdminOperatorRolesDto {
   @ArrayMinSize(1)
   @IsString({ each: true })
   roleIds!: string[];
-}
-
-export class ResetAdminOperatorPasswordDto {
-  @IsString()
-  @MinLength(12)
-  password!: string;
 }
 
 export class ListAdminOperatorsQueryDto {

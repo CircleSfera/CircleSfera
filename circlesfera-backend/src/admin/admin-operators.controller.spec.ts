@@ -31,7 +31,7 @@ describe('AdminOperatorsController', () => {
     updateStatus: vi.fn(),
     replaceRoles: vi.fn(),
     resetMfa: vi.fn(),
-    resetPassword: vi.fn(),
+    unlock: vi.fn(),
   };
 
   beforeAll(async () => {
@@ -76,7 +76,6 @@ describe('AdminOperatorsController', () => {
       .set(ADMIN_BEARER)
       .send({
         email: 'new@example.com',
-        password: 'password1234',
         displayName: 'New Op',
         roleIds: ['role-1'],
         extra: 'nope',
@@ -106,14 +105,27 @@ describe('AdminOperatorsController', () => {
     expect(mockService.replaceRoles).not.toHaveBeenCalled();
   });
 
-  it('rejects reset password with a non-whitelisted body field', async () => {
+  it('rejects a password in the body of a new operator', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/operators')
+      .set(ADMIN_BEARER)
+      .send({
+        email: 'new@example.com',
+        password: 'password1234',
+        displayName: 'New Op',
+        roleIds: ['role-1'],
+      })
+      .expect(400);
+
+    expect(mockService.createOperator).not.toHaveBeenCalled();
+  });
+
+  it('no longer offers a way to set a staff password', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/operators/op-1/reset-password')
       .set(ADMIN_BEARER)
-      .send({ password: 'password1234', extra: 'nope' })
-      .expect(400);
-
-    expect(mockService.resetPassword).not.toHaveBeenCalled();
+      .send({ password: 'password1234' })
+      .expect(404);
   });
 
   it('lists roles without an actor', async () => {
@@ -177,7 +189,6 @@ describe('AdminOperatorsController', () => {
   it('creates an operator as adminId', async () => {
     const dto = {
       email: 'new@example.com',
-      password: 'password1234',
       displayName: 'New Op',
       roleIds: ['role-1'],
     };
@@ -223,28 +234,23 @@ describe('AdminOperatorsController', () => {
     );
   });
 
-  it('resets MFA and password as adminId', async () => {
+  it('resets MFA and clears a lockout as adminId', async () => {
     mockService.resetMfa.mockResolvedValue({ ok: true });
-    mockService.resetPassword.mockResolvedValue({ ok: true });
+    mockService.unlock.mockResolvedValue({ ok: true });
 
     await request(app.getHttpServer())
       .post('/api/v1/admin/operators/op-1/reset-mfa')
       .set(ADMIN_BEARER)
       .expect(201);
     await request(app.getHttpServer())
-      .post('/api/v1/admin/operators/op-1/reset-password')
+      .post('/api/v1/admin/operators/op-1/unlock')
       .set(ADMIN_BEARER)
-      .send({ password: 'password1234' })
       .expect(201);
 
     expect(mockService.resetMfa).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'op-1',
     );
-    expect(mockService.resetPassword).toHaveBeenCalledWith(
-      TEST_ADMIN.adminId,
-      'op-1',
-      'password1234',
-    );
+    expect(mockService.unlock).toHaveBeenCalledWith(TEST_ADMIN.adminId, 'op-1');
   });
 });

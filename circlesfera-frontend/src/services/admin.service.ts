@@ -1389,7 +1389,6 @@ export const adminApi = {
 
   createOperator: (data: {
     email: string;
-    password: string;
     displayName: string;
     roleIds: string[];
   }) => apiClient.post<AdminOperator>('admin/operators', data),
@@ -1403,8 +1402,6 @@ export const adminApi = {
   resetOperatorMfa: (id: string) =>
     apiClient.post<AdminOperator>(`admin/operators/${id}/reset-mfa`),
 
-  resetOperatorPassword: (id: string, password: string) =>
-    apiClient.post<AdminOperator>(`admin/operators/${id}/reset-password`, {
-      password,
-    }),
+  unlockOperator: (id: string) =>
+    apiClient.post<AdminOperator>(`admin/operators/${id}/unlock`),
 };
