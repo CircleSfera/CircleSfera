@@ -935,3 +935,15 @@ input[type="range"]::-moz-range-progress {
     --app-toaster-left: calc(var(--nav-sidebar-width) + 1rem);
   }
 }
+/* The staff sites: no bar at the bottom of a phone, and from the width
+   where the list of sections is on screen the notice starts where the
+   section starts, which the shell measures. */
+body:has(.admin-shell) .app-toaster {
+  --app-toaster-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 64rem) {
+  body:has(.admin-shell) .app-toaster {
+    --app-toaster-bottom: 1rem;
+    --app-toaster-left: var(--admin-content-left, 1rem);
+  }
+}
