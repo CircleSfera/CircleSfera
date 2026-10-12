@@ -182,7 +182,7 @@ describe('UserVerificationTab', () => {
     await screen.findByText('@person_new');
     const fresh = rowOf('@person_new');
     expect(within(fresh).getByText('Not verified')).toHaveClass(
-      'text-white/50',
+      'text-white/45',
     );
     expect(within(fresh).getByText('Mar 10, 2026')).toBeInTheDocument();
     expect(within(fresh).getByText('Personal account')).toBeInTheDocument();
@@ -213,9 +213,9 @@ describe('UserVerificationTab', () => {
     fireEvent.click(rowOf('@person_a'));
 
     const open = detail();
-    expect(within(open).getByText('ID: a')).toBeInTheDocument();
+    expect(within(open).getByText('Reference: a')).toBeInTheDocument();
     expect(within(open).getByText('Not started')).toBeInTheDocument();
-    expect(within(open).getByText('N/A')).toBeInTheDocument();
+    expect(within(open).getByText('None')).toBeInTheDocument();
     expect(
       within(open).queryByRole('button', { name: 'Sync from Stripe' }),
     ).not.toBeInTheDocument();
@@ -466,7 +466,7 @@ describe('UserVerificationTab', () => {
 
     fireEvent.click(rowOf('@person_b'));
     await waitFor(() =>
-      expect(within(detail()).getByText('ID: b')).toBeInTheDocument(),
+      expect(within(detail()).getByText('Reference: b')).toBeInTheDocument(),
     );
     expect(
       within(detail()).getByRole('combobox', {
@@ -482,7 +482,7 @@ describe('UserVerificationTab', () => {
 
     fireEvent.click(rowOf('@person_c'));
     await waitFor(() =>
-      expect(within(detail()).getByText('ID: c')).toBeInTheDocument(),
+      expect(within(detail()).getByText('Reference: c')).toBeInTheDocument(),
     );
     expect(
       within(detail()).getByRole('combobox', {
@@ -496,12 +496,12 @@ describe('UserVerificationTab', () => {
     show();
     await screen.findByText('@person_a');
     fireEvent.click(rowOf('@person_a'));
-    expect(screen.getByText('ID: a')).toBeInTheDocument();
+    expect(screen.getByText('Reference: a')).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
     await waitFor(() =>
-      expect(screen.queryByText('ID: a')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Reference: a')).not.toBeInTheDocument(),
     );
   });
 
@@ -514,7 +514,7 @@ describe('UserVerificationTab', () => {
     fireEvent.click(within(detail()).getByRole('button', { name: 'Back' }));
 
     await waitFor(() =>
-      expect(screen.queryByText('ID: a')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Reference: a')).not.toBeInTheDocument(),
     );
     expect(screen.getByText('@person_a')).toBeInTheDocument();
   });

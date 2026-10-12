@@ -13,7 +13,7 @@ import UserAvatar from '../UserAvatar';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminListRow } from './AdminList';
+import { ADMIN_PAGE_LIST_STATE, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminDetailSkeleton, AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
@@ -36,6 +36,8 @@ interface Props {
 
 export default function ModerationTab({ onToast }: Props) {
   const { t, i18n } = useTranslation();
+  const kindName = (kind: string) =>
+    t(`admin.audit.targets.${kind}`, { defaultValue: kind });
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
@@ -302,12 +304,14 @@ export default function ModerationTab({ onToast }: Props) {
               {isLoading ? (
                 <AdminListSkeleton rows={5} />
               ) : items.length === 0 ? (
-                <AdminEmptyState
-                  icon={ShieldAlert}
-                  title={t('admin.moderation.empty_title')}
-                  description={t('admin.moderation.empty_description')}
-                  compact
-                />
+                <div className={ADMIN_PAGE_LIST_STATE}>
+                  <AdminEmptyState
+                    icon={ShieldAlert}
+                    title={t('admin.moderation.empty_title')}
+                    description={t('admin.moderation.empty_description')}
+                    compact
+                  />
+                </div>
               ) : (
                 items.map((item) => {
                   const key = itemKey(item);
@@ -327,12 +331,12 @@ export default function ModerationTab({ onToast }: Props) {
                           {item.moderationNote?.replace(
                             '[AI Automated Flag]: ',
                             '',
-                          ) || 'Flagged'}
+                          ) || t('admin.moderation.flagged')}
                         </span>
                       }
                       badge={
                         <span className="text-xs font-semibold uppercase text-amber-500">
-                          {item.entityType}
+                          {kindName(item.entityType)}
                         </span>
                       }
                       avatar={
@@ -398,7 +402,7 @@ export default function ModerationTab({ onToast }: Props) {
                         @{selectedItem.user?.profile?.username || '—'}
                       </h3>
                       <p className="text-xs text-white/70">
-                        {selectedItem.entityType} ·{' '}
+                        {kindName(selectedItem.entityType)} ·{' '}
                         {formatDateTime(selectedItem.createdAt, i18n.language)}
                       </p>
                     </div>
