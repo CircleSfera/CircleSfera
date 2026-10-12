@@ -75,10 +75,10 @@ const createPanel = () =>
     .closest('.glass-panel') as HTMLElement;
 const fillNewOperator = () => {
   const panel = createPanel();
-  fireEvent.change(within(panel).getByPlaceholderText('email'), {
+  fireEvent.change(within(panel).getByLabelText('Email'), {
     target: { value: 'new@circlesfera.test' },
   });
-  fireEvent.change(within(panel).getByPlaceholderText('Display name'), {
+  fireEvent.change(within(panel).getByLabelText('Display name'), {
     target: { value: 'New person' },
   });
   return panel;
@@ -189,7 +189,9 @@ describe('RolesTab', () => {
     expect(
       within(pane).getByRole('heading', { name: 'Operator a' }),
     ).toBeInTheDocument();
-    expect(within(pane).getByText('MFA enrolled')).toBeInTheDocument();
+    expect(
+      within(pane).getByText('Two-step verification set up'),
+    ).toBeInTheDocument();
     expect(within(pane).getByRole('button', { name: 'Support' })).toHaveClass(
       'text-white',
     );
@@ -205,7 +207,7 @@ describe('RolesTab', () => {
 
     await open('Operator b');
     expect(
-      within(detail()).getByText('MFA enrollment pending'),
+      within(detail()).getByText('Two-step verification not set up yet'),
     ).toBeInTheDocument();
   });
 
@@ -299,12 +301,15 @@ describe('RolesTab', () => {
 
     fireEvent.click(
       within(await open('Operator a')).getByRole('button', {
-        name: 'Reset MFA',
+        name: 'Reset two-step verification',
       }),
     );
     await waitFor(() => expect(api.resetOperatorMfa).toHaveBeenCalledWith('a'));
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('MFA reset', 'success'),
+      expect(onToast).toHaveBeenCalledWith(
+        'Two-step verification reset',
+        'success',
+      ),
     );
   });
 
@@ -341,9 +346,14 @@ describe('RolesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Could not update roles', 'error'),
     );
-    fireEvent.click(within(pane).getByRole('button', { name: 'Reset MFA' }));
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Reset two-step verification' }),
+    );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Could not reset MFA', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'Could not reset two-step verification',
+        'error',
+      ),
     );
     fireEvent.click(
       within(pane).getByRole('button', { name: 'Unlock account' }),
@@ -366,7 +376,7 @@ describe('RolesTab', () => {
     const panel = createPanel();
     const create = within(panel).getByRole('button', { name: 'Create' });
     expect(create).toBeDisabled();
-    fireEvent.change(within(panel).getByPlaceholderText('email'), {
+    fireEvent.change(within(panel).getByLabelText('Email'), {
       target: { value: 'new@circlesfera.test' },
     });
     expect(create).toBeDisabled();
@@ -474,7 +484,9 @@ describe('RolesTab', () => {
     show();
     const pane = await open('Operator a');
 
-    fireEvent.click(within(pane).getByRole('button', { name: 'Reset MFA' }));
+    fireEvent.click(
+      within(pane).getByRole('button', { name: 'Reset two-step verification' }),
+    );
     const code = await screen.findByPlaceholderText('000000');
     fireEvent.change(code, { target: { value: '000000' } });
     fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));

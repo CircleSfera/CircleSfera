@@ -103,7 +103,7 @@ export default function SettingsTab({ onToast }: Props) {
         subtitle={t('admin.settings.subtitle')}
       />
 
-      <div className="flex-1 overflow-y-auto p-2.5 sm:p-3 md:p-4">
+      <div className="flex-1 overflow-y-auto pt-2.5">
         <div className="max-w-3xl space-y-2.5 sm:space-y-3">
           <div className="bg-white/2 border border-white/5 rounded-lg p-2.5 sm:p-3 md:p-4">
             <h3 className="text-base font-semibold text-white mb-4">

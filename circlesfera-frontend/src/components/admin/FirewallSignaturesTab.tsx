@@ -8,14 +8,16 @@ import { formatDateTime } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
+import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
-import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination } from './AdminTable';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
+  // The choice between the views of the section, shown in this view's bar.
+  views?: React.ReactNode;
 }
 
 function CategoryBadge({ category }: { category: string }) {
@@ -30,7 +32,7 @@ function getTextPreview(item: FirewallSignature) {
   return item.textPreview ?? item.text;
 }
 
-export default function FirewallSignaturesTab({ onToast }: Props) {
+export default function FirewallSignaturesTab({ onToast, views }: Props) {
   const { t, i18n } = useTranslation();
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -97,17 +99,18 @@ export default function FirewallSignaturesTab({ onToast }: Props) {
   );
 
   return (
-    <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6">
-      <AdminPageHeader
-        title={t('admin.firewall.title')}
-        subtitle={t('admin.firewall.subtitle')}
-        actions={
-          <Button onClick={openCreate} className="min-h-11 w-full sm:w-auto">
-            <Plus size={16} className="mr-2" />
-            {t('admin.firewall.add_rule')}
-          </Button>
-        }
-      />
+    <div className="space-y-2.5">
+      {/* The section says its title once; this view adds only its bar. */}
+      <AdminFilterBar>
+        {views}
+        <Button
+          onClick={openCreate}
+          className="min-h-11 w-full sm:w-auto sm:ml-auto"
+        >
+          <Plus size={16} className="mr-2" />
+          {t('admin.firewall.add_rule')}
+        </Button>
+      </AdminFilterBar>
 
       <AdminSplitView
         hasSelection={hasSelection}

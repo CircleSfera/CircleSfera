@@ -2270,6 +2270,7 @@
       "next_page": "Next page"
     },
     "shared": {
+      "read_only_role": "Your role can see this, not change it.",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "clear_filters": "Clear filters",
@@ -2692,8 +2693,6 @@
       "role_host": "Host",
       "role_cohost": "Guest co-host",
       "moderation_actions": "Moderation actions",
-      "warn_title": "Send a warning",
-      "warn_description": "The user will receive an official notice.",
       "force_end_title": "Force the broadcast to end",
       "force_end_description": "The live will end immediately."
     },
@@ -3169,8 +3168,8 @@
       "kpi_total": "Total posts",
       "kpi_new_week": "New (this week)",
       "kpi_reported_pct": "Reported content",
-      "segment_type_post": "Type: Post",
-      "segment_type_frame": "Type: Frame"
+      "segment_type_post": "Posts",
+      "segment_type_frame": "Frames"
     },
     "stories": {
       "title": "Stories",
@@ -3186,6 +3185,13 @@
       "action_delete": "Delete",
       "action_hide": "Hide",
       "action_restore": "Restore",
+      "moderation_state": {
+        "VISIBLE": "Visible",
+        "FLAGGED": "Marked",
+        "HIDDEN": "Hidden",
+        "REMOVED": "Removed"
+      },
+      "media": { "image": "Image", "video": "Video" },
       "col_preview": "Preview",
       "col_author": "Author",
       "col_type": "Type",
@@ -3711,6 +3717,11 @@
       "empty_description": "No streams found with the current filters.",
       "kpi_active": "Active lives",
       "kpi_viewers": "Total viewers",
+      "record_title": "Broadcast",
+      "state": {
+        "LIVE": "Live",
+        "ENDED": "Ended"
+      },
       "status_live": "Live now",
       "status_ended": "Ended",
       "status_all": "All",
@@ -3778,13 +3789,14 @@
     },
     "operators": {
       "title": "Operators",
-      "subtitle": "Admin Panel identities, roles and MFA",
+      "subtitle": "Staff accounts, their roles and two-step verification",
       "create": "New operator",
       "search": "Search by email or name…",
       "filter_status": "Status",
       "status_all": "All statuses",
       "empty": "No operators yet",
       "load_error": "Could not load operators",
+      "email_label": "Email",
       "display_name": "Display name",
       "create_hint": "The person needs a CircleSfera account with this email. They sign in to the staff sites with that account's password.",
       "save": "Create",
@@ -3792,10 +3804,10 @@
       "actions": "Actions",
       "disable": "Disable",
       "enable": "Enable",
-      "reset_mfa": "Reset MFA",
+      "reset_mfa": "Reset two-step verification",
       "unlock": "Unlock account",
-      "mfa_on": "MFA enrolled",
-      "mfa_off": "MFA enrollment pending",
+      "mfa_on": "Two-step verification set up",
+      "mfa_off": "Two-step verification not set up yet",
       "reference": "Reference {{reference}}",
       "step_up_required": "Confirm with your authenticator code",
       "step_up_hint": "Enter your authenticator code to confirm this action.",
@@ -3809,8 +3821,8 @@
       "status_error": "Could not update status",
       "roles_updated": "Roles updated",
       "roles_error": "Could not update roles",
-      "mfa_reset": "MFA reset",
-      "mfa_error": "Could not reset MFA",
+      "mfa_reset": "Two-step verification reset",
+      "mfa_error": "Could not reset two-step verification",
       "unlocked": "Lockout cleared",
       "unlock_error": "Could not clear the lockout",
       "role_names": {

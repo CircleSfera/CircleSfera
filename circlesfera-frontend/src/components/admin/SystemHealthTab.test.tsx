@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import toast from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import SystemHealthTab from './SystemHealthTab';
 
@@ -61,6 +62,7 @@ const figure = (section: string, label: string) => {
 
 describe('SystemHealthTab', () => {
   beforeEach(() => {
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.clearAllMocks();
     api.getSystemHealth.mockResolvedValue(health() as never);
     api.getWebhookEvents.mockResolvedValue(events([]) as never);
@@ -197,6 +199,17 @@ describe('SystemHealthTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retry connection' }));
 
     await waitFor(() => expect(api.getSystemHealth).toHaveBeenCalledTimes(2));
+  });
+
+  it('shows no payment events to a role that does not handle payments', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'system',
+    } as never);
+    renderWithProviders(<SystemHealthTab />);
+
+    await waitFor(() => expect(api.getSystemHealth).toHaveBeenCalled());
+    expect(screen.queryByText('Webhook events')).not.toBeInTheDocument();
+    expect(api.getWebhookEvents).not.toHaveBeenCalled();
   });
 
   it('lists the failed events first and says when there are none', async () => {

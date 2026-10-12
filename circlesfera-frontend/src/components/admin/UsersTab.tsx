@@ -18,6 +18,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminUser } from '../../services/admin.service';
 import { adminApi, type EnhancedStats } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDay, formatNumber } from '../../utils/format';
@@ -78,6 +79,8 @@ export default function Dashboard({ onToast }: Props) {
   const [segment, setSegment] = useState('ALL');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
+  const canSanction = useAdminAuthStore((s) => s.hasPermission('users.ban'));
+  const canEdit = useAdminAuthStore((s) => s.hasPermission('users.write'));
 
   const [confirmAction, setConfirmAction] = useState<{
     type: ConfirmType | null;
@@ -556,17 +559,23 @@ export default function Dashboard({ onToast }: Props) {
                           icon: Eye,
                           onClick: () => setSelectedUserId(user.id),
                         },
-                        {
-                          label: t('admin.users.action_warn'),
-                          icon: AlertTriangle,
-                          onClick: () => askWarn(user),
-                        },
-                        {
-                          label: t('admin.users.action_suspend'),
-                          icon: PauseCircle,
-                          onClick: () => askSuspend(user),
-                        },
-                        ...(suspended || !user.isActive
+                        // What the server would refuse to this role is
+                        // not offered.
+                        ...(canSanction
+                          ? [
+                              {
+                                label: t('admin.users.action_warn'),
+                                icon: AlertTriangle,
+                                onClick: () => askWarn(user),
+                              },
+                              {
+                                label: t('admin.users.action_suspend'),
+                                icon: PauseCircle,
+                                onClick: () => askSuspend(user),
+                              },
+                            ]
+                          : []),
+                        ...(canSanction && (suspended || !user.isActive)
                           ? [
                               {
                                 label: t('admin.users.action_restore'),
@@ -575,45 +584,57 @@ export default function Dashboard({ onToast }: Props) {
                               },
                             ]
                           : []),
-                        {
-                          label:
-                            user.role === 'USER'
-                              ? t('admin.users.action_promote_admin')
-                              : t('admin.users.action_demote'),
-                          icon: UserCog,
-                          onClick: () =>
-                            askConfirm(
-                              user.role === 'USER' ? 'promote' : 'demote',
-                              user,
-                            ),
-                        },
-                        user.isActive
-                          ? {
-                              label: t('admin.users.action_ban'),
-                              icon: Ban,
-                              variant: 'danger' as const,
-                              dividerBefore: true,
-                              disabled: isPending,
-                              onClick: () => askConfirm('ban', user),
-                            }
-                          : {
-                              label: t('admin.users.action_unban'),
-                              icon: UserCheck,
-                              disabled: isPending,
-                              onClick: () => askConfirm('unban', user),
-                            },
+                        ...(canEdit
+                          ? [
+                              {
+                                label:
+                                  user.role === 'USER'
+                                    ? t('admin.users.action_promote_admin')
+                                    : t('admin.users.action_demote'),
+                                icon: UserCog,
+                                onClick: () =>
+                                  askConfirm(
+                                    user.role === 'USER' ? 'promote' : 'demote',
+                                    user,
+                                  ),
+                              },
+                            ]
+                          : []),
+                        ...(canSanction
+                          ? [
+                              user.isActive
+                                ? {
+                                    label: t('admin.users.action_ban'),
+                                    icon: Ban,
+                                    variant: 'danger' as const,
+                                    dividerBefore: true,
+                                    disabled: isPending,
+                                    onClick: () => askConfirm('ban', user),
+                                  }
+                                : {
+                                    label: t('admin.users.action_unban'),
+                                    icon: UserCheck,
+                                    disabled: isPending,
+                                    onClick: () => askConfirm('unban', user),
+                                  },
+                            ]
+                          : []),
                         {
                           label: t('admin.users.action_view_profile'),
                           icon: ExternalLink,
                           onClick: () => openProfile(user),
                         },
-                        {
-                          label: t('admin.users.action_delete'),
-                          icon: Trash2,
-                          variant: 'danger' as const,
-                          dividerBefore: true,
-                          onClick: () => askConfirm('delete', user),
-                        },
+                        ...(canSanction
+                          ? [
+                              {
+                                label: t('admin.users.action_delete'),
+                                icon: Trash2,
+                                variant: 'danger' as const,
+                                dividerBefore: true,
+                                onClick: () => askConfirm('delete', user),
+                              },
+                            ]
+                          : []),
                       ]}
                     />
                   );
@@ -630,7 +651,7 @@ export default function Dashboard({ onToast }: Props) {
             <UserDetailPanel
               userId={selectedUser.id}
               actions={
-                selectedUser.isActive ? (
+                !canSanction ? undefined : selectedUser.isActive ? (
                   <ActionButton
                     onClick={() => askConfirm('ban', selectedUser)}
                     label={t('admin.users.action_ban')}

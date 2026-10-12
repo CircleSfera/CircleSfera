@@ -33,7 +33,7 @@ function moderationBadge(
     <span
       className={`px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider ${styles[status] || styles.VISIBLE}`}
     >
-      {t(`admin.stories.moderation.${status}`, { defaultValue: status })}
+      {t(`admin.stories.moderation_state.${status}`, { defaultValue: status })}
     </span>
   );
 }
@@ -117,8 +117,9 @@ export default function StoriesTab({ onToast }: Props) {
       </span>
     );
 
+  // The actions carry their words: an icon alone does not say what it does.
   const renderActions = (story: AdminStory) => (
-    <div className="flex gap-1">
+    <div className="flex flex-wrap lg:flex-nowrap gap-1">
       {story.moderationStatus === 'HIDDEN' ? (
         <ActionButton
           onClick={() =>
@@ -127,7 +128,6 @@ export default function StoriesTab({ onToast }: Props) {
           label={t('admin.stories.action_restore')}
           variant="success"
           icon={CheckCircle}
-          iconOnly
           disabled={moderationMutation.isPending}
         />
       ) : (
@@ -138,7 +138,6 @@ export default function StoriesTab({ onToast }: Props) {
           label={t('admin.stories.action_hide')}
           variant="warning"
           icon={EyeOff}
-          iconOnly
           disabled={moderationMutation.isPending}
         />
       )}
@@ -147,7 +146,6 @@ export default function StoriesTab({ onToast }: Props) {
         label={t('admin.stories.action_delete')}
         variant="danger"
         icon={Trash2}
-        iconOnly
         disabled={deleteMutation.isPending}
       />
     </div>
@@ -221,7 +219,9 @@ export default function StoriesTab({ onToast }: Props) {
                 title={`@${story.user?.profile?.username || t('admin.shared.unknown')}`}
                 subtitle={
                   <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/10">
-                    {story.mediaType}
+                    {t(`admin.stories.media.${story.mediaType}`, {
+                      defaultValue: story.mediaType,
+                    })}
                   </span>
                 }
                 avatar={
@@ -319,7 +319,9 @@ export default function StoriesTab({ onToast }: Props) {
                 </td>
                 <td className="px-2 py-1">
                   <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/10">
-                    {story.mediaType}
+                    {t(`admin.stories.media.${story.mediaType}`, {
+                      defaultValue: story.mediaType,
+                    })}
                   </span>
                 </td>
                 <td className="px-2 py-1">

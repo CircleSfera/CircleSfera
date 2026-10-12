@@ -16,6 +16,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AdminWebhookEvent } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import type { PaginatedResponse } from '../../types';
 import { formatDateTime, formatTime } from '../../utils/format';
 import { Button } from '../ui';
@@ -65,6 +66,8 @@ export default function SystemHealthTab() {
     null,
   );
   const [now, setNow] = useState(() => Date.now());
+  // The events of the payment provider belong to who handles payments.
+  const canSeeWebhooks = useAdminAuthStore((s) => s.hasPermission('payments'));
 
   const {
     data: health,
@@ -90,6 +93,7 @@ export default function SystemHealthTab() {
         .getWebhookEvents(webhookPage, 20, webhookStatusFilter || undefined)
         .then((res) => res.data as PaginatedResponse<AdminWebhookEvent>),
     refetchInterval: 15_000,
+    enabled: canSeeWebhooks,
     refetchIntervalInBackground: false,
     refetchOnWindowFocus: true,
   });
@@ -352,10 +356,10 @@ export default function SystemHealthTab() {
               tone="danger"
             />
             <div className="px-3 py-2.5">
-              <p className="text-[10px] font-semibold text-white/40 uppercase tracking-wide">
+              <p className="text-[10px] sm:text-xs font-semibold text-white/50 uppercase tracking-wider leading-tight">
                 {t('admin.health.success_rate')}
               </p>
-              <p className="text-lg font-semibold text-white tabular-nums mt-0.5">
+              <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight mt-0.5">
                 {webhookSuccessRate.toFixed(1)}%
               </p>
               <div className="w-full h-1 bg-white/10 rounded-full mt-2 overflow-hidden">
@@ -369,177 +373,190 @@ export default function SystemHealthTab() {
         </section>
       </div>
 
-      <div className="space-y-3">
-        <AdminPageHeader
-          title={t('admin.health.webhooks_title')}
-          subtitle={t('admin.health.webhooks_subtitle')}
-        />
+      {canSeeWebhooks && (
+        <div className="space-y-3">
+          {/* A part of the page, not a second page: a section heading. */}
+          <div>
+            <h3 className="text-sm font-semibold text-white">
+              {t('admin.health.webhooks_title')}
+            </h3>
+            <p className="text-xs text-white/45 mt-0.5">
+              {t('admin.health.webhooks_subtitle')}
+            </p>
+          </div>
 
-        <AdminFilterBar>
-          <FilterDropdown
-            label={t('admin.health.webhook_filter')}
-            value={webhookStatusFilter}
-            onChange={(v) => {
-              setWebhookStatusFilter(v);
-              setWebhookPage(1);
-              setExpandedWebhookId(null);
-            }}
-            options={[
-              {
-                value: 'FAILED',
-                label: t('admin.health.webhook_failed'),
-              },
-              {
-                value: 'PENDING',
-                label: t('admin.health.webhook_pending'),
-              },
-              {
-                value: '',
-                label: t('admin.shared.all'),
-              },
-            ]}
-          />
-        </AdminFilterBar>
-
-        <div className="rounded-lg border border-white/5 overflow-hidden">
-          {webhooksLoading ? (
-            <div className="p-3 sm:p-4 text-sm text-white/50 animate-pulse">
-              {t('admin.table.loading')}
-            </div>
-          ) : !webhookData || webhookData.data.length === 0 ? (
-            <AdminEmptyState
-              icon={Webhook}
-              title={t('admin.health.webhooks_empty')}
-              description={t('admin.health.webhooks_empty_description')}
-              compact
+          <AdminFilterBar>
+            <FilterDropdown
+              label={t('admin.health.webhook_filter')}
+              value={webhookStatusFilter}
+              onChange={(v) => {
+                setWebhookStatusFilter(v);
+                setWebhookPage(1);
+                setExpandedWebhookId(null);
+              }}
+              options={[
+                {
+                  value: 'FAILED',
+                  label: t('admin.health.webhook_failed'),
+                },
+                {
+                  value: 'PENDING',
+                  label: t('admin.health.webhook_pending'),
+                },
+                {
+                  value: '',
+                  label: t('admin.shared.all'),
+                },
+              ]}
             />
-          ) : (
-            <div className="divide-y divide-white/5">
-              {webhookData.data.map((event) => {
-                const isExpanded = expandedWebhookId === event.id;
-                const canReplay =
-                  event.status === 'FAILED' || event.status === 'PENDING';
+          </AdminFilterBar>
 
-                return (
-                  <div key={event.id} className="p-3.5">
-                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-white">
-                            {event.provider}
-                          </span>
-                          <span
-                            className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
-                              event.status === 'FAILED'
-                                ? 'bg-red-500/20 text-red-400'
-                                : event.status === 'PENDING'
-                                  ? 'bg-yellow-500/20 text-yellow-500'
-                                  : 'bg-green-500/20 text-green-500'
-                            }`}
-                          >
-                            {t(`admin.health.event_status.${event.status}`, {
-                              defaultValue: event.status,
-                            })}
-                          </span>
-                        </div>
-                        <p className="text-xs font-mono text-white/40 truncate mt-0.5">
-                          {event.externalId}
-                        </p>
-                        <p className="text-xs text-white/40 mt-1">
-                          {formatDateTime(event.createdAt, i18n.language)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        {canReplay && (
-                          <Button
-                            variant="secondary"
-                            size="compact"
-                            onClick={() => replayMutation.mutate(event.id)}
-                            isLoading={
-                              replayMutation.isPending &&
-                              replayMutation.variables === event.id
-                            }
-                            disabled={replayMutation.isPending}
-                            className="min-h-11 text-xs"
-                          >
-                            <RotateCcw size={14} className="mr-1.5 shrink-0" />
-                            {t('admin.health.replay')}
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() =>
-                            setExpandedWebhookId(isExpanded ? null : event.id)
-                          }
-                          className="min-h-11 min-w-11 text-white/50"
-                          aria-label={
-                            isExpanded
-                              ? t('common.collapse')
-                              : t('common.expand')
-                          }
-                        >
-                          {isExpanded ? (
-                            <ChevronUp size={18} />
-                          ) : (
-                            <ChevronDown size={18} />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                    {isExpanded && (
-                      <div className="mt-3 p-3 rounded-lg bg-white/3 text-xs space-y-2">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <div>
-                            <span className="text-white/40 uppercase tracking-wide font-semibold">
-                              {t('admin.health.provider')}
-                            </span>
-                            <p className="text-white font-mono mt-0.5">
+          <div className="rounded-lg border border-white/5 overflow-hidden">
+            {webhooksLoading ? (
+              <div className="p-3 sm:p-4 text-sm text-white/50 animate-pulse">
+                {t('admin.table.loading')}
+              </div>
+            ) : !webhookData || webhookData.data.length === 0 ? (
+              <AdminEmptyState
+                icon={Webhook}
+                title={t('admin.health.webhooks_empty')}
+                description={t('admin.health.webhooks_empty_description')}
+                compact
+              />
+            ) : (
+              <div className="divide-y divide-white/5">
+                {webhookData.data.map((event) => {
+                  const isExpanded = expandedWebhookId === event.id;
+                  const canReplay =
+                    event.status === 'FAILED' || event.status === 'PENDING';
+
+                  return (
+                    <div key={event.id} className="p-3.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-white">
                               {event.provider}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-white/40 uppercase tracking-wide font-semibold">
-                              {t('admin.health.external_id')}
                             </span>
-                            <p className="text-white font-mono mt-0.5 break-all">
-                              {event.externalId}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-white/40 uppercase tracking-wide font-semibold">
-                              {t('admin.health.status')}
-                            </span>
-                            <p className="text-white font-mono mt-0.5">
+                            <span
+                              className={`text-xs font-semibold uppercase px-2 py-0.5 rounded ${
+                                event.status === 'FAILED'
+                                  ? 'bg-red-500/20 text-red-400'
+                                  : event.status === 'PENDING'
+                                    ? 'bg-yellow-500/20 text-yellow-500'
+                                    : 'bg-green-500/20 text-green-500'
+                              }`}
+                            >
                               {t(`admin.health.event_status.${event.status}`, {
                                 defaultValue: event.status,
                               })}
-                            </p>
+                            </span>
                           </div>
-                        </div>
-                        {event.processedAt && (
-                          <p className="text-white/40">
-                            {t('admin.health.processed_at')}:{' '}
-                            {formatDateTime(event.processedAt, i18n.language)}
+                          <p className="text-xs font-mono text-white/40 truncate mt-0.5">
+                            {event.externalId}
                           </p>
-                        )}
+                          <p className="text-xs text-white/40 mt-1">
+                            {formatDateTime(event.createdAt, i18n.language)}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {canReplay && (
+                            <Button
+                              variant="secondary"
+                              size="compact"
+                              onClick={() => replayMutation.mutate(event.id)}
+                              isLoading={
+                                replayMutation.isPending &&
+                                replayMutation.variables === event.id
+                              }
+                              disabled={replayMutation.isPending}
+                              className="min-h-11 text-xs"
+                            >
+                              <RotateCcw
+                                size={14}
+                                className="mr-1.5 shrink-0"
+                              />
+                              {t('admin.health.replay')}
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              setExpandedWebhookId(isExpanded ? null : event.id)
+                            }
+                            className="min-h-11 min-w-11 text-white/50"
+                            aria-label={
+                              isExpanded
+                                ? t('common.collapse')
+                                : t('common.expand')
+                            }
+                          >
+                            {isExpanded ? (
+                              <ChevronUp size={18} />
+                            ) : (
+                              <ChevronDown size={18} />
+                            )}
+                          </Button>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-          {webhookData && webhookData.meta?.totalPages > 1 && (
-            <div className="p-2 border-t border-white/5">
-              <Pagination
-                meta={webhookData.meta}
-                onPageChange={setWebhookPage}
-              />
-            </div>
-          )}
+                      {isExpanded && (
+                        <div className="mt-3 p-3 rounded-lg bg-white/3 text-xs space-y-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            <div>
+                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                                {t('admin.health.provider')}
+                              </span>
+                              <p className="text-white font-mono mt-0.5">
+                                {event.provider}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                                {t('admin.health.external_id')}
+                              </span>
+                              <p className="text-white font-mono mt-0.5 break-all">
+                                {event.externalId}
+                              </p>
+                            </div>
+                            <div>
+                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                                {t('admin.health.status')}
+                              </span>
+                              <p className="text-white font-mono mt-0.5">
+                                {t(
+                                  `admin.health.event_status.${event.status}`,
+                                  {
+                                    defaultValue: event.status,
+                                  },
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                          {event.processedAt && (
+                            <p className="text-white/40">
+                              {t('admin.health.processed_at')}:{' '}
+                              {formatDateTime(event.processedAt, i18n.language)}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {webhookData && webhookData.meta?.totalPages > 1 && (
+              <div className="p-2 border-t border-white/5">
+                <Pagination
+                  meta={webhookData.meta}
+                  onPageChange={setWebhookPage}
+                />
+              </div>
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

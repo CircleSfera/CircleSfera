@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import UserDetailPanel from './UserDetailPanel';
 
@@ -80,6 +81,7 @@ const field = (label: string) =>
 
 describe('UserDetailPanel', () => {
   beforeEach(() => {
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.clearAllMocks();
     api.getUserDetail.mockResolvedValue({ data: dossier() } as never);
     api.getTrustScore.mockRejectedValue(new Error('none'));
@@ -332,6 +334,23 @@ describe('UserDetailPanel', () => {
     expect(
       screen.getByText('Linked accounts in cluster: 4'),
     ).toBeInTheDocument();
+  });
+
+  it('offers no bot label to a role that may only read', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'users.read',
+    } as never);
+    api.getLinkedAccounts.mockResolvedValue({
+      data: { clusterSize: 3, accounts: [] },
+    } as never);
+    show();
+
+    expect(
+      await screen.findByText('Linked accounts in cluster: 3'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Label as possible bot' }),
+    ).not.toBeInTheDocument();
   });
 
   it('labels an account as a possible bot only with a reason', async () => {

@@ -277,6 +277,13 @@ describe('staff panel navigation', () => {
     ).toHaveTextContent('6');
   });
 
+  it('does not ask for the queue of someone who may not read it', async () => {
+    show('posts', ['content']);
+
+    await openDrawer();
+    expect(api.getTrustQueue).not.toHaveBeenCalled();
+  });
+
   it('shows no count where nothing waits', async () => {
     show('users');
     await waitFor(() => expect(api.getTrustQueue).toHaveBeenCalled());

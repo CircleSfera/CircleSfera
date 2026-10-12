@@ -270,10 +270,10 @@ export default function RolesTab({ onToast }: Props) {
             {t('admin.operators.status_all')}
           </option>
           <option value="ACTIVE" className="bg-surface-raised">
-            ACTIVE
+            {t('admin.shared.status.active')}
           </option>
           <option value="DISABLED" className="bg-surface-raised">
-            DISABLED
+            {t('admin.shared.status.disabled')}
           </option>
         </select>
       </AdminFilterBar>
@@ -324,14 +324,14 @@ export default function RolesTab({ onToast }: Props) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Input
               type="email"
-              placeholder="email"
+              label={t('admin.operators.email_label')}
               value={createForm.email}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, email: e.target.value }))
               }
             />
             <Input
-              placeholder={t('admin.operators.display_name')}
+              label={t('admin.operators.display_name')}
               value={createForm.displayName}
               onChange={(e) =>
                 setCreateForm((f) => ({ ...f, displayName: e.target.value }))
@@ -424,8 +424,10 @@ export default function RolesTab({ onToast }: Props) {
           }
           detail={
             selected ? (
-              <div className="space-y-2.5 sm:space-y-3 p-1">
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2">
+              // One box, the pane: the parts of the record are sections under a
+              // thin line, not boxes of their own.
+              <div className="divide-y divide-white/5">
+                <div className="pb-4 space-y-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <h3 className="text-lg font-bold text-white">
@@ -455,7 +457,7 @@ export default function RolesTab({ onToast }: Props) {
                   </p>
                 </div>
 
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
+                <div className="py-4 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
                     {t('admin.operators.roles')}
                   </h4>
@@ -466,7 +468,7 @@ export default function RolesTab({ onToast }: Props) {
                   />
                 </div>
 
-                <div className="glass-panel rounded-lg p-2.5 sm:p-3 space-y-2.5">
+                <div className="py-4 space-y-2.5">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
                     {t('admin.operators.actions')}
                   </h4>
@@ -545,7 +547,7 @@ function RoleChecklist({
                 : [...selected, role.id];
               if (next.length) onChange(next);
             }}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+            className={`px-3 min-h-11 sm:min-h-9 rounded-lg text-xs font-semibold border transition-colors ${
               active
                 ? 'bg-brand-primary/15 text-white border-brand-primary/30'
                 : 'bg-white/5 text-white/50 border-white/10 hover:text-white'
