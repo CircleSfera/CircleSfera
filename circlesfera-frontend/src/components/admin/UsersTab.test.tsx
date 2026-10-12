@@ -148,7 +148,7 @@ describe('UsersTab', () => {
 
     const first = await waitFor(() => rowOf('@person_1'));
     expect(within(first).getByText('1@example.com')).toBeInTheDocument();
-    expect(within(first).getByText(/User · 3 posts/)).toBeInTheDocument();
+    expect(within(first).getByText(/^3 posts · /)).toBeInTheDocument();
     expect(within(first).getByText('Active')).toBeInTheDocument();
     // The ban is in the menu of the row, not a button of its own on it.
     expect(

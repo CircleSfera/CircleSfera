@@ -509,17 +509,16 @@ export default function Dashboard({ onToast }: Props) {
                       subtitle={user.email}
                       meta={
                         <>
-                          <span>
+                          {/* One short line that does not break: the role
+                              is said only when it is not the usual one. */}
+                          <span className="whitespace-nowrap">
                             {user.role === 'ADMIN'
-                              ? t('admin.users.role_admin')
-                              : t('admin.users.role_user')}{' '}
-                            ·{' '}
+                              ? `${t('admin.users.role_admin')} · `
+                              : ''}
                             {t('admin.users.posts_count', {
                               count: user.postCount,
-                            })}
-                          </span>
-                          <span>
-                            {formatDay(user.createdAt, i18n.language)}
+                            })}{' '}
+                            · {formatDay(user.createdAt, i18n.language)}
                           </span>
                           {user.suspendedUntil && (
                             <span className="text-amber-400/90">
