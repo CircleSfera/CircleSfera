@@ -447,16 +447,8 @@ describe('MonetizationTab', () => {
     screen.getByText(label).parentElement as HTMLElement;
   const tier = (label: string) =>
     screen.getByText(label).closest('.justify-between') as HTMLElement;
-  const tableRow = (text: string) =>
-    screen
-      .getAllByText(text)
-      .map((el) => el.closest('tr'))
-      .find(Boolean) as HTMLElement;
-  const phoneCard = (text: string) =>
-    screen
-      .getAllByText(text)
-      .map((el) => el.closest('.relative.flex'))
-      .find(Boolean) as HTMLElement;
+  const row = (text: string) =>
+    screen.getByText(text).closest('[data-admin-row]') as HTMLElement;
 
   beforeEach(() => {
     api.getMonetizationAnalytics.mockResolvedValue(analytics() as never);
@@ -499,10 +491,11 @@ describe('MonetizationTab', () => {
       },
       { timeout: 4000 },
     );
-    expect(card('Monthly recurring revenue')).toHaveTextContent('+25%');
-    expect(
-      screen.getByText('Subscription growth').closest('.flex-col'),
-    ).toHaveTextContent('+25%');
+    // The growth is of new subscriptions: it is on that figure, once.
+    expect(card('Active Subscriptions')).toHaveTextContent('+25%');
+    expect(card('Monthly recurring revenue')).not.toHaveTextContent('%');
+    expect(screen.getAllByText('+25%')).toHaveLength(1);
+    expect(screen.queryByText('Stripe API')).not.toBeInTheDocument();
 
     expect(tier('Premium')).toHaveTextContent('6 members');
     expect(tier('Premium')).toHaveTextContent('60%');
@@ -515,17 +508,24 @@ describe('MonetizationTab', () => {
   it.each([
     [-4, '-4%'],
     [0, '0%'],
-    [undefined, '—'],
   ])('writes a growth of %s as %s', async (subscriptionGrowth, text) => {
     api.getMonetizationAnalytics.mockResolvedValue(
       analytics({ subscriptionGrowth }) as never,
     );
     show();
 
-    const title = await screen.findByText('Subscription growth');
-    expect(
-      (title.closest('.flex-col') as HTMLElement).querySelector('.text-2xl'),
-    ).toHaveTextContent(text);
+    await screen.findByText('Active Subscriptions');
+    expect(card('Active Subscriptions')).toHaveTextContent(text);
+  });
+
+  it('says no growth when it is not known', async () => {
+    api.getMonetizationAnalytics.mockResolvedValue(
+      analytics({ subscriptionGrowth: undefined }) as never,
+    );
+    show();
+
+    await screen.findByText('Active Subscriptions');
+    expect(card('Active Subscriptions')).not.toHaveTextContent('%');
   });
 
   it('shows zeros with nobody subscribed, without dividing by zero', async () => {
@@ -548,7 +548,7 @@ describe('MonetizationTab', () => {
           amount: 50,
           status: 'FAILED',
           description: null,
-          type: 'TIP',
+          type: 'DIRECT_TIP',
           sender: { email: 'b@example.com', profile: null },
           receiver: null,
         }),
@@ -563,31 +563,28 @@ describe('MonetizationTab', () => {
     );
     show();
 
-    await screen.findAllByText('Plan a');
-    expect(phoneCard('Plan a')).toHaveTextContent('@payer_a → @creator');
-    expect(phoneCard('Plan a')).toHaveTextContent('9.99 EUR');
-    expect(within(phoneCard('Plan a')).getByText('COMPLETED')).toHaveClass(
-      'text-green-400',
-    );
-    expect(tableRow('@payer_a → @creator')).toHaveTextContent('9.99 EUR');
-    expect(tableRow('@payer_a → @creator')).toHaveTextContent('SUBSCRIPTION');
+    await screen.findByText('Plan a');
+    const a = row('Plan a');
+    expect(a).toHaveTextContent('€9.99 · SUBSCRIPTION');
+    expect(a).toHaveTextContent('@payer_a → @creator');
+    expect(within(a).getByText('Completed')).toHaveClass('text-green-400');
+    expect(a).not.toHaveTextContent('COMPLETED');
 
-    expect(phoneCard('b@example.com')).toHaveTextContent('TIP');
-    expect(phoneCard('b@example.com')).toHaveTextContent('0.50 EUR');
-    expect(within(phoneCard('b@example.com')).getByText('FAILED')).toHaveClass(
-      'text-red-400',
-    );
-    expect(tableRow('0.50 EUR')).toHaveTextContent('—');
+    // Who paid by e-mail when there is no handle, and nobody paid to.
+    const b = row('b@example.com');
+    expect(b).toHaveTextContent('€0.50 · Tip');
+    expect(b).not.toHaveTextContent('→');
+    expect(within(b).getByText('Failed')).toHaveClass('text-red-400');
 
-    expect(phoneCard('Refund c')).toHaveTextContent('@payer_c → @—');
-    expect(within(phoneCard('Refund c')).getByText('REFUNDED')).toHaveClass(
-      'text-purple-400',
-    );
-    expect(within(phoneCard('Odd e')).getByText('weird')).toHaveClass(
+    expect(row('Refund c')).toHaveTextContent('@payer_c');
+    expect(row('Refund c')).not.toHaveTextContent('→');
+    expect(within(row('Refund c')).getByText('Refunded')).toHaveClass(
       'text-white/50',
     );
-    expect(phoneCard('Wait d')).toHaveTextContent('—');
-    expect(within(phoneCard('Wait d')).getByText('PENDING')).toHaveClass(
+    // A state the panel has no word for is shown as stored.
+    expect(within(row('Odd e')).getByText('weird')).toBeInTheDocument();
+    expect(row('Wait d')).toHaveTextContent('—');
+    expect(within(row('Wait d')).getByText('Pending')).toHaveClass(
       'text-yellow-400',
     );
   });
@@ -597,7 +594,7 @@ describe('MonetizationTab', () => {
       Promise.resolve(list([tx(`t${pageNumber}`)], pageNumber, 3) as never),
     );
     show();
-    await screen.findAllByText('Plan t1');
+    await screen.findByText('Plan t1');
     expect(api.getTransactions).toHaveBeenCalledWith(
       1,
       20,
@@ -606,7 +603,7 @@ describe('MonetizationTab', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
-    await screen.findAllByText('Plan t2');
+    await screen.findByText('Plan t2');
 
     fireEvent.change(screen.getByRole('combobox', { name: 'Status' }), {
       target: { value: 'FAILED' },
