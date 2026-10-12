@@ -2222,6 +2222,7 @@
     "mobile_nav_subtitle": "Choose a section",
     "search": "Search",
     "search_placeholder": "Search a section...",
+    "search_people_placeholder": "Search a person or a section...",
     "nav": {
       "dashboard": "Dashboard",
       "analytics": "Analytics",
@@ -3714,7 +3715,6 @@
       "no_strikes": "No warnings or strikes."
     },
     "cmd": {
-      "placeholder": "Search sections or users...",
       "no_results": "No results for \"{{query}}\"",
       "go_to": "Go to {{section}}",
       "no_username": "(no username)",

@@ -35,6 +35,11 @@ export default function AdminShell({
   const { t } = useTranslation();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // The search finds people for who may read accounts, and sections for all:
+  // its button says which.
+  const canFindPeople = useAdminAuthStore((state) =>
+    state.hasPermission('users.read'),
+  );
   const activeItem = findAdminNavItem(activeTab);
 
   useEffect(() => {
@@ -136,7 +141,11 @@ export default function AdminShell({
             >
               <Search size={16} />
               <span className="hidden md:inline text-white/50 font-normal">
-                {t('admin.search_placeholder')}
+                {t(
+                  canFindPeople
+                    ? 'admin.search_people_placeholder'
+                    : 'admin.search_placeholder',
+                )}
               </span>
               <kbd className="hidden md:flex items-center gap-1 text-[10px] font-mono font-bold border border-white/10 bg-white/10 text-white/70 rounded px-1.5 py-0.5">
                 <Command size={10} /> K
