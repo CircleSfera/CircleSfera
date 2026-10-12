@@ -124,6 +124,12 @@ describe('CanvasOverlay', () => {
     drawn.node.scale = { x: 2, y: 0.5 };
   });
 
+  it('keeps the page still under the fingers that draw and move the pieces', () => {
+    show();
+
+    expect(drawn.stage.style).toEqual({ touchAction: 'none' });
+  });
+
   it('draws each kind of element at the size of the photo', () => {
     show({ overlays: [stroke, text, sticker] });
 
