@@ -380,6 +380,18 @@ const cases: Case[] = [
   ],
   ['deletePost', () => adminApi.deletePost('p1'), 'delete', ['admin/posts/p1']],
   [
+    'bulkDeletePosts',
+    () => adminApi.bulkDeletePosts(['a', 'b']),
+    'post',
+    ['admin/posts/bulk-delete', { ids: ['a', 'b'] }],
+  ],
+  [
+    'bulkDeleteComments',
+    () => adminApi.bulkDeleteComments(['a']),
+    'post',
+    ['admin/comments/bulk-delete', { ids: ['a'] }],
+  ],
+  [
     'exportPostsCSV',
     () => adminApi.exportPostsCSV(),
     'get',

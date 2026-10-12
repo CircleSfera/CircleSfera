@@ -9,7 +9,11 @@ import {
   it,
   vi,
 } from 'vitest';
-import { AdminGuard } from '../auth/guards/admin.guard.js';
+import {
+  ADMIN_STEP_UP_KEY,
+  AdminGuard,
+  STAFF_PERMISSIONS_KEY,
+} from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import {
   ADMIN_BEARER,
@@ -19,6 +23,7 @@ import {
   TEST_UUID,
 } from '../common/testing/http-controller.js';
 import { AdminContentController } from './admin-content.controller.js';
+import { BulkDeleteContentUseCase } from './use-cases/content/commands/bulk-delete-content.use-case.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
 import { DeleteStoryUseCase } from './use-cases/content/commands/delete-story.use-case.js';
@@ -56,6 +61,7 @@ describe('AdminContentController', () => {
     getTrustQueue: vi.fn(),
   };
   const deleteComment = { execute: vi.fn() };
+  const bulkDelete = { posts: vi.fn(), comments: vi.fn() };
   const deleteStory = { execute: vi.fn() };
   const getPromotions = { execute: vi.fn() };
   const reviewPromotion = { execute: vi.fn() };
@@ -75,6 +81,7 @@ describe('AdminContentController', () => {
         { provide: ReviewReportUseCase, useValue: reviewReport },
         { provide: GetContentQuery, useValue: getContent },
         { provide: DeleteCommentUseCase, useValue: deleteComment },
+        { provide: BulkDeleteContentUseCase, useValue: bulkDelete },
         { provide: DeleteStoryUseCase, useValue: deleteStory },
         { provide: GetPromotionsQuery, useValue: getPromotions },
         { provide: ReviewPromotionUseCase, useValue: reviewPromotion },
@@ -437,6 +444,67 @@ describe('AdminContentController', () => {
       .expect(401);
 
     expect(warnLiveHost.execute).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['posts', 'posts'],
+    ['comments', 'comments'],
+  ] as const)('deletes several %s at once as adminId', async (path, kind) => {
+    bulkDelete[kind].mockResolvedValue({ deleted: 2, failed: 0 });
+
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/admin/${path}/bulk-delete`)
+      .set(ADMIN_BEARER)
+      .send({ ids: ['a', 'b'] })
+      .expect(201);
+
+    expect(res.body).toEqual({ deleted: 2, failed: 0 });
+    expect(bulkDelete[kind]).toHaveBeenCalledWith(TEST_ADMIN.adminId, [
+      'a',
+      'b',
+    ]);
+  });
+
+  it.each([
+    ['no list', {}],
+    ['an empty list', { ids: [] }],
+    ['more than 50', { ids: Array.from({ length: 51 }, (_, i) => `id-${i}`) }],
+    ['the same item twice', { ids: ['a', 'a'] }],
+    ['an item with no name', { ids: ['a', ''] }],
+    ['something that is not a list', { ids: 'a' }],
+    ['a field that is not of the request', { ids: ['a'], reason: 'spam' }],
+  ])('refuses to delete several posts with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/posts/bulk-delete')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(bulkDelete.posts).not.toHaveBeenCalled();
+  });
+
+  it('marks both bulk deletions as needing the second confirmation, with the content permission', () => {
+    for (const route of ['bulkDeletePosts', 'bulkDeleteComments'] as const) {
+      const handler = AdminContentController.prototype[route];
+      expect(Reflect.getMetadata(ADMIN_STEP_UP_KEY, handler)).toBe(true);
+      expect(Reflect.getMetadata(STAFF_PERMISSIONS_KEY, handler)).toEqual([
+        'content',
+      ]);
+    }
+  });
+
+  it('deletes nothing in bulk without credentials', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/posts/bulk-delete')
+      .send({ ids: ['a'] })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/comments/bulk-delete')
+      .send({ ids: ['a'] })
+      .expect(401);
+
+    expect(bulkDelete.posts).not.toHaveBeenCalled();
+    expect(bulkDelete.comments).not.toHaveBeenCalled();
   });
 
   it('reads the trust queue and live list; ends a stream as adminId', async () => {

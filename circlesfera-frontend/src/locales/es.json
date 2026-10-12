@@ -2270,6 +2270,20 @@
       "prev_page": "Página anterior",
       "next_page": "Página siguiente"
     },
+    "bulk": {
+      "select_item": "Elegir este elemento",
+      "chosen_one": "{{count}} elegido",
+      "chosen_other": "{{count}} elegidos",
+      "delete_chosen": "Eliminar los elegidos",
+      "confirm_title_one": "¿Eliminar {{count}} elemento?",
+      "confirm_title_other": "¿Eliminar {{count}} elementos?",
+      "confirm_message": "Se eliminan para siempre. No se puede deshacer.",
+      "confirm_delete": "Eliminar",
+      "deleted_one": "{{count}} eliminado",
+      "deleted_other": "{{count}} eliminados",
+      "deleted_some": "{{deleted}} eliminados, {{failed}} no se pudieron",
+      "delete_error": "No se pudo eliminar nada"
+    },
     "shared": {
       "step_up_title": "Confirma que eres tú",
       "read_only_role": "Tu rol puede ver esto, pero no cambiarlo.",

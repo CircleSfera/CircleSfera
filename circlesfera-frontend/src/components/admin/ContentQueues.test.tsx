@@ -12,6 +12,8 @@ vi.mock('../../services/admin.service', () => ({
     getUserDetail: vi.fn(),
     getPosts: vi.fn(),
     deletePost: vi.fn(),
+    bulkDeletePosts: vi.fn(),
+    bulkDeleteComments: vi.fn(),
     exportPostsCSV: vi.fn(),
     getComments: vi.fn(),
     deleteComment: vi.fn(),
@@ -301,6 +303,41 @@ describe('PostsTab', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     expect(link).toHaveClass('min-h-11');
     expect(rowOf('Caption a')).toHaveClass('border-brand-primary/30');
+  });
+
+  it('deletes the chosen posts at once after asking, and reads the list again', async () => {
+    api.getPosts.mockResolvedValue(
+      list([post('a'), post('b'), post('c')]) as never,
+    );
+    api.bulkDeletePosts.mockResolvedValue({
+      data: { deleted: 2, failed: 0 },
+    } as never);
+    show();
+    await screen.findByText('Caption a');
+    const asked = api.getPosts.mock.calls.length;
+
+    const boxes = screen.getAllByRole('checkbox', { name: 'Choose this item' });
+    fireEvent.click(boxes[0]);
+    fireEvent.click(boxes[2]);
+    // Choosing a post does not open it: no row is the open one.
+    expect(document.querySelector('[aria-current="true"]')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete the chosen' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(api.bulkDeletePosts).toHaveBeenCalledWith(['a', 'c']),
+    );
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith('2 deleted', 'success'),
+    );
+    await waitFor(() =>
+      expect(api.getPosts.mock.calls.length).toBeGreaterThan(asked),
+    );
+    expect(api.deletePost).not.toHaveBeenCalled();
   });
 
   it('goes back to the list from the open post, by button or Escape', async () => {
@@ -648,6 +685,34 @@ describe('CommentsTab', () => {
     );
     expect(await screen.findByText('No comments')).toBeInTheDocument();
     expect(screen.queryByText('Comment detail')).not.toBeInTheDocument();
+  });
+
+  it('deletes every comment on screen at once after asking', async () => {
+    api.getComments.mockResolvedValue(
+      list([comment('a'), comment('b')]) as never,
+    );
+    api.bulkDeleteComments.mockResolvedValue({
+      data: { deleted: 2, failed: 0 },
+    } as never);
+    show();
+    await screen.findByText('Comment a');
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Select all' }));
+    expect(screen.getByText('2 chosen')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Delete the chosen' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Delete',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(api.bulkDeleteComments).toHaveBeenCalledWith(['a', 'b']),
+    );
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith('2 deleted', 'success'),
+    );
+    expect(api.deleteComment).not.toHaveBeenCalled();
   });
 
   it('goes back to the list from the open comment, by button or Escape', async () => {

@@ -2270,6 +2270,20 @@
       "prev_page": "Previous page",
       "next_page": "Next page"
     },
+    "bulk": {
+      "select_item": "Choose this item",
+      "chosen_one": "{{count}} chosen",
+      "chosen_other": "{{count}} chosen",
+      "delete_chosen": "Delete the chosen",
+      "confirm_title_one": "Delete {{count}} item?",
+      "confirm_title_other": "Delete {{count}} items?",
+      "confirm_message": "They are deleted for good. It cannot be undone.",
+      "confirm_delete": "Delete",
+      "deleted_one": "{{count}} deleted",
+      "deleted_other": "{{count}} deleted",
+      "deleted_some": "{{deleted}} deleted, {{failed}} could not be",
+      "delete_error": "Nothing could be deleted"
+    },
     "shared": {
       "step_up_title": "Confirm it is you",
       "read_only_role": "Your role can see this, not change it.",

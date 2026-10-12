@@ -22,6 +22,7 @@ import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
+import { useBulkDelete } from './useBulkDelete';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -67,6 +68,15 @@ export default function CommentsTab({ onToast }: Props) {
   // A comment that left the list (hidden, another page) is no longer open.
   const selected = comments.find((c) => c.id === selectedId) ?? null;
   const queryClient = useQueryClient();
+  const bulk = useBulkDelete({
+    ids: comments.map((comment) => comment.id),
+    remove: adminApi.bulkDeleteComments,
+    onDone: () => {
+      setSelectedId(null);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'comments'] });
+    },
+    onToast,
+  });
 
   const mutation = useMutation({
     mutationFn: async (args: { id: string; action: 'delete' | 'hide' }) => {
@@ -191,47 +201,56 @@ export default function CommentsTab({ onToast }: Props) {
                   compact
                 />
               ) : (
-                comments.map((comment) => (
-                  <AdminListRow
-                    key={comment.id}
-                    onClick={() => setSelectedId(comment.id)}
-                    selected={selectedId === comment.id}
-                    title={comment.content || noContent}
-                    subtitle={`@${
-                      comment.user?.profile?.username ||
-                      t('admin.shared.unknown')
-                    } • ${formatDay(comment.createdAt, i18n.language)}`}
-                    avatar={
-                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50">
-                        {comment.user?.profile?.username
-                          ?.charAt(0)
-                          .toUpperCase() || '?'}
-                      </div>
-                    }
-                    primaryAction={
-                      <div className="flex gap-1">
-                        <ActionButton
-                          onClick={() =>
-                            mutation.mutate({ id: comment.id, action: 'hide' })
-                          }
-                          label={t('admin.comments.action_hide')}
-                          variant="ghost"
-                          icon={Ban}
-                          disabled={mutation.isPending}
-                          iconOnly
-                        />
-                        <ActionButton
-                          onClick={() => setConfirmDelete(comment.id)}
-                          label={t('admin.comments.action_delete')}
-                          variant="danger"
-                          icon={Trash2}
-                          disabled={mutation.isPending}
-                          iconOnly
-                        />
-                      </div>
-                    }
-                  />
-                ))
+                <>
+                  {bulk.bar}
+                  {comments.map((comment) => (
+                    <AdminListRow
+                      key={comment.id}
+                      onClick={() => setSelectedId(comment.id)}
+                      selected={selectedId === comment.id}
+                      title={comment.content || noContent}
+                      subtitle={`@${
+                        comment.user?.profile?.username ||
+                        t('admin.shared.unknown')
+                      } • ${formatDay(comment.createdAt, i18n.language)}`}
+                      avatar={
+                        <div className="flex items-start gap-2">
+                          {bulk.box(comment.id)}
+                          <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/50">
+                            {comment.user?.profile?.username
+                              ?.charAt(0)
+                              .toUpperCase() || '?'}
+                          </div>
+                        </div>
+                      }
+                      primaryAction={
+                        <div className="flex gap-1">
+                          <ActionButton
+                            onClick={() =>
+                              mutation.mutate({
+                                id: comment.id,
+                                action: 'hide',
+                              })
+                            }
+                            label={t('admin.comments.action_hide')}
+                            variant="ghost"
+                            icon={Ban}
+                            disabled={mutation.isPending}
+                            iconOnly
+                          />
+                          <ActionButton
+                            onClick={() => setConfirmDelete(comment.id)}
+                            label={t('admin.comments.action_delete')}
+                            variant="danger"
+                            icon={Trash2}
+                            disabled={mutation.isPending}
+                            iconOnly
+                          />
+                        </div>
+                      }
+                    />
+                  ))}
+                </>
               )}
             </div>
             <div className="shrink-0">
@@ -298,6 +317,7 @@ export default function CommentsTab({ onToast }: Props) {
         isDestructive={true}
         isLoading={mutation.isPending}
       />
+      {bulk.dialogs}
     </div>
   );
 }
