@@ -154,5 +154,73 @@ describe('AdminStatsService: the audit log by staff member and by account', () =
     await service.getAuditLogs();
 
     expect(prisma.adminAuditLog.findMany.mock.calls[0][0].where).toEqual({});
+describe('AdminStatsService: the week of the Backoffice home', () => {
+  const counted = () => {
+    const count = vi.fn(
+      async ({ where }: { where: Record<string, { lt?: Date }> }) =>
+        Object.values(where)[0].lt ? 1 : 3,
+    );
+    return { count };
+  };
+  const build = () => {
+    const prisma = {
+      platformSubscription: counted(),
+      paymentDispute: counted(),
+      supportTicket: counted(),
+      promotion: counted(),
+    };
+    return {
+      prisma,
+      service: new AdminStatsService(prisma as never, {} as never),
+    };
+  };
+
+  it('counts what came in the last seven days against the seven before', async () => {
+    const { service, prisma } = build();
+
+    const week = await service.getOverviewWeek({
+      payments: true,
+      support: true,
+      promotions: true,
+    });
+
+    const pair = { current: 3, previous: 1 };
+    expect(week).toEqual({
+      subscriptions: pair,
+      disputes: pair,
+      tickets: pair,
+      promotions: pair,
+    });
+    // A dispute is dated by the day it was opened, not the day it was stored.
+    expect(
+      Object.keys(prisma.paymentDispute.count.mock.calls[0][0].where),
+    ).toEqual(['openedAt']);
+    const [current, previous] = prisma.supportTicket.count.mock.calls.map(
+      ([arg]) => arg.where.createdAt as { gte: Date; lt?: Date },
+    );
+    const day = 24 * 60 * 60 * 1000;
+    expect(current.lt).toBeUndefined();
+    expect(previous.lt?.getTime()).toBe(current.gte.getTime());
+    expect(current.gte.getTime() - previous.gte.getTime()).toBe(7 * day);
+  });
+
+  it('asks for and answers only the parts the staff member may see', async () => {
+    const { service, prisma } = build();
+
+    const week = await service.getOverviewWeek({
+      payments: false,
+      support: true,
+      promotions: false,
+    });
+
+    expect(week).toEqual({
+      subscriptions: undefined,
+      disputes: undefined,
+      tickets: { current: 3, previous: 1 },
+      promotions: undefined,
+    });
+    expect(prisma.platformSubscription.count).not.toHaveBeenCalled();
+    expect(prisma.paymentDispute.count).not.toHaveBeenCalled();
+    expect(prisma.promotion.count).not.toHaveBeenCalled();
   });
 });

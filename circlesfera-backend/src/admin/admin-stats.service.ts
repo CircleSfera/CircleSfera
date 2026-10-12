@@ -507,6 +507,55 @@ export class AdminStatsService {
 
   // Audit Logs
 
+  // What came in during the last seven days against the seven before, for
+  // the parts of the Backoffice home the staff member may see.
+  async getOverviewWeek(parts: {
+    payments: boolean;
+    support: boolean;
+    promotions: boolean;
+  }) {
+    const now = Date.now();
+    const week = 7 * 24 * 60 * 60 * 1000;
+    const thisWeek = { gte: new Date(now - week) };
+    const weekBefore = {
+      gte: new Date(now - 2 * week),
+      lt: new Date(now - week),
+    };
+    const pair = async (
+      count: (range: Prisma.DateTimeFilter) => Promise<number>,
+    ) => {
+      const [current, previous] = await Promise.all([
+        count(thisWeek),
+        count(weekBefore),
+      ]);
+      return { current, previous };
+    };
+
+    const [subscriptions, disputes, tickets, promotions] = await Promise.all([
+      parts.payments
+        ? pair((createdAt) =>
+            this.prisma.platformSubscription.count({ where: { createdAt } }),
+          )
+        : undefined,
+      parts.payments
+        ? pair((openedAt) =>
+            this.prisma.paymentDispute.count({ where: { openedAt } }),
+          )
+        : undefined,
+      parts.support
+        ? pair((createdAt) =>
+            this.prisma.supportTicket.count({ where: { createdAt } }),
+          )
+        : undefined,
+      parts.promotions
+        ? pair((createdAt) =>
+            this.prisma.promotion.count({ where: { createdAt } }),
+          )
+        : undefined,
+    ]);
+    return { subscriptions, disputes, tickets, promotions };
+  }
+
   async getAuditLogs(
     page = 1,
     limit = 20,

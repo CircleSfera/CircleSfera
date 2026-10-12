@@ -25,6 +25,7 @@ describe('AdminStatsController', () => {
   const mockService = {
     getEnhancedStats: vi.fn(),
     getAuditLogs: vi.fn(),
+    getOverviewWeek: vi.fn(),
     getActivityChart: vi.fn(),
     getTopUsers: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
@@ -120,6 +121,26 @@ describe('AdminStatsController', () => {
       10,
       expect.objectContaining({ adminId: staff, targetId: account }),
     );
+  it('answers the week of the Backoffice home, and refuses it without credentials', async () => {
+    mockService.getOverviewWeek.mockResolvedValue({ tickets: { current: 1 } });
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/overview/week')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/overview/week')
+      .expect(401);
+
+    expect(res.body).toEqual({ tickets: { current: 1 } });
+    expect(mockService.getOverviewWeek).toHaveBeenCalledTimes(1);
+    // The parts asked for are the ones the staff member holds.
+    const parts = mockService.getOverviewWeek.mock.calls[0][0];
+    expect(Object.keys(parts).sort()).toEqual([
+      'payments',
+      'promotions',
+      'support',
+    ]);
   });
 
   it('lists audit logs with default pagination and filters', async () => {

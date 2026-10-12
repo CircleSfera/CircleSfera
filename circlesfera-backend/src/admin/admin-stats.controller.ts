@@ -1,7 +1,12 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
+import {
   AdminGuard,
   RequireStaffPermissions,
+  staffHoldsPermission,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminStatsService } from './admin-stats.service.js';
@@ -19,6 +24,18 @@ export class AdminStatsController {
   @Get('stats/enhanced')
   async getEnhancedStats() {
     return this.adminStatsService.getEnhancedStats();
+  }
+
+  // The home of the Backoffice has no permission of its own: whoever may
+  // open one of its sections gets the parts of those sections, and no other.
+  @Get('overview/week')
+  @RequireStaffPermissions('payments', 'support', 'content')
+  async getOverviewWeek(@CurrentAdmin() admin: CurrentAdminData) {
+    return this.adminStatsService.getOverviewWeek({
+      payments: staffHoldsPermission(admin, 'payments'),
+      support: staffHoldsPermission(admin, 'support'),
+      promotions: staffHoldsPermission(admin, 'content'),
+    });
   }
 
   @Get('audit-logs')
