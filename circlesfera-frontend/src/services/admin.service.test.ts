@@ -140,6 +140,8 @@ const cases: Case[] = [
     () => adminApi.getOverviewWeek('support'),
     'get',
     ['/admin/overview/week/support'],
+  ],
+  [
     'getOpenSessions',
     () => adminApi.getOpenSessions('u1'),
     'get',
