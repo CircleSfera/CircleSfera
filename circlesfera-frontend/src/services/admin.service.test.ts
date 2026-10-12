@@ -191,12 +191,6 @@ const cases: Case[] = [
     ['admin/users/u1/restore'],
   ],
   [
-    'updateUserRole',
-    () => adminApi.updateUserRole('u1', 'USER'),
-    'patch',
-    ['/admin/users/u1/role', { role: 'USER' }],
-  ],
-  [
     'revokeUserKYC',
     () => adminApi.revokeUserKYC('u1'),
     'post',

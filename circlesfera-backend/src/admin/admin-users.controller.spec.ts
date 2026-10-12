@@ -263,7 +263,7 @@ describe('AdminUsersController', () => {
     await request(app.getHttpServer())
       .patch('/api/v1/admin/users/user-2/role')
       .set(ADMIN_BEARER)
-      .send({ role: 'MODERATOR' })
+      .send({ role: 'USER' })
       .expect(200);
     await request(app.getHttpServer())
       .patch('/api/v1/admin/users/user-2/status')
@@ -282,7 +282,7 @@ describe('AdminUsersController', () => {
     expect(mockService.updateUserRole).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,
       'user-2',
-      'MODERATOR',
+      'USER',
     );
     expect(mockService.updateUserStatus).toHaveBeenCalledWith(
       TEST_ADMIN.adminId,

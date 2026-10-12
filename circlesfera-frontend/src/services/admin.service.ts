@@ -905,9 +905,6 @@ export const adminApi = {
 
   restoreUser: (id: string) => apiClient.patch(`admin/users/${id}/restore`),
 
-  updateUserRole: (id: string, role: string) =>
-    apiClient.patch(`/admin/users/${id}/role`, { role }),
-
   revokeUserKYC: (id: string) => apiClient.post(`admin/users/${id}/revoke-kyc`),
 
   syncUserKYC: (id: string) =>

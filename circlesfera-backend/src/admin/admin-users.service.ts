@@ -21,7 +21,6 @@ import { UsersService } from '../users/users.service.js';
 import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
-import { UNUSED_STAFF_PASSWORD_HASH } from './staff-password.constants.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
 import { userListRoleWhere } from './utils/user-list-role-filter.js';
 
@@ -303,207 +302,34 @@ export class AdminUsersService {
     return result;
   }
 
-  // Deprecated: Platform User.role no longer grants Admin Panel access.
-  // Creates/activates a linked AdminIdentity with SUPER_ADMIN.
-  async promoteUser(adminId: string, userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const existing = await this.prisma.adminIdentity.findUnique({
-      where: { email: user.email },
-    });
-
-    let identityId: string;
-    if (existing) {
-      await this.prisma.adminIdentity.update({
-        where: { id: existing.id },
-        data: {
-          status: 'ACTIVE',
-          linkedUserId: user.id,
-        },
-      });
-      await this.prisma.adminIdentityRole.upsert({
-        where: {
-          adminId_roleId: { adminId: existing.id, roleId: 'arole_super' },
-        },
-        create: { adminId: existing.id, roleId: 'arole_super' },
-        update: {},
-      });
-      identityId = existing.id;
-    } else {
-      const created = await this.prisma.adminIdentity.create({
-        data: {
-          email: user.email,
-          passwordHash: UNUSED_STAFF_PASSWORD_HASH,
-          displayName: user.email.split('@')[0],
-          status: 'ACTIVE',
-          mfaRequired: true,
-          linkedUserId: user.id,
-          roles: { create: [{ roleId: 'arole_super' }] },
-        },
-      });
-      identityId = created.id;
-    }
-
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { role: 'USER' },
-    });
-
-    await this.logAction(
-      adminId,
-      AdminAction.ADMIN_IDENTITY_CREATED,
-      'admin',
-      identityId,
-      `Linked from platform user ${userId}; password must be set via bootstrap-admin`,
-    );
-    await this.invalidateProfileCache(userId);
-    return { adminIdentityId: identityId, email: user.email };
-  }
-
-  // Disables linked AdminIdentity for a platform user.
-  async demoteUser(adminId: string, userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    const identity = await this.prisma.adminIdentity.findFirst({
-      where: { OR: [{ linkedUserId: userId }, { email: user.email }] },
-    });
-
-    if (identity) {
-      await this.prisma.adminIdentity.update({
-        where: { id: identity.id },
-        data: { status: 'DISABLED' },
-      });
-      await this.prisma.adminRefreshToken.deleteMany({
-        where: { adminId: identity.id },
-      });
-      await this.logAction(
-        adminId,
-        AdminAction.ADMIN_IDENTITY_DISABLED,
-        'admin',
-        identity.id,
-      );
-    }
-
-    const result = await this.prisma.user.update({
-      where: { id: userId },
-      data: { role: 'USER' },
-    });
-    await this.logAction(adminId, AdminAction.DEMOTE_USER, 'user', userId);
-    await this.invalidateProfileCache(userId);
-    return result;
-  }
-
+  // Staff access is given from Operators, to who may manage operators. The
+  // role of an account gives none, so the only change left is back to the
+  // plain role, and it never creates, enables or disables an operator.
   async updateUserRole(adminId: string, userId: string, role: string) {
-    if (['ADMIN', 'MODERATOR', 'SUPPORT', 'FINANCE'].includes(role)) {
-      if (role === 'ADMIN') {
-        const targetUser = await this.prisma.user.findUnique({
-          where: { id: userId },
-        });
-        if (!targetUser) throw new NotFoundException('User not found');
-
-        const existing = await this.prisma.adminIdentity.findUnique({
-          where: { email: targetUser.email },
-        });
-        if (existing) {
-          if (existing.status !== 'ACTIVE') {
-            await this.prisma.adminIdentity.update({
-              where: { id: existing.id },
-              data: { status: 'ACTIVE' },
-            });
-            await this.logAction(
-              adminId,
-              AdminAction.ADMIN_IDENTITY_CREATED,
-              'admin',
-              existing.id,
-              'Re-activated AdminIdentity via user promotion',
-            );
-            return targetUser;
-          }
-          throw new BadRequestException(
-            'This user already has an AdminIdentity operator account',
-          );
-        }
-
-        const superAdminRole = await this.prisma.adminRole.findUnique({
-          where: { name: 'SUPER_ADMIN' },
-        });
-        if (!superAdminRole) {
-          throw new BadRequestException(
-            'SUPER_ADMIN role not found in database',
-          );
-        }
-
-        const crypto = await import('node:crypto');
-        const argon2 = await import('argon2');
-        const password = crypto.randomBytes(16).toString('hex');
-        const passwordHash = await argon2.hash(password);
-
-        await this.prisma.adminIdentity.create({
-          data: {
-            email: targetUser.email,
-            passwordHash,
-            displayName: targetUser.email.split('@')[0],
-            status: 'ACTIVE',
-            mfaRequired: true,
-            linkedUserId: targetUser.id,
-            roles: {
-              create: { roleId: superAdminRole.id },
-            },
-          },
-        });
-
-        await this.logAction(
-          adminId,
-          AdminAction.ADMIN_IDENTITY_CREATED,
-          'admin',
-          targetUser.id,
-          `Promoted user ${targetUser.email} to AdminIdentity operator`,
-        );
-
-        return targetUser;
-      }
+    if (role !== Role.USER) {
       throw new BadRequestException(
-        'Staff roles on User are deprecated. Use AdminIdentity / bootstrap-admin.',
+        'The role of an account gives no staff access. Add the person in Operators.',
       );
     }
-    if (role === 'USER') {
-      const existingIdentities = await this.prisma.adminIdentity.findMany({
-        where: { linkedUserId: userId, status: 'ACTIVE' },
-      });
-      if (existingIdentities.length > 0) {
-        await this.prisma.adminIdentity.updateMany({
-          where: { linkedUserId: userId },
-          data: { status: 'DISABLED' },
-        });
-        for (const identity of existingIdentities) {
-          await this.logAction(
-            adminId,
-            AdminAction.ADMIN_IDENTITY_DISABLED,
-            'admin',
-            identity.id,
-            `Demoted user and disabled their AdminIdentity`,
-          );
-        }
-      }
-    }
+
+    const existing = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!existing) throw new NotFoundException('User not found');
 
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: { role: role as any },
+      data: { role: Role.USER },
     });
     await this.logAction(
       adminId,
       AdminAction.UPDATE_USER_STATUS,
       'user',
       userId,
-      `Role changed to ${role}`,
+      'Role changed to USER',
     );
+    await this.invalidateProfileCache(userId);
     return user;
   }
 
