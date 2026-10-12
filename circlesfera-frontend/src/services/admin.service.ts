@@ -683,6 +683,25 @@ export interface TrustQueueResponse {
   ticketMttr: TrustQueueMttr;
 }
 
+export interface BroadcastMessage {
+  subject: string;
+  title: string;
+  content: string;
+  buttonText?: string;
+  buttonUrl?: string;
+}
+
+// One broadcast that was sent. The counts are unknown for an entry written
+// before they were kept.
+export interface BroadcastSend {
+  id: string;
+  subject: string;
+  sent: number | null;
+  failed: number | null;
+  sentBy: string | null;
+  createdAt: string;
+}
+
 export interface AdminLiveStream {
   id: string;
   title: string | null;
@@ -1108,6 +1127,20 @@ export const adminApi = {
     buttonText?: string;
     buttonUrl?: string;
   }) => apiClient.post('admin/broadcast', data),
+
+  // How many people a broadcast reaches.
+  getBroadcastRecipients: () =>
+    apiClient.get<{ count: number }>('admin/broadcast/recipients'),
+
+  // The message as written, only to the staff member who is signed in.
+  sendBroadcastTest: (data: BroadcastMessage) =>
+    apiClient.post<{ sentTo: string }>('admin/broadcast/test', data),
+
+  // The broadcasts sent so far, newest first.
+  getBroadcastHistory: (page = 1, limit = 10) =>
+    apiClient.get<PaginatedResponse<BroadcastSend>>('admin/broadcast/history', {
+      params: { page, limit },
+    }),
 
   // Moderation
   getModerationQueue: (page = 1, limit = 10, type?: string, search?: string) =>

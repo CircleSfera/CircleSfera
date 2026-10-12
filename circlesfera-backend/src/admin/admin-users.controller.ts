@@ -46,6 +46,30 @@ export class AdminUsersController {
     return this.adminUsersService.sendBroadcastEmail(admin.adminId, dto);
   }
 
+  @Get('broadcast/recipients')
+  @RequireStaffPermissions('system')
+  async countBroadcastRecipients() {
+    return this.adminUsersService.countBroadcastRecipients();
+  }
+
+  @Post('broadcast/test')
+  @RequireStaffPermissions('system')
+  async sendBroadcastTest(
+    @Body() dto: BroadcastEmailDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.sendBroadcastTest(admin.adminId, dto);
+  }
+
+  @Get('broadcast/history')
+  @RequireStaffPermissions('system')
+  async getBroadcastHistory(@Query() query: AdminQueryDto) {
+    return this.adminUsersService.getBroadcastHistory(
+      query.page ?? 1,
+      query.limit ?? 10,
+    );
+  }
+
   @RequireStaffPermissions('users.read')
   @Get('users/export')
   async exportUsersCSV(@Res() res: Response) {

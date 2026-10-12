@@ -1,17 +1,24 @@
-import { AlertTriangle, CheckCircle2, Send } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CheckCircle2, Mail, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { adminApi } from '../../services/admin.service';
+import { adminApi, type BroadcastMessage } from '../../services/admin.service';
+import { formatDay, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Textarea } from '../ui';
+import { AdminEmptyState } from './AdminEmptyState';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
+import { Pagination } from './AdminTable';
 
 export default function NewsletterTab({
   onToast,
 }: {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const [historyPage, setHistoryPage] = useState(1);
   const [formData, setFormData] = useState({
     subject: '',
     title: '',
@@ -23,20 +30,56 @@ export default function NewsletterTab({
   const [showPreview, setShowPreview] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleSend = async () => {
-    if (!formData.subject || !formData.title || !formData.content) {
-      onToast(t('admin.newsletter.toast_required_fields'), 'error');
-      return;
-    }
+  const { data: recipients } = useQuery({
+    queryKey: ['admin', 'broadcast', 'recipients'],
+    queryFn: () => adminApi.getBroadcastRecipients().then((res) => res.data),
+  });
+  const { data: history } = useQuery({
+    queryKey: ['admin', 'broadcast', 'history', historyPage],
+    queryFn: () =>
+      adminApi.getBroadcastHistory(historyPage, 10).then((res) => res.data),
+  });
+  const people =
+    recipients === undefined
+      ? undefined
+      : formatNumber(recipients.count, i18n.language);
 
-    setConfirmOpen(true);
+  // The message as the server takes it: an empty button is no button.
+  const message = (): BroadcastMessage => ({
+    subject: formData.subject.trim(),
+    title: formData.title.trim(),
+    content: formData.content,
+    ...(formData.buttonText.trim() && {
+      buttonText: formData.buttonText.trim(),
+    }),
+    ...(formData.buttonUrl.trim() && { buttonUrl: formData.buttonUrl.trim() }),
+  });
+  const complete = () => {
+    if (formData.subject && formData.title && formData.content) return true;
+    onToast(t('admin.newsletter.toast_required_fields'), 'error');
+    return false;
+  };
+
+  const testMutation = useMutation({
+    mutationFn: () =>
+      adminApi.sendBroadcastTest(message()).then((res) => res.data),
+    onSuccess: ({ sentTo }) =>
+      onToast(
+        t('admin.newsletter.toast_test_sent', { email: sentTo }),
+        'success',
+      ),
+    onError: () => onToast(t('admin.newsletter.toast_test_error'), 'error'),
+  });
+
+  const handleSend = async () => {
+    if (complete()) setConfirmOpen(true);
   };
 
   const executeSend = async () => {
     setConfirmOpen(false);
     setIsSending(true);
     try {
-      await adminApi.sendBroadcast(formData);
+      await adminApi.sendBroadcast(message());
       onToast(t('admin.newsletter.toast_sent'), 'success');
       setFormData({
         subject: '',
@@ -44,6 +87,10 @@ export default function NewsletterTab({
         content: '',
         buttonText: '',
         buttonUrl: '',
+      });
+      setHistoryPage(1);
+      void queryClient.invalidateQueries({
+        queryKey: ['admin', 'broadcast', 'history'],
       });
     } catch (error) {
       console.error(error);
@@ -186,17 +233,15 @@ export default function NewsletterTab({
         </div>
       </div>
 
-      <div className="bg-orange-500/5 border border-orange-500/20 rounded-lg p-4 flex items-start gap-3">
-        <AlertTriangle className="text-orange-500 shrink-0 mt-0.5" size={18} />
-        <div>
-          <h4 className="text-orange-500 text-xs font-semibold uppercase tracking-wide mb-1">
-            {t('admin.newsletter.security_title')}
-          </h4>
-          <p className="text-white/70 text-xs leading-relaxed">
-            {t('admin.newsletter.security_description')}
-          </p>
-        </div>
-      </div>
+      {/* What is about to happen, said with its number. */}
+      <p className="text-sm text-white/70">
+        {people === undefined
+          ? t('admin.newsletter.reach_unknown')
+          : t('admin.newsletter.reach', {
+              count: recipients?.count ?? 0,
+              people,
+            })}
+      </p>
 
       <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
         <Button
@@ -208,6 +253,19 @@ export default function NewsletterTab({
           {showPreview
             ? t('admin.newsletter.edit_content')
             : t('admin.newsletter.preview')}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            if (complete()) testMutation.mutate();
+          }}
+          disabled={testMutation.isPending || isSending}
+          isLoading={testMutation.isPending}
+          className="min-h-11 text-sm w-full sm:w-auto"
+        >
+          <Mail size={16} className="mr-2" />
+          {t('admin.newsletter.send_test')}
         </Button>
         <Button
           onClick={handleSend}
@@ -233,11 +291,54 @@ export default function NewsletterTab({
         onClose={() => setConfirmOpen(false)}
         onConfirm={executeSend}
         title={t('admin.newsletter.confirm_title')}
-        message={t('admin.newsletter.confirm_message')}
+        message={
+          people === undefined
+            ? t('admin.newsletter.confirm_message')
+            : t('admin.newsletter.confirm_message_count', {
+                count: recipients?.count ?? 0,
+                people,
+              })
+        }
         confirmText={t('admin.newsletter.confirm_send')}
         cancelText={t('admin.shared.cancel')}
         isDestructive={false}
       />
+
+      <section className="space-y-2 pt-2">
+        <h3 className="text-sm sm:text-base font-semibold text-white">
+          {t('admin.newsletter.history_title')}
+        </h3>
+        {history && history.data.length === 0 ? (
+          <AdminEmptyState
+            title={t('admin.newsletter.history_empty')}
+            compact
+          />
+        ) : (
+          <div className="space-y-2">
+            {history?.data.map((send) => (
+              <AdminListRow
+                key={send.id}
+                title={send.subject || t('admin.newsletter.preview_no_subject')}
+                subtitle={
+                  send.sent === null
+                    ? undefined
+                    : t('admin.newsletter.history_counts', {
+                        sent: formatNumber(send.sent, i18n.language),
+                        failed: formatNumber(send.failed ?? 0, i18n.language),
+                      })
+                }
+                meta={
+                  <>
+                    <span>{formatDay(send.createdAt, i18n.language)}</span>
+                    {send.sentBy && <span>{send.sentBy}</span>}
+                  </>
+                }
+              />
+            ))}
+          </div>
+        )}
+        <Pagination meta={history?.meta} onPageChange={setHistoryPage} />
+      </section>
     </div>
   );
 }
