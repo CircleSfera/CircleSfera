@@ -48,8 +48,29 @@ export default function AdminShell({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Where the section starts, for the short notices: they appear beside the
+  // list of sections, never over it, also when a wide window centres the page.
+  const contentRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const root = document.documentElement;
+    const place = () => {
+      const content = contentRef.current;
+      if (!content) return;
+      root.style.setProperty(
+        '--admin-content-left',
+        `${Math.round(content.getBoundingClientRect().left)}px`,
+      );
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('resize', place);
+      root.style.removeProperty('--admin-content-left');
+    };
+  }, []);
+
   return (
-    <div className="min-h-dvh px-3 pb-5 pt-3 sm:px-5 sm:pt-4 sm:pb-6 lg:px-6 lg:pt-5 max-w-425 mx-auto text-white">
+    <div className="admin-shell min-h-dvh px-3 pb-5 pt-3 sm:px-5 sm:pt-4 sm:pb-6 lg:px-6 lg:pt-5 max-w-425 mx-auto text-white">
       {/* The first stop of the keyboard: past the search and the list of
           sections, straight to the section. Seen only while it has focus. */}
       <button
@@ -136,6 +157,7 @@ export default function AdminShell({
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start">
         <AdminSidebar activeTab={activeTab} onTabChange={onTabChange} />
         <main
+          ref={contentRef}
           id="admin-content"
           tabIndex={-1}
           className="flex-1 w-full min-w-0 space-y-1 focus:outline-none"

@@ -141,6 +141,23 @@ describe('staff panel navigation', () => {
     expect(screen.getByRole('main')).toHaveFocus();
   });
 
+  it('tells the short notices where the section starts, and follows the window', () => {
+    const left = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect');
+    left.mockReturnValue({ left: 300.4 } as DOMRect);
+    const { unmount } = show();
+    const root = document.documentElement.style;
+    expect(root.getPropertyValue('--admin-content-left')).toBe('300px');
+    expect(document.querySelector('.admin-shell')).toBeInTheDocument();
+
+    left.mockReturnValue({ left: 410 } as DOMRect);
+    fireEvent(window, new Event('resize'));
+    expect(root.getPropertyValue('--admin-content-left')).toBe('410px');
+
+    unmount();
+    expect(root.getPropertyValue('--admin-content-left')).toBe('');
+    left.mockRestore();
+  });
+
   it('lists every section of the Admin Panel to someone who may open them all', () => {
     show('users');
 
