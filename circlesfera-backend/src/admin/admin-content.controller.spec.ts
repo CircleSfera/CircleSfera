@@ -26,6 +26,7 @@ import { EndLiveStreamUseCase } from './use-cases/content/commands/end-live-stre
 import { ModerateContentUseCase } from './use-cases/content/commands/moderate-content.use-case.js';
 import { ReviewPromotionUseCase } from './use-cases/content/commands/review-promotion.use-case.js';
 import { ReviewReportUseCase } from './use-cases/content/commands/review-report.use-case.js';
+import { WarnLiveHostUseCase } from './use-cases/content/commands/warn-live-host.use-case.js';
 import { GetContentQuery } from './use-cases/content/queries/get-content.query.js';
 import { GetLiveStreamsQuery } from './use-cases/content/queries/get-live-streams.query.js';
 import { GetModerationQueueQuery } from './use-cases/content/queries/get-moderation-queue.query.js';
@@ -62,6 +63,7 @@ describe('AdminContentController', () => {
   const moderateContent = { execute: vi.fn() };
   const getLiveStreams = { execute: vi.fn() };
   const endLiveStream = { execute: vi.fn() };
+  const warnLiveHost = { execute: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -80,6 +82,7 @@ describe('AdminContentController', () => {
         { provide: ModerateContentUseCase, useValue: moderateContent },
         { provide: GetLiveStreamsQuery, useValue: getLiveStreams },
         { provide: EndLiveStreamUseCase, useValue: endLiveStream },
+        { provide: WarnLiveHostUseCase, useValue: warnLiveHost },
       ],
       guards: [
         { guard: AdminJwtAuthGuard, mode: 'admin' },
@@ -393,6 +396,47 @@ describe('AdminContentController', () => {
       'HIDDEN',
       'nsfw',
     );
+  });
+
+  it('warns the host of a broadcast with the reason trimmed, as adminId', async () => {
+    warnLiveHost.execute.mockResolvedValue({ success: true });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/live/live-1/warn')
+      .set(ADMIN_BEARER)
+      .send({ reason: '  Showing a phone number on screen ' })
+      .expect(201);
+
+    expect(warnLiveHost.execute).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'live-1',
+      'Showing a phone number on screen',
+    );
+  });
+
+  it.each([
+    ['no reason', {}],
+    ['a blank reason', { reason: '   ' }],
+    ['a reason of two letters', { reason: 'no' }],
+    ['a reason over 500 characters', { reason: 'x'.repeat(501) }],
+    ['a reason that is not text', { reason: 42 }],
+  ])('refuses a warning to a host with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/live/live-1/warn')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(warnLiveHost.execute).not.toHaveBeenCalled();
+  });
+
+  it('refuses a warning to a host without credentials', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/live/live-1/warn')
+      .send({ reason: 'Showing a phone number' })
+      .expect(401);
+
+    expect(warnLiveHost.execute).not.toHaveBeenCalled();
   });
 
   it('reads the trust queue and live list; ends a stream as adminId', async () => {

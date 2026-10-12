@@ -20,6 +20,7 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'appeal_decided', outcome: 'APPROVED' },
   { key: 'account_suspended', until: day },
   { key: 'account_warned' },
+  { key: 'live_host_warned', reason: 'Showing a phone number' },
   { key: 'bot_labeled' },
   { key: 'promotion_approved' },
   { key: 'promotion_rejected' },

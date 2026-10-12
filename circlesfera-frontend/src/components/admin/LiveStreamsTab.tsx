@@ -32,6 +32,7 @@ export default function LiveStreamsTab() {
     userId ? '' : 'LIVE',
   );
   const [confirmEndId, setConfirmEndId] = useState<string | null>(null);
+  const [warnHostId, setWarnHostId] = useState<string | null>(null);
   const [selectedStream, setSelectedStream] = useState<AdminLiveStream | null>(
     null,
   );
@@ -68,6 +69,18 @@ export default function LiveStreamsTab() {
     },
     onError: () => {
       adminToast(t('admin.live.toast_end_error'), 'error');
+    },
+  });
+
+  const warnHostMutation = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason: string }) =>
+      adminApi.warnLiveHost(id, reason),
+    onSuccess: () => {
+      setWarnHostId(null);
+      adminToast(t('admin.live.toast_warned'), 'success');
+    },
+    onError: () => {
+      adminToast(t('admin.live.toast_warn_error'), 'error');
     },
   });
 
@@ -193,6 +206,7 @@ export default function LiveStreamsTab() {
             <LiveStreamDetailPanel
               stream={selectedStream}
               onEndStream={(id) => setConfirmEndId(id)}
+              onWarnHost={(id) => setWarnHostId(id)}
             />
           )
         }
@@ -208,6 +222,23 @@ export default function LiveStreamsTab() {
         cancelText={t('admin.shared.cancel')}
         isDestructive={true}
         isLoading={endStreamMutation.isPending}
+      />
+
+      <ConfirmModal
+        isOpen={warnHostId !== null}
+        onClose={() => setWarnHostId(null)}
+        onConfirm={(reason) => {
+          if (warnHostId && reason)
+            warnHostMutation.mutate({ id: warnHostId, reason });
+        }}
+        title={t('admin.live.warn_host')}
+        message={t('admin.live.warn_host_message')}
+        confirmText={t('admin.live.warn_host_confirm')}
+        cancelText={t('admin.shared.cancel')}
+        isLoading={warnHostMutation.isPending}
+        showInput
+        inputRequired
+        inputLabel={t('admin.live.warn_host_reason')}
       />
     </div>
   );

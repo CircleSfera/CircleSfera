@@ -1,4 +1,4 @@
-import { Eye, Play, Square } from 'lucide-react';
+import { Eye, MessageSquareWarning, Play, Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AdminLiveStream } from '../../services/admin.service';
 import { formatDateTime } from '../../utils/format';
@@ -9,11 +9,16 @@ import { Button } from '../ui/Button';
 interface Props {
   stream: AdminLiveStream;
   onEndStream: (id: string) => void;
+  onWarnHost: (id: string) => void;
 }
 
 // The record of a broadcast, shown in the pane beside the list like every
 // other record: sections under a thin line, no boxes of their own.
-export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
+export default function LiveStreamDetailPanel({
+  stream,
+  onEndStream,
+  onWarnHost,
+}: Props) {
   const { t, i18n } = useTranslation();
   const isLive = stream.status === 'LIVE';
   const videoUrl = isLive ? stream.hlsUrl : stream.replayUrl;
@@ -127,14 +132,25 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
               <p className="text-xs text-white/50">
                 {t('admin.live.force_end_description')}
               </p>
-              <Button
-                variant="danger"
-                className="min-h-11"
-                onClick={() => onEndStream(stream.id)}
-              >
-                <Square size={16} className="mr-2 shrink-0" />
-                {t('admin.live.force_end_title')}
-              </Button>
+              {/* The warning comes first: it is the step before ending. */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  className="min-h-11"
+                  onClick={() => onWarnHost(stream.id)}
+                >
+                  <MessageSquareWarning size={16} className="mr-2 shrink-0" />
+                  {t('admin.live.warn_host')}
+                </Button>
+                <Button
+                  variant="danger"
+                  className="min-h-11"
+                  onClick={() => onEndStream(stream.id)}
+                >
+                  <Square size={16} className="mr-2 shrink-0" />
+                  {t('admin.live.force_end_title')}
+                </Button>
+              </div>
             </div>
           )}
         </div>

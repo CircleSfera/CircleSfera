@@ -24,6 +24,7 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { ReassignReportDto } from './dto/reassign-report.dto.js';
+import { WarnLiveHostDto } from './dto/warn-live-host.dto.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
 import { DeleteStoryUseCase } from './use-cases/content/commands/delete-story.use-case.js';
@@ -31,6 +32,7 @@ import { EndLiveStreamUseCase } from './use-cases/content/commands/end-live-stre
 import { ModerateContentUseCase } from './use-cases/content/commands/moderate-content.use-case.js';
 import { ReviewPromotionUseCase } from './use-cases/content/commands/review-promotion.use-case.js';
 import { ReviewReportUseCase } from './use-cases/content/commands/review-report.use-case.js';
+import { WarnLiveHostUseCase } from './use-cases/content/commands/warn-live-host.use-case.js';
 import { GetContentQuery } from './use-cases/content/queries/get-content.query.js';
 import { GetLiveStreamsQuery } from './use-cases/content/queries/get-live-streams.query.js';
 import { GetModerationQueueQuery } from './use-cases/content/queries/get-moderation-queue.query.js';
@@ -65,6 +67,8 @@ export class AdminContentController {
     private readonly getLiveStreamsQuery: GetLiveStreamsQuery,
     @Inject(EndLiveStreamUseCase)
     private readonly endLiveStreamUseCase: EndLiveStreamUseCase,
+    @Inject(WarnLiveHostUseCase)
+    private readonly warnLiveHostUseCase: WarnLiveHostUseCase,
   ) {}
 
   @RequireStaffPermissions('content')
@@ -310,5 +314,15 @@ export class AdminContentController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.endLiveStreamUseCase.execute(admin.adminId, id);
+  }
+
+  @Post('live/:id/warn')
+  @RequireStaffPermissions('live')
+  async warnLiveHost(
+    @Param('id') id: string,
+    @Body() body: WarnLiveHostDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.warnLiveHostUseCase.execute(admin.adminId, id, body.reason);
   }
 }
