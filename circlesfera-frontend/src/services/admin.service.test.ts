@@ -142,6 +142,18 @@ const cases: Case[] = [
     ['/admin/overview/week/support'],
   ],
   [
+    'getStaffNotes',
+    () => adminApi.getStaffNotes('u1'),
+    'get',
+    ['admin/users/u1/notes'],
+  ],
+  [
+    'addStaffNote',
+    () => adminApi.addStaffNote('u1', 'A shop'),
+    'post',
+    ['admin/users/u1/notes', { body: 'A shop' }],
+  ],
+  [
     'getOpenSessions',
     () => adminApi.getOpenSessions('u1'),
     'get',

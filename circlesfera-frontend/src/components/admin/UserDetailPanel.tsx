@@ -12,8 +12,9 @@ import {
   Radio,
   ScrollText,
   ShieldAlert,
+  StickyNote,
 } from 'lucide-react';
-import { type ReactNode, useState } from 'react';
+import { type ReactNode, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
@@ -105,6 +106,92 @@ function ActivityChip({
         </span>
       )}
     </button>
+  );
+}
+
+// What the staff knows about the account, left for the next staff member.
+// Notes are added, never edited or deleted, and the holder never sees them.
+function StaffNotes({ userId }: { userId: string }) {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const fieldId = useId();
+  const [draft, setDraft] = useState('');
+  const key = ['admin', 'staff-notes', userId];
+  const { data: notes } = useQuery({
+    queryKey: key,
+    queryFn: () => adminApi.getStaffNotes(userId).then((res) => res.data),
+  });
+  const add = useMutation({
+    mutationFn: () => adminApi.addStaffNote(userId, draft.trim()),
+    onSuccess: () => {
+      setDraft('');
+      void queryClient.invalidateQueries({ queryKey: key });
+    },
+    onError: () => adminToast(t('admin.user_preview.note_error'), 'error'),
+  });
+
+  return (
+    <section className="space-y-2.5">
+      <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">
+        <StickyNote size={12} />
+        {t('admin.user_preview.notes_title')}
+      </h4>
+      <p className="text-[11px] text-white/50 leading-snug">
+        {t('admin.user_preview.notes_hint')}
+      </p>
+      <form
+        className="space-y-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (draft.trim()) add.mutate();
+        }}
+      >
+        <label htmlFor={fieldId} className="sr-only">
+          {t('admin.user_preview.note_label')}
+        </label>
+        <textarea
+          id={fieldId}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          maxLength={2000}
+          rows={2}
+          placeholder={t('admin.user_preview.note_placeholder')}
+          className="w-full min-h-12 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/50 resize-y focus:outline-none focus:border-brand-primary/60"
+        />
+        <Button
+          type="submit"
+          variant="secondary"
+          size="sm"
+          className="min-h-11 sm:min-h-9 text-xs"
+          disabled={!draft.trim() || add.isPending}
+          isLoading={add.isPending}
+        >
+          {t('admin.user_preview.note_add')}
+        </Button>
+      </form>
+      {notes && notes.length === 0 && (
+        <p className="text-xs text-white/50">
+          {t('admin.user_preview.notes_empty')}
+        </p>
+      )}
+      {notes && notes.length > 0 && (
+        <ul className="divide-y divide-white/5">
+          {notes.map((note) => (
+            <li key={note.id} className="py-2 first:pt-0">
+              <p className="text-sm text-white whitespace-pre-wrap wrap-break-word">
+                {note.body}
+              </p>
+              <p className="mt-0.5 text-[11px] text-white/50">
+                {[
+                  note.author ?? t('admin.user_preview.note_no_author'),
+                  formatDateTime(note.createdAt, i18n.language),
+                ].join(' · ')}
+              </p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 
@@ -541,6 +628,8 @@ export default function UserDetailPanel({
       </section>
 
       <Sessions userId={userId} />
+
+      <StaffNotes userId={userId} />
 
       <section className="space-y-3">
         <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">

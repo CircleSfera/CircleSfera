@@ -12,6 +12,8 @@ vi.mock('../../services/admin.service', () => ({
     getUserDetail: vi.fn(),
     getTrustScore: vi.fn(),
     getLinkedAccounts: vi.fn(),
+    getStaffNotes: vi.fn(),
+    addStaffNote: vi.fn(),
     getOpenSessions: vi.fn(),
     closeUserSessions: vi.fn(),
     applyBotLabel: vi.fn(),
@@ -88,6 +90,7 @@ describe('UserDetailPanel', () => {
     api.getUserDetail.mockResolvedValue({ data: dossier() } as never);
     api.getTrustScore.mockRejectedValue(new Error('none'));
     api.getLinkedAccounts.mockRejectedValue(new Error('none'));
+    api.getStaffNotes.mockResolvedValue({ data: [] } as never);
     api.getOpenSessions.mockResolvedValue({ data: { open: 2 } } as never);
     api.applyBotLabel.mockResolvedValue({} as never);
     api.clearBotLabel.mockResolvedValue({} as never);
@@ -315,6 +318,80 @@ describe('UserDetailPanel', () => {
     expect(
       screen.queryByRole('button', { name: 'Close every session' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('lists the staff notes of the account with who wrote each, and says when there are none', async () => {
+    show();
+    expect(await screen.findByText('No notes yet.')).toBeInTheDocument();
+    expect(api.getStaffNotes).toHaveBeenCalledWith('user-1');
+  });
+
+  it('shows a note with its author, and one whose author is gone', async () => {
+    api.getStaffNotes.mockResolvedValue({
+      data: [
+        {
+          id: 'n2',
+          body: 'Called us: the account is a shop',
+          createdAt: '2026-03-10T11:00:00Z',
+          author: 'Ana Staff',
+        },
+        {
+          id: 'n1',
+          body: 'An older note',
+          createdAt: '2026-01-02T11:00:00Z',
+          author: null,
+        },
+      ],
+    } as never);
+    show();
+
+    const note = (await screen.findByText('Called us: the account is a shop'))
+      .parentElement as HTMLElement;
+    expect(note).toHaveTextContent(
+      /^Called us: the account is a shopAna Staff · /,
+    );
+    expect(screen.getByText('An older note').parentElement).toHaveTextContent(
+      'Staff member no longer here',
+    );
+    expect(screen.queryByText('No notes yet.')).not.toBeInTheDocument();
+  });
+
+  it('adds a note trimmed, empties the field and reads the notes again', async () => {
+    api.addStaffNote.mockResolvedValue({ data: {} } as never);
+    show();
+    await screen.findByText('No notes yet.');
+    const field = screen.getByLabelText('New note');
+    const add = screen.getByRole('button', { name: 'Add note' });
+    expect(add).toBeDisabled();
+    fireEvent.change(field, { target: { value: '   ' } });
+    expect(add).toBeDisabled();
+
+    fireEvent.change(field, { target: { value: '  The account is a shop ' } });
+    fireEvent.click(add);
+
+    await waitFor(() =>
+      expect(api.addStaffNote).toHaveBeenCalledWith(
+        'user-1',
+        'The account is a shop',
+      ),
+    );
+    await waitFor(() => expect(field).toHaveValue(''));
+    await waitFor(() => expect(api.getStaffNotes).toHaveBeenCalledTimes(2));
+  });
+
+  it('keeps what was written and says so when a note cannot be added', async () => {
+    api.addStaffNote.mockRejectedValue(new Error('no'));
+    show();
+    await screen.findByText('No notes yet.');
+    const field = screen.getByLabelText('New note');
+    fireEvent.change(field, { target: { value: 'A shop' } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add note' }));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('The note could not be added'),
+    );
+    expect(field).toHaveValue('A shop');
   });
 
   it('escapes the identifier it puts in the address', async () => {

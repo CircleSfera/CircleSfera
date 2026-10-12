@@ -94,6 +94,7 @@ model User {
   deviceSignals         DeviceSignal[]
   settings              UserSettings?
   linkedAdminIdentities AdminIdentity[] // Correlation only, never auth
+  staffNotes            StaffNote[]
   dataExportRequests    DataExportRequest[]
   pushSubscriptions     PushSubscription[]
   promotions            Promotion[]
@@ -1552,6 +1553,7 @@ model AdminIdentity {
   assignedReports   Report[]            @relation("ReportAssignedAdmin")
   issuedStrikes     ProfileStrike[]
   reviewedRiskCases RiskCase[]
+  staffNotes        StaffNote[]
 
   @@index([linkedUserId])
   @@index([status])
@@ -1631,6 +1633,25 @@ model AdminPasskey {
 
   @@index([adminId])
   @@map("admin_passkeys")
+}
+
+// A line a staff member leaves on an account for the rest of the staff. It is
+// never shown to the account holder. Notes are added, not edited or deleted.
+// It attaches to the account (User), where identity and data protection
+// attach: deleting the account deletes its notes.
+model StaffNote {
+  id        String   @id @default(uuid())
+  userId    String
+  // Null once the staff identity that wrote it is deleted.
+  authorId  String?
+  body      String
+  createdAt DateTime @default(now())
+
+  user   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  author AdminIdentity? @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@map("staff_notes")
 }
 
 model AdminAuditLog {

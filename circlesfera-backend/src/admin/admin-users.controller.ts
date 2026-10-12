@@ -26,6 +26,7 @@ import { AdminUsersService } from './admin-users.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
 import { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
+import { CreateStaffNoteDto } from './dto/staff-note.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
 import { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 
@@ -244,6 +245,24 @@ export class AdminUsersController {
   @Get('users/:id/detail')
   async getUserDetail(@Param('id') id: string) {
     return this.adminUsersService.getUserDetail(id);
+  }
+
+  @RequireStaffPermissions('users.read')
+  @Get('users/:id/notes')
+  async getStaffNotes(@Param('id') id: string) {
+    return this.adminUsersService.getStaffNotes(id);
+  }
+
+  // Whoever may read an account may leave a note on it: a note is not a
+  // sanction and changes nothing in the account.
+  @RequireStaffPermissions('users.read')
+  @Post('users/:id/notes')
+  async addStaffNote(
+    @Param('id') id: string,
+    @Body() dto: CreateStaffNoteDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.addStaffNote(admin.adminId, id, dto.body);
   }
 
   @RequireStaffPermissions('users.read')
