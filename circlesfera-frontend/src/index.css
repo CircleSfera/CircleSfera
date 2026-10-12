@@ -897,6 +897,17 @@ input[type="range"]::-moz-range-progress {
   }
 }
 
+/* A filter bar of the staff sites is one height from the width where it is
+   a row: the view buttons, the search field, a select and the main action
+   are all 36 px there. On a phone each keeps its own, larger size. */
+@media (min-width: 40rem) {
+  .admin-filter-bar
+    :is(input:not([type="checkbox"], [type="radio"]), select, button) {
+    height: 2.25rem;
+    min-height: 2.25rem;
+  }
+}
+
 /* The short notices of the app: at the bottom, just above the navigation
    bar on phones and beside the sidebar on desktop. All the same width, so
    several of them read as one column. */

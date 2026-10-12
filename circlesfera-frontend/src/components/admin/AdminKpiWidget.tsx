@@ -30,22 +30,26 @@ export function AdminKpiWidget({
           <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 leading-tight line-clamp-2">
             {title}
           </p>
-          <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
-            {value}
-          </p>
-          {trend && (
-            <p className="flex items-baseline gap-1.5 mt-0.5 sm:mt-1 text-[10px] sm:text-xs">
-              <span
-                className={`font-bold ${
-                  trend.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                }`}
-              >
-                {trend.value >= 0 ? '+' : ''}
-                {trend.value}%
-              </span>
-              <span className="text-white/50">{trend.label}</span>
+          {/* From sm the trend sits on the line of the figure, so a row of
+              figures is one height with or without it. */}
+          <div className="sm:flex sm:flex-wrap sm:items-baseline sm:gap-x-2">
+            <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
+              {value}
             </p>
-          )}
+            {trend && (
+              <p className="flex items-baseline gap-1.5 mt-0.5 sm:mt-0 text-[10px] sm:text-xs">
+                <span
+                  className={`font-bold ${
+                    trend.value >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {trend.value >= 0 ? '+' : ''}
+                  {trend.value}%
+                </span>
+                <span className="text-white/50">{trend.label}</span>
+              </p>
+            )}
+          </div>
         </div>
         <div
           className={`p-1.5 sm:p-2 rounded-md sm:rounded-lg border border-white/5 shrink-0 ${
