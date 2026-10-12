@@ -573,19 +573,6 @@ export class AdminStatsService {
     return { subscriptions, disputes, tickets, promotions };
   }
 
-  async getAuditLogs(
-    page = 1,
-    limit = 20,
-    filters?: {
-      action?: string;
-      search?: string;
-      from?: string;
-      to?: string;
-      adminId?: string;
-      targetId?: string;
-    },
-  ) {
-    const skip = (page - 1) * limit;
   // The filters of the audit log, shared by the list and by its export.
   private auditLogWhere(
     filters?: AuditLogFilters,

@@ -58,6 +58,8 @@ export class AdminStatsController {
       support: false,
       promotions: true,
     });
+  }
+
   @Get('audit-logs/export')
   @RequireStaffPermissions('audit')
   async exportAuditLogs(

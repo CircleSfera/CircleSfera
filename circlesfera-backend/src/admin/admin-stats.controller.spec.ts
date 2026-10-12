@@ -26,8 +26,8 @@ describe('AdminStatsController', () => {
   const mockService = {
     getEnhancedStats: vi.fn(),
     getAuditLogs: vi.fn(),
-    getOverviewWeek: vi.fn(),
     exportAuditLogsCSV: vi.fn(),
+    getOverviewWeek: vi.fn(),
     getActivityChart: vi.fn(),
     getTopUsers: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
@@ -147,6 +147,7 @@ describe('AdminStatsController', () => {
       expect(mockService.getOverviewWeek).toHaveBeenCalledWith(asked);
     },
   );
+
   it('hands the audit log as a file, with the filters asked and as adminId', async () => {
     mockService.exportAuditLogsCSV.mockResolvedValue('Date\n"x"');
     const account = '22222222-2222-4222-8222-222222222222';

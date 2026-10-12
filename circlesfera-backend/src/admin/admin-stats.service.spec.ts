@@ -171,24 +171,6 @@ describe('AdminStatsService: the week of the Backoffice home', () => {
       paymentDispute: counted(),
       supportTicket: counted(),
       promotion: counted(),
-describe('AdminStatsService: the audit log as a file', () => {
-  const entry = (over: object = {}) => ({
-    id: 'l1',
-    action: 'BAN_USER',
-    targetType: 'user',
-    targetId: 'account-1',
-    details: 'spam ring',
-    createdAt: new Date('2026-03-10T11:00:00Z'),
-    adminId: 'staff-1',
-    admin: { displayName: 'Ana Staff', email: 'ana@staff.test' },
-    ...over,
-  });
-  const build = (rows: object[]) => {
-    const prisma = {
-      adminAuditLog: {
-        findMany: vi.fn().mockResolvedValue(rows),
-        create: vi.fn().mockResolvedValue({}),
-      },
     };
     return {
       prisma,
@@ -243,6 +225,34 @@ describe('AdminStatsService: the audit log as a file', () => {
     expect(prisma.platformSubscription.count).not.toHaveBeenCalled();
     expect(prisma.paymentDispute.count).not.toHaveBeenCalled();
     expect(prisma.promotion.count).not.toHaveBeenCalled();
+  });
+});
+
+describe('AdminStatsService: the audit log as a file', () => {
+  const entry = (over: object = {}) => ({
+    id: 'l1',
+    action: 'BAN_USER',
+    targetType: 'user',
+    targetId: 'account-1',
+    details: 'spam ring',
+    createdAt: new Date('2026-03-10T11:00:00Z'),
+    adminId: 'staff-1',
+    admin: { displayName: 'Ana Staff', email: 'ana@staff.test' },
+    ...over,
+  });
+  const build = (rows: object[]) => {
+    const prisma = {
+      adminAuditLog: {
+        findMany: vi.fn().mockResolvedValue(rows),
+        create: vi.fn().mockResolvedValue({}),
+      },
+    };
+    return {
+      prisma,
+      service: new AdminStatsService(prisma as never, {} as never),
+    };
+  };
+
   it('writes one line per entry, newest first, with the filters of the list', async () => {
     const { service, prisma } = build([
       entry(),
