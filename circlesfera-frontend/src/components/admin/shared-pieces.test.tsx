@@ -81,6 +81,28 @@ describe('AdminListRow', () => {
     expect(onClick).toHaveBeenCalledTimes(2);
   });
 
+  it('puts its action beside its lines from the width where a row is dense, when asked', () => {
+    const { rerender } = renderWithProviders(
+      <AdminListRow
+        title="Ana"
+        primaryAction={<a href="https://example.com">Open</a>}
+      />,
+    );
+    const action = () =>
+      screen.getByRole('link', { name: 'Open' }).parentElement;
+    expect(action()).not.toHaveClass('sm:mt-0');
+
+    rerender(
+      <AdminListRow
+        title="Ana"
+        actionBeside
+        primaryAction={<a href="https://example.com">Open</a>}
+      />,
+    );
+    expect(action()).toHaveClass('sm:mt-0', 'sm:shrink-0');
+    expect(action()?.parentElement).toHaveClass('sm:flex');
+  });
+
   it('does not open the row when one of its actions is used', () => {
     const onClick = vi.fn();
     const onOpen = vi.fn();
