@@ -552,6 +552,52 @@ export class AdminUsersService {
     return { success: true };
   }
 
+  // The notes the staff left on an account, newest first.
+  async getStaffNotes(userId: string) {
+    const notes = await this.prisma.staffNote.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        author: { select: { displayName: true } },
+      },
+    });
+    return notes.map((note) => ({
+      id: note.id,
+      body: note.body,
+      createdAt: note.createdAt,
+      author: note.author?.displayName ?? null,
+    }));
+  }
+
+  // A note is added, never edited or deleted. It changes nothing in the
+  // account and is never shown to its holder.
+  async addStaffNote(adminId: string, userId: string, body: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+    const note = await this.prisma.staffNote.create({
+      data: { userId, authorId: adminId, body },
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        author: { select: { displayName: true } },
+      },
+    });
+    return {
+      id: note.id,
+      body: note.body,
+      createdAt: note.createdAt,
+      author: note.author?.displayName ?? null,
+    };
+  }
+
   // How many devices the account is signed in on: sessions that can still be
   // renewed.
   async countOpenSessions(userId: string) {

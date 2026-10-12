@@ -25,6 +25,8 @@ describe('AdminUsersController', () => {
 
   const mockService = {
     sendBroadcastEmail: vi.fn(),
+    getStaffNotes: vi.fn(),
+    addStaffNote: vi.fn(),
     countOpenSessions: vi.fn(),
     closeUserSessions: vi.fn(),
     countBroadcastRecipients: vi.fn(),
@@ -309,6 +311,56 @@ describe('AdminUsersController', () => {
 
     expect(mockService.closeUserSessions).not.toHaveBeenCalled();
     expect(mockService.countOpenSessions).not.toHaveBeenCalled();
+  });
+
+  it('reads the staff notes of an account and adds one, trimmed, as adminId', async () => {
+    mockService.getStaffNotes.mockResolvedValue([]);
+    mockService.addStaffNote.mockResolvedValue({ id: 'n1' });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/notes')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-1/notes')
+      .set(ADMIN_BEARER)
+      .send({ body: '  The account is a shop ' })
+      .expect(201);
+
+    expect(mockService.getStaffNotes).toHaveBeenCalledWith('user-1');
+    expect(mockService.addStaffNote).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-1',
+      'The account is a shop',
+    );
+  });
+
+  it.each([
+    ['no text', {}],
+    ['a blank text', { body: '   ' }],
+    ['a text over 2,000 characters', { body: 'x'.repeat(2001) }],
+    ['a field that is not of a note', { body: 'A shop', authorId: 'me' }],
+  ])('refuses a staff note with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-1/notes')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.addStaffNote).not.toHaveBeenCalled();
+  });
+
+  it('refuses the staff notes without credentials', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/notes')
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-1/notes')
+      .send({ body: 'A shop' })
+      .expect(401);
+
+    expect(mockService.getStaffNotes).not.toHaveBeenCalled();
+    expect(mockService.addStaffNote).not.toHaveBeenCalled();
   });
 
   it('bans, unbans and deletes as adminId', async () => {

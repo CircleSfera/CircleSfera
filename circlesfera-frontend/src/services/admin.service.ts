@@ -718,6 +718,15 @@ export interface OverviewWeek {
   promotions?: WeekCount;
 }
 
+// A line a staff member left on an account for the rest of the staff.
+export interface StaffNote {
+  id: string;
+  body: string;
+  createdAt: string;
+  // None once the staff identity that wrote it is gone.
+  author: string | null;
+}
+
 export interface AdminLiveStream {
   id: string;
   title: string | null;
@@ -891,6 +900,13 @@ export const adminApi = {
 
   getUserDetail: (id: string) =>
     apiClient.get<AdminUserDetail>(`admin/users/${id}/detail`),
+
+  // The notes the staff left on an account, newest first.
+  getStaffNotes: (id: string) =>
+    apiClient.get<StaffNote[]>(`admin/users/${id}/notes`),
+
+  addStaffNote: (id: string, body: string) =>
+    apiClient.post<StaffNote>(`admin/users/${id}/notes`, { body }),
 
   // How many devices the account is signed in on.
   getOpenSessions: (id: string) =>
