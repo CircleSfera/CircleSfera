@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   Trash2,
   UserCheck,
-  UserCog,
   Users,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -48,15 +47,7 @@ interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
-type ConfirmType =
-  | 'ban'
-  | 'unban'
-  | 'promote'
-  | 'demote'
-  | 'delete'
-  | 'warn'
-  | 'suspend'
-  | 'restore';
+type ConfirmType = 'ban' | 'unban' | 'delete' | 'warn' | 'suspend' | 'restore';
 
 function usernameOf(user: AdminUser) {
   return user.profile?.username || '';
@@ -80,7 +71,6 @@ export default function Dashboard({ onToast }: Props) {
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
   const canSanction = useAdminAuthStore((s) => s.hasPermission('users.ban'));
-  const canEdit = useAdminAuthStore((s) => s.hasPermission('users.write'));
 
   const [confirmAction, setConfirmAction] = useState<{
     type: ConfirmType | null;
@@ -200,10 +190,6 @@ export default function Dashboard({ onToast }: Props) {
           return adminApi.banUser(id);
         case 'unban':
           return adminApi.unbanUser(id);
-        case 'promote':
-          return adminApi.updateUserRole(id, 'ADMIN');
-        case 'demote':
-          return adminApi.updateUserRole(id, 'USER');
         case 'delete':
           return adminApi.deleteUser(id);
         case 'warn':
@@ -228,8 +214,6 @@ export default function Dashboard({ onToast }: Props) {
       const toastKey = {
         ban: 'admin.users.toast_banned',
         unban: 'admin.users.toast_unbanned',
-        promote: 'admin.users.toast_promoted',
-        demote: 'admin.users.toast_demoted',
         delete: 'admin.users.toast_deleted',
         warn: 'admin.users.toast_warned',
         suspend: 'admin.users.toast_suspended',
@@ -241,8 +225,6 @@ export default function Dashboard({ onToast }: Props) {
       const toastKey = {
         ban: 'admin.users.toast_ban_error',
         unban: 'admin.users.toast_unban_error',
-        promote: 'admin.users.toast_promote_error',
-        demote: 'admin.users.toast_demote_error',
         delete: 'admin.users.toast_delete_error',
         warn: 'admin.users.toast_warn_error',
         suspend: 'admin.users.toast_suspend_error',
@@ -290,22 +272,6 @@ export default function Dashboard({ onToast }: Props) {
       message: t('admin.users.confirm_unban_message'),
       confirmText: t('admin.users.confirm_unban_confirm'),
       destructive: false,
-    },
-    promote: {
-      title: t('admin.users.confirm_promote_title'),
-      message: t('admin.users.confirm_promote_message', {
-        username: confirmAction.username,
-      }),
-      confirmText: t('admin.users.confirm_promote_confirm'),
-      destructive: false,
-    },
-    demote: {
-      title: t('admin.users.confirm_demote_title'),
-      message: t('admin.users.confirm_demote_message', {
-        username: confirmAction.username,
-      }),
-      confirmText: t('admin.users.confirm_demote_confirm'),
-      destructive: true,
     },
     delete: {
       title: t('admin.users.confirm_delete_title'),
@@ -580,22 +546,6 @@ export default function Dashboard({ onToast }: Props) {
                                 label: t('admin.users.action_restore'),
                                 icon: UserCheck,
                                 onClick: () => askConfirm('restore', user),
-                              },
-                            ]
-                          : []),
-                        ...(canEdit
-                          ? [
-                              {
-                                label:
-                                  user.role === 'USER'
-                                    ? t('admin.users.action_promote_admin')
-                                    : t('admin.users.action_demote'),
-                                icon: UserCog,
-                                onClick: () =>
-                                  askConfirm(
-                                    user.role === 'USER' ? 'promote' : 'demote',
-                                    user,
-                                  ),
                               },
                             ]
                           : []),

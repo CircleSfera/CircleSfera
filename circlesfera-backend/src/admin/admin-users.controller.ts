@@ -102,11 +102,7 @@ export class AdminUsersController {
     @Body() data: { role: string },
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.adminUsersService.updateUserRole(
-      admin.adminId,
-      id,
-      data.role as any,
-    );
+    return this.adminUsersService.updateUserRole(admin.adminId, id, data.role);
   }
 
   @RequireStaffPermissions('users.write')

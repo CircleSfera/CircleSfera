@@ -12,7 +12,6 @@ vi.mock('../../services/admin.service', () => ({
     getEnhancedStats: vi.fn(),
     banUser: vi.fn(),
     unbanUser: vi.fn(),
-    updateUserRole: vi.fn(),
     deleteUser: vi.fn(),
     warnUser: vi.fn(),
     suspendUser: vi.fn(),
@@ -104,7 +103,6 @@ describe('UsersTab', () => {
     for (const call of [
       api.banUser,
       api.unbanUser,
-      api.updateUserRole,
       api.deleteUser,
       api.warnUser,
       api.suspendUser,
@@ -350,18 +348,6 @@ describe('UsersTab', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('offers who may sanction but not edit everything except the role change', async () => {
-    useAdminAuthStore.setState({
-      hasPermission: (key: string) => key !== 'users.write',
-    } as never);
-    api.getUsers.mockResolvedValue(list([user('1')]) as never);
-    show();
-
-    const menu = await menuOf('@person_1');
-    expect(menu).toContain('Ban');
-    expect(menu).not.toContain('Make admin');
-  });
-
   it('offers Restore only for a banned or currently suspended account', async () => {
     api.getUsers.mockResolvedValue(
       list([
@@ -501,38 +487,19 @@ describe('UsersTab', () => {
     expect(api.suspendUser).not.toHaveBeenCalled();
   });
 
-  it('creates and disables a panel operator after confirming', async () => {
+  it('never offers to give or take staff access, whatever the role of the account', async () => {
     api.getUsers.mockResolvedValue(
       list([user('1'), user('2', { role: 'ADMIN' })]) as never,
     );
     show();
 
-    await choose('@person_1', 'Create operator');
-    expect(
-      within(dialog()).getByText(
-        'Creates a panel operator for @person_1. Set the password in Operators (or bootstrap-admin).',
-      ),
-    ).toBeInTheDocument();
-    fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Create operator' }),
-    );
-    await waitFor(() =>
-      expect(api.updateUserRole).toHaveBeenCalledWith('1', 'ADMIN'),
-    );
-    await waitFor(() =>
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
-    );
-
-    await choose('@person_2', 'Disable linked operator');
-    fireEvent.click(
-      within(dialog()).getByRole('button', { name: 'Disable operator' }),
-    );
-    await waitFor(() =>
-      expect(api.updateUserRole).toHaveBeenCalledWith('2', 'USER'),
-    );
-    await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('AdminIdentity disabled', 'success'),
-    );
+    for (const handle of ['@person_1', '@person_2']) {
+      const menu = (await menuOf(handle)).join(' | ');
+      expect(menu).not.toMatch(/operator|admin|promote|demote/i);
+      fireEvent.keyDown(document.activeElement ?? document.body, {
+        key: 'Escape',
+      });
+    }
   });
 
   it('deletes an account after confirming and closes its detail', async () => {
