@@ -184,7 +184,11 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onListKeyDown}
-            placeholder={t('admin.cmd.placeholder')}
+            placeholder={t(
+              hasPermission('users.read')
+                ? 'admin.search_people_placeholder'
+                : 'admin.search_placeholder',
+            )}
             className="flex-1 min-w-0 min-h-11 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/50 text-base"
             aria-autocomplete="list"
             aria-controls="admin-cmd-listbox"

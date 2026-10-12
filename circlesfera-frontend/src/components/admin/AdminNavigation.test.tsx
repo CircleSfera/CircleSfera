@@ -158,6 +158,19 @@ describe('staff panel navigation', () => {
     left.mockRestore();
   });
 
+  it('says its search finds people only to who may read accounts', () => {
+    const { unmount } = show();
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveTextContent(
+      'Search a person or a section...',
+    );
+    unmount();
+
+    show('reports', ['reports']);
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveTextContent(
+      'Search a section...',
+    );
+  });
+
   it('lists every section of the Admin Panel to someone who may open them all', () => {
     show('users');
 
