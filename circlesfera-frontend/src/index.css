@@ -382,6 +382,16 @@ video {
   touch-action: auto;
 }
 
+/* Safari on an iPhone enlarges the page when a field under 16px takes the
+   focus. The page can be zoomed by the person, so nothing hides that. */
+@supports (-webkit-touch-callout: none) {
+  input:not([type="checkbox"], [type="radio"], [type="range"], [type="file"]),
+  textarea,
+  select {
+    font-size: max(16px, 1em);
+  }
+}
+
 /* Glass Panels */
 
 .glass-panel {
