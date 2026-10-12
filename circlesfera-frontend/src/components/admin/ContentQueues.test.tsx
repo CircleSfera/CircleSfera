@@ -117,8 +117,8 @@ describe('PostsTab', () => {
 
   it.each([
     ['All (recent)', undefined, undefined],
-    ['Posts', 'POST', undefined],
-    ['Frames', 'FRAME', undefined],
+    ['Posts', 'POST', 'FLAGGED'],
+    ['Frames', 'FRAME', 'FLAGGED'],
   ])('asks for "%s" when that group is chosen', async (label, type, status) => {
     show();
     await screen.findByText('No posts');
@@ -135,6 +135,33 @@ describe('PostsTab', () => {
         status,
       ),
     );
+  });
+
+  it('keeps the choice of all posts while the kind changes, and names both choices', async () => {
+    show();
+    await screen.findByText('No posts');
+
+    fireEvent.click(screen.getByRole('button', { name: 'All (recent)' }));
+    fireEvent.click(
+      within(screen.getByRole('group', { name: 'Kind of post' })).getByRole(
+        'button',
+        { name: 'Frames' },
+      ),
+    );
+
+    await waitFor(() =>
+      expect(api.getPosts).toHaveBeenLastCalledWith(
+        1,
+        10,
+        undefined,
+        'FRAME',
+        undefined,
+        undefined,
+      ),
+    );
+    expect(
+      screen.getByRole('group', { name: 'Which posts' }),
+    ).toBeInTheDocument();
   });
 
   it('searches from the first page and offers to clear an empty search', async () => {

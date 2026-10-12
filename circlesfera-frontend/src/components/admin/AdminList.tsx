@@ -187,6 +187,10 @@ export function AdminListRow({
                       role="menuitem"
                       disabled={action.disabled}
                       onClick={(e) => {
+                        // The entry goes away with the menu: its button takes
+                        // the focus first, so a dialog the action opens gives
+                        // it back there when it closes.
+                        triggerRef.current?.focus();
                         action.onClick(e);
                         setMenuOpen(false);
                       }}

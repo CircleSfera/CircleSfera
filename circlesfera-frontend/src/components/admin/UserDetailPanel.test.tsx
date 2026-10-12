@@ -357,7 +357,6 @@ describe('UserDetailPanel', () => {
     api.getLinkedAccounts.mockResolvedValue({
       data: { clusterSize: 1, accounts: [] },
     } as never);
-    const ask = vi.spyOn(window, 'prompt').mockReturnValue(null);
     show();
 
     const apply = await screen.findByRole('button', {
@@ -368,16 +367,22 @@ describe('UserDetailPanel', () => {
     ).toBeDisabled();
 
     fireEvent.click(apply);
-    await waitFor(() => expect(ask).toHaveBeenCalledTimes(1));
-    ask.mockReturnValue('   ');
-    fireEvent.click(apply);
-    await waitFor(() => expect(ask).toHaveBeenCalledTimes(2));
-    await waitFor(() => expect(apply).toBeEnabled());
-    expect(api.applyBotLabel).not.toHaveBeenCalled();
-    expect(toast.error).not.toHaveBeenCalled();
+    const dialog = await screen.findByRole('dialog');
+    const confirm = within(dialog).getByRole('button', { name: 'Apply label' });
+    const reason = within(dialog).getByLabelText('Reason');
+    expect(confirm).toBeDisabled();
+    fireEvent.change(reason, { target: { value: '   ' } });
+    expect(confirm).toBeDisabled();
 
-    ask.mockReturnValue('  Posts every 3 seconds ');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(api.applyBotLabel).not.toHaveBeenCalled();
+
     fireEvent.click(apply);
+    fireEvent.change(await screen.findByLabelText('Reason'), {
+      target: { value: '  Posts every 3 seconds ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Apply label' }));
     await waitFor(() =>
       expect(api.applyBotLabel).toHaveBeenCalledWith(
         'user-1',
@@ -385,6 +390,9 @@ describe('UserDetailPanel', () => {
       ),
     );
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Updated'));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
   });
 
   it('clears the label of a labelled account, and says so when it fails', async () => {

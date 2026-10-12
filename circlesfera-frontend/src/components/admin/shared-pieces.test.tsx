@@ -159,6 +159,21 @@ describe('AdminListRow', () => {
       expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
 
+    it('gives the focus to its button when an action is chosen', () => {
+      const given = openMenu();
+      const entry = screen
+        .getAllByRole('menuitem')
+        .find((i) => !(i as HTMLButtonElement).disabled) as HTMLElement;
+      entry.focus();
+
+      fireEvent.click(entry);
+
+      expect(more()).toHaveFocus();
+      expect(given.some((a) => vi.mocked(a.onClick).mock.calls.length)).toBe(
+        true,
+      );
+    });
+
     it('opens upwards when there is no room under the button, and follows the page', () => {
       Object.defineProperty(window, 'innerHeight', {
         configurable: true,

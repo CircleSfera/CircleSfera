@@ -3146,7 +3146,10 @@
       "kpi_new_week": "New (this week)",
       "kpi_reported_pct": "Reported content",
       "segment_type_post": "Posts",
-      "segment_type_frame": "Frames"
+      "segment_type_frame": "Frames",
+      "segment_type_any": "Both",
+      "choice_which": "Which posts",
+      "choice_kind": "Kind of post"
     },
     "stories": {
       "title": "Stories",
@@ -3672,7 +3675,9 @@
       "not_found": "Could not find the user record",
       "apply_bot_label": "Label as possible bot",
       "bot_label_error": "Failed",
-      "bot_label_prompt": "Reason for possible-bot label",
+      "bot_label_prompt": "Reason",
+      "bot_label_message": "The account will show as possibly automated. Its holder can appeal in Settings.",
+      "bot_label_confirm": "Apply label",
       "bot_label_updated": "Updated",
       "clear_bot_label": "Clear bot label",
       "cluster_size": "Linked accounts in cluster: {{count}}",

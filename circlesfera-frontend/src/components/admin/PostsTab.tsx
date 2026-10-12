@@ -43,6 +43,7 @@ export default function PostsTab({ onToast }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [segment, setSegment] = useState(() => (userId ? 'ALL' : 'FLAGGED'));
+  const [kind, setKind] = useState('ANY');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
 
@@ -51,12 +52,12 @@ export default function PostsTab({ onToast }: Props) {
 
   useEffect(() => {
     setSegment(userId ? 'ALL' : 'FLAGGED');
+    setKind('ANY');
     setPage(1);
     setSelectedPostId(null);
   }, [userId]);
 
-  const typeFilter =
-    segment === 'FRAME' ? 'FRAME' : segment === 'POST' ? 'POST' : undefined;
+  const typeFilter = kind === 'ANY' ? undefined : kind;
   const moderationStatus = segment === 'FLAGGED' ? 'FLAGGED' : undefined;
 
   const { data: statsData } = useQuery<EnhancedStats>({
@@ -175,9 +176,21 @@ export default function PostsTab({ onToast }: Props) {
             setSegment(v);
             setPage(1);
           }}
+          ariaLabel={t('admin.posts.choice_which')}
           options={[
             { value: 'FLAGGED', label: t('admin.shared.filter_flagged') },
             { value: 'ALL', label: t('admin.shared.filter_all_recent') },
+          ]}
+        />
+        <AdminSegmentedControl
+          value={kind}
+          onChange={(v) => {
+            setKind(v);
+            setPage(1);
+          }}
+          ariaLabel={t('admin.posts.choice_kind')}
+          options={[
+            { value: 'ANY', label: t('admin.posts.segment_type_any') },
             { value: 'POST', label: t('admin.posts.segment_type_post') },
             { value: 'FRAME', label: t('admin.posts.segment_type_frame') },
           ]}

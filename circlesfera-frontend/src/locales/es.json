@@ -3146,7 +3146,10 @@
       "kpi_new_week": "Nuevos (esta semana)",
       "kpi_reported_pct": "Contenido reportado",
       "segment_type_post": "Publicaciones",
-      "segment_type_frame": "Frames"
+      "segment_type_frame": "Frames",
+      "segment_type_any": "Ambos",
+      "choice_which": "Qué publicaciones",
+      "choice_kind": "Tipo de publicación"
     },
     "stories": {
       "title": "Historias",
@@ -3672,7 +3675,9 @@
       "not_found": "No se pudo encontrar el expediente del usuario",
       "apply_bot_label": "Marcar como posible bot",
       "bot_label_error": "Error",
-      "bot_label_prompt": "Motivo de la etiqueta de posible bot",
+      "bot_label_prompt": "Motivo",
+      "bot_label_message": "La cuenta se mostrará como posiblemente automatizada. Su titular puede apelar en Ajustes.",
+      "bot_label_confirm": "Aplicar etiqueta",
       "bot_label_updated": "Actualizado",
       "clear_bot_label": "Quitar etiqueta de bot",
       "cluster_size": "Cuentas vinculadas en el clúster: {{count}}",

@@ -9,6 +9,8 @@ interface Props {
   options: Option[];
   value: string;
   onChange: (val: string) => void;
+  // Names the choice when a bar holds more than one.
+  ariaLabel?: string;
 }
 
 // Some sections draw this choice inside the view it changes, so the pressed
@@ -18,7 +20,12 @@ let justPressed: string | null = null;
 
 // A choice between a few options, as separate buttons: no box around them,
 // so it adds none to the filter bar it is usually placed in.
-export function AdminSegmentedControl({ options, value, onChange }: Props) {
+export function AdminSegmentedControl({
+  options,
+  value,
+  onChange,
+  ariaLabel,
+}: Props) {
   const holder = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,8 +46,11 @@ export function AdminSegmentedControl({ options, value, onChange }: Props) {
   };
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: a fieldset brings a frame and a legend this row of buttons does not draw
     <div
       ref={holder}
+      role="group"
+      aria-label={ariaLabel}
       className="flex gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar"
     >
       {options.map((opt) => (
