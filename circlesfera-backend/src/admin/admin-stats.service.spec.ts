@@ -154,6 +154,9 @@ describe('AdminStatsService: the audit log by staff member and by account', () =
     await service.getAuditLogs();
 
     expect(prisma.adminAuditLog.findMany.mock.calls[0][0].where).toEqual({});
+  });
+});
+
 describe('AdminStatsService: the week of the Backoffice home', () => {
   const counted = () => {
     const count = vi.fn(

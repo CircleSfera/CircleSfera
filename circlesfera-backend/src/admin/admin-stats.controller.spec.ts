@@ -121,8 +121,8 @@ describe('AdminStatsController', () => {
       10,
       expect.objectContaining({ adminId: staff, targetId: account }),
     );
-  it('answers the week of the Backoffice home, and refuses it without credentials', async () => {
-    mockService.getOverviewWeek.mockResolvedValue({ tickets: { current: 1 } });
+  });
+
   it.each([
     ['payments', { payments: true, support: false, promotions: false }],
     ['support', { payments: false, support: true, promotions: false }],
