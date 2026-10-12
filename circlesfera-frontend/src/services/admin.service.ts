@@ -709,7 +709,8 @@ interface WeekCount {
   previous: number;
 }
 
-// A part is missing when the staff member may not see its section.
+// Each part of the week is asked for by itself, with the permission of its
+// section; an answer holds only the figures of its part.
 export interface OverviewWeek {
   subscriptions?: WeekCount;
   disputes?: WeekCount;
@@ -958,7 +959,8 @@ export const adminApi = {
 
   // What came in during the last seven days against the seven before, for
   // the parts of the Backoffice home the staff member may see.
-  getOverviewWeek: () => apiClient.get<OverviewWeek>('/admin/overview/week'),
+  getOverviewWeek: (part: 'payments' | 'support' | 'promotions') =>
+    apiClient.get<OverviewWeek>(`/admin/overview/week/${part}`),
 
   // Payouts
   getPayoutStats: () =>

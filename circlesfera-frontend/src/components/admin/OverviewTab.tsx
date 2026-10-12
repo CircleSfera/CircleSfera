@@ -53,8 +53,8 @@ function Figure({
             aria-hidden="true"
             className={`mt-0.5 shrink-0 ${attention ? 'text-amber-400' : 'text-brand-primary-text'}`}
           />
-          {/* A long name takes a second line: it is not cut. */}
-          <span className="line-clamp-2 leading-tight">{label}</span>
+          {/* A long name takes the lines it needs: it is not cut. */}
+          <span className="leading-tight">{label}</span>
         </span>
         <ChevronRight
           size={16}
@@ -99,11 +99,19 @@ export default function OverviewTab() {
     queryFn: () => adminApi.getMonetizationAnalytics().then((res) => res.data),
     enabled: payments,
   });
-  const { data: week } = useQuery({
-    queryKey: ['admin', 'overview', 'week'],
-    queryFn: () => adminApi.getOverviewWeek().then((res) => res.data),
-    enabled: payments || support || promotions,
+  // Each part is asked for only with the permission of its section.
+  const weekOf = (
+    part: 'payments' | 'support' | 'promotions',
+    enabled: boolean,
+  ) => ({
+    queryKey: ['admin', 'overview', 'week', part],
+    queryFn: () => adminApi.getOverviewWeek(part).then((res) => res.data),
+    enabled,
   });
+  const { data: paymentsWeek } = useQuery(weekOf('payments', payments));
+  const { data: supportWeek } = useQuery(weekOf('support', support));
+  const { data: promotionsWeek } = useQuery(weekOf('promotions', promotions));
+  const week = { ...paymentsWeek, ...supportWeek, ...promotionsWeek };
   const { data: payouts } = useQuery({
     queryKey: ['admin', 'payouts', 'stats'],
     queryFn: () => adminApi.getPayoutStats().then((res) => res.data),
@@ -153,7 +161,7 @@ export default function OverviewTab() {
         <Figure
           key="disputes"
           to="disputes"
-          week={week?.disputes}
+          week={week.disputes}
           icon={ShieldAlert}
           label={t('backoffice.overview.open_disputes')}
           value={count(openDisputes)}
@@ -187,7 +195,7 @@ export default function OverviewTab() {
         <Figure
           key="support"
           to="support"
-          week={week?.tickets}
+          week={week.tickets}
           icon={LifeBuoy}
           label={t('backoffice.overview.open_tickets')}
           value={count(openTickets)}
@@ -219,7 +227,7 @@ export default function OverviewTab() {
         <Figure
           key="promotions"
           to="promotions"
-          week={week?.promotions}
+          week={week.promotions}
           icon={Megaphone}
           label={t('backoffice.overview.pending_promotions')}
           value={count(pendingPromotions)}
@@ -259,7 +267,7 @@ export default function OverviewTab() {
           <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
             <Figure
               to="subscriptions"
-              week={week?.subscriptions}
+              week={week.subscriptions}
               icon={CreditCard}
               label={t('backoffice.overview.subscriptions')}
               value={count(money?.totalSubscriptions)}

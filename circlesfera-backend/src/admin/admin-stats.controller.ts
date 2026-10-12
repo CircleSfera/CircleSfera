@@ -1,12 +1,7 @@
 import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
 import {
-  CurrentAdmin,
-  type CurrentAdminData,
-} from '../auth/decorators/current-admin.decorator.js';
-import {
   AdminGuard,
   RequireStaffPermissions,
-  staffHoldsPermission,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminStatsService } from './admin-stats.service.js';
@@ -26,15 +21,37 @@ export class AdminStatsController {
     return this.adminStatsService.getEnhancedStats();
   }
 
-  // The home of the Backoffice has no permission of its own: whoever may
-  // open one of its sections gets the parts of those sections, and no other.
-  @Get('overview/week')
-  @RequireStaffPermissions('payments', 'support', 'content')
-  async getOverviewWeek(@CurrentAdmin() admin: CurrentAdminData) {
+  // The home of the Backoffice has no permission of its own. The guard asks
+  // for every permission a route lists, so each part of the week is a route
+  // with the permission of its section: whoever may open one section gets
+  // its part, and no other.
+  @Get('overview/week/payments')
+  @RequireStaffPermissions('payments')
+  async getOverviewWeekPayments() {
     return this.adminStatsService.getOverviewWeek({
-      payments: staffHoldsPermission(admin, 'payments'),
-      support: staffHoldsPermission(admin, 'support'),
-      promotions: staffHoldsPermission(admin, 'content'),
+      payments: true,
+      support: false,
+      promotions: false,
+    });
+  }
+
+  @Get('overview/week/support')
+  @RequireStaffPermissions('support')
+  async getOverviewWeekSupport() {
+    return this.adminStatsService.getOverviewWeek({
+      payments: false,
+      support: true,
+      promotions: false,
+    });
+  }
+
+  @Get('overview/week/promotions')
+  @RequireStaffPermissions('content')
+  async getOverviewWeekPromotions() {
+    return this.adminStatsService.getOverviewWeek({
+      payments: false,
+      support: false,
+      promotions: true,
     });
   }
 

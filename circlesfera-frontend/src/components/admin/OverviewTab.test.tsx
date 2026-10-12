@@ -47,14 +47,17 @@ describe('OverviewTab', () => {
         total(team?.target === 'past' ? 2 : status === 'OPEN' ? 4 : 1),
       )) as never);
     vi.mocked(adminApi.getPromotions).mockResolvedValue(total(6) as never);
-    vi.mocked(adminApi.getOverviewWeek).mockResolvedValue({
-      data: {
-        subscriptions: { current: 2, previous: 0 },
-        disputes: { current: 1, previous: 3 },
-        tickets: { current: 4, previous: 4 },
-        promotions: { current: 0, previous: 1 },
-      },
-    } as never);
+    vi.mocked(adminApi.getOverviewWeek).mockImplementation(((part: string) =>
+      Promise.resolve({
+        data: {
+          payments: {
+            subscriptions: { current: 2, previous: 0 },
+            disputes: { current: 1, previous: 3 },
+          },
+          support: { tickets: { current: 4, previous: 4 } },
+          promotions: { promotions: { current: 0, previous: 1 } },
+        }[part],
+      })) as never);
     vi.mocked(adminApi.getDisputes).mockResolvedValue({
       data: { data: [], meta: { total: 2, openCount: 2 } },
     } as never);
@@ -159,18 +162,14 @@ describe('OverviewTab', () => {
     ).not.toHaveTextContent('this week');
   });
 
-  it('shows no week for a part the server did not answer', async () => {
-    vi.mocked(adminApi.getOverviewWeek).mockResolvedValue({
-      data: { tickets: { current: 4, previous: 4 } },
-    } as never);
-    withPermissions('support', 'content');
+  it('asks for the week of a part only with the permission of its section', async () => {
+    withPermissions('support');
     renderWithProviders(<OverviewTab />);
 
     const tickets = await screen.findByRole('link', { name: /Open tickets/ });
     await waitFor(() => expect(tickets).toHaveTextContent('this week'));
-    expect(
-      screen.getByRole('link', { name: /Promotions to review/ }),
-    ).not.toHaveTextContent('this week');
+    expect(adminApi.getOverviewWeek).toHaveBeenCalledTimes(1);
+    expect(adminApi.getOverviewWeek).toHaveBeenCalledWith('support');
   });
 
   it('shows and asks for only what the operator may see', async () => {

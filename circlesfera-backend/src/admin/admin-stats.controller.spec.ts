@@ -123,25 +123,28 @@ describe('AdminStatsController', () => {
     );
   it('answers the week of the Backoffice home, and refuses it without credentials', async () => {
     mockService.getOverviewWeek.mockResolvedValue({ tickets: { current: 1 } });
+  it.each([
+    ['payments', { payments: true, support: false, promotions: false }],
+    ['support', { payments: false, support: true, promotions: false }],
+    ['promotions', { payments: false, support: false, promotions: true }],
+  ])(
+    'answers the %s part of the week of the Backoffice home, and no other',
+    async (part, asked) => {
+      mockService.getOverviewWeek.mockResolvedValue({ part });
 
-    const res = await request(app.getHttpServer())
-      .get('/api/v1/admin/overview/week')
-      .set(ADMIN_BEARER)
-      .expect(200);
-    await request(app.getHttpServer())
-      .get('/api/v1/admin/overview/week')
-      .expect(401);
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/admin/overview/week/${part}`)
+        .set(ADMIN_BEARER)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get(`/api/v1/admin/overview/week/${part}`)
+        .expect(401);
 
-    expect(res.body).toEqual({ tickets: { current: 1 } });
-    expect(mockService.getOverviewWeek).toHaveBeenCalledTimes(1);
-    // The parts asked for are the ones the staff member holds.
-    const parts = mockService.getOverviewWeek.mock.calls[0][0];
-    expect(Object.keys(parts).sort()).toEqual([
-      'payments',
-      'promotions',
-      'support',
-    ]);
-  });
+      expect(res.body).toEqual({ part });
+      expect(mockService.getOverviewWeek).toHaveBeenCalledTimes(1);
+      expect(mockService.getOverviewWeek).toHaveBeenCalledWith(asked);
+    },
+  );
 
   it('lists audit logs with default pagination and filters', async () => {
     mockService.getAuditLogs.mockResolvedValue({ data: [] });
