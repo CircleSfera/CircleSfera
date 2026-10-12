@@ -40,16 +40,17 @@ function Figure({
   return (
     <Link
       to={adminTabPath(to)}
-      className="glass-panel group flex min-h-28 flex-col justify-between rounded-2xl p-4 transition-colors hover:bg-white/8 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+      className="glass-panel group flex min-h-20 flex-col justify-between gap-1.5 rounded-lg p-3 transition-colors hover:bg-white/8 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
     >
       <span className="flex items-center justify-between gap-2 text-sm font-medium text-white/70">
-        <span className="flex min-w-0 items-center gap-2">
+        <span className="flex min-w-0 items-start gap-2">
           <Icon
             size={16}
             aria-hidden="true"
-            className={attention ? 'text-amber-400' : 'text-brand-primary-text'}
+            className={`mt-0.5 shrink-0 ${attention ? 'text-amber-400' : 'text-brand-primary-text'}`}
           />
-          <span className="truncate">{label}</span>
+          {/* A long name takes a second line: it is not cut. */}
+          <span className="line-clamp-2 leading-tight">{label}</span>
         </span>
         <ChevronRight
           size={16}
@@ -59,7 +60,7 @@ function Figure({
       </span>
       <span>
         <span
-          className={`block text-2xl font-black tabular-nums ${attention ? 'text-amber-400' : 'text-white'}`}
+          className={`block text-xl font-bold tabular-nums leading-tight ${attention ? 'text-amber-400' : 'text-white'}`}
         >
           {value ?? '—'}
         </span>
@@ -127,6 +128,90 @@ export default function OverviewTab() {
     value === undefined ? undefined : formatNumber(value, i18n.language);
   const tiers = money?.tierDistribution;
 
+  const failedPayouts = !!payouts && payouts.failed > 0;
+  const queues = [
+    payments && {
+      waits: !!openDisputes && openDisputes > 0,
+      figure: (
+        <Figure
+          key="disputes"
+          to="disputes"
+          icon={ShieldAlert}
+          label={t('backoffice.overview.open_disputes')}
+          value={count(openDisputes)}
+          hint={t('backoffice.overview.open_disputes_hint')}
+          attention={!!openDisputes && openDisputes > 0}
+        />
+      ),
+    },
+    payments && {
+      waits: failedPayouts,
+      figure: (
+        <Figure
+          key="payouts"
+          to="payouts"
+          icon={AlertCircle}
+          label={t('backoffice.overview.failed_payouts')}
+          value={count(payouts?.failed)}
+          hint={
+            payouts &&
+            t('backoffice.overview.pending_payouts', {
+              count: payouts.pending,
+            })
+          }
+          attention={failedPayouts}
+        />
+      ),
+    },
+    support && {
+      waits: !!openTickets && openTickets > 0,
+      figure: (
+        <Figure
+          key="support"
+          to="support"
+          icon={LifeBuoy}
+          label={t('backoffice.overview.open_tickets')}
+          value={count(openTickets)}
+          hint={
+            withModeration === undefined && pastTarget === undefined
+              ? undefined
+              : [
+                  pastTarget === undefined
+                    ? null
+                    : t('backoffice.overview.tickets_past_target', {
+                        count: pastTarget,
+                      }),
+                  withModeration === undefined
+                    ? null
+                    : t('backoffice.overview.tickets_with_moderation', {
+                        count: withModeration,
+                      }),
+                ]
+                  .filter(Boolean)
+                  .join(' · ')
+          }
+          attention={!!openTickets && openTickets > 0}
+        />
+      ),
+    },
+    promotions && {
+      waits: !!pendingPromotions && pendingPromotions > 0,
+      figure: (
+        <Figure
+          key="promotions"
+          to="promotions"
+          icon={Megaphone}
+          label={t('backoffice.overview.pending_promotions')}
+          value={count(pendingPromotions)}
+          attention={!!pendingPromotions && pendingPromotions > 0}
+        />
+      ),
+    },
+  ]
+    .filter((queue) => !!queue)
+    // The ones that wait first; the order among them is the one above.
+    .sort((a, b) => Number(b.waits) - Number(a.waits));
+
   return (
     <div className="space-y-4">
       <AdminPageHeader
@@ -134,9 +219,24 @@ export default function OverviewTab() {
         subtitle={t('backoffice.overview.subtitle')}
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {payments && (
-          <>
+      {/* What waits for someone comes first, the ones that wait before the
+          ones that are calm; then how the business stands. */}
+      {queues.length > 0 && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-white">
+            {t('backoffice.overview.queues_title')}
+          </h2>
+          <div className="grid gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {queues.map((queue) => queue.figure)}
+          </div>
+        </section>
+      )}
+      {payments && (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold text-white">
+            {t('backoffice.overview.business_title')}
+          </h2>
+          <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
             <Figure
               to="subscriptions"
               icon={CreditCard}
@@ -161,66 +261,9 @@ export default function OverviewTab() {
               }
               hint={t('backoffice.overview.recurring_revenue_hint')}
             />
-            <Figure
-              to="payouts"
-              icon={AlertCircle}
-              label={t('backoffice.overview.failed_payouts')}
-              value={count(payouts?.failed)}
-              hint={
-                payouts &&
-                t('backoffice.overview.pending_payouts', {
-                  count: payouts.pending,
-                })
-              }
-              attention={!!payouts && payouts.failed > 0}
-            />
-            <Figure
-              to="disputes"
-              icon={ShieldAlert}
-              label={t('backoffice.overview.open_disputes')}
-              value={count(openDisputes)}
-              hint={t('backoffice.overview.open_disputes_hint')}
-              attention={!!openDisputes && openDisputes > 0}
-            />
-          </>
-        )}
-        {support && (
-          <Figure
-            to="support"
-            icon={LifeBuoy}
-            label={t('backoffice.overview.open_tickets')}
-            value={count(openTickets)}
-            hint={
-              withModeration === undefined && pastTarget === undefined
-                ? undefined
-                : [
-                    pastTarget === undefined
-                      ? null
-                      : t('backoffice.overview.tickets_past_target', {
-                          count: pastTarget,
-                        }),
-                    withModeration === undefined
-                      ? null
-                      : t('backoffice.overview.tickets_with_moderation', {
-                          count: withModeration,
-                        }),
-                  ]
-                    .filter(Boolean)
-                    .join(' · ')
-            }
-            attention={!!openTickets && openTickets > 0}
-          />
-        )}
-        {promotions && (
-          <Figure
-            to="promotions"
-            icon={Megaphone}
-            label={t('backoffice.overview.pending_promotions')}
-            value={count(pendingPromotions)}
-            attention={!!pendingPromotions && pendingPromotions > 0}
-          />
-        )}
-      </div>
+          </div>
+        </section>
+      )}
     </div>
   );
 }

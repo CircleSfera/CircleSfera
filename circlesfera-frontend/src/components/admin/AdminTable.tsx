@@ -280,6 +280,8 @@ interface FilterDropdownProps {
   options: { value: string; label: string }[];
   onChange: (value: string) => void;
   visibleLabel?: boolean;
+  // Takes the width its place gives it, where several share one row.
+  fluid?: boolean;
 }
 
 export function FilterDropdown({
@@ -288,13 +290,14 @@ export function FilterDropdown({
   options,
   onChange,
   visibleLabel = false,
+  fluid = false,
 }: FilterDropdownProps) {
   // One id for each filter: a screen often shows two of them.
   const id = useId();
   return (
     // The width is set on the box around the field: set on the field it
     // spilled over the next filter.
-    <div className="min-w-40 lg:min-w-52">
+    <div className={fluid ? 'min-w-0' : 'min-w-40 lg:min-w-52'}>
       <Select
         id={id}
         value={value}

@@ -85,6 +85,49 @@ describe('OverviewTab', () => {
     expect(promotions).toHaveAttribute('href', '/promotions');
   });
 
+  it('puts what waits for someone before what is calm, and the business after', async () => {
+    vi.mocked(adminApi.getDisputes).mockResolvedValue({
+      data: { data: [], meta: { total: 0, openCount: 0 } },
+    } as never);
+    vi.mocked(adminApi.getPayoutStats).mockResolvedValue({
+      data: { paid: 5, pending: 0, failed: 0, total: 5 },
+    } as never);
+    withPermissions('payments', 'support', 'content');
+    renderWithProviders(<OverviewTab />);
+
+    await waitFor(() =>
+      expect(
+        screen.getByRole('link', { name: /Promotions to review/ }),
+      ).toHaveTextContent('6'),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getAllByRole('link').map((link) => link.getAttribute('href')),
+      ).toEqual([
+        '/support',
+        '/promotions',
+        '/disputes',
+        '/payouts',
+        '/subscriptions',
+        '/monetization',
+      ]),
+    );
+    expect(
+      screen.getByRole('heading', { name: 'Waiting for someone' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'The business' }),
+    ).toBeInTheDocument();
+  });
+
+  it('names no business to an operator who may not see it', async () => {
+    withPermissions('support');
+    renderWithProviders(<OverviewTab />);
+
+    await screen.findByRole('link', { name: /Open tickets/ });
+    expect(screen.queryByRole('heading', { name: 'The business' })).toBeNull();
+  });
+
   it('shows and asks for only what the operator may see', async () => {
     withPermissions('support');
     renderWithProviders(<OverviewTab />);

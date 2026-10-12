@@ -504,81 +504,91 @@ export default function SupportTicketsTab({ onToast }: Props) {
             { value: 'unassigned', label: t('admin.support.whose_unassigned') },
           ]}
         />
-        <div>
-          <FilterDropdown
-            label={t('admin.support.filter_priority')}
-            value={priorityFilter}
-            onChange={(v) => {
-              setPriorityFilter(v);
-              setPage(1);
-              setSelectedTicketId(null);
-            }}
-            options={[
-              { value: '', label: t('admin.support.priority_all') },
-              ...PRIORITIES.map((value) => ({
-                value,
-                label: t(`admin.support.priority.${value}`),
-              })),
-            ]}
-          />
-        </div>
-        <div className="sm:w-52">
-          <FilterDropdown
-            label={t('admin.support.target.filter')}
-            value={pastTargetOnly ? 'past' : ''}
-            onChange={(v) => {
-              setPastTargetOnly(v === 'past');
-              setPage(1);
-              setSelectedTicketId(null);
-            }}
-            options={[
-              { value: '', label: t('admin.support.target.filter_all') },
-              { value: 'past', label: t('admin.support.target.filter_past') },
-            ]}
-          />
-        </div>
-        <div className="sm:w-56">
-          <FilterDropdown
-            label={t('admin.support.filter_status')}
-            value={statusFilter}
-            onChange={(v) => {
-              setStatusFilter(v);
-              setPage(1);
-              setSelectedTicketId(null);
-            }}
-            options={[
-              { value: '', label: t('admin.support.status_all') },
-              { value: 'OPEN', label: t('admin.support.status_open') },
-              { value: 'RESOLVED', label: t('admin.support.status_resolved') },
-              { value: 'CLOSED', label: t('admin.support.status_closed') },
-              {
-                value: 'WAITING',
-                label: t('admin.support.status_waiting'),
-              },
-              {
-                value: 'ESCALATED',
-                label: t('admin.support.status_escalated'),
-              },
-            ]}
-          />
-        </div>
-        <div className="sm:w-56">
-          <FilterDropdown
-            label={t('admin.support.filter_category')}
-            value={categoryFilter}
-            onChange={(v) => {
-              setCategoryFilter(v);
-              setPage(1);
-              setSelectedTicketId(null);
-            }}
-            options={[
-              { value: '', label: t('admin.support.category_all') },
-              ...TICKET_CATEGORIES.map((value) => ({
-                value,
-                label: t(`supportPage.category.${value}`),
-              })),
-            ]}
-          />
+        {/* Two to a row on a phone; from sm they share the row of the bar. */}
+        <div className="grid grid-cols-2 gap-2 sm:contents">
+          <div className="sm:flex-1 sm:min-w-36">
+            <FilterDropdown
+              fluid
+              label={t('admin.support.filter_priority')}
+              value={priorityFilter}
+              onChange={(v) => {
+                setPriorityFilter(v);
+                setPage(1);
+                setSelectedTicketId(null);
+              }}
+              options={[
+                { value: '', label: t('admin.support.priority_all') },
+                ...PRIORITIES.map((value) => ({
+                  value,
+                  label: t(`admin.support.priority.${value}`),
+                })),
+              ]}
+            />
+          </div>
+          <div className="sm:flex-1 sm:min-w-36">
+            <FilterDropdown
+              fluid
+              label={t('admin.support.target.filter')}
+              value={pastTargetOnly ? 'past' : ''}
+              onChange={(v) => {
+                setPastTargetOnly(v === 'past');
+                setPage(1);
+                setSelectedTicketId(null);
+              }}
+              options={[
+                { value: '', label: t('admin.support.target.filter_all') },
+                { value: 'past', label: t('admin.support.target.filter_past') },
+              ]}
+            />
+          </div>
+          <div className="sm:flex-1 sm:min-w-36">
+            <FilterDropdown
+              fluid
+              label={t('admin.support.filter_status')}
+              value={statusFilter}
+              onChange={(v) => {
+                setStatusFilter(v);
+                setPage(1);
+                setSelectedTicketId(null);
+              }}
+              options={[
+                { value: '', label: t('admin.support.status_all') },
+                { value: 'OPEN', label: t('admin.support.status_open') },
+                {
+                  value: 'RESOLVED',
+                  label: t('admin.support.status_resolved'),
+                },
+                { value: 'CLOSED', label: t('admin.support.status_closed') },
+                {
+                  value: 'WAITING',
+                  label: t('admin.support.status_waiting'),
+                },
+                {
+                  value: 'ESCALATED',
+                  label: t('admin.support.status_escalated'),
+                },
+              ]}
+            />
+          </div>
+          <div className="sm:flex-1 sm:min-w-36">
+            <FilterDropdown
+              fluid
+              label={t('admin.support.filter_category')}
+              value={categoryFilter}
+              onChange={(v) => {
+                setCategoryFilter(v);
+                setPage(1);
+                setSelectedTicketId(null);
+              }}
+              options={[
+                { value: '', label: t('admin.support.category_all') },
+                ...TICKET_CATEGORIES.map((value) => ({
+                  value,
+                  label: t(`supportPage.category.${value}`),
+                })),
+              ]}
+            />
+          </div>
         </div>
       </AdminFilterBar>
 
