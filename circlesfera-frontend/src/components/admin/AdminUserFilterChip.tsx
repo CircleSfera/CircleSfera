@@ -9,26 +9,33 @@ import { adminApi } from '../../services/admin.service';
 interface AdminUserFilterChipProps {
   username?: string | null;
   onClear: () => void;
+  // Says something else than "filtered by this person", with its own way
+  // to name the button that clears it.
+  label?: string;
+  clearLabel?: string;
 }
 
 // Shows when a content queue is scoped to one platform user.
 export function AdminUserFilterChip({
   username,
   onClear,
+  label,
+  clearLabel,
 }: AdminUserFilterChipProps) {
   const { t } = useTranslation();
   return (
     <div className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 text-xs font-semibold text-brand-primary-text shrink-0">
       <span className="truncate max-w-40">
-        {t('admin.shared.filtered_by_user', {
-          user: username ? `@${username}` : t('admin.shared.user'),
-        })}
+        {label ??
+          t('admin.shared.filtered_by_user', {
+            user: username ? `@${username}` : t('admin.shared.user'),
+          })}
       </span>
       <button
         type="button"
         onClick={onClear}
         className="min-w-11 min-h-11 w-11 h-11 sm:min-w-9 sm:min-h-9 sm:w-9 sm:h-9 flex items-center justify-center rounded-md hover:bg-brand-primary/20 text-brand-primary-text"
-        aria-label={t('admin.shared.clear_user_filter')}
+        aria-label={clearLabel ?? t('admin.shared.clear_user_filter')}
       >
         <X size={14} />
       </button>

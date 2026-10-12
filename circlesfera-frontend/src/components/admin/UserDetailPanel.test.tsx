@@ -218,6 +218,28 @@ describe('UserDetailPanel', () => {
     expect(screen.getByTestId('where')).toHaveTextContent(path);
   });
 
+  it('opens the audit log of this account, for who may read the log', async () => {
+    show();
+    await screen.findByRole('heading', { name: 'Ana Ruiz' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Audit log' }));
+    expect(screen.getByTestId('where')).toHaveTextContent(
+      '/audit?userId=user-1',
+    );
+  });
+
+  it('offers no audit log to a role that may not read it', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key !== 'audit',
+    } as never);
+    show();
+    await screen.findByRole('heading', { name: 'Ana Ruiz' });
+
+    expect(
+      screen.queryByRole('button', { name: 'Audit log' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('escapes the identifier it puts in the address', async () => {
     api.getUserDetail.mockResolvedValue({
       data: dossier({ id: 'a b&c' }),

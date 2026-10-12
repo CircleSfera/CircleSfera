@@ -16,6 +16,11 @@ export class AdminQueryDto extends PaginationDto {
   @IsUUID()
   assignedAdminId?: string;
 
+  // Filter the audit log by the staff member who acted.
+  @IsOptional()
+  @IsUUID()
+  adminId?: string;
+
   @IsOptional()
   @IsString()
   status?: string;

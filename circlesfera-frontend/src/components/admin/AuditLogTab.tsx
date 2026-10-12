@@ -2,11 +2,13 @@ import { useQuery } from '@tanstack/react-query';
 import { Activity } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AuditLogEntry } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDateTime } from '../../utils/format';
+import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminListRow } from './AdminList';
@@ -14,6 +16,10 @@ import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { FilterDropdown, Pagination, SearchInput } from './AdminTable';
+import {
+  AdminUserFilterChip,
+  useAdminQueueUserFilter,
+} from './AdminUserFilterChip';
 
 const AUDIT_ACTION_KEYS = [
   'BAN_USER',
@@ -79,6 +85,11 @@ export default function AuditLogTab() {
   const [actionFilter, setActionFilter] = useState('');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The two exact questions of the log: what was done to an account, taken
+  // from the address like the other lists, and what a staff member did.
+  const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [staff, setStaff] = useState<{ id: string; name: string } | null>(null);
   const debouncedSearch = useDebouncedValue(search, 400);
 
   const actionFilterOptions = useMemo(
@@ -99,19 +110,38 @@ export default function AuditLogTab() {
     });
 
   const { data, isLoading } = useQuery<PaginatedResponse<AuditLogEntry>>({
-    queryKey: ['admin', 'audit-logs', page, actionFilter, debouncedSearch],
+    queryKey: [
+      'admin',
+      'audit-logs',
+      page,
+      actionFilter,
+      debouncedSearch,
+      staff?.id,
+      userId,
+    ],
     queryFn: () =>
       adminApi
         .getAuditLogs(page, 15, {
           action: actionFilter || undefined,
           search: debouncedSearch.trim() || undefined,
+          adminId: staff?.id,
+          userId,
         })
         .then((r) => r.data),
   });
 
   const logs = data?.data ?? [];
   const selected = logs.find((l) => l.id === selectedId) ?? null;
-  const hasActiveFilters = Boolean(actionFilter || debouncedSearch.trim());
+  const hasActiveFilters = Boolean(
+    actionFilter || debouncedSearch.trim() || staff || userId,
+  );
+  const showAccount = (accountId: string) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('userId', accountId);
+    setSearchParams(next, { replace: true });
+    setPage(1);
+    setSelectedId(null);
+  };
 
   return (
     <div className="space-y-2.5">
@@ -140,6 +170,25 @@ export default function AuditLogTab() {
           }}
           options={actionFilterOptions}
         />
+        {userId && (
+          <AdminUserFilterChip
+            username={username}
+            onClear={() => {
+              clearUserFilter();
+              setPage(1);
+            }}
+          />
+        )}
+        {staff && (
+          <AdminUserFilterChip
+            label={t('admin.audit.staff_chip', { name: staff.name })}
+            clearLabel={t('admin.audit.clear_staff')}
+            onClear={() => {
+              setStaff(null);
+              setPage(1);
+            }}
+          />
+        )}
       </AdminFilterBar>
 
       <AdminSplitView
@@ -242,6 +291,38 @@ export default function AuditLogTab() {
                   }
                 />
               </dl>
+              {/* From one entry to everything by its author or about its
+                  account. */}
+              <div className="flex flex-col sm:flex-row flex-wrap gap-2">
+                {selected.adminId && staff?.id !== selected.adminId && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="min-h-11 sm:min-h-9 text-xs"
+                    onClick={() => {
+                      setStaff({
+                        id: selected.adminId as string,
+                        name: selected.adminUsername,
+                      });
+                      setPage(1);
+                      setSelectedId(null);
+                    }}
+                  >
+                    {t('admin.audit.by_staff')}
+                  </Button>
+                )}
+                {selected.targetType.toLowerCase() === 'user' &&
+                  userId !== selected.targetId && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="min-h-11 sm:min-h-9 text-xs"
+                      onClick={() => showAccount(selected.targetId)}
+                    >
+                      {t('admin.audit.about_account')}
+                    </Button>
+                  )}
+              </div>
               {selected.details && (
                 <div>
                   <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">

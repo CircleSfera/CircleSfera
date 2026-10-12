@@ -100,3 +100,59 @@ describe('AdminStatsService monetization tiers', () => {
     });
   });
 });
+
+describe('AdminStatsService: the audit log by staff member and by account', () => {
+  it('asks for exactly what a staff member did and what was done to an account', async () => {
+    const prisma = {
+      adminAuditLog: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'l1',
+            action: 'BAN_USER',
+            targetType: 'user',
+            targetId: 'account-1',
+            details: null,
+            createdAt: new Date('2026-03-10T11:00:00Z'),
+            adminId: 'staff-1',
+            admin: { displayName: 'Ana Staff', email: 'ana@staff.test' },
+          },
+        ]),
+        count: vi.fn().mockResolvedValue(1),
+      },
+    };
+    const service = new AdminStatsService(prisma as never, {} as never);
+
+    const page = await service.getAuditLogs(1, 20, {
+      adminId: 'staff-1',
+      targetId: 'account-1',
+      action: 'BAN_USER',
+    });
+
+    const where = {
+      adminId: 'staff-1',
+      targetId: 'account-1',
+      action: 'BAN_USER',
+    };
+    expect(prisma.adminAuditLog.findMany.mock.calls[0][0].where).toEqual(where);
+    expect(prisma.adminAuditLog.count).toHaveBeenCalledWith({ where });
+    expect(page.data[0]).toMatchObject({
+      adminId: 'staff-1',
+      adminUsername: 'Ana Staff',
+      targetId: 'account-1',
+    });
+  });
+
+  it('asks for the whole log when no filter is given', async () => {
+    const prisma = {
+      adminAuditLog: {
+        findMany: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
+      },
+    };
+    const service = new AdminStatsService(prisma as never, {} as never);
+
+    await service.getAuditLogs();
+
+    expect(prisma.adminAuditLog.findMany.mock.calls[0][0].where).toEqual({});
+  });
+});
