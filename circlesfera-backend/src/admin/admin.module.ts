@@ -34,6 +34,7 @@ import { AdminSubscriptionsService } from './admin-subscriptions.service.js';
 import { AdminSystemController } from './admin-system.controller.js';
 import { AdminUsersController } from './admin-users.controller.js';
 import { AdminUsersService } from './admin-users.service.js';
+import { BulkDeleteContentUseCase } from './use-cases/content/commands/bulk-delete-content.use-case.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
 import { DeleteStoryUseCase } from './use-cases/content/commands/delete-story.use-case.js';
@@ -92,6 +93,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminStatsService,
     // Content Use Cases & Queries
     DeleteCommentUseCase,
+    BulkDeleteContentUseCase,
     DeletePostUseCase,
     DeleteStoryUseCase,
     EndLiveStreamUseCase,

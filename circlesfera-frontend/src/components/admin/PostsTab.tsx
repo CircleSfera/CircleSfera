@@ -32,6 +32,7 @@ import {
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
 import PostDetailPanel from './PostDetailPanel';
+import { useBulkDelete } from './useBulkDelete';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -90,6 +91,16 @@ export default function PostsTab({ onToast }: Props) {
 
   const posts = data?.data ?? [];
   const selectedPost = posts.find((p) => p.id === selectedPostId) ?? null;
+  const bulk = useBulkDelete({
+    ids: posts.map((post) => post.id),
+    remove: adminApi.bulkDeletePosts,
+    onDone: () => {
+      setSelectedPostId(null);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'posts'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+    onToast,
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => adminApi.deletePost(id),
@@ -242,70 +253,78 @@ export default function PostsTab({ onToast }: Props) {
                   compact
                 />
               ) : (
-                posts.map((post) => (
-                  <AdminListRow
-                    key={post.id}
-                    onClick={() => setSelectedPostId(post.id)}
-                    selected={selectedPostId === post.id}
-                    title={post.caption || noCaption}
-                    subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
-                    avatar={
-                      <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
-                        {post.media?.[0]?.url && (
-                          <img
-                            src={post.media[0].url}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        )}
-                      </div>
-                    }
-                    badge={
-                      <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/5">
-                        {post.type}
-                      </span>
-                    }
-                    meta={
-                      <>
-                        <span>{formatDay(post.createdAt, i18n.language)}</span>
-                        {post._count && (
+                <>
+                  {bulk.bar}
+                  {posts.map((post) => (
+                    <AdminListRow
+                      key={post.id}
+                      onClick={() => setSelectedPostId(post.id)}
+                      selected={selectedPostId === post.id}
+                      title={post.caption || noCaption}
+                      subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
+                      avatar={
+                        <div className="flex items-start gap-2">
+                          {bulk.box(post.id)}
+                          <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden">
+                            {post.media?.[0]?.url && (
+                              <img
+                                src={post.media[0].url}
+                                alt=""
+                                className="w-full h-full object-cover"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      }
+                      badge={
+                        <span className="px-2 py-0.5 bg-white/5 rounded text-xs font-semibold uppercase tracking-wider text-white/70 border border-white/5">
+                          {post.type}
+                        </span>
+                      }
+                      meta={
+                        <>
                           <span>
-                            {t('admin.posts.likes_comments', {
-                              likes: post._count.likes,
-                              comments: post._count.comments,
-                            })}
+                            {formatDay(post.createdAt, i18n.language)}
                           </span>
-                        )}
-                      </>
-                    }
-                    primaryAction={
-                      <ActionButton
-                        onClick={() => setDeleteId(post.id)}
-                        label={t('admin.posts.action_delete')}
-                        variant="danger"
-                        icon={Trash2}
-                        disabled={deleteMutation.isPending}
-                      />
-                    }
-                    secondaryActions={[
-                      {
-                        label: t('admin.posts.action_preview'),
-                        icon: Eye,
-                        onClick: () => setSelectedPostId(post.id),
-                      },
-                      {
-                        label: t('admin.posts.action_view_platform'),
-                        icon: ExternalLink,
-                        onClick: () =>
-                          window.open(
-                            `${platformOrigin()}/p/${post.id}`,
-                            '_blank',
-                            'noopener,noreferrer',
-                          ),
-                      },
-                    ]}
-                  />
-                ))
+                          {post._count && (
+                            <span>
+                              {t('admin.posts.likes_comments', {
+                                likes: post._count.likes,
+                                comments: post._count.comments,
+                              })}
+                            </span>
+                          )}
+                        </>
+                      }
+                      primaryAction={
+                        <ActionButton
+                          onClick={() => setDeleteId(post.id)}
+                          label={t('admin.posts.action_delete')}
+                          variant="danger"
+                          icon={Trash2}
+                          disabled={deleteMutation.isPending}
+                        />
+                      }
+                      secondaryActions={[
+                        {
+                          label: t('admin.posts.action_preview'),
+                          icon: Eye,
+                          onClick: () => setSelectedPostId(post.id),
+                        },
+                        {
+                          label: t('admin.posts.action_view_platform'),
+                          icon: ExternalLink,
+                          onClick: () =>
+                            window.open(
+                              `${platformOrigin()}/p/${post.id}`,
+                              '_blank',
+                              'noopener,noreferrer',
+                            ),
+                        },
+                      ]}
+                    />
+                  ))}
+                </>
               )}
             </div>
             <div className="shrink-0">
@@ -327,6 +346,7 @@ export default function PostsTab({ onToast }: Props) {
         isDestructive={true}
         isLoading={deleteMutation.isPending}
       />
+      {bulk.dialogs}
     </div>
   );
 }

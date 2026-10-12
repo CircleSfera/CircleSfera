@@ -1001,6 +1001,19 @@ export const adminApi = {
 
   deletePost: (id: string) => apiClient.delete(`admin/posts/${id}`),
 
+  // Several at once, at most 50; asks for the second confirmation.
+  bulkDeletePosts: (ids: string[]) =>
+    apiClient.post<{ deleted: number; failed: number }>(
+      'admin/posts/bulk-delete',
+      { ids },
+    ),
+
+  bulkDeleteComments: (ids: string[]) =>
+    apiClient.post<{ deleted: number; failed: number }>(
+      'admin/comments/bulk-delete',
+      { ids },
+    ),
+
   exportPostsCSV: () =>
     apiClient.get('admin/posts/export', { responseType: 'blob' }),
 

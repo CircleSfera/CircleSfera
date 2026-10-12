@@ -19,12 +19,15 @@ import {
 } from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
+  RequireAdminStepUp,
   RequireStaffPermissions,
 } from '../auth/guards/admin.guard.js';
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
+import { BulkDeleteDto } from './dto/bulk-delete.dto.js';
 import { ReassignReportDto } from './dto/reassign-report.dto.js';
 import { WarnLiveHostDto } from './dto/warn-live-host.dto.js';
+import { BulkDeleteContentUseCase } from './use-cases/content/commands/bulk-delete-content.use-case.js';
 import { DeleteCommentUseCase } from './use-cases/content/commands/delete-comment.use-case.js';
 import { DeletePostUseCase } from './use-cases/content/commands/delete-post.use-case.js';
 import { DeleteStoryUseCase } from './use-cases/content/commands/delete-story.use-case.js';
@@ -53,6 +56,8 @@ export class AdminContentController {
     @Inject(GetContentQuery) private readonly getContentQuery: GetContentQuery,
     @Inject(DeleteCommentUseCase)
     private readonly deleteCommentUseCase: DeleteCommentUseCase,
+    @Inject(BulkDeleteContentUseCase)
+    private readonly bulkDeleteContent: BulkDeleteContentUseCase,
     @Inject(DeleteStoryUseCase)
     private readonly deleteStoryUseCase: DeleteStoryUseCase,
     @Inject(GetPromotionsQuery)
@@ -103,6 +108,18 @@ export class AdminContentController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.deletePostUseCase.execute(admin.adminId, id);
+  }
+
+  // Deleting cannot be undone: several at once ask the staff member to
+  // confirm again.
+  @RequireStaffPermissions('content')
+  @RequireAdminStepUp()
+  @Post('posts/bulk-delete')
+  async bulkDeletePosts(
+    @Body() dto: BulkDeleteDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.bulkDeleteContent.posts(admin.adminId, dto.ids);
   }
 
   @RequireStaffPermissions('reports')
@@ -218,6 +235,16 @@ export class AdminContentController {
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.deleteCommentUseCase.execute(admin.adminId, id);
+  }
+
+  @RequireStaffPermissions('content')
+  @RequireAdminStepUp()
+  @Post('comments/bulk-delete')
+  async bulkDeleteComments(
+    @Body() dto: BulkDeleteDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.bulkDeleteContent.comments(admin.adminId, dto.ids);
   }
 
   @RequireStaffPermissions('content')
