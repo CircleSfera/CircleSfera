@@ -515,10 +515,17 @@ export class AdminStatsService {
       search?: string;
       from?: string;
       to?: string;
+      adminId?: string;
+      targetId?: string;
     },
   ) {
     const skip = (page - 1) * limit;
     const where: Prisma.AdminAuditLogWhereInput = {};
+
+    // The two exact questions of the log: what this staff member did, and
+    // what was done to this account.
+    if (filters?.adminId) where.adminId = filters.adminId;
+    if (filters?.targetId) where.targetId = filters.targetId;
 
     if (filters?.action) {
       where.action = filters.action as AdminAction;
@@ -582,6 +589,7 @@ export class AdminStatsService {
         ipAddress: log.ipAddress,
         userAgent: log.userAgent,
         requestId: log.requestId,
+        adminId: log.adminId,
         adminUsername: log.admin?.displayName || log.admin?.email || 'Unknown',
       })),
       meta: {

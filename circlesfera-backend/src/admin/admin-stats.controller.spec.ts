@@ -98,6 +98,30 @@ describe('AdminStatsController', () => {
     expect(mockService.getPayoutStats).toHaveBeenCalledWith();
   });
 
+  it('filters the audit log by the staff member and by the account acted on', async () => {
+    mockService.getAuditLogs.mockResolvedValue({ data: [] });
+    const staff = '11111111-1111-4111-8111-111111111111';
+    const account = '22222222-2222-4222-8222-222222222222';
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs')
+      .query({ adminId: staff, userId: account })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs')
+      .query({ adminId: 'not-an-id' })
+      .set(ADMIN_BEARER)
+      .expect(400);
+
+    expect(mockService.getAuditLogs).toHaveBeenCalledTimes(1);
+    expect(mockService.getAuditLogs).toHaveBeenCalledWith(
+      1,
+      10,
+      expect.objectContaining({ adminId: staff, targetId: account }),
+    );
+  });
+
   it('lists audit logs with default pagination and filters', async () => {
     mockService.getAuditLogs.mockResolvedValue({ data: [] });
 
@@ -123,12 +147,16 @@ describe('AdminStatsController', () => {
       search: undefined,
       from: undefined,
       to: undefined,
+      adminId: undefined,
+      targetId: undefined,
     });
     expect(mockService.getAuditLogs).toHaveBeenNthCalledWith(2, 2, 10, {
       action: 'BAN_USER',
       search: 'ada',
       from: '2026-01-01',
       to: '2026-01-31',
+      adminId: undefined,
+      targetId: undefined,
     });
   });
 

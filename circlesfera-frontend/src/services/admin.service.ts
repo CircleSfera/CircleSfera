@@ -26,6 +26,8 @@ export interface AuditLogEntry {
   targetId: string;
   details: string;
   createdAt: string;
+  // The staff member who acted; none for an entry of the system.
+  adminId?: string | null;
   adminUsername: string;
 }
 
@@ -1015,6 +1017,10 @@ export const adminApi = {
       search?: string;
       from?: string;
       to?: string;
+      // What this staff member did.
+      adminId?: string;
+      // What was done to this account.
+      userId?: string;
     },
   ) =>
     apiClient.get<PaginatedResponse<AuditLogEntry>>('admin/audit-logs', {

@@ -9,6 +9,7 @@ import {
   ImageIcon,
   MessageSquare,
   Radio,
+  ScrollText,
   ShieldAlert,
 } from 'lucide-react';
 import { type ReactNode, useState } from 'react';
@@ -85,7 +86,8 @@ function ActivityChip({
 }: {
   icon: typeof ImageIcon;
   label: string;
-  count: number;
+  // A link with nothing to count has none.
+  count?: number;
   onClick: () => void;
 }) {
   return (
@@ -96,7 +98,11 @@ function ActivityChip({
     >
       <Icon size={13} className="text-brand-primary-text shrink-0" />
       <span className="text-[11px] font-semibold text-white/70">{label}</span>
-      <span className="text-xs font-bold text-white tabular-nums">{count}</span>
+      {count !== undefined && (
+        <span className="text-xs font-bold text-white tabular-nums">
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -110,6 +116,7 @@ export default function UserDetailPanel({
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const canSanction = useAdminAuthStore((s) => s.hasPermission('users.ban'));
+  const canReadAudit = useAdminAuthStore((s) => s.hasPermission('audit'));
   const {
     data: user,
     isLoading,
@@ -453,6 +460,13 @@ export default function UserDetailPanel({
             count={user._count.reportsAgainst}
             onClick={() => openQueue('reports')}
           />
+          {canReadAudit && (
+            <ActivityChip
+              icon={ScrollText}
+              label={t('admin.user_preview.chip_audit')}
+              onClick={() => openQueue('audit')}
+            />
+          )}
         </div>
       </section>
 

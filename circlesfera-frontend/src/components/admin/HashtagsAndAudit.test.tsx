@@ -6,7 +6,11 @@ import AuditLogTab from './AuditLogTab';
 import HashtagsTab from './HashtagsTab';
 
 vi.mock('../../services/admin.service', () => ({
-  adminApi: { getHashtags: vi.fn(), getAuditLogs: vi.fn() },
+  adminApi: {
+    getHashtags: vi.fn(),
+    getAuditLogs: vi.fn(),
+    getUserDetail: vi.fn(),
+  },
 }));
 // The search waits a moment before asking; here it asks at once.
 vi.mock('../../hooks/useDebouncedValue', () => ({
@@ -105,6 +109,7 @@ describe('AuditLogTab', () => {
     {
       id: 'a1',
       action: 'BAN_USER',
+      adminId: 'staff-1',
       adminUsername: 'root',
       targetType: 'USER',
       targetId: 'user-123',
@@ -152,6 +157,102 @@ describe('AuditLogTab', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Back' }));
     expect(screen.queryByText('user-123')).not.toBeInTheDocument();
+  });
+
+  it('goes from an entry to everything its author did, and back to the whole log', async () => {
+    await show();
+    fireEvent.click(await screen.findByRole('button', { name: /Banned user/ }));
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Everything by this person' }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.getAuditLogs).toHaveBeenLastCalledWith(
+        1,
+        15,
+        expect.objectContaining({ adminId: 'staff-1', userId: undefined }),
+      ),
+    );
+    expect(screen.getByText('By root')).toBeInTheDocument();
+    // The entry is closed: the list it was in is another one now.
+    expect(screen.queryByText('spam ring')).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Stop filtering by staff member' }),
+    );
+    await waitFor(() =>
+      expect(adminApi.getAuditLogs).toHaveBeenLastCalledWith(
+        1,
+        15,
+        expect.objectContaining({ adminId: undefined }),
+      ),
+    );
+    expect(screen.queryByText('By root')).not.toBeInTheDocument();
+  });
+
+  it('goes from an entry about an account to everything about it, and offers it for nothing else', async () => {
+    vi.mocked(adminApi.getUserDetail).mockResolvedValue({
+      data: { profile: { username: 'ana' } },
+    } as never);
+    await show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /something new/ }),
+    );
+    // A post is not an account, and the system wrote this entry.
+    expect(
+      screen.queryByRole('button', { name: 'Everything about this account' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Everything by this person' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+
+    fireEvent.click(screen.getByRole('button', { name: /Banned user/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Everything about this account' }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.getAuditLogs).toHaveBeenLastCalledWith(
+        1,
+        15,
+        expect.objectContaining({ userId: 'user-123' }),
+      ),
+    );
+    expect(await screen.findByText('Filtered by @ana')).toBeInTheDocument();
+  });
+
+  it('opens on what was done to the account named in the address', async () => {
+    vi.mocked(adminApi.getUserDetail).mockResolvedValue({
+      data: { profile: { username: 'ana' } },
+    } as never);
+    vi.mocked(adminApi.getAuditLogs).mockResolvedValue(page(logs) as never);
+    renderWithProviders(<AuditLogTab />, {
+      routerProps: {
+        initialEntries: ['/audit?userId=user-123'],
+        useTransitions: false,
+      },
+    });
+
+    await waitFor(() =>
+      expect(adminApi.getAuditLogs).toHaveBeenCalledWith(
+        1,
+        15,
+        expect.objectContaining({ userId: 'user-123' }),
+      ),
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Clear user filter' }),
+    );
+    await waitFor(() =>
+      expect(adminApi.getAuditLogs).toHaveBeenLastCalledWith(
+        1,
+        15,
+        expect.objectContaining({ userId: undefined }),
+      ),
+    );
   });
 
   it('shows no details block for an entry that has none', async () => {

@@ -32,6 +32,9 @@ export class AdminStatsController {
         search: query.search,
         from: query.from,
         to: query.to,
+        adminId: query.adminId,
+        // The account acted on.
+        targetId: query.userId,
       },
     );
   }
