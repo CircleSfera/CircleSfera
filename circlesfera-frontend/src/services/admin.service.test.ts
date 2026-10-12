@@ -136,6 +136,12 @@ const cases: Case[] = [
     ['admin/users/u1/detail'],
   ],
   [
+    'getOverviewWeek',
+    () => adminApi.getOverviewWeek(),
+    'get',
+    ['/admin/overview/week'],
+  ],
+  [
     'getLinkedAccounts',
     () => adminApi.getLinkedAccounts('u1'),
     'get',

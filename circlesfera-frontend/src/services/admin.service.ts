@@ -704,6 +704,19 @@ export interface BroadcastSend {
   createdAt: string;
 }
 
+interface WeekCount {
+  current: number;
+  previous: number;
+}
+
+// A part is missing when the staff member may not see its section.
+export interface OverviewWeek {
+  subscriptions?: WeekCount;
+  disputes?: WeekCount;
+  tickets?: WeekCount;
+  promotions?: WeekCount;
+}
+
 export interface AdminLiveStream {
   id: string;
   title: string | null;
@@ -942,6 +955,10 @@ export const adminApi = {
 
   exportUsersCSV: () =>
     apiClient.get('admin/users/export', { responseType: 'blob' }),
+
+  // What came in during the last seven days against the seven before, for
+  // the parts of the Backoffice home the staff member may see.
+  getOverviewWeek: () => apiClient.get<OverviewWeek>('/admin/overview/week'),
 
   // Payouts
   getPayoutStats: () =>
