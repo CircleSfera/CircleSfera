@@ -1125,6 +1125,8 @@ export const adminApi = {
       moderationStatus?: string;
       expired?: 'true' | 'false';
       userId?: string;
+      // Who published it, by handle or name, or the place it names.
+      search?: string;
     },
   ) =>
     apiClient.get<PaginatedResponse<AdminStory>>('admin/stories', {

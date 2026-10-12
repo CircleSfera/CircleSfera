@@ -254,6 +254,7 @@ export class AdminContentController {
       moderationStatus: query.moderationStatus,
       expired: query.expired,
       userId: query.userId,
+      search: query.search,
     });
   }
 

@@ -3197,6 +3197,7 @@
       "status_expired": "Expirada",
       "status_active": "Activa",
       "filter_expired": "Expiración",
+      "search_placeholder": "Buscar por autor o lugar...",
       "expired_all": "Activas y expiradas",
       "filter_moderation": "Moderación",
       "views_count": "{{count}} vistas",

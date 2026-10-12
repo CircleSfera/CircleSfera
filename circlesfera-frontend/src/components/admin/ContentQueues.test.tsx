@@ -846,6 +846,27 @@ describe('StoriesTab', () => {
     vi.useRealTimers();
   });
 
+  it('searches by author or place as it is typed, from the first page', async () => {
+    api.getStories.mockImplementation((pageNumber = 1) =>
+      Promise.resolve(list([], pageNumber, 3) as never),
+    );
+    show();
+    await screen.findByText('No stories');
+
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Search by author or place...' }),
+      { target: { value: '  ana ' } },
+    );
+
+    await waitFor(() =>
+      expect(api.getStories).toHaveBeenLastCalledWith(
+        1,
+        10,
+        expect.objectContaining({ search: 'ana' }),
+      ),
+    );
+  });
+
   it('asks for the flagged stories first and says when there are none', async () => {
     show();
 
