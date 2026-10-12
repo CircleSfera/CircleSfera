@@ -136,7 +136,7 @@ describe('staff panel navigation', () => {
   it('starts with a way past the menu, straight to the section', () => {
     show();
 
-    const skip = screen.getByRole('link', { name: 'Skip to the section' });
+    const skip = screen.getByRole('button', { name: 'Skip to the section' });
     fireEvent.click(skip);
     expect(screen.getByRole('main')).toHaveFocus();
   });
