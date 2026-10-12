@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -111,15 +111,25 @@ describe('RecurringIncomeDays', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows nothing when the days cannot be read', async () => {
-    vi.mocked(adminApi.getRecurringIncomeHistory).mockRejectedValue(
+  it('says the days could not be read and reads them again when asked', async () => {
+    vi.mocked(adminApi.getRecurringIncomeHistory).mockRejectedValueOnce(
       new Error('down'),
     );
-    const { container } = renderWithProviders(<RecurringIncomeDays />);
-
-    await vi.waitFor(() =>
-      expect(adminApi.getRecurringIncomeHistory).toHaveBeenCalled(),
+    vi.mocked(adminApi.getRecurringIncomeHistory).mockResolvedValue(
+      kept('2026-03-31', [999]) as never,
     );
-    expect(container.querySelector('section')).toBeNull();
+    renderWithProviders(<RecurringIncomeDays />);
+
+    expect(
+      await screen.findByText('The days kept could not be read.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Read again' }));
+
+    expect(
+      await screen.findByText(/^Kept since Mar 31, 2026\./),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('The days kept could not be read.'),
+    ).not.toBeInTheDocument();
   });
 });

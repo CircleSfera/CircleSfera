@@ -2564,6 +2564,8 @@
       "income_subscriptions_other": "{{count}} suscripciones",
       "income_one_day": "Se guarda desde el {{date}}. Habrá con qué comparar cuando se hayan guardado más días.",
       "income_no_days": "Aún no se ha guardado ningún día.",
+      "income_error": "No se pudieron leer los días guardados.",
+      "income_retry": "Volver a leer",
       "tier_verified": "Premium",
       "tier_elite": "Elite Creator",
       "tier_business": "Business",

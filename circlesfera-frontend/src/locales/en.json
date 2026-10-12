@@ -2564,6 +2564,8 @@
       "income_subscriptions_other": "{{count}} subscriptions",
       "income_one_day": "Kept since {{date}}. There is something to compare once more days have been kept.",
       "income_no_days": "No day has been kept yet.",
+      "income_error": "The days kept could not be read.",
+      "income_retry": "Read again",
       "tier_verified": "Premium",
       "tier_elite": "Elite Creator",
       "tier_business": "Business",

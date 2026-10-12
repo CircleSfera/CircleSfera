@@ -5,6 +5,7 @@ import {
   type RecurringIncomeDay,
 } from '../../services/admin.service';
 import { formatCents } from '../../utils/money';
+import { Button } from '../ui';
 
 // Enough days to find the one kept thirty days before the newest.
 const DAYS_READ = 31;
@@ -29,11 +30,34 @@ function dayBefore(day: string, count: number): string {
  */
 export function RecurringIncomeDays() {
   const { t, i18n } = useTranslation();
-  const { data } = useQuery({
+  const { data, isError, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'monetization', 'history'],
     queryFn: () =>
       adminApi.getRecurringIncomeHistory(DAYS_READ).then((res) => res.data),
   });
+  // Not read: the section says so and offers to read again, it does not
+  // go missing.
+  if (isError)
+    return (
+      <section className="glass-panel rounded-lg p-2.5 sm:p-3">
+        <h3 className="text-sm font-semibold text-white">
+          {t('admin.monetization.income_title')}
+        </h3>
+        <p className="mt-1 text-sm text-white/70">
+          {t('admin.monetization.income_error')}
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="mt-2 min-h-11 sm:min-h-9 text-sm"
+          disabled={isFetching}
+          onClick={() => void refetch()}
+        >
+          {t('admin.monetization.income_retry')}
+        </Button>
+      </section>
+    );
   if (!data) return null;
 
   const days = data.days;
