@@ -313,7 +313,10 @@ export default function ProfileSettings() {
           </div>
           {avatarUploading && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full z-10">
-              <Loader2 size={20} className="text-brand-primary animate-spin" />
+              <Loader2
+                size={20}
+                className="text-brand-primary-text animate-spin"
+              />
             </div>
           )}
           {avatarSuccess && (
@@ -353,7 +356,7 @@ export default function ProfileSettings() {
               }
             }}
             disabled={avatarUploading}
-            className="mt-2 text-sm font-medium text-brand-primary hover:text-brand-primary/80 min-h-11 inline-flex items-center"
+            className="mt-2 text-sm font-medium text-brand-primary-text hover:text-brand-primary-text/80 min-h-11 inline-flex items-center"
           >
             {avatarUploading
               ? t('settings.profile.uploading')
@@ -396,7 +399,7 @@ export default function ProfileSettings() {
                 {usernameStatus.checking && (
                   <Loader2
                     size={18}
-                    className="text-brand-primary animate-spin"
+                    className="text-brand-primary-text animate-spin"
                   />
                 )}
                 {!usernameStatus.checking &&
@@ -504,7 +507,7 @@ export default function ProfileSettings() {
           {!canChooseColour && (
             <Link
               to="/pricing"
-              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary hover:underline"
+              className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary-text hover:underline"
             >
               {t('creator.advanced.plan_cta')}
             </Link>
@@ -519,7 +522,7 @@ export default function ProfileSettings() {
               <p className="flex items-center gap-2 text-sm font-semibold text-white">
                 <Building2
                   size={18}
-                  className="text-brand-primary"
+                  className="text-brand-primary-text"
                   aria-hidden
                 />
                 {t('profile.company_verified')}
@@ -561,7 +564,7 @@ export default function ProfileSettings() {
                   <Icon
                     size={16}
                     className={
-                      selected ? 'text-brand-primary' : 'text-white/40'
+                      selected ? 'text-brand-primary-text' : 'text-white/40'
                     }
                     aria-hidden
                   />

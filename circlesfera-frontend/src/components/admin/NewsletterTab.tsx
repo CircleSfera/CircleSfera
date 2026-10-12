@@ -138,7 +138,7 @@ export default function NewsletterTab({
               <div className="bg-black border border-white/5 rounded-lg overflow-hidden max-w-2xl mx-auto shadow-2xl">
                 <div className="bg-surface-elevated px-4 sm:px-6 py-3 border-b border-white/5 flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/10 flex items-center justify-center">
-                    <span className="text-brand-primary font-semibold text-xs">
+                    <span className="text-brand-primary-text font-semibold text-xs">
                       CS
                     </span>
                   </div>

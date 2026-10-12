@@ -34,7 +34,7 @@ export default function PostDetailPanel({ post }: Props) {
             href={`${platformOrigin()}/p/${post.id}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 shrink-0"
+            className="ml-auto inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary-text hover:bg-brand-primary/10 shrink-0"
           >
             <ExternalLink size={13} />
             {t('admin.posts.action_view_platform')}

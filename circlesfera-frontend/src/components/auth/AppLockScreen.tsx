@@ -63,7 +63,7 @@ export const AppLockScreen: React.FC = () => {
   return (
     <div className="fixed inset-0 z-9999 bg-brand-dark/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 transition-all duration-300">
       <div className="bg-brand-gray/50 p-8 rounded-full border border-white/10 mb-8 shadow-2xl">
-        <LockKeyhole className="w-16 h-16 text-brand-primary" />
+        <LockKeyhole className="w-16 h-16 text-brand-primary-text" />
       </div>
 
       <h1 className="text-2xl font-bold text-white mb-2">

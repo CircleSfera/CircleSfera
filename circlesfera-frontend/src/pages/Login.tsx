@@ -420,7 +420,7 @@ export default function Login() {
                   className="w-full flex items-center justify-center gap-3 py-1.5 font-bold text-xs md:text-sm hover:border-brand-primary/30 group"
                 >
                   {!passkeyLoading && (
-                    <Fingerprint className="w-5 h-5 text-brand-primary group-hover:scale-110 transition-transform" />
+                    <Fingerprint className="w-5 h-5 text-brand-primary-text group-hover:scale-110 transition-transform" />
                   )}
                   {t('auth.login.passkey_btn')}
                 </Button>
@@ -432,7 +432,7 @@ export default function Login() {
             {t('auth.login.no_account')}{' '}
             <Link
               to="/accounts/signup"
-              className="inline-flex min-h-11 min-w-11 items-center -my-3 text-white hover:text-brand-primary font-bold transition-colors ml-1"
+              className="inline-flex min-h-11 min-w-11 items-center -my-3 text-white hover:text-brand-primary-text font-bold transition-colors ml-1"
             >
               {t('auth.login.sign_up_link')}
             </Link>

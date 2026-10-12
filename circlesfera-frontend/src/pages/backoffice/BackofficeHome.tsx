@@ -49,7 +49,7 @@ export default function BackofficeHome() {
       </header>
 
       <main className="glass-panel mt-4 rounded-3xl p-6 sm:p-8">
-        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
           <Briefcase size={22} strokeWidth={1.75} aria-hidden />
         </span>
         <h1 className="mt-4 text-2xl font-black tracking-tight text-white sm:text-3xl">

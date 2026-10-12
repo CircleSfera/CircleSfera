@@ -160,7 +160,7 @@ export default function NewPromoModal({
                   variant="ghost"
                   size="compact"
                   onClick={() => setStep('select')}
-                  className="text-brand-primary hover:text-white mt-1 px-0"
+                  className="text-brand-primary-text hover:text-white mt-1 px-0"
                 >
                   {t('creator.promotions.change_post')}
                 </Button>

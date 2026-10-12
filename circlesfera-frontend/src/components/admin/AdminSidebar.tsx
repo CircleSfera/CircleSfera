@@ -116,7 +116,10 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
           const listId = `staff-nav-${group.labelKey.replace(/\W+/g, '-')}`;
           const heading = (
             <>
-              <group.icon size={11} className="text-brand-primary opacity-80" />
+              <group.icon
+                size={11}
+                className="text-brand-primary-text opacity-80"
+              />
               <span>{t(group.labelKey)}</span>
             </>
           );
@@ -137,7 +140,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                     {heading}
                     <span className="ml-auto flex items-center gap-1.5">
                       {!isOpen && waiting > 0 && (
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30">
                           {waiting}
                         </span>
                       )}
@@ -177,7 +180,9 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                         <ItemIcon
                           size={14}
                           className={
-                            isSelected ? 'text-brand-primary' : 'text-white/50'
+                            isSelected
+                              ? 'text-brand-primary-text'
+                              : 'text-white/50'
                           }
                         />
                         <span className="truncate">{t(item.labelKey)}</span>
@@ -185,14 +190,14 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
 
                       <div className="flex items-center gap-1.5 shrink-0">
                         {badge && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30">
                             {badge}
                           </span>
                         )}
                         {isSelected && (
                           <ChevronRight
                             size={12}
-                            className="text-brand-primary"
+                            className="text-brand-primary-text"
                           />
                         )}
                       </div>

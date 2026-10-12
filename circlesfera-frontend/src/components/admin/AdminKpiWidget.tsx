@@ -19,7 +19,7 @@ export function AdminKpiWidget({
   title,
   value,
   icon,
-  iconColorClass = 'text-brand-primary bg-brand-primary/10',
+  iconColorClass = 'text-brand-primary-text bg-brand-primary/10',
   trend,
   compact = false,
 }: Props) {

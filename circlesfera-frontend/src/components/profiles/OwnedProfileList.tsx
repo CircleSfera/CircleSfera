@@ -115,7 +115,7 @@ function ProfileRow({
           aria-label={t('settings.profiles.switching')}
         />
       ) : isCurrent ? (
-        <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary shrink-0">
+        <span className="inline-flex items-center gap-1 text-xs font-medium text-brand-primary-text shrink-0">
           <Check size={16} aria-hidden />
           {t('settings.profiles.current')}
         </span>

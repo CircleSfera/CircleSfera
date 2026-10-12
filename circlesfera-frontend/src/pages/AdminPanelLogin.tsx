@@ -135,8 +135,8 @@ export default function AdminPanelLogin() {
         <div className="relative z-10 flex flex-col items-center mb-4 pt-2">
           <img src={logoSrc} alt="CircleSfera" className="h-10 w-auto mb-3" />
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 mb-3">
-            <ShieldCheck size={12} className="text-brand-primary" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+            <ShieldCheck size={12} className="text-brand-primary-text" />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary-text">
               {t(isBackofficeHost() ? 'backoffice.title' : 'adminPanel.title')}
             </span>
           </div>
@@ -239,7 +239,7 @@ export default function AdminPanelLogin() {
                       {t('adminPanel.login.manual_secret')}
                     </p>
                     <div className="flex items-center gap-2">
-                      <p className="flex-1 text-xs font-mono text-brand-primary text-center tracking-wider break-all">
+                      <p className="flex-1 text-xs font-mono text-brand-primary-text text-center tracking-wider break-all">
                         {secret}
                       </p>
                       <button

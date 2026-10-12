@@ -164,7 +164,7 @@ export default function StoryToolRail({
                     <span
                       className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
                         selected
-                          ? 'border-brand-primary/40 bg-brand-primary/20 text-brand-primary'
+                          ? 'border-brand-primary/40 bg-brand-primary/20 text-brand-primary-text'
                           : 'border-white/8 bg-white/5 text-white/70'
                       }`}
                     >

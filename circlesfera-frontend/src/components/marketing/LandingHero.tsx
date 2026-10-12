@@ -79,7 +79,7 @@ export function LandingHero() {
             {t('landing.hero.already')}{' '}
             <Link
               to="/accounts/login"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center -my-3 font-bold text-white underline-offset-4 transition-colors hover:text-brand-primary hover:underline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center -my-3 font-bold text-white underline-offset-4 transition-colors hover:text-brand-primary-text hover:underline"
             >
               {t('landing.hero.log_in')}
             </Link>

@@ -69,7 +69,7 @@ export default function TipModal({
     >
       <div className="text-center mb-4">
         <div className="w-14 h-14 mx-auto bg-brand-primary/10 rounded-full flex items-center justify-center mb-3 border border-brand-primary/20">
-          <Gift className="w-7 h-7 text-brand-primary" />
+          <Gift className="w-7 h-7 text-brand-primary-text" />
         </div>
         <p className="text-white/60 text-sm">
           {t('wallet.support_with_money', { name: receiverName })}
@@ -89,7 +89,7 @@ export default function TipModal({
             }`}
           >
             <span
-              className={`font-bold text-xl ${selectedAmount === amount ? 'text-brand-primary' : 'text-white'}`}
+              className={`font-bold text-xl ${selectedAmount === amount ? 'text-brand-primary-text' : 'text-white'}`}
             >
               {formatWholeEuros(amount, i18n.language)}
             </span>

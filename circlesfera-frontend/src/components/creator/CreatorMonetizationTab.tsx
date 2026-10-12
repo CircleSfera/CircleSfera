@@ -176,10 +176,10 @@ export default function CreatorMonetizationTab({
     if (lower.includes('premium') || lower.includes('verified'))
       return <Star className="text-brand-blue" size={20} />;
     if (lower.includes('elite'))
-      return <Award className="text-brand-primary" size={20} />;
+      return <Award className="text-brand-primary-text" size={20} />;
     if (lower.includes('business'))
       return <Shield className="text-brand-accent" size={20} />;
-    return <Zap className="text-brand-primary" size={20} />;
+    return <Zap className="text-brand-primary-text" size={20} />;
   };
 
   const isTierActive = (planName: string) => {
@@ -204,7 +204,7 @@ export default function CreatorMonetizationTab({
   if ((showPlans && isLoadingPlans) || isLoadingMonetization) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-3">
-        <Loader2 className="animate-spin text-brand-primary" size={32} />
+        <Loader2 className="animate-spin text-brand-primary-text" size={32} />
         <p className="text-white/50 text-sm">
           {t('creator.monetization.loading_plans')}
         </p>
@@ -228,7 +228,11 @@ export default function CreatorMonetizationTab({
               className="p-5 rounded-xl border border-white/5 glass-panel space-y-4"
             >
               <div className="flex items-center gap-3">
-                <Wallet size={18} className="text-brand-primary" aria-hidden />
+                <Wallet
+                  size={18}
+                  className="text-brand-primary-text"
+                  aria-hidden
+                />
                 <div>
                   <h3 className="text-lg font-semibold text-white tracking-tight">
                     {t('creator.monetization.stripe_connected')}
@@ -251,7 +255,7 @@ export default function CreatorMonetizationTab({
                     )}
                   </p>
                   {connectStatus && (
-                    <span className="inline-block mt-1 text-[11px] text-brand-primary">
+                    <span className="inline-block mt-1 text-[11px] text-brand-primary-text">
                       {connectStatus.transfersEnabled
                         ? t('creator.monetization.transfers_enabled')
                         : t('creator.monetization.transfers_pending')}
@@ -285,7 +289,7 @@ export default function CreatorMonetizationTab({
             className="p-5 rounded-xl border border-white/5 glass-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4"
           >
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-brand-primary/15 flex items-center justify-center text-brand-primary shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-brand-primary/15 flex items-center justify-center text-brand-primary-text shrink-0">
                 <Zap size={20} />
               </div>
               <div>
@@ -345,7 +349,7 @@ export default function CreatorMonetizationTab({
                         {getTierIcon(plan.name)}
                       </div>
                       {active && (
-                        <span className="px-2.5 py-0.5 rounded-lg bg-brand-primary/15 text-brand-primary text-[11px] font-medium">
+                        <span className="px-2.5 py-0.5 rounded-lg bg-brand-primary/15 text-brand-primary-text text-[11px] font-medium">
                           {t('creator.monetization.active')}
                         </span>
                       )}
@@ -378,7 +382,7 @@ export default function CreatorMonetizationTab({
                         >
                           <CheckCircle2
                             size={14}
-                            className="text-brand-primary shrink-0"
+                            className="text-brand-primary-text shrink-0"
                           />
                           <span>{planFeatureLabel(feature, t)}</span>
                         </li>
@@ -407,7 +411,7 @@ export default function CreatorMonetizationTab({
             <div className="p-4 rounded-xl glass-panel border border-white/5 flex items-start gap-3">
               <TrendingUp
                 size={18}
-                className="text-brand-primary shrink-0 mt-0.5"
+                className="text-brand-primary-text shrink-0 mt-0.5"
                 aria-hidden
               />
               <div>
@@ -423,7 +427,7 @@ export default function CreatorMonetizationTab({
             <div className="p-4 rounded-xl glass-panel border border-white/5 flex items-start gap-3">
               <Users
                 size={18}
-                className="text-brand-primary shrink-0 mt-0.5"
+                className="text-brand-primary-text shrink-0 mt-0.5"
                 aria-hidden
               />
               <div>

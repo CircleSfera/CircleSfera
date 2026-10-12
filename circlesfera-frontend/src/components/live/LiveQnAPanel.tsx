@@ -90,7 +90,7 @@ export default function LiveQnAPanel({
                   <button
                     type="button"
                     onClick={() => onHighlightQuestion(q)}
-                    className="min-h-11 text-xs font-bold text-brand-primary bg-brand-primary/10 px-4 rounded-full hover:bg-brand-primary/20 transition-colors"
+                    className="min-h-11 text-xs font-bold text-brand-primary-text bg-brand-primary/10 px-4 rounded-full hover:bg-brand-primary/20 transition-colors"
                   >
                     {t('live.qna.project')}
                   </button>

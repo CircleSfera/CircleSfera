@@ -164,7 +164,7 @@ export default function StudioTopbar({
               size={15}
               className={
                 saveStatus === 'saving'
-                  ? 'animate-pulse text-brand-primary'
+                  ? 'animate-pulse text-brand-primary-text'
                   : ''
               }
             />

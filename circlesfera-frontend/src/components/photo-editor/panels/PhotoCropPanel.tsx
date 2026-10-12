@@ -56,7 +56,7 @@ export default function PhotoCropPanel({
               onClick={() => setAspect(opt.aspect)}
               className={`flex-1 min-h-11 h-11 text-sm font-semibold rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
                 isActive
-                  ? 'bg-brand-primary/20 text-brand-primary'
+                  ? 'bg-brand-primary/20 text-brand-primary-text'
                   : 'bg-white/5 text-white/60 hover:text-white/80'
               }`}
             >
@@ -79,7 +79,7 @@ export default function PhotoCropPanel({
           onChange={(e) => setRotation(Number(e.target.value))}
           className={`flex-1 ${PHOTO_RANGE_CLASS}`}
         />
-        <span className="text-sm font-semibold text-brand-primary w-10 tabular-nums text-right shrink-0">
+        <span className="text-sm font-semibold text-brand-primary-text w-10 tabular-nums text-right shrink-0">
           {rotation}°
         </span>
       </div>

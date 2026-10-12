@@ -49,7 +49,7 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
         onClick={() => fileInputRef.current?.click()}
         className="w-full border-2 border-dashed border-white/15 hover:border-brand-primary/60 bg-white/3 hover:bg-brand-primary/5 rounded-3xl p-4 flex flex-col items-center justify-center gap-2 transition-all min-h-24"
       >
-        <div className="w-11 h-11 rounded-full bg-brand-primary/10 text-brand-primary flex items-center justify-center">
+        <div className="w-11 h-11 rounded-full bg-brand-primary/10 text-brand-primary-text flex items-center justify-center">
           <FolderPlus size={20} />
         </div>
         <p className="text-sm font-semibold text-white">

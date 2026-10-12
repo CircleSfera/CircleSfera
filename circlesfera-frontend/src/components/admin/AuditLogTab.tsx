@@ -182,7 +182,7 @@ export default function AuditLogTab() {
                       </span>
                     }
                     subtitle={
-                      <span className="text-brand-primary font-semibold">
+                      <span className="text-brand-primary-text font-semibold">
                         @{log.adminUsername}
                       </span>
                     }

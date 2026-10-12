@@ -179,7 +179,11 @@ export default function FeedPreferencesSettings() {
                 className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
               >
                 <span className="text-white text-sm font-medium flex items-center gap-2">
-                  <Hash size={14} className="text-brand-primary" aria-hidden />
+                  <Hash
+                    size={14}
+                    className="text-brand-primary-text"
+                    aria-hidden
+                  />
                   {k.keyword}
                 </span>
                 <button
@@ -214,7 +218,11 @@ export default function FeedPreferencesSettings() {
                 className="flex items-center justify-between p-3 min-h-11 rounded-lg bg-white/5"
               >
                 <span className="text-white text-sm flex items-center gap-2">
-                  <UserX size={14} className="text-brand-primary" aria-hidden />
+                  <UserX
+                    size={14}
+                    className="text-brand-primary-text"
+                    aria-hidden
+                  />
                   @{a.username || a.authorId.slice(0, 8)}
                 </span>
                 <Button
@@ -259,7 +267,7 @@ export default function FeedPreferencesSettings() {
                     <div className="w-10 h-10 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
                       <EyeOff
                         size={14}
-                        className="text-brand-primary"
+                        className="text-brand-primary-text"
                         aria-hidden
                       />
                     </div>

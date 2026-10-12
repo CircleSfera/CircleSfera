@@ -64,7 +64,7 @@ export default function TrackItem({ track, compact = true }: TrackItemProps) {
       case 'video':
         return <Video size={14} className="text-brand-blue" />;
       case 'audio':
-        return <Music size={14} className="text-brand-primary" />;
+        return <Music size={14} className="text-brand-primary-text" />;
       case 'text':
         return <Type size={14} className="text-brand-accent" />;
       default:

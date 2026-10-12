@@ -90,7 +90,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
           type="button"
           onClick={handleFollow}
           disabled={loading}
-          className="text-xs font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors pl-2 disabled:opacity-50"
+          className="text-xs font-black uppercase tracking-wider text-brand-primary-text hover:text-brand-secondary transition-colors pl-2 disabled:opacity-50"
         >
           {loading ? '...' : t('suggestions.follow')}
         </button>
@@ -143,7 +143,7 @@ export const SuggestedUserCard: React.FC<SuggestedUserCardProps> = ({
         type="button"
         onClick={handleFollow}
         disabled={loading}
-        className="w-full py-1.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white text-xs font-black tracking-wider rounded-lg px-4 disabled:opacity-50 transition-all active:scale-95 border border-brand-primary/20 hover:border-transparent"
+        className="w-full py-1.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary-text hover:text-white text-xs font-black tracking-wider rounded-lg px-4 disabled:opacity-50 transition-all active:scale-95 border border-brand-primary/20 hover:border-transparent"
       >
         {loading ? '...' : t('suggestions.follow')}
       </button>

@@ -47,6 +47,9 @@ export function profileColorStyle(
     '--on-brand-primary': colour.on,
     '--brand-primary-rgb': colour.rgb,
     '--color-brand-primary': colour.hex,
+    // Each colour of the list reads on the dark background as it is.
+    '--brand-primary-text': colour.hex,
+    '--color-brand-primary-text': colour.hex,
     '--brand-secondary': colour.hex,
     '--color-brand-secondary': colour.hex,
     '--brand-blue': colour.hex,

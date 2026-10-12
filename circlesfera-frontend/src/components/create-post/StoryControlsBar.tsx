@@ -60,7 +60,7 @@ export default function StoryControlsBar({
             className={
               selectedAudio
                 ? 'text-white shrink-0'
-                : 'text-brand-primary shrink-0'
+                : 'text-brand-primary-text shrink-0'
             }
           />
           <span className="truncate max-w-30">

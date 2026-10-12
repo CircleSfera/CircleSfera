@@ -18,7 +18,7 @@ export function AdminUserFilterChip({
 }: AdminUserFilterChipProps) {
   const { t } = useTranslation();
   return (
-    <div className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 text-xs font-semibold text-brand-primary shrink-0">
+    <div className="inline-flex items-center gap-1.5 pl-2.5 pr-1 py-1 rounded-lg bg-brand-primary/15 border border-brand-primary/25 text-xs font-semibold text-brand-primary-text shrink-0">
       <span className="truncate max-w-40">
         {t('admin.shared.filtered_by_user', {
           user: username ? `@${username}` : t('admin.shared.user'),
@@ -27,7 +27,7 @@ export function AdminUserFilterChip({
       <button
         type="button"
         onClick={onClear}
-        className="min-w-11 min-h-11 w-11 h-11 sm:min-w-9 sm:min-h-9 sm:w-9 sm:h-9 flex items-center justify-center rounded-md hover:bg-brand-primary/20 text-brand-primary"
+        className="min-w-11 min-h-11 w-11 h-11 sm:min-w-9 sm:min-h-9 sm:w-9 sm:h-9 flex items-center justify-center rounded-md hover:bg-brand-primary/20 text-brand-primary-text"
         aria-label={t('admin.shared.clear_user_filter')}
       >
         <X size={14} />

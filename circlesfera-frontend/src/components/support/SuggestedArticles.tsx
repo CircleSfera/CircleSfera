@@ -46,7 +46,7 @@ export function SuggestedArticles({ subject }: { subject: string }) {
               href={`/help/${article.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-primary underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
+              className="flex min-h-11 items-center gap-2 text-sm font-semibold text-brand-primary-text underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
             >
               <span className="min-w-0 flex-1">{article.title}</span>
               <ExternalLink size={16} className="shrink-0" aria-hidden />

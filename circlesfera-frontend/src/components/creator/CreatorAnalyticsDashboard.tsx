@@ -171,7 +171,7 @@ export const CreatorAnalyticsDashboard = () => {
 
       {loading ? (
         <div className="flex justify-center items-center py-12 text-white/50">
-          <Loader2 className="w-5 h-5 animate-spin mr-3 text-brand-primary" />
+          <Loader2 className="w-5 h-5 animate-spin mr-3 text-brand-primary-text" />
           <span className="text-sm">{t('creator.advanced.loading')}</span>
         </div>
       ) : (
@@ -277,7 +277,11 @@ export const CreatorAnalyticsDashboard = () => {
 
           <Card variant="glass" className="p-4 space-y-3">
             <h3 className="text-sm font-medium text-white flex items-center gap-2">
-              <Award size={16} className="text-brand-primary" aria-hidden />
+              <Award
+                size={16}
+                className="text-brand-primary-text"
+                aria-hidden
+              />
               {t('creator.advanced.top_posts')}
             </h3>
             {topPosts.length === 0 ? (
@@ -292,7 +296,7 @@ export const CreatorAnalyticsDashboard = () => {
                     className="flex items-center justify-between gap-3 p-3 rounded-lg border border-white/5 bg-white/3"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary text-xs font-medium flex items-center justify-center">
+                      <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary-text text-xs font-medium flex items-center justify-center">
                         {idx + 1}
                       </span>
                       <div className="min-w-0">
@@ -344,7 +348,7 @@ function Kpi({
     <Card variant="glass" className="p-4">
       <div className="flex items-center justify-between mb-2">
         <span className="text-xs text-white/50">{label}</span>
-        <Icon size={16} className="text-brand-primary" aria-hidden />
+        <Icon size={16} className="text-brand-primary-text" aria-hidden />
       </div>
       <p className="text-2xl font-semibold text-white tabular-nums">{value}</p>
       <p className="text-[11px] text-white/40 mt-1">{hint}</p>

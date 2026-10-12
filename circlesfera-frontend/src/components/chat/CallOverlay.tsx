@@ -135,7 +135,7 @@ export const CallOverlay: React.FC = () => {
                 <h2 className="text-xl font-bold text-white mb-2">
                   {remoteUser?.profile.fullName || remoteUser?.profile.username}
                 </h2>
-                <p className="text-brand-primary animate-pulse font-medium">
+                <p className="text-brand-primary-text animate-pulse font-medium">
                   {t('chat.in_call')}
                 </p>
               </div>

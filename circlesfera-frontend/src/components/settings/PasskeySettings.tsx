@@ -141,7 +141,7 @@ export const PasskeySettings: React.FC = () => {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6">
         <div className="flex items-start md:items-center gap-3">
-          <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary border border-brand-primary/20">
+          <div className="p-3 bg-brand-primary/10 rounded-2xl text-brand-primary-text border border-brand-primary/20">
             <Fingerprint size={24} />
           </div>
           <div>

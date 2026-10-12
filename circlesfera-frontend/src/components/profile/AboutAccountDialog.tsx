@@ -110,7 +110,7 @@ export default function AboutAccountDialog({
       icon: Mail,
       label: t('profile.about.email'),
       value: account.emailConfirmed ? (
-        <span className="text-brand-primary font-medium">
+        <span className="text-brand-primary-text font-medium">
           {t('profile.about.yes')}
         </span>
       ) : (
@@ -121,7 +121,7 @@ export default function AboutAccountDialog({
       icon: ShieldCheck,
       label: t('profile.about.identity'),
       value: account.identityVerified ? (
-        <span className="text-brand-primary font-medium">
+        <span className="text-brand-primary-text font-medium">
           {t('profile.about.yes')}
         </span>
       ) : (
@@ -162,7 +162,7 @@ export default function AboutAccountDialog({
           {t('profile.about.suspended')}
         </span>
       ) : (
-        <span className="text-brand-primary font-medium">
+        <span className="text-brand-primary-text font-medium">
           {t('profile.about.in_good_standing')}
         </span>
       ),

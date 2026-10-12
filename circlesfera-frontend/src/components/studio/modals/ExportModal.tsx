@@ -147,7 +147,7 @@ export default function ExportModal({
                 <button
                   type="button"
                   onClick={() => setScheduledAt('')}
-                  className="text-sm text-brand-primary hover:underline min-h-11"
+                  className="text-sm text-brand-primary-text hover:underline min-h-11"
                 >
                   {t('createPost.caption.clear_schedule')}
                 </button>

@@ -86,7 +86,7 @@ export const Support = () => {
                 to={to}
                 className="group flex h-full items-start gap-4 rounded-3xl glass-panel p-6 transition-colors hover:border-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
               >
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
                   <Icon size={22} strokeWidth={1.75} aria-hidden />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -99,7 +99,7 @@ export const Support = () => {
                 </span>
                 <ArrowRight
                   size={18}
-                  className="mt-1 shrink-0 text-white/30 transition-colors group-hover:text-brand-primary"
+                  className="mt-1 shrink-0 text-white/30 transition-colors group-hover:text-brand-primary-text"
                   aria-hidden
                 />
               </Link>
@@ -118,7 +118,7 @@ export const Support = () => {
             <ol className="mt-8 space-y-6">
               {STEPS.map((step, index) => (
                 <li key={step} className="flex gap-4">
-                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-sm font-black text-brand-primary">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-sm font-black text-brand-primary-text">
                     {index + 1}
                   </span>
                   <div>

@@ -95,7 +95,7 @@ export default function LiveGiftModal({
   return (
     <Dialog isOpen={isOpen} onClose={onClose} maxWidth="md">
       <div className="flex items-center gap-2 pb-4 mb-4 border-b border-white/10 pr-10">
-        <div className="p-2 rounded-xl bg-brand-primary/20 text-brand-primary border border-brand-primary/30">
+        <div className="p-2 rounded-xl bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30">
           <Sparkles size={20} aria-hidden />
         </div>
         <div>
@@ -127,7 +127,7 @@ export default function LiveGiftModal({
               <span className="text-xs font-semibold leading-tight line-clamp-2 max-w-full">
                 {t(gift.nameKey)}
               </span>
-              <span className="text-xs font-extrabold text-brand-primary mt-1">
+              <span className="text-xs font-extrabold text-brand-primary-text mt-1">
                 {formatWholeEuros(gift.price, i18n.language)}
               </span>
             </button>

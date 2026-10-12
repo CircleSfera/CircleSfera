@@ -11,7 +11,7 @@ function Linked({ text }: { text: string }) {
             href={piece.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-primary underline underline-offset-2 break-all"
+            className="text-brand-primary-text underline underline-offset-2 break-all"
           >
             {piece.text}
           </a>

@@ -101,7 +101,7 @@ export default function AdvancedSettingsSubScreen({
             <button
               type="button"
               onClick={() => setScheduledAt('')}
-              className="text-xs text-brand-primary hover:underline min-h-11"
+              className="text-xs text-brand-primary-text hover:underline min-h-11"
             >
               {t('createPost.caption.clear_schedule')}
             </button>

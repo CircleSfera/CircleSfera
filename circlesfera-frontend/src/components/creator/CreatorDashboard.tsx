@@ -184,7 +184,7 @@ export default function CreatorDashboard({
             >
               <DollarSign
                 size={18}
-                className="text-brand-primary mb-3"
+                className="text-brand-primary-text mb-3"
                 aria-hidden
               />
               <h3 className="text-white text-sm font-medium mb-1">
@@ -202,7 +202,7 @@ export default function CreatorDashboard({
             >
               <Megaphone
                 size={18}
-                className="text-brand-primary mb-3"
+                className="text-brand-primary-text mb-3"
                 aria-hidden
               />
               <h3 className="text-white text-sm font-medium mb-1">
@@ -289,7 +289,7 @@ export default function CreatorDashboard({
         onClick={() => onNavigate('analytics')}
         className="w-full glass-panel p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/5 transition-colors text-left"
       >
-        <div className="w-11 h-11 rounded-xl bg-brand-primary/15 flex items-center justify-center text-brand-primary shrink-0">
+        <div className="w-11 h-11 rounded-xl bg-brand-primary/15 flex items-center justify-center text-brand-primary-text shrink-0">
           <BarChart3 size={20} aria-hidden />
         </div>
         <div className="flex-1 min-w-0">
@@ -300,7 +300,7 @@ export default function CreatorDashboard({
             {t('creator.dashboard.analytics_teaser_desc')}
           </p>
         </div>
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-primary shrink-0 min-h-11">
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-primary-text shrink-0 min-h-11">
           {t('creator.dashboard.see_analytics')}
           <ChevronRight size={14} aria-hidden />
         </span>

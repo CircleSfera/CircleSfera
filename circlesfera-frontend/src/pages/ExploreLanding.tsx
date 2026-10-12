@@ -54,7 +54,7 @@ export default function ExploreLanding() {
         <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {BLOCKS.map(({ key, icon: Icon }) => (
             <li key={key} className="rounded-3xl glass-panel p-6">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
                 <Icon size={22} strokeWidth={1.75} aria-hidden />
               </span>
               <h2 className="mt-4 text-lg font-bold tracking-tight text-white">

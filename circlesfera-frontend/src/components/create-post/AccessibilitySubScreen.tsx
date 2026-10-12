@@ -125,7 +125,7 @@ export default function AccessibilitySubScreen({
                       className={`inline-flex items-center gap-1.5 min-h-11 px-4 rounded-full border transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 ${
                         isGenerating
                           ? 'bg-surface-raised border-white/10 text-white/40'
-                          : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary hover:bg-brand-primary hover:text-white'
+                          : 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary-text hover:bg-brand-primary hover:text-white'
                       }`}
                     >
                       {isGenerating ? (

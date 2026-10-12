@@ -63,7 +63,7 @@ export default function VerifyEmail() {
                 <div className="relative">
                   <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full" />
                   <Loader2
-                    className="w-16 h-16 text-brand-primary animate-spin relative z-10"
+                    className="w-16 h-16 text-brand-primary-text animate-spin relative z-10"
                     strokeWidth={1.5}
                   />
                 </div>

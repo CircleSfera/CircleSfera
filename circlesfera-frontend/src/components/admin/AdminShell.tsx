@@ -115,8 +115,8 @@ export default function AdminShell({
                   )}
                 </h1>
                 <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-brand-primary/15 border border-brand-primary/25 shrink-0">
-                  <ShieldCheck size={10} className="text-brand-primary" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary">
+                  <ShieldCheck size={10} className="text-brand-primary-text" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-brand-primary-text">
                     {t('adminPanel.staff')}
                   </span>
                 </span>
@@ -210,7 +210,7 @@ function AdminAccountMenu() {
         aria-haspopup="menu"
       >
         <span className="w-7 h-7 rounded-lg bg-brand-primary/20 border border-brand-primary/30 flex items-center justify-center shrink-0">
-          <ShieldCheck size={14} className="text-brand-primary" />
+          <ShieldCheck size={14} className="text-brand-primary-text" />
         </span>
         <span className="hidden sm:block text-xs font-semibold text-white truncate">
           {admin.displayName}
@@ -237,7 +237,10 @@ function AdminAccountMenu() {
             role="menuitem"
             className="flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white"
           >
-            <ExternalLink size={14} className="text-brand-primary shrink-0" />
+            <ExternalLink
+              size={14}
+              className="text-brand-primary-text shrink-0"
+            />
             {t(
               currentStaffSite() === 'backoffice'
                 ? 'adminPanel.title'
@@ -249,7 +252,10 @@ function AdminAccountMenu() {
             role="menuitem"
             className="flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white"
           >
-            <ExternalLink size={14} className="text-brand-primary shrink-0" />
+            <ExternalLink
+              size={14}
+              className="text-brand-primary-text shrink-0"
+            />
             {t('admin.back_to_app')}
           </a>
           <button
@@ -262,7 +268,7 @@ function AdminAccountMenu() {
             }
             className="w-full flex items-center gap-2.5 px-3 py-2.5 min-h-11 text-xs font-semibold text-white/80 hover:bg-white/5 hover:text-white text-left"
           >
-            <LogOut size={14} className="text-brand-primary shrink-0" />
+            <LogOut size={14} className="text-brand-primary-text shrink-0" />
             {t('adminPanel.logout')}
           </button>
         </div>

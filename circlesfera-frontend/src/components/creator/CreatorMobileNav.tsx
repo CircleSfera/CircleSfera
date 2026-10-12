@@ -146,7 +146,9 @@ export function CreatorMobileDrawer({ isOpen, onClose }: Props) {
                             size={18}
                             className={clsx(
                               'shrink-0',
-                              isActive ? 'text-brand-primary' : 'text-white/50',
+                              isActive
+                                ? 'text-brand-primary-text'
+                                : 'text-white/50',
                             )}
                             aria-hidden
                           />

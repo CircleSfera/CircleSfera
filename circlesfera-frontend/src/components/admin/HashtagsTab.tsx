@@ -58,12 +58,12 @@ export default function HashtagsTab() {
                 key={tag.id}
                 title={
                   <span className="inline-flex items-center gap-2">
-                    <Hash size={14} className="text-brand-primary" />
+                    <Hash size={14} className="text-brand-primary-text" />
                     {tag.tag}
                   </span>
                 }
                 badge={
-                  <span className="text-brand-primary font-semibold text-sm">
+                  <span className="text-brand-primary-text font-semibold text-sm">
                     {t('admin.hashtags.posts_count', { count: tag.postCount })}
                   </span>
                 }
@@ -99,7 +99,10 @@ export default function HashtagsTab() {
                 </td>
                 <td className="px-2 py-1">
                   <div className="flex items-center gap-2 min-w-0">
-                    <Hash size={14} className="text-brand-primary shrink-0" />
+                    <Hash
+                      size={14}
+                      className="text-brand-primary-text shrink-0"
+                    />
                     <span
                       className="text-white font-semibold text-sm truncate"
                       title={tag.tag}
@@ -109,7 +112,7 @@ export default function HashtagsTab() {
                   </div>
                 </td>
                 <td className="px-2 py-1">
-                  <span className="text-brand-primary font-semibold text-sm">
+                  <span className="text-brand-primary-text font-semibold text-sm">
                     {tag.postCount}
                   </span>
                 </td>

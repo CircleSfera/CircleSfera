@@ -116,7 +116,7 @@ export default function SupportTicketModal({
     >
       <div className="-mx-4 -mt-4 flex flex-col max-h-[85vh]">
         <div className="flex items-center gap-3 p-4 border-b border-white/10 shrink-0 pr-14">
-          <div className="p-2.5 rounded-2xl bg-brand-primary/20 text-brand-primary border border-brand-primary/30 shrink-0">
+          <div className="p-2.5 rounded-2xl bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30 shrink-0">
             <HelpCircle size={22} aria-hidden />
           </div>
           <div className="min-w-0">

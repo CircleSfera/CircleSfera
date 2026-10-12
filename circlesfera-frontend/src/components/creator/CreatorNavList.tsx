@@ -39,7 +39,9 @@ export default function CreatorNavList({ onNavigate }: CreatorNavListProps) {
                         <ItemIcon
                           size={18}
                           className={
-                            isActive ? 'text-brand-primary' : 'text-white/40'
+                            isActive
+                              ? 'text-brand-primary-text'
+                              : 'text-white/40'
                           }
                           aria-hidden
                         />

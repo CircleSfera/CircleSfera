@@ -295,7 +295,7 @@ function AppealRow({ appeal }: { appeal: Appeal }) {
       </p>
       {appeal.adminNotes ? (
         <div className="p-2.5 rounded-lg bg-brand-primary/10 border border-brand-primary/15">
-          <p className="text-xs font-medium text-brand-primary mb-1">
+          <p className="text-xs font-medium text-brand-primary-text mb-1">
             {t('settings.appeals.admin_notes')}
           </p>
           <p className="text-xs text-white/60">{appeal.adminNotes}</p>

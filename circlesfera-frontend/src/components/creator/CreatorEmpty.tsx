@@ -23,7 +23,7 @@ export default function CreatorEmpty({
       {Icon ? (
         <Icon
           size={28}
-          className="mx-auto mb-3 text-brand-primary"
+          className="mx-auto mb-3 text-brand-primary-text"
           aria-hidden
         />
       ) : null}

@@ -116,7 +116,11 @@ export default function MonetizationDashboard() {
       {hasConnect && payoutsSummary ? (
         <Card variant="glass" className="p-5 space-y-3">
           <h3 className="text-sm font-medium text-white flex items-center gap-1.5">
-            <ShieldCheck size={14} className="text-brand-primary" aria-hidden />
+            <ShieldCheck
+              size={14}
+              className="text-brand-primary-text"
+              aria-hidden
+            />
             {t('creator.income.stripe_balances')}
           </h3>
           <p className="text-xs text-white/50">
@@ -171,7 +175,7 @@ export default function MonetizationDashboard() {
                   <div
                     className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                       isIncoming
-                        ? 'bg-brand-primary/15 text-brand-primary'
+                        ? 'bg-brand-primary/15 text-brand-primary-text'
                         : 'bg-brand-secondary/15 text-brand-secondary'
                     }`}
                   >

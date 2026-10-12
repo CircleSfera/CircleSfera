@@ -178,7 +178,7 @@ export default function CreateProfileForm({
             aria-live="polite"
             className={`text-xs px-0.5 ${
               availability === 'available'
-                ? 'text-brand-primary'
+                ? 'text-brand-primary-text'
                 : 'text-white/50'
             }`}
           >
@@ -232,7 +232,7 @@ export default function CreateProfileForm({
                 {selected ? (
                   <Check
                     size={16}
-                    className="text-brand-primary shrink-0"
+                    className="text-brand-primary-text shrink-0"
                     aria-hidden
                   />
                 ) : null}
@@ -277,7 +277,7 @@ export default function CreateProfileForm({
                 {selected ? (
                   <Check
                     size={16}
-                    className="text-brand-primary shrink-0"
+                    className="text-brand-primary-text shrink-0"
                     aria-hidden
                   />
                 ) : null}
@@ -360,7 +360,7 @@ function AvailabilityIcon({ state }: { state: Availability }) {
     );
   }
   if (state === 'available') {
-    return <Check size={16} className="text-brand-primary" aria-hidden />;
+    return <Check size={16} className="text-brand-primary-text" aria-hidden />;
   }
   if (state === 'taken' || state === 'invalid') {
     return <X size={16} className="text-brand-secondary" aria-hidden />;

@@ -91,7 +91,7 @@ export default function CreatorHeroCard({ stats, chartData }: Props) {
             <div
               className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium border ${
                 isPositiveGrowth
-                  ? 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary'
+                  ? 'bg-brand-primary/10 border-brand-primary/20 text-brand-primary-text'
                   : 'bg-brand-secondary/10 border-brand-secondary/20 text-brand-secondary'
               }`}
             >
@@ -149,7 +149,7 @@ function MetricTile({
   return (
     <div className="p-3 rounded-lg bg-white/3 border border-white/5">
       <div className="flex items-center gap-2 mb-1">
-        <Icon size={14} className="text-brand-primary" aria-hidden />
+        <Icon size={14} className="text-brand-primary-text" aria-hidden />
         <span className="text-xs text-white/50">{label}</span>
       </div>
       <p className="text-lg font-semibold text-white tabular-nums">{value}</p>

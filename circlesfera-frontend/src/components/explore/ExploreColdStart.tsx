@@ -37,7 +37,7 @@ export default function ExploreColdStart({
       <div className="space-y-4 max-w-xl">
         <div className="w-14 h-14 bg-brand-primary/10 rounded-xl mx-auto flex items-center justify-center border border-brand-primary/20 shadow-xl shadow-brand-primary/20 mb-6 relative">
           <div className="absolute inset-0 bg-brand-primary/20 blur-xl rounded-full" />
-          <Sparkles className="text-brand-primary w-6 h-6 relative z-10" />
+          <Sparkles className="text-brand-primary-text w-6 h-6 relative z-10" />
         </div>
 
         <h2 className="text-lg md:text-xl font-bold text-white tracking-tight leading-tight">
@@ -83,7 +83,7 @@ export default function ExploreColdStart({
       <div className="w-full pt-8 border-t border-white/10">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-bold text-white flex items-center gap-2">
-            <Users size={18} className="text-brand-primary" />
+            <Users size={18} className="text-brand-primary-text" />
             {t('explore.cold_start.people_to_follow')}
           </h3>
         </div>
@@ -116,7 +116,7 @@ export default function ExploreColdStart({
                 </Link>
                 <Link
                   to={`/${user.username}`}
-                  className="font-bold text-white mb-1 flex items-center justify-center gap-1 group-hover:text-brand-primary transition-colors"
+                  className="font-bold text-white mb-1 flex items-center justify-center gap-1 group-hover:text-brand-primary-text transition-colors"
                 >
                   <span className="truncate max-w-30">{user.username}</span>
                   <VerificationBadge

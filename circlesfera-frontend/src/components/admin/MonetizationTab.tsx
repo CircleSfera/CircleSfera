@@ -194,7 +194,7 @@ export default function MonetizationTab() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
         <div className="p-2.5 sm:p-3 rounded-lg border border-white/5 bg-white/2 flex flex-col justify-between gap-2">
           <div className="flex justify-between items-start gap-2">
-            <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary shrink-0">
+            <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary-text shrink-0">
               <Zap size={16} />
             </div>
             <span className="text-[10px] font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
@@ -334,7 +334,7 @@ export default function MonetizationTab() {
           <div className="rounded-lg border border-white/5 bg-white/2 p-2.5 sm:p-3 flex flex-col justify-center">
             <div className="flex items-center gap-2.5 mb-2">
               <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center shrink-0">
-                <TrendingUp size={16} className="text-brand-primary" />
+                <TrendingUp size={16} className="text-brand-primary-text" />
               </div>
               <h4 className="text-sm font-semibold text-white">
                 {t('admin.monetization.growth_title')}

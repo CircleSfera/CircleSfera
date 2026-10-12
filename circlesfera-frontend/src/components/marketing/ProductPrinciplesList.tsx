@@ -24,7 +24,7 @@ export function ProductPrinciplesList() {
     <ol className="overflow-hidden rounded-3xl glass-panel divide-y divide-white/8">
       {PRINCIPLES.map(({ key, icon: Icon }, index) => (
         <li key={key} className="flex gap-4 p-5 sm:gap-6 sm:p-6">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
             <Icon size={22} strokeWidth={1.75} aria-hidden />
           </span>
           <div className="min-w-0">

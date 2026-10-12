@@ -79,7 +79,7 @@ export default function CoHostInviteBanner({
 
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-sm leading-tight">
-                  <span className="text-brand-primary">
+                  <span className="text-brand-primary-text">
                     @{invite.host.username || t('live.anonymous')}
                   </span>{' '}
                   {t('live.cohost_invite.body')}

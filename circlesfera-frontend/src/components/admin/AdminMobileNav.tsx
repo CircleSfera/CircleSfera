@@ -217,7 +217,7 @@ export function AdminMobileDrawer({
                             className={clsx(
                               'shrink-0',
                               isSelected
-                                ? 'text-brand-primary'
+                                ? 'text-brand-primary-text'
                                 : 'text-white/50',
                             )}
                           />
@@ -226,7 +226,7 @@ export function AdminMobileDrawer({
                           </span>
                         </div>
                         {badge && (
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30 shrink-0">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30 shrink-0">
                             {badge}
                           </span>
                         )}

@@ -212,7 +212,7 @@ export default function CaptionStep({
               <div
                 className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-all ${
                   item.isActive
-                    ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary'
+                    ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary-text'
                     : 'bg-white/5 border-white/8 text-white/70 group-hover:text-white'
                 }`}
               >

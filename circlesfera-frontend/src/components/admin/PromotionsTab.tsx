@@ -330,7 +330,7 @@ export default function PromotionsTab({ onToast }: Props) {
                         href={`${platformOrigin()}/p/${selectedPromo.targetId}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand-primary hover:bg-brand-primary/10 transition-colors shrink-0"
+                        className="inline-flex items-center justify-center w-11 h-11 rounded-md text-brand-primary-text hover:bg-brand-primary/10 transition-colors shrink-0"
                         title={t('admin.promotions.open_new_tab')}
                         aria-label={t('admin.promotions.open_new_tab')}
                       >
