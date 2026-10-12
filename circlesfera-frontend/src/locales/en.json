@@ -2584,6 +2584,16 @@
       "approve_title": "Approve the appeal",
       "reject_title": "Reject the appeal",
       "target_preview": "What it is about",
+      "about_strike_kind": {
+        "WARNING": "Warning",
+        "STRIKE": "Strike"
+      },
+      "about_consequence": {
+        "SUSPENDED": "Profile suspended for 7 days",
+        "BANNED": "Profile banned"
+      },
+      "about_restriction": "Spam review, score {{score}}",
+      "about_restricted_until": "restricted until {{date}}",
       "open_user": "Open in Users",
       "notes_prompt": "A note for the team (optional).",
       "notes_prompt_reject": "Why it is rejected (optional).",
@@ -3050,7 +3060,7 @@
         "PROMOTION": "Promotion",
         "PLATFORM_PLAN": "Plan",
         "SYSTEM": "System",
-        "STRIKE": "Strike",
+        "STRIKE": "Warning or strike",
         "RESTRICTION": "Restriction",
         "ACCOUNT_BAN": "Ban",
         "POST_REMOVAL": "Post removal",

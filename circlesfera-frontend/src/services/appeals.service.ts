@@ -19,10 +19,14 @@ export interface Appeal {
   adminNotes: string | null;
   createdAt: string;
   updatedAt: string;
+  // `text` is the caption of an appealed post, in its author's words. The
+  // rest are facts the panel says in the reader's language.
   targetPreview?: {
     text?: string | null;
     moderationStatus?: string | null;
     type?: string;
+    strike?: { kind: string; reason: string; consequence: string };
+    restriction?: { score: number; restrictedUntil: string | null };
   } | null;
   user?: {
     id: string;

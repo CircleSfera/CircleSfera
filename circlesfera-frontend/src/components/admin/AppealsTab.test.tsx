@@ -131,11 +131,7 @@ describe('AppealsTab', () => {
         appeal({
           status: 'REJECTED',
           targetType: 'ACCOUNT_BAN',
-          targetPreview: {
-            text: 'Account inactive',
-            moderationStatus: 'BANNED',
-            type: 'ACCOUNT',
-          },
+          targetPreview: { moderationStatus: 'BANNED', type: 'ACCOUNT' },
         }),
       ]) as never,
     );
@@ -143,12 +139,90 @@ describe('AppealsTab', () => {
 
     const open = await openCase();
     expect(within(open).getByText('Banned')).toBeInTheDocument();
-    expect(within(open).queryByText('Account inactive')).toBeNull();
+    expect(within(open).queryByText('What it is about')).toBeNull();
     expect(within(open).queryByRole('button', { name: 'Approve' })).toBeNull();
     expect(within(open).queryByRole('button', { name: 'Reject' })).toBeNull();
     expect(
       within(open).getByRole('button', { name: 'Open in Users' }),
     ).toBeInTheDocument();
+  });
+
+  it('says what a strike was for and what it brought, in words', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(
+      page([
+        appeal({
+          targetType: 'STRIKE',
+          targetPreview: {
+            strike: {
+              kind: 'STRIKE',
+              reason: 'HATE_SPEECH',
+              consequence: 'SUSPENDED',
+            },
+            moderationStatus: 'ACTIVE',
+            type: 'STRIKE',
+          },
+        }),
+        appeal({
+          id: 'a2',
+          user: { email: 'leo@example.com', profile: { username: 'leo' } },
+          targetType: 'STRIKE',
+          targetPreview: {
+            strike: { kind: 'WARNING', reason: 'SPAM', consequence: 'NONE' },
+            moderationStatus: 'REVOKED',
+            type: 'STRIKE',
+          },
+        }),
+      ]) as never,
+    );
+    renderWithProviders(<AppealsTab />);
+
+    let open = await openCase();
+    expect(
+      within(open).getByText(
+        'Strike · Hate speech · Profile suspended for 7 days',
+      ),
+    ).toBeInTheDocument();
+    expect(open).not.toHaveTextContent(/HATE_SPEECH|SUSPENDED/);
+
+    open = await openCase('leo@example.com');
+    expect(within(open).getByText('Warning · Spam')).toBeInTheDocument();
+  });
+
+  it('says the score of a spam restriction and until when it holds', async () => {
+    vi.mocked(getAdminAppeals).mockResolvedValue(
+      page([
+        appeal({
+          targetType: 'RESTRICTION',
+          targetPreview: {
+            restriction: {
+              score: 82,
+              restrictedUntil: '2026-09-20T10:00:00.000Z',
+            },
+            moderationStatus: 'RESTRICTED',
+            type: 'RESTRICTION',
+          },
+        }),
+        appeal({
+          id: 'a2',
+          user: { email: 'leo@example.com', profile: { username: 'leo' } },
+          targetType: 'RESTRICTION',
+          targetPreview: {
+            restriction: { score: 75, restrictedUntil: null },
+            moderationStatus: 'RESOLVED',
+            type: 'RESTRICTION',
+          },
+        }),
+      ]) as never,
+    );
+    renderWithProviders(<AppealsTab />);
+
+    let open = await openCase();
+    expect(
+      within(open).getByText(/^Spam review, score 82 · restricted until /),
+    ).toBeInTheDocument();
+
+    open = await openCase('leo@example.com');
+    expect(within(open).getByText('Spam review, score 75')).toBeInTheDocument();
   });
 
   it('opens the account of the person who appealed', async () => {

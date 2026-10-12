@@ -2584,6 +2584,16 @@
       "approve_title": "Aprobar la apelación",
       "reject_title": "Rechazar la apelación",
       "target_preview": "De qué trata",
+      "about_strike_kind": {
+        "WARNING": "Aviso",
+        "STRIKE": "Strike"
+      },
+      "about_consequence": {
+        "SUSPENDED": "Perfil suspendido 7 días",
+        "BANNED": "Perfil bloqueado"
+      },
+      "about_restriction": "Revisión de spam, puntuación {{score}}",
+      "about_restricted_until": "restringida hasta el {{date}}",
       "open_user": "Abrir en Usuarios",
       "notes_prompt": "Una nota para el equipo (opcional).",
       "notes_prompt_reject": "Por qué se rechaza (opcional).",
@@ -3050,7 +3060,7 @@
         "PROMOTION": "Promoción",
         "PLATFORM_PLAN": "Plan",
         "SYSTEM": "Sistema",
-        "STRIKE": "Aviso",
+        "STRIKE": "Aviso o strike",
         "RESTRICTION": "Restricción",
         "ACCOUNT_BAN": "Baneo",
         "POST_REMOVAL": "Retirada de publicación",
