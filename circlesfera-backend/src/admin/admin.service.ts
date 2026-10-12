@@ -1,9 +1,29 @@
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { AdminAction } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import type {
+  CreateFirewallRuleDto,
+  UpdateFirewallRuleDto,
+} from './dto/firewall.dto.js';
+
+const prismaCode = (err: unknown) => (err as { code?: string } | null)?.code;
+
+// A rule that was deleted meanwhile is "not found", not a server error.
+function ruleNotFound(err: unknown): never {
+  if (prismaCode(err) === 'P2025') {
+    throw new NotFoundException('Rule not found');
+  }
+  throw err;
+}
 
 @Injectable()
 export class AdminService {
@@ -154,15 +174,23 @@ export class AdminService {
     return { data, meta: { total, page, limit } };
   }
 
-  async createFirewallRule(adminId: string, body: any) {
-    const rule = await this.prisma.moderationRule.create({
-      data: {
-        keyword: body.keyword,
-        action: body.action || 'FLAG',
-        isActive: body.isActive ?? true,
-        createdBy: adminId,
-      },
-    });
+  async createFirewallRule(adminId: string, body: CreateFirewallRuleDto) {
+    const rule = await this.prisma.moderationRule
+      .create({
+        data: {
+          keyword: body.keyword,
+          action: body.action ?? 'FLAG',
+          isActive: body.isActive ?? true,
+          createdBy: adminId,
+        },
+      })
+      .catch((err: unknown) => {
+        // The phrase of a rule is unique.
+        if (prismaCode(err) === 'P2002') {
+          throw new ConflictException('A rule for this phrase already exists');
+        }
+        throw err;
+      });
     await this.logAction(
       adminId,
       AdminAction.UPDATE_SETTINGS,
@@ -173,14 +201,23 @@ export class AdminService {
     return rule;
   }
 
-  async updateFirewallRule(adminId: string, ruleId: string, body: any) {
-    const rule = await this.prisma.moderationRule.update({
-      where: { id: ruleId },
-      data: {
-        action: body.action,
-        isActive: body.isActive,
-      },
-    });
+  async updateFirewallRule(
+    adminId: string,
+    ruleId: string,
+    body: UpdateFirewallRuleDto,
+  ) {
+    if (body.action === undefined && body.isActive === undefined) {
+      throw new BadRequestException('Nothing to change');
+    }
+    const rule = await this.prisma.moderationRule
+      .update({
+        where: { id: ruleId },
+        data: {
+          action: body.action,
+          isActive: body.isActive,
+        },
+      })
+      .catch(ruleNotFound);
     await this.logAction(
       adminId,
       AdminAction.UPDATE_SETTINGS,
@@ -192,9 +229,9 @@ export class AdminService {
   }
 
   async deleteFirewallRule(adminId: string, ruleId: string) {
-    const rule = await this.prisma.moderationRule.delete({
-      where: { id: ruleId },
-    });
+    const rule = await this.prisma.moderationRule
+      .delete({ where: { id: ruleId } })
+      .catch(ruleNotFound);
     await this.logAction(
       adminId,
       AdminAction.UPDATE_SETTINGS,

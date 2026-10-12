@@ -24,6 +24,7 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminOpsService } from './admin-ops.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
+import { AddFirewallSignatureDto } from './dto/firewall.dto.js';
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -45,7 +46,7 @@ export class AdminOpsController {
   @RequireStaffPermissions('moderation')
   @Post('firewall')
   async addFirewallSignature(
-    @Body() body: { text: string; category: string },
+    @Body() body: AddFirewallSignatureDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminOpsService.addFirewallSignature(

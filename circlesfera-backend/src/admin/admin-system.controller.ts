@@ -24,6 +24,10 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminService } from './admin.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
+import {
+  CreateFirewallRuleDto,
+  UpdateFirewallRuleDto,
+} from './dto/firewall.dto.js';
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -60,7 +64,7 @@ export class AdminSystemController {
   @RequireAdminStepUp()
   @Post('firewall/rules')
   async addFirewallRule(
-    @Body() body: { keyword: string; action: any; isActive?: boolean },
+    @Body() body: CreateFirewallRuleDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminService.createFirewallRule(admin.adminId, body);
@@ -70,7 +74,7 @@ export class AdminSystemController {
   @Patch('firewall/rules/:id')
   async updateFirewallRule(
     @Param('id') id: string,
-    @Body() body: { action?: any; isActive?: boolean },
+    @Body() body: UpdateFirewallRuleDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
     return this.adminService.updateFirewallRule(admin.adminId, id, body);
