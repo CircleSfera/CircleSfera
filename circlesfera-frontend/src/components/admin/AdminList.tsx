@@ -24,6 +24,9 @@ interface AdminListRowProps {
   badge?: React.ReactNode;
   avatar?: React.ReactNode;
   primaryAction?: React.ReactNode;
+  // From sm the action sits at the right of the row, on its lines, so the
+  // row stays two lines tall. On a phone it keeps a line of its own.
+  actionBeside?: boolean;
   secondaryActions?: AdminListRowAction[];
   onClick?: () => void;
   className?: string;
@@ -51,6 +54,7 @@ export function AdminListRow({
   badge,
   avatar,
   primaryAction,
+  actionBeside = false,
   secondaryActions,
   onClick,
   className,
@@ -248,8 +252,18 @@ export function AdminListRow({
     >
       {avatar && <div className="shrink-0 mt-0.5">{avatar}</div>}
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start sm:items-center justify-between gap-2">
+      <div
+        className={clsx(
+          'flex-1 min-w-0',
+          actionBeside && 'sm:flex sm:items-center sm:gap-3',
+        )}
+      >
+        <div
+          className={clsx(
+            'flex items-start sm:items-center justify-between gap-2',
+            actionBeside && 'sm:flex-1 sm:min-w-0',
+          )}
+        >
           <div className="min-w-0 flex-1">
             {onClick ? (
               <button
@@ -306,7 +320,10 @@ export function AdminListRow({
           // biome-ignore lint/a11y/noStaticElementInteractions: action bar only stops propagation
           // biome-ignore lint/a11y/useKeyWithClickEvents: no key is taken here, so Escape reaches the page
           <div
-            className="mt-2 flex flex-wrap items-center gap-2"
+            className={clsx(
+              'mt-2 flex flex-wrap items-center gap-2',
+              actionBeside && 'sm:mt-0 sm:shrink-0',
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             {primaryAction}

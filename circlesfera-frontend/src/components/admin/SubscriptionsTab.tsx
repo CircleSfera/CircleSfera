@@ -214,12 +214,13 @@ export default function SubscriptionsTab() {
                       </span>
                     </>
                   }
+                  actionBeside
                   primaryAction={
                     <a
                       href={`https://dashboard.stripe.com/subscriptions/${encodeURIComponent(subscription.stripeSubscriptionId)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="-ml-3 inline-flex min-h-11 items-center gap-1.5 rounded-xl px-3 text-sm font-semibold text-white/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                      className="-ml-3 sm:ml-0 inline-flex min-h-11 sm:min-h-9 items-center gap-1.5 rounded-xl sm:rounded-full sm:border sm:border-white/10 sm:bg-white/5 px-3 text-sm sm:text-xs font-semibold text-white/80 hover:bg-white/10 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 whitespace-nowrap"
                     >
                       {t('admin.subscriptions.open_in_stripe')}
                       <ExternalLink size={14} aria-hidden="true" />
