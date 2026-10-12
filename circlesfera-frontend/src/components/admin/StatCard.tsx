@@ -160,35 +160,39 @@ export default function StatCard({
           <p className="text-white/50 text-[10px] sm:text-xs font-semibold uppercase tracking-wider mb-0.5 leading-tight line-clamp-2">
             {label}
           </p>
-          <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
-            {formatValue ? (
-              formatValue(value)
-            ) : (
-              <>
-                {prefix}
-                {formatNumber(formattedValue, i18n.language)}
-                {suffix}
-              </>
-            )}
-          </p>
-          {growth !== undefined && growth !== null && (
-            <div
-              className={clsx(
-                'flex items-center gap-1 mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-bold',
-                growth > 0 && 'text-emerald-400',
-                growth < 0 && 'text-rose-400',
-                growth === 0 && 'text-white/50',
+          {/* From sm the growth sits on the line of the figure, so a row of
+              figures is one height with or without it. */}
+          <div className="sm:flex sm:flex-wrap sm:items-baseline sm:gap-x-2">
+            <p className="text-lg sm:text-xl font-bold text-white tabular-nums tracking-tight leading-tight">
+              {formatValue ? (
+                formatValue(value)
+              ) : (
+                <>
+                  {prefix}
+                  {formatNumber(formattedValue, i18n.language)}
+                  {suffix}
+                </>
               )}
-            >
-              {growth > 0 && <TrendingUp size={11} />}
-              {growth < 0 && <TrendingDown size={11} />}
-              {growth === 0 && <Minus size={11} />}
-              <span>
-                {growth > 0 ? '+' : ''}
-                {growth}%
-              </span>
-            </div>
-          )}
+            </p>
+            {growth !== undefined && growth !== null && (
+              <div
+                className={clsx(
+                  'flex items-center gap-1 mt-0.5 sm:mt-0 text-[10px] sm:text-xs font-bold',
+                  growth > 0 && 'text-emerald-400',
+                  growth < 0 && 'text-rose-400',
+                  growth === 0 && 'text-white/50',
+                )}
+              >
+                {growth > 0 && <TrendingUp size={11} />}
+                {growth < 0 && <TrendingDown size={11} />}
+                {growth === 0 && <Minus size={11} />}
+                <span>
+                  {growth > 0 ? '+' : ''}
+                  {growth}%
+                </span>
+              </div>
+            )}
+          </div>
           {subtitle && (
             <p className="text-white/50 text-[10px] sm:text-xs mt-0.5 line-clamp-2">
               {subtitle}
