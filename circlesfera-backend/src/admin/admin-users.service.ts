@@ -552,6 +552,49 @@ export class AdminUsersService {
     return { success: true };
   }
 
+  // How many devices the account is signed in on: sessions that can still be
+  // renewed.
+  async countOpenSessions(userId: string) {
+    return {
+      open: await this.prisma.refreshToken.count({
+        where: { userId, isRevoked: false, expiresAt: { gt: new Date() } },
+      }),
+    };
+  }
+
+  // Signs the account out everywhere without sanctioning it: its holder signs
+  // in again with their password. The stored sessions are deleted, so none
+  // can be renewed, and the open connections of every Profile end at once;
+  // a device that is not connected stops when its short access expires.
+  async closeUserSessions(adminId: string, userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, profiles: { select: { id: true } } },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    // What is said to be closed is what the record showed as open; rows of
+    // sessions already ended are deleted with them and are not counted.
+    const { open: count } = await this.countOpenSessions(userId);
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
+    for (const profile of user.profiles) {
+      const event: UserSessionTerminateEvent['payload'] = {
+        userId,
+        profileId: profile.id,
+        reason: 'Sessions closed by the CircleSfera team',
+      };
+      this.eventEmitter.emit('user.session.terminate', event);
+    }
+    await this.logAction(
+      adminId,
+      AdminAction.MANUAL_OVERRIDE,
+      'user',
+      userId,
+      `Closed ${count} sessions`,
+    );
+    return { closed: count };
+  }
+
   async getUserDetail(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },

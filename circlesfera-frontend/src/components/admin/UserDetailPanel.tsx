@@ -8,6 +8,7 @@ import {
   Flag,
   ImageIcon,
   MessageSquare,
+  MonitorSmartphone,
   Radio,
   ScrollText,
   ShieldAlert,
@@ -104,6 +105,75 @@ function ActivityChip({
         </span>
       )}
     </button>
+  );
+}
+
+// Where the account is signed in, and the way to sign it out everywhere
+// without sanctioning it: what a compromised account needs.
+function Sessions({ userId }: { userId: string }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const canClose = useAdminAuthStore((s) => s.hasPermission('users.write'));
+  const [asking, setAsking] = useState(false);
+  const key = ['admin', 'open-sessions', userId];
+  const { data } = useQuery({
+    queryKey: key,
+    queryFn: () => adminApi.getOpenSessions(userId).then((res) => res.data),
+  });
+  const close = useMutation({
+    mutationFn: () =>
+      adminApi.closeUserSessions(userId).then((res) => res.data),
+    onSuccess: ({ closed }) => {
+      setAsking(false);
+      adminToast(
+        t('admin.user_preview.sessions_closed', { count: closed }),
+        'success',
+      );
+      void queryClient.invalidateQueries({ queryKey: key });
+    },
+    onError: () =>
+      adminToast(t('admin.user_preview.sessions_close_error'), 'error'),
+  });
+  const open = data?.open;
+
+  return (
+    <section className="space-y-2.5">
+      <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">
+        <MonitorSmartphone size={12} />
+        {t('admin.user_preview.sessions_title')}
+      </h4>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-white/70 min-w-0">
+          {open === undefined
+            ? t('admin.user_preview.sessions_unknown')
+            : t('admin.user_preview.sessions_open', { count: open })}
+        </p>
+        {canClose && (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="min-h-11 sm:min-h-9 text-xs shrink-0"
+            disabled={!open || close.isPending}
+            onClick={() => setAsking(true)}
+          >
+            {t('admin.user_preview.sessions_close')}
+          </Button>
+        )}
+      </div>
+      <ConfirmModal
+        isOpen={asking}
+        onClose={() => setAsking(false)}
+        onConfirm={() => close.mutate()}
+        title={t('admin.user_preview.sessions_close')}
+        message={t('admin.user_preview.sessions_close_message', {
+          count: open ?? 0,
+        })}
+        confirmText={t('admin.user_preview.sessions_close_confirm')}
+        cancelText={t('admin.shared.cancel')}
+        isLoading={close.isPending}
+      />
+    </section>
   );
 }
 
@@ -469,6 +539,8 @@ export default function UserDetailPanel({
           )}
         </div>
       </section>
+
+      <Sessions userId={userId} />
 
       <section className="space-y-3">
         <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide flex items-center gap-1.5">

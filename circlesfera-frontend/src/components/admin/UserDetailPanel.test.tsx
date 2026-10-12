@@ -12,6 +12,8 @@ vi.mock('../../services/admin.service', () => ({
     getUserDetail: vi.fn(),
     getTrustScore: vi.fn(),
     getLinkedAccounts: vi.fn(),
+    getOpenSessions: vi.fn(),
+    closeUserSessions: vi.fn(),
     applyBotLabel: vi.fn(),
     clearBotLabel: vi.fn(),
   },
@@ -86,6 +88,7 @@ describe('UserDetailPanel', () => {
     api.getUserDetail.mockResolvedValue({ data: dossier() } as never);
     api.getTrustScore.mockRejectedValue(new Error('none'));
     api.getLinkedAccounts.mockRejectedValue(new Error('none'));
+    api.getOpenSessions.mockResolvedValue({ data: { open: 2 } } as never);
     api.applyBotLabel.mockResolvedValue({} as never);
     api.clearBotLabel.mockResolvedValue({} as never);
   });
@@ -237,6 +240,80 @@ describe('UserDetailPanel', () => {
 
     expect(
       screen.queryByRole('button', { name: 'Audit log' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('says on how many devices the account is signed in, and closes them after asking', async () => {
+    api.closeUserSessions.mockResolvedValue({ data: { closed: 2 } } as never);
+    show();
+    expect(
+      await screen.findByText('Signed in on 2 devices.'),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close every session' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toHaveTextContent(
+      /signed out of 2 devices\. It is not a sanction/,
+    );
+    expect(api.closeUserSessions).not.toHaveBeenCalled();
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Close sessions' }),
+    );
+
+    await waitFor(() =>
+      expect(api.closeUserSessions).toHaveBeenCalledWith('user-1'),
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('2 sessions closed'),
+    );
+    await waitFor(() => expect(api.getOpenSessions).toHaveBeenCalledTimes(2));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('has nothing to close for an account signed in nowhere, and says so when closing fails', async () => {
+    api.getOpenSessions.mockResolvedValue({ data: { open: 0 } } as never);
+    const { unmount } = show();
+    expect(
+      await screen.findByText('Not signed in anywhere.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Close every session' }),
+    ).toBeDisabled();
+    unmount();
+
+    api.getOpenSessions.mockResolvedValue({ data: { open: 1 } } as never);
+    api.closeUserSessions.mockRejectedValue(new Error('no'));
+    show();
+    await screen.findByText('Signed in on 1 device.');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close every session' }),
+    );
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Close sessions',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'The sessions could not be closed',
+      ),
+    );
+  });
+
+  it('shows the sessions but offers no closing to a role that may not edit accounts', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'users.read',
+    } as never);
+    show();
+
+    expect(
+      await screen.findByText('Signed in on 2 devices.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Close every session' }),
     ).not.toBeInTheDocument();
   });
 

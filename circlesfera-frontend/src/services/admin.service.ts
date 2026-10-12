@@ -892,6 +892,14 @@ export const adminApi = {
   getUserDetail: (id: string) =>
     apiClient.get<AdminUserDetail>(`admin/users/${id}/detail`),
 
+  // How many devices the account is signed in on.
+  getOpenSessions: (id: string) =>
+    apiClient.get<{ open: number }>(`admin/users/${id}/sessions`),
+
+  // Signs the account out everywhere, without sanctioning it.
+  closeUserSessions: (id: string) =>
+    apiClient.post<{ closed: number }>(`admin/users/${id}/sessions/close`),
+
   getLinkedAccounts: (id: string) =>
     apiClient.get<{
       clusterSize: number;

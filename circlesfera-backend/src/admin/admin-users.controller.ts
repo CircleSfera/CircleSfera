@@ -247,6 +247,23 @@ export class AdminUsersController {
   }
 
   @RequireStaffPermissions('users.read')
+  @Get('users/:id/sessions')
+  async countOpenSessions(@Param('id') id: string) {
+    return this.adminUsersService.countOpenSessions(id);
+  }
+
+  // Less than a sanction and more than reading: the permission to edit an
+  // account.
+  @RequireStaffPermissions('users.write')
+  @Post('users/:id/sessions/close')
+  async closeUserSessions(
+    @Param('id') id: string,
+    @CurrentAdmin() admin: CurrentAdminData,
+  ) {
+    return this.adminUsersService.closeUserSessions(admin.adminId, id);
+  }
+
+  @RequireStaffPermissions('users.read')
   @Get('users/:id/linked-accounts')
   async getLinkedAccounts(@Param('id') id: string) {
     return this.adminUsersService.getLinkedAccounts(id);
