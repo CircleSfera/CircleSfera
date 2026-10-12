@@ -102,6 +102,25 @@ describe('AdminSplitView', () => {
       expect(onClearSelection).toHaveBeenCalledTimes(1);
     });
 
+    it('leaves the menu of a row open while a dialog is on top of it', () => {
+      const onClose = vi.fn();
+      show({
+        hasSelection: true,
+        list: rowWithMenu,
+        detail: (
+          <Dialog isOpen onClose={onClose} title="Ban Ana">
+            <button type="button">Confirm</button>
+          </Dialog>
+        ),
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'More actions' }));
+
+      fireEvent.keyDown(document.body, { key: 'Escape' });
+
+      expect(onClose).toHaveBeenCalled();
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+    });
+
     it('leaves the record open while a dialog is on top of it', () => {
       const onClearSelection = vi.fn();
       const onClose = vi.fn();

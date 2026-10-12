@@ -112,9 +112,11 @@ export function AdminListRow({
       setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return;
-      // The menu is what is on top: the key closes it and stops there, so
-      // the record under it stays open.
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      // A dialog over the menu takes the key first.
+      if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+      // Otherwise the menu is what is on top: the key closes it and stops
+      // there, so the record under it stays open.
       e.preventDefault();
       setMenuOpen(false);
       triggerRef.current?.focus();
