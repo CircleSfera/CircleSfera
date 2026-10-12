@@ -245,6 +245,30 @@ export const EmailTemplates = {
     };
   },
 
+  postsRemoved: (
+    ctx: EmailContext,
+    name: string,
+    count: number,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const values = {
+      name: escapeHtml(name),
+      count: String(count),
+      reason: escapeHtml(copy.moderationReason),
+    };
+    return {
+      subject: fill(copy.postsRemoved.subject, values),
+      html: layout(ctx, copy, {
+        title: copy.postsRemoved.title,
+        content: fill(copy.postsRemoved.body, values),
+        button: {
+          text: copy.postRemoved.button,
+          url: `${ctx.frontendUrl}/guidelines`,
+        },
+      }),
+    };
+  },
+
   appealDecision: (
     ctx: EmailContext,
     name: string,

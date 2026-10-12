@@ -250,6 +250,7 @@ describe('EmailService', () => {
     it('should enqueue the moderation emails', async () => {
       await service.sendAccountBannedEmail('banned@example.com', 'John');
       await service.sendPostRemovedEmail('poster@example.com', 'John', 'Spam');
+      await service.sendPostsRemovedEmail('poster@example.com', 'John', 12);
       await service.sendAppealDecisionEmail('appeal@example.com', 'John', true);
       await service.sendDataExportReadyEmail(
         'export@example.com',
@@ -262,6 +263,7 @@ describe('EmailService', () => {
       expect(subjects).toEqual([
         'Tu cuenta de CircleSfera ha sido suspendida',
         'Hemos retirado una publicación tuya',
+        'Hemos retirado 12 publicaciones tuyas',
         'Tu apelación ha sido aprobada',
         'Tu exportación de datos está lista',
       ]);
