@@ -25,6 +25,7 @@ describe('AdminStatsController', () => {
   const mockService = {
     getEnhancedStats: vi.fn(),
     getAuditLogs: vi.fn(),
+    getOverviewWeek: vi.fn(),
     getActivityChart: vi.fn(),
     getTopUsers: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
@@ -121,6 +122,29 @@ describe('AdminStatsController', () => {
       expect.objectContaining({ adminId: staff, targetId: account }),
     );
   });
+
+  it.each([
+    ['payments', { payments: true, support: false, promotions: false }],
+    ['support', { payments: false, support: true, promotions: false }],
+    ['promotions', { payments: false, support: false, promotions: true }],
+  ])(
+    'answers the %s part of the week of the Backoffice home, and no other',
+    async (part, asked) => {
+      mockService.getOverviewWeek.mockResolvedValue({ part });
+
+      const res = await request(app.getHttpServer())
+        .get(`/api/v1/admin/overview/week/${part}`)
+        .set(ADMIN_BEARER)
+        .expect(200);
+      await request(app.getHttpServer())
+        .get(`/api/v1/admin/overview/week/${part}`)
+        .expect(401);
+
+      expect(res.body).toEqual({ part });
+      expect(mockService.getOverviewWeek).toHaveBeenCalledTimes(1);
+      expect(mockService.getOverviewWeek).toHaveBeenCalledWith(asked);
+    },
+  );
 
   it('lists audit logs with default pagination and filters', async () => {
     mockService.getAuditLogs.mockResolvedValue({ data: [] });

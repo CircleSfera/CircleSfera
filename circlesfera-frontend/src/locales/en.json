@@ -4726,6 +4726,7 @@
       "title": "Overview",
       "queues_title": "Waiting for someone",
       "business_title": "The business",
+      "week": "{{current}} came in this week · {{previous}} the week before",
       "open_disputes": "Open disputes",
       "open_disputes_hint": "They have a deadline to answer in Stripe",
       "subtitle": "What is worth a look every day. Each figure opens its section.",

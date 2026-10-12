@@ -12,6 +12,7 @@ vi.mock('../../services/admin.service', () => ({
     getSupportTickets: vi.fn(),
     getPromotions: vi.fn(),
     getDisputes: vi.fn(),
+    getOverviewWeek: vi.fn(),
   },
 }));
 
@@ -46,6 +47,17 @@ describe('OverviewTab', () => {
         total(team?.target === 'past' ? 2 : status === 'OPEN' ? 4 : 1),
       )) as never);
     vi.mocked(adminApi.getPromotions).mockResolvedValue(total(6) as never);
+    vi.mocked(adminApi.getOverviewWeek).mockImplementation(((part: string) =>
+      Promise.resolve({
+        data: {
+          payments: {
+            subscriptions: { current: 2, previous: 0 },
+            disputes: { current: 1, previous: 3 },
+          },
+          support: { tickets: { current: 4, previous: 4 } },
+          promotions: { promotions: { current: 0, previous: 1 } },
+        }[part],
+      })) as never);
     vi.mocked(adminApi.getDisputes).mockResolvedValue({
       data: { data: [], meta: { total: 2, openCount: 2 } },
     } as never);
@@ -126,6 +138,38 @@ describe('OverviewTab', () => {
 
     await screen.findByRole('link', { name: /Open tickets/ });
     expect(screen.queryByRole('heading', { name: 'The business' })).toBeNull();
+  });
+
+  it('says under each figure what came in this week against the week before', async () => {
+    withPermissions('payments', 'support', 'content');
+    renderWithProviders(<OverviewTab />);
+
+    const disputes = await screen.findByRole('link', { name: /Open disputes/ });
+    await waitFor(() =>
+      expect(disputes).toHaveTextContent(
+        '1 came in this week · 3 the week before',
+      ),
+    );
+    expect(
+      screen.getByRole('link', { name: /Active subscriptions/ }),
+    ).toHaveTextContent('2 came in this week · 0 the week before');
+    expect(
+      screen.getByRole('link', { name: /Open tickets/ }),
+    ).toHaveTextContent('4 came in this week · 4 the week before');
+    // The income has no stored past to compare with.
+    expect(
+      screen.getByRole('link', { name: /Monthly recurring revenue/ }),
+    ).not.toHaveTextContent('this week');
+  });
+
+  it('asks for the week of a part only with the permission of its section', async () => {
+    withPermissions('support');
+    renderWithProviders(<OverviewTab />);
+
+    const tickets = await screen.findByRole('link', { name: /Open tickets/ });
+    await waitFor(() => expect(tickets).toHaveTextContent('this week'));
+    expect(adminApi.getOverviewWeek).toHaveBeenCalledTimes(1);
+    expect(adminApi.getOverviewWeek).toHaveBeenCalledWith('support');
   });
 
   it('shows and asks for only what the operator may see', async () => {

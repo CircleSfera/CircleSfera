@@ -21,6 +21,40 @@ export class AdminStatsController {
     return this.adminStatsService.getEnhancedStats();
   }
 
+  // The home of the Backoffice has no permission of its own. The guard asks
+  // for every permission a route lists, so each part of the week is a route
+  // with the permission of its section: whoever may open one section gets
+  // its part, and no other.
+  @Get('overview/week/payments')
+  @RequireStaffPermissions('payments')
+  async getOverviewWeekPayments() {
+    return this.adminStatsService.getOverviewWeek({
+      payments: true,
+      support: false,
+      promotions: false,
+    });
+  }
+
+  @Get('overview/week/support')
+  @RequireStaffPermissions('support')
+  async getOverviewWeekSupport() {
+    return this.adminStatsService.getOverviewWeek({
+      payments: false,
+      support: true,
+      promotions: false,
+    });
+  }
+
+  @Get('overview/week/promotions')
+  @RequireStaffPermissions('content')
+  async getOverviewWeekPromotions() {
+    return this.adminStatsService.getOverviewWeek({
+      payments: false,
+      support: false,
+      promotions: true,
+    });
+  }
+
   @Get('audit-logs')
   @RequireStaffPermissions('audit')
   async getAuditLogs(@Query() query: AdminQueryDto) {

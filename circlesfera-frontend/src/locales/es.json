@@ -4726,6 +4726,7 @@
       "title": "Resumen",
       "queues_title": "Esperan a alguien",
       "business_title": "El negocio",
+      "week": "Esta semana entraron {{current}} · la anterior, {{previous}}",
       "open_disputes": "Disputas abiertas",
       "open_disputes_hint": "Tienen plazo de respuesta en Stripe",
       "subtitle": "Lo que conviene mirar cada día. Cada cifra abre su sección.",
