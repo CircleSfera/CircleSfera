@@ -180,10 +180,15 @@ export class AppealsService {
 
     const data = await Promise.all(
       rows.map(async (appeal) => {
+        // Facts about what is appealed, for the staff panel to say in the
+        // language of the reader. `text` is only ever the person's own
+        // words (the caption of a post), never a sentence written here.
         let targetPreview: {
           text?: string | null;
           moderationStatus?: string | null;
           type?: string;
+          strike?: { kind: string; reason: string; consequence: string };
+          restriction?: { score: number; restrictedUntil: Date | null };
         } | null = null;
 
         const primaryProfile = appeal.user?.profiles?.[0];
@@ -206,8 +211,6 @@ export class AppealsService {
           }
         } else if (appeal.targetType === 'ACCOUNT_BAN') {
           targetPreview = {
-            text:
-              appeal.user?.isActive === false ? 'Account inactive' : 'Account',
             moderationStatus: primaryProfile?.suspendedUntil
               ? 'SUSPENDED'
               : appeal.user?.isActive === false
@@ -228,7 +231,11 @@ export class AppealsService {
           });
           if (strike) {
             targetPreview = {
-              text: `${strike.kind} for ${strike.reason}${strike.consequence === 'NONE' ? '' : ` (${strike.consequence})`}`,
+              strike: {
+                kind: strike.kind,
+                reason: strike.reason,
+                consequence: strike.consequence,
+              },
               moderationStatus: strike.revokedAt
                 ? 'REVOKED'
                 : strike.expiresAt > new Date()
@@ -244,7 +251,10 @@ export class AppealsService {
           });
           if (riskCase) {
             targetPreview = {
-              text: `Spam review case, score ${riskCase.score}`,
+              restriction: {
+                score: riskCase.score,
+                restrictedUntil: riskCase.restrictedUntil,
+              },
               moderationStatus:
                 riskCase.restrictedUntil &&
                 riskCase.restrictedUntil > new Date()
@@ -255,7 +265,6 @@ export class AppealsService {
           }
         } else if (appeal.targetType === 'BOT_LABEL') {
           targetPreview = {
-            text: 'Possible bot label',
             moderationStatus: 'LABELED',
             type: 'ACCOUNT',
           };

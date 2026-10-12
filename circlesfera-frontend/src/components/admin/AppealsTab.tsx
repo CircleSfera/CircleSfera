@@ -80,6 +80,37 @@ export default function AppealsTab() {
     t(`admin.audit.targets.${appeal.targetType}`, {
       defaultValue: appeal.targetType,
     });
+  // What the appeal is about, from the facts the server gives: a strike is
+  // its kind, the rule broken and what it brought; a restriction its score.
+  const aboutLine = (appeal: Appeal) => {
+    const preview = appeal.targetPreview;
+    if (preview?.strike) {
+      const { kind, reason, consequence } = preview.strike;
+      return [
+        t(`admin.appeals.about_strike_kind.${kind}`, { defaultValue: kind }),
+        t(`admin.reports.reasons.${reason}`, { defaultValue: reason }),
+        consequence !== 'NONE' &&
+          t(`admin.appeals.about_consequence.${consequence}`, {
+            defaultValue: consequence,
+          }),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    }
+    if (preview?.restriction) {
+      const { score, restrictedUntil } = preview.restriction;
+      return [
+        t('admin.appeals.about_restriction', { score }),
+        restrictedUntil &&
+          t('admin.appeals.about_restricted_until', {
+            date: formatDay(restrictedUntil, i18n.language),
+          }),
+      ]
+        .filter(Boolean)
+        .join(' · ');
+    }
+    return null;
+  };
   const statePill = (appeal: Appeal) => (
     <StatusBadge
       status={PILL[appeal.status]}
@@ -184,13 +215,18 @@ export default function AppealsTab() {
                     )}
                   </CaseLine>
                 )}
-                {/* Accounts and bot labels have nothing more to quote. */}
-                {selected.targetPreview?.text &&
-                  selected.targetPreview.type !== 'ACCOUNT' && (
-                    <CaseText label={t('admin.appeals.target_preview')}>
-                      {selected.targetPreview.text}
-                    </CaseText>
-                  )}
+                {aboutLine(selected) && (
+                  <CaseLine label={t('admin.appeals.target_preview')}>
+                    {aboutLine(selected)}
+                  </CaseLine>
+                )}
+                {/* The caption of an appealed post, as its author wrote it.
+                    Accounts and bot labels have nothing to quote. */}
+                {selected.targetPreview?.text && (
+                  <CaseText label={t('admin.appeals.target_preview')}>
+                    {selected.targetPreview.text}
+                  </CaseText>
+                )}
                 <CaseText label={t('admin.appeals.reason_label')}>
                   {selected.reason}
                 </CaseText>

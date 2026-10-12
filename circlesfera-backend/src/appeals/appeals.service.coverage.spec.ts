@@ -295,9 +295,9 @@ describe('AppealsService.findAll — staff listing', () => {
     const { data } = await t.service.findAll();
 
     expect(data.map((d) => d.targetPreview)).toEqual([
-      { text: 'Account', moderationStatus: 'SUSPENDED', type: 'ACCOUNT' },
-      { text: 'Account inactive', moderationStatus: 'BANNED', type: 'ACCOUNT' },
-      { text: 'Account', moderationStatus: 'ACTIVE', type: 'ACCOUNT' },
+      { moderationStatus: 'SUSPENDED', type: 'ACCOUNT' },
+      { moderationStatus: 'BANNED', type: 'ACCOUNT' },
+      { moderationStatus: 'ACTIVE', type: 'ACCOUNT' },
     ]);
   });
 
@@ -340,13 +340,17 @@ describe('AppealsService.findAll — staff listing', () => {
 
     expect(data.map((d) => d.targetPreview)).toEqual([
       {
-        text: 'STRIKE for SPAM (SUSPENDED)',
+        strike: { kind: 'STRIKE', reason: 'SPAM', consequence: 'SUSPENDED' },
         moderationStatus: 'ACTIVE',
         type: 'STRIKE',
       },
-      { text: 'WARNING for SPAM', moderationStatus: 'REVOKED', type: 'STRIKE' },
       {
-        text: 'STRIKE for HARASSMENT',
+        strike: { kind: 'WARNING', reason: 'SPAM', consequence: 'NONE' },
+        moderationStatus: 'REVOKED',
+        type: 'STRIKE',
+      },
+      {
+        strike: { kind: 'STRIKE', reason: 'HARASSMENT', consequence: 'NONE' },
         moderationStatus: 'EXPIRED',
         type: 'STRIKE',
       },
@@ -373,12 +377,12 @@ describe('AppealsService.findAll — staff listing', () => {
 
     expect(data.map((d) => d.targetPreview)).toEqual([
       {
-        text: 'Spam review case, score 80',
+        restriction: { score: 80, restrictedUntil: future },
         moderationStatus: 'RESTRICTED',
         type: 'RESTRICTION',
       },
       {
-        text: 'Spam review case, score 75',
+        restriction: { score: 75, restrictedUntil: null },
         moderationStatus: 'RESOLVED',
         type: 'RESTRICTION',
       },
@@ -395,12 +399,10 @@ describe('AppealsService.findAll — staff listing', () => {
 
     expect(data[0]).toMatchObject({
       user: null,
-      targetPreview: {
-        text: 'Possible bot label',
-        moderationStatus: 'LABELED',
-        type: 'ACCOUNT',
-      },
+      targetPreview: { moderationStatus: 'LABELED', type: 'ACCOUNT' },
     });
+    // No sentence is written by the server for the panel to print.
+    expect(data[0].targetPreview).not.toHaveProperty('text');
   });
 });
 
