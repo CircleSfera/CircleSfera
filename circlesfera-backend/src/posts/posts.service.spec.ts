@@ -647,6 +647,22 @@ describe('PostsService', () => {
         }),
       );
     });
+
+    it('lists nothing on the page of a hashtag hidden by staff, and counts nothing', async () => {
+      mockPrismaService.post.findMany.mockResolvedValueOnce([]);
+      mockPrismaService.post.count.mockResolvedValueOnce(0);
+
+      await service.getByTag('Spam', { page: 1, limit: 10 });
+
+      const visible = { hashtag: { tag: 'spam', isHidden: false } };
+      expect(
+        mockPrismaService.post.findMany.mock.calls.at(-1)?.[0].where.hashtags
+          .some,
+      ).toEqual(visible);
+      expect(
+        mockPrismaService.post.count.mock.calls.at(-1)?.[0].where.hashtags.some,
+      ).toEqual(visible);
+    });
   });
 
   describe('findAll', () => {

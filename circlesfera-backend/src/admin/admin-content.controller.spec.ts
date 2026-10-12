@@ -31,6 +31,7 @@ import { EndLiveStreamUseCase } from './use-cases/content/commands/end-live-stre
 import { ModerateContentUseCase } from './use-cases/content/commands/moderate-content.use-case.js';
 import { ReviewPromotionUseCase } from './use-cases/content/commands/review-promotion.use-case.js';
 import { ReviewReportUseCase } from './use-cases/content/commands/review-report.use-case.js';
+import { SetHashtagHiddenUseCase } from './use-cases/content/commands/set-hashtag-hidden.use-case.js';
 import { WarnLiveHostUseCase } from './use-cases/content/commands/warn-live-host.use-case.js';
 import { GetContentQuery } from './use-cases/content/queries/get-content.query.js';
 import { GetLiveStreamsQuery } from './use-cases/content/queries/get-live-streams.query.js';
@@ -70,6 +71,7 @@ describe('AdminContentController', () => {
   const getLiveStreams = { execute: vi.fn() };
   const endLiveStream = { execute: vi.fn() };
   const warnLiveHost = { execute: vi.fn() };
+  const setHashtagHidden = { execute: vi.fn() };
 
   beforeAll(async () => {
     app = await createControllerApp({
@@ -90,6 +92,7 @@ describe('AdminContentController', () => {
         { provide: GetLiveStreamsQuery, useValue: getLiveStreams },
         { provide: EndLiveStreamUseCase, useValue: endLiveStream },
         { provide: WarnLiveHostUseCase, useValue: warnLiveHost },
+        { provide: SetHashtagHiddenUseCase, useValue: setHashtagHidden },
       ],
       guards: [
         { guard: AdminJwtAuthGuard, mode: 'admin' },
@@ -311,6 +314,48 @@ describe('AdminContentController', () => {
     );
   });
 
+  it('hides a hashtag and shows it again as the staff member, and lists the hidden ones', async () => {
+    getContent.getHashtags.mockResolvedValue({ data: [] });
+    setHashtagHidden.execute.mockResolvedValue({ id: 'h-1', isHidden: true });
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/hashtags/h-1')
+      .set(ADMIN_BEARER)
+      .send({ hidden: true })
+      .expect(200);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/hashtags/h-1')
+      .set(ADMIN_BEARER)
+      .send({ hidden: false })
+      .expect(200);
+    // Neither a word for yes nor a missing answer is taken.
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/hashtags/h-1')
+      .set(ADMIN_BEARER)
+      .send({ hidden: 'yes' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/hashtags/h-1')
+      .set(ADMIN_BEARER)
+      .send({})
+      .expect(400);
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/hashtags/h-1')
+      .send({ hidden: true })
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/hashtags')
+      .query({ status: 'hidden', search: 'spa' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(setHashtagHidden.execute.mock.calls).toEqual([
+      [expect.any(String), 'h-1', true],
+      [expect.any(String), 'h-1', false],
+    ]);
+    expect(getContent.getHashtags).toHaveBeenCalledWith(1, 10, 'spa', true);
+  });
+
   it('lists hashtags, comments and stories without an actor', async () => {
     getContent.getHashtags.mockResolvedValue({ data: [] });
     getContent.getComments.mockResolvedValue({ data: [] });
@@ -342,7 +387,12 @@ describe('AdminContentController', () => {
       .set(ADMIN_BEARER)
       .expect(200);
 
-    expect(getContent.getHashtags).toHaveBeenCalledWith(1, 10, undefined);
+    expect(getContent.getHashtags).toHaveBeenCalledWith(
+      1,
+      10,
+      undefined,
+      false,
+    );
     expect(getContent.getComments).toHaveBeenCalledWith(
       3,
       5,

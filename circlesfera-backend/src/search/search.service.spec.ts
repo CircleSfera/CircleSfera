@@ -284,6 +284,11 @@ describe('SearchService', () => {
 
       expect(result.users).toHaveLength(1);
       expect(result.hashtags).toHaveLength(1);
+      // A hashtag hidden by staff is not offered.
+      expect(
+        mockPrismaService.hashtag.findMany.mock.calls.at(-1)?.[0].where
+          .isHidden,
+      ).toBe(false);
       expect(result.semanticProfiles).toEqual([{ profileId: 'prof-unique' }]);
       expect(mockCacheManager.set).toHaveBeenCalled();
     });

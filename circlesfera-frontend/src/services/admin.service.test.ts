@@ -422,6 +422,21 @@ const cases: Case[] = [
     ['admin/hashtags', q({ page: 2, limit: 5, search: 'sea' })],
   ],
   [
+    'getHashtags hidden only',
+    () => adminApi.getHashtags(1, 20, undefined, true),
+    'get',
+    [
+      'admin/hashtags',
+      q({ page: 1, limit: 20, search: undefined, status: 'hidden' }),
+    ],
+  ],
+  [
+    'setHashtagHidden',
+    () => adminApi.setHashtagHidden('h1', true),
+    'patch',
+    ['admin/hashtags/h1', { hidden: true }],
+  ],
+  [
     'getComments',
     () => adminApi.getComments(),
     'get',
