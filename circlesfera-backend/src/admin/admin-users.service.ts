@@ -44,6 +44,24 @@ export interface UserWithVerification {
   isTestAccount: boolean;
 }
 
+// Who a broadcast is sent to: active accounts that have not switched their
+// e-mail notices off.
+const BROADCAST_AUDIENCE: Prisma.UserWhereInput = {
+  isActive: true,
+  OR: [{ settings: { is: null } }, { settings: { emailNotifications: true } }],
+};
+const BROADCAST_LOG_TARGET = 'NEWSLETTER';
+
+/** The subject and the counts a send wrote in its audit log entry. */
+export function parseBroadcastLog(details: string | null) {
+  const found = /^Subject: (.*) \| Success: (\d+) \| Failed: (\d+)$/s.exec(
+    details ?? '',
+  );
+  return found
+    ? { subject: found[1], sent: Number(found[2]), failed: Number(found[3]) }
+    : { subject: details ?? '', sent: null, failed: null };
+}
+
 @Injectable()
 export class AdminUsersService {
   private readonly logger = new Logger(AdminUsersService.name);
@@ -945,6 +963,66 @@ export class AdminUsersService {
     return [header, ...rows].join('\n');
   }
 
+  // How many people a broadcast reaches: the rule the send itself uses.
+  async countBroadcastRecipients() {
+    return {
+      count: await this.prisma.user.count({ where: BROADCAST_AUDIENCE }),
+    };
+  }
+
+  // The message as written, only to the staff member who is signed in.
+  async sendBroadcastTest(adminId: string, dto: BroadcastEmailDto) {
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: adminId },
+      select: { email: true },
+    });
+    if (!admin) throw new NotFoundException('Staff member not found');
+    await this.emailService.sendBroadcastEmail(
+      admin.email,
+      dto.subject,
+      dto.title,
+      dto.content,
+      dto.buttonText,
+      dto.buttonUrl,
+    );
+    return { sentTo: admin.email };
+  }
+
+  // The broadcasts sent so far, newest first, read from the audit log entry
+  // each send writes.
+  async getBroadcastHistory(page: number, limit: number) {
+    const where = { targetType: BROADCAST_LOG_TARGET };
+    const [rows, total] = await Promise.all([
+      this.prisma.adminAuditLog.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          details: true,
+          createdAt: true,
+          admin: { select: { displayName: true } },
+        },
+      }),
+      this.prisma.adminAuditLog.count({ where }),
+    ]);
+    return {
+      data: rows.map((row) => ({
+        id: row.id,
+        ...parseBroadcastLog(row.details),
+        sentBy: row.admin?.displayName ?? null,
+        createdAt: row.createdAt,
+      })),
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      },
+    };
+  }
+
   // Resolved OOM vulnerability by processing active users in chunks using keyset (cursor) pagination.
   async sendBroadcastEmail(adminId: string, dto: BroadcastEmailDto) {
     let cursor: string | undefined;
@@ -958,13 +1036,7 @@ export class AdminUsersService {
 
     while (hasMore) {
       const queryArgs: Prisma.UserFindManyArgs = {
-        where: {
-          isActive: true,
-          OR: [
-            { settings: { is: null } },
-            { settings: { emailNotifications: true } },
-          ],
-        },
+        where: BROADCAST_AUDIENCE,
         select: { email: true, id: true },
         take: batchSize,
         skip: cursor ? 1 : 0,
@@ -1018,7 +1090,7 @@ export class AdminUsersService {
     await this.logAction(
       adminId,
       AdminAction.UPDATE_WHITELIST,
-      'NEWSLETTER',
+      BROADCAST_LOG_TARGET,
       'GLOBAL',
       `Subject: ${dto.subject} | Success: ${successfulSent} | Failed: ${failedSent}`,
     );

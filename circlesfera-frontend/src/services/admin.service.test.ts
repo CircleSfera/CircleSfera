@@ -699,6 +699,25 @@ const cases: Case[] = [
     ['admin/broadcast', { subject: 's', title: 't', content: 'c' }],
   ],
   [
+    'getBroadcastRecipients',
+    () => adminApi.getBroadcastRecipients(),
+    'get',
+    ['admin/broadcast/recipients'],
+  ],
+  [
+    'sendBroadcastTest',
+    () =>
+      adminApi.sendBroadcastTest({ subject: 's', title: 't', content: 'c' }),
+    'post',
+    ['admin/broadcast/test', { subject: 's', title: 't', content: 'c' }],
+  ],
+  [
+    'getBroadcastHistory',
+    () => adminApi.getBroadcastHistory(2, 5),
+    'get',
+    ['admin/broadcast/history', q({ page: 2, limit: 5 })],
+  ],
+  [
     'getUserExperiments',
     () => adminApi.getUserExperiments(),
     'get',

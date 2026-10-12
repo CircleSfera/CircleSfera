@@ -25,6 +25,9 @@ describe('AdminUsersController', () => {
 
   const mockService = {
     sendBroadcastEmail: vi.fn(),
+    countBroadcastRecipients: vi.fn(),
+    sendBroadcastTest: vi.fn(),
+    getBroadcastHistory: vi.fn(),
     exportUsersCSV: vi.fn(),
     getUsers: vi.fn(),
     getKycStats: vi.fn(),
@@ -219,6 +222,58 @@ describe('AdminUsersController', () => {
       TEST_ADMIN.adminId,
       dto,
     );
+  });
+
+  it('says how many people a broadcast reaches, sends a test as adminId and lists the sends', async () => {
+    const dto = { subject: 'Hello', title: 'Hi', content: 'Body' };
+    mockService.countBroadcastRecipients.mockResolvedValue({ count: 42 });
+    mockService.sendBroadcastTest.mockResolvedValue({ sentTo: 'a@b.test' });
+    mockService.getBroadcastHistory.mockResolvedValue({ data: [] });
+
+    const count = await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/recipients')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast/test')
+      .set(ADMIN_BEARER)
+      .send(dto)
+      .expect(201);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/history')
+      .query({ page: 2, limit: 5 })
+      .set(ADMIN_BEARER)
+      .expect(200);
+
+    expect(count.body).toEqual({ count: 42 });
+    expect(mockService.sendBroadcastTest).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      dto,
+    );
+    expect(mockService.getBroadcastHistory).toHaveBeenCalledWith(2, 5);
+    expect(mockService.sendBroadcastEmail).not.toHaveBeenCalled();
+  });
+
+  it('refuses a test with no message, and every broadcast call without credentials', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast/test')
+      .set(ADMIN_BEARER)
+      .send({ subject: 'Hello' })
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast/test')
+      .send({ subject: 'Hello', title: 'Hi', content: 'Body' })
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/recipients')
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/history')
+      .expect(401);
+
+    expect(mockService.sendBroadcastTest).not.toHaveBeenCalled();
+    expect(mockService.countBroadcastRecipients).not.toHaveBeenCalled();
+    expect(mockService.getBroadcastHistory).not.toHaveBeenCalled();
   });
 
   it('bans, unbans and deletes as adminId', async () => {

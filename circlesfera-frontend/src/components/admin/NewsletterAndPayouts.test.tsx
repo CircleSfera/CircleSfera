@@ -9,6 +9,9 @@ import PayoutsTab from './PayoutsTab';
 vi.mock('../../services/admin.service', () => ({
   adminApi: {
     sendBroadcast: vi.fn(),
+    getBroadcastRecipients: vi.fn(),
+    sendBroadcastTest: vi.fn(),
+    getBroadcastHistory: vi.fn(),
     getPayouts: vi.fn(),
     getPayoutStats: vi.fn(),
   },
@@ -34,6 +37,22 @@ describe('NewsletterTab', () => {
       target: { value },
     });
   const send = () => screen.getByRole('button', { name: 'Send to everyone' });
+  const sent = (data: unknown[], page = 1, totalPages = 1) => ({
+    data: {
+      data,
+      meta: { total: data.length, page, limit: 10, totalPages },
+    },
+  });
+
+  beforeEach(() => {
+    vi.mocked(adminApi.getBroadcastRecipients).mockResolvedValue({
+      data: { count: 1240 },
+    } as never);
+    vi.mocked(adminApi.getBroadcastHistory).mockResolvedValue(
+      sent([]) as never,
+    );
+  });
+
   const fillRequired = () => {
     fill('Email subject', 'News');
     fill('Message title', 'A new feature');
@@ -79,16 +98,147 @@ describe('NewsletterTab', () => {
   it('asks again before writing to every account, and sends nothing when the answer is no', async () => {
     renderWithProviders(<NewsletterTab onToast={onToast} />);
     fillRequired();
+    await screen.findByText(/^It reaches 1,240 people:/);
 
     fireEvent.click(send());
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText(/ALL active users/)).toBeInTheDocument();
+    // The question says how many people will get it.
+    expect(
+      within(dialog).getByText(/e-mailed to 1,240 people/),
+    ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
 
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     );
     expect(adminApi.sendBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('says how many people it reaches, and one person as one', async () => {
+    const { unmount } = renderWithProviders(
+      <NewsletterTab onToast={onToast} />,
+    );
+    expect(
+      await screen.findByText(/^It reaches 1,240 people:/),
+    ).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(adminApi.getBroadcastRecipients).mockResolvedValue({
+      data: { count: 1 },
+    } as never);
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+    expect(
+      await screen.findByText(/^It reaches 1 person:/),
+    ).toBeInTheDocument();
+  });
+
+  it('sends a test of the message only to the person who asks, and says where', async () => {
+    vi.mocked(adminApi.sendBroadcastTest).mockResolvedValue({
+      data: { sentTo: 'ana@staff.test' },
+    } as never);
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+    const test = screen.getByRole('button', { name: 'Send me a test' });
+
+    fireEvent.click(test);
+    expect(onToast).toHaveBeenCalledWith(
+      'Please complete the required fields',
+      'error',
+    );
+    expect(adminApi.sendBroadcastTest).not.toHaveBeenCalled();
+
+    fillRequired();
+    fireEvent.click(test);
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        'Test sent to ana@staff.test',
+        'success',
+      ),
+    );
+    // No button was written: none is sent, not an empty one.
+    expect(adminApi.sendBroadcastTest).toHaveBeenCalledWith({
+      subject: 'News',
+      title: 'A new feature',
+      content: 'It is here.',
+    });
+    expect(adminApi.sendBroadcast).not.toHaveBeenCalled();
+    expect(screen.getByLabelText(/Email subject/)).toHaveValue('News');
+  });
+
+  it('says so when the test could not be sent', async () => {
+    vi.mocked(adminApi.sendBroadcastTest).mockRejectedValue(new Error('no'));
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+    fillRequired();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Send me a test' }));
+
+    await waitFor(() =>
+      expect(onToast).toHaveBeenCalledWith(
+        'The test could not be sent',
+        'error',
+      ),
+    );
+  });
+
+  it('lists what was sent, and says when nothing was', async () => {
+    const { unmount } = renderWithProviders(
+      <NewsletterTab onToast={onToast} />,
+    );
+    expect(
+      await screen.findByText('Nothing has been sent yet'),
+    ).toBeInTheDocument();
+    unmount();
+
+    vi.mocked(adminApi.getBroadcastHistory).mockResolvedValue(
+      sent([
+        {
+          id: 'b2',
+          subject: 'Spring news',
+          sent: 1200,
+          failed: 3,
+          sentBy: 'Ana Staff',
+          createdAt: '2026-03-10T11:00:00Z',
+        },
+        {
+          id: 'b1',
+          subject: 'An older one',
+          sent: null,
+          failed: null,
+          sentBy: null,
+          createdAt: '2026-01-02T11:00:00Z',
+        },
+      ]) as never,
+    );
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+
+    const row = (await screen.findByText('Spring news')).closest(
+      '[data-admin-row]',
+    ) as HTMLElement;
+    expect(row).toHaveTextContent('1,200 delivered · 3 failed');
+    expect(row).toHaveTextContent('Ana Staff');
+    const older = screen
+      .getByText('An older one')
+      .closest('[data-admin-row]') as HTMLElement;
+    expect(older).not.toHaveTextContent('delivered');
+  });
+
+  it('reads the list of sends again once a message is sent', async () => {
+    vi.mocked(adminApi.sendBroadcast).mockResolvedValue({} as never);
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+    await screen.findByText('Nothing has been sent yet');
+    expect(adminApi.getBroadcastHistory).toHaveBeenCalledTimes(1);
+    fillRequired();
+
+    fireEvent.click(send());
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Send',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.getBroadcastHistory).toHaveBeenCalledTimes(2),
+    );
   });
 
   it('sends the message once confirmed, says so and empties the form', async () => {
