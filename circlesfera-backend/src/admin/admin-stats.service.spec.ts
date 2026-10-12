@@ -171,6 +171,24 @@ describe('AdminStatsService: the week of the Backoffice home', () => {
       paymentDispute: counted(),
       supportTicket: counted(),
       promotion: counted(),
+describe('AdminStatsService: the audit log as a file', () => {
+  const entry = (over: object = {}) => ({
+    id: 'l1',
+    action: 'BAN_USER',
+    targetType: 'user',
+    targetId: 'account-1',
+    details: 'spam ring',
+    createdAt: new Date('2026-03-10T11:00:00Z'),
+    adminId: 'staff-1',
+    admin: { displayName: 'Ana Staff', email: 'ana@staff.test' },
+    ...over,
+  });
+  const build = (rows: object[]) => {
+    const prisma = {
+      adminAuditLog: {
+        findMany: vi.fn().mockResolvedValue(rows),
+        create: vi.fn().mockResolvedValue({}),
+      },
     };
     return {
       prisma,
@@ -225,5 +243,60 @@ describe('AdminStatsService: the week of the Backoffice home', () => {
     expect(prisma.platformSubscription.count).not.toHaveBeenCalled();
     expect(prisma.paymentDispute.count).not.toHaveBeenCalled();
     expect(prisma.promotion.count).not.toHaveBeenCalled();
+  it('writes one line per entry, newest first, with the filters of the list', async () => {
+    const { service, prisma } = build([
+      entry(),
+      entry({ details: null, admin: { displayName: '', email: 'e@s.test' } }),
+      entry({ admin: null }),
+    ]);
+
+    const csv = await service.exportAuditLogsCSV('staff-9', {
+      adminId: 'staff-1',
+      targetId: 'account-1',
+    });
+
+    expect(csv.split('\n')).toEqual([
+      'Date,Staff member,Action,Kind,Target,Details',
+      '"2026-03-10T11:00:00.000Z","Ana Staff","BAN_USER","user","account-1","spam ring"',
+      '"2026-03-10T11:00:00.000Z","e@s.test","BAN_USER","user","account-1",""',
+      '"2026-03-10T11:00:00.000Z","","BAN_USER","user","account-1","spam ring"',
+    ]);
+    expect(prisma.adminAuditLog.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { adminId: 'staff-1', targetId: 'account-1' },
+        orderBy: { createdAt: 'desc' },
+        take: 10_000,
+      }),
+    );
+  });
+
+  it('writes the export itself in the log, with how many entries left', async () => {
+    const { service, prisma } = build([entry(), entry()]);
+
+    await service.exportAuditLogsCSV('staff-9');
+
+    expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
+      data: {
+        adminId: 'staff-9',
+        action: 'MANUAL_OVERRIDE',
+        targetType: 'audit_log',
+        targetId: 'export',
+        details: 'Exported 2 entries',
+      },
+    });
+  });
+
+  it('keeps a quote inside its cell and never lets a cell be read as a formula', async () => {
+    const { service } = build([
+      entry({ details: 'said "no", twice' }),
+      entry({ details: '=HYPERLINK("http://evil.test")' }),
+      entry({ details: '+1 -2 @x' }),
+    ]);
+
+    const lines = (await service.exportAuditLogsCSV('staff-9')).split('\n');
+
+    expect(lines[1]).toContain('"said ""no"", twice"');
+    expect(lines[2]).toContain('"\'=HYPERLINK(""http://evil.test"")"');
+    expect(lines[3]).toContain('"\'+1 -2 @x"');
   });
 });

@@ -9,6 +9,7 @@ vi.mock('../../services/admin.service', () => ({
   adminApi: {
     getHashtags: vi.fn(),
     getAuditLogs: vi.fn(),
+    exportAuditLogsCSV: vi.fn(),
     getUserDetail: vi.fn(),
   },
 }));
@@ -253,6 +254,47 @@ describe('AuditLogTab', () => {
         expect.objectContaining({ userId: undefined }),
       ),
     );
+  });
+
+  it('downloads what the list shows, with its filters, and says so when it cannot', async () => {
+    const createObjectURL = vi.fn(() => 'blob:audit');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(() => {});
+    vi.mocked(adminApi.exportAuditLogsCSV).mockResolvedValue({
+      data: 'Date',
+    } as never);
+    await show();
+    fireEvent.click(await screen.findByRole('button', { name: /Banned user/ }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Everything by this person' }),
+    );
+    await screen.findByText('By root');
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Export what is shown' }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.exportAuditLogsCSV).toHaveBeenCalledWith(
+        expect.objectContaining({ adminId: 'staff-1' }),
+      ),
+    );
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:audit');
+
+    vi.mocked(adminApi.exportAuditLogsCSV).mockRejectedValue(new Error('no'));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Export what is shown' }),
+    );
+    await waitFor(() =>
+      expect(adminApi.exportAuditLogsCSV).toHaveBeenCalledTimes(2),
+    );
+    await waitFor(() => expect(click).toHaveBeenCalledTimes(1));
+    click.mockRestore();
+    vi.unstubAllGlobals();
   });
 
   it('shows no details block for an entry that has none', async () => {

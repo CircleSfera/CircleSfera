@@ -10,6 +10,23 @@ import { PrismaService } from '../prisma/prisma.service.js';
 const REAL_ACCOUNT = { isTestAccount: false } as const;
 const REAL_CONTENT = { profile: { user: REAL_ACCOUNT } } as const;
 
+export interface AuditLogFilters {
+  action?: string;
+  search?: string;
+  from?: string;
+  to?: string;
+  adminId?: string;
+  targetId?: string;
+}
+
+const AUDIT_EXPORT_LIMIT = 10_000;
+
+// A cell of a CSV file: quoted, and never read as a formula by a spreadsheet.
+export function csvCell(value: string): string {
+  const safe = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+  return `"${safe.replace(/"/g, '""')}"`;
+}
+
 @Injectable()
 export class AdminStatsService {
   constructor(
@@ -569,6 +586,10 @@ export class AdminStatsService {
     },
   ) {
     const skip = (page - 1) * limit;
+  // The filters of the audit log, shared by the list and by its export.
+  private auditLogWhere(
+    filters?: AuditLogFilters,
+  ): Prisma.AdminAuditLogWhereInput {
     const where: Prisma.AdminAuditLogWhereInput = {};
 
     // The two exact questions of the log: what this staff member did, and
@@ -611,6 +632,47 @@ export class AdminStatsService {
         },
       ];
     }
+
+    return where;
+  }
+
+  // The audit log as a file, with the filters of the list: newest first, at
+  // most 10,000 entries. The export is itself written in the log.
+  async exportAuditLogsCSV(adminId: string, filters?: AuditLogFilters) {
+    const logs = await this.prisma.adminAuditLog.findMany({
+      where: this.auditLogWhere(filters),
+      orderBy: { createdAt: 'desc' },
+      take: AUDIT_EXPORT_LIMIT,
+      include: { admin: { select: { displayName: true, email: true } } },
+    });
+    await this.prisma.adminAuditLog.create({
+      data: {
+        adminId,
+        action: AdminAction.MANUAL_OVERRIDE,
+        targetType: 'audit_log',
+        targetId: 'export',
+        details: `Exported ${logs.length} entries`,
+      },
+    });
+    const header = 'Date,Staff member,Action,Kind,Target,Details';
+    const rows = logs.map((log) =>
+      [
+        log.createdAt.toISOString(),
+        log.admin?.displayName || log.admin?.email || '',
+        log.action,
+        log.targetType,
+        log.targetId,
+        log.details ?? '',
+      ]
+        .map(csvCell)
+        .join(','),
+    );
+    return [header, ...rows].join('\n');
+  }
+
+  async getAuditLogs(page = 1, limit = 20, filters?: AuditLogFilters) {
+    const skip = (page - 1) * limit;
+    const where = this.auditLogWhere(filters);
 
     const [logs, total] = await Promise.all([
       this.prisma.adminAuditLog.findMany({

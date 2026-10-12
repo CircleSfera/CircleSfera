@@ -1,4 +1,9 @@
-import { Controller, Get, Inject, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Inject, Query, Res, UseGuards } from '@nestjs/common';
+import type { Response } from 'express';
+import {
+  CurrentAdmin,
+  type CurrentAdminData,
+} from '../auth/decorators/current-admin.decorator.js';
 import {
   AdminGuard,
   RequireStaffPermissions,
@@ -53,6 +58,27 @@ export class AdminStatsController {
       support: false,
       promotions: true,
     });
+  @Get('audit-logs/export')
+  @RequireStaffPermissions('audit')
+  async exportAuditLogs(
+    @Query() query: AdminQueryDto,
+    @CurrentAdmin() admin: CurrentAdminData,
+    @Res() res: Response,
+  ) {
+    const csv = await this.adminStatsService.exportAuditLogsCSV(admin.adminId, {
+      action: query.action,
+      search: query.search,
+      from: query.from,
+      to: query.to,
+      adminId: query.adminId,
+      targetId: query.userId,
+    });
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader(
+      'Content-Disposition',
+      'attachment; filename=circlesfera-audit-log.csv',
+    );
+    res.send(csv);
   }
 
   @Get('audit-logs')

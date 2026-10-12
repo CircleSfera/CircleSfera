@@ -15,6 +15,7 @@ import {
   ADMIN_BEARER,
   BEARER,
   createControllerApp,
+  TEST_ADMIN,
 } from '../common/testing/http-controller.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
@@ -26,6 +27,7 @@ describe('AdminStatsController', () => {
     getEnhancedStats: vi.fn(),
     getAuditLogs: vi.fn(),
     getOverviewWeek: vi.fn(),
+    exportAuditLogsCSV: vi.fn(),
     getActivityChart: vi.fn(),
     getTopUsers: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
@@ -145,6 +147,30 @@ describe('AdminStatsController', () => {
       expect(mockService.getOverviewWeek).toHaveBeenCalledWith(asked);
     },
   );
+  it('hands the audit log as a file, with the filters asked and as adminId', async () => {
+    mockService.exportAuditLogsCSV.mockResolvedValue('Date\n"x"');
+    const account = '22222222-2222-4222-8222-222222222222';
+
+    const res = await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs/export')
+      .query({ action: 'BAN_USER', userId: account })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/audit-logs/export')
+      .expect(401);
+
+    expect(res.headers['content-type']).toContain('text/csv');
+    expect(res.headers['content-disposition']).toContain(
+      'circlesfera-audit-log.csv',
+    );
+    expect(res.text).toBe('Date\n"x"');
+    expect(mockService.exportAuditLogsCSV).toHaveBeenCalledTimes(1);
+    expect(mockService.exportAuditLogsCSV).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      expect.objectContaining({ action: 'BAN_USER', targetId: account }),
+    );
+  });
 
   it('lists audit logs with default pagination and filters', async () => {
     mockService.getAuditLogs.mockResolvedValue({ data: [] });

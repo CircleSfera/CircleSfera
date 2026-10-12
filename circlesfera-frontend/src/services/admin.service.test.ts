@@ -592,6 +592,15 @@ const cases: Case[] = [
     ['admin/audit-logs', q({ page: 1, limit: 50 })],
   ],
   [
+    'exportAuditLogsCSV',
+    () => adminApi.exportAuditLogsCSV({ action: 'BAN_USER' }),
+    'get',
+    [
+      'admin/audit-logs/export',
+      { params: { action: 'BAN_USER' }, responseType: 'blob' },
+    ],
+  ],
+  [
     'getAuditLogs filtered',
     () => adminApi.getAuditLogs(2, 10, { action: 'BAN', from: '2026-01-01' }),
     'get',
