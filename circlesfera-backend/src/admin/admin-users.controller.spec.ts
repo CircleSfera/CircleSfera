@@ -25,6 +25,8 @@ describe('AdminUsersController', () => {
 
   const mockService = {
     sendBroadcastEmail: vi.fn(),
+    countOpenSessions: vi.fn(),
+    closeUserSessions: vi.fn(),
     countBroadcastRecipients: vi.fn(),
     sendBroadcastTest: vi.fn(),
     getBroadcastHistory: vi.fn(),
@@ -274,6 +276,39 @@ describe('AdminUsersController', () => {
     expect(mockService.sendBroadcastTest).not.toHaveBeenCalled();
     expect(mockService.countBroadcastRecipients).not.toHaveBeenCalled();
     expect(mockService.getBroadcastHistory).not.toHaveBeenCalled();
+  });
+
+  it('counts the open sessions of an account and closes them as adminId', async () => {
+    mockService.countOpenSessions.mockResolvedValue({ open: 2 });
+    mockService.closeUserSessions.mockResolvedValue({ closed: 2 });
+
+    const count = await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/sessions')
+      .set(ADMIN_BEARER)
+      .expect(200);
+    const closed = await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-1/sessions/close')
+      .set(ADMIN_BEARER)
+      .expect(201);
+
+    expect(count.body).toEqual({ open: 2 });
+    expect(closed.body).toEqual({ closed: 2 });
+    expect(mockService.closeUserSessions).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      'user-1',
+    );
+  });
+
+  it('closes no session without credentials', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/users/user-1/sessions/close')
+      .expect(401);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/users/user-1/sessions')
+      .expect(401);
+
+    expect(mockService.closeUserSessions).not.toHaveBeenCalled();
+    expect(mockService.countOpenSessions).not.toHaveBeenCalled();
   });
 
   it('bans, unbans and deletes as adminId', async () => {
