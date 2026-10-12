@@ -13,6 +13,7 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
+  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
   canOpenTab,
   currentStaffSite,
@@ -49,7 +50,8 @@ export function AdminMobileDrawer({
     queryFn: () => adminApi.getTrustQueue().then((r) => r.data),
     refetchInterval: 60_000,
     staleTime: 30_000,
-    enabled: mounted,
+    // Asked only by who may read the queue.
+    enabled: mounted && hasPermission(ADMIN_TAB_PERMISSIONS.trust),
   });
 
   const trustBadgeTotal =

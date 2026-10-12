@@ -1,6 +1,7 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import UserVerificationTab from './UserVerificationTab';
 
@@ -61,6 +62,7 @@ const card = (label: string) =>
 
 describe('UserVerificationTab', () => {
   beforeEach(() => {
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['Date'], now: NOW });
     api.getUsers.mockResolvedValue(list([]) as never);
@@ -297,6 +299,33 @@ describe('UserVerificationTab', () => {
         'error',
       ),
     );
+  });
+
+  it('shows the record without controls to a role that may only read it', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'users.read',
+    } as never);
+    api.getUsers.mockResolvedValue(
+      list([
+        user('a', {
+          identityVerifiedAt: ago(60),
+          stripeIdentitySessionId: 'vs_1',
+        }),
+      ]) as never,
+    );
+    show();
+    await screen.findByText('@person_a');
+    fireEvent.click(rowOf('@person_a'));
+
+    const open = detail();
+    expect(within(open).getByText('Identity verified')).toBeInTheDocument();
+    expect(
+      within(open).getByText('Your role can see this, not change it.'),
+    ).toBeInTheDocument();
+    expect(within(open).queryByRole('combobox')).not.toBeInTheDocument();
+    expect(
+      within(open).queryByRole('button', { name: /revoke|sync/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('revokes a verified identity only after confirming', async () => {

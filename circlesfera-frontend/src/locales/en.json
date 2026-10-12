@@ -2270,6 +2270,7 @@
       "next_page": "Next page"
     },
     "shared": {
+      "read_only_role": "Your role can see this, not change it.",
       "cancel": "Cancel",
       "confirm": "Confirm",
       "clear_filters": "Clear filters",

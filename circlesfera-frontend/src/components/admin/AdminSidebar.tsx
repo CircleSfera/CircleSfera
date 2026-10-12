@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { adminApi } from '../../services/admin.service';
 import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import {
+  ADMIN_TAB_PERMISSIONS,
   type AdminTab,
   canOpenTab,
   currentStaffSite,
@@ -60,6 +61,8 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
     queryKey: ['admin', 'trust-queue'],
     queryFn: () => adminApi.getTrustQueue().then((r) => r.data),
     refetchInterval: 60_000,
+    // Asked only by who may read the queue.
+    enabled: hasPermission(ADMIN_TAB_PERMISSIONS.trust),
   });
 
   const trustBadgeTotal =

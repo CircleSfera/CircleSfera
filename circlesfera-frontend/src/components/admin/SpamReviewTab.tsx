@@ -18,6 +18,7 @@ import {
   type RiskCaseDecision,
   type RiskCaseStatus,
 } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { formatDateTime, formatWaiting } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -51,6 +52,7 @@ export default function SpamReviewTab() {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const canDecide = useAdminAuthStore((s) => s.hasPermission('users.ban'));
   const [status, setStatus] = useState<RiskCaseStatus>('OPEN');
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -257,8 +259,15 @@ export default function SpamReviewTab() {
                 </p>
               )}
 
+              {selected.status === 'OPEN' && !canDecide && (
+                <p className="text-sm text-white/50">
+                  {t('admin.shared.read_only_role')}
+                </p>
+              )}
+
               <div className="flex flex-col sm:flex-row flex-wrap gap-2">
                 {selected.status === 'OPEN' &&
+                  canDecide &&
                   DECISIONS.map(({ decision, icon: Icon, variant }) => (
                     <Button
                       key={decision}

@@ -12,6 +12,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import UserAvatar from '../UserAvatar';
@@ -40,6 +41,7 @@ export default function UserVerificationTab({
 }) {
   const { t, i18n } = useTranslation();
   const queryClient = useQueryClient();
+  const canEdit = useAdminAuthStore((s) => s.hasPermission('users.write'));
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebouncedValue(searchTerm, 400);
@@ -427,7 +429,8 @@ export default function UserVerificationTab({
                         </div>
                       </dl>
 
-                      {selectedUser.stripeIdentitySessionId &&
+                      {canEdit &&
+                        selectedUser.stripeIdentitySessionId &&
                         !selectedUser.identityVerifiedAt && (
                           <Button
                             onClick={() =>
@@ -442,79 +445,86 @@ export default function UserVerificationTab({
                           </Button>
                         )}
 
-                      {(selectedUser.identityVerifiedAt ||
-                        selectedUser.stripeIdentitySessionId) && (
-                        <div className="pt-1 space-y-2">
-                          <Button
-                            onClick={() => setConfirmRevokeOpen(true)}
-                            isLoading={revokeKycMutation.isPending}
-                            variant="danger"
-                            className="w-full sm:w-auto text-sm font-semibold border-red-500/30 min-h-11"
+                      {canEdit &&
+                        (selectedUser.identityVerifiedAt ||
+                          selectedUser.stripeIdentitySessionId) && (
+                          <div className="pt-1 space-y-2">
+                            <Button
+                              onClick={() => setConfirmRevokeOpen(true)}
+                              isLoading={revokeKycMutation.isPending}
+                              variant="danger"
+                              className="w-full sm:w-auto text-sm font-semibold border-red-500/30 min-h-11"
+                            >
+                              <RefreshCw size={16} className="mr-2" />{' '}
+                              {t('admin.verification.revoke_kyc')}
+                            </Button>
+                            <p className="text-xs text-white/40">
+                              {t('admin.verification.revoke_hint')}
+                            </p>
+                          </div>
+                        )}
+                    </div>
+                  </section>
+
+                  {canEdit ? (
+                    <section>
+                      <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
+                        {t('admin.verification.level_controls_title')}
+                      </h4>
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
+                        <div className="space-y-2">
+                          <Select
+                            label={t('admin.verification.level_label')}
+                            value={draftLevel || 'BASIC'}
+                            onChange={(e) =>
+                              setDraftLevel(e.target.value as VerificationLevel)
+                            }
                           >
-                            <RefreshCw size={16} className="mr-2" />{' '}
-                            {t('admin.verification.revoke_kyc')}
-                          </Button>
+                            <option value="BASIC">
+                              {t('admin.verification.level_basic')}
+                            </option>
+                            <option value="VERIFIED">
+                              {t('admin.verification.level_verified')}
+                            </option>
+                            <option value="BUSINESS">
+                              {t('admin.verification.level_business')}
+                            </option>
+                            <option value="ELITE">
+                              {t('admin.verification.level_elite')}
+                            </option>
+                          </Select>
                           <p className="text-xs text-white/40">
-                            {t('admin.verification.revoke_hint')}
+                            {t('admin.verification.level_hint')}
                           </p>
                         </div>
-                      )}
-                    </div>
-                  </section>
 
-                  <section>
-                    <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
-                      {t('admin.verification.level_controls_title')}
-                    </h4>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
-                      <div className="space-y-2">
-                        <Select
-                          label={t('admin.verification.level_label')}
-                          value={draftLevel || 'BASIC'}
-                          onChange={(e) =>
-                            setDraftLevel(e.target.value as VerificationLevel)
-                          }
-                        >
-                          <option value="BASIC">
-                            {t('admin.verification.level_basic')}
-                          </option>
-                          <option value="VERIFIED">
-                            {t('admin.verification.level_verified')}
-                          </option>
-                          <option value="BUSINESS">
-                            {t('admin.verification.level_business')}
-                          </option>
-                          <option value="ELITE">
-                            {t('admin.verification.level_elite')}
-                          </option>
-                        </Select>
-                        <p className="text-xs text-white/40">
-                          {t('admin.verification.level_hint')}
-                        </p>
+                        <div className="space-y-2">
+                          <Select
+                            label={t('admin.verification.account_type_label')}
+                            value={draftType || 'PERSONAL'}
+                            onChange={(e) => setDraftType(e.target.value)}
+                          >
+                            <option value="PERSONAL">
+                              {t('admin.verification.account_personal')}
+                            </option>
+                            <option value="CREATOR">
+                              {t('admin.verification.account_creator')}
+                            </option>
+                            <option value="BUSINESS">
+                              {t('admin.verification.account_business')}
+                            </option>
+                          </Select>
+                          <p className="text-xs text-white/40">
+                            {t('admin.verification.account_type_hint')}
+                          </p>
+                        </div>
                       </div>
-
-                      <div className="space-y-2">
-                        <Select
-                          label={t('admin.verification.account_type_label')}
-                          value={draftType || 'PERSONAL'}
-                          onChange={(e) => setDraftType(e.target.value)}
-                        >
-                          <option value="PERSONAL">
-                            {t('admin.verification.account_personal')}
-                          </option>
-                          <option value="CREATOR">
-                            {t('admin.verification.account_creator')}
-                          </option>
-                          <option value="BUSINESS">
-                            {t('admin.verification.account_business')}
-                          </option>
-                        </Select>
-                        <p className="text-xs text-white/40">
-                          {t('admin.verification.account_type_hint')}
-                        </p>
-                      </div>
-                    </div>
-                  </section>
+                    </section>
+                  ) : (
+                    <p className="text-sm text-white/50">
+                      {t('admin.shared.read_only_role')}
+                    </p>
+                  )}
                 </div>
               </motion.div>
             ) : (

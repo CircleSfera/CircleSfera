@@ -2,6 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import UsersTab from './UsersTab';
 
@@ -89,6 +90,7 @@ const menuOf = async (handle: string) => {
 
 describe('UsersTab', () => {
   beforeEach(() => {
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.clearAllMocks();
     vi.useFakeTimers({ toFake: ['Date'], now: NOW });
     api.getUsers.mockResolvedValue(list([]) as never);
@@ -326,6 +328,38 @@ describe('UsersTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('User unbanned', 'success'),
     );
+  });
+
+  it('offers a role that may only read no sanction, no role change and no deletion', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'users.read',
+    } as never);
+    api.getUsers.mockResolvedValue(
+      list([user('2', { suspendedUntil: inDays(2) })]) as never,
+    );
+    show();
+
+    expect(await menuOf('@person_2')).toEqual(['View detail', 'View profile']);
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: 'Escape',
+    });
+    fireEvent.click(rowOf('@person_2'));
+    const record = screen.getByTestId('user-detail');
+    expect(
+      within(record).queryByRole('button', { name: /^(Ban|Unban)$/ }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers who may sanction but not edit everything except the role change', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key !== 'users.write',
+    } as never);
+    api.getUsers.mockResolvedValue(list([user('1')]) as never);
+    show();
+
+    const menu = await menuOf('@person_1');
+    expect(menu).toContain('Ban');
+    expect(menu).not.toContain('Make admin');
   });
 
   it('offers Restore only for a banned or currently suspended account', async () => {

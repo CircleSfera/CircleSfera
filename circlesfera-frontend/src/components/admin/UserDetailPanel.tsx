@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDateTime, formatDay } from '../../utils/format';
 import { UserAvatar } from '../index';
@@ -107,6 +108,7 @@ export default function UserDetailPanel({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const canSanction = useAdminAuthStore((s) => s.hasPermission('users.ban'));
   const {
     data: user,
     isLoading,
@@ -365,28 +367,33 @@ export default function UserDetailPanel({
               })}
             </p>
           )}
-          <div className="flex flex-wrap gap-2 pt-1">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="min-h-11 text-xs"
-              disabled={botLabelMutation.isPending || botLabeled}
-              onClick={() => botLabelMutation.mutate('apply')}
-            >
-              {t('admin.user_preview.apply_bot_label', 'Label as possible bot')}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-11 text-xs"
-              disabled={botLabelMutation.isPending || !botLabeled}
-              onClick={() => botLabelMutation.mutate('clear')}
-            >
-              {t('admin.user_preview.clear_bot_label', 'Clear bot label')}
-            </Button>
-          </div>
+          {canSanction && (
+            <div className="flex flex-wrap gap-2 pt-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="min-h-11 text-xs"
+                disabled={botLabelMutation.isPending || botLabeled}
+                onClick={() => botLabelMutation.mutate('apply')}
+              >
+                {t(
+                  'admin.user_preview.apply_bot_label',
+                  'Label as possible bot',
+                )}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11 text-xs"
+                disabled={botLabelMutation.isPending || !botLabeled}
+                onClick={() => botLabelMutation.mutate('clear')}
+              >
+                {t('admin.user_preview.clear_bot_label', 'Clear bot label')}
+              </Button>
+            </div>
+          )}
         </section>
       )}
 

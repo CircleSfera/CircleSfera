@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { renderWithProviders } from '../../test/test-utils';
 import SpamReviewTab from './SpamReviewTab';
 
@@ -40,6 +41,7 @@ const riskCase = {
 
 describe('SpamReviewTab', () => {
   beforeEach(() => {
+    useAdminAuthStore.setState({ hasPermission: () => true } as never);
     vi.clearAllMocks();
     vi.mocked(adminApi.getRiskCases).mockResolvedValue({
       data: [riskCase],
@@ -121,6 +123,25 @@ describe('SpamReviewTab', () => {
     ]) {
       expect(within(open).getByRole('button', { name })).toBeInTheDocument();
     }
+  });
+
+  it('shows the case without decisions to a role that may only read it', async () => {
+    useAdminAuthStore.setState({
+      hasPermission: (key: string) => key === 'users.read',
+    } as never);
+    renderWithProviders(<SpamReviewTab />);
+
+    fireEvent.click(await screen.findByText('@spammy'));
+    const open = await screen.findByRole('region', { name: 'Case' });
+    expect(
+      within(open).getByText('Your role can see this, not change it.'),
+    ).toBeInTheDocument();
+    expect(
+      within(open).queryByRole('button', { name: 'Ban the profile' }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(open).getByRole('button', { name: 'Open in Users' }),
+    ).toBeInTheDocument();
   });
 
   it('changes view with the shared buttons and shows a dash before any review', async () => {
