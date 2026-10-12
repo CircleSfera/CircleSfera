@@ -35,7 +35,7 @@ const AdjustmentSlider = ({
       <div className="flex justify-between text-sm font-semibold">
         <span className="text-white/70 truncate pr-2">{label}</span>
         <span
-          className={`tabular-nums shrink-0 ${isModified ? 'text-brand-primary' : 'text-white/45'}`}
+          className={`tabular-nums shrink-0 ${isModified ? 'text-brand-primary-text' : 'text-white/45'}`}
         >
           {value}
           {unit}

@@ -138,7 +138,7 @@ export default function PostHeader({
                 ·
               </span>
               <span
-                className="text-brand-primary font-black uppercase shrink-0"
+                className="text-brand-primary-text font-black uppercase shrink-0"
                 style={{
                   fontSize: 'var(--text-badge, 11px)',
                   letterSpacing: '0.06em',

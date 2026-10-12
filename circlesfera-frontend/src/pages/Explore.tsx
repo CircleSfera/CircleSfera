@@ -210,11 +210,11 @@ export default function Explore() {
                   <div className="mb-12">
                     <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                       <Sparkles
-                        className="text-brand-primary animate-pulse"
+                        className="text-brand-primary-text animate-pulse"
                         size={24}
                       />
                       {t('explore.smart_search')}
-                      <span className="text-xs bg-brand-primary/20 text-brand-primary px-2 py-0.5 rounded-full uppercase tracking-wide font-black ml-2">
+                      <span className="text-xs bg-brand-primary/20 text-brand-primary-text px-2 py-0.5 rounded-full uppercase tracking-wide font-black ml-2">
                         {t('explore.beta_ai')}
                       </span>
                     </h2>
@@ -354,7 +354,7 @@ export default function Explore() {
                               </div>
                               {(user as any).followedByFriends &&
                                 (user as any).followedByFriends.length > 0 && (
-                                  <div className="text-xs font-bold text-brand-primary uppercase tracking-tighter mt-0.5 truncate opacity-80">
+                                  <div className="text-xs font-bold text-brand-primary-text uppercase tracking-tighter mt-0.5 truncate opacity-80">
                                     {t('explore.followed_by')}{' '}
                                     {(user as any).followedByFriends[0]}
                                     {(user as any).mutualCount &&

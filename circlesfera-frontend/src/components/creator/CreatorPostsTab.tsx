@@ -134,7 +134,10 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                       {formatNumber(post._count.likes, i18n.language)}
                     </span>
                     <span className="flex items-center gap-1">
-                      <MessageCircle size={12} className="text-brand-primary" />{' '}
+                      <MessageCircle
+                        size={12}
+                        className="text-brand-primary-text"
+                      />{' '}
                       {formatNumber(post._count.comments, i18n.language)}
                     </span>
                     <span className="ml-auto">
@@ -147,7 +150,7 @@ export default function CreatorPostsTab({ onPromote }: Props) {
                   <Button
                     variant="secondary"
                     onClick={() => setInsightsPostId(post.id)}
-                    className="flex-1 min-h-11 bg-brand-primary/10 text-brand-primary border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
+                    className="flex-1 min-h-11 bg-brand-primary/10 text-brand-primary-text border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
                   >
                     <BarChart3
                       size={14}

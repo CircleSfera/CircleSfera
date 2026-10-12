@@ -92,7 +92,7 @@ export default function SettingsShell({
                                     size={18}
                                     className={
                                       isActive
-                                        ? 'text-brand-primary'
+                                        ? 'text-brand-primary-text'
                                         : 'text-white/40'
                                     }
                                     aria-hidden

@@ -170,7 +170,11 @@ export default function AccountSettings() {
 
           <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
             <h3 className="text-sm font-medium text-white flex items-center gap-2 mb-3">
-              <Globe size={14} className="text-brand-primary" aria-hidden />
+              <Globe
+                size={14}
+                className="text-brand-primary-text"
+                aria-hidden
+              />
               {t('settings.account.language')}
             </h3>
             <div className="flex gap-2">
@@ -212,7 +216,7 @@ export default function AccountSettings() {
               className={`text-sm font-semibold flex items-center gap-2 mb-2 ${
                 profile?.identityVerifiedAt
                   ? 'text-green-400'
-                  : 'text-brand-primary'
+                  : 'text-brand-primary-text'
               }`}
             >
               <BadgeCheck size={16} aria-hidden />
@@ -241,7 +245,7 @@ export default function AccountSettings() {
           </div>
 
           <div className="rounded-xl border border-brand-primary/15 bg-brand-primary/5 p-4">
-            <h3 className="text-sm font-semibold text-brand-primary flex items-center gap-2 mb-2">
+            <h3 className="text-sm font-semibold text-brand-primary-text flex items-center gap-2 mb-2">
               <Download size={14} aria-hidden />
               {t('settings.account.export.title')}
             </h3>

@@ -134,7 +134,7 @@ export default function GroupDetailsModal({
                   <button
                     type="button"
                     onClick={() => setIsEditing(true)}
-                    className="mt-3 text-sm text-brand-primary hover:text-brand-primary/80 font-medium px-4 py-1.5 bg-brand-primary/10 rounded-full min-h-11"
+                    className="mt-3 text-sm text-brand-primary-text hover:text-brand-primary-text/80 font-medium px-4 py-1.5 bg-brand-primary/10 rounded-full min-h-11"
                   >
                     {t('chat.group_details.edit_info')}
                   </button>
@@ -165,7 +165,7 @@ export default function GroupDetailsModal({
                       <div className="font-medium text-white flex items-center gap-2 truncate">
                         {p.profile?.fullName || p.profile?.username}
                         {p.isAdmin && (
-                          <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-brand-primary bg-brand-primary/10 px-1.5 py-0.5 rounded shrink-0">
+                          <span className="flex items-center gap-1 text-[10px] uppercase font-bold text-brand-primary-text bg-brand-primary/10 px-1.5 py-0.5 rounded shrink-0">
                             <Shield size={10} aria-hidden />
                             {t('chat.group_details.admin_badge')}
                           </span>

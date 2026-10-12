@@ -43,7 +43,7 @@ export default function PhotoAdjustmentSelector({
                 isActive
                   ? 'text-white bg-white/10'
                   : isModified
-                    ? 'text-brand-primary/90 hover:text-brand-primary'
+                    ? 'text-brand-primary-text/90 hover:text-brand-primary-text'
                     : 'text-white/35 hover:text-white/55'
               }`}
             >

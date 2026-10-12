@@ -49,7 +49,7 @@ export function AdminEmptyState({
     >
       <div
         className={clsx(
-          'rounded-lg flex items-center justify-center text-brand-primary/70 border border-brand-primary/15 bg-brand-primary/8',
+          'rounded-lg flex items-center justify-center text-brand-primary-text/70 border border-brand-primary/15 bg-brand-primary/8',
           compact ? 'w-8 h-8' : 'w-10 h-10',
         )}
       >

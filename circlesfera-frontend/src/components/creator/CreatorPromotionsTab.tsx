@@ -260,7 +260,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             <p className="text-white/50 text-xs mb-1">
               {t('creator.promotions.total_reach')}
             </p>
-            <p className="text-brand-primary font-bold text-lg">
+            <p className="text-brand-primary-text font-bold text-lg">
               +{formatNumber(promo.reach, i18n.language)}
             </p>
           </div>
@@ -558,13 +558,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
                       meta={
                         <>
                           <span className="inline-flex items-center gap-1">
-                            <Zap size={10} className="text-brand-primary" />
+                            <Zap
+                              size={10}
+                              className="text-brand-primary-text"
+                            />
                             {formatNumber(promo.reach, i18n.language)}
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <DollarSign
                               size={10}
-                              className="text-brand-primary"
+                              className="text-brand-primary-text"
                             />
                             €{(promo.budgetCents / 100).toFixed(2)}
                           </span>

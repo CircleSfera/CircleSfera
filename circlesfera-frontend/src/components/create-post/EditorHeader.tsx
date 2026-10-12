@@ -111,7 +111,7 @@ interface EditorHeaderActionProps {
 const ACTION = {
   final:
     'bg-linear-to-r from-brand-primary to-brand-blue text-white shadow-md shadow-brand-primary/20',
-  step: 'text-brand-primary hover:text-white hover:bg-brand-primary/15 border border-brand-primary/35',
+  step: 'text-brand-primary-text hover:text-white hover:bg-brand-primary/15 border border-brand-primary/35',
   plain: 'bg-white/10 text-white hover:bg-white/16',
 } as const;
 

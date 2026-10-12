@@ -24,7 +24,7 @@ function statusTone(status: string) {
     case 'REVIEWING':
       return 'text-brand-accent bg-brand-accent/10 border-brand-accent/20';
     default:
-      return 'text-brand-primary bg-brand-primary/10 border-brand-primary/20';
+      return 'text-brand-primary-text bg-brand-primary/10 border-brand-primary/20';
   }
 }
 

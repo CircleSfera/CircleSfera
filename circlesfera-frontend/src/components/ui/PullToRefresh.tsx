@@ -134,7 +134,7 @@ export function PullToRefresh({ onRefresh, children }: PullToRefreshProps) {
       >
         <div className="bg-black/50 backdrop-blur-md rounded-full p-2 border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.1)]">
           <Loader2
-            className={`w-6 h-6 text-brand-primary ${isRefreshing ? 'animate-spin' : ''}`}
+            className={`w-6 h-6 text-brand-primary-text ${isRefreshing ? 'animate-spin' : ''}`}
             style={{
               transform: isRefreshing ? undefined : `rotate(${rotation}deg)`,
             }}

@@ -348,7 +348,7 @@ export default function ConversationList() {
                           </span>
                           {lastMsg && (
                             <span
-                              className={`text-xs font-semibold shrink-0 ml-2 ${isActive ? 'text-brand-primary drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
+                              className={`text-xs font-semibold shrink-0 ml-2 ${isActive ? 'text-brand-primary-text drop-shadow-[0_0_5px_rgba(var(--brand-primary-rgb),0.5)]' : 'text-white/40'}`}
                             >
                               {getTimeString(lastMsg.createdAt, i18n.language)}
                             </span>

@@ -110,7 +110,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           username: u.profile?.username || t('admin.cmd.no_username'),
           name: u.profile?.fullName || u.email,
         }),
-        icon: <User size={16} className="text-brand-primary" />,
+        icon: <User size={16} className="text-brand-primary-text" />,
         action: () => {
           navigate(
             adminTabPath('users', `?userId=${encodeURIComponent(u.id)}`),
@@ -219,7 +219,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
                   className={clsx(
                     'w-full flex items-center px-3 py-3 rounded-lg text-white/70 text-left min-h-11',
                     index === activeIndex
-                      ? 'bg-brand-primary/15 text-brand-primary'
+                      ? 'bg-brand-primary/15 text-brand-primary-text'
                       : 'hover:bg-white/5',
                   )}
                 >

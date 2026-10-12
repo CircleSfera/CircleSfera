@@ -84,7 +84,7 @@ export default function PropertiesPanel() {
     <div className="flex flex-col gap-3 overflow-y-auto no-scrollbar">
       <div className="flex items-center justify-between pb-2 border-b border-white/5">
         <div className="flex items-center gap-2">
-          <Sliders size={16} className="text-brand-primary" />
+          <Sliders size={16} className="text-brand-primary-text" />
           <span className="text-sm font-semibold text-white">
             {selectedClip.type === 'text'
               ? t('studio.tracks.text')
@@ -155,7 +155,7 @@ export default function PropertiesPanel() {
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-xs text-white/70">
               <span className="flex items-center gap-1 font-medium">
-                <Maximize2 size={13} className="text-brand-primary" />{' '}
+                <Maximize2 size={13} className="text-brand-primary-text" />{' '}
                 {t('studio.properties.scale')}
               </span>
               <span className="font-mono text-xs text-white/40">
@@ -180,7 +180,7 @@ export default function PropertiesPanel() {
           <div className="flex flex-col gap-1.5">
             <div className="flex justify-between text-xs text-white/70">
               <span className="flex items-center gap-1 font-medium">
-                <RotateCw size={13} className="text-brand-primary" />{' '}
+                <RotateCw size={13} className="text-brand-primary-text" />{' '}
                 {t('studio.properties.rotation')}
               </span>
               <span className="font-mono text-xs text-white/40">

@@ -306,7 +306,7 @@ export default function Pricing() {
                       {plan.name}
                     </h2>
                     {isActive && (
-                      <span className="rounded-full border border-brand-primary/30 bg-brand-primary/20 px-2.5 py-1 text-xs font-bold text-brand-primary">
+                      <span className="rounded-full border border-brand-primary/30 bg-brand-primary/20 px-2.5 py-1 text-xs font-bold text-brand-primary-text">
                         {t('pricingPage.current_plan')}
                       </span>
                     )}
@@ -338,7 +338,7 @@ export default function Pricing() {
                     {(plan.features || []).map((feature) => (
                       <li key={feature} className="flex items-start gap-3">
                         <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-primary/20">
-                          <Check className="h-3 w-3 text-brand-primary" />
+                          <Check className="h-3 w-3 text-brand-primary-text" />
                         </span>
                         <span className="text-sm text-white/70">
                           {planFeatureLabel(feature, t)}
@@ -392,7 +392,7 @@ export default function Pricing() {
               key={key}
               className="flex items-start gap-4 rounded-3xl glass-panel p-6"
             >
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
                 <Icon size={22} strokeWidth={1.75} aria-hidden />
               </span>
               <span>

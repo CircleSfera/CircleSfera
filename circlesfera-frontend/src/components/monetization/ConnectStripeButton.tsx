@@ -30,7 +30,7 @@ export default function ConnectStripeButton() {
 
   return (
     <div className="text-center">
-      <ShieldCheck className="w-10 h-10 text-brand-primary mx-auto mb-3" />
+      <ShieldCheck className="w-10 h-10 text-brand-primary-text mx-auto mb-3" />
       <h3 className="text-white font-medium text-base mb-1">
         {t('monetization.verify_identity')}
       </h3>

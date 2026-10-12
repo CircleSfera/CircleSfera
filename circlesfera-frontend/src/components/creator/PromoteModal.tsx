@@ -131,7 +131,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
                 onClick={() => setObjective(obj.id)}
                 className={`p-3 text-left rounded-xl border transition-all text-sm font-bold ${
                   objective === obj.id
-                    ? 'bg-brand-primary/10 border-brand-primary text-brand-primary'
+                    ? 'bg-brand-primary/10 border-brand-primary text-brand-primary-text'
                     : 'bg-white/5 border-white/5 text-gray-300 hover:border-white/15'
                 }`}
                 type="button"
@@ -221,14 +221,14 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
       <div className="px-5 pb-5">
         <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4 space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-brand-primary/80">
+            <span className="flex items-center gap-1 text-brand-primary-text/80">
               <DollarSign size={14} /> {t('creator.promotions.investment')}
             </span>
             <span className="text-white font-semibold text-lg tabular-nums">
               €{totalBudget}
             </span>
           </div>
-          <div className="flex items-center justify-between text-xs text-brand-primary/60">
+          <div className="flex items-center justify-between text-xs text-brand-primary-text/60">
             <span>
               €{dailyBudget}/{t('creator.promotions.per_day')} ·{' '}
               {t('creator.promotions.days', { count: durationDays })}

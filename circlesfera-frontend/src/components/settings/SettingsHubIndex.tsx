@@ -127,7 +127,7 @@ export default function SettingsHubIndex() {
         </div>
         <Link
           to="/accounts/profile"
-          className="text-sm font-medium text-brand-primary hover:underline shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
+          className="text-sm font-medium text-brand-primary-text hover:underline shrink-0 min-h-11 min-w-11 inline-flex items-center justify-center"
         >
           {t('settings.hub.edit_profile')}
         </Link>

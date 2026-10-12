@@ -55,7 +55,7 @@ export function ArticleFeedback({ slug }: { slug: string }) {
             {' '}
             <Link
               to="/support"
-              className="font-semibold text-brand-primary underline underline-offset-2"
+              className="font-semibold text-brand-primary-text underline underline-offset-2"
             >
               {t('helpCentre.contact_cta')}
             </Link>

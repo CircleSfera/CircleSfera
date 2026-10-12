@@ -31,7 +31,7 @@ export default function CreatorPpvIncome({
         <li className="flex items-start gap-2.5">
           <Lock
             size={16}
-            className="text-brand-primary shrink-0 mt-0.5"
+            className="text-brand-primary-text shrink-0 mt-0.5"
             aria-hidden
           />
           <span>{t('creator.ppv.lock_rule')}</span>
@@ -39,7 +39,7 @@ export default function CreatorPpvIncome({
         <li className="flex items-start gap-2.5">
           <Wallet
             size={16}
-            className="text-brand-primary shrink-0 mt-0.5"
+            className="text-brand-primary-text shrink-0 mt-0.5"
             aria-hidden
           />
           <span>{t('creator.ppv.split')}</span>

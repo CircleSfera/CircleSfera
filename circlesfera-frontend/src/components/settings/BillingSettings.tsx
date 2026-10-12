@@ -64,7 +64,7 @@ export default function BillingSettings() {
       >
         <div className="rounded-xl border border-white/5 bg-brand-primary/5 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <p className="text-xs font-medium text-brand-primary mb-1">
+            <p className="text-xs font-medium text-brand-primary-text mb-1">
               {t('settings.billing.current_plan')}
             </p>
             <h3 className="text-xl font-semibold text-white">
@@ -143,7 +143,7 @@ export default function BillingSettings() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-            <Shield size={18} className="text-brand-primary" aria-hidden />
+            <Shield size={18} className="text-brand-primary-text" aria-hidden />
           </div>
           <div>
             <h4 className="text-sm font-medium text-white">
@@ -156,7 +156,7 @@ export default function BillingSettings() {
         </div>
         <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center shrink-0">
-            <Star size={18} className="text-brand-primary" aria-hidden />
+            <Star size={18} className="text-brand-primary-text" aria-hidden />
           </div>
           <div>
             <h4 className="text-sm font-medium text-white">

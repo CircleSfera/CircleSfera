@@ -76,7 +76,7 @@ export default function StoryElementEditPanel({
       {/* Header row */}
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-2.5 shrink-0 sm:shrink sm:min-w-0">
-          <div className="w-8 h-8 rounded-xl bg-brand-primary/15 border border-brand-primary/20 flex items-center justify-center text-brand-primary shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-brand-primary/15 border border-brand-primary/20 flex items-center justify-center text-brand-primary-text shrink-0">
             {isPollElement(selectedElement) ? (
               <BarChart2 size={15} />
             ) : isQnaElement(selectedElement) ? (

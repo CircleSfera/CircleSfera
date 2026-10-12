@@ -47,7 +47,7 @@ export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
                 className="w-10 h-10 rounded-full shrink-0 flex items-center justify-center bg-brand-primary/15 border border-brand-primary/25"
                 aria-hidden
               >
-                <Icon size={18} className="text-brand-primary" />
+                <Icon size={18} className="text-brand-primary-text" />
               </div>
               <div className="min-w-0">
                 <p className="font-bold text-sm text-white truncate">

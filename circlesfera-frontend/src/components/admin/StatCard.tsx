@@ -23,7 +23,7 @@ export interface StatCardProps {
 
 const colorMap: Record<string, string> = {
   blue: 'text-brand-blue bg-brand-blue/10 border-brand-blue/20',
-  purple: 'text-brand-primary bg-brand-primary/10 border-brand-primary/20',
+  purple: 'text-brand-primary-text bg-brand-primary/10 border-brand-primary/20',
   pink: 'text-brand-accent bg-brand-accent/10 border-brand-accent/20',
   red: 'text-brand-secondary bg-brand-secondary/10 border-brand-secondary/20',
   green: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',

@@ -40,7 +40,7 @@ export default function MonetizationSubScreen({
       <div className={SUBSCREEN_BODY}>
         <div className="rounded-3xl border border-white/8 bg-white/2 px-3 py-2.5 flex items-start gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center shrink-0 mt-0.5">
-            <Euro size={14} className="text-brand-primary" />
+            <Euro size={14} className="text-brand-primary-text" />
           </div>
           <div className="flex-1 min-w-0">
             <Switch

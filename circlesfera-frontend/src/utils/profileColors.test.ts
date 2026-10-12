@@ -32,6 +32,7 @@ describe('profile colours', () => {
       '--brand-primary': '#14b8a6',
       '--brand-primary-rgb': '20, 184, 166',
       '--color-brand-primary': '#14b8a6',
+      '--color-brand-primary-text': '#14b8a6',
     });
   });
 

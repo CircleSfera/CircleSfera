@@ -863,7 +863,7 @@ export default function ChatWindow() {
     } else {
       return (
         <div className="flex items-center gap-1 opacity-80 mt-0.5">
-          <span className="text-xs text-brand-primary font-bold tracking-wider">
+          <span className="text-xs text-brand-primary-text font-bold tracking-wider">
             {t('chat.typing')}
           </span>
           <div className="flex items-center gap-0.5 pt-1">
@@ -1344,8 +1344,8 @@ export default function ChatWindow() {
               className="flex items-center justify-between bg-brand-primary/10 p-3 rounded-t-[20px] border-x border-t border-brand-primary/25 -mb-4 pb-5 pt-3 px-4 mx-2 backdrop-blur-md relative z-0"
             >
               <div className="flex items-center gap-2 text-sm border-l-2 border-brand-primary pl-3">
-                <Lock size={14} className="text-brand-primary shrink-0" />
-                <span className="text-brand-primary font-semibold text-xs">
+                <Lock size={14} className="text-brand-primary-text shrink-0" />
+                <span className="text-brand-primary-text font-semibold text-xs">
                   {t('chat.locked_chip_label', {
                     price: formatCents(lockedPrice, i18n.language),
                   })}
@@ -1432,7 +1432,7 @@ export default function ChatWindow() {
                   aria-expanded={isLockPopoverOpen}
                   className={`p-3 rounded-full transition-colors mb-0.5 ${
                     lockedPrice !== null
-                      ? 'text-brand-primary bg-brand-primary/15'
+                      ? 'text-brand-primary-text bg-brand-primary/15'
                       : 'text-white/50 hover:text-white hover:bg-white/10'
                   }`}
                 >
@@ -1567,7 +1567,7 @@ export default function ChatWindow() {
                   aria-expanded={isEmojiPanelOpen}
                   className={`p-3 rounded-full transition-colors ${
                     isEmojiPanelOpen
-                      ? 'text-brand-primary bg-brand-primary/15'
+                      ? 'text-brand-primary-text bg-brand-primary/15'
                       : 'text-white/50 hover:text-white hover:bg-white/10'
                   }`}
                 >

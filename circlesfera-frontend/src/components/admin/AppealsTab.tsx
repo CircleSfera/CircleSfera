@@ -160,7 +160,7 @@ export default function AppealsTab() {
                   <h3 className="text-base font-bold text-white break-all">
                     {selected.user?.email || '—'}
                   </h3>
-                  <p className="text-sm text-brand-primary">
+                  <p className="text-sm text-brand-primary-text">
                     @{selected.user?.profile?.username || '—'}
                   </p>
                 </div>

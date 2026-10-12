@@ -62,7 +62,7 @@ function AnimatedCounter({ value, label }: { value: number; label: string }) {
       <span className="block text-white font-black text-base md:text-xl leading-none transition-all duration-300 origin-center md:origin-left group-hover:scale-110 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-linear-to-r group-hover:from-[#ff5757] group-hover:to-[#884cff]">
         {count}
       </span>
-      <span className="text-zinc-400 text-xs font-medium mt-1 block transition-colors duration-300 group-hover:text-brand-primary/80">
+      <span className="text-zinc-400 text-xs font-medium mt-1 block transition-colors duration-300 group-hover:text-brand-primary-text/80">
         {label}
       </span>
     </div>
@@ -326,7 +326,7 @@ export default function ProfileHeader({
                       className="text-xs text-zinc-300 font-medium inline-flex items-center gap-1.5 bg-white/5 px-2.5 py-0.5 rounded-full border border-white/10 shadow-sm shrink-0"
                       title={t('profile.private_account')}
                     >
-                      <Lock size={12} className="text-brand-primary" />
+                      <Lock size={12} className="text-brand-primary-text" />
                       <span>{t('profile.private_label')}</span>
                     </span>
                   )}
@@ -486,7 +486,7 @@ export default function ProfileHeader({
               <span>@{profile.data.username}</span>
             )}
             {profile.data.isPrivate && (
-              <Lock size={12} className="text-brand-primary" />
+              <Lock size={12} className="text-brand-primary-text" />
             )}
           </div>
         </div>
@@ -498,7 +498,7 @@ export default function ProfileHeader({
               <p className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
                 <Building2
                   size={14}
-                  className="text-brand-primary"
+                  className="text-brand-primary-text"
                   aria-hidden
                 />
                 {t('profile.company_verified')}
@@ -555,7 +555,7 @@ export default function ProfileHeader({
                     <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">
                       {t('profile.invite.title')}
                     </span>
-                    <span className="font-mono text-brand-primary font-bold tracking-wider text-sm">
+                    <span className="font-mono text-brand-primary-text font-bold tracking-wider text-sm">
                       {profile.data.inviteCode}
                     </span>
                   </div>

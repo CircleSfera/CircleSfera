@@ -223,7 +223,7 @@ export default function StoryList() {
                   >
                     <Plus
                       size={20}
-                      className="text-gray-500 group-hover:text-brand-primary transition-colors"
+                      className="text-gray-500 group-hover:text-brand-primary-text transition-colors"
                     />
                   </div>
                 )}

@@ -166,7 +166,7 @@ export default function InteractionRail({
           isVertical
             ? `${
                 isBookmarked
-                  ? 'text-brand-primary fill-brand-primary'
+                  ? 'text-brand-primary-text fill-brand-primary'
                   : 'text-white'
               } ${iconShadow}`
             : `transition-all ${

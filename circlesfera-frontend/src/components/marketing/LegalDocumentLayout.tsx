@@ -141,7 +141,7 @@ export function LegalDocumentLayout({
                 className="scroll-mt-24 rounded-3xl glass-panel p-6 sm:p-8"
               >
                 <div className="flex items-center gap-4">
-                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+                  <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
                     <section.icon size={22} strokeWidth={1.75} aria-hidden />
                   </span>
                   <div className="min-w-0">

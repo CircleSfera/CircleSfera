@@ -77,7 +77,7 @@ export default function PrivacySettings() {
         {t('settings.privacy.export_link_hint')}{' '}
         <Link
           to="/accounts/account"
-          className="text-brand-primary hover:underline font-medium"
+          className="text-brand-primary-text hover:underline font-medium"
         >
           {t('settings.privacy.export_link')}
         </Link>

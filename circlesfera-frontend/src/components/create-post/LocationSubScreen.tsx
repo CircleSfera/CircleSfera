@@ -261,7 +261,7 @@ export default function LocationSubScreen({
                     type="button"
                     disabled={isGeoLoading}
                     onClick={handleUseCurrent}
-                    className="w-full min-h-12 h-12 flex items-center justify-center gap-2 px-4 rounded-full bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary border border-brand-primary/20 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:opacity-50 shadow-sm shrink-0"
+                    className="w-full min-h-12 h-12 flex items-center justify-center gap-2 px-4 rounded-full bg-brand-primary/10 hover:bg-brand-primary/20 text-brand-primary-text border border-brand-primary/20 transition-all outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/40 disabled:opacity-50 shadow-sm shrink-0"
                   >
                     {isGeoLoading ? (
                       <Loader2 size={16} className="animate-spin" />

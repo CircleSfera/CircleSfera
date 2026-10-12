@@ -76,14 +76,14 @@ function TrustSection({
     <section aria-label={title} className="min-w-0 space-y-2">
       <div>
         <div className="flex flex-wrap items-center gap-x-2 min-h-11">
-          <Icon size={16} className="text-brand-primary shrink-0" />
+          <Icon size={16} className="text-brand-primary-text shrink-0" />
           <h3 className="text-sm font-semibold text-white">{title}</h3>
-          <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30 tabular-nums">
+          <span className="text-xs font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30 tabular-nums">
             {count}
           </span>
           <Link
             to={link}
-            className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-brand-primary hover:text-brand-primary/80 shrink-0 min-h-11"
+            className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-brand-primary-text hover:text-brand-primary-text/80 shrink-0 min-h-11"
           >
             {linkLabel}
             <ChevronRight size={14} aria-hidden />
@@ -158,7 +158,10 @@ export default function TrustTab() {
               to={adminTabPath('moderation')}
               className="inline-flex items-center justify-center gap-2 min-h-11 px-4 rounded-xl text-sm font-semibold text-white border border-white/12 hover:bg-white/6 transition-colors"
             >
-              <ShieldAlert size={16} className="text-brand-primary shrink-0" />
+              <ShieldAlert
+                size={16}
+                className="text-brand-primary-text shrink-0"
+              />
               {t('admin.trust.moderation_link')}
             </Link>
           )

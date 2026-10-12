@@ -90,7 +90,7 @@ export default function LiveStreamsTab() {
           title={t('admin.lives.kpi_viewers')}
           value={formatNumber(totalViewers, i18n.language)}
           icon={<Users size={16} />}
-          iconColorClass="text-brand-primary bg-brand-primary/10"
+          iconColorClass="text-brand-primary-text bg-brand-primary/10"
         />
       </div>
 

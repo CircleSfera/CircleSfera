@@ -369,7 +369,7 @@ export default function ReportsTab({ onToast }: Props) {
               <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
                 <input
                   type="checkbox"
-                  className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                  className="rounded border-white/20 bg-white/5 text-brand-primary-text focus:ring-brand-primary/50"
                   checked={
                     selectedIds.size === reports.length && reports.length > 0
                   }
@@ -428,7 +428,7 @@ export default function ReportsTab({ onToast }: Props) {
                         <span className="flex flex-col gap-0.5">
                           <span>{targetName(report.targetType)}</span>
                           {assignee && (
-                            <span className="text-[11px] text-brand-primary/80">
+                            <span className="text-[11px] text-brand-primary-text/80">
                               {t('admin.reports.assigned_to', {
                                 username: assignee,
                               })}
@@ -464,7 +464,7 @@ export default function ReportsTab({ onToast }: Props) {
                         <div className="flex items-start gap-2">
                           <input
                             type="checkbox"
-                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary-text focus:ring-brand-primary/50"
                             checked={selectedIds.has(report.id)}
                             onChange={(e) => toggleSelect(report.id, e)}
                             onClick={(e) => e.stopPropagation()}
@@ -565,7 +565,7 @@ export default function ReportsTab({ onToast }: Props) {
                       <Button
                         onClick={() => claimMutation.mutate(selectedReport.id)}
                         isLoading={claimMutation.isPending}
-                        className="bg-brand-primary/20 text-brand-primary hover:bg-brand-primary/30 border border-brand-primary/40 text-xs sm:text-sm font-semibold min-h-11 px-2 sm:px-4"
+                        className="bg-brand-primary/20 text-brand-primary-text hover:bg-brand-primary/30 border border-brand-primary/40 text-xs sm:text-sm font-semibold min-h-11 px-2 sm:px-4"
                       >
                         <Hand size={16} className="mr-1 sm:mr-2 shrink-0" />
                         <span className="truncate">
@@ -791,7 +791,7 @@ export default function ReportsTab({ onToast }: Props) {
                               : t('admin.reports.target_message')}
                           </p>
                           {selectedReport.targetContent?.author && (
-                            <p className="text-brand-primary font-semibold">
+                            <p className="text-brand-primary-text font-semibold">
                               @{selectedReport.targetContent.author}
                             </p>
                           )}
@@ -849,7 +849,7 @@ export default function ReportsTab({ onToast }: Props) {
                           {selectedReport.details?.includes(
                             '[AI Automated Flag]',
                           ) ? (
-                            <span className="inline-flex items-center gap-1.5 text-brand-primary">
+                            <span className="inline-flex items-center gap-1.5 text-brand-primary-text">
                               <Bot size={14} /> {t('admin.reports.ai_reporter')}
                             </span>
                           ) : (

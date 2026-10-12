@@ -47,7 +47,7 @@ function Figure({
           <Icon
             size={16}
             aria-hidden="true"
-            className={attention ? 'text-amber-400' : 'text-brand-primary'}
+            className={attention ? 'text-amber-400' : 'text-brand-primary-text'}
           />
           <span className="truncate">{label}</span>
         </span>

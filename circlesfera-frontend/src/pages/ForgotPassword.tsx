@@ -49,7 +49,7 @@ export default function ForgotPassword() {
           </p>
           <Link
             to="/accounts/login"
-            className="text-brand-primary hover:underline font-medium inline-flex items-center min-h-11 justify-center gap-2"
+            className="text-brand-primary-text hover:underline font-medium inline-flex items-center min-h-11 justify-center gap-2"
           >
             <ArrowLeft size={18} /> {t('auth.forgot_password.back_to_login')}
           </Link>

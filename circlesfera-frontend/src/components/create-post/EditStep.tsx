@@ -49,7 +49,7 @@ const MODE_CONFIG = {
   POST: {
     icon: Image,
     label: 'Post',
-    accent: 'text-brand-primary',
+    accent: 'text-brand-primary-text',
     ratioW: 4,
     ratioH: 5,
     badge: '4:5',

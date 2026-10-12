@@ -43,7 +43,11 @@ export default function PlacesPeekList({
         {places.length === 0 ? (
           <div className="flex flex-col items-center justify-center text-center px-4 py-8 gap-3 min-h-[168px]">
             <div className="w-12 h-12 rounded-2xl bg-white/6 border border-white/10 flex items-center justify-center">
-              <MapPin size={22} className="text-brand-primary" aria-hidden />
+              <MapPin
+                size={22}
+                className="text-brand-primary-text"
+                aria-hidden
+              />
             </div>
             <div className="space-y-1.5 max-w-xs">
               <p className="text-sm font-semibold text-white/85">

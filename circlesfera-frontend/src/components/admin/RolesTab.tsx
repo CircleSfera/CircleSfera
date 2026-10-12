@@ -413,7 +413,7 @@ export default function RolesTab({ onToast }: Props) {
                     }
                     avatar={
                       <div className="w-9 h-9 rounded-xl bg-brand-primary/15 border border-brand-primary/25 flex items-center justify-center">
-                        <Shield size={16} className="text-brand-primary" />
+                        <Shield size={16} className="text-brand-primary-text" />
                       </div>
                     }
                   />

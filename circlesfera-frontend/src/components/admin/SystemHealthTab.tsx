@@ -41,7 +41,7 @@ function MetricCell({
       : tone === 'success'
         ? 'text-emerald-400'
         : tone === 'accent'
-          ? 'text-brand-primary'
+          ? 'text-brand-primary-text'
           : 'text-white';
   return (
     <div className="min-w-0 px-3 py-2.5">
@@ -295,7 +295,7 @@ export default function SystemHealthTab() {
               size={16}
               className={
                 isAnalyticsQueueHealthy
-                  ? 'text-brand-primary'
+                  ? 'text-brand-primary-text'
                   : 'text-amber-400'
               }
             />

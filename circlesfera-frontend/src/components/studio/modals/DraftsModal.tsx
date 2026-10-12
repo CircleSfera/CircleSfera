@@ -110,7 +110,7 @@ export default function DraftsModal({ onClose }: DraftsModalProps) {
                   }}
                   className="flex flex-1 items-center gap-4 p-2 text-left min-h-11"
                 >
-                  <div className="w-12 h-12 bg-black/40 rounded flex flex-col items-center justify-center text-brand-primary">
+                  <div className="w-12 h-12 bg-black/40 rounded flex flex-col items-center justify-center text-brand-primary-text">
                     <FolderOpen size={20} />
                   </div>
                   <div className="flex-1 min-w-0">

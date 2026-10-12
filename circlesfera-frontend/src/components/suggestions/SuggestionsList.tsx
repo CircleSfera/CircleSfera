@@ -81,7 +81,7 @@ export const SuggestionsList: React.FC<{
         </span>
         <button
           type="button"
-          className="text-xs font-black uppercase tracking-wider text-brand-primary hover:text-brand-secondary transition-colors"
+          className="text-xs font-black uppercase tracking-wider text-brand-primary-text hover:text-brand-secondary transition-colors"
         >
           {t('suggestions.see_all')}
         </button>

@@ -3,6 +3,7 @@
 
 @theme {
   --color-brand-primary: var(--brand-primary);
+  --color-brand-primary-text: var(--brand-primary-text);
   --color-brand-secondary: var(--brand-secondary);
   --color-brand-accent: var(--brand-accent);
   --color-brand-blue: var(--brand-blue);
@@ -234,6 +235,10 @@
      light colour changes it to a dark tone. */
   --on-brand-primary: #ffffff;
   --brand-primary-rgb: 136, 76, 255; /* For rgba(var(--brand-primary-rgb), a) */
+  /* The brand purple as text or an icon on the dark background: the same
+     hue with 28% white, 6.8 to 1 where the purple itself is 4.3 to 1. The
+     purple fills; this tone is what is written in purple. */
+  --brand-primary-text: #a97eff;
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */
   --brand-blue: #5271ff; /* Electric Blue */

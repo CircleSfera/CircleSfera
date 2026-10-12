@@ -388,7 +388,7 @@ export default function LiveBroadcaster() {
       <div className="flex h-dvh flex-col items-center justify-center bg-surface-base md:bg-transparent px-4 text-white">
         <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
           <div className="p-4 bg-brand-primary/20 rounded-full">
-            <Heart className="w-12 h-12 text-brand-primary" />
+            <Heart className="w-12 h-12 text-brand-primary-text" />
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-semibold mb-2">
@@ -474,7 +474,7 @@ export default function LiveBroadcaster() {
             <button
               type="button"
               onClick={() => setCoHostFormOpen((open) => !open)}
-              className="w-11 h-11 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-brand-primary shadow-lg"
+              className="w-11 h-11 flex items-center justify-center bg-black/60 backdrop-blur-md border border-white/20 rounded-full text-brand-primary-text shadow-lg"
               aria-label={t('live.cohost_invite_button')}
               aria-expanded={coHostFormOpen}
             >

@@ -40,7 +40,7 @@ export default function StoryPollPanel({
       className="px-3 space-y-3 max-w-md mx-auto"
     >
       <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/15 text-brand-primary border border-brand-primary/25">
+        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary/15 text-brand-primary-text border border-brand-primary/25">
           <BarChart2 size={16} />
         </span>
         <div className="min-w-0">

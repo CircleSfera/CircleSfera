@@ -440,7 +440,7 @@ export default function MusicSubScreen({
 
                           <div className="min-w-0 flex-1">
                             <p
-                              className={`text-sm font-semibold truncate transition-colors ${isSelected ? 'text-brand-primary' : 'text-white'}`}
+                              className={`text-sm font-semibold truncate transition-colors ${isSelected ? 'text-brand-primary-text' : 'text-white'}`}
                             >
                               {audio.title}
                             </p>

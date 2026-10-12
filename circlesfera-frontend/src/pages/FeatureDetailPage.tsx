@@ -132,7 +132,7 @@ export default function FeatureDetailPage() {
                     </span>
                   </span>
                   <ArrowRight
-                    className="h-5 w-5 shrink-0 text-white/30 transition-colors group-hover:text-brand-primary"
+                    className="h-5 w-5 shrink-0 text-white/30 transition-colors group-hover:text-brand-primary-text"
                     aria-hidden
                   />
                 </Link>

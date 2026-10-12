@@ -287,7 +287,7 @@ export default function ModerationTab({ onToast }: Props) {
               <div className="p-3 border-b border-white/5 shrink-0 flex items-center gap-3">
                 <input
                   type="checkbox"
-                  className="rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                  className="rounded border-white/20 bg-white/5 text-brand-primary-text focus:ring-brand-primary/50"
                   checked={
                     selectedKeys.size === items.length && items.length > 0
                   }
@@ -337,7 +337,7 @@ export default function ModerationTab({ onToast }: Props) {
                         <div className="flex items-start gap-2">
                           <input
                             type="checkbox"
-                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary focus:ring-brand-primary/50"
+                            className="mt-1 rounded border-white/20 bg-white/5 text-brand-primary-text focus:ring-brand-primary/50"
                             checked={selectedKeys.has(key)}
                             onChange={(e) => toggleSelect(key, e)}
                             onClick={(e) => e.stopPropagation()}

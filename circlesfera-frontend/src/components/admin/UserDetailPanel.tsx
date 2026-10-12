@@ -93,7 +93,7 @@ function ActivityChip({
       onClick={onClick}
       className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg glass-panel border border-white/10 hover:border-brand-primary/30 hover:bg-brand-primary/10 transition-colors text-left min-h-11"
     >
-      <Icon size={13} className="text-brand-primary shrink-0" />
+      <Icon size={13} className="text-brand-primary-text shrink-0" />
       <span className="text-[11px] font-semibold text-white/70">{label}</span>
       <span className="text-xs font-bold text-white tabular-nums">{count}</span>
     </button>
@@ -226,7 +226,7 @@ export default function UserDetailPanel({
                   size={16}
                 />
               </div>
-              <p className="text-brand-primary font-medium text-sm truncate">
+              <p className="text-brand-primary-text font-medium text-sm truncate">
                 @{username || '—'}
               </p>
             </div>
@@ -257,7 +257,7 @@ export default function UserDetailPanel({
                 href={profileHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary hover:bg-brand-primary/10 transition-colors"
+                className="inline-flex items-center gap-1.5 min-h-11 px-2.5 rounded-md text-xs font-semibold text-brand-primary-text hover:bg-brand-primary/10 transition-colors"
               >
                 <ExternalLink size={13} />
                 {t('admin.user_preview.open_profile')}

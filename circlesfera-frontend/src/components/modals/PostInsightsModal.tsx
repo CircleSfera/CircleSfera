@@ -42,7 +42,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
       <div className="-mx-4 -mt-4 flex flex-col max-h-[85vh]">
         <div className="p-6 md:p-8 border-b border-white/5 flex items-center gap-3 bg-white/2 shrink-0">
           <div className="w-10 h-10 rounded-xl bg-brand-primary/10 flex items-center justify-center border border-brand-primary/20">
-            <BarChart3 size={20} className="text-brand-primary" />
+            <BarChart3 size={20} className="text-brand-primary-text" />
           </div>
           <div className="min-w-0 pr-10">
             <h3 className="text-white font-black text-lg leading-none">
@@ -132,7 +132,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h4 className="text-white font-black text-xs uppercase tracking-wide flex items-center gap-2">
-                    <TrendingUp size={14} className="text-brand-primary" />
+                    <TrendingUp size={14} className="text-brand-primary-text" />
                     {t('modals.insights.views_evolution')}
                   </h4>
                   <span className="text-xs font-bold text-zinc-400 uppercase tracking-wide">
@@ -225,7 +225,7 @@ export default function PostInsightsModal({ postId, onClose }: Props) {
 
               <div className="bg-brand-primary/5 rounded-xl border border-brand-primary/10 p-6 flex items-center gap-4">
                 <div className="w-16 h-16 rounded-lg bg-brand-primary/20 flex items-center justify-center shrink-0">
-                  <Zap size={32} className="text-brand-primary" />
+                  <Zap size={32} className="text-brand-primary-text" />
                 </div>
                 <div>
                   <h4 className="text-white font-bold mb-1">

@@ -207,7 +207,7 @@ export default function CreatorAnalyticsTab() {
         {/* Income Chart */}
         <Card variant="glass" className="p-5 lg:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <DollarSign size={16} className="text-brand-primary" />
+            <DollarSign size={16} className="text-brand-primary-text" />
             <h3 className="text-sm font-medium text-white">
               {t('creator.analytics.income_history')}
             </h3>
@@ -378,7 +378,7 @@ export default function CreatorAnalyticsTab() {
         {/* Subscriber Retention */}
         <Card variant="glass" className="p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <Users size={16} className="text-brand-primary" />
+            <Users size={16} className="text-brand-primary-text" />
             <h3 className="text-sm font-medium text-white">
               {t('creator.analytics.sub_retention')}
             </h3>
@@ -470,7 +470,7 @@ export default function CreatorAnalyticsTab() {
         {/* Activity Hours */}
         <Card variant="glass" className="p-5 md:col-span-2 flex flex-col">
           <div className="flex items-center gap-2 mb-6">
-            <Clock size={16} className="text-brand-primary" />
+            <Clock size={16} className="text-brand-primary-text" />
             <h3 className="text-sm font-medium text-white">
               {t('creator.analytics.activity_hours')}
             </h3>
@@ -532,7 +532,7 @@ export default function CreatorAnalyticsTab() {
         <CreatorAnalyticsDashboard />
       ) : (
         <Card className="rounded-3xl p-6 sm:p-8">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
             <Lock size={22} strokeWidth={1.75} aria-hidden />
           </span>
           <h2 className="mt-4 text-lg font-semibold tracking-tight text-white">

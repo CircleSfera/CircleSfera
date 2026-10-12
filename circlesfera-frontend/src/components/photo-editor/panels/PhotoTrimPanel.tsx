@@ -30,7 +30,7 @@ export default function PhotoTrimPanel({
           className={`min-h-11 px-3 rounded-full text-[11px] font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
             videoData.muted
               ? 'bg-brand-secondary/20 text-brand-secondary'
-              : 'bg-brand-primary/20 text-brand-primary'
+              : 'bg-brand-primary/20 text-brand-primary-text'
           }`}
           aria-pressed={videoData.muted}
         >

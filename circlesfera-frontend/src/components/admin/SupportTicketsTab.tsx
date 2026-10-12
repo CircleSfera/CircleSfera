@@ -60,7 +60,7 @@ function statusBadgeClass(status: ShownStatus) {
     case 'CLOSED':
       return 'bg-white/10 text-white/50';
     case 'ESCALATED':
-      return 'bg-brand-primary/20 text-brand-primary';
+      return 'bg-brand-primary/20 text-brand-primary-text';
     case 'WAITING':
       return 'bg-white/10 text-white/80';
   }
@@ -683,7 +683,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       <p>{t('admin.support.with_moderation_notice')}</p>
                       <a
                         href={staffTabHref('reports')}
-                        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-brand-primary hover:underline"
+                        className="mt-2 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-brand-primary-text hover:underline"
                       >
                         {t('admin.support.view_reports')}
                         <ExternalLink size={14} aria-hidden />

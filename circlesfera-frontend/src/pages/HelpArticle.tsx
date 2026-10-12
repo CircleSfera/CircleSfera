@@ -51,7 +51,7 @@ export default function HelpArticle() {
           <p className="mt-6 text-base text-white/60">{t('common.loading')}</p>
         ) : article ? (
           <>
-            <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-brand-primary">
+            <p className="mt-6 text-sm font-semibold uppercase tracking-wide text-brand-primary-text">
               {helpTopicLabel(t, article.topic)}
             </p>
             <h1 className="mt-2 mb-6 text-3xl font-black leading-[1.08] tracking-tight text-white sm:text-4xl">

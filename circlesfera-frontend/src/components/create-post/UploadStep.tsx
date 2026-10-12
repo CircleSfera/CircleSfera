@@ -33,7 +33,7 @@ const MODE_CONFIG = {
   POST: {
     icon: Image,
     label: 'Post',
-    accent: 'text-brand-primary',
+    accent: 'text-brand-primary-text',
     borderAccent: 'border-brand-primary/40',
     accept: 'image/*,video/*',
   },
