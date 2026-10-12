@@ -42,6 +42,7 @@ import {
   StatusBadge,
 } from './AdminTable';
 import UserDetailPanel from './UserDetailPanel';
+import { isStepUpCancelled, useAdminStepUp } from './useAdminStepUp';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -70,6 +71,7 @@ export default function Dashboard({ onToast }: Props) {
   const [segment, setSegment] = useState('ALL');
   const debouncedSearch = useDebouncedValue(search, 400);
   const queryClient = useQueryClient();
+  const stepUp = useAdminStepUp();
   const canSanction = useAdminAuthStore((s) => s.hasPermission('users.ban'));
 
   const [confirmAction, setConfirmAction] = useState<{
@@ -191,7 +193,7 @@ export default function Dashboard({ onToast }: Props) {
         case 'unban':
           return adminApi.unbanUser(id);
         case 'delete':
-          return adminApi.deleteUser(id);
+          return stepUp.run(() => adminApi.deleteUser(id));
         case 'warn':
           return adminApi.warnUser(id, reason);
         case 'suspend':
@@ -221,7 +223,8 @@ export default function Dashboard({ onToast }: Props) {
       }[variables.type];
       onToast(t(toastKey), 'success');
     },
-    onError: (_err, variables) => {
+    onError: (err, variables) => {
+      if (isStepUpCancelled(err)) return;
       const toastKey = {
         ban: 'admin.users.toast_ban_error',
         unban: 'admin.users.toast_unban_error',
@@ -675,6 +678,7 @@ export default function Dashboard({ onToast }: Props) {
         isDestructive={activeConfig?.destructive ?? true}
         isLoading={isPending}
       />
+      {stepUp.dialog}
     </div>
   );
 }

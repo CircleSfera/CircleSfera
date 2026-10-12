@@ -2270,6 +2270,7 @@
       "next_page": "Next page"
     },
     "shared": {
+      "step_up_title": "Confirm it is you",
       "read_only_role": "Your role can see this, not change it.",
       "cancel": "Cancel",
       "confirm": "Confirm",
@@ -3394,6 +3395,7 @@
       "added_on": "Added on {{date}}",
       "new_rule_hint": "Define an exact word or phrase to intercept.",
       "rule_added": "Rule added",
+      "rule_exists": "There is already a rule for that phrase",
       "rule_updated": "Rule updated",
       "rule_deleted": "Rule deleted",
       "rule_add_error": "Error adding rule",
@@ -3805,7 +3807,7 @@
       "step_up_required": "Confirm with your authenticator code",
       "step_up_hint": "Enter your authenticator code to confirm this action.",
       "step_up_ok": "Verified",
-      "step_up_failed": "Step-up failed",
+      "step_up_failed": "That code is not right",
       "confirm": "Confirm",
       "created": "Operator created",
       "create_error": "Could not create operator",

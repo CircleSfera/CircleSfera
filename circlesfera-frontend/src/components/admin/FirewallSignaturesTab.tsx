@@ -13,6 +13,7 @@ import { AdminListRow } from './AdminList';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination } from './AdminTable';
+import { isStepUpCancelled, useAdminStepUp } from './useAdminStepUp';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -48,6 +49,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+  const stepUp = useAdminStepUp();
 
   const { data, isLoading } = useQuery<PaginatedResponse<FirewallSignature>>({
     queryKey: ['admin', 'firewall', page],
@@ -89,14 +91,18 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteFirewallSignature(id),
+    mutationFn: (id: string) =>
+      stepUp.run(() => adminApi.deleteFirewallSignature(id)),
     onSuccess: (_data, id) => {
       onToast(t('admin.firewall.toast_deleted'), 'success');
       setDeleteId(null);
       if (selectedId === id) setSelectedId(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall'] });
     },
-    onError: () => onToast(t('admin.firewall.toast_delete_error'), 'error'),
+    onError: (err) => {
+      if (isStepUpCancelled(err)) return;
+      onToast(t('admin.firewall.toast_delete_error'), 'error');
+    },
   });
 
   const autoPreview = (
@@ -315,6 +321,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
         isDestructive
         isLoading={deleteMutation.isPending}
       />
+      {stepUp.dialog}
     </div>
   );
 }

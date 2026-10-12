@@ -8,6 +8,7 @@ import {
   adminApi,
 } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
+import { apiErrorStatus } from '../../utils/apiErrorMessage';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
@@ -17,6 +18,7 @@ import { AdminListRow } from './AdminList';
 import { AdminListSkeleton } from './AdminSkeletons';
 import { AdminSplitView } from './AdminSplitView';
 import { ActionButton, Pagination } from './AdminTable';
+import { isStepUpCancelled, useAdminStepUp } from './useAdminStepUp';
 
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
@@ -60,6 +62,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const queryClient = useQueryClient();
+  const stepUp = useAdminStepUp();
 
   const { data, isLoading } = useQuery<PaginatedResponse<AdminModerationRule>>({
     queryKey: ['admin', 'firewall-rules', page, debouncedSearch],
@@ -91,16 +94,26 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
 
   const addMutation = useMutation({
     mutationFn: () =>
-      adminApi.createFirewallRule({
-        keyword: newKeyword.trim(),
-        action: newAction,
-      }),
+      stepUp.run(() =>
+        adminApi.createFirewallRule({
+          keyword: newKeyword.trim(),
+          action: newAction,
+        }),
+      ),
     onSuccess: () => {
       onToast(t('admin.firewall.rule_added'), 'success');
       clearSelection();
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
     },
-    onError: () => onToast(t('admin.firewall.rule_add_error'), 'error'),
+    onError: (err) => {
+      if (isStepUpCancelled(err)) return;
+      onToast(
+        apiErrorStatus(err) === 409
+          ? t('admin.firewall.rule_exists')
+          : t('admin.firewall.rule_add_error'),
+        'error',
+      );
+    },
   });
 
   const updateMutation = useMutation({
@@ -120,14 +133,18 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => adminApi.deleteFirewallRule(id),
+    mutationFn: (id: string) =>
+      stepUp.run(() => adminApi.deleteFirewallRule(id)),
     onSuccess: (_data, id) => {
       onToast(t('admin.firewall.rule_deleted'), 'success');
       setDeleteId(null);
       if (selectedId === id) setSelectedId(null);
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
     },
-    onError: () => onToast(t('admin.firewall.rule_delete_error'), 'error'),
+    onError: (err) => {
+      if (isStepUpCancelled(err)) return;
+      onToast(t('admin.firewall.rule_delete_error'), 'error');
+    },
   });
 
   const handleSave = () => {
@@ -397,6 +414,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
         isDestructive
         isLoading={deleteMutation.isPending}
       />
+      {stepUp.dialog}
     </div>
   );
 }
