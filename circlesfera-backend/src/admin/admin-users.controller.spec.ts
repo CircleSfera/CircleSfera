@@ -256,6 +256,33 @@ describe('AdminUsersController', () => {
     expect(mockService.sendBroadcastEmail).not.toHaveBeenCalled();
   });
 
+  it('counts the people of an audience, and refuses one that does not exist', async () => {
+    mockService.countBroadcastRecipients.mockResolvedValue({ count: 3 });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/recipients')
+      .query({ locale: 'es', plan: 'paying' })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/broadcast/recipients')
+      .query({ locale: 'fr' })
+      .set(ADMIN_BEARER)
+      .expect(400);
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/broadcast')
+      .set(ADMIN_BEARER)
+      .send({ subject: 'Hello', title: 'Hi', content: 'Body', plan: 'vip' })
+      .expect(400);
+
+    expect(mockService.countBroadcastRecipients).toHaveBeenCalledTimes(1);
+    expect(mockService.countBroadcastRecipients).toHaveBeenCalledWith({
+      locale: 'es',
+      plan: 'paying',
+    });
+    expect(mockService.sendBroadcastEmail).not.toHaveBeenCalled();
+  });
+
   it('refuses a test with no message, and every broadcast call without credentials', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/broadcast/test')

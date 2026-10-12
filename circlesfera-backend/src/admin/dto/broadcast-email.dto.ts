@@ -1,7 +1,19 @@
-import { IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString, IsUrl } from 'class-validator';
+
+// Who a broadcast is for, among the accounts that take e-mail: one language,
+// and with or without a plan. Nothing chosen is everyone.
+export class BroadcastAudienceDto {
+  @IsOptional()
+  @IsIn(['en', 'es'])
+  locale?: 'en' | 'es';
+
+  @IsOptional()
+  @IsIn(['paying', 'free'])
+  plan?: 'paying' | 'free';
+}
 
 // Data transfer object for sending mass emails to all users.
-export class BroadcastEmailDto {
+export class BroadcastEmailDto extends BroadcastAudienceDto {
   // The subject line of the email.
   @IsString()
   @IsNotEmpty()

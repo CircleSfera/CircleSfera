@@ -727,9 +727,9 @@ const cases: Case[] = [
   ],
   [
     'getBroadcastRecipients',
-    () => adminApi.getBroadcastRecipients(),
+    () => adminApi.getBroadcastRecipients({ locale: 'es', plan: 'paying' }),
     'get',
-    ['admin/broadcast/recipients'],
+    ['admin/broadcast/recipients', q({ locale: 'es', plan: 'paying' })],
   ],
   [
     'sendBroadcastTest',

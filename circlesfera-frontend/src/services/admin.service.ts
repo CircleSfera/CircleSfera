@@ -693,6 +693,12 @@ export interface BroadcastMessage {
   buttonUrl?: string;
 }
 
+// Who a broadcast goes to. With nothing chosen it goes to everyone.
+export interface BroadcastAudience {
+  locale?: 'en' | 'es';
+  plan?: 'paying' | 'free';
+}
+
 // One broadcast that was sent. The counts are unknown for an entry written
 // before they were kept.
 export interface BroadcastSend {
@@ -700,6 +706,8 @@ export interface BroadcastSend {
   subject: string;
   sent: number | null;
   failed: number | null;
+  // What narrowed it; empty when it went to everyone.
+  audience: string[];
   sentBy: string | null;
   createdAt: string;
 }
@@ -1165,17 +1173,14 @@ export const adminApi = {
     apiClient.patch(`/admin/promotions/${id}`, { status, note }),
 
   // Communications
-  sendBroadcast: (data: {
-    subject: string;
-    title: string;
-    content: string;
-    buttonText?: string;
-    buttonUrl?: string;
-  }) => apiClient.post('admin/broadcast', data),
+  sendBroadcast: (data: BroadcastMessage & BroadcastAudience) =>
+    apiClient.post('admin/broadcast', data),
 
-  // How many people a broadcast reaches.
-  getBroadcastRecipients: () =>
-    apiClient.get<{ count: number }>('admin/broadcast/recipients'),
+  // How many people a broadcast reaches, for the audience chosen.
+  getBroadcastRecipients: (audience: BroadcastAudience = {}) =>
+    apiClient.get<{ count: number }>('admin/broadcast/recipients', {
+      params: audience,
+    }),
 
   // The message as written, only to the staff member who is signed in.
   sendBroadcastTest: (data: BroadcastMessage) =>

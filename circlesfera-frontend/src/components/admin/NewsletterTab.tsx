@@ -2,14 +2,26 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, Mail, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { adminApi, type BroadcastMessage } from '../../services/admin.service';
+import {
+  adminApi,
+  type BroadcastAudience,
+  type BroadcastMessage,
+} from '../../services/admin.service';
 import { formatDay, formatNumber } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input, Textarea } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { Pagination } from './AdminTable';
+import { FilterDropdown, Pagination } from './AdminTable';
+
+// The words for what narrowed a send, as the log keeps it.
+const AUDIENCE_WORDS = {
+  en: 'admin.newsletter.audience_en',
+  es: 'admin.newsletter.audience_es',
+  paying: 'admin.newsletter.audience_paying',
+  free: 'admin.newsletter.audience_free',
+} as const;
 
 export default function NewsletterTab({
   onToast,
@@ -26,13 +38,17 @@ export default function NewsletterTab({
     buttonText: '',
     buttonUrl: '',
   });
+  // Who it goes to. Nothing chosen is everyone.
+  const [audience, setAudience] = useState<BroadcastAudience>({});
+  const narrowed = Boolean(audience.locale || audience.plan);
   const [isSending, setIsSending] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const { data: recipients } = useQuery({
-    queryKey: ['admin', 'broadcast', 'recipients'],
-    queryFn: () => adminApi.getBroadcastRecipients().then((res) => res.data),
+    queryKey: ['admin', 'broadcast', 'recipients', audience],
+    queryFn: () =>
+      adminApi.getBroadcastRecipients(audience).then((res) => res.data),
   });
   const { data: history } = useQuery({
     queryKey: ['admin', 'broadcast', 'history', historyPage],
@@ -79,7 +95,7 @@ export default function NewsletterTab({
     setConfirmOpen(false);
     setIsSending(true);
     try {
-      await adminApi.sendBroadcast(message());
+      await adminApi.sendBroadcast({ ...message(), ...audience });
       onToast(t('admin.newsletter.toast_sent'), 'success');
       setFormData({
         subject: '',
@@ -233,6 +249,43 @@ export default function NewsletterTab({
         </div>
       </div>
 
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
+        <FilterDropdown
+          fluid
+          visibleLabel
+          label={t('admin.newsletter.audience_language')}
+          value={audience.locale ?? ''}
+          onChange={(v) =>
+            setAudience(({ locale: _locale, ...rest }) => ({
+              ...rest,
+              ...(v && { locale: v as BroadcastAudience['locale'] }),
+            }))
+          }
+          options={[
+            { value: '', label: t('admin.newsletter.audience_any_language') },
+            { value: 'en', label: t('admin.newsletter.audience_en') },
+            { value: 'es', label: t('admin.newsletter.audience_es') },
+          ]}
+        />
+        <FilterDropdown
+          fluid
+          visibleLabel
+          label={t('admin.newsletter.audience_plan')}
+          value={audience.plan ?? ''}
+          onChange={(v) =>
+            setAudience(({ plan: _plan, ...rest }) => ({
+              ...rest,
+              ...(v && { plan: v as BroadcastAudience['plan'] }),
+            }))
+          }
+          options={[
+            { value: '', label: t('admin.newsletter.audience_any_plan') },
+            { value: 'paying', label: t('admin.newsletter.audience_paying') },
+            { value: 'free', label: t('admin.newsletter.audience_free') },
+          ]}
+        />
+      </div>
+
       {/* What is about to happen, said with its number. */}
       <p className="text-sm text-white/70">
         {people === undefined
@@ -280,7 +333,9 @@ export default function NewsletterTab({
           ) : (
             <>
               <Send size={16} className="mr-2" />
-              {t('admin.newsletter.send_broadcast')}
+              {narrowed
+                ? t('admin.newsletter.send_audience')
+                : t('admin.newsletter.send_broadcast')}
             </>
           )}
         </Button>
@@ -331,6 +386,15 @@ export default function NewsletterTab({
                   <>
                     <span>{formatDay(send.createdAt, i18n.language)}</span>
                     {send.sentBy && <span>{send.sentBy}</span>}
+                    {send.audience
+                      .filter((part) => part in AUDIENCE_WORDS)
+                      .map((part) => (
+                        <span key={part}>
+                          {t(
+                            AUDIENCE_WORDS[part as keyof typeof AUDIENCE_WORDS],
+                          )}
+                        </span>
+                      ))}
                   </>
                 }
               />
