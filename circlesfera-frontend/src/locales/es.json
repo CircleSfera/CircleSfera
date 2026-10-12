@@ -2700,7 +2700,6 @@
       "on_sale": "A la venta",
       "on_sale_hint": "Si lo desactivas, deja de mostrarse en Precios. Quien ya lo tiene lo conserva.",
       "includes": "Incluye",
-      "description": "Descripción",
       "save": "Guardar cambios",
       "toast_saved": "Plan guardado",
       "toast_failed": "No se pudo guardar el plan",

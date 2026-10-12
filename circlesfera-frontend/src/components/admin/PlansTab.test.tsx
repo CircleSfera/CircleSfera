@@ -53,8 +53,8 @@ describe('PlansTab', () => {
 
     expect(plan.getByText(/9[.,]99/)).toBeInTheDocument();
     expect(plan.queryByRole('spinbutton')).not.toBeInTheDocument();
-    // The only text field is the description.
-    expect(plan.getAllByRole('textbox')).toHaveLength(1);
+    // The words of a plan are the app's: nothing is typed here.
+    expect(plan.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
   it('offers only the features the code knows, ticked as the plan has them', async () => {
