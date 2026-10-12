@@ -1,13 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import {
-  Activity,
-  Download,
-  PieChart,
-  TrendingUp,
-  Users,
-  Zap,
-} from 'lucide-react';
+import { Activity, Download, Users, Zap } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -15,14 +8,20 @@ import type { AdminTransaction } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import { paymentsApi } from '../../services/payments.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDateTime } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
-import { AdminList, AdminListRow } from './AdminList';
+import { AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { FilterDropdown, Pagination, SearchInput, Table } from './AdminTable';
+import { AdminListSkeleton } from './AdminSkeletons';
+import {
+  FilterDropdown,
+  Pagination,
+  SearchInput,
+  StatusBadge,
+} from './AdminTable';
 import { adminToast } from './adminToast';
 import StatCard from './StatCard';
 
@@ -89,14 +88,6 @@ export default function MonetizationTab() {
             />
           ))}
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 animate-pulse">
-          {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-24 bg-white/5 rounded-xl border border-white/5"
-            />
-          ))}
-        </div>
         <div className="h-64 bg-white/5 rounded-xl border border-white/5 animate-pulse" />
       </div>
     );
@@ -127,26 +118,54 @@ export default function MonetizationTab() {
   const total =
     distribution.PREMIUM + distribution.ELITE + distribution.BUSINESS || 1;
 
-  const formatAmount = (tx: AdminTransaction) =>
-    `${(tx.amount / 100).toFixed(2)} ${tx.currency}`;
+  const tiers = [
+    {
+      label: t('admin.monetization.tier_verified'),
+      count: distribution.PREMIUM,
+      color: 'bg-blue-400',
+    },
+    {
+      label: t('admin.monetization.tier_elite'),
+      count: distribution.ELITE,
+      color: 'bg-red-500',
+    },
+    {
+      label: t('admin.monetization.tier_business'),
+      count: distribution.BUSINESS,
+      color: 'bg-yellow-400',
+    },
+  ];
 
+  const formatAmount = (tx: AdminTransaction) =>
+    formatCents(tx.amount, i18n.language, tx.currency);
+
+  // The state and the kind of a transaction, in words.
+  const TX_PILL: Record<string, string> = {
+    COMPLETED: 'resolved',
+    PENDING: 'pending',
+    FAILED: 'banned',
+    REFUNDED: 'dismissed',
+  };
   const txStatusBadge = (status: AdminTransaction['status']) => {
-    const normalized = (status || '').toUpperCase();
-    const styles: Record<string, string> = {
-      COMPLETED: 'text-green-400 bg-green-400/10 border border-green-400/20',
-      PENDING: 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20',
-      FAILED: 'text-red-400 bg-red-400/10 border border-red-400/20',
-      REFUNDED: 'text-purple-400 bg-purple-400/10 border border-purple-400/20',
-    };
-    const badgeStyle =
-      styles[normalized] || 'text-white/50 bg-white/10 border border-white/20';
+    const stored = (status || '').toUpperCase();
     return (
-      <span
-        className={`px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase ${badgeStyle}`}
-      >
-        {status}
-      </span>
+      <StatusBadge
+        status={TX_PILL[stored] ?? 'dismissed'}
+        label={t(`admin.monetization.tx_status.${stored}`, {
+          defaultValue: status,
+        })}
+      />
     );
+  };
+  const txKind = (tx: AdminTransaction) =>
+    t(`admin.monetization.tx_type.${tx.type}`, { defaultValue: tx.type });
+  // Who paid, and who was paid when the payment was to a person.
+  const txParties = (tx: AdminTransaction) => {
+    const from = tx.sender?.profile?.username
+      ? `@${tx.sender.profile.username}`
+      : tx.sender?.email || '—';
+    const to = tx.receiver?.profile?.username;
+    return to ? `${from} → @${to}` : from;
   };
 
   const transactions = txData?.data ?? [];
@@ -180,180 +199,64 @@ export default function MonetizationTab() {
           }
           icon={Zap}
           color="blue"
-          growth={analytics?.subscriptionGrowth}
         />
+        {/* The growth is of new subscriptions: it is said here, once. */}
         <StatCard
           label={t('admin.monetization.subscriptions_label')}
           value={analytics?.totalSubscriptions || 0}
           icon={Users}
           color="purple"
+          growth={analytics?.subscriptionGrowth}
+          subtitle={t('admin.monetization.growth_period')}
         />
       </div>
 
-      {/* Stripe Integration Status */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-        <div className="p-2.5 sm:p-3 rounded-lg border border-white/5 bg-white/2 flex flex-col justify-between gap-2">
-          <div className="flex justify-between items-start gap-2">
-            <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center text-brand-primary-text shrink-0">
-              <Zap size={16} />
-            </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
-              {t('admin.monetization.stripe_connected')}
-            </span>
-          </div>
-          <div>
-            <h4 className="text-white font-semibold text-sm mb-0.5">
-              {t('admin.monetization.stripe_api_title')}
-            </h4>
-            <p className="text-white/50 text-xs leading-snug line-clamp-2">
-              {t('admin.monetization.stripe_api_desc')}
-            </p>
-          </div>
+      {/* The share by plan: lines of its section, no box inside a box. */}
+      <section className="glass-panel rounded-lg p-2.5 sm:p-3">
+        <h3 className="text-sm font-semibold text-white">
+          {t('admin.monetization.tier_distribution_title')}
+        </h3>
+        <p className="text-white/50 text-xs">
+          {t('admin.monetization.tier_distribution_subtitle')}
+        </p>
+        <div
+          className="mt-3 h-2 w-full bg-white/5 rounded-full overflow-hidden flex gap-0.5"
+          aria-hidden="true"
+        >
+          {tiers.map((tier) => (
+            <motion.div
+              key={tier.label}
+              initial={{ width: 0 }}
+              animate={{ width: `${(tier.count / total) * 100}%` }}
+              className={`h-full rounded-full ${tier.color}`}
+            />
+          ))}
         </div>
-
-        <div className="p-2.5 sm:p-3 rounded-lg border border-white/5 bg-white/2 flex flex-col justify-between gap-2">
-          <div className="flex justify-between items-start gap-2">
-            <div className="w-8 h-8 rounded-md bg-blue-500/10 flex items-center justify-center text-blue-400 shrink-0">
-              <Users size={16} />
-            </div>
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-green-400 bg-green-400/10 px-2 py-0.5 rounded-full border border-green-400/20">
-              {t('admin.monetization.stripe_connect_status')}
-            </span>
-          </div>
-          <div>
-            <h4 className="text-white font-semibold text-sm mb-0.5">
-              {t('admin.monetization.stripe_connect_title')}
-            </h4>
-            <p className="text-white/50 text-xs leading-snug line-clamp-2">
-              {t('admin.monetization.stripe_connect_desc')}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
-        {/* Tier Distribution Chart (Linear) */}
-        <div className="rounded-lg border border-white/5 bg-white/2 p-2.5 sm:p-3">
-          <div className="flex items-center gap-2.5 mb-3">
-            <div className="w-8 h-8 rounded-md bg-brand-secondary/10 flex items-center justify-center border border-brand-secondary/20 shrink-0">
-              <PieChart size={16} className="text-brand-secondary" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-sm font-semibold text-white">
-                {t('admin.monetization.tier_distribution_title')}
-              </h3>
-              <p className="text-white/50 text-xs">
-                {t('admin.monetization.tier_distribution_subtitle')}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between px-0.5">
-                <span className="text-[10px] font-semibold text-white/50 uppercase tracking-wide">
-                  {t('admin.monetization.tier_composition')}
+        <ul className="mt-2 divide-y divide-white/5">
+          {tiers.map((tier) => (
+            <li
+              key={tier.label}
+              className="flex items-center justify-between gap-3 py-2 last:pb-0"
+            >
+              <span className="flex items-center gap-2 min-w-0">
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${tier.color}`}
+                  aria-hidden="true"
+                />
+                <span className="text-sm font-semibold text-white truncate">
+                  {tier.label}
                 </span>
-                <span className="text-[10px] font-semibold text-white">
-                  {t('admin.monetization.tier_active_base')}
+                <span className="text-xs text-white/50 whitespace-nowrap">
+                  {t('admin.monetization.tier_members', { count: tier.count })}
                 </span>
-              </div>
-              <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex border border-white/5 p-0.5">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${(distribution.PREMIUM / total) * 100}%`,
-                  }}
-                  className="h-full bg-blue-400 rounded-full"
-                />
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(distribution.ELITE / total) * 100}%` }}
-                  className="h-full bg-red-500 rounded-full ml-0.5"
-                />
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{
-                    width: `${(distribution.BUSINESS / total) * 100}%`,
-                  }}
-                  className="h-full bg-yellow-400 rounded-full ml-0.5"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              {[
-                {
-                  label: t('admin.monetization.tier_verified'),
-                  count: distribution.PREMIUM,
-                  color: 'bg-blue-400',
-                  percent: Math.round((distribution.PREMIUM / total) * 100),
-                },
-                {
-                  label: t('admin.monetization.tier_elite'),
-                  count: distribution.ELITE,
-                  color: 'bg-red-500',
-                  percent: Math.round((distribution.ELITE / total) * 100),
-                },
-                {
-                  label: t('admin.monetization.tier_business'),
-                  count: distribution.BUSINESS,
-                  color: 'bg-yellow-400',
-                  percent: Math.round((distribution.BUSINESS / total) * 100),
-                },
-              ].map((tier) => (
-                <div
-                  key={tier.label}
-                  className="flex items-center justify-between p-2 bg-white/2 rounded-lg border border-white/5"
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div
-                      className={`w-2 h-2 rounded-full shrink-0 ${tier.color}`}
-                    />
-                    <div className="flex flex-col min-w-0">
-                      <span className="text-sm font-semibold text-white truncate">
-                        {tier.label}
-                      </span>
-                      <span className="text-[10px] text-white/50">
-                        {t('admin.monetization.tier_members', {
-                          count: tier.count,
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-white tabular-nums shrink-0 ml-2">
-                    {tier.percent}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-2 sm:gap-3">
-          <div className="rounded-lg border border-white/5 bg-white/2 p-2.5 sm:p-3 flex flex-col justify-center">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-8 h-8 rounded-md bg-brand-primary/10 flex items-center justify-center shrink-0">
-                <TrendingUp size={16} className="text-brand-primary-text" />
-              </div>
-              <h4 className="text-sm font-semibold text-white">
-                {t('admin.monetization.growth_title')}
-              </h4>
-            </div>
-            <p className="text-white/50 text-xs leading-snug mb-2 line-clamp-2">
-              {t('admin.monetization.growth_description')}
-            </p>
-            <p className="text-2xl sm:text-3xl font-semibold text-white tabular-nums leading-tight">
-              {analytics?.subscriptionGrowth !== undefined
-                ? `${analytics.subscriptionGrowth > 0 ? '+' : ''}${analytics.subscriptionGrowth}%`
-                : '—'}
-            </p>
-            <p className="text-[10px] text-white/50 mt-0.5">
-              {t('admin.monetization.growth_period')}
-            </p>
-          </div>
-        </div>
-      </div>
+              </span>
+              <span className="text-sm font-semibold text-white tabular-nums shrink-0">
+                {Math.round((tier.count / total) * 100)}%
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <div className="space-y-3">
         <div>
@@ -385,91 +288,41 @@ export default function MonetizationTab() {
             }}
             options={[
               { value: '', label: t('admin.monetization.status_all') },
-              { value: 'COMPLETED', label: 'COMPLETED' },
-              { value: 'PENDING', label: 'PENDING' },
-              { value: 'FAILED', label: 'FAILED' },
-              { value: 'REFUNDED', label: 'REFUNDED' },
+              ...['COMPLETED', 'PENDING', 'FAILED', 'REFUNDED'].map(
+                (value) => ({
+                  value,
+                  label: t(`admin.monetization.tx_status.${value}`),
+                }),
+              ),
             ]}
           />
         </AdminFilterBar>
 
-        <AdminList
-          loading={txLoading}
-          isEmpty={!transactions.length}
-          emptyTitle={t('admin.monetization.transactions_empty_title')}
-          emptyDescription={t(
-            'admin.monetization.transactions_empty_description',
-          )}
-          mobile={
-            <div className="space-y-2">
-              {transactions.map((tx) => (
-                <AdminListRow
-                  key={tx.id}
-                  title={tx.description || tx.type}
-                  subtitle={
-                    tx.sender?.profile?.username
-                      ? `@${tx.sender?.profile?.username} → @${tx.receiver?.profile?.username || '—'}`
-                      : tx.sender?.email || '—'
-                  }
-                  badge={txStatusBadge(tx.status)}
-                  meta={formatDateTime(tx.createdAt, i18n.language)}
-                  primaryAction={
-                    <span className="text-sm font-semibold text-white tabular-nums">
-                      {formatAmount(tx)}
-                    </span>
-                  }
-                />
-              ))}
-            </div>
-          }
-          desktop={
-            <Table
-              headers={[
-                t('admin.monetization.col_date'),
-                t('admin.monetization.col_type'),
-                t('admin.monetization.col_parties'),
-                t('admin.monetization.col_amount'),
-                t('admin.monetization.col_status'),
-              ]}
-              columnWidths={[
-                'hidden lg:table-cell w-[8rem]',
-                'w-[5rem]',
-                'min-w-[10rem]',
-                'w-[5.5rem]',
-                'w-[5.5rem]',
-              ]}
-              loading={false}
-              isEmpty={false}
-            >
-              {transactions.map((tx) => (
-                <tr
-                  key={tx.id}
-                  className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
-                >
-                  <td className="px-2 py-1 text-white/50 text-sm whitespace-nowrap hidden lg:table-cell">
-                    {formatDateTime(tx.createdAt, i18n.language)}
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="text-xs font-semibold uppercase text-white/70">
-                      {tx.type}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1">
-                    <span className="text-sm text-white/70 truncate block max-w-56">
-                      {tx.sender?.profile?.username
-                        ? `@${tx.sender?.profile?.username} → @${tx.receiver?.profile?.username || '—'}`
-                        : tx.description || '—'}
-                    </span>
-                  </td>
-                  <td className="px-2 py-1 text-white text-sm font-semibold tabular-nums">
-                    {formatAmount(tx)}
-                  </td>
-                  <td className="px-2 py-1">{txStatusBadge(tx.status)}</td>
-                </tr>
-              ))}
-            </Table>
-          }
-        />
+        {txLoading ? (
+          <AdminListSkeleton />
+        ) : transactions.length === 0 ? (
+          <AdminEmptyState
+            title={t('admin.monetization.transactions_empty_title')}
+            description={t('admin.monetization.transactions_empty_description')}
+          />
+        ) : (
+          <div className="space-y-2">
+            {transactions.map((tx) => (
+              <AdminListRow
+                key={tx.id}
+                title={`${formatAmount(tx)} · ${txKind(tx)}`}
+                subtitle={txParties(tx)}
+                meta={
+                  <>
+                    <span>{formatDay(tx.createdAt, i18n.language)}</span>
+                    {tx.description && <span>{tx.description}</span>}
+                  </>
+                }
+                badge={txStatusBadge(tx.status)}
+              />
+            ))}
+          </div>
+        )}
         <Pagination meta={txData?.meta} onPageChange={setTxPage} />
       </div>
     </div>
