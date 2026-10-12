@@ -8,7 +8,7 @@ import {
   adminApi,
 } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDateTime } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -24,19 +24,26 @@ interface Props {
   views?: React.ReactNode;
 }
 
+const RULE_ACTIONS = ['FLAG', 'BLOCK', 'MUTE'] as const;
+
+// What a rule does, in words, with one colour each: red refuses, amber
+// waits for a person, blue changes who sees it.
 function ActionBadge({ action }: { action: string }) {
+  const { t } = useTranslation();
   const colors =
     action === 'BLOCK'
       ? 'bg-red-500/10 text-red-400 border-red-500/20'
       : action === 'MUTE'
-        ? 'bg-orange-500/10 text-orange-400 border-orange-500/20'
+        ? 'bg-brand-blue/10 text-brand-blue border-brand-blue/20'
         : 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20';
 
   return (
     <span
-      className={`px-2 py-1 text-xs font-semibold rounded-full border ${colors}`}
+      className={`px-2 py-1 text-xs font-semibold rounded-full border whitespace-nowrap ${colors}`}
     >
-      {action}
+      {t(`admin.firewall.action_${action.toLowerCase()}`, {
+        defaultValue: action,
+      })}
     </span>
   );
 }
@@ -97,8 +104,14 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (args: { id: string; action: string }) =>
-      adminApi.updateFirewallRule(args.id, { action: args.action }),
+    mutationFn: ({
+      id,
+      ...change
+    }: {
+      id: string;
+      action?: string;
+      isActive?: boolean;
+    }) => adminApi.updateFirewallRule(id, change),
     onSuccess: () => {
       onToast(t('admin.firewall.rule_updated'), 'success');
       queryClient.invalidateQueries({ queryKey: ['admin', 'firewall-rules'] });
@@ -140,12 +153,11 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
         />
         <Button
           onClick={openCreate}
-          aria-label={t('admin.shared.add')}
           variant="primary"
           className="gap-2 shrink-0 px-4 min-h-11"
         >
           <Plus className="w-4 h-4" />
-          <span>{t('admin.shared.add')}</span>
+          <span>{t('admin.firewall.new_rule')}</span>
         </Button>
       </AdminFilterBar>
 
@@ -171,9 +183,11 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                     <AdminListRow
                       key={item.id}
                       title={item.keyword}
-                      subtitle={t('admin.firewall.added_on', {
-                        date: formatDateTime(item.createdAt, i18n.language),
-                      })}
+                      // A rule that is switched off says so first.
+                      subtitle={`${item.isActive ? '' : `${t('admin.firewall.state_off')} · `}${t(
+                        'admin.firewall.added_on',
+                        { date: formatDay(item.createdAt, i18n.language) },
+                      )}`}
                       selected={selectedId === item.id}
                       onClick={() => setSelectedId(item.id)}
                       badge={<ActionBadge action={item.action} />}
@@ -194,16 +208,23 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
           hasSelection ? (
             <div className="h-full flex flex-col p-4 md:p-5 animate-in fade-in slide-in-from-right-4 duration-200">
               <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-bold text-white mb-1">
+                <div className="min-w-0">
+                  {/* The record of a rule is headed by its phrase. */}
+                  <h3 className="text-lg font-bold text-white mb-1 wrap-break-word">
                     {isCreating
                       ? t('admin.firewall.new_rule')
-                      : t('admin.firewall.rule_details')}
+                      : selectedItem?.keyword}
                   </h3>
                   <p className="text-sm text-white/50">
                     {isCreating
                       ? t('admin.firewall.new_rule_hint')
-                      : t('admin.firewall.rule_details_hint')}
+                      : selectedItem &&
+                        t('admin.firewall.added_on', {
+                          date: formatDay(
+                            selectedItem.createdAt,
+                            i18n.language,
+                          ),
+                        })}
                   </p>
                 </div>
                 {!isCreating && selectedItem && (
@@ -281,102 +302,69 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                   </div>
                 </div>
               ) : selectedItem ? (
-                <div className="space-y-8">
-                  <div className="bg-white/5 border border-white/10 rounded-lg p-2.5 sm:p-3">
-                    <h4 className="text-sm font-medium text-white/50 mb-2">
-                      {t('admin.firewall.intercepted_keyword')}
-                    </h4>
-                    <p className="text-lg text-white font-mono bg-black/20 p-3 rounded-lg border border-white/5">
-                      {selectedItem.keyword}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                    <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                      <p className="text-xs font-medium text-white/50 mb-1">
-                        {t('admin.firewall.current_action')}
-                      </p>
-                      <div className="mt-1">
-                        <ActionBadge action={selectedItem.action} />
-                      </div>
-                    </div>
-                    <div className="bg-white/5 rounded-2xl p-5 border border-white/10">
-                      <p className="text-xs font-medium text-white/50 mb-1">
-                        {t('admin.firewall.created_on')}
-                      </p>
-                      <p className="text-sm text-white/80">
-                        {formatDateTime(selectedItem.createdAt, i18n.language)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2.5 sm:space-y-3 pt-3 border-t border-white/10">
+                // Sections under a thin line: no box inside the pane.
+                <div>
+                  <section className="space-y-2.5 pb-4">
                     <h4 className="text-sm font-semibold text-white">
                       {t('admin.firewall.change_action')}
                     </h4>
-                    <div className="flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
+                      {RULE_ACTIONS.map((action) => {
+                        const chosen = selectedItem.action === action;
+                        return (
+                          <button
+                            key={action}
+                            type="button"
+                            aria-pressed={chosen}
+                            disabled={updateMutation.isPending}
+                            onClick={() => {
+                              if (!chosen)
+                                updateMutation.mutate({
+                                  id: selectedItem.id,
+                                  action,
+                                });
+                            }}
+                            className={`px-4 min-h-11 sm:min-h-9 py-2 sm:py-1.5 text-xs font-semibold rounded-full transition-all border inline-flex items-center justify-center disabled:opacity-60 ${
+                              chosen
+                                ? 'bg-brand-primary/20 text-white border-brand-primary/40'
+                                : 'bg-white/5 text-white/60 border-white/10 hover:text-white/80 hover:bg-white/10'
+                            }`}
+                          >
+                            {t(`admin.firewall.set_${action.toLowerCase()}`)}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
+                  <section className="space-y-2.5 pt-4 border-t border-white/10">
+                    <h4 className="text-sm font-semibold text-white">
+                      {t('admin.firewall.state_title')}
+                    </h4>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm text-white/70 min-w-0">
+                        {selectedItem.isActive
+                          ? t('admin.firewall.state_on_hint')
+                          : t('admin.firewall.state_off_hint')}
+                      </p>
                       <Button
-                        variant={
-                          selectedItem.action === 'FLAG'
-                            ? 'primary'
-                            : 'secondary'
-                        }
-                        className="justify-start min-h-11"
+                        type="button"
+                        variant="secondary"
+                        className="min-h-11 sm:min-h-9 px-4 text-xs font-semibold shrink-0"
+                        disabled={updateMutation.isPending}
                         onClick={() =>
                           updateMutation.mutate({
                             id: selectedItem.id,
-                            action: 'FLAG',
+                            isActive: !selectedItem.isActive,
                           })
                         }
-                        disabled={
-                          updateMutation.isPending ||
-                          selectedItem.action === 'FLAG'
-                        }
                       >
-                        {t('admin.firewall.set_flag')}
-                      </Button>
-                      <Button
-                        variant={
-                          selectedItem.action === 'BLOCK'
-                            ? 'danger'
-                            : 'secondary'
-                        }
-                        className="justify-start min-h-11"
-                        onClick={() =>
-                          updateMutation.mutate({
-                            id: selectedItem.id,
-                            action: 'BLOCK',
-                          })
-                        }
-                        disabled={
-                          updateMutation.isPending ||
-                          selectedItem.action === 'BLOCK'
-                        }
-                      >
-                        {t('admin.firewall.set_block')}
-                      </Button>
-                      <Button
-                        variant={
-                          selectedItem.action === 'MUTE'
-                            ? 'primary'
-                            : 'secondary'
-                        }
-                        className="justify-start min-h-11"
-                        onClick={() =>
-                          updateMutation.mutate({
-                            id: selectedItem.id,
-                            action: 'MUTE',
-                          })
-                        }
-                        disabled={
-                          updateMutation.isPending ||
-                          selectedItem.action === 'MUTE'
-                        }
-                      >
-                        {t('admin.firewall.set_mute')}
+                        {selectedItem.isActive
+                          ? t('admin.firewall.turn_off')
+                          : t('admin.firewall.turn_on')}
                       </Button>
                     </div>
-                  </div>
+                  </section>
                 </div>
               ) : null}
             </div>

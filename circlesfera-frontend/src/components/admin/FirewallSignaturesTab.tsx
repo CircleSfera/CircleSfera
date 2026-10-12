@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { adminApi, type FirewallSignature } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
-import { formatDateTime } from '../../utils/format';
+import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
@@ -20,10 +20,17 @@ interface Props {
   views?: React.ReactNode;
 }
 
+const CATEGORIES = ['SPAM', 'HATE', 'SEXUAL', 'VIOLENCE', 'SCAM'] as const;
+
+// The kind of content a signature stands for, in words. It is a kind, not a
+// verdict, so it has the colour of plain information.
 function CategoryBadge({ category }: { category: string }) {
+  const { t } = useTranslation();
   return (
-    <span className="px-2 py-1 bg-red-500/10 text-red-400 text-xs font-semibold rounded-full border border-red-500/20">
-      {category.toUpperCase()}
+    <span className="px-2 py-1 bg-brand-blue/10 text-brand-blue text-xs font-semibold rounded-full border border-brand-blue/20 whitespace-nowrap">
+      {t(`admin.firewall.category_${category.toLowerCase()}`, {
+        defaultValue: category,
+      })}
     </span>
   );
 }
@@ -108,7 +115,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
           className="min-h-11 w-full sm:w-auto sm:ml-auto"
         >
           <Plus size={16} className="mr-2" />
-          {t('admin.firewall.add_rule')}
+          {t('admin.firewall.new_signature')}
         </Button>
       </AdminFilterBar>
 
@@ -141,20 +148,19 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                     onClick={() => setSelectedId(item.id)}
                     selected={selectedId === item.id}
                     title={getTextPreview(item) || autoPreview}
-                    subtitle={t('admin.firewall.id_prefix', {
-                      id: item.id.split('-')[0],
+                    subtitle={t('admin.firewall.added_on', {
+                      date: formatDay(item.createdAt, i18n.language),
                     })}
                     badge={<CategoryBadge category={item.category} />}
-                    meta={formatDateTime(item.createdAt, i18n.language)}
-                    primaryAction={
-                      <ActionButton
-                        variant="danger"
-                        label={t('admin.firewall.action_delete')}
-                        icon={Trash2}
-                        onClick={() => setDeleteId(item.id)}
-                        disabled={deleteMutation.isPending}
-                      />
-                    }
+                    secondaryActions={[
+                      {
+                        label: t('admin.firewall.action_delete'),
+                        icon: Trash2,
+                        variant: 'danger',
+                        disabled: deleteMutation.isPending,
+                        onClick: () => setDeleteId(item.id),
+                      },
+                    ]}
                   />
                 ))
               )}
@@ -213,21 +219,15 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                     onChange={(e) => setNewCategory(e.target.value)}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-2.5 px-4 min-h-11 text-sm text-white focus:outline-none focus:border-brand-primary transition-colors"
                   >
-                    <option value="SPAM" className="bg-surface-raised">
-                      SPAM
-                    </option>
-                    <option value="HATE" className="bg-surface-raised">
-                      HATE
-                    </option>
-                    <option value="SEXUAL" className="bg-surface-raised">
-                      SEXUAL
-                    </option>
-                    <option value="VIOLENCE" className="bg-surface-raised">
-                      VIOLENCE
-                    </option>
-                    <option value="SCAM" className="bg-surface-raised">
-                      SCAM
-                    </option>
+                    {CATEGORIES.map((category) => (
+                      <option
+                        key={category}
+                        value={category}
+                        className="bg-surface-raised"
+                      >
+                        {t(`admin.firewall.category_${category.toLowerCase()}`)}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -278,7 +278,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                     {t('admin.firewall.col_created')}
                   </p>
                   <p className="text-sm text-white/70 mt-2">
-                    {formatDateTime(selectedItem.createdAt, i18n.language)}
+                    {formatDay(selectedItem.createdAt, i18n.language)}
                   </p>
                 </div>
               </div>
