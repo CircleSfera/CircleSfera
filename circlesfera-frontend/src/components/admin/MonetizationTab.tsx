@@ -23,6 +23,7 @@ import {
   StatusBadge,
 } from './AdminTable';
 import { adminToast } from './adminToast';
+import { RecurringIncomeDays } from './RecurringIncomeDays';
 import StatCard from './StatCard';
 
 export default function MonetizationTab() {
@@ -210,6 +211,8 @@ export default function MonetizationTab() {
           subtitle={t('admin.monetization.growth_period')}
         />
       </div>
+
+      <RecurringIncomeDays />
 
       {/* The share by plan: lines of its section, no box inside a box. */}
       <section className="glass-panel rounded-lg p-2.5 sm:p-3">

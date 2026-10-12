@@ -266,6 +266,12 @@ const cases: Case[] = [
     ],
   ],
   [
+    'getRecurringIncomeHistory',
+    () => adminApi.getRecurringIncomeHistory(31),
+    'get',
+    ['admin/analytics/monetization/history', q({ days: 31 })],
+  ],
+  [
     'getMonetizationAnalytics',
     () => adminApi.getMonetizationAnalytics(),
     'get',

@@ -19,6 +19,7 @@ import {
 } from '../common/testing/http-controller.js';
 import { AdminStatsController } from './admin-stats.controller.js';
 import { AdminStatsService } from './admin-stats.service.js';
+import { RecurringIncomeService } from './recurring-income.service.js';
 
 describe('AdminStatsController', () => {
   let app: INestApplication;
@@ -36,10 +37,15 @@ describe('AdminStatsController', () => {
     getTransactions: vi.fn(),
   };
 
+  const recurringIncome = { history: vi.fn() };
+
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [AdminStatsController],
-      providers: [{ provide: AdminStatsService, useValue: mockService }],
+      providers: [
+        { provide: AdminStatsService, useValue: mockService },
+        { provide: RecurringIncomeService, useValue: recurringIncome },
+      ],
       guards: [
         { guard: AdminJwtAuthGuard, mode: 'admin' },
         { guard: AdminGuard, mode: 'allow' },
@@ -99,6 +105,25 @@ describe('AdminStatsController', () => {
     expect(mockService.getTopUsers).toHaveBeenCalledWith();
     expect(mockService.getMonetizationAnalytics).toHaveBeenCalledWith();
     expect(mockService.getPayoutStats).toHaveBeenCalledWith();
+  });
+
+  it('reads the recurring income kept day by day, for the days asked or the usual ones', async () => {
+    recurringIncome.history.mockResolvedValue({ days: [] });
+
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/analytics/monetization/history')
+      .set(ADMIN_BEARER)
+      .expect(200, { days: [] });
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/analytics/monetization/history')
+      .query({ days: 7 })
+      .set(ADMIN_BEARER)
+      .expect(200);
+    await request(app.getHttpServer())
+      .get('/api/v1/admin/analytics/monetization/history')
+      .expect(401);
+
+    expect(recurringIncome.history.mock.calls).toEqual([[undefined], [7]]);
   });
 
   it('filters the audit log by the staff member and by the account acted on', async () => {

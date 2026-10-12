@@ -203,6 +203,13 @@ export interface TopUser {
   engagement: number;
 }
 
+// The recurring monthly income of one kept day (a date, in UTC).
+export interface RecurringIncomeDay {
+  day: string;
+  mrrCents: number;
+  activeSubscriptions: number;
+}
+
 export interface AdminHashtag {
   id: string;
   tag: string;
@@ -1172,6 +1179,13 @@ export const adminApi = {
     apiClient.patch<WhitelistEntry>(`admin/whitelist/${id}`, data),
 
   deleteWhitelist: (id: string) => apiClient.delete(`admin/whitelist/${id}`),
+
+  // The recurring monthly income as kept day by day, newest first.
+  getRecurringIncomeHistory: (days = 30) =>
+    apiClient.get<{ days: RecurringIncomeDay[] }>(
+      'admin/analytics/monetization/history',
+      { params: { days } },
+    ),
 
   getMonetizationAnalytics: () =>
     apiClient.get<{

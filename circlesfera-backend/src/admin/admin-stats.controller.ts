@@ -11,6 +11,7 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminStatsService } from './admin-stats.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
+import { RecurringIncomeService } from './recurring-income.service.js';
 
 @Controller('admin')
 @UseGuards(AdminJwtAuthGuard, AdminGuard)
@@ -18,6 +19,8 @@ export class AdminStatsController {
   constructor(
     @Inject(AdminStatsService)
     private readonly adminStatsService: AdminStatsService,
+    @Inject(RecurringIncomeService)
+    private readonly recurringIncome: RecurringIncomeService,
   ) {}
 
   @RequireStaffPermissions('users.read')
@@ -118,6 +121,13 @@ export class AdminStatsController {
   @Get('analytics/monetization')
   async getMonetizationAnalytics() {
     return await this.adminStatsService.getMonetizationAnalytics();
+  }
+
+  // The recurring monthly income as kept day by day, newest first.
+  @RequireStaffPermissions('payments')
+  @Get('analytics/monetization/history')
+  async getRecurringIncomeHistory(@Query('days') days?: string) {
+    return this.recurringIncome.history(days ? Number(days) : undefined);
   }
 
   @RequireStaffPermissions('payments')
