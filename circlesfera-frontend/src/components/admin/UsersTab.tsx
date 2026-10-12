@@ -509,9 +509,9 @@ export default function Dashboard({ onToast }: Props) {
                       subtitle={user.email}
                       meta={
                         <>
-                          {/* One short line that does not break: the role
+                          {/* One short line, cut short if the row is too narrow: the role
                               is said only when it is not the usual one. */}
-                          <span className="whitespace-nowrap">
+                          <span className="block min-w-0 max-w-full truncate">
                             {user.role === 'ADMIN'
                               ? `${t('admin.users.role_admin')} · `
                               : ''}
