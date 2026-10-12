@@ -253,6 +253,9 @@ export default function CanvasOverlay({
       ref={stageRef}
       width={width}
       height={height}
+      // The fingers draw and move the pieces here: the browser does not pan
+      // or zoom the page from this surface.
+      style={{ touchAction: 'none' }}
       onMouseDown={(e) => {
         checkDeselect(e);
         handleMouseDown(e);

@@ -67,7 +67,9 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             p.setSelectedElementId(null);
           }
         }}
-        className={`relative aspect-9/16 shrink-0 overflow-hidden bg-black transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] rounded-4xl border border-white/10 shadow-[0_12px_48px_rgba(0,0,0,0.55)] ${p.cardSizeClass}`}
+        // The fingers move, turn and draw the pieces of the story here: the
+        // browser does not pan or zoom the page from this surface.
+        className={`relative touch-none aspect-9/16 shrink-0 overflow-hidden bg-black transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.2,1)] rounded-4xl border border-white/10 shadow-[0_12px_48px_rgba(0,0,0,0.55)] ${p.cardSizeClass}`}
         style={{
           ...(p.bgStyle?.startsWith('linear-gradient') ||
           p.bgStyle?.startsWith('radial-gradient')
