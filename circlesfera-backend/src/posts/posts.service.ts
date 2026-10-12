@@ -344,6 +344,8 @@ export class PostsService {
             some: {
               hashtag: {
                 tag: tag.toLowerCase(),
+                // The page of one hidden by staff lists nothing.
+                isHidden: false,
               },
             },
           },
@@ -374,6 +376,8 @@ export class PostsService {
             some: {
               hashtag: {
                 tag: tag.toLowerCase(),
+                // The page of one hidden by staff lists nothing.
+                isHidden: false,
               },
             },
           },

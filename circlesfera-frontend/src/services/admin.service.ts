@@ -207,6 +207,8 @@ export interface AdminHashtag {
   id: string;
   tag: string;
   postCount: number;
+  // Hidden by staff: search does not offer it and its page lists nothing.
+  isHidden: boolean;
   createdAt: string;
 }
 
@@ -1098,9 +1100,15 @@ export const adminApi = {
     }),
 
   // Hashtags
-  getHashtags: (page = 1, limit = 20, search?: string) =>
+  getHashtags: (page = 1, limit = 20, search?: string, hiddenOnly = false) =>
     apiClient.get<PaginatedResponse<AdminHashtag>>('admin/hashtags', {
-      params: { page, limit, search },
+      params: { page, limit, search, ...(hiddenOnly && { status: 'hidden' }) },
+    }),
+
+  // Hides a hashtag from people, or shows it again.
+  setHashtagHidden: (id: string, hidden: boolean) =>
+    apiClient.patch<{ id: string; isHidden: boolean }>(`admin/hashtags/${id}`, {
+      hidden,
     }),
 
   // Comments

@@ -258,6 +258,8 @@ export class SearchService {
               contains: sanitizedQuery,
               mode: 'insensitive',
             },
+            // One hidden by staff is not offered.
+            isHidden: false,
             // Only tags used by Profiles the viewer can see (blocks).
             posts: {
               some: {

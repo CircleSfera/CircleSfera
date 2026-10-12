@@ -3276,7 +3276,21 @@
       "col_rank": "#",
       "col_hashtag": "Hashtag",
       "col_posts": "Publicaciones",
-      "col_created": "Creado"
+      "col_created": "Creado",
+      "filter_all": "Todos",
+      "filter_hidden": "Ocultos",
+      "filter_label": "Qué hashtags",
+      "hidden_badge": "Oculto",
+      "hide": "Ocultar",
+      "show_again": "Volver a mostrar",
+      "col_state": "Estado",
+      "hide_title": "¿Ocultar #{{tag}}?",
+      "hide_message": "La búsqueda dejará de ofrecerlo y su página no listará publicaciones. Las publicaciones que lo usan siguen donde están.",
+      "toast_hidden": "#{{tag}} está oculto",
+      "toast_shown": "#{{tag}} vuelve a mostrarse",
+      "toast_error": "No se pudo cambiar el hashtag",
+      "empty_hidden_title": "No hay hashtags ocultos",
+      "visible": "Visible"
     },
     "audio": {
       "title": "Música",

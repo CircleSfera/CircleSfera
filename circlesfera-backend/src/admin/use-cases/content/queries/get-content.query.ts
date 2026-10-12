@@ -19,10 +19,13 @@ export class GetContentQuery {
     @Inject(HelpdeskDataPort) private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
-  async getHashtags(page = 1, limit = 20, search?: string) {
-    const where: Prisma.HashtagWhereInput = search
-      ? { tag: { contains: search, mode: 'insensitive' as const } }
-      : {};
+  async getHashtags(page = 1, limit = 20, search?: string, hiddenOnly = false) {
+    const where: Prisma.HashtagWhereInput = {
+      ...(search && {
+        tag: { contains: search, mode: 'insensitive' as const },
+      }),
+      ...(hiddenOnly && { isHidden: true }),
+    };
 
     const [data, total] = await Promise.all([
       this.prisma.hashtag.findMany({

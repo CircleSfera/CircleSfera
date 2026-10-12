@@ -8,6 +8,7 @@ import HashtagsTab from './HashtagsTab';
 vi.mock('../../services/admin.service', () => ({
   adminApi: {
     getHashtags: vi.fn(),
+    setHashtagHidden: vi.fn(),
     getAuditLogs: vi.fn(),
     exportAuditLogsCSV: vi.fn(),
     getUserDetail: vi.fn(),
@@ -38,12 +39,14 @@ describe('HashtagsTab', () => {
       id: 'h1',
       tag: 'sunset',
       postCount: 120,
+      isHidden: false,
       createdAt: '2026-03-01T10:00:00Z',
     },
     {
       id: 'h2',
       tag: 'coffee',
       postCount: 45,
+      isHidden: true,
       createdAt: '2026-03-02T10:00:00Z',
     },
   ];
@@ -53,7 +56,7 @@ describe('HashtagsTab', () => {
     renderWithProviders(<HashtagsTab />);
 
     const table = await screen.findByRole('table');
-    expect(adminApi.getHashtags).toHaveBeenCalledWith(1, 20, undefined);
+    expect(adminApi.getHashtags).toHaveBeenCalledWith(1, 20, undefined, false);
     const rows = within(table).getAllByRole('row').slice(1);
     expect(
       rows.map((row) =>
@@ -81,7 +84,12 @@ describe('HashtagsTab', () => {
       screen.getByRole('button', { name: i18n!.t('admin.table.next_page') }),
     );
     await waitFor(() =>
-      expect(adminApi.getHashtags).toHaveBeenLastCalledWith(2, 20, undefined),
+      expect(adminApi.getHashtags).toHaveBeenLastCalledWith(
+        2,
+        20,
+        undefined,
+        false,
+      ),
     );
     expect(await screen.findByRole('cell', { name: '21' })).toBeInTheDocument();
 
@@ -92,8 +100,98 @@ describe('HashtagsTab', () => {
       },
     );
     await waitFor(() =>
-      expect(adminApi.getHashtags).toHaveBeenLastCalledWith(1, 20, 'sun'),
+      expect(adminApi.getHashtags).toHaveBeenLastCalledWith(
+        1,
+        20,
+        'sun',
+        false,
+      ),
     );
+  });
+
+  it('asks before hiding a hashtag, hides it and reads the list again', async () => {
+    vi.mocked(adminApi.getHashtags).mockResolvedValue(page(tags) as never);
+    vi.mocked(adminApi.setHashtagHidden).mockResolvedValue({} as never);
+    renderWithProviders(<HashtagsTab />);
+    const table = await screen.findByRole('table');
+    const [sunset, coffee] = within(table).getAllByRole('row').slice(1);
+    // A row says what it is and offers the other.
+    expect(sunset).toHaveTextContent('Visible');
+    expect(coffee).toHaveTextContent('Hidden');
+    expect(
+      within(coffee).getByRole('button', { name: 'Show again' }),
+    ).toBeVisible();
+
+    fireEvent.click(within(sunset).getByRole('button', { name: 'Hide' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('Hide #sunset?')).toBeInTheDocument();
+    expect(adminApi.setHashtagHidden).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(adminApi.setHashtagHidden).not.toHaveBeenCalled();
+
+    fireEvent.click(within(sunset).getByRole('button', { name: 'Hide' }));
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Hide',
+      }),
+    );
+
+    await waitFor(() =>
+      expect(adminApi.setHashtagHidden).toHaveBeenCalledWith('h1', true),
+    );
+    await waitFor(() => expect(adminApi.getHashtags).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows a hidden hashtag again at once, with no question', async () => {
+    vi.mocked(adminApi.getHashtags).mockResolvedValue(page(tags) as never);
+    vi.mocked(adminApi.setHashtagHidden).mockResolvedValue({} as never);
+    renderWithProviders(<HashtagsTab />);
+    const table = await screen.findByRole('table');
+
+    fireEvent.click(within(table).getByRole('button', { name: 'Show again' }));
+
+    await waitFor(() =>
+      expect(adminApi.setHashtagHidden).toHaveBeenCalledWith('h2', false),
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('keeps the list as it was when the change is refused', async () => {
+    vi.mocked(adminApi.getHashtags).mockResolvedValue(page(tags) as never);
+    vi.mocked(adminApi.setHashtagHidden).mockRejectedValue(new Error('no'));
+    renderWithProviders(<HashtagsTab />);
+    const table = await screen.findByRole('table');
+
+    fireEvent.click(within(table).getByRole('button', { name: 'Show again' }));
+
+    await waitFor(() =>
+      expect(adminApi.setHashtagHidden).toHaveBeenCalledTimes(1),
+    );
+    expect(adminApi.getHashtags).toHaveBeenCalledTimes(1);
+  });
+
+  it('narrows the list to the hidden ones, from the first page', async () => {
+    vi.mocked(adminApi.getHashtags).mockResolvedValue(page([]) as never);
+    renderWithProviders(<HashtagsTab />);
+    await screen.findByText('No hashtags');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Hidden' }));
+
+    await waitFor(() =>
+      expect(adminApi.getHashtags).toHaveBeenLastCalledWith(
+        1,
+        20,
+        undefined,
+        true,
+      ),
+    );
+    expect(await screen.findByText('No hidden hashtags')).toBeInTheDocument();
   });
 
   it('says there are no hashtags', async () => {

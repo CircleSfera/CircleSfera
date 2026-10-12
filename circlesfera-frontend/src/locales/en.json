@@ -3276,7 +3276,21 @@
       "col_rank": "#",
       "col_hashtag": "Hashtag",
       "col_posts": "Posts",
-      "col_created": "Added"
+      "col_created": "Added",
+      "filter_all": "All",
+      "filter_hidden": "Hidden",
+      "filter_label": "Which hashtags",
+      "hidden_badge": "Hidden",
+      "hide": "Hide",
+      "show_again": "Show again",
+      "col_state": "State",
+      "hide_title": "Hide #{{tag}}?",
+      "hide_message": "Search will stop offering it and its page will list no posts. The posts that use it stay where they are.",
+      "toast_hidden": "#{{tag}} is hidden",
+      "toast_shown": "#{{tag}} is shown again",
+      "toast_error": "The hashtag could not be changed",
+      "empty_hidden_title": "No hidden hashtags",
+      "visible": "Visible"
     },
     "audio": {
       "title": "Music",

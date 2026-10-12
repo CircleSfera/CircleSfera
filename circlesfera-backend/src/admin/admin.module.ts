@@ -43,6 +43,7 @@ import { LogAdminActionUseCase } from './use-cases/content/commands/log-admin-ac
 import { ModerateContentUseCase } from './use-cases/content/commands/moderate-content.use-case.js';
 import { ReviewPromotionUseCase } from './use-cases/content/commands/review-promotion.use-case.js';
 import { ReviewReportUseCase } from './use-cases/content/commands/review-report.use-case.js';
+import { SetHashtagHiddenUseCase } from './use-cases/content/commands/set-hashtag-hidden.use-case.js';
 import { WarnLiveHostUseCase } from './use-cases/content/commands/warn-live-host.use-case.js';
 import { GetContentQuery } from './use-cases/content/queries/get-content.query.js';
 import { GetLiveStreamsQuery } from './use-cases/content/queries/get-live-streams.query.js';
@@ -94,6 +95,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     // Content Use Cases & Queries
     DeleteCommentUseCase,
     BulkDeleteContentUseCase,
+    SetHashtagHiddenUseCase,
     DeletePostUseCase,
     DeleteStoryUseCase,
     EndLiveStreamUseCase,

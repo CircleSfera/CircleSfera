@@ -553,6 +553,8 @@ model Hashtag {
   id        String   @id @default(uuid())
   tag       String   @unique
   postCount Int      @default(0)
+  // Hidden by staff: search does not offer it and its page lists nothing.
+  isHidden  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   posts PostHashtag[]
