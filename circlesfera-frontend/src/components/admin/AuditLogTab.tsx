@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Activity } from 'lucide-react';
+import { Activity, Download } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -20,6 +20,7 @@ import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
 } from './AdminUserFilterChip';
+import { adminToast } from './adminToast';
 
 const AUDIT_ACTION_KEYS = [
   'BAN_USER',
@@ -135,6 +136,32 @@ export default function AuditLogTab() {
   const hasActiveFilters = Boolean(
     actionFilter || debouncedSearch.trim() || staff || userId,
   );
+  // The file holds what the list shows: the same filters.
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const res = await adminApi.exportAuditLogsCSV({
+        action: actionFilter || undefined,
+        search: debouncedSearch.trim() || undefined,
+        adminId: staff?.id,
+        userId,
+      });
+      const url = URL.createObjectURL(
+        new Blob([res.data as BlobPart], { type: 'text/csv' }),
+      );
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'circlesfera-audit-log.csv';
+      a.click();
+      URL.revokeObjectURL(url);
+      adminToast(t('admin.audit.toast_exported'), 'success');
+    } catch {
+      adminToast(t('admin.audit.toast_export_error'), 'error');
+    } finally {
+      setExporting(false);
+    }
+  };
   const showAccount = (accountId: string) => {
     const next = new URLSearchParams(searchParams);
     next.set('userId', accountId);
@@ -148,6 +175,18 @@ export default function AuditLogTab() {
       <AdminPageHeader
         title={t('admin.audit.title')}
         subtitle={t('admin.audit.subtitle')}
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleExport}
+            disabled={exporting}
+            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+          >
+            <Download size={16} className="mr-2" />
+            {t('admin.audit.export')}
+          </Button>
+        }
       />
 
       <AdminFilterBar>

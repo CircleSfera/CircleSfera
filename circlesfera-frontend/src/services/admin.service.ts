@@ -1054,6 +1054,18 @@ export const adminApi = {
       params: { page, limit, ...filters },
     }),
 
+  // The audit log as a file, with the filters of the list.
+  exportAuditLogsCSV: (filters?: {
+    action?: string;
+    search?: string;
+    adminId?: string;
+    userId?: string;
+  }) =>
+    apiClient.get('admin/audit-logs/export', {
+      params: filters,
+      responseType: 'blob',
+    }),
+
   // Hashtags
   getHashtags: (page = 1, limit = 20, search?: string) =>
     apiClient.get<PaginatedResponse<AdminHashtag>>('admin/hashtags', {
