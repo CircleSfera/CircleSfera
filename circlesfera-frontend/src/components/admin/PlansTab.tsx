@@ -13,7 +13,7 @@ import {
   apiErrorStatus,
 } from '../../utils/apiErrorMessage';
 import { formatCents } from '../../utils/money';
-import { Button, Input, Switch, Textarea } from '../ui';
+import { Button, Input, Switch } from '../ui';
 import { AdminEmptyState } from './AdminEmptyState';
 import { AdminPageHeader } from './AdminPageHeader';
 import { AdminListSkeleton } from './AdminSkeletons';
@@ -21,8 +21,6 @@ import { AdminListSkeleton } from './AdminSkeletons';
 interface Props {
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
-
-const DESCRIPTION_MAX = 280;
 
 function isStepUpRequired(err: unknown): boolean {
   const body = apiErrorBody(err) as
@@ -38,13 +36,11 @@ function isStepUpRequired(err: unknown): boolean {
 
 interface Draft {
   features: string[];
-  description: string;
   isActive: boolean;
 }
 
 const draftOf = (plan: AdminPlan): Draft => ({
   features: plan.features,
-  description: plan.description ?? '',
   isActive: plan.isActive,
 });
 
@@ -56,9 +52,6 @@ function changesOf(plan: AdminPlan, draft: Draft): AdminPlanChanges {
     saved.features.every((key) => draft.features.includes(key));
   return {
     ...(!sameFeatures && { features: draft.features }),
-    ...(saved.description !== draft.description.trim() && {
-      description: draft.description.trim(),
-    }),
     ...(saved.isActive !== draft.isActive && { isActive: draft.isActive }),
   };
 }
@@ -209,13 +202,6 @@ export default function PlansTab({ onToast }: Props) {
                   </label>
                 ))}
               </fieldset>
-
-              <Textarea
-                label={t('admin.plans.description')}
-                value={draft.description}
-                maxLength={DESCRIPTION_MAX}
-                onChange={(e) => edit({ description: e.target.value })}
-              />
 
               {confirming ? (
                 <div className="space-y-2">

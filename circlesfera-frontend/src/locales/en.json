@@ -2700,7 +2700,6 @@
       "on_sale": "On sale",
       "on_sale_hint": "If you turn it off, it is no longer shown in Pricing. Those who already have it keep it.",
       "includes": "Includes",
-      "description": "Description",
       "save": "Save changes",
       "toast_saved": "Plan saved",
       "toast_failed": "The plan could not be saved",
