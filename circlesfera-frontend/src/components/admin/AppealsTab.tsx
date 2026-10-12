@@ -142,11 +142,6 @@ export default function AppealsTab() {
                   key={appeal.id}
                   onClick={() => setSelectedId(appeal.id)}
                   selected={selectedId === appeal.id}
-                  className={
-                    selectedId === appeal.id
-                      ? 'border-brand-primary/30 bg-brand-primary/10'
-                      : undefined
-                  }
                   title={appeal.user?.email || '—'}
                   subtitle={`@${appeal.user?.profile?.username || '—'} · ${whatIsAppealed(appeal)}`}
                   meta={formatWaiting(appeal.createdAt, i18n.language, t)}

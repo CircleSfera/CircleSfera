@@ -612,11 +612,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                   <AdminListRow
                     key={ticket.id}
                     onClick={() => setSelectedTicketId(ticket.id)}
-                    className={
-                      selectedTicketId === ticket.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedTicketId === ticket.id}
                     title={ticket.subject}
                     subtitle={ticket.email}
                     badge={

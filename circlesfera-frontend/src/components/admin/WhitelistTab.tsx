@@ -137,11 +137,7 @@ export default function WhitelistTab() {
                   <AdminListRow
                     key={entry.id}
                     onClick={() => setSelectedId(entry.id)}
-                    className={
-                      selectedId === entry.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedId === entry.id}
                     title={entry.name || t('admin.whitelist.no_name')}
                     subtitle={entry.email}
                     badge={<StatusBadge status={entry.status} />}

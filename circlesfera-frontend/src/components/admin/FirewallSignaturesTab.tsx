@@ -139,11 +139,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                   <AdminListRow
                     key={item.id}
                     onClick={() => setSelectedId(item.id)}
-                    className={
-                      selectedId === item.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedId === item.id}
                     title={getTextPreview(item) || autoPreview}
                     subtitle={t('admin.firewall.id_prefix', {
                       id: item.id.split('-')[0],

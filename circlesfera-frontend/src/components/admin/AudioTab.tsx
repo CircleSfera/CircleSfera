@@ -230,11 +230,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                   <AdminListRow
                     key={track.id}
                     onClick={() => openEdit(track)}
-                    className={
-                      selectedId === track.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedId === track.id}
                     title={track.title}
                     subtitle={track.artist}
                     meta={

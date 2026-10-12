@@ -2435,7 +2435,8 @@
       "permanent_delete_note": "Eliminado permanentemente por moderación",
       "note_batch_approved": "Aprobado en lote",
       "note_batch_hidden": "Ocultado en lote",
-      "note_false_positive": "Aprobado (falso positivo)"
+      "note_false_positive": "Aprobado (falso positivo)",
+      "select_item": "Seleccionar este elemento"
     },
     "reports": {
       "title": "Reportes",
@@ -3865,7 +3866,8 @@
         "SUSPENDED": "Se suspende solo el perfil @{{username}} durante 7 días. Sus otros perfiles no se ven afectados.",
         "BANNED": "Se banea solo el perfil @{{username}}. Sus otros perfiles no se ven afectados. Podrá apelar."
       }
-    }
+    },
+    "skip_to_content": "Saltar a la sección"
   },
   "collections": {
     "new_collection": "Nueva Colección",

@@ -233,11 +233,7 @@ export default function PostsTab({ onToast }: Props) {
                   <AdminListRow
                     key={post.id}
                     onClick={() => setSelectedPostId(post.id)}
-                    className={
-                      selectedPostId === post.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedPostId === post.id}
                     title={post.caption || noCaption}
                     subtitle={`@${post.user?.profile?.username || t('admin.shared.unknown')}`}
                     avatar={

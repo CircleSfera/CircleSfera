@@ -45,7 +45,7 @@ const list = <T,>(rows: T[], pageNumber = 1, totalPages = 1) => ({
 const rowOf = (text: string) =>
   screen
     .getAllByText(text)
-    .map((el) => el.closest('[role="button"]'))
+    .map((el) => el.closest('[data-admin-row]'))
     .find(Boolean) as HTMLElement;
 const kpi = (title: string) =>
   screen.getByText(title).parentElement as HTMLElement;

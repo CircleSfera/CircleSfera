@@ -247,11 +247,7 @@ export default function UserVerificationTab({
                     <AdminListRow
                       key={user.id}
                       onClick={() => handleSelectUser(user)}
-                      className={
-                        selectedUserId === user.id
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedUserId === user.id}
                       title={
                         <span className="flex items-center gap-1">
                           @{user.profile?.username || t('admin.shared.unknown')}

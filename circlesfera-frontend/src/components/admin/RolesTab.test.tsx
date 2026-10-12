@@ -61,7 +61,7 @@ const refused = { status: 400, data: {} };
 const rowOf = (text: string) =>
   screen
     .getAllByText(text)
-    .map((el) => el.closest('[role="button"]'))
+    .map((el) => el.closest('[data-admin-row]'))
     .find(Boolean) as HTMLElement;
 const detail = () => screen.getByRole('region', { name: 'Detail' });
 const show = () => renderWithProviders(<RolesTab onToast={onToast} />);

@@ -317,11 +317,7 @@ export default function ModerationTab({ onToast }: Props) {
                     <AdminListRow
                       key={key}
                       onClick={() => setSelectedItemKey(key)}
-                      className={
-                        selectedItemKey === key
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedItemKey === key}
                       title={item.caption || t('admin.shared.no_text')}
                       subtitle={`@${item.user?.profile?.username || '—'}`}
                       meta={
@@ -345,6 +341,7 @@ export default function ModerationTab({ onToast }: Props) {
                             checked={selectedKeys.has(key)}
                             onChange={(e) => toggleSelect(key, e)}
                             onClick={(e) => e.stopPropagation()}
+                            aria-label={t('admin.moderation.select_item')}
                           />
                           <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
                             {item.media?.[0]?.url ? (

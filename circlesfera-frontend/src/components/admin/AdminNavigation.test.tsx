@@ -133,6 +133,14 @@ describe('staff panel navigation', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('starts with a way past the menu, straight to the section', () => {
+    show();
+
+    const skip = screen.getByRole('link', { name: 'Skip to the section' });
+    fireEvent.click(skip);
+    expect(screen.getByRole('main')).toHaveFocus();
+  });
+
   it('lists every section of the Admin Panel to someone who may open them all', () => {
     show('users');
 

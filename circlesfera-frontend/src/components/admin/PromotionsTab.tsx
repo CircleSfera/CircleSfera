@@ -211,11 +211,7 @@ export default function PromotionsTab({ onToast }: Props) {
                   <AdminListRow
                     key={promo.id}
                     onClick={() => setSelectedPromoId(promo.id)}
-                    className={
-                      selectedPromoId === promo.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedPromoId === promo.id}
                     title={`@${promo.user?.profile?.username || '—'}`}
                     subtitle={t('admin.promotions.reach_estimate', {
                       budget: formatCents(

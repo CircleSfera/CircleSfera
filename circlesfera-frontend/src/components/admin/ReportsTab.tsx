@@ -422,11 +422,7 @@ export default function ReportsTab({ onToast }: Props) {
                     <AdminListRow
                       key={report.id}
                       onClick={() => setSelectedReportId(report.id)}
-                      className={
-                        selectedReportId === report.id
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedReportId === report.id}
                       title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
                       subtitle={
                         <span className="flex flex-col gap-0.5">

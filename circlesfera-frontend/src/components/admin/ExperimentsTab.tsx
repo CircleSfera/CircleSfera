@@ -724,11 +724,7 @@ export default function ExperimentsTab() {
                       <AdminListRow
                         key={entry.id}
                         onClick={() => setSelectedExperimentId(entry.id)}
-                        className={
-                          selectedExperimentId === entry.id
-                            ? 'border-brand-primary/30 bg-brand-primary/10'
-                            : undefined
-                        }
+                        selected={selectedExperimentId === entry.id}
                         title={`@${entry.user?.profile?.username || t('admin.shared.unknown')}`}
                         subtitle={entry.experimentKey}
                         badge={

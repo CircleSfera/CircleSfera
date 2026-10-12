@@ -173,11 +173,6 @@ export default function AuditLogTab() {
                     key={log.id}
                     selected={selectedId === log.id}
                     onClick={() => setSelectedId(log.id)}
-                    className={
-                      selectedId === log.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
                     title={
                       <span
                         className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-white/70'}`}
