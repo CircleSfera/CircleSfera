@@ -1296,6 +1296,20 @@ model PlatformSubscription {
   @@map("platform_subscriptions")
 }
 
+// The recurring monthly income as it stood on one day, kept so that it can be
+// compared over time. It is the list price of the plans of the active
+// subscriptions, not money collected.
+model RecurringIncomeDay {
+  // The day, in UTC. One row per day: keeping a day again replaces its row.
+  day                 DateTime @id @db.Date
+  mrrCents            Int
+  activeSubscriptions Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("recurring_income_days")
+}
+
 model WebhookEvent {
   // Retention: prune processed/failed events via maintenance (src/maintenance/); do not grow unbounded.
   id          String    @id @default(uuid())

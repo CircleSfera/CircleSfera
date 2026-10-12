@@ -4,6 +4,7 @@ import { AdminAction, Prisma } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { withPrimaryProfile } from '../common/utils/user-profile-shape.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { recurringIncomeCents } from './recurring-income.service.js';
 
 // Platform metrics count real participants only; Test Accounts and
 // their content are left out.
@@ -280,7 +281,8 @@ export class AdminStatsService {
       include: { plan: true },
     });
 
-    let activeMRR = 0;
+    // The same rule as the figure kept each day.
+    const activeMRR = recurringIncomeCents(rawSubscriptions) / 100;
     const tierCounts: Record<string, number> = {
       PREMIUM: 0,
       ELITE: 0,
@@ -288,7 +290,6 @@ export class AdminStatsService {
     };
 
     rawSubscriptions.forEach((sub) => {
-      activeMRR += (sub.plan?.priceCents || 0) / 100;
       const planName = sub.plan?.name?.toUpperCase() || '';
       // The €9.99 plan is named Premium (formerly Verified).
       if (planName.includes('PREMIUM') || planName.includes('VERIFIED'))

@@ -12,6 +12,7 @@ vi.mock('../../services/admin.service', () => ({
     getPromotions: vi.fn(),
     updatePromotion: vi.fn(),
     getMonetizationAnalytics: vi.fn(),
+    getRecurringIncomeHistory: vi.fn(),
     getTransactions: vi.fn(),
   },
 }));
