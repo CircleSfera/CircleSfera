@@ -54,7 +54,7 @@ function Figure({
         <ChevronRight
           size={16}
           aria-hidden="true"
-          className="shrink-0 text-white/40 group-hover:text-white"
+          className="shrink-0 text-white/50 group-hover:text-white"
         />
       </span>
       <span>

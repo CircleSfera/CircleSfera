@@ -247,11 +247,7 @@ export default function UserVerificationTab({
                     <AdminListRow
                       key={user.id}
                       onClick={() => handleSelectUser(user)}
-                      className={
-                        selectedUserId === user.id
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedUserId === user.id}
                       title={
                         <span className="flex items-center gap-1">
                           @{user.profile?.username || t('admin.shared.unknown')}
@@ -368,7 +364,7 @@ export default function UserVerificationTab({
 
                 <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-6">
                   <section>
-                    <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
+                    <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-3">
                       {t('admin.verification.kyc_status_title')}
                     </h4>
 
@@ -408,7 +404,7 @@ export default function UserVerificationTab({
                               <UserX size={13} />
                               {t('admin.verification.kyc_not_started_title')}
                             </span>
-                            <span className="text-xs text-white/40">
+                            <span className="text-xs text-white/50">
                               {t(
                                 'admin.verification.kyc_not_started_description',
                               )}
@@ -419,7 +415,7 @@ export default function UserVerificationTab({
 
                       <dl className="text-sm">
                         <div className="py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-white/40 mb-1">
+                          <dt className="text-xs font-medium text-white/50 mb-1">
                             {t('admin.verification.session_id_label')}
                           </dt>
                           <dd className="text-white text-xs font-mono break-all">
@@ -458,7 +454,7 @@ export default function UserVerificationTab({
                               <RefreshCw size={16} className="mr-2" />{' '}
                               {t('admin.verification.revoke_kyc')}
                             </Button>
-                            <p className="text-xs text-white/40">
+                            <p className="text-xs text-white/50">
                               {t('admin.verification.revoke_hint')}
                             </p>
                           </div>
@@ -468,7 +464,7 @@ export default function UserVerificationTab({
 
                   {canEdit ? (
                     <section>
-                      <h4 className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
+                      <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-3">
                         {t('admin.verification.level_controls_title')}
                       </h4>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 sm:gap-3">
@@ -493,7 +489,7 @@ export default function UserVerificationTab({
                               {t('admin.verification.level_elite')}
                             </option>
                           </Select>
-                          <p className="text-xs text-white/40">
+                          <p className="text-xs text-white/50">
                             {t('admin.verification.level_hint')}
                           </p>
                         </div>
@@ -514,7 +510,7 @@ export default function UserVerificationTab({
                               {t('admin.verification.account_business')}
                             </option>
                           </Select>
-                          <p className="text-xs text-white/40">
+                          <p className="text-xs text-white/50">
                             {t('admin.verification.account_type_hint')}
                           </p>
                         </div>

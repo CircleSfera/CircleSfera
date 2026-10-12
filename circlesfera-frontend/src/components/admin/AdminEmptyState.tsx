@@ -57,7 +57,7 @@ export function AdminEmptyState({
       </div>
       <p className="text-xs font-semibold text-white/70">{title}</p>
       {description && (
-        <p className="text-[11px] text-white/40 max-w-xs leading-snug">
+        <p className="text-[11px] text-white/50 max-w-xs leading-snug">
           {description}
         </p>
       )}

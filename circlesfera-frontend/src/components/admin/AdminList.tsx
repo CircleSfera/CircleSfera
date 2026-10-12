@@ -1,7 +1,7 @@
 import { clsx } from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import { MoreHorizontal } from 'lucide-react';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
@@ -57,6 +57,7 @@ export function AdminListRow({
   selected,
 }: AdminListRowProps) {
   const { t } = useTranslation();
+  const detailsId = useId();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -213,8 +214,15 @@ export function AdminListRow({
     ) : null;
 
   return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: role=button set when onClick provided
+    // A row that opens something holds one real button, its title: that is
+    // what the keyboard and a screen reader use, and the menu beside it is
+    // its sibling, not inside it. The card itself only takes the pointer, so
+    // it can be pressed anywhere.
+    // biome-ignore lint/a11y/noStaticElementInteractions: pointer convenience; the title button is the control
+    // biome-ignore lint/a11y/useKeyWithClickEvents: the title button takes the keyboard
     <div
+      data-admin-row
+      onClick={onClick}
       className={clsx(
         'relative flex items-start gap-3 sm:gap-2.5 p-3.5 sm:p-2.5 rounded-lg border transition-colors',
         selected
@@ -226,40 +234,44 @@ export function AdminListRow({
         onClick && selected && 'cursor-pointer',
         className,
       )}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      aria-current={selected ? 'true' : undefined}
     >
       {avatar && <div className="shrink-0 mt-0.5">{avatar}</div>}
 
       <div className="flex-1 min-w-0">
         <div className="flex items-start sm:items-center justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <div className="text-[15px] sm:text-sm font-semibold text-white truncate">
-              {title}
-            </div>
+            {onClick ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClick();
+                }}
+                aria-current={selected ? 'true' : undefined}
+                aria-describedby={subtitle || meta ? detailsId : undefined}
+                className="block max-w-full text-left text-[15px] sm:text-sm font-semibold text-white truncate cursor-pointer rounded focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-primary"
+              >
+                {title}
+              </button>
+            ) : (
+              <div className="text-[15px] sm:text-sm font-semibold text-white truncate">
+                {title}
+              </div>
+            )}
             {/* What the row is and when share a line while they fit, so a
                 row is two lines tall; in a narrow row the second wraps. */}
             {(subtitle || meta) && (
-              <div className="mt-1 sm:mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:gap-y-0.5 text-[13px] sm:text-xs">
+              <div
+                id={detailsId}
+                className="mt-1 sm:mt-0.5 flex flex-wrap items-baseline gap-x-3 gap-y-1 sm:gap-y-0.5 text-[13px] sm:text-xs"
+              >
                 {subtitle && (
                   <div className="min-w-0 max-w-full text-white/50 truncate">
                     {subtitle}
                   </div>
                 )}
                 {meta && (
-                  <div className="min-w-0 max-w-full text-white/40 flex flex-wrap gap-x-3 gap-y-1 sm:gap-y-0.5">
+                  <div className="min-w-0 max-w-full text-white/50 flex flex-wrap gap-x-3 gap-y-1 sm:gap-y-0.5">
                     {meta}
                   </div>
                 )}

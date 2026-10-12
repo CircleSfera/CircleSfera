@@ -80,7 +80,7 @@ const show = (route = '/reports') =>
 const rowOf = (text: string) =>
   screen
     .getAllByText(text)
-    .map((el) => el.closest('[role="button"]'))
+    .map((el) => el.closest('[data-admin-row]'))
     .find(Boolean) as HTMLElement;
 const detail = () => screen.getByRole('region', { name: 'Detail' });
 const dialog = () => screen.getByRole('dialog');
@@ -488,7 +488,7 @@ describe('ReportsTab, the rest of the queue', () => {
     await open('3');
     expect(within(line('Reported by')).getByText('@Anonymous')).toBeTruthy();
     expect(within(line('Current status')).getByText('Dismissed')).toHaveClass(
-      'text-white/45',
+      'text-white/50',
     );
     expect(within(detail()).queryByText('Assigned to')).toBeNull();
     expect(within(detail()).queryByText('Additional details')).toBeNull();

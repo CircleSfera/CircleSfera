@@ -195,11 +195,7 @@ export default function CommentsTab({ onToast }: Props) {
                   <AdminListRow
                     key={comment.id}
                     onClick={() => setSelectedId(comment.id)}
-                    className={
-                      selectedId === comment.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedId === comment.id}
                     title={comment.content || noContent}
                     subtitle={`@${
                       comment.user?.profile?.username ||

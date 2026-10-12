@@ -63,7 +63,7 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
               className="w-full h-full object-cover"
             />
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 text-white/40 text-sm">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 text-white/50 text-sm">
               <Play className="w-10 h-10 mb-2 opacity-20" />
               <p>{t('admin.lives.no_video_source')}</p>
             </div>
@@ -79,7 +79,7 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
         <div className="space-y-4 min-w-0">
           <dl className="text-sm border-t border-white/5">
             <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-              <dt className="text-xs font-medium text-white/40">
+              <dt className="text-xs font-medium text-white/50">
                 {t('admin.live.viewers')}
               </dt>
               <dd className="text-white font-semibold tabular-nums">
@@ -87,7 +87,7 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
               </dd>
             </div>
             <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-              <dt className="text-xs font-medium text-white/40">
+              <dt className="text-xs font-medium text-white/50">
                 {t('admin.live.gifts')}
               </dt>
               <dd className="text-white font-semibold tabular-nums">
@@ -97,7 +97,7 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
           </dl>
 
           <div>
-            <h4 className="text-xs font-bold uppercase tracking-wider text-white/40 mb-1">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-1">
               {t('admin.live.participants')}
             </h4>
             <ul className="divide-y divide-white/5">
@@ -121,7 +121,7 @@ export default function LiveStreamDetailPanel({ stream, onEndStream }: Props) {
 
           {isLive && (
             <div className="pt-4 border-t border-white/5 space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                 {t('admin.live.moderation_actions')}
               </h4>
               <p className="text-xs text-white/50">

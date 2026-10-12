@@ -198,7 +198,7 @@ export default function SystemHealthTab() {
               size="icon"
               onClick={() => refetch()}
               isLoading={isRefetching}
-              className="text-white/40 hover:text-white min-h-11 min-w-11"
+              className="text-white/50 hover:text-white min-h-11 min-w-11"
               aria-label={t('admin.health.retry')}
             >
               <RefreshCw size={18} />
@@ -219,7 +219,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.database_title')}
               </h3>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/50">
                 {t('admin.health.database_subtitle')}
               </p>
             </div>
@@ -260,7 +260,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.ai_queue_title')}
               </h3>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/50">
                 {t('admin.health.ai_queue_subtitle')}
               </p>
             </div>
@@ -303,7 +303,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.analytics_queue_title')}
               </h3>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/50">
                 {t('admin.health.analytics_queue_subtitle')}
               </p>
             </div>
@@ -339,7 +339,7 @@ export default function SystemHealthTab() {
               <h3 className="text-sm font-semibold text-white">
                 {t('admin.health.stripe_webhooks_title')}
               </h3>
-              <p className="text-[11px] text-white/40">
+              <p className="text-[11px] text-white/50">
                 {t('admin.health.stripe_webhooks_subtitle')}
               </p>
             </div>
@@ -380,7 +380,7 @@ export default function SystemHealthTab() {
             <h3 className="text-sm font-semibold text-white">
               {t('admin.health.webhooks_title')}
             </h3>
-            <p className="text-xs text-white/45 mt-0.5">
+            <p className="text-xs text-white/50 mt-0.5">
               {t('admin.health.webhooks_subtitle')}
             </p>
           </div>
@@ -452,10 +452,10 @@ export default function SystemHealthTab() {
                               })}
                             </span>
                           </div>
-                          <p className="text-xs font-mono text-white/40 truncate mt-0.5">
+                          <p className="text-xs font-mono text-white/50 truncate mt-0.5">
                             {event.externalId}
                           </p>
-                          <p className="text-xs text-white/40 mt-1">
+                          <p className="text-xs text-white/50 mt-1">
                             {formatDateTime(event.createdAt, i18n.language)}
                           </p>
                         </div>
@@ -504,7 +504,7 @@ export default function SystemHealthTab() {
                         <div className="mt-3 p-3 rounded-lg bg-white/3 text-xs space-y-2">
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
-                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                              <span className="text-white/50 uppercase tracking-wide font-semibold">
                                 {t('admin.health.provider')}
                               </span>
                               <p className="text-white font-mono mt-0.5">
@@ -512,7 +512,7 @@ export default function SystemHealthTab() {
                               </p>
                             </div>
                             <div>
-                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                              <span className="text-white/50 uppercase tracking-wide font-semibold">
                                 {t('admin.health.external_id')}
                               </span>
                               <p className="text-white font-mono mt-0.5 break-all">
@@ -520,7 +520,7 @@ export default function SystemHealthTab() {
                               </p>
                             </div>
                             <div>
-                              <span className="text-white/40 uppercase tracking-wide font-semibold">
+                              <span className="text-white/50 uppercase tracking-wide font-semibold">
                                 {t('admin.health.status')}
                               </span>
                               <p className="text-white font-mono mt-0.5">
@@ -534,7 +534,7 @@ export default function SystemHealthTab() {
                             </div>
                           </div>
                           {event.processedAt && (
-                            <p className="text-white/40">
+                            <p className="text-white/50">
                               {t('admin.health.processed_at')}:{' '}
                               {formatDateTime(event.processedAt, i18n.language)}
                             </p>

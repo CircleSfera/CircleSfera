@@ -50,6 +50,15 @@ export default function AdminShell({
 
   return (
     <div className="min-h-dvh px-3 pb-5 pt-3 sm:px-5 sm:pt-4 sm:pb-6 lg:px-6 lg:pt-5 max-w-425 mx-auto text-white">
+      {/* The first stop of the keyboard: past the search and the list of
+          sections, straight to the section. Seen only while it has focus. */}
+      <button
+        type="button"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:inline-flex focus:items-center focus:min-h-11 focus:px-4 focus:rounded-xl focus:bg-brand-primary focus:text-white focus:text-sm focus:font-semibold"
+        onClick={() => document.getElementById('admin-content')?.focus()}
+      >
+        {t('admin.skip_to_content')}
+      </button>
       <header className="mb-4 lg:mb-5 pt-[env(safe-area-inset-top)] sm:pt-0 relative z-40">
         <div className="flex items-center justify-between gap-3 glass-panel p-2.5 sm:p-3 rounded-xl relative">
           {/* Clip only the decorative wash — keep header overflow visible for account menu */}
@@ -91,7 +100,7 @@ export default function AdminShell({
                   </span>
                 </span>
               </div>
-              <p className="text-[11px] text-white/40 truncate leading-tight">
+              <p className="text-[11px] text-white/50 truncate leading-tight">
                 {activeItem ? t(activeItem.labelKey) : activeTab}
               </p>
             </div>
@@ -126,7 +135,13 @@ export default function AdminShell({
 
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-5 items-start">
         <AdminSidebar activeTab={activeTab} onTabChange={onTabChange} />
-        <main className="flex-1 w-full min-w-0 space-y-1">{children}</main>
+        <main
+          id="admin-content"
+          tabIndex={-1}
+          className="flex-1 w-full min-w-0 space-y-1 focus:outline-none"
+        >
+          {children}
+        </main>
       </div>
 
       <CommandPalette

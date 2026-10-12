@@ -230,11 +230,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                   <AdminListRow
                     key={track.id}
                     onClick={() => openEdit(track)}
-                    className={
-                      selectedId === track.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedId === track.id}
                     title={track.title}
                     subtitle={track.artist}
                     meta={
@@ -301,7 +297,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-title"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.audio.label_title')}
                   </label>
@@ -321,7 +317,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-artist"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.audio.label_artist')}
                   </label>
@@ -341,7 +337,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-url"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.audio.label_url')}
                   </label>
@@ -359,7 +355,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-thumbnail"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.audio.label_thumbnail')}
                   </label>
@@ -378,7 +374,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="audio-duration"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.audio.label_duration')}
                   </label>

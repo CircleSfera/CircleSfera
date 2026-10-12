@@ -422,11 +422,7 @@ export default function ReportsTab({ onToast }: Props) {
                     <AdminListRow
                       key={report.id}
                       onClick={() => setSelectedReportId(report.id)}
-                      className={
-                        selectedReportId === report.id
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedReportId === report.id}
                       title={`@${report.targetContent?.author || t('admin.shared.unknown')}`}
                       subtitle={
                         <span className="flex flex-col gap-0.5">
@@ -453,7 +449,7 @@ export default function ReportsTab({ onToast }: Props) {
                             {formatWaiting(report.createdAt, i18n.language, t)}
                           </span>
                           {report.resolvedAt && (
-                            <span className="text-[11px] text-white/40">
+                            <span className="text-[11px] text-white/50">
                               {t('admin.reports.resolved_at', {
                                 date: formatDay(
                                   report.resolvedAt,
@@ -486,7 +482,7 @@ export default function ReportsTab({ onToast }: Props) {
                                 alt=""
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/25">
+                              <div className="w-full h-full flex items-center justify-center text-white/50">
                                 <Ghost size={16} />
                               </div>
                             )}
@@ -789,7 +785,7 @@ export default function ReportsTab({ onToast }: Props) {
                           </div>
                         )}
                         <div className="text-center space-y-1">
-                          <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">
+                          <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">
                             {selectedReport.targetType === 'USER'
                               ? t('admin.reports.target_user')
                               : t('admin.reports.target_message')}
@@ -816,7 +812,7 @@ export default function ReportsTab({ onToast }: Props) {
                               alt={t('common.alt.reported')}
                             />
                           ) : (
-                            <div className="text-white/30 flex flex-col items-center">
+                            <div className="text-white/50 flex flex-col items-center">
                               <Ghost size={48} className="mb-4" />
                               <p className="text-sm font-semibold">
                                 {t('admin.reports.no_preview')}
@@ -836,7 +832,7 @@ export default function ReportsTab({ onToast }: Props) {
                   <div className="w-full lg:w-1/2">
                     <dl className="text-sm">
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                        <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
                           {t('admin.reports.reason_label')}
                         </dt>
                         <dd className="text-red-400 font-semibold text-right">
@@ -846,7 +842,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </dd>
                       </div>
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                        <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
                           {t('admin.reports.reported_by_label')}
                         </dt>
                         <dd className="text-white font-semibold text-right">
@@ -867,7 +863,7 @@ export default function ReportsTab({ onToast }: Props) {
                       </div>
                       {selectedReport.details && (
                         <div className="py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-white/40 mb-1.5">
+                          <dt className="text-xs font-medium text-white/50 mb-1.5">
                             {t('admin.reports.details_label')}
                           </dt>
                           <dd className="text-sm text-white/70 whitespace-pre-wrap">
@@ -879,7 +875,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </div>
                       )}
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-white/40">
+                        <dt className="text-xs font-medium text-white/50">
                           {t('admin.reports.status_label')}
                         </dt>
                         <dd>
@@ -902,7 +898,7 @@ export default function ReportsTab({ onToast }: Props) {
                         selectedReport.assignedAdmin?.email ||
                         selectedReport.assignedAdminId) && (
                         <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                          <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
                             {t('admin.reports.assigned_label')}
                           </dt>
                           <dd className="text-white font-semibold text-right">
@@ -914,7 +910,7 @@ export default function ReportsTab({ onToast }: Props) {
                       )}
                       {selectedReport.resolvedAt && (
                         <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                          <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                          <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
                             {t('admin.reports.resolved_label')}
                           </dt>
                           <dd className="text-white/70 text-right">
@@ -926,7 +922,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </div>
                       )}
                       <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+                        <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
                           {t('admin.reports.reference_label')}
                         </dt>
                         <dd className="text-xs text-white/60 text-right break-all">
@@ -934,7 +930,7 @@ export default function ReportsTab({ onToast }: Props) {
                         </dd>
                       </div>
                       <div className="py-2.5">
-                        <dt className="text-xs font-medium text-white/40 mb-1.5">
+                        <dt className="text-xs font-medium text-white/50 mb-1.5">
                           {t('admin.reports.internal_notes_label')}
                         </dt>
                         <dd>
@@ -946,7 +942,7 @@ export default function ReportsTab({ onToast }: Props) {
                             placeholder={t(
                               'admin.reports.internal_notes_placeholder',
                             )}
-                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 placeholder:text-white/30 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-20"
+                            className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 placeholder:text-white/50 focus:outline-none focus:ring-1 focus:ring-brand-primary/50 resize-y min-h-20"
                           />
                           <Button
                             onClick={() =>

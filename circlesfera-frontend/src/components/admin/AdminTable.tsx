@@ -41,7 +41,7 @@ export function Table({
                 <th
                   key={typeof h === 'string' ? h : idx}
                   className={clsx(
-                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/40 whitespace-nowrap',
+                    'px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider text-white/50 whitespace-nowrap',
                     columnWidths?.[idx],
                   )}
                 >
@@ -107,7 +107,7 @@ const STATUS_STYLES: Record<
     icon: CheckCircle,
   },
   dismissed: {
-    className: 'text-white/45 bg-white/5 border-white/10',
+    className: 'text-white/50 bg-white/5 border-white/10',
     icon: CheckCircle,
   },
   active: {
@@ -231,7 +231,7 @@ export function Pagination({ meta, onPageChange }: PaginationProps) {
 
   return (
     <div className="mt-2 px-1 sm:px-2 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t border-white/5">
-      <p className="text-xs text-white/40">
+      <p className="text-xs text-white/50">
         {t('admin.table.pagination_from_to', {
           from: (meta.page - 1) * meta.limit + 1,
           to: Math.min(meta.page * meta.limit, meta.total),
@@ -341,7 +341,7 @@ export function SearchInput({
       icon={
         <svg
           aria-hidden="true"
-          className="text-white/40 w-5 h-5"
+          className="text-white/50 w-5 h-5"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"

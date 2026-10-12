@@ -108,7 +108,7 @@ export default function StoriesTab({ onToast }: Props) {
 
   const expiryBadge = (expired: boolean) =>
     expired ? (
-      <span className="text-white/40 text-xs font-semibold flex items-center gap-1">
+      <span className="text-white/50 text-xs font-semibold flex items-center gap-1">
         <Clock size={10} /> {t('admin.stories.status_expired')}
       </span>
     ) : (

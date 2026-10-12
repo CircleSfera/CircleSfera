@@ -228,7 +228,7 @@ export default function SpamReviewTab() {
               </div>
 
               <div>
-                <h4 className="text-xs font-medium text-white/40 mb-1.5">
+                <h4 className="text-xs font-medium text-white/50 mb-1.5">
                   {t('admin.spam_review.signals_label')}
                 </h4>
                 <ul className="text-sm text-white/80 divide-y divide-white/5 border-y border-white/5">

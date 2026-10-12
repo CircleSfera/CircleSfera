@@ -2435,7 +2435,8 @@
       "permanent_delete_note": "Permanently removed by moderation",
       "note_batch_approved": "Batch approved",
       "note_batch_hidden": "Batch hidden",
-      "note_false_positive": "Approved (false positive)"
+      "note_false_positive": "Approved (false positive)",
+      "select_item": "Select this item"
     },
     "reports": {
       "title": "Reports",
@@ -3865,7 +3866,8 @@
         "SUSPENDED": "Only the profile @{{username}} is suspended for 7 days. Their other profiles are not affected.",
         "BANNED": "Only the profile @{{username}} is banned. Their other profiles are not affected. They can appeal."
       }
-    }
+    },
+    "skip_to_content": "Skip to the section"
   },
   "collections": {
     "new_collection": "New Collection",

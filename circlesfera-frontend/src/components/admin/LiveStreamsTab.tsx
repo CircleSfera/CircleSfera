@@ -134,11 +134,7 @@ export default function LiveStreamsTab() {
                   <AdminListRow
                     key={stream.id}
                     onClick={() => setSelectedStream(stream)}
-                    className={
-                      selectedStream?.id === stream.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
+                    selected={selectedStream?.id === stream.id}
                     title={stream.title || t('admin.shared.unknown')}
                     subtitle={`@${stream.host?.profile?.username || t('admin.shared.unknown')}`}
                     avatar={

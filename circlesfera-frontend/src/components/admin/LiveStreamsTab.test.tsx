@@ -70,7 +70,7 @@ function show(entry = '/live', lng: 'en' | 'es' = 'en') {
 const rowOf = (title: string) =>
   screen
     .getAllByText(title)
-    .map((el) => el.closest('[role="button"]'))
+    .map((el) => el.closest('[data-admin-row]'))
     .find(Boolean) as HTMLElement;
 const kpi = (title: string) =>
   screen.getByText(title).parentElement as HTMLElement;

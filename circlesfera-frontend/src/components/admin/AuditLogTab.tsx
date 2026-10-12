@@ -65,7 +65,7 @@ const ACTION_COLORS: Record<string, string> = {
 function MetaRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
-      <dt className="text-xs font-medium text-white/40 shrink-0">{label}</dt>
+      <dt className="text-xs font-medium text-white/50 shrink-0">{label}</dt>
       <dd className="text-sm text-white text-right min-w-0 break-all">
         {value}
       </dd>
@@ -173,11 +173,6 @@ export default function AuditLogTab() {
                     key={log.id}
                     selected={selectedId === log.id}
                     onClick={() => setSelectedId(log.id)}
-                    className={
-                      selectedId === log.id
-                        ? 'border-brand-primary/30 bg-brand-primary/10'
-                        : undefined
-                    }
                     title={
                       <span
                         className={`inline-flex items-center gap-1.5 ${ACTION_COLORS[log.action] || 'text-white/70'}`}
@@ -222,7 +217,7 @@ export default function AuditLogTab() {
                 >
                   {formatActionLabel(selected.action)}
                 </p>
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-white/50 mt-1">
                   {formatDateTime(selected.createdAt, i18n.language)}
                 </p>
               </div>
@@ -249,7 +244,7 @@ export default function AuditLogTab() {
               </dl>
               {selected.details && (
                 <div>
-                  <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
+                  <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">
                     {t('admin.audit.col_details')}
                   </p>
                   <pre className="text-xs text-white/70 whitespace-pre-wrap break-all bg-white/3 border border-white/5 rounded-lg p-3 font-mono leading-relaxed">

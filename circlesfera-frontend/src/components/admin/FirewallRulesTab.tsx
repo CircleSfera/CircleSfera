@@ -221,7 +221,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="ruleKeyword"
-                      className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                      className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                     >
                       {t('admin.firewall.label_keyword')}
                     </label>
@@ -237,7 +237,7 @@ export default function FirewallRulesTab({ onToast, views }: Props) {
                   <div className="space-y-1.5">
                     <label
                       htmlFor="ruleAction"
-                      className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                      className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                     >
                       {t('admin.firewall.label_action')}
                     </label>

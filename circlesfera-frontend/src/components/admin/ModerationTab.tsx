@@ -317,11 +317,7 @@ export default function ModerationTab({ onToast }: Props) {
                     <AdminListRow
                       key={key}
                       onClick={() => setSelectedItemKey(key)}
-                      className={
-                        selectedItemKey === key
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedItemKey === key}
                       title={item.caption || t('admin.shared.no_text')}
                       subtitle={`@${item.user?.profile?.username || '—'}`}
                       meta={
@@ -345,6 +341,7 @@ export default function ModerationTab({ onToast }: Props) {
                             checked={selectedKeys.has(key)}
                             onChange={(e) => toggleSelect(key, e)}
                             onClick={(e) => e.stopPropagation()}
+                            aria-label={t('admin.moderation.select_item')}
                           />
                           <div className="w-12 h-12 rounded-lg bg-white/5 overflow-hidden shrink-0">
                             {item.media?.[0]?.url ? (
@@ -357,7 +354,7 @@ export default function ModerationTab({ onToast }: Props) {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/25">
+                              <div className="w-full h-full flex items-center justify-center text-white/50">
                                 <Ghost size={16} />
                               </div>
                             )}
@@ -388,8 +385,8 @@ export default function ModerationTab({ onToast }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex flex-col h-full"
               >
-                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
-                  <div className="flex items-center gap-3">
+                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={selectedItem.user?.profile?.avatar || undefined}
                       alt={selectedItem.user?.profile?.username || 'User'}
@@ -405,7 +402,7 @@ export default function ModerationTab({ onToast }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full sm:w-auto">
                     <Button
                       onClick={() =>
                         moderationMutation.mutate({
@@ -488,7 +485,7 @@ export default function ModerationTab({ onToast }: Props) {
                           {selectedItem.caption}
                         </p>
                       ) : (
-                        <p className="text-white/40 text-sm italic">
+                        <p className="text-white/50 text-sm italic">
                           {t('admin.shared.no_text')}
                         </p>
                       )}

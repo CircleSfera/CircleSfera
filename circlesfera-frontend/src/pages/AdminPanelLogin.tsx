@@ -272,7 +272,7 @@ export default function AdminPanelLogin() {
                 onChange={(e) =>
                   setCode(e.target.value.replace(/\D/g, '').slice(0, 6))
                 }
-                className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base tracking-[0.5em] font-mono text-center shadow-[0_0_15px_rgba(255,255,255,0.02)]"
+                className="w-full min-h-12 px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg focus:bg-white/10 focus:border-brand-primary/50 transition-all text-white placeholder-gray-600 outline-none text-base tracking-[0.5em] font-mono text-center shadow-[0_0_15px_rgba(255,255,255,0.02)]"
                 placeholder="000000"
               />
               <p className="text-xs text-gray-500 mt-2 text-center">
@@ -303,7 +303,7 @@ export default function AdminPanelLogin() {
                 setCode('');
                 setError(null);
               }}
-              className="w-full text-xs text-gray-500 hover:text-white transition-colors uppercase tracking-wide font-bold pt-1"
+              className="w-full min-h-11 text-xs text-gray-400 hover:text-white transition-colors uppercase tracking-wide font-bold"
             >
               {t('adminPanel.login.back')}
             </button>

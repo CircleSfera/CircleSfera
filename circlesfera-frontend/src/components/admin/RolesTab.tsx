@@ -401,7 +401,7 @@ export default function RolesTab({ onToast }: Props) {
                     subtitle={op.email}
                     badge={<StatusBadge status={op.status.toLowerCase()} />}
                     meta={
-                      <span className="text-[11px] text-white/40 truncate">
+                      <span className="text-[11px] text-white/50 truncate">
                         {op.roles
                           .map((r) =>
                             t(`admin.operators.role_names.${r.name}`, {
@@ -434,7 +434,7 @@ export default function RolesTab({ onToast }: Props) {
                         {selected.displayName}
                       </h3>
                       <p className="text-sm text-white/50">{selected.email}</p>
-                      <p className="text-xs text-white/40">
+                      <p className="text-xs text-white/50">
                         {t('admin.operators.reference', {
                           reference: selected.id.slice(0, 8),
                         })}
@@ -442,7 +442,7 @@ export default function RolesTab({ onToast }: Props) {
                     </div>
                     <StatusBadge status={selected.status.toLowerCase()} />
                   </div>
-                  <p className="text-xs text-white/40 flex items-center gap-1.5">
+                  <p className="text-xs text-white/50 flex items-center gap-1.5">
                     {selected.totpEnabled ? (
                       <>
                         <ShieldCheck size={14} className="text-emerald-400" />
@@ -458,7 +458,7 @@ export default function RolesTab({ onToast }: Props) {
                 </div>
 
                 <div className="py-4 space-y-2.5">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                     {t('admin.operators.roles')}
                   </h4>
                   <RoleChecklist
@@ -469,7 +469,7 @@ export default function RolesTab({ onToast }: Props) {
                 </div>
 
                 <div className="py-4 space-y-2.5">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/40">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-white/50">
                     {t('admin.operators.actions')}
                   </h4>
                   <div className="flex flex-col sm:flex-row flex-wrap gap-2">

@@ -17,7 +17,7 @@ export default function PostDetailPanel({ post }: Props) {
   return (
     <div className="space-y-2.5 sm:space-y-3 pb-4 sm:pb-6 px-0.5">
       <div>
-        <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
+        <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-3">
           {t('admin.posts.preview_drawer_title')}
         </p>
         <div className="flex items-center gap-3 min-w-0">
@@ -26,7 +26,7 @@ export default function PostDetailPanel({ post }: Props) {
             <p className="text-white font-semibold text-sm truncate">
               @{username}
             </p>
-            <p className="text-xs text-white/40">
+            <p className="text-xs text-white/50">
               {formatDateTime(post.createdAt, i18n.language)}
             </p>
           </div>
@@ -74,7 +74,7 @@ export default function PostDetailPanel({ post }: Props) {
           {post.caption}
         </p>
       ) : (
-        <p className="text-sm text-white/40 italic">
+        <p className="text-sm text-white/50 italic">
           {t('admin.posts.no_caption')}
         </p>
       )}
@@ -85,7 +85,7 @@ export default function PostDetailPanel({ post }: Props) {
             <p className="text-lg font-semibold text-white tabular-nums leading-none">
               {post._count.likes}
             </p>
-            <p className="mt-1 text-[11px] font-medium text-white/40 uppercase tracking-wide">
+            <p className="mt-1 text-[11px] font-medium text-white/50 uppercase tracking-wide">
               {t('admin.posts.stat_likes')}
             </p>
           </div>
@@ -93,7 +93,7 @@ export default function PostDetailPanel({ post }: Props) {
             <p className="text-lg font-semibold text-white tabular-nums leading-none">
               {post._count.comments}
             </p>
-            <p className="mt-1 text-[11px] font-medium text-white/40 uppercase tracking-wide">
+            <p className="mt-1 text-[11px] font-medium text-white/50 uppercase tracking-wide">
               {t('admin.posts.stat_comments')}
             </p>
           </div>
@@ -102,7 +102,7 @@ export default function PostDetailPanel({ post }: Props) {
 
       <dl className="text-sm">
         <div className="flex justify-between gap-3 py-2 border-b border-white/5">
-          <dt className="text-white/40">{t('admin.posts.col_type')}</dt>
+          <dt className="text-white/50">{t('admin.posts.col_type')}</dt>
           <dd className="text-white font-medium uppercase text-xs tracking-wide">
             {post.type}
           </dd>

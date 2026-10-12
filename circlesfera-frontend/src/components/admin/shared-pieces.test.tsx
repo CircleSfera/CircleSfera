@@ -55,20 +55,30 @@ describe('AdminListRow', () => {
     expect(container.firstElementChild).not.toHaveAttribute('tabindex');
   });
 
-  it('opens with a press, with Enter and with Space, and says when it is the one selected', () => {
+  it('opens from its title, a real button that says when it is the one selected, and from a press anywhere on the card', () => {
     const onClick = vi.fn();
-    renderWithProviders(
-      <AdminListRow title="Ana" onClick={onClick} selected />,
+    const { container } = renderWithProviders(
+      <AdminListRow
+        title="Ana"
+        subtitle="ana@circlesfera.test"
+        onClick={onClick}
+        selected
+      />,
     );
-    const row = screen.getByRole('button', { name: 'Ana' });
-    expect(row).toHaveAttribute('aria-current', 'true');
+    const title = screen.getByRole('button', { name: 'Ana' });
+    expect(title.tagName).toBe('BUTTON');
+    expect(title).toHaveAttribute('aria-current', 'true');
+    expect(title).toHaveAccessibleDescription('ana@circlesfera.test');
 
-    fireEvent.click(row);
-    fireEvent.keyDown(row, { key: 'Enter' });
-    fireEvent.keyDown(row, { key: ' ' });
-    fireEvent.keyDown(row, { key: 'a' });
+    // The card is not a control itself: no button holds another button.
+    const card = container.querySelector('[data-admin-row]') as HTMLElement;
+    expect(card).not.toHaveAttribute('role');
+    expect(card).not.toHaveAttribute('tabindex');
 
-    expect(onClick).toHaveBeenCalledTimes(3);
+    fireEvent.click(title);
+    expect(onClick).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByText('ana@circlesfera.test'));
+    expect(onClick).toHaveBeenCalledTimes(2);
   });
 
   it('does not open the row when one of its actions is used', () => {
@@ -283,7 +293,7 @@ describe('StatCard', () => {
   it.each([
     [12, '+12%', 'text-emerald-400'],
     [-3, '-3%', 'text-rose-400'],
-    [0, '0%', 'text-white/40'],
+    [0, '0%', 'text-white/50'],
   ])('shows a change of %s as %s', (growth, text, tone) => {
     renderWithProviders(
       <StatCard
@@ -408,7 +418,7 @@ describe('the pieces of a staff table', () => {
     ['BANNED', 'Banned', 'text-red-400'],
     ['Resolved', 'Resolved', 'text-green-400'],
     ['valid', 'Valid', 'text-brand-blue'],
-    ['DISMISSED', 'Dismissed', 'text-white/45'],
+    ['DISMISSED', 'Dismissed', 'text-white/50'],
     // A state with no text of its own is shown as stored.
     ['something else', 'something else', 'text-yellow-400'],
   ])('paints the status "%s" and says it in words', (status, words, tone) => {

@@ -79,7 +79,7 @@ export function AdminSplitView({
               twoPanes ? 'px-3 py-2.5 border-b border-white/5' : 'px-1 pb-2'
             }`}
           >
-            <h3 className="text-[11px] font-semibold text-white/45 uppercase tracking-wide">
+            <h3 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">
               {listTitle}
             </h3>
           </div>

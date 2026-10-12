@@ -453,11 +453,7 @@ export default function Dashboard({ onToast }: Props) {
                     <AdminListRow
                       key={user.id}
                       onClick={() => setSelectedUserId(user.id)}
-                      className={
-                        selectedUserId === user.id
-                          ? 'border-brand-primary/30 bg-brand-primary/10'
-                          : undefined
-                      }
+                      selected={selectedUserId === user.id}
                       title={
                         <span className="inline-flex items-center gap-1">
                           {displayHandle(user)}
