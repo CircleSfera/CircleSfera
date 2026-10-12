@@ -94,11 +94,11 @@ describe('FirewallRulesTab', () => {
     show();
 
     await screen.findByText('word-p1');
-    expect(within(rowOf('word-p1')).getByText('FLAG')).toHaveClass(
+    expect(within(rowOf('word-p1')).getByText('Sends to review')).toHaveClass(
       'text-yellow-400',
     );
-    expect(within(rowOf('word-m1')).getByText('MUTE')).toHaveClass(
-      'text-orange-400',
+    expect(within(rowOf('word-m1')).getByText('Hides from others')).toHaveClass(
+      'text-brand-blue',
     );
     expect(
       within(rowOf('word-p1')).getByText(/^Added on /),
@@ -115,7 +115,7 @@ describe('FirewallRulesTab', () => {
       expect(api.getFirewallRules).toHaveBeenLastCalledWith(1, 20, 'casino'),
     );
     expect(
-      within(await waitFor(() => rowOf('word-found'))).getByText('BLOCK'),
+      within(await waitFor(() => rowOf('word-found'))).getByText('Blocks'),
     ).toHaveClass('text-red-400');
   });
 
@@ -123,9 +123,11 @@ describe('FirewallRulesTab', () => {
     show();
     await screen.findByText('No static rules');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
     const form = detail();
-    expect(within(form).getByText('New rule')).toBeInTheDocument();
+    expect(
+      within(form).getByRole('heading', { name: 'New rule' }),
+    ).toBeInTheDocument();
     const save = within(form).getByRole('button', { name: 'Save rule' });
     expect(save).toBeDisabled();
     fireEvent.change(
@@ -155,7 +157,9 @@ describe('FirewallRulesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Rule added', 'success'),
     );
-    expect(screen.queryByText('New rule')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'New rule' }),
+    ).not.toBeInTheDocument();
     expect(api.getFirewallRules).toHaveBeenCalledTimes(2);
   });
 
@@ -163,16 +167,18 @@ describe('FirewallRulesTab', () => {
     show();
     await screen.findByText('No static rules');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
     fireEvent.change(
       within(detail()).getByRole('textbox', { name: 'Keyword or phrase' }),
       { target: { value: 'half typed' } },
     );
     fireEvent.click(within(detail()).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByText('New rule')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'New rule' }),
+    ).not.toBeInTheDocument();
     expect(api.createFirewallRule).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
     expect(
       within(detail()).getByRole('textbox', { name: 'Keyword or phrase' }),
     ).toHaveValue('');
@@ -182,7 +188,7 @@ describe('FirewallRulesTab', () => {
     api.createFirewallRule.mockRejectedValue(new Error('no'));
     show();
     await screen.findByText('No static rules');
-    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
     fireEvent.change(
       within(detail()).getByRole('textbox', { name: 'Keyword or phrase' }),
       { target: { value: 'word' } },
@@ -207,18 +213,18 @@ describe('FirewallRulesTab', () => {
 
     fireEvent.click(rowOf('word-a'));
     const open = detail();
-    expect(within(open).getByText('Rule details')).toBeInTheDocument();
     expect(
-      within(open).getByText('Intercepted keyword').nextElementSibling,
-    ).toHaveTextContent('word-a');
-    expect(
-      within(open).getByRole('button', {
-        name: 'FLAG - send to the review queue',
-      }),
-    ).toBeDisabled();
+      within(open).getByRole('heading', { name: 'word-a' }),
+    ).toBeInTheDocument();
+    const sends = within(open).getByRole('button', {
+      name: 'Send to the review queue',
+    });
+    expect(sends).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(sends);
+    expect(api.updateFirewallRule).not.toHaveBeenCalled();
 
     fireEvent.click(
-      within(open).getByRole('button', { name: 'BLOCK - refuse publication' }),
+      within(open).getByRole('button', { name: 'Refuse the publication' }),
     );
     await waitFor(() =>
       expect(api.updateFirewallRule).toHaveBeenCalledWith('a', {
@@ -231,7 +237,7 @@ describe('FirewallRulesTab', () => {
 
     fireEvent.click(
       within(open).getByRole('button', {
-        name: 'MUTE - hide the content from others',
+        name: 'Publish, hidden from others',
       }),
     );
     await waitFor(() =>
@@ -241,15 +247,45 @@ describe('FirewallRulesTab', () => {
     );
   });
 
+  it('says a rule is off in its row and switches it on and off from its record', async () => {
+    api.getFirewallRules.mockResolvedValue(
+      list([rule('on'), rule('off', { isActive: false })]) as never,
+    );
+    show();
+    await screen.findByText('word-on');
+
+    expect(rowOf('word-off')).toHaveTextContent(/^.*Off · Added on /);
+    expect(rowOf('word-on')).not.toHaveTextContent('Off ·');
+
+    fireEvent.click(rowOf('word-off'));
+    expect(
+      within(detail()).getByText('The rule is kept but not applied.'),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(detail()).getByRole('button', { name: 'Switch on' }),
+    );
+    await waitFor(() =>
+      expect(api.updateFirewallRule).toHaveBeenCalledWith('off', {
+        isActive: true,
+      }),
+    );
+
+    fireEvent.click(rowOf('word-on'));
+    fireEvent.click(
+      within(detail()).getByRole('button', { name: 'Switch off' }),
+    );
+    await waitFor(() =>
+      expect(api.updateFirewallRule).toHaveBeenLastCalledWith('on', {
+        isActive: false,
+      }),
+    );
+  });
+
   it.each([
-    ['BLOCK', 'BLOCK - refuse publication', 'FLAG - send to the review queue'],
-    [
-      'MUTE',
-      'MUTE - hide the content from others',
-      'FLAG - send to the review queue',
-    ],
+    ['BLOCK', 'Refuse the publication', 'Send to the review queue'],
+    ['MUTE', 'Publish, hidden from others', 'Send to the review queue'],
   ])(
-    'holds the %s button on a rule that already does that',
+    'marks the %s choice on a rule that already does that',
     async (action, held, free) => {
       api.updateFirewallRule.mockRejectedValue(new Error('no'));
       api.getFirewallRules.mockResolvedValue(
@@ -261,7 +297,7 @@ describe('FirewallRulesTab', () => {
 
       expect(
         within(detail()).getByRole('button', { name: held }),
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-pressed', 'true');
       fireEvent.click(within(detail()).getByRole('button', { name: free }));
 
       await waitFor(() =>
@@ -281,9 +317,7 @@ describe('FirewallRulesTab', () => {
 
     fireEvent.click(within(detail()).getByRole('button', { name: 'Delete' }));
     let dialog = await screen.findByRole('dialog');
-    expect(
-      within(dialog).getByText('Delete firewall rule?'),
-    ).toBeInTheDocument();
+    expect(within(dialog).getByText('Delete this rule?')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
@@ -300,7 +334,9 @@ describe('FirewallRulesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Rule deleted', 'success'),
     );
-    expect(screen.queryByText('Rule details')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'word-a' }),
+    ).not.toBeInTheDocument();
   });
 
   it('says so when a rule cannot be deleted', async () => {
@@ -320,7 +356,9 @@ describe('FirewallRulesTab', () => {
     await waitFor(() =>
       expect(onToast).toHaveBeenCalledWith('Error deleting rule', 'error'),
     );
-    expect(within(detail()).getByText('Rule details')).toBeInTheDocument();
+    expect(
+      within(detail()).getByRole('heading', { name: 'word-a' }),
+    ).toBeInTheDocument();
   });
 
   it('goes back to the list from an open rule, by button or Escape', async () => {
@@ -330,12 +368,16 @@ describe('FirewallRulesTab', () => {
 
     fireEvent.click(rowOf('word-a'));
     fireEvent.click(within(detail()).getByRole('button', { name: 'Back' }));
-    expect(screen.queryByText('Rule details')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'word-a' }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(rowOf('word-a'));
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() =>
-      expect(screen.queryByText('Rule details')).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('heading', { name: 'word-a' }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -344,22 +386,22 @@ describe('FirewallRulesTab', () => {
     const { unmount } = show('en');
     await screen.findByText('word-a');
     fireEvent.click(rowOf('word-a'));
-    for (const text of ['Current action', 'Created on', 'Change action']) {
+    for (const text of ['What it does', 'State', 'Switch off']) {
       expect(within(detail()).getByText(text)).toBeInTheDocument();
     }
-    expect(detail()).not.toHaveTextContent(/Acción|Palabra|Creado/);
+    expect(detail()).not.toHaveTextContent(/Qué hace|Estado|Desactivar/);
     unmount();
 
     show('es');
     await screen.findByText('word-a');
-    fireEvent.click(screen.getByRole('button', { name: 'Añadir' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Nueva regla' }));
     const form = screen.getByRole('region', { name: 'Detalle' });
     expect(
       within(form).getByRole('textbox', { name: 'Palabra clave o frase' }),
     ).toBeInTheDocument();
     expect(
       within(form).getByRole('option', {
-        name: 'BLOCK (prohibir la publicación inmediatamente)',
+        name: 'Rechazar la publicación',
       }),
     ).toBeInTheDocument();
   });
@@ -385,16 +427,16 @@ describe('FirewallSignaturesTab', () => {
   it('says there are no signatures and offers to add the first', async () => {
     show();
 
-    expect(
-      await screen.findByText('No active vector rules'),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No signatures')).toBeInTheDocument();
     expect(api.getFirewallSignatures).toHaveBeenCalledWith(1, 20);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add rule' }));
-    expect(within(detail()).getByText('Add vector rule')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Add signature' }));
+    expect(
+      within(detail()).getByRole('heading', { name: 'New signature' }),
+    ).toBeInTheDocument();
   });
 
-  it('lists each signature with its text, category and short id, and pages', async () => {
+  it('lists each signature with its text and its category in words, and pages', async () => {
     api.getFirewallSignatures.mockImplementation((pageNumber = 1) =>
       Promise.resolve(
         list(
@@ -416,14 +458,11 @@ describe('FirewallSignaturesTab', () => {
 
     await screen.findByText('Preview p1');
     const first = rowOf('Preview p1');
-    expect(within(first).getByText('SPAM')).toBeInTheDocument();
-    expect(within(first).getByText('ID: p1...')).toBeInTheDocument();
-    expect(within(rowOf('Full text 1')).getByText('HATE')).toBeInTheDocument();
-    expect(
-      within(rowOf('ID: n1...')).getByText(
-        'Auto-generated vector (no preview)',
-      ),
-    ).toBeInTheDocument();
+    expect(within(first).getByText('Spam')).toBeInTheDocument();
+    expect(within(first).getByText(/^Added on /)).toBeInTheDocument();
+    expect(first).not.toHaveTextContent('p1-0000');
+    expect(within(rowOf('Full text 1')).getByText('Hate')).toBeInTheDocument();
+    expect(rowOf('Signature with no stored text')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next page' }));
     expect(await screen.findByText('Preview p2')).toBeInTheDocument();
@@ -432,12 +471,12 @@ describe('FirewallSignaturesTab', () => {
 
   it('adds a signature with its text trimmed and the chosen category', async () => {
     show();
-    await screen.findByText('No active vector rules');
+    await screen.findByText('No signatures');
 
-    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New signature' }));
     const form = detail();
     const submit = within(form).getByRole('button', {
-      name: 'Generate vector',
+      name: 'Create signature',
     });
     expect(submit).toBeDisabled();
     fireEvent.change(
@@ -461,40 +500,46 @@ describe('FirewallSignaturesTab', () => {
       ),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith(
-        'Vector rule added successfully',
-        'success',
-      ),
+      expect(onToast).toHaveBeenCalledWith('Signature added', 'success'),
     );
-    expect(screen.queryByText('Add vector rule')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'New signature' }),
+    ).not.toBeInTheDocument();
     expect(api.getFirewallSignatures).toHaveBeenCalledTimes(2);
   });
 
   it('cancels a new signature, and says so when one cannot be added', async () => {
     api.addFirewallSignature.mockRejectedValue(new Error('no'));
     show();
-    await screen.findByText('No active vector rules');
+    await screen.findByText('No signatures');
 
-    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New signature' }));
     fireEvent.change(
       within(detail()).getByRole('textbox', { name: 'Source text' }),
       { target: { value: 'half' } },
     );
     fireEvent.click(within(detail()).getByRole('button', { name: 'Cancel' }));
-    expect(screen.queryByText('Add vector rule')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'New signature' }),
+    ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'New rule' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New signature' }));
     const text = within(detail()).getByRole('textbox', { name: 'Source text' });
     expect(text).toHaveValue('');
     fireEvent.change(text, { target: { value: 'again' } });
     fireEvent.click(
-      within(detail()).getByRole('button', { name: 'Generate vector' }),
+      within(detail()).getByRole('button', { name: 'Create signature' }),
     );
 
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to add rule', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'The signature could not be added',
+        'error',
+      ),
     );
-    expect(within(detail()).getByText('Add vector rule')).toBeInTheDocument();
+    expect(
+      within(detail()).getByRole('heading', { name: 'New signature' }),
+    ).toBeInTheDocument();
   });
 
   it('opens a signature with its whole id and deletes it after confirming', async () => {
@@ -504,29 +549,28 @@ describe('FirewallSignaturesTab', () => {
     show();
     await screen.findByText('Preview a');
 
-    fireEvent.click(rowOf('ID: n...'));
+    fireEvent.click(rowOf('Signature with no stored text'));
     expect(
-      within(detail()).getByText('Auto-generated vector (no preview)'),
+      within(detail()).getByText('Signature with no stored text'),
     ).toBeInTheDocument();
 
     fireEvent.click(rowOf('Preview a'));
     const open = detail();
     expect(within(open).getByText('a-0000-1111')).toBeInTheDocument();
-    expect(within(open).getByText('SPAM')).toBeInTheDocument();
+    expect(within(open).getByText('Spam')).toBeInTheDocument();
 
     fireEvent.click(within(open).getByRole('button', { name: 'Delete' }));
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByText('Delete vector rule')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Delete this signature?'),
+    ).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
 
     await waitFor(() =>
       expect(api.deleteFirewallSignature).toHaveBeenCalledWith('a-0000-1111'),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith(
-        'Rule deleted successfully',
-        'success',
-      ),
+      expect(onToast).toHaveBeenCalledWith('Signature deleted', 'success'),
     );
     expect(screen.queryByText('a-0000-1111')).not.toBeInTheDocument();
   });
@@ -540,8 +584,9 @@ describe('FirewallSignaturesTab', () => {
     await screen.findByText('Preview a');
 
     fireEvent.click(
-      within(rowOf('Preview a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Preview a')).getByRole('button', { name: 'More actions' }),
     );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(screen.queryByText('a-0000-1111')).not.toBeInTheDocument();
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
@@ -554,15 +599,19 @@ describe('FirewallSignaturesTab', () => {
     expect(api.deleteFirewallSignature).not.toHaveBeenCalled();
 
     fireEvent.click(
-      within(rowOf('Preview a')).getByRole('button', { name: 'Delete' }),
+      within(rowOf('Preview a')).getByRole('button', { name: 'More actions' }),
     );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     fireEvent.click(
       within(await screen.findByRole('dialog')).getByRole('button', {
         name: 'Delete',
       }),
     );
     await waitFor(() =>
-      expect(onToast).toHaveBeenCalledWith('Failed to delete rule', 'error'),
+      expect(onToast).toHaveBeenCalledWith(
+        'The signature could not be deleted',
+        'error',
+      ),
     );
     expect(screen.getByText('Preview a')).toBeInTheDocument();
   });
