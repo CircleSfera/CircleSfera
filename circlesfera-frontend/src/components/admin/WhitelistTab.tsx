@@ -187,7 +187,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-name"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.whitelist.label_name')}
                   </label>
@@ -203,7 +203,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-email"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.whitelist.label_email')}
                   </label>
@@ -220,7 +220,7 @@ export default function WhitelistTab() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="whitelist-status"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.whitelist.label_status')}
                   </label>

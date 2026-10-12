@@ -171,7 +171,7 @@ export default function PlansTab({ onToast }: Props) {
                       ),
                     })}`}
                 </p>
-                <p className="mt-1 text-xs text-white/45">
+                <p className="mt-1 text-xs text-white/50">
                   {t('admin.plans.price_note')}
                 </p>
               </div>

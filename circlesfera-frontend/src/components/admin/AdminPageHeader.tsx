@@ -26,7 +26,7 @@ export function AdminPageHeader({
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs text-white/45 mt-1 leading-snug line-clamp-2 sm:line-clamp-none">
+          <p className="text-xs text-white/50 mt-1 leading-snug line-clamp-2 sm:line-clamp-none">
             {subtitle}
           </p>
         )}

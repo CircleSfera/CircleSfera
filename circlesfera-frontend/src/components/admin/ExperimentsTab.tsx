@@ -507,7 +507,7 @@ export default function ExperimentsTab() {
                               <p className="text-sm font-semibold text-white truncate">
                                 {flag.name}
                               </p>
-                              <p className="text-xs font-mono text-white/40 truncate">
+                              <p className="text-xs font-mono text-white/50 truncate">
                                 {flag.key}
                               </p>
                               {flag.description && (
@@ -522,7 +522,7 @@ export default function ExperimentsTab() {
                             />
                           </div>
 
-                          <div className="flex items-center gap-x-3 gap-y-1 text-xs text-white/40 flex-wrap">
+                          <div className="flex items-center gap-x-3 gap-y-1 text-xs text-white/50 flex-wrap">
                             <span className="inline-flex items-center gap-1">
                               <Clock size={12} />
                               {t('admin.experiments.created_at')}{' '}

@@ -43,7 +43,7 @@ export function AdminKpiWidget({
                 {trend.value >= 0 ? '+' : ''}
                 {trend.value}%
               </span>
-              <span className="text-white/40">{trend.label}</span>
+              <span className="text-white/50">{trend.label}</span>
             </p>
           )}
         </div>

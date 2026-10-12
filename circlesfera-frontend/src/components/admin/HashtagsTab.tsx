@@ -94,7 +94,7 @@ export default function HashtagsTab() {
                 key={tag.id}
                 className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
               >
-                <td className="px-2 py-1 text-white/30 text-sm font-semibold">
+                <td className="px-2 py-1 text-white/50 text-sm font-semibold">
                   {(page - 1) * 20 + i + 1}
                 </td>
                 <td className="px-2 py-1">
@@ -113,7 +113,7 @@ export default function HashtagsTab() {
                     {tag.postCount}
                   </span>
                 </td>
-                <td className="px-2 py-1 text-white/40 text-sm whitespace-nowrap hidden lg:table-cell">
+                <td className="px-2 py-1 text-white/50 text-sm whitespace-nowrap hidden lg:table-cell">
                   {formatDay(tag.createdAt, i18n.language)}
                 </td>
               </tr>

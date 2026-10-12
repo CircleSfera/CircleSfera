@@ -348,7 +348,7 @@ export default function MonetizationTab() {
                 ? `${analytics.subscriptionGrowth > 0 ? '+' : ''}${analytics.subscriptionGrowth}%`
                 : '—'}
             </p>
-            <p className="text-[10px] text-white/40 mt-0.5">
+            <p className="text-[10px] text-white/50 mt-0.5">
               {t('admin.monetization.growth_period')}
             </p>
           </div>
@@ -446,7 +446,7 @@ export default function MonetizationTab() {
                   key={tx.id}
                   className="hover:bg-white/[0.07] transition-colors border-b border-white/5 last:border-0"
                 >
-                  <td className="px-2 py-1 text-white/40 text-sm whitespace-nowrap hidden lg:table-cell">
+                  <td className="px-2 py-1 text-white/50 text-sm whitespace-nowrap hidden lg:table-cell">
                     {formatDateTime(tx.createdAt, i18n.language)}
                   </td>
                   <td className="px-2 py-1">

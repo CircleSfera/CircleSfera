@@ -131,7 +131,7 @@ export default function SettingsTab({ onToast }: Props) {
                       className="text-sm text-white/80 font-medium"
                     >
                       {t(`admin.settings.keys.${setting.key}`, setting.key)}
-                      <span className="block text-xs text-white/40 font-normal mt-0.5">
+                      <span className="block text-xs text-white/50 font-normal mt-0.5">
                         {t(
                           `admin.settings.descriptions.${setting.key}`,
                           setting.description || '',

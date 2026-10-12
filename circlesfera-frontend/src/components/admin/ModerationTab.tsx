@@ -354,7 +354,7 @@ export default function ModerationTab({ onToast }: Props) {
                                 className="w-full h-full object-cover"
                               />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center text-white/25">
+                              <div className="w-full h-full flex items-center justify-center text-white/50">
                                 <Ghost size={16} />
                               </div>
                             )}
@@ -485,7 +485,7 @@ export default function ModerationTab({ onToast }: Props) {
                           {selectedItem.caption}
                         </p>
                       ) : (
-                        <p className="text-white/40 text-sm italic">
+                        <p className="text-white/50 text-sm italic">
                           {t('admin.shared.no_text')}
                         </p>
                       )}

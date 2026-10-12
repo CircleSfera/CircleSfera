@@ -177,7 +177,7 @@ export default function StatCard({
                 'flex items-center gap-1 mt-0.5 sm:mt-1 text-[10px] sm:text-xs font-bold',
                 growth > 0 && 'text-emerald-400',
                 growth < 0 && 'text-rose-400',
-                growth === 0 && 'text-white/40',
+                growth === 0 && 'text-white/50',
               )}
             >
               {growth > 0 && <TrendingUp size={11} />}
@@ -190,7 +190,7 @@ export default function StatCard({
             </div>
           )}
           {subtitle && (
-            <p className="text-white/40 text-[10px] sm:text-xs mt-0.5 line-clamp-2">
+            <p className="text-white/50 text-[10px] sm:text-xs mt-0.5 line-clamp-2">
               {subtitle}
             </p>
           )}

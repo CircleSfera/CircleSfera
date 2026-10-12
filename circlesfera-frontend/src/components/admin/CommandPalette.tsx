@@ -185,7 +185,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onListKeyDown}
             placeholder={t('admin.cmd.placeholder')}
-            className="flex-1 min-w-0 min-h-11 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/40 text-base"
+            className="flex-1 min-w-0 min-h-11 bg-transparent border-none text-white focus:ring-0 outline-none placeholder:text-white/50 text-base"
             aria-autocomplete="list"
             aria-controls="admin-cmd-listbox"
             aria-activedescendant={activeId}
@@ -200,7 +200,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
           className="max-h-[60vh] overflow-y-auto p-2"
         >
           {query.length > 0 && results.length === 0 ? (
-            <div className="p-4 text-center text-white/40 text-sm">
+            <div className="p-4 text-center text-white/50 text-sm">
               {t('admin.cmd.no_results', {
                 query,
               })}

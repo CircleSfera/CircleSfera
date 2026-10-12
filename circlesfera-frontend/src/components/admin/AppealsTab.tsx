@@ -295,7 +295,7 @@ function CaseLine({
 }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5">
-      <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+      <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
         {label}
       </dt>
       <dd className="text-white font-semibold text-right">{children}</dd>
@@ -312,7 +312,7 @@ function CaseText({
 }) {
   return (
     <div className="py-2.5 border-b border-white/5">
-      <dt className="text-xs font-medium text-white/40 mb-1.5">{label}</dt>
+      <dt className="text-xs font-medium text-white/50 mb-1.5">{label}</dt>
       <dd className="text-sm text-white/80 whitespace-pre-wrap">{children}</dd>
     </div>
   );

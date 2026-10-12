@@ -38,7 +38,7 @@ interface UserDetailPanelProps {
 function MetaRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-start justify-between gap-3 py-2.5 border-b border-white/5 last:border-b-0">
-      <dt className="text-xs font-medium text-white/40 shrink-0 pt-0.5">
+      <dt className="text-xs font-medium text-white/50 shrink-0 pt-0.5">
         {label}
       </dt>
       <dd className="text-sm text-white text-right min-w-0 break-all">
@@ -57,7 +57,7 @@ function SystemField({
 }) {
   return (
     <div className="min-w-0 space-y-0.5">
-      <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide">
+      <p className="text-[11px] font-medium text-white/50 uppercase tracking-wide">
         {label}
       </p>
       <div className="text-sm text-white">{children}</div>
@@ -202,7 +202,7 @@ export default function UserDetailPanel({
   return (
     <div className="space-y-2.5 sm:space-y-3 pb-4 sm:pb-6 px-0.5">
       <div>
-        <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-3">
+        <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-3">
           {t('admin.user_preview.title')}
         </p>
         {actions && <div className="mb-3 flex flex-wrap gap-2">{actions}</div>}
@@ -322,7 +322,7 @@ export default function UserDetailPanel({
             <p className="text-lg font-semibold text-white tabular-nums leading-none">
               {value}
             </p>
-            <p className="mt-1 text-[11px] font-medium text-white/40 uppercase tracking-wide truncate">
+            <p className="mt-1 text-[11px] font-medium text-white/50 uppercase tracking-wide truncate">
               {t(`admin.user_preview.${key}`)}
             </p>
           </div>
@@ -399,7 +399,7 @@ export default function UserDetailPanel({
 
       {user.profile?.bio && (
         <div>
-          <p className="text-[11px] font-medium text-white/40 uppercase tracking-wide mb-1.5">
+          <p className="text-[11px] font-medium text-white/50 uppercase tracking-wide mb-1.5">
             {t('admin.user_preview.bio_label')}
           </p>
           <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
@@ -412,7 +412,7 @@ export default function UserDetailPanel({
         <h4 className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">
           {t('admin.user_preview.activity_title')}
         </h4>
-        <p className="text-[11px] text-white/40 leading-snug">
+        <p className="text-[11px] text-white/50 leading-snug">
           {t('admin.user_preview.activity_hint')}
         </p>
         <div className="flex flex-wrap gap-1.5">
@@ -513,7 +513,7 @@ export default function UserDetailPanel({
           ))}
         </ul>
         {user.reports.length === 0 && (
-          <p className="text-xs text-white/40 py-1">
+          <p className="text-xs text-white/50 py-1">
             {t('admin.user_preview.no_pending_reports')}
           </p>
         )}
@@ -551,7 +551,7 @@ export default function UserDetailPanel({
                   )}
                 </span>
               </div>
-              <p className="text-white/40">
+              <p className="text-white/50">
                 {formatDay(strike.createdAt, i18n.language)}
                 {' → '}
                 {formatDay(strike.expiresAt, i18n.language)}
@@ -565,7 +565,7 @@ export default function UserDetailPanel({
           ))}
         </ul>
         {(user.strikes ?? []).length === 0 && (
-          <p className="text-xs text-white/40 py-1">
+          <p className="text-xs text-white/50 py-1">
             {t('admin.user_preview.no_strikes')}
           </p>
         )}

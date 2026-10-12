@@ -271,7 +271,7 @@ export function AdminListRow({
                   </div>
                 )}
                 {meta && (
-                  <div className="min-w-0 max-w-full text-white/40 flex flex-wrap gap-x-3 gap-y-1 sm:gap-y-0.5">
+                  <div className="min-w-0 max-w-full text-white/50 flex flex-wrap gap-x-3 gap-y-1 sm:gap-y-0.5">
                     {meta}
                   </div>
                 )}

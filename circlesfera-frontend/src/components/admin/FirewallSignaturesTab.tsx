@@ -93,7 +93,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
   });
 
   const autoPreview = (
-    <span className="text-white/40 italic font-normal">
+    <span className="text-white/50 italic font-normal">
       {t('admin.firewall.auto_vector_preview')}
     </span>
   );
@@ -187,7 +187,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="firewall-text"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.firewall.label_text')}
                   </label>
@@ -203,7 +203,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="firewall-category"
-                    className="text-xs font-semibold uppercase tracking-wide text-white/40 ml-1"
+                    className="text-xs font-semibold uppercase tracking-wide text-white/50 ml-1"
                   >
                     {t('admin.firewall.label_category')}
                   </label>
@@ -258,7 +258,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                 </h3>
                 <p className="text-sm text-white/70 mt-2 wrap-break-word">
                   {getTextPreview(selectedItem) || (
-                    <span className="text-white/40 italic">
+                    <span className="text-white/50 italic">
                       {t('admin.firewall.auto_vector_preview')}
                     </span>
                   )}
@@ -266,7 +266,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
               </div>
               <div className="grid gap-2 sm:gap-3 sm:grid-cols-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
                     {t('admin.firewall.col_category')}
                   </p>
                   <div className="mt-2">
@@ -274,7 +274,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                   </div>
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
                     {t('admin.firewall.col_created')}
                   </p>
                   <p className="text-sm text-white/70 mt-2">
@@ -283,7 +283,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-white/40">
+                <p className="text-xs font-semibold uppercase tracking-wide text-white/50">
                   ID
                 </p>
                 <p className="text-xs text-white/50 font-mono mt-2 break-all">

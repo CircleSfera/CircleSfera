@@ -315,7 +315,7 @@ export default function StatsTab() {
                         {formatAction(log.action)}
                       </span>
                     </p>
-                    <p className="text-white/30 text-xs truncate">
+                    <p className="text-white/50 text-xs truncate">
                       {t(
                         `admin.audit.targets.${log.targetType.toUpperCase()}`,
                         { defaultValue: log.targetType },
@@ -324,7 +324,7 @@ export default function StatsTab() {
                     </p>
                   </div>
                 </div>
-                <span className="text-white/30 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
+                <span className="text-white/50 text-xs sm:whitespace-nowrap ml-11 sm:ml-0">
                   {formatDateTime(log.createdAt, i18n.language)}
                 </span>
               </div>

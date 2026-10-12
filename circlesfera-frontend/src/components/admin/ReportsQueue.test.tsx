@@ -488,7 +488,7 @@ describe('ReportsTab, the rest of the queue', () => {
     await open('3');
     expect(within(line('Reported by')).getByText('@Anonymous')).toBeTruthy();
     expect(within(line('Current status')).getByText('Dismissed')).toHaveClass(
-      'text-white/45',
+      'text-white/50',
     );
     expect(within(detail()).queryByText('Assigned to')).toBeNull();
     expect(within(detail()).queryByText('Additional details')).toBeNull();

@@ -146,7 +146,7 @@ export default function NewsletterTab({
                     <p className="text-white text-xs font-semibold">
                       {t('admin.newsletter.preview_from')}
                     </p>
-                    <p className="text-white/40 text-xs truncate">
+                    <p className="text-white/50 text-xs truncate">
                       {t('admin.newsletter.preview_subject', {
                         subject:
                           formData.subject ||
@@ -175,7 +175,7 @@ export default function NewsletterTab({
                   )}
 
                   <div className="pt-6 sm:pt-10 border-t border-white/5">
-                    <p className="text-xs text-white/30 font-semibold uppercase tracking-wide">
+                    <p className="text-xs text-white/50 font-semibold uppercase tracking-wide">
                       {t('admin.newsletter.preview_footer')}
                     </p>
                   </div>

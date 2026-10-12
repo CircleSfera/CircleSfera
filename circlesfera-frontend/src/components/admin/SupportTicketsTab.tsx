@@ -732,11 +732,11 @@ export default function SupportTicketsTab({ onToast }: Props) {
                 <div className="flex-1 overflow-y-auto custom-scrollbar p-2.5 sm:p-3 space-y-3">
                   <dl className="text-sm">
                     <div className="py-2.5 border-b border-white/5">
-                      <dt className="text-xs font-medium text-white/40 mb-1">
+                      <dt className="text-xs font-medium text-white/50 mb-1">
                         {t('admin.support.email_label')}
                       </dt>
                       <dd className="text-white font-semibold flex items-center gap-2">
-                        <Mail size={14} className="text-white/40 shrink-0" />
+                        <Mail size={14} className="text-white/50 shrink-0" />
                         {selectedTicket.email}
                       </dd>
                       {selectedTicket.user?.profile?.username && (
@@ -746,7 +746,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       )}
                     </div>
                     <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                      <dt className="text-xs font-medium text-white/40">
+                      <dt className="text-xs font-medium text-white/50">
                         {t('admin.support.status_label')}
                       </dt>
                       <dd>
@@ -762,7 +762,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     {detail?.rating && (
                       <div className="py-2.5 border-b border-white/5">
                         <div className="flex items-center justify-between gap-3">
-                          <dt className="text-xs font-medium text-white/40">
+                          <dt className="text-xs font-medium text-white/50">
                             {t('admin.support.rating.label')}
                           </dt>
                           <dd
@@ -784,7 +784,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     )}
                     {targetState(selectedTicket, now) && (
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
-                        <dt className="text-xs font-medium text-white/40">
+                        <dt className="text-xs font-medium text-white/50">
                           {t('admin.support.target.label')}
                         </dt>
                         <dd className="text-sm text-right">
@@ -793,7 +793,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </div>
                     )}
                     <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
-                      <dt className="text-xs font-medium text-white/40">
+                      <dt className="text-xs font-medium text-white/50">
                         {t('admin.support.filter_priority')}
                       </dt>
                       <dd>
@@ -814,7 +814,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </dd>
                     </div>
                     <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
-                      <dt className="text-xs font-medium text-white/40">
+                      <dt className="text-xs font-medium text-white/50">
                         {t('admin.support.assignee')}
                       </dt>
                       <dd className="flex items-center gap-2">
@@ -902,7 +902,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       </dd>
                     </div>
                   </dl>
-                  <p className="text-xs text-white/40">
+                  <p className="text-xs text-white/50">
                     {t('admin.support.created_at', {
                       date: formatDateTime(
                         selectedTicket.createdAt,
@@ -916,7 +916,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                       aria-label={t('admin.support.account.title')}
                       className="rounded-xl border border-white/10 bg-white/3 p-3"
                     >
-                      <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide mb-2">
+                      <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">
                         {t('admin.support.account.title')}
                       </p>
                       <dl className="space-y-1.5 text-sm">
@@ -985,7 +985,7 @@ export default function SupportTicketsTab({ onToast }: Props) {
                     aria-label={t('admin.support.conversation')}
                     className="space-y-2"
                   >
-                    <p className="text-[11px] font-semibold text-white/40 uppercase tracking-wide">
+                    <p className="text-[11px] font-semibold text-white/50 uppercase tracking-wide">
                       {t('admin.support.conversation')}
                     </p>
                     {/* Until the conversation loads, what the requester wrote */}

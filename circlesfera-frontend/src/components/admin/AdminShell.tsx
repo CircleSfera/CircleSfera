@@ -103,7 +103,7 @@ export default function AdminShell({
                   </span>
                 </span>
               </div>
-              <p className="text-[11px] text-white/40 truncate leading-tight">
+              <p className="text-[11px] text-white/50 truncate leading-tight">
                 {activeItem ? t(activeItem.labelKey) : activeTab}
               </p>
             </div>

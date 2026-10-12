@@ -132,7 +132,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                     // The group of the open section cannot be folded away.
                     disabled={holdsOpenSection}
                     onClick={() => toggleGroup(group.labelKey, !isOpen)}
-                    className="w-full min-h-11 px-2.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-white/40 flex items-center gap-1.5 text-left enabled:hover:bg-white/5 enabled:hover:text-white/70"
+                    className="w-full min-h-11 px-2.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-1.5 text-left enabled:hover:bg-white/5 enabled:hover:text-white/70"
                   >
                     {heading}
                     <span className="ml-auto flex items-center gap-1.5">
@@ -151,7 +151,7 @@ export default function AdminSidebar({ activeTab, onTabChange }: Props) {
                   </button>
                 </h3>
               ) : (
-                <h3 className="px-2.5 text-[10px] font-semibold uppercase tracking-wider text-white/40 flex items-center gap-1.5 mb-1.5">
+                <h3 className="px-2.5 text-[10px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-1.5 mb-1.5">
                   {heading}
                 </h3>
               )}

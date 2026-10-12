@@ -184,7 +184,7 @@ describe('UserVerificationTab', () => {
     await screen.findByText('@person_new');
     const fresh = rowOf('@person_new');
     expect(within(fresh).getByText('Not verified')).toHaveClass(
-      'text-white/45',
+      'text-white/50',
     );
     expect(within(fresh).getByText('Mar 10, 2026')).toBeInTheDocument();
     expect(within(fresh).getByText('Personal account')).toBeInTheDocument();
