@@ -135,6 +135,54 @@ describe('AdminSystemController', () => {
     );
   });
 
+  it('trims the phrase of a new rule', async () => {
+    mockService.createFirewallRule.mockResolvedValue({ id: 'rule-1' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/firewall/rules')
+      .set(ADMIN_BEARER)
+      .send({ keyword: '  spamcasino.com ' })
+      .expect(201);
+
+    expect(mockService.createFirewallRule).toHaveBeenCalledWith(
+      TEST_ADMIN.adminId,
+      { keyword: 'spamcasino.com' },
+    );
+  });
+
+  it.each([
+    ['no phrase', { action: 'BLOCK' }],
+    ['a blank phrase', { keyword: '   ' }],
+    ['a phrase of one letter', { keyword: 'a' }],
+    ['a phrase over 200 characters', { keyword: 'x'.repeat(201) }],
+    ['a phrase that is not text', { keyword: 42 }],
+    ['an action that does not exist', { keyword: 'spam', action: 'DELETE' }],
+    ['a state that is not on or off', { keyword: 'spam', isActive: 'yes' }],
+    ['a field that is not of a rule', { keyword: 'spam', createdBy: 'me' }],
+  ])('refuses a new rule with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/firewall/rules')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.createFirewallRule).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['an action that does not exist', { action: 'DELETE' }],
+    ['a state that is not on or off', { isActive: 1 }],
+    ['a new phrase', { keyword: 'other' }],
+  ])('refuses a change to a rule with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .patch('/api/v1/admin/firewall/rules/rule-1')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.updateFirewallRule).not.toHaveBeenCalled();
+  });
+
   it('updates system settings as adminId and unwraps updates', async () => {
     const updates = [{ key: 'maintenance', value: 'false' }];
     mockService.updateSystemSettings.mockResolvedValue({ ok: true });

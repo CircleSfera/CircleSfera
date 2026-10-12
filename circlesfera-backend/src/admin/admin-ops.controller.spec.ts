@@ -74,6 +74,32 @@ describe('AdminOpsController', () => {
     expect(mockService.getFirewallSignatures).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ['no text', { category: 'SPAM' }],
+    ['a blank text', { text: '   ', category: 'SPAM' }],
+    [
+      'a text over 2,000 characters',
+      { text: 'x'.repeat(2001), category: 'SPAM' },
+    ],
+    ['no category', { text: 'Earn free money' }],
+    [
+      'a category that does not exist',
+      { text: 'Earn free money', category: 'FUN' },
+    ],
+    [
+      'a field that is not of a signature',
+      { text: 'Earn', category: 'SPAM', id: '1' },
+    ],
+  ])('refuses a new signature with %s', async (_name, body) => {
+    await request(app.getHttpServer())
+      .post('/api/v1/admin/firewall')
+      .set(ADMIN_BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockService.addFirewallSignature).not.toHaveBeenCalled();
+  });
+
   it('lists firewall signatures and mutates them as adminId', async () => {
     mockService.getFirewallSignatures.mockResolvedValue({ data: [] });
     mockService.addFirewallSignature.mockResolvedValue({ id: 'fw-1' });
@@ -86,7 +112,7 @@ describe('AdminOpsController', () => {
     await request(app.getHttpServer())
       .post('/api/v1/admin/firewall')
       .set(ADMIN_BEARER)
-      .send({ text: 'spam', category: 'SCAM' })
+      .send({ text: '  spam ', category: 'SCAM' })
       .expect(201);
     await request(app.getHttpServer())
       .delete('/api/v1/admin/firewall/fw-1')
