@@ -2270,6 +2270,7 @@
       "next_page": "Página siguiente"
     },
     "shared": {
+      "step_up_title": "Confirma que eres tú",
       "read_only_role": "Tu rol puede ver esto, pero no cambiarlo.",
       "cancel": "Cancelar",
       "confirm": "Confirmar",
@@ -3410,6 +3411,7 @@
       "added_on": "Añadida el {{date}}",
       "new_rule_hint": "Define una palabra o frase exacta para interceptar.",
       "rule_added": "Regla añadida",
+      "rule_exists": "Ya hay una regla para esa frase",
       "rule_updated": "Regla actualizada",
       "rule_deleted": "Regla borrada",
       "rule_add_error": "Error añadiendo regla",
@@ -3821,7 +3823,7 @@
       "step_up_required": "Confirma con tu código de autenticador",
       "step_up_hint": "Introduce el código del autenticador para confirmar esta acción.",
       "step_up_ok": "Verificado",
-      "step_up_failed": "Falló la verificación",
+      "step_up_failed": "Ese código no es correcto",
       "confirm": "Confirmar",
       "created": "Operador creado",
       "create_error": "No se pudo crear el operador",

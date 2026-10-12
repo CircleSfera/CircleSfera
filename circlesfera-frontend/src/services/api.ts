@@ -84,6 +84,8 @@ class ApiClient {
         const isAuthRequest = adminPanel
           ? originalRequest.url?.includes('/admin-auth/login') ||
             originalRequest.url?.includes('/admin-auth/mfa/verify') ||
+            // A wrong code is refused with a 401: it is not sent again.
+            originalRequest.url?.includes('/admin-auth/step-up') ||
             originalRequest.url?.includes('/admin-auth/refresh')
           : originalRequest.url?.includes('/auth/login') ||
             originalRequest.url?.includes('/auth/register') ||
@@ -99,10 +101,16 @@ class ApiClient {
           }
         }
 
+        // The server asking a staff member to confirm again is not an
+        // expired session: the screen asks for the code and sends it again.
+        const asksToConfirm =
+          error.response?.data?.message === 'ADMIN_STEP_UP_REQUIRED';
+
         if (
           error.response?.status === 401 &&
           !originalRequest._retry &&
-          !isAuthRequest
+          !isAuthRequest &&
+          !asksToConfirm
         ) {
           originalRequest._retry = true;
 
