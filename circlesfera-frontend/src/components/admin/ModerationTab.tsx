@@ -385,8 +385,8 @@ export default function ModerationTab({ onToast }: Props) {
                 transition={{ duration: 0.15 }}
                 className="flex flex-col h-full"
               >
-                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
-                  <div className="flex items-center gap-3">
+                <div className="p-3 sm:p-4 border-b border-white/5 flex flex-col sm:flex-row sm:flex-wrap sm:items-center justify-between shrink-0 gap-2 sm:gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <UserAvatar
                       src={selectedItem.user?.profile?.avatar || undefined}
                       alt={selectedItem.user?.profile?.username || 'User'}
@@ -402,7 +402,7 @@ export default function ModerationTab({ onToast }: Props) {
                       </p>
                     </div>
                   </div>
-                  <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                  <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 w-full sm:w-auto">
                     <Button
                       onClick={() =>
                         moderationMutation.mutate({
