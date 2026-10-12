@@ -2738,6 +2738,7 @@
       "answer_in_stripe": "Answer in Stripe",
       "open_in_stripe": "Open in Stripe",
       "no_transaction": "Payment of a plan",
+      "no_account": "Account not known",
       "empty_open_title": "No open disputes",
       "empty_title": "No disputes",
       "empty_description": "When a customer disputes a payment with their bank, it shows here with its deadline.",

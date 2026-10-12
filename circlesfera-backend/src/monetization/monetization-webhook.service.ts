@@ -472,7 +472,12 @@ export class MonetizationWebhookService {
 
   // Mirrors a dispute as the payment provider reports it: created, updated
   // or closed. One row per dispute; the provider stays the source of truth.
-  async syncDispute(dispute: StripeDisputePayload): Promise<void> {
+  // `findCustomerId` reads who was charged from the provider; it is asked
+  // only when the account that paid is not known any other way.
+  async syncDispute(
+    dispute: StripeDisputePayload,
+    findCustomerId?: () => Promise<string | undefined>,
+  ): Promise<void> {
     if (!dispute?.id || typeof dispute.amount !== 'number') {
       this.logger.warn('Dispute webhook missing the dispute id or amount');
       return;
@@ -480,7 +485,7 @@ export class MonetizationWebhookService {
 
     const existing = await this.prisma.paymentDispute.findUnique({
       where: { stripeDisputeId: dispute.id },
-      select: { status: true },
+      select: { status: true, userId: true },
     });
     const status = dispute.status ?? 'unknown';
     const closed = CLOSED_DISPUTE_STATUSES.has(status);
@@ -494,15 +499,21 @@ export class MonetizationWebhookService {
     const transaction = paymentIntentId
       ? await this.prisma.transaction.findUnique({
           where: { stripePaymentIntentId: paymentIntentId },
-          select: { id: true },
+          select: { id: true, senderId: true },
         })
       : null;
     const dueBy = dispute.evidence_details?.due_by;
+    const userId =
+      transaction?.senderId ??
+      existing?.userId ??
+      (await this.accountOfCustomer(await findCustomerId?.()));
 
     const data = {
       stripeChargeId: stripeId(dispute.charge) ?? null,
       stripePaymentIntentId: paymentIntentId ?? null,
       transactionId: transaction?.id ?? null,
+      // An account that is known is never emptied by a later notice.
+      ...(userId && { userId }),
       amountCents: dispute.amount,
       currency: (dispute.currency ?? 'eur').toUpperCase(),
       reason: dispute.reason ?? 'general',
@@ -522,6 +533,17 @@ export class MonetizationWebhookService {
       },
       update: data,
     });
+  }
+
+  private async accountOfCustomer(
+    customerId: string | undefined,
+  ): Promise<string | undefined> {
+    if (!customerId) return undefined;
+    const user = await this.prisma.user.findUnique({
+      where: { stripeCustomerId: customerId },
+      select: { id: true },
+    });
+    return user?.id;
   }
 
   // Revoke unlock entitlements after refund or dispute.

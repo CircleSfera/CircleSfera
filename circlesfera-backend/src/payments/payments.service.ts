@@ -654,6 +654,25 @@ export class PaymentsService {
     return recoveredCount;
   }
 
+  // Mirrors a dispute. Who was charged is read from the provider only when
+  // the dispute cannot be tied to an account otherwise; a provider that does
+  // not answer never loses the dispute.
+  private async syncDispute(dispute: StripeDisputePayload) {
+    const chargeId =
+      typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
+    await this.monetizationWebhookService.syncDispute(dispute, async () => {
+      if (!chargeId) return undefined;
+      try {
+        return await this.stripeService.getChargeCustomerId(chargeId);
+      } catch {
+        this.logger.warn(
+          `The customer of the charge of dispute ${dispute.id} could not be read`,
+        );
+        return undefined;
+      }
+    });
+  }
+
   private async dispatchStripeEvent(event: Stripe.Event) {
     const { type, data } = event;
 
@@ -880,18 +899,14 @@ export class PaymentsService {
           },
         );
         if (type === 'charge.dispute.created') {
-          await this.monetizationWebhookService.syncDispute(
-            data.object as StripeDisputePayload,
-          );
+          await this.syncDispute(data.object as StripeDisputePayload);
         }
         break;
       }
 
       case 'charge.dispute.updated':
       case 'charge.dispute.closed': {
-        await this.monetizationWebhookService.syncDispute(
-          data.object as StripeDisputePayload,
-        );
+        await this.syncDispute(data.object as StripeDisputePayload);
         break;
       }
 

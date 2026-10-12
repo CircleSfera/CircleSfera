@@ -391,6 +391,8 @@ export interface AdminDispute {
   evidenceDueBy: string | null;
   openedAt: string;
   closedAt: string | null;
+  // The account that paid; null while it is not known.
+  user: { id: string; email: string } | null;
   transaction: {
     id: string;
     type: string;

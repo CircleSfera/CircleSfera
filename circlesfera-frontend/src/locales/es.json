@@ -2738,6 +2738,7 @@
       "answer_in_stripe": "Responder en Stripe",
       "open_in_stripe": "Abrir en Stripe",
       "no_transaction": "Pago de un plan",
+      "no_account": "Cuenta no conocida",
       "empty_open_title": "No hay disputas abiertas",
       "empty_title": "No hay disputas",
       "empty_description": "Cuando un cliente dispute un pago con su banco, aparecerá aquí con su plazo.",

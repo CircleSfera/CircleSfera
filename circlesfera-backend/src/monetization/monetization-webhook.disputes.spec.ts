@@ -7,6 +7,7 @@ describe('MonetizationWebhookService: disputes', () => {
   const prisma = {
     paymentDispute: { findUnique: vi.fn(), upsert: vi.fn() },
     transaction: { findUnique: vi.fn() },
+    user: { findUnique: vi.fn() },
   };
   let service: MonetizationWebhookService;
 
@@ -35,7 +36,7 @@ describe('MonetizationWebhookService: disputes', () => {
 
     expect(prisma.transaction.findUnique).toHaveBeenCalledWith({
       where: { stripePaymentIntentId: 'pi_1' },
-      select: { id: true },
+      select: { id: true, senderId: true },
     });
     expect(saved().where).toEqual({ stripeDisputeId: 'dp_1' });
     expect(saved().create).toEqual({
@@ -60,6 +61,65 @@ describe('MonetizationWebhookService: disputes', () => {
 
     expect(saved().create.transactionId).toBeNull();
     expect(saved().create.stripePaymentIntentId).toBe('pi_1');
+  });
+
+  it('says whose a dispute is from who sent its payment, without asking the provider', async () => {
+    prisma.transaction.findUnique.mockResolvedValue({
+      id: 'tx_1',
+      senderId: 'user-1',
+    });
+    const findCustomerId = vi.fn();
+
+    await service.syncDispute(dispute, findCustomerId);
+
+    expect(saved().create.userId).toBe('user-1');
+    expect(saved().update.userId).toBe('user-1');
+    expect(findCustomerId).not.toHaveBeenCalled();
+  });
+
+  it('says whose a dispute of a plan invoice is from the customer that was charged', async () => {
+    prisma.transaction.findUnique.mockResolvedValue(null);
+    prisma.user.findUnique.mockResolvedValue({ id: 'user-2' });
+
+    await service.syncDispute(dispute, async () => 'cus_9');
+
+    expect(prisma.user.findUnique).toHaveBeenCalledWith({
+      where: { stripeCustomerId: 'cus_9' },
+      select: { id: true },
+    });
+    expect(saved().create.userId).toBe('user-2');
+  });
+
+  it('keeps a dispute with no account when the customer is not known or is nobody here', async () => {
+    prisma.transaction.findUnique.mockResolvedValue(null);
+    prisma.user.findUnique.mockResolvedValue(null);
+
+    await service.syncDispute(dispute, async () => undefined);
+    await service.syncDispute(dispute, async () => 'cus_nobody');
+
+    expect(prisma.paymentDispute.upsert).toHaveBeenCalledTimes(2);
+    for (const [call] of prisma.paymentDispute.upsert.mock.calls) {
+      expect(call.create).not.toHaveProperty('userId');
+      // Nothing is written over an account another notice may have set.
+      expect(call.update).not.toHaveProperty('userId');
+    }
+  });
+
+  it('keeps the account already known, and does not ask the provider again', async () => {
+    prisma.transaction.findUnique.mockResolvedValue(null);
+    prisma.paymentDispute.findUnique.mockResolvedValue({
+      status: 'needs_response',
+      userId: 'user-2',
+    });
+    const findCustomerId = vi.fn();
+
+    await service.syncDispute(
+      { ...dispute, status: 'under_review' },
+      findCustomerId,
+    );
+
+    expect(saved().update.userId).toBe('user-2');
+    expect(findCustomerId).not.toHaveBeenCalled();
   });
 
   it('updates the same row when the provider reports a change', async () => {

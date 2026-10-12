@@ -88,6 +88,7 @@ describe('PaymentsService', () => {
           provide: StripeService,
           useValue: {
             getSubscription: vi.fn(),
+            getChargeCustomerId: vi.fn(),
             cancelSubscription: vi.fn().mockResolvedValue(undefined),
             createCustomer: vi.fn(),
             createCheckoutSession: vi.fn(),
@@ -1538,12 +1539,50 @@ describe('PaymentsService', () => {
       expect(monetizationWebhookService.syncDispute).toHaveBeenCalledTimes(3);
       expect(monetizationWebhookService.syncDispute).toHaveBeenCalledWith(
         dispute,
+        expect.any(Function),
       );
       // Access is revoked when the dispute opens and on the refund, not on
       // every later update of the same dispute.
       expect(
         monetizationWebhookService.handleChargeRefundedOrDisputed,
       ).toHaveBeenCalledTimes(2);
+    });
+
+    it('offers the mirror who was charged, read from the provider, and nobody when it cannot be read', async () => {
+      const send = (object: Record<string, unknown>) =>
+        service.processWebhookEvent(
+          asEvent({
+            id: `evt_${String(object.id)}`,
+            type: 'charge.dispute.updated',
+            data: { object },
+          }),
+        );
+      const asked = (call: number) =>
+        (
+          monetizationWebhookService.syncDispute.mock.calls[
+            call
+          ][1] as () => Promise<string | undefined>
+        )();
+
+      stripeService.getChargeCustomerId.mockResolvedValueOnce('cus_1');
+      await send({ id: 'dp_a', amount: 1, charge: 'ch_a' });
+      // Nothing is read until the mirror asks.
+      expect(stripeService.getChargeCustomerId).not.toHaveBeenCalled();
+      await expect(asked(0)).resolves.toBe('cus_1');
+      expect(stripeService.getChargeCustomerId).toHaveBeenCalledWith('ch_a');
+
+      stripeService.getChargeCustomerId.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+      await send({ id: 'dp_b', amount: 1, charge: { id: 'ch_b' } });
+      await expect(asked(1)).resolves.toBeUndefined();
+      expect(stripeService.getChargeCustomerId).toHaveBeenLastCalledWith(
+        'ch_b',
+      );
+
+      await send({ id: 'dp_c', amount: 1 });
+      await expect(asked(2)).resolves.toBeUndefined();
+      expect(stripeService.getChargeCustomerId).toHaveBeenCalledTimes(2);
     });
 
     it('delegates checkout.session.expired for monetization types to monetizationWebhookService.handleCheckoutSessionExpired', async () => {

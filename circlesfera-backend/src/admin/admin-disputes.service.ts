@@ -38,6 +38,8 @@ export class AdminDisputesService {
           evidenceDueBy: true,
           openedAt: true,
           closedAt: true,
+          // Who paid, also for a plan invoice, which has no transaction.
+          user: { select: { id: true, email: true } },
           transaction: {
             select: {
               id: true,
