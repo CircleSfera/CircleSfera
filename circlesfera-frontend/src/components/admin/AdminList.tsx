@@ -112,7 +112,12 @@ export function AdminListRow({
       setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setMenuOpen(false);
+      if (e.key !== 'Escape') return;
+      // The menu is what is on top: the key closes it and stops there, so
+      // the record under it stays open.
+      e.preventDefault();
+      setMenuOpen(false);
+      triggerRef.current?.focus();
     };
     document.addEventListener('mousedown', handle);
     document.addEventListener('keydown', onKey);
@@ -280,10 +285,10 @@ export function AdminListRow({
           </div>
           {(badge || (!primaryAction && menu)) && (
             // biome-ignore lint/a11y/noStaticElementInteractions: only stops the row click
+            // biome-ignore lint/a11y/useKeyWithClickEvents: no key is taken here, so Escape reaches the page
             <div
               className="shrink-0 flex items-center gap-1"
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => e.stopPropagation()}
             >
               {badge}
               {!primaryAction && menu}
@@ -293,10 +298,10 @@ export function AdminListRow({
         {primaryAction && (
           // Stop row click when interacting with actions
           // biome-ignore lint/a11y/noStaticElementInteractions: action bar only stops propagation
+          // biome-ignore lint/a11y/useKeyWithClickEvents: no key is taken here, so Escape reaches the page
           <div
             className="mt-2 flex flex-wrap items-center gap-2"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => e.stopPropagation()}
           >
             {primaryAction}
             {menu && <div className="ml-auto">{menu}</div>}
