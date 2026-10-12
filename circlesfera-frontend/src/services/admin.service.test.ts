@@ -484,6 +484,12 @@ const cases: Case[] = [
     'post',
     ['admin/live/l1/end'],
   ],
+  [
+    'warnLiveHost',
+    () => adminApi.warnLiveHost('l1', 'Showing a phone number'),
+    'post',
+    ['admin/live/l1/warn', { reason: 'Showing a phone number' }],
+  ],
 
   // Reports and moderation
   [

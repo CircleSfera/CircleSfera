@@ -1362,6 +1362,10 @@ export const adminApi = {
   endLiveStream: (id: string) =>
     apiClient.post<AdminLiveStream>(`admin/live/${id}/end`),
 
+  // Tells the host of a broadcast on air what is wrong, with a reason.
+  warnLiveHost: (id: string, reason: string) =>
+    apiClient.post<{ success: boolean }>(`admin/live/${id}/warn`, { reason }),
+
   // System Settings
   getSystemSettings: () =>
     apiClient

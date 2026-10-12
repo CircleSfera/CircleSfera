@@ -2681,7 +2681,13 @@
       "role_cohost": "Guest co-host",
       "moderation_actions": "Moderation actions",
       "force_end_title": "Force the broadcast to end",
-      "force_end_description": "The live will end immediately."
+      "warn_host": "Warn the host",
+      "warn_host_message": "The host gets a notice at once with the reason you write. It is not a strike.",
+      "warn_host_reason": "Reason",
+      "warn_host_confirm": "Send warning",
+      "toast_warned": "Warning sent to the host",
+      "toast_warn_error": "The warning could not be sent",
+      "force_end_description": "Warn first. Forcing the end stops the broadcast for everyone at once."
     },
     "plans": {
       "title": "Plans",

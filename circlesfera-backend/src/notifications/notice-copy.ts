@@ -28,6 +28,7 @@ export type Notice =
   | { key: 'appeal_decided'; outcome: string; notes?: string }
   | { key: 'account_suspended'; until: Date; reason?: string }
   | { key: 'account_warned'; reason?: string }
+  | { key: 'live_host_warned'; reason: string }
   | { key: 'bot_labeled' }
   | { key: 'promotion_approved' }
   | { key: 'promotion_rejected'; note?: string }
@@ -219,6 +220,12 @@ function renderEn(n: Notice): string {
         'Reason',
         n.reason,
       );
+    case 'live_host_warned':
+      return withNote(
+        'The CircleSfera team sent you a warning about your live broadcast.',
+        'Reason',
+        n.reason,
+      );
     case 'bot_labeled':
       return 'After a staff review, your account was labeled as possibly automated. You can appeal from Settings → Appeals.';
     case 'promotion_approved':
@@ -317,6 +324,12 @@ function renderEs(n: Notice): string {
     case 'account_warned':
       return withNote(
         'Has recibido una advertencia formal por incumplir las normas de CircleSfera.',
+        'Motivo',
+        n.reason,
+      );
+    case 'live_host_warned':
+      return withNote(
+        'El equipo de CircleSfera te ha enviado un aviso sobre tu directo.',
         'Motivo',
         n.reason,
       );

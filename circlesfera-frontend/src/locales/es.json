@@ -2681,7 +2681,13 @@
       "role_cohost": "Coanfitrión invitado",
       "moderation_actions": "Acciones de moderación",
       "force_end_title": "Forzar cierre de la transmisión",
-      "force_end_description": "El directo terminará inmediatamente."
+      "warn_host": "Avisar al anfitrión",
+      "warn_host_message": "El anfitrión recibe un aviso al momento con el motivo que escribas. No cuenta como strike.",
+      "warn_host_reason": "Motivo",
+      "warn_host_confirm": "Enviar aviso",
+      "toast_warned": "Aviso enviado al anfitrión",
+      "toast_warn_error": "No se pudo enviar el aviso",
+      "force_end_description": "Avisa primero. Forzar el cierre termina el directo para todos al momento."
     },
     "plans": {
       "title": "Planes",

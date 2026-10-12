@@ -10,6 +10,7 @@ vi.mock('../../services/admin.service', () => ({
   adminApi: {
     getLiveStreams: vi.fn(),
     endLiveStream: vi.fn(),
+    warnLiveHost: vi.fn(),
     getUserDetail: vi.fn(),
   },
 }));
@@ -349,6 +350,9 @@ describe('LiveStreamsTab', () => {
     expect(
       within(open).queryByText('Moderation actions'),
     ).not.toBeInTheDocument();
+    expect(
+      within(open).queryByRole('button', { name: 'Warn the host' }),
+    ).not.toBeInTheDocument();
   });
 
   it('says there is nothing to play when the broadcast has no video', async () => {
@@ -385,6 +389,74 @@ describe('LiveStreamsTab', () => {
     expect(openRecord()).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => expect(openRecord()).not.toBeInTheDocument());
+  });
+
+  it('warns the host of a broadcast on air with a reason, and keeps the record open', async () => {
+    api.warnLiveHost.mockResolvedValue({} as never);
+    api.getLiveStreams.mockResolvedValue(list([stream('a')]) as never);
+    show();
+    await screen.findByText('Stream a');
+    fireEvent.click(rowOf('Stream a'));
+
+    fireEvent.click(
+      within(panel()).getByRole('button', { name: 'Warn the host' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    const send = within(dialog).getByRole('button', { name: 'Send warning' });
+    expect(send).toBeDisabled();
+    fireEvent.change(within(dialog).getByLabelText('Reason'), {
+      target: { value: '  Showing a phone number ' },
+    });
+    fireEvent.click(send);
+
+    await waitFor(() =>
+      expect(api.warnLiveHost).toHaveBeenCalledWith(
+        'a',
+        'Showing a phone number',
+      ),
+    );
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Warning sent to the host'),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(openRecord()).toBeInTheDocument();
+    expect(api.endLiveStream).not.toHaveBeenCalled();
+  });
+
+  it('sends no warning when the question is cancelled, and says so when it fails', async () => {
+    api.warnLiveHost.mockRejectedValue(new Error('no'));
+    api.getLiveStreams.mockResolvedValue(list([stream('a')]) as never);
+    show();
+    await screen.findByText('Stream a');
+    fireEvent.click(rowOf('Stream a'));
+    const warn = within(panel()).getByRole('button', { name: 'Warn the host' });
+
+    fireEvent.click(warn);
+    fireEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {
+        name: 'Cancel',
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(api.warnLiveHost).not.toHaveBeenCalled();
+
+    fireEvent.click(warn);
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('Reason'), {
+      target: { value: 'Too loud' },
+    });
+    fireEvent.click(
+      within(dialog).getByRole('button', { name: 'Send warning' }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('The warning could not be sent'),
+    );
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
   it('closes the open broadcast once it is ended from there', async () => {
