@@ -101,6 +101,9 @@ export default function DisputesTab() {
             {data.data.map((dispute) => {
               const left = daysLeft(dispute, now);
               const urgent = left !== null && left <= 3;
+              const payer =
+                dispute.user?.email ?? dispute.transaction?.sender?.email;
+              const ofPlan = !dispute.transaction;
 
               return (
                 <AdminListRow
@@ -112,8 +115,12 @@ export default function DisputesTab() {
                     dispute.currency,
                   )}
                   subtitle={
-                    dispute.transaction?.sender?.email ??
-                    t('admin.disputes.no_transaction')
+                    payer ??
+                    t(
+                      ofPlan
+                        ? 'admin.disputes.no_transaction'
+                        : 'admin.disputes.no_account',
+                    )
                   }
                   badge={
                     <div
@@ -126,6 +133,11 @@ export default function DisputesTab() {
                   }
                   meta={
                     <>
+                      {payer && ofPlan && (
+                        <span className="text-white/60">
+                          {t('admin.disputes.no_transaction')}
+                        </span>
+                      )}
                       <span className="text-white/80">
                         {t(`admin.disputes.reason.${dispute.reason}`, {
                           defaultValue: dispute.reason,

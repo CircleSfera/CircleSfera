@@ -50,6 +50,14 @@ describe('AdminDisputesService', () => {
     ]);
   });
 
+  it('reads who paid from the dispute itself, so a plan invoice has an account too', async () => {
+    await service.getDisputes();
+
+    expect(query().select.user).toEqual({
+      select: { id: true, email: true },
+    });
+  });
+
   it('filters open and closed disputes', async () => {
     await service.getDisputes(1, 20, 'open');
     expect(query().where).toEqual({ closedAt: null });

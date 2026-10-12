@@ -201,6 +201,14 @@ export class StripeService implements OnModuleInit {
     throw lastError;
   }
 
+  // The customer a charge was made to, when it has one.
+  async getChargeCustomerId(chargeId: string): Promise<string | undefined> {
+    const { customer } = await this.stripe.charges.retrieve(chargeId);
+    return (
+      (typeof customer === 'string' ? customer : customer?.id) ?? undefined
+    );
+  }
+
   // Retrieve a Stripe Subscription object by ID.
   async getSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
     return this.stripe.subscriptions.retrieve(subscriptionId);

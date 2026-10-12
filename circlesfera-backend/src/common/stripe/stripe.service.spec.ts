@@ -161,6 +161,29 @@ describe('StripeService.listSubscriptionsForCustomer', () => {
   });
 });
 
+describe('StripeService.getChargeCustomerId', () => {
+  const service = new StripeService({
+    get: vi.fn().mockReturnValue('sk_test_dummy'),
+  } as unknown as ConfigService);
+  const retrieve = vi.fn();
+  (service.stripe.charges as unknown as { retrieve: unknown }).retrieve =
+    retrieve;
+
+  it('names the customer of a charge, given as an id or as the customer itself', async () => {
+    retrieve.mockResolvedValueOnce({ customer: 'cus_1' });
+    await expect(service.getChargeCustomerId('ch_1')).resolves.toBe('cus_1');
+    expect(retrieve).toHaveBeenCalledWith('ch_1');
+
+    retrieve.mockResolvedValueOnce({ customer: { id: 'cus_2' } });
+    await expect(service.getChargeCustomerId('ch_2')).resolves.toBe('cus_2');
+  });
+
+  it('names nobody for a charge with no customer', async () => {
+    retrieve.mockResolvedValueOnce({ customer: null });
+    await expect(service.getChargeCustomerId('ch_3')).resolves.toBeUndefined();
+  });
+});
+
 describe('StripeService card-only payment methods', () => {
   const serviceWith = (env: Record<string, string | undefined>) =>
     new StripeService({

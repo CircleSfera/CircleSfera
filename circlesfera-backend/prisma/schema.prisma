@@ -102,6 +102,7 @@ model User {
   interactionEvents     InteractionEvent[]
   monetization          Monetization?
   sentTransactions      Transaction[]          @relation("SentTransactions")
+  paymentDisputes       PaymentDispute[]
   receivedTransactions  Transaction[]          @relation("ReceivedTransactions")
   postUnlocks           PostUnlock[]
   storyUnlocks          StoryUnlock[]
@@ -1458,6 +1459,9 @@ model PaymentDispute {
   stripePaymentIntentId String?
   // Null when the disputed payment has no Transaction (a plan invoice).
   transactionId         String?
+  // The account that paid. Null while it is not known, and once the account
+  // is deleted.
+  userId                String?
 
   amountCents Int
   currency    String @default("EUR")
@@ -1474,10 +1478,12 @@ model PaymentDispute {
   updatedAt     DateTime  @updatedAt
 
   transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  user        User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@index([status])
   @@index([evidenceDueBy])
   @@index([transactionId])
+  @@index([userId])
   @@map("payment_disputes")
 }
 

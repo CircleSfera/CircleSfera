@@ -20,6 +20,7 @@ const dispute = (overrides: Record<string, unknown> = {}) => ({
   evidenceDueBy: inDays(2),
   openedAt: '2026-10-01T00:00:00.000Z',
   closedAt: null,
+  user: null,
   transaction: {
     id: 'tx-1',
     type: 'TIP',
@@ -117,6 +118,33 @@ describe('DisputesTab', () => {
     expect(screen.getByText('Payment of a plan')).toBeInTheDocument();
     expect(screen.queryByText(/Answer before/)).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Open in Stripe/ })).toBeVisible();
+  });
+
+  it('names the account of a dispute of a plan invoice, and says what it is of', async () => {
+    vi.mocked(adminApi.getDisputes).mockResolvedValue(
+      list([
+        dispute({
+          transaction: null,
+          user: { id: 'u-9', email: 'luz@example.com' },
+        }),
+      ]) as never,
+    );
+    renderWithProviders(<DisputesTab />);
+
+    expect(await screen.findByText('luz@example.com')).toBeInTheDocument();
+    expect(screen.getByText('Payment of a plan')).toBeInTheDocument();
+  });
+
+  it('says the account is not known when a payment between people has lost its sender', async () => {
+    vi.mocked(adminApi.getDisputes).mockResolvedValue(
+      list([
+        dispute({ transaction: { id: 'tx-1', type: 'TIP', sender: null } }),
+      ]) as never,
+    );
+    renderWithProviders(<DisputesTab />);
+
+    expect(await screen.findByText('Account not known')).toBeInTheDocument();
+    expect(screen.queryByText('Payment of a plan')).not.toBeInTheDocument();
   });
 
   it('says when the deadline has passed', async () => {
