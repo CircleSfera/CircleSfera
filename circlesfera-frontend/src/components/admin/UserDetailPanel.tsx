@@ -11,7 +11,7 @@ import {
   Radio,
   ShieldAlert,
 } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { AdminUserDetail } from '../../services/admin.service';
@@ -20,6 +20,7 @@ import { useAdminAuthStore } from '../../stores/adminAuthStore';
 import { platformOrigin } from '../../utils/adminPanel';
 import { formatDateTime, formatDay } from '../../utils/format';
 import { UserAvatar } from '../index';
+import ConfirmModal from '../modals/ConfirmModal';
 import { Button } from '../ui';
 import VerificationBadge, {
   type VerificationLevel,
@@ -131,22 +132,14 @@ export default function UserDetailPanel({
     enabled: !!userId,
   });
 
+  const [askingBotReason, setAskingBotReason] = useState(false);
   const botLabelMutation = useMutation({
-    mutationFn: async (action: 'apply' | 'clear') => {
-      if (action === 'apply') {
-        const reason =
-          window.prompt(
-            t(
-              'admin.user_preview.bot_label_prompt',
-              'Reason for possible-bot label',
-            ),
-          ) || '';
-        if (!reason.trim()) throw new Error('cancelled');
-        return adminApi.applyBotLabel(userId, reason.trim());
-      }
-      return adminApi.clearBotLabel(userId);
-    },
+    mutationFn: async (reason: string | null) =>
+      reason === null
+        ? adminApi.clearBotLabel(userId)
+        : adminApi.applyBotLabel(userId, reason),
     onSuccess: () => {
+      setAskingBotReason(false);
       adminToast(
         t('admin.user_preview.bot_label_updated', 'Updated'),
         'success',
@@ -158,8 +151,7 @@ export default function UserDetailPanel({
         queryKey: ['admin', 'trust-score', userId],
       });
     },
-    onError: (err: Error) => {
-      if (err.message === 'cancelled') return;
+    onError: () => {
       adminToast(t('admin.user_preview.bot_label_error', 'Failed'), 'error');
     },
   });
@@ -375,7 +367,7 @@ export default function UserDetailPanel({
                 size="sm"
                 className="min-h-11 text-xs"
                 disabled={botLabelMutation.isPending || botLabeled}
-                onClick={() => botLabelMutation.mutate('apply')}
+                onClick={() => setAskingBotReason(true)}
               >
                 {t(
                   'admin.user_preview.apply_bot_label',
@@ -388,10 +380,25 @@ export default function UserDetailPanel({
                 size="sm"
                 className="min-h-11 text-xs"
                 disabled={botLabelMutation.isPending || !botLabeled}
-                onClick={() => botLabelMutation.mutate('clear')}
+                onClick={() => botLabelMutation.mutate(null)}
               >
                 {t('admin.user_preview.clear_bot_label', 'Clear bot label')}
               </Button>
+              <ConfirmModal
+                isOpen={askingBotReason}
+                onClose={() => setAskingBotReason(false)}
+                onConfirm={(reason) => {
+                  if (reason) botLabelMutation.mutate(reason);
+                }}
+                title={t('admin.user_preview.apply_bot_label')}
+                message={t('admin.user_preview.bot_label_message')}
+                confirmText={t('admin.user_preview.bot_label_confirm')}
+                cancelText={t('admin.shared.cancel')}
+                isLoading={botLabelMutation.isPending}
+                showInput
+                inputRequired
+                inputLabel={t('admin.user_preview.bot_label_prompt')}
+              />
             </div>
           )}
         </section>
