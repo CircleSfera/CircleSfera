@@ -214,13 +214,16 @@ export function AdminMobileDrawer({
                         <div className="flex items-center gap-3 min-w-0">
                           <ItemIcon
                             size={18}
-                            className={
+                            className={clsx(
+                              'shrink-0',
                               isSelected
                                 ? 'text-brand-primary'
-                                : 'text-white/50'
-                            }
+                                : 'text-white/50',
+                            )}
                           />
-                          <span className="truncate">{t(item.labelKey)}</span>
+                          <span className="line-clamp-2 leading-tight">
+                            {t(item.labelKey)}
+                          </span>
                         </div>
                         {badge && (
                           <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-brand-primary/20 text-brand-primary border border-brand-primary/30 shrink-0">
