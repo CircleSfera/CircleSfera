@@ -18,7 +18,10 @@ import { NotificationsService } from '../notifications/notifications.service.js'
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
 import { UsersService } from '../users/users.service.js';
-import type { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
+import type {
+  BroadcastAudienceDto,
+  BroadcastEmailDto,
+} from './dto/broadcast-email.dto.js';
 import type { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import type { UpdateWhitelistEntryDto } from './dto/update-whitelist-entry.dto.js';
 import { resolveAdminNotificationSenderId } from './utils/resolve-admin-notification-sender.js';
@@ -46,20 +49,55 @@ export interface UserWithVerification {
 
 // Who a broadcast is sent to: active accounts that have not switched their
 // e-mail notices off.
-const BROADCAST_AUDIENCE: Prisma.UserWhereInput = {
-  isActive: true,
-  OR: [{ settings: { is: null } }, { settings: { emailNotifications: true } }],
-};
+// The count and the send build it here, so the send goes to exactly who the
+// count counted. "With a plan" is a subscription that is active or in trial.
+export function broadcastAudienceWhere(
+  audience?: BroadcastAudienceDto,
+): Prisma.UserWhereInput {
+  const withPlan: Prisma.UserWhereInput = {
+    platformSubscriptions: {
+      some: { status: { in: ['ACTIVE', 'TRIALING'] } },
+    },
+  };
+  return {
+    isActive: true,
+    OR: [
+      { settings: { is: null } },
+      { settings: { emailNotifications: true } },
+    ],
+    ...(audience?.locale && { locale: audience.locale }),
+    ...(audience?.plan === 'paying' && withPlan),
+    ...(audience?.plan === 'free' && { NOT: withPlan }),
+  };
+}
 const BROADCAST_LOG_TARGET = 'NEWSLETTER';
 
-/** The subject and the counts a send wrote in its audit log entry. */
+// What a send writes in its audit log entry, and what the list reads back.
+export function broadcastLog(
+  subject: string,
+  sent: number,
+  failed: number,
+  audience?: BroadcastAudienceDto,
+) {
+  const who = [audience?.locale, audience?.plan].filter(Boolean).join(', ');
+  return `Subject: ${subject} | Success: ${sent} | Failed: ${failed}${who ? ` | Audience: ${who}` : ''}`;
+}
+
+/** The subject, the counts and the audience a send wrote in its log entry. */
 export function parseBroadcastLog(details: string | null) {
-  const found = /^Subject: (.*) \| Success: (\d+) \| Failed: (\d+)$/s.exec(
-    details ?? '',
-  );
-  return found
-    ? { subject: found[1], sent: Number(found[2]), failed: Number(found[3]) }
-    : { subject: details ?? '', sent: null, failed: null };
+  const found =
+    /^Subject: (.*) \| Success: (\d+) \| Failed: (\d+)(?: \| Audience: (.+))?$/s.exec(
+      details ?? '',
+    );
+  if (!found) {
+    return { subject: details ?? '', sent: null, failed: null, audience: [] };
+  }
+  return {
+    subject: found[1],
+    sent: Number(found[2]),
+    failed: Number(found[3]),
+    audience: found[4] ? found[4].split(', ') : [],
+  };
 }
 
 @Injectable()
@@ -1053,9 +1091,11 @@ export class AdminUsersService {
   }
 
   // How many people a broadcast reaches: the rule the send itself uses.
-  async countBroadcastRecipients() {
+  async countBroadcastRecipients(audience?: BroadcastAudienceDto) {
     return {
-      count: await this.prisma.user.count({ where: BROADCAST_AUDIENCE }),
+      count: await this.prisma.user.count({
+        where: broadcastAudienceWhere(audience),
+      }),
     };
   }
 
@@ -1125,7 +1165,7 @@ export class AdminUsersService {
 
     while (hasMore) {
       const queryArgs: Prisma.UserFindManyArgs = {
-        where: BROADCAST_AUDIENCE,
+        where: broadcastAudienceWhere(dto),
         select: { email: true, id: true },
         take: batchSize,
         skip: cursor ? 1 : 0,
@@ -1181,7 +1221,7 @@ export class AdminUsersService {
       AdminAction.UPDATE_WHITELIST,
       BROADCAST_LOG_TARGET,
       'GLOBAL',
-      `Subject: ${dto.subject} | Success: ${successfulSent} | Failed: ${failedSent}`,
+      broadcastLog(dto.subject, successfulSent, failedSent, dto),
     );
 
     return {

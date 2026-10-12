@@ -24,7 +24,10 @@ import {
 import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminUsersService } from './admin-users.service.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
-import { BroadcastEmailDto } from './dto/broadcast-email.dto.js';
+import {
+  BroadcastAudienceDto,
+  BroadcastEmailDto,
+} from './dto/broadcast-email.dto.js';
 import { AdminCreateWhitelistEntryDto } from './dto/create-whitelist-entry.dto.js';
 import { CreateStaffNoteDto } from './dto/staff-note.dto.js';
 import { UpdateUserStatusDto } from './dto/update-user-status.dto.js';
@@ -49,8 +52,8 @@ export class AdminUsersController {
 
   @Get('broadcast/recipients')
   @RequireStaffPermissions('system')
-  async countBroadcastRecipients() {
-    return this.adminUsersService.countBroadcastRecipients();
+  async countBroadcastRecipients(@Query() audience: BroadcastAudienceDto) {
+    return this.adminUsersService.countBroadcastRecipients(audience);
   }
 
   @Post('broadcast/test')

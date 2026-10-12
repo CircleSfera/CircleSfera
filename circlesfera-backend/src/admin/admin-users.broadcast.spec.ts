@@ -118,6 +118,7 @@ describe('AdminUsersService: broadcasts', () => {
         subject: 'Spring | news',
         sent: 40,
         failed: 2,
+        audience: [],
         sentBy: 'Ana Staff',
         createdAt: when,
       },
@@ -126,11 +127,61 @@ describe('AdminUsersService: broadcasts', () => {
         subject: 'an older shape',
         sent: null,
         failed: null,
+        audience: [],
         sentBy: null,
         createdAt: when,
       },
     ]);
     expect(page.meta).toEqual({ total: 12, page: 2, limit: 5, totalPages: 3 });
+  });
+
+  it('counts and sends to one language, and to who has a plan or has none', async () => {
+    prisma.user.count.mockResolvedValue(3);
+    prisma.user.findMany.mockResolvedValue([]);
+    const withPlan = {
+      platformSubscriptions: {
+        some: { status: { in: ['ACTIVE', 'TRIALING'] } },
+      },
+    };
+
+    await service.countBroadcastRecipients({ locale: 'es', plan: 'paying' });
+    await service.sendBroadcastEmail('admin-1', {
+      ...dto,
+      locale: 'es',
+      plan: 'paying',
+    });
+    await service.countBroadcastRecipients({ plan: 'free' });
+
+    const asked = { ...audience, locale: 'es', ...withPlan };
+    expect(prisma.user.count.mock.calls[0][0].where).toEqual(asked);
+    // The send goes to exactly who the count counted.
+    expect(prisma.user.findMany.mock.calls[0][0].where).toEqual(asked);
+    expect(prisma.user.count.mock.calls[1][0].where).toEqual({
+      ...audience,
+      NOT: withPlan,
+    });
+  });
+
+  it('writes who a send was for, and the list reads it back', async () => {
+    prisma.user.findMany.mockResolvedValue([]);
+
+    await service.sendBroadcastEmail('admin-1', {
+      ...dto,
+      locale: 'en',
+      plan: 'free',
+    });
+
+    const details = prisma.adminAuditLog.create.mock.calls[0][0].data
+      .details as string;
+    expect(details).toBe(
+      'Subject: News | Success: 0 | Failed: 0 | Audience: en, free',
+    );
+    expect(parseBroadcastLog(details)).toEqual({
+      subject: 'News',
+      sent: 0,
+      failed: 0,
+      audience: ['en', 'free'],
+    });
   });
 
   it('writes a send in the log in the shape the list reads', async () => {
@@ -146,11 +197,13 @@ describe('AdminUsersService: broadcasts', () => {
       subject: 'News',
       sent: 1,
       failed: 0,
+      audience: [],
     });
     expect(parseBroadcastLog(null)).toEqual({
       subject: '',
       sent: null,
       failed: null,
+      audience: [],
     });
   });
 });

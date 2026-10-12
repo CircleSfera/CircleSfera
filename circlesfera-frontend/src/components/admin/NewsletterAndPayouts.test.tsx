@@ -197,6 +197,7 @@ describe('NewsletterTab', () => {
           sent: 1200,
           failed: 3,
           sentBy: 'Ana Staff',
+          audience: ['es', 'paying', 'a code not known'],
           createdAt: '2026-03-10T11:00:00Z',
         },
         {
@@ -205,6 +206,7 @@ describe('NewsletterTab', () => {
           sent: null,
           failed: null,
           sentBy: null,
+          audience: [],
           createdAt: '2026-01-02T11:00:00Z',
         },
       ]) as never,
@@ -216,10 +218,66 @@ describe('NewsletterTab', () => {
     ) as HTMLElement;
     expect(row).toHaveTextContent('1,200 delivered · 3 failed');
     expect(row).toHaveTextContent('Ana Staff');
+    // Who it was for, in words; a code with no word is not shown.
+    expect(row).toHaveTextContent('Spanish');
+    expect(row).toHaveTextContent('With a plan');
+    expect(row).not.toHaveTextContent('a code not known');
     const older = screen
       .getByText('An older one')
       .closest('[data-admin-row]') as HTMLElement;
     expect(older).not.toHaveTextContent('delivered');
+  });
+
+  it('counts and sends to the audience chosen, and to everyone again once it is cleared', async () => {
+    vi.mocked(adminApi.sendBroadcast).mockResolvedValue({} as never);
+    vi.mocked(adminApi.getBroadcastRecipients).mockImplementation(
+      (audience = {}) =>
+        Promise.resolve({
+          data: { count: audience.locale || audience.plan ? 85 : 1240 },
+        }) as never,
+    );
+    renderWithProviders(<NewsletterTab onToast={onToast} />);
+    await screen.findByText(/^It reaches 1,240 people:/);
+    expect(adminApi.getBroadcastRecipients).toHaveBeenLastCalledWith({});
+
+    fireEvent.change(screen.getByLabelText('Language'), {
+      target: { value: 'es' },
+    });
+    fireEvent.change(screen.getByLabelText('Plan'), {
+      target: { value: 'paying' },
+    });
+
+    // The number is the one of the audience, not of everyone.
+    await screen.findByText(/^It reaches 85 people:/);
+    expect(adminApi.getBroadcastRecipients).toHaveBeenLastCalledWith({
+      locale: 'es',
+      plan: 'paying',
+    });
+    fillRequired();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Send to this audience' }),
+    );
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText(/e-mailed to 85 people/)).toBeVisible();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Send' }));
+
+    await waitFor(() =>
+      expect(adminApi.sendBroadcast).toHaveBeenCalledWith({
+        subject: 'News',
+        title: 'A new feature',
+        content: 'It is here.',
+        locale: 'es',
+        plan: 'paying',
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText('Language'), {
+      target: { value: '' },
+    });
+    fireEvent.change(screen.getByLabelText('Plan'), { target: { value: '' } });
+    await screen.findByText(/^It reaches 1,240 people:/);
+    expect(adminApi.getBroadcastRecipients).toHaveBeenLastCalledWith({});
+    expect(send()).toBeInTheDocument();
   });
 
   it('reads the list of sends again once a message is sent', async () => {
