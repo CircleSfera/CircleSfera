@@ -330,6 +330,7 @@ describe('AdminContentController', () => {
         expired: 'true',
         userId: TEST_UUID,
         moderationStatus: 'HIDDEN',
+        search: 'ana',
       })
       .set(ADMIN_BEARER)
       .expect(200);
@@ -346,6 +347,7 @@ describe('AdminContentController', () => {
       moderationStatus: 'HIDDEN',
       expired: 'true',
       userId: TEST_UUID,
+      search: 'ana',
     });
   });
 

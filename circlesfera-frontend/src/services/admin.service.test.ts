@@ -441,9 +441,17 @@ const cases: Case[] = [
   ],
   [
     'getStories filtered',
-    () => adminApi.getStories(2, 5, { expired: 'true', userId: 'u1' }),
+    () =>
+      adminApi.getStories(2, 5, {
+        expired: 'true',
+        userId: 'u1',
+        search: 'ana',
+      }),
     'get',
-    ['admin/stories', q({ page: 2, limit: 5, expired: 'true', userId: 'u1' })],
+    [
+      'admin/stories',
+      q({ page: 2, limit: 5, expired: 'true', userId: 'u1', search: 'ana' }),
+    ],
   ],
   [
     'deleteStory',

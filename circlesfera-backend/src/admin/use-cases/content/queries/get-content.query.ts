@@ -96,11 +96,23 @@ export class GetContentQuery {
       moderationStatus?: string;
       expired?: string;
       userId?: string;
+      search?: string;
     },
   ) {
     const where: Prisma.StoryWhereInput = {};
     if (filters?.userId) {
       where.profile = { userId: filters.userId };
+    }
+    // A story has no text of its own: it is found by who published it and
+    // by the place it names.
+    const search = filters?.search?.trim();
+    if (search) {
+      const contains = { contains: search, mode: 'insensitive' as const };
+      where.OR = [
+        { profile: { username: contains } },
+        { profile: { fullName: contains } },
+        { location: contains },
+      ];
     }
     if (
       filters?.moderationStatus &&

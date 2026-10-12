@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Clock, Eye, EyeOff, Heart, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useDebouncedValue } from '../../hooks/useDebouncedValue';
 import type { AdminStory } from '../../services/admin.service';
 import { adminApi } from '../../services/admin.service';
 import type { PaginatedResponse } from '../../types';
@@ -9,7 +10,13 @@ import ConfirmModal from '../modals/ConfirmModal';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
-import { ActionButton, FilterDropdown, Pagination, Table } from './AdminTable';
+import {
+  ActionButton,
+  FilterDropdown,
+  Pagination,
+  SearchInput,
+  Table,
+} from './AdminTable';
 import {
   AdminUserFilterChip,
   useAdminQueueUserFilter,
@@ -44,6 +51,8 @@ export default function StoriesTab({ onToast }: Props) {
   const { userId, username, clearUserFilter } = useAdminQueueUserFilter();
   const [page, setPage] = useState(1);
   const [expiredFilter, setExpiredFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const debouncedSearch = useDebouncedValue(search, 400);
   const [moderationFilter, setModerationFilter] = useState(() =>
     userId ? '' : 'FLAGGED',
   );
@@ -62,6 +71,7 @@ export default function StoriesTab({ onToast }: Props) {
       expiredFilter,
       moderationFilter,
       userId,
+      debouncedSearch,
     ],
     queryFn: () =>
       adminApi
@@ -69,6 +79,7 @@ export default function StoriesTab({ onToast }: Props) {
           expired: (expiredFilter || undefined) as 'true' | 'false' | undefined,
           moderationStatus: moderationFilter || undefined,
           userId,
+          search: debouncedSearch.trim() || undefined,
         })
         .then((r) => r.data),
   });
@@ -161,6 +172,16 @@ export default function StoriesTab({ onToast }: Props) {
       />
 
       <AdminFilterBar>
+        <div className="flex-1 min-w-0 md:max-w-xs">
+          <SearchInput
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder={t('admin.stories.search_placeholder')}
+          />
+        </div>
         <FilterDropdown
           label={t('admin.stories.filter_expired')}
           value={expiredFilter}
