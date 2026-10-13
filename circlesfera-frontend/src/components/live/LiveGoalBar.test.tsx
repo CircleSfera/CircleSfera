@@ -13,7 +13,7 @@ describe('LiveGoalBar', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('live.goal.add') }),
     ).toBeInTheDocument();
-    expect(screen.queryByText('Añadir Objetivo')).not.toBeInTheDocument();
+    expect(screen.queryByText('Añadir objetivo')).not.toBeInTheDocument();
   });
 
   it('uses the Spanish add-goal label', () => {
@@ -22,7 +22,7 @@ describe('LiveGoalBar', () => {
       { lng: 'es' },
     );
 
-    expect(i18n!.t('live.goal.add')).toBe('Añadir Objetivo');
+    expect(i18n!.t('live.goal.add')).toBe('Añadir objetivo');
     expect(
       screen.getByRole('button', { name: i18n!.t('live.goal.add') }),
     ).toBeInTheDocument();

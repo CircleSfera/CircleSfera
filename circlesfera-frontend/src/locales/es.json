@@ -4469,14 +4469,14 @@
     "likes": "Me gusta",
     "close_summary": "Cerrar",
     "goal": {
-      "add": "Añadir Objetivo",
+      "add": "Añadir objetivo",
       "target_prompt": "Ingresa el monto objetivo (ej. 1000):",
       "title_prompt": "Ingresa el título del objetivo:",
       "dialog_title": "Objetivo del directo",
       "title_label": "¿Para qué es el objetivo?",
-      "target_label": "Meta",
+      "target_label": "Cantidad a alcanzar",
       "save": "Fijar objetivo",
-      "title_default": "Meta del Directo"
+      "title_default": "Objetivo del directo"
     },
     "gift_sent": "¡Regalo enviado!",
     "gift_canceled": "Pago de regalo cancelado",
