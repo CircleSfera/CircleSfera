@@ -22,7 +22,7 @@ import { formatCents } from '../../utils/money';
 import { Button, Dialog } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
-import NewPromoModal from './NewPromoModal';
+import PromoteModal from './PromoteModal';
 
 function computeProgress(startDate: string, endDate: string): number {
   const start = new Date(startDate).getTime();
@@ -454,7 +454,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
       <AnimatePresence>
         {showNewPromo && (
-          <NewPromoModal
+          <PromoteModal
             onClose={() => setShowNewPromo(false)}
             onToast={onToast}
           />

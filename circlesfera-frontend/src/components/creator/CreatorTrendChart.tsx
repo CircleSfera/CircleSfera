@@ -28,6 +28,8 @@ interface Props<T> {
   formatY?: (value: number) => string;
   // What is said instead of the chart while there is too little to draw.
   fewText: string;
+  // Inside a dialog the chart is content of it, with no card of its own.
+  bare?: boolean;
 }
 
 // How something changed over time: a card with readable axes.
@@ -38,9 +40,11 @@ export default function CreatorTrendChart<T extends object>({
   formatX,
   formatY,
   fewText,
+  bare = false,
 }: Props<T>) {
+  const Frame = bare ? 'div' : Card;
   return (
-    <Card variant="glass" className="p-4">
+    <Frame {...(bare ? {} : { variant: 'glass' as const, className: 'p-4' })}>
       {data.length >= MIN_POINTS ? (
         <div className="h-52 w-full">
           <SafeResponsiveContainer width="100%" height="100%">
@@ -122,6 +126,6 @@ export default function CreatorTrendChart<T extends object>({
       ) : (
         <p className="py-6 text-sm text-white/60 text-center">{fewText}</p>
       )}
-    </Card>
+    </Frame>
   );
 }

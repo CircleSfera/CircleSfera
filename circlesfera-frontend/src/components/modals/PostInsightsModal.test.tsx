@@ -1,4 +1,5 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { creatorApi } from '../../services/creator.service';
 import { renderWithProviders } from '../../test/test-utils';
@@ -12,132 +13,143 @@ vi.mock('../../services/creator.service', () => ({
 
 function insights(overrides: {
   views?: number;
-  impressions?: number;
-  likes?: number;
-  comments?: number;
-  bookmarks?: number;
-  shares?: number;
   totalDwellTime?: number;
   conversionRate?: number;
+  caption?: string | null;
   chart?: { date: string; views: number }[];
 }) {
   return {
     post: {
       id: 'post-1',
-      caption: 'Hello',
+      caption: overrides.caption === undefined ? 'Hello' : overrides.caption,
       type: 'POST',
-      views: overrides.views ?? 80,
+      views: overrides.views ?? 1280,
       performanceScore: 1,
       createdAt: '2026-01-01T00:00:00.000Z',
-      impressions: overrides.impressions ?? 200,
-      shares: overrides.shares ?? 4,
+      impressions: 2000,
+      shares: 4,
       totalDwellTime: overrides.totalDwellTime ?? 45,
       conversionRate: overrides.conversionRate ?? 3.2,
-      _count: {
-        likes: overrides.likes ?? 8,
-        comments: overrides.comments ?? 2,
-        bookmarks: overrides.bookmarks ?? 5,
-      },
+      _count: { likes: 8, comments: 2, bookmarks: 5 },
     },
     chart: overrides.chart ?? [],
   };
 }
 
+// The value written under a label of the list of figures.
+const figure = (label: string) =>
+  within(screen.getByText(label).parentElement as HTMLElement).getByRole(
+    'definition',
+  ).textContent;
+
 describe('PostInsightsModal', () => {
   const onClose = vi.fn();
+  const answer = (data: ReturnType<typeof insights>) =>
+    vi.mocked(creatorApi.getPostInsights).mockResolvedValue({ data } as never);
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(creatorApi.getPostInsights).mockResolvedValue({
-      data: insights({}),
-    } as never);
+    answer(insights({}));
   });
 
-  it('loads insights for the post and closes from the dialog X', async () => {
-    const { i18n } = renderWithProviders(
-      <PostInsightsModal postId="post-1" onClose={onClose} />,
-    );
-
-    expect(
-      await screen.findByText(i18n!.t('modals.insights.post_stats')),
-    ).toBeInTheDocument();
-    expect(creatorApi.getPostInsights).toHaveBeenCalledWith('post-1');
-
-    fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
-    expect(onClose).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders counts, dwell seconds and conversion percent', async () => {
-    const { i18n } = renderWithProviders(
-      <PostInsightsModal postId="post-1" onClose={onClose} />,
-    );
-
-    expect(await screen.findByText('80')).toBeInTheDocument();
-    expect(screen.getByText('200')).toBeInTheDocument();
-    expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('5')).toBeInTheDocument();
-    expect(screen.getByText('4')).toBeInTheDocument();
-    expect(screen.getByText('45s')).toBeInTheDocument();
-    expect(screen.getByText('3.2%')).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('modals.insights.not_enough_data')),
-    ).toBeInTheDocument();
-  });
-
-  it('formats dwell over a minute as minutes', async () => {
-    vi.mocked(creatorApi.getPostInsights).mockResolvedValue({
-      data: insights({ totalDwellTime: 90 }),
-    } as never);
-
+  it('asks for the statistics of the post and closes', async () => {
+    const user = userEvent.setup();
     renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
-    expect(await screen.findByText('1.5m')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { name: 'Statistics of the post' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Hello')).toBeInTheDocument();
+    expect(creatorApi.getPostInsights).toHaveBeenCalledWith('post-1');
+    await user.click(screen.getByRole('button', { name: /close/i }));
+    expect(onClose).toHaveBeenCalled();
   });
 
-  it('keeps promoting when views are 100 or below', async () => {
-    const { i18n } = renderWithProviders(
+  it('writes each figure under its name, in the format of the reader', async () => {
+    renderWithProviders(
+      <PostInsightsModal postId="post-1" onClose={onClose} />,
+    );
+
+    await screen.findByText('Hello');
+    expect(figure('Views')).toBe('1,280');
+    expect(figure('Times shown')).toBe('2,000');
+    expect(figure('Likes')).toBe('8');
+    expect(figure('Comments')).toBe('2');
+    expect(figure('Saves')).toBe('5');
+    expect(figure('Shares')).toBe('4');
+    expect(figure('Time watched')).toBe('45 s');
+    expect(figure('Interaction')).toBe('3.2 %');
+  });
+
+  it('says what the interaction counts, and no verdict about the post', async () => {
+    renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
     expect(
-      await screen.findByText((_, el) => {
-        const text = el?.textContent ?? '';
-        return (
-          el?.tagName === 'P' &&
-          text.includes(
-            i18n!.t('modals.insights.engagement_rate_prefix').trim(),
-          ) &&
-          /12\.5\s*%/.test(text) &&
-          text.includes(i18n!.t('modals.insights.keep_promoting').trim())
-        );
-      }),
+      await screen.findByText(
+        'Interaction is the likes, comments and saves for every 100 views. Time watched is the total of every view.',
+      ),
     ).toBeInTheDocument();
+    expect(screen.queryByText(/average/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/conv/i)).not.toBeInTheDocument();
   });
 
-  it('says above average when views exceed 100', async () => {
-    vi.mocked(creatorApi.getPostInsights).mockResolvedValue({
-      data: insights({ views: 200, likes: 10, comments: 10 }),
-    } as never);
+  it('writes a long time in minutes and in hours', async () => {
+    answer(insights({ totalDwellTime: 200 }));
+    const first = renderWithProviders(
+      <PostInsightsModal postId="post-1" onClose={onClose} />,
+    );
+    await screen.findByText('Hello');
+    expect(figure('Time watched')).toBe('3 min 20 s');
+    first.unmount();
 
-    const { i18n } = renderWithProviders(
+    answer(insights({ totalDwellTime: 3900 }));
+    renderWithProviders(
+      <PostInsightsModal postId="post-2" onClose={onClose} />,
+    );
+    await screen.findByText('Hello');
+    expect(figure('Time watched')).toBe('1 h 5 min');
+  });
+
+  it('says there are too few days instead of drawing a chart of one point', async () => {
+    answer(insights({ chart: [{ date: '2026-01-01', views: 3 }] }));
+    renderWithProviders(
       <PostInsightsModal postId="post-1" onClose={onClose} />,
     );
 
     expect(
-      await screen.findByText((_, el) => {
-        const text = el?.textContent ?? '';
-        return (
-          el?.tagName === 'P' &&
-          text.includes(
-            i18n!.t('modals.insights.engagement_rate_prefix').trim(),
-          ) &&
-          /10\.0\s*%/.test(text) &&
-          text.includes(i18n!.t('modals.insights.above_average').trim())
-        );
-      }),
+      await screen.findByText(
+        'There are not enough days yet to draw how its views changed.',
+      ),
     ).toBeInTheDocument();
+  });
+
+  it('says so when the statistics do not arrive', async () => {
+    vi.mocked(creatorApi.getPostInsights).mockRejectedValue(new Error('no'));
+    renderWithProviders(
+      <PostInsightsModal postId="post-1" onClose={onClose} />,
+    );
+
+    expect(
+      await screen.findByText(
+        'The statistics could not be loaded. Try again in a moment.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('is written in Spanish for a Spanish reader', async () => {
+    renderWithProviders(
+      <PostInsightsModal postId="post-1" onClose={onClose} />,
+      { lng: 'es' },
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Estadísticas de la publicación' }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('Veces mostrada')).toBeInTheDocument();
+    expect(figure('Interacción')).toBe('3,2 %');
   });
 });
