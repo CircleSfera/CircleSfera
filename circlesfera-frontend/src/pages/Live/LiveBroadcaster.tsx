@@ -23,10 +23,14 @@ import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
 import LiveGoalDialog from '../../components/live/LiveGoalDialog';
-import LiveHostControls from '../../components/live/LiveHostControls';
+import {
+  LiveCameraMicSwitches,
+  LiveCameraTurn,
+} from '../../components/live/LiveHostControls';
 import {
   LiveControl,
   LiveFrame,
+  LiveHost,
   LiveSheet,
   LiveStatus,
 } from '../../components/live/LivePieces';
@@ -40,6 +44,7 @@ import ConfirmModal from '../../components/modals/ConfirmModal';
 import { apiClient as api } from '../../services/api';
 import { liveApi } from '../../services/live';
 import { profileApi } from '../../services/profile.service';
+import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
@@ -64,6 +69,7 @@ export default function LiveBroadcaster() {
   const [isEnded, setIsEnded] = useState(false);
   const [isEnding, setIsEnding] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
+  const profile = useAuthStore((state) => state.profile);
   // One sheet at a time: opening one closes the other.
   const [sheet, setSheet] = useState<'cohost' | 'questions' | null>(null);
   const coHostFormOpen = sheet === 'cohost';
@@ -438,269 +444,287 @@ export default function LiveBroadcaster() {
     <>
       {/* A double tap anywhere sends a heart. It is not a button: it holds
           every control of the screen, and the reactions have their own. */}
-      <LiveFrame
-        onDoubleClick={handleDoubleTap}
-        video={
-          <LiveKitRoom
-            video={true}
-            audio={true}
-            token={token}
-            serverUrl={serverUrl}
-            data-lk-theme="default"
-            className="h-full w-full"
-            onDisconnected={() => {
-              // Ending the live closes the connection on purpose.
-              if (endedRef.current) return;
-              toast.error(t('live.connection_lost'));
-              navigate(-1);
-            }}
-          >
-            <CinematicStage isBroadcaster={true} />
-            <RoomAudioRenderer />
-            {/* The host's own picture and sound, down the right edge. They
-                need the room, so they are drawn inside it. */}
-            <div className="live-frame-host-controls absolute right-3 z-50 flex flex-col gap-2.5">
-              {!coHostUsername && (
-                <LiveControl
-                  label={t('live.cohost_invite_button')}
-                  aria-expanded={coHostFormOpen}
-                  onClick={() => setSheet('cohost')}
-                >
-                  <UserPlus className="h-5 w-5" aria-hidden />
-                </LiveControl>
-              )}
-              <LiveHostControls />
-            </div>
-          </LiveKitRoom>
-        }
+      {/* The room holds the whole screen: the host's switches, anywhere on
+          it, need the connection. It draws no box of its own. */}
+      <LiveKitRoom
+        video={true}
+        audio={true}
+        token={token}
+        serverUrl={serverUrl}
+        data-lk-theme="default"
+        className="contents"
+        onDisconnected={() => {
+          // Ending the live closes the connection on purpose.
+          if (endedRef.current) return;
+          toast.error(t('live.connection_lost'));
+          navigate(-1);
+        }}
       >
-        {/* Top band: what the broadcast is doing, and the way out. */}
-        <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
-          <div className="flex min-w-0 flex-col items-start gap-2">
-            <LiveStatus startedAt={startedAt} viewers={viewerCount} />
-            {coHostUsername && (
-              <div className="live-glass flex min-w-0 items-center gap-1.5 rounded-full pl-3 text-xs text-white">
-                <span className="truncate">
-                  {t('live.cohost_label')} <strong>@{coHostUsername}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={handleRemoveCoHost}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center text-white/80 hover:text-white"
-                  aria-label={t('live.cohost_remove')}
-                >
-                  <UserMinus size={18} aria-hidden />
-                </button>
-              </div>
-            )}
-            <LiveGoalBar
-              goal={liveGoal}
-              isHost={true}
-              onClick={() => setGoalDialogOpen(true)}
-            />
-          </div>
-          <LiveControl
-            label={t('live.end_stream')}
-            onClick={() => setConfirmEndOpen(true)}
-          >
-            <X className="h-5 w-5" aria-hidden />
-          </LiveControl>
-        </div>
-
-        {/* The question the host put on the video */}
-        {highlightedQuestion && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-[80%] max-w-sm pointer-events-none">
-            <div className="bg-white p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-neutral-100 animate-in zoom-in duration-300">
-              <div className="flex items-center gap-2 mb-2">
-                <img
-                  src={
-                    highlightedQuestion.avatar ||
-                    fallbackAvatar(highlightedQuestion.username)
-                  }
-                  alt={highlightedQuestion.username}
-                  className="w-8 h-8 rounded-full"
+        <LiveFrame
+          onDoubleClick={handleDoubleTap}
+          video={
+            <>
+              <CinematicStage isBroadcaster={true} />
+              <RoomAudioRenderer />
+            </>
+          }
+        >
+          {/* Top band: whose broadcast it is and what it is doing; the way
+            out on the right, with the host's own picture and sound under it. */}
+          <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+            <div className="flex min-w-0 flex-col items-start gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
+                <LiveHost
+                  username={profile?.username ?? ''}
+                  avatar={profile?.avatar}
                 />
-                <div>
-                  <span className="block text-xs font-bold text-neutral-800">
-                    {highlightedQuestion.username}
-                  </span>
-                  <span className="block text-xs text-brand-secondary font-bold uppercase tracking-widest">
-                    {t('live.qna.question')}
-                  </span>
-                </div>
+                <LiveStatus startedAt={startedAt} viewers={viewerCount} />
               </div>
-              <p className="text-black font-semibold text-lg">
-                {highlightedQuestion.question}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Floating Hearts */}
-        <div className="pointer-events-none absolute bottom-24 right-6 top-0 flex w-16 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
-          {hearts.map((heart) => (
-            <div
-              key={heart.id}
-              className="animate-float-up absolute bottom-0 opacity-0"
-              style={{ transform: `translateX(${heart.x}px)` }}
-            >
-              {heart.emoji === '❤️' ? (
-                <Heart className="h-7 w-7 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
-              ) : (
-                <span className="text-2xl">{heart.emoji}</span>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Bottom band: the comments and what the host writes. */}
-        <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-3 pt-3 pb-(--live-bottom)">
-          <LivePinnedComment
-            pinnedComment={pinnedComment}
-            onUnpin={handleUnpinMessage}
-          />
-
-          <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
-            {chatMessages.map((msg) => (
-              // The whole row answers the tap; the bubble inside keeps its size.
-              <button
-                type="button"
-                key={msg.id}
-                onClick={() =>
-                  setSelectedMessage(
-                    selectedMessage?.id === msg.id ? null : msg,
-                  )
-                }
-                aria-pressed={selectedMessage?.id === msg.id}
-                className="min-h-11 flex items-center text-left max-w-[85%]"
-              >
-                <span
-                  className={`text-white text-xs bg-black/40 border backdrop-blur-md px-2.5 py-1 rounded-2xl shadow-sm ${
-                    selectedMessage?.id === msg.id
-                      ? 'border-brand-primary'
-                      : 'border-white/10'
-                  }`}
-                >
-                  <span className="font-extrabold text-white">
-                    {msg.user.username}:{' '}
+              {coHostUsername && (
+                <div className="live-glass flex min-w-0 items-center gap-1.5 rounded-full pl-3 text-xs text-white">
+                  <span className="truncate">
+                    {t('live.cohost_label')} <strong>@{coHostUsername}</strong>
                   </span>
-                  <span className="text-white/90">{msg.message}</span>
-                </span>
-              </button>
-            ))}
-            <div ref={chatEndRef} />
+                  <button
+                    type="button"
+                    onClick={handleRemoveCoHost}
+                    className="flex h-11 w-11 shrink-0 items-center justify-center text-white/80 hover:text-white"
+                    aria-label={t('live.cohost_remove')}
+                  >
+                    <UserMinus size={18} aria-hidden />
+                  </button>
+                </div>
+              )}
+              <LiveGoalBar
+                goal={liveGoal}
+                isHost={true}
+                onClick={() => setGoalDialogOpen(true)}
+              />
+            </div>
+            <div className="flex shrink-0 flex-col gap-2.5">
+              <LiveControl
+                label={t('live.end_stream')}
+                onClick={() => setConfirmEndOpen(true)}
+              >
+                <X className="h-5 w-5" aria-hidden />
+              </LiveControl>
+              <LiveCameraMicSwitches />
+            </div>
           </div>
 
-          {/* Chat Context Menu */}
-          {selectedMessage && (
-            <div className="mb-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl animate-in slide-in-from-bottom-2 fade-in duration-200">
-              <button
-                type="button"
-                onClick={handlePinMessage}
-                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
-              >
-                <Pin size={14} /> {t('live.pin')}
-              </button>
-              <button
-                type="button"
-                onClick={handleDeleteMessage}
-                className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-brand-secondary/20 hover:bg-brand-secondary/40 text-brand-secondary rounded-xl text-xs font-semibold transition-colors"
-              >
-                <Trash2 size={14} /> {t('live.delete_comment')}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedMessage(null)}
-                className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/60 transition-colors"
-                aria-label={t('common.close')}
-              >
-                <X size={16} aria-hidden />
-              </button>
+          {/* The question the host put on the video */}
+          {highlightedQuestion && (
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-[80%] max-w-sm pointer-events-none">
+              <div className="bg-white p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-neutral-100 animate-in zoom-in duration-300">
+                <div className="flex items-center gap-2 mb-2">
+                  <img
+                    src={
+                      highlightedQuestion.avatar ||
+                      fallbackAvatar(highlightedQuestion.username)
+                    }
+                    alt={highlightedQuestion.username}
+                    className="w-8 h-8 rounded-full"
+                  />
+                  <div>
+                    <span className="block text-xs font-bold text-neutral-800">
+                      {highlightedQuestion.username}
+                    </span>
+                    <span className="block text-xs text-brand-secondary font-bold uppercase tracking-widest">
+                      {t('live.qna.question')}
+                    </span>
+                  </div>
+                </div>
+                <p className="text-black font-semibold text-lg">
+                  {highlightedQuestion.question}
+                </p>
+              </div>
             </div>
           )}
 
-          <form onSubmit={handleSend} className="flex items-center gap-2">
-            <LiveControl
-              label={
-                questions.length > 0
-                  ? t('live.qna.open_with_count', { count: questions.length })
-                  : t('live.qna.title')
-              }
-              onClick={() => setSheet('questions')}
-            >
-              <HelpCircle className="h-5 w-5" aria-hidden />
-              {questions.length > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-secondary px-1 text-xs font-bold"
-                  aria-hidden
-                >
-                  {questions.length}
-                </span>
-              )}
-            </LiveControl>
-            <input
-              type="text"
-              aria-label={t('live.chat_placeholder')}
-              placeholder={t('live.chat_placeholder')}
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              className="live-glass min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
-            />
-            <LiveControl
-              type="submit"
-              tone="brand"
-              label={t('live.send_comment')}
-              disabled={!messageInput.trim()}
-            >
-              <Send className="h-4 w-4" aria-hidden />
-            </LiveControl>
-          </form>
-        </div>
+          {/* Floating Hearts */}
+          <div className="pointer-events-none absolute bottom-24 right-6 top-0 flex w-16 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
+            {hearts.map((heart) => (
+              <div
+                key={heart.id}
+                className="animate-float-up absolute bottom-0 opacity-0"
+                style={{ transform: `translateX(${heart.x}px)` }}
+              >
+                {heart.emoji === '❤️' ? (
+                  <Heart className="h-7 w-7 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]" />
+                ) : (
+                  <span className="text-2xl">{heart.emoji}</span>
+                )}
+              </div>
+            ))}
+          </div>
 
-        {/* One sheet at a time. */}
-        <LiveSheet
-          isOpen={coHostFormOpen && !coHostUsername}
-          onClose={() => setSheet(null)}
-          title={t('live.cohost_sheet_title')}
-          icon={<UserPlus size={20} className="shrink-0" aria-hidden />}
-        >
-          <p className="mb-3 text-sm text-white/70">
-            {t('live.cohost_sheet_hint')}
-          </p>
-          <form
-            onSubmit={handleInviteCoHost}
-            className="flex items-center gap-2"
-          >
-            <input
-              type="text"
-              aria-label={t('live.cohost_input_label')}
-              placeholder={t('live.cohost_input_placeholder')}
-              value={coHostUsernameInput}
-              onChange={(e) => setCoHostUsernameInput(e.target.value)}
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="min-h-12 min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/50 outline-none focus:border-white/40"
+          {/* Bottom band: the comments and what the host writes. */}
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-3 pt-3 pb-(--live-bottom)">
+            <LivePinnedComment
+              pinnedComment={pinnedComment}
+              onUnpin={handleUnpinMessage}
             />
-            <LiveControl
-              type="submit"
-              tone="brand"
-              label={t('live.cohost_invite_send')}
-              disabled={isInviting || !coHostUsernameInput.trim()}
+
+            <div className="overflow-y-auto max-h-40 mb-2 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
+              {chatMessages.map((msg) => (
+                // The whole row answers the tap; the bubble inside keeps its size.
+                <button
+                  type="button"
+                  key={msg.id}
+                  onClick={() =>
+                    setSelectedMessage(
+                      selectedMessage?.id === msg.id ? null : msg,
+                    )
+                  }
+                  aria-pressed={selectedMessage?.id === msg.id}
+                  className="min-h-11 flex items-center text-left max-w-[85%]"
+                >
+                  <span
+                    className={`text-white text-xs bg-black/40 border backdrop-blur-md px-2.5 py-1 rounded-2xl shadow-sm ${
+                      selectedMessage?.id === msg.id
+                        ? 'border-brand-primary'
+                        : 'border-white/10'
+                    }`}
+                  >
+                    <span className="font-extrabold text-white">
+                      {msg.user.username}:{' '}
+                    </span>
+                    <span className="text-white/90">{msg.message}</span>
+                  </span>
+                </button>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Chat Context Menu */}
+            {selectedMessage && (
+              <div className="mb-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl animate-in slide-in-from-bottom-2 fade-in duration-200">
+                <button
+                  type="button"
+                  onClick={handlePinMessage}
+                  className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
+                >
+                  <Pin size={14} /> {t('live.pin')}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteMessage}
+                  className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-brand-secondary/20 hover:bg-brand-secondary/40 text-brand-secondary rounded-xl text-xs font-semibold transition-colors"
+                >
+                  <Trash2 size={14} /> {t('live.delete_comment')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedMessage(null)}
+                  className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/60 transition-colors"
+                  aria-label={t('common.close')}
+                >
+                  <X size={16} aria-hidden />
+                </button>
+              </div>
+            )}
+
+            {/* The field first, then what the host can do. While something
+              is being written the actions give way to sending it. */}
+            <form onSubmit={handleSend} className="flex items-center gap-2">
+              <input
+                type="text"
+                aria-label={t('live.chat_placeholder')}
+                placeholder={t('live.chat_placeholder')}
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                className="live-glass min-h-11 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+              />
+              {messageInput.trim() ? (
+                <LiveControl
+                  type="submit"
+                  tone="brand"
+                  label={t('live.send_comment')}
+                >
+                  <Send className="h-4 w-4" aria-hidden />
+                </LiveControl>
+              ) : (
+                <>
+                  <LiveControl
+                    label={
+                      questions.length > 0
+                        ? t('live.qna.open_with_count', {
+                            count: questions.length,
+                          })
+                        : t('live.qna.title')
+                    }
+                    onClick={() => setSheet('questions')}
+                  >
+                    <HelpCircle className="h-5 w-5" aria-hidden />
+                    {questions.length > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-secondary px-1 text-xs font-bold"
+                        aria-hidden
+                      >
+                        {questions.length}
+                      </span>
+                    )}
+                  </LiveControl>
+                  {!coHostUsername && (
+                    <LiveControl
+                      label={t('live.cohost_invite_button')}
+                      aria-expanded={coHostFormOpen}
+                      onClick={() => setSheet('cohost')}
+                    >
+                      <UserPlus className="h-5 w-5" aria-hidden />
+                    </LiveControl>
+                  )}
+                  <LiveCameraTurn />
+                </>
+              )}
+            </form>
+          </div>
+
+          {/* One sheet at a time. */}
+          <LiveSheet
+            isOpen={coHostFormOpen && !coHostUsername}
+            onClose={() => setSheet(null)}
+            title={t('live.cohost_sheet_title')}
+            icon={<UserPlus size={20} className="shrink-0" aria-hidden />}
+          >
+            <p className="mb-3 text-sm text-white/70">
+              {t('live.cohost_sheet_hint')}
+            </p>
+            <form
+              onSubmit={handleInviteCoHost}
+              className="flex items-center gap-2"
             >
-              <Send size={18} aria-hidden />
-            </LiveControl>
-          </form>
-        </LiveSheet>
-        <LiveQnAPanel
-          isOpen={isQnAOpen}
-          onClose={() => setSheet(null)}
-          isHost={true}
-          questions={questions}
-          hasHighlight={!!highlightedQuestion}
-          onHighlightQuestion={handleHighlightQuestion}
-          onClearHighlight={handleClearHighlightQuestion}
-        />
-      </LiveFrame>
+              <input
+                type="text"
+                aria-label={t('live.cohost_input_label')}
+                placeholder={t('live.cohost_input_placeholder')}
+                value={coHostUsernameInput}
+                onChange={(e) => setCoHostUsernameInput(e.target.value)}
+                autoCapitalize="none"
+                autoCorrect="off"
+                className="min-h-12 min-w-0 flex-1 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/50 outline-none focus:border-white/40"
+              />
+              <LiveControl
+                type="submit"
+                tone="brand"
+                label={t('live.cohost_invite_send')}
+                disabled={isInviting || !coHostUsernameInput.trim()}
+              >
+                <Send size={18} aria-hidden />
+              </LiveControl>
+            </form>
+          </LiveSheet>
+          <LiveQnAPanel
+            isOpen={isQnAOpen}
+            onClose={() => setSheet(null)}
+            isHost={true}
+            questions={questions}
+            hasHighlight={!!highlightedQuestion}
+            onHighlightQuestion={handleHighlightQuestion}
+            onClearHighlight={handleClearHighlightQuestion}
+          />
+        </LiveFrame>
+      </LiveKitRoom>
 
       <ConfirmModal
         isOpen={confirmEndOpen}

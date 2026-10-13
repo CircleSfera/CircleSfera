@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 // The pieces every Live screen is made of: the frame the video fills, the
 // one shape of control, the mark that says the broadcast is live, and the
@@ -34,7 +35,9 @@ export function LiveFrame({
         className="absolute inset-0 select-none overflow-hidden bg-black md:relative md:inset-auto md:h-[88vh] md:w-full md:max-w-105 md:rounded-3xl md:border md:border-white/10 md:shadow-[0_0_60px_rgba(0,0,0,0.9)]"
         onDoubleClick={onDoubleClick}
       >
-        <div className="absolute inset-0">{video}</div>
+        <div className="absolute inset-0" data-testid="live-video">
+          {video}
+        </div>
         {/* What is in sight: a phone's browser hides part of the screen
             under its own bars, and no control may end up there. The layer
             itself lets a tap through to the video and to the controls drawn
@@ -118,6 +121,36 @@ export function LiveStatus({
         <Eye className="h-4 w-4" aria-hidden />
         <span className="tabular-nums">{viewers}</span>
         <span className="sr-only">{t('live.viewers')}</span>
+      </div>
+    </div>
+  );
+}
+
+// Whose broadcast it is: their picture and their name, and the title under
+// it when there is one.
+export function LiveHost({
+  username,
+  avatar,
+  title,
+}: {
+  username: string;
+  avatar?: string | null;
+  title?: string | null;
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <img
+        src={avatar || initialsAvatarUrl(username)}
+        alt=""
+        className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/25"
+      />
+      <div className="min-w-0">
+        <p className="truncate text-sm font-semibold text-white drop-shadow">
+          {username}
+        </p>
+        {title ? (
+          <p className="truncate text-xs text-white/75 drop-shadow">{title}</p>
+        ) : null}
       </div>
     </div>
   );

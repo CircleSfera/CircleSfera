@@ -527,12 +527,6 @@ video {
   --live-bottom: max(env(safe-area-inset-bottom, 0px), 0.75rem);
 }
 
-/* The host's own switches run down the right edge, under the way out. */
-
-.live-frame-host-controls {
-  top: calc(var(--live-top) + 3.5rem);
-}
-
 @media (min-width: 768px) {
   .live-frame {
     --live-top: 1rem;

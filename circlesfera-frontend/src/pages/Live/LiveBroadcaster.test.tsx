@@ -336,14 +336,24 @@ describe('LiveBroadcaster', () => {
 
     for (const name of [
       i18n!.t('live.end_stream'),
-      i18n!.t('live.cohost_invite_button'),
+      i18n!.t('live.camera_off'),
+      i18n!.t('live.mic_off'),
       i18n!.t('live.qna.title'),
-      i18n!.t('live.send_comment'),
+      i18n!.t('live.cohost_invite_button'),
+      i18n!.t('live.turn_camera'),
     ]) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
+    const field = screen.getByRole('textbox', {
+      name: i18n!.t('live.chat_placeholder'),
+    });
+    // While something is being written, the actions give way to sending it.
+    fireEvent.change(field, { target: { value: 'hello' } });
     expect(
-      screen.getByRole('textbox', { name: i18n!.t('live.chat_placeholder') }),
+      screen.getByRole('button', { name: i18n!.t('live.send_comment') }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n!.t('live.turn_camera') }),
+    ).not.toBeInTheDocument();
   });
 });

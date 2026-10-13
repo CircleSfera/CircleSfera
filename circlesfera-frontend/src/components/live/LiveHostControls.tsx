@@ -6,13 +6,10 @@ import { useTranslation } from 'react-i18next';
 import { logger } from '../../utils/logger';
 import { LiveControl } from './LivePieces';
 
-// What the host does to their own picture and sound: turn the camera
-// around, switch it off, switch the microphone off. A thing switched off is
-// drawn in white, so the host notices the state they are in.
-export default function LiveHostControls() {
+// The host turns the camera around: front to back and back again.
+export function LiveCameraTurn() {
   const { t } = useTranslation();
-  const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
-    useLocalParticipant();
+  const { localParticipant, isCameraEnabled } = useLocalParticipant();
   const [facing, setFacing] = useState<'user' | 'environment'>('user');
 
   const turnCamera = async () => {
@@ -31,14 +28,25 @@ export default function LiveHostControls() {
   };
 
   return (
+    <LiveControl
+      label={t('live.turn_camera')}
+      onClick={turnCamera}
+      disabled={!isCameraEnabled}
+    >
+      <SwitchCamera className="h-5 w-5" aria-hidden />
+    </LiveControl>
+  );
+}
+
+// The host switches their own picture and sound off and on. A thing switched
+// off is drawn in white, so the host notices the state they are in.
+export function LiveCameraMicSwitches() {
+  const { t } = useTranslation();
+  const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
+    useLocalParticipant();
+
+  return (
     <>
-      <LiveControl
-        label={t('live.turn_camera')}
-        onClick={turnCamera}
-        disabled={!isCameraEnabled}
-      >
-        <SwitchCamera className="h-5 w-5" aria-hidden />
-      </LiveControl>
       <LiveControl
         label={isCameraEnabled ? t('live.camera_off') : t('live.camera_on')}
         aria-pressed={!isCameraEnabled}

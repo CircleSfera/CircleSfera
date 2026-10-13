@@ -317,7 +317,7 @@ describe('LiveBroadcaster on the live connection', () => {
     fireEvent.doubleClick(comment());
     expect(live.socket.emit).not.toHaveBeenCalled();
 
-    fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+    fireEvent.doubleClick(screen.getByTestId('live-video'));
     expect(live.socket.emit).toHaveBeenCalledWith('live:heart', {
       streamId: 'stream-1',
     });
@@ -331,9 +331,10 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.queryByText('first!')).not.toBeInTheDocument();
       expect(screen.getByText('line 50')).toBeInTheDocument();
 
+      // Nothing to send yet: the row offers what the host can do instead.
       expect(
-        screen.getByRole('button', { name: 'Send comment' }),
-      ).toBeDisabled();
+        screen.queryByRole('button', { name: 'Send comment' }),
+      ).not.toBeInTheDocument();
       fireEvent.change(comment(), { target: { value: 'welcome' } });
       fireEvent.click(screen.getByRole('button', { name: 'Send comment' }));
 
@@ -586,7 +587,7 @@ describe('LiveBroadcaster on the live connection', () => {
 
     fireEvent.change(comment(), { target: { value: 'hello' } });
     fireEvent.submit(comment());
-    fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+    fireEvent.doubleClick(screen.getByTestId('live-video'));
     fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
     fireEvent.click(screen.getByRole('button', { name: 'save goal' }));
 
