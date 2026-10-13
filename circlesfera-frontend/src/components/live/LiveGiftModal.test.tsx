@@ -227,7 +227,7 @@ describe('LiveGiftModal', () => {
       <LiveGiftModal isOpen onClose={onClose} streamId="stream-1" />,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /close dialog/i }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
 
     expect(onClose).toHaveBeenCalled();
   });

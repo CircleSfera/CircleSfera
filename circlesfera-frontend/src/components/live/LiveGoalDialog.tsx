@@ -1,6 +1,8 @@
+import { Target } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Dialog } from '../ui/Dialog';
+import { CREATE_PRIMARY } from '../create-post/createStyles';
+import { LiveSheet } from './LivePieces';
 
 interface LiveGoalDialogProps {
   isOpen: boolean;
@@ -29,14 +31,14 @@ export default function LiveGoalDialog({
     targetNumber <= MAX_TARGET;
 
   return (
-    <Dialog
+    <LiveSheet
       isOpen={isOpen}
       onClose={onClose}
       title={t('live.goal.dialog_title')}
-      maxWidth="sm"
+      icon={<Target size={20} className="shrink-0" aria-hidden />}
     >
       <form
-        className="flex flex-col gap-4"
+        className="flex flex-col gap-3 pb-1"
         onSubmit={(event) => {
           event.preventDefault();
           if (!isValid) return;
@@ -45,7 +47,7 @@ export default function LiveGoalDialog({
           setTarget('');
         }}
       >
-        <label className="flex flex-col gap-2 text-sm text-white/70">
+        <label className="flex flex-col gap-1.5 text-sm text-white/70">
           {t('live.goal.title_label')}
           <input
             type="text"
@@ -53,10 +55,10 @@ export default function LiveGoalDialog({
             maxLength={MAX_TITLE}
             onChange={(event) => setTitle(event.target.value)}
             placeholder={t('live.goal.title_default')}
-            className="min-h-12 rounded-xl bg-white/10 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
+            className="min-h-12 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-white/40"
           />
         </label>
-        <label className="flex flex-col gap-2 text-sm text-white/70">
+        <label className="flex flex-col gap-1.5 text-sm text-white/70">
           {t('live.goal.target_label')}
           <input
             type="number"
@@ -67,26 +69,17 @@ export default function LiveGoalDialog({
             value={target}
             onChange={(event) => setTarget(event.target.value)}
             placeholder="1000"
-            className="min-h-12 rounded-xl bg-white/10 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
+            className="min-h-12 rounded-full border border-white/15 bg-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-white/40"
           />
         </label>
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex-1 min-h-12 rounded-full bg-white/10 hover:bg-white/16 text-sm font-semibold text-white transition-colors"
-          >
-            {t('common.cancel')}
-          </button>
-          <button
-            type="submit"
-            disabled={!isValid}
-            className="flex-1 min-h-12 rounded-full bg-brand-primary text-sm font-semibold text-white disabled:opacity-40 transition-opacity"
-          >
-            {t('live.goal.save')}
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={!isValid}
+          className={`w-full ${CREATE_PRIMARY}`}
+        >
+          {t('live.goal.save')}
+        </button>
       </form>
-    </Dialog>
+    </LiveSheet>
   );
 }

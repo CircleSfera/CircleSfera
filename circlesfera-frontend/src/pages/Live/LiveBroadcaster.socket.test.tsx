@@ -43,6 +43,15 @@ vi.mock('@livekit/components-react', () => ({
     return <div data-testid="livekit-room">{props.children}</div>;
   },
   RoomAudioRenderer: () => null,
+  useLocalParticipant: () => ({
+    localParticipant: {
+      setCameraEnabled: vi.fn(),
+      setMicrophoneEnabled: vi.fn(),
+      getTrackPublication: vi.fn(),
+    },
+    isCameraEnabled: true,
+    isMicrophoneEnabled: true,
+  }),
 }));
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => null,
@@ -175,11 +184,14 @@ async function goLive(title = '') {
   );
   const view = renderWithProviders(<LiveBroadcaster />);
   if (title) {
-    fireEvent.change(screen.getByRole('textbox', { name: 'Stream title' }), {
-      target: { value: title },
-    });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Title of the live' }),
+      {
+        target: { value: title },
+      },
+    );
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Start streaming' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Go live' }));
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
   if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(11));
@@ -192,7 +204,7 @@ async function endLive() {
   fireEvent.click(
     within(dialog).getByRole('button', { name: 'End livestream' }),
   );
-  await screen.findByText('Livestream ended');
+  await screen.findByText('Your live has ended');
 }
 
 const comment = () =>
@@ -294,7 +306,7 @@ describe('LiveBroadcaster on the live connection', () => {
       const figure = (label: string) =>
         screen.getByText(label).previousElementSibling?.textContent;
       expect(figure('Likes')).toBe('3');
-      expect(figure('Viewers')).toBe('12');
+      expect(figure('Most watching at once')).toBe('12');
     });
   });
 
@@ -308,7 +320,7 @@ describe('LiveBroadcaster on the live connection', () => {
     fireEvent.doubleClick(comment());
     expect(live.socket.emit).not.toHaveBeenCalled();
 
-    fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+    fireEvent.doubleClick(screen.getByTestId('live-video'));
     expect(live.socket.emit).toHaveBeenCalledWith('live:heart', {
       streamId: 'stream-1',
     });
@@ -322,9 +334,10 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.queryByText('first!')).not.toBeInTheDocument();
       expect(screen.getByText('line 50')).toBeInTheDocument();
 
+      // Nothing to send yet: the row offers what the host can do instead.
       expect(
-        screen.getByRole('button', { name: 'Send comment' }),
-      ).toBeDisabled();
+        screen.queryByRole('button', { name: 'Send comment' }),
+      ).not.toBeInTheDocument();
       fireEvent.change(comment(), { target: { value: 'welcome' } });
       fireEvent.click(screen.getByRole('button', { name: 'Send comment' }));
 
@@ -393,7 +406,7 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.getByText('Keep me')).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /Keep me/ }));
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]);
       expect(
         screen.queryByRole('button', { name: 'Pin' }),
       ).not.toBeInTheDocument();
@@ -455,7 +468,7 @@ describe('LiveBroadcaster on the live connection', () => {
       });
 
       fireEvent.click(
-        screen.getByRole('button', { name: '2 questions, open Q&A' }),
+        screen.getByRole('button', { name: '2 questions, open Questions' }),
       );
       fireEvent.click(
         screen.getByRole('button', { name: 'project Where next?' }),
@@ -480,7 +493,7 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.getByText('Where next?')).toBeInTheDocument();
 
       fireEvent.click(
-        screen.getByRole('button', { name: '2 questions, open Q&A' }),
+        screen.getByRole('button', { name: '2 questions, open Questions' }),
       );
       fireEvent.click(screen.getByRole('button', { name: 'clear projected' }));
       expect(live.socket.emit).toHaveBeenCalledWith('live:clear_question', {
@@ -493,7 +506,7 @@ describe('LiveBroadcaster on the live connection', () => {
 
     it('opens the panel with no question yet and closes it', async () => {
       await goLive();
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'close questions' }));
       expect(
         screen.queryByRole('dialog', { name: 'questions' }),
@@ -515,7 +528,7 @@ describe('LiveBroadcaster on the live connection', () => {
       act(() => (live.room.onDisconnected as () => void)());
       expect(toast.error).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Close summary' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       expect(live.navigate).toHaveBeenCalledWith(-1);
 
       unmount();
@@ -551,12 +564,9 @@ describe('LiveBroadcaster on the live connection', () => {
     vi.mocked(liveApi.removeCoHost).mockRejectedValue(new Error('down'));
     await goLive();
     fireEvent.click(screen.getByRole('button', { name: 'Invite a co-host' }));
-    fireEvent.change(
-      screen.getByRole('textbox', { name: '@cohost username' }),
-      {
-        target: { value: '@dan' },
-      },
-    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Username' }), {
+      target: { value: '@dan' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
     const remove = await screen.findByRole('button', {
       name: 'Remove co-host',
@@ -580,7 +590,7 @@ describe('LiveBroadcaster on the live connection', () => {
 
     fireEvent.change(comment(), { target: { value: 'hello' } });
     fireEvent.submit(comment());
-    fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+    fireEvent.doubleClick(screen.getByTestId('live-video'));
     fireEvent.click(screen.getByRole('button', { name: 'set a goal' }));
     fireEvent.click(screen.getByRole('button', { name: 'save goal' }));
 

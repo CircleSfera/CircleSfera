@@ -6,18 +6,20 @@ test.describe('Live', () => {
     await enterAsNewUser(page, { scenario: 'live' });
     await page.goto('/live/broadcast');
     await expect(
-      page.getByRole('heading', { name: 'Empezar directo' }),
+      page.getByRole('heading', { name: 'Antes de emitir en directo' }),
     ).toBeVisible();
     await expect(
-      page.getByRole('button', { name: 'Empezar a emitir' }),
+      page.getByRole('button', { name: 'Emitir en directo' }),
     ).toBeVisible();
   });
 
-  test('unknown stream shows the product error', async ({ page }) => {
+  test('a live that is not there says so on a screen of its own', async ({
+    page,
+  }) => {
     await enterAsNewUser(page, { scenario: 'live' });
     await page.goto('/live/stream-does-not-exist');
-    await expect(page).not.toHaveURL(/stream-does-not-exist/, {
-      timeout: 15_000,
-    });
+    await expect(
+      page.getByRole('heading', { name: 'Este directo ha terminado' }),
+    ).toBeVisible({ timeout: 15_000 });
   });
 });

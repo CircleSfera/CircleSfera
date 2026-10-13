@@ -367,7 +367,7 @@ describe('LiveViewer on the live connection', () => {
       await watch();
       live.socket.emit.mockClear();
 
-      fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+      fireEvent.doubleClick(screen.getByTestId('live-video'));
 
       expect(live.socket.emit).toHaveBeenCalledWith('live:send_reaction', {
         streamId: 'stream-1',
@@ -408,7 +408,7 @@ describe('LiveViewer on the live connection', () => {
       fire('live:question_asked', { id: 'q1', question: 'Older one' });
       fire('live:question_asked', { id: 'q2', question: 'Newer one' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       expect(
         screen.getAllByText(/^asked:/).map((el) => el.textContent),
       ).toEqual(['asked: Newer one', 'asked: Older one']);
@@ -430,13 +430,13 @@ describe('LiveViewer on the live connection', () => {
       useAuthStore.setState({ profile: { username: '  ' } as never });
       await watch();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'close questions' }));
       expect(
         screen.queryByRole('dialog', { name: 'questions' }),
       ).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'ask' }));
       expect(live.socket.emit).toHaveBeenCalledWith(
         'live:ask_question',
@@ -472,13 +472,37 @@ describe('LiveViewer on the live connection', () => {
     expect(live.navigate).toHaveBeenCalledWith(-1);
   });
 
-  it('says the connection was lost and leaves', async () => {
+  it('says the connection was lost and leaves while the live is still on', async () => {
     await watch();
 
-    act(() => (live.room.onDisconnected as () => void)());
+    await act(async () => (live.room.onDisconnected as () => void)());
 
-    expect(toast.error).toHaveBeenCalledWith(expect.any(String));
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(expect.any(String)),
+    );
     expect(live.navigate).toHaveBeenCalledWith(-1);
+  });
+
+  it('shows that the live has ended, and leaves nobody thinking the connection failed', async () => {
+    await watch();
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        status: 'ENDED',
+        title: 'Night set',
+        host: { profile: { username: 'alice' } },
+      },
+    } as never);
+
+    await act(async () => (live.room.onDisconnected as () => void)());
+
+    expect(
+      await screen.findByRole('heading', { name: 'This live has ended' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('@alice is no longer live.')).toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'See their profile' }));
+    expect(live.navigate).toHaveBeenCalledWith('/alice');
   });
 
   it('says a gift was cancelled on coming back from the payment page', async () => {

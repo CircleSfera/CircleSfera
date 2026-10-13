@@ -105,7 +105,7 @@ describe('LiveViewer', () => {
     const { i18n } = renderViewer();
 
     expect(await screen.findByText(i18n!.t('live.now'))).toBeInTheDocument();
-    expect(i18n!.t('live.now')).toBe('LIVE');
+    expect(i18n!.t('live.now')).toBe('Live');
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(screen.getByText('Night set')).toBeInTheDocument();
     expect(
@@ -117,7 +117,7 @@ describe('LiveViewer', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('common.close') }),
     ).toBeInTheDocument();
-    expect(screen.queryByText('VIVO')).not.toBeInTheDocument();
+    expect(screen.queryByText('Directo')).not.toBeInTheDocument();
     expect(screen.queryByText('Creador Live')).not.toBeInTheDocument();
   });
 
@@ -136,7 +136,7 @@ describe('LiveViewer', () => {
       },
     );
 
-    expect(i18n!.t('live.now')).toBe('VIVO');
+    expect(i18n!.t('live.now')).toBe('Directo');
     expect(await screen.findByText(i18n!.t('live.now'))).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: i18n!.t('live.send_gift_btn') }),
@@ -154,15 +154,38 @@ describe('LiveViewer', () => {
     expect(toast.success).not.toHaveBeenCalledWith('¡Regalo enviado!');
   });
 
-  it('toasts ended-or-not-found when join fails', async () => {
-    vi.mocked(apiClient.get).mockRejectedValue(new Error('gone'));
+  it('says on a screen of its own that the live has ended when it cannot be joined', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(
+      Object.assign(new Error('gone'), {
+        status: 404,
+        data: { errorCode: 'STREAM_NOT_FOUND' },
+      }),
+    );
     const { i18n } = renderViewer();
 
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('live.ended_or_not_found'),
-      );
-    });
+    expect(
+      await screen.findByRole('heading', {
+        name: i18n!.t('live.viewer_ended_title'),
+      }),
+    ).toBeInTheDocument();
+    // An ended live is not a fault: nothing is reported as an error.
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed connection as such, not as a live that ended', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(
+      Object.assign(new Error('down'), { isNetworkError: true }),
+    );
+    const { i18n } = renderViewer();
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(i18n!.t('live.connection_lost')),
+    );
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n!.t('live.viewer_ended_title'),
+      }),
+    ).not.toBeInTheDocument();
   });
 
   describe('the bar under the video', () => {
@@ -242,7 +265,7 @@ describe('LiveViewer', () => {
       const { i18n } = renderViewer();
       await screen.findByText(i18n!.t('live.now'));
 
-      const picture = screen.getByRole('img', { name: 'alice' });
+      const picture = screen.getByTestId('live-host-picture');
       // Drawn in the app: the name is not sent to another site.
       const src = picture.getAttribute('src') ?? '';
       expect(src).toMatch(/^data:image\/svg\+xml,/);
