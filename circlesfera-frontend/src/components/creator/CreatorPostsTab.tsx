@@ -1,219 +1,86 @@
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
-import {
-  BarChart3,
-  Film,
-  Heart,
-  Image as ImageIcon,
-  Megaphone,
-  MessageCircle,
-} from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
-import { formatNumber } from '../../utils/format';
 import PostInsightsModal from '../modals/PostInsightsModal';
-import { Button } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
+import { CreatorPager, CreatorViewChoice } from './CreatorPieces';
+import CreatorPostRow from './CreatorPostRow';
 
 interface Props {
   onPromote: (post: CreatorPost) => void;
 }
 
+type Kind = 'all' | 'POST' | 'FRAME';
+
 export default function CreatorPostsTab({ onPromote }: Props) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [page, setPage] = useState(1);
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [kind, setKind] = useState<Kind>('all');
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery<PaginatedResponse<CreatorPost>>({
-    queryKey: ['creator', 'posts', page, typeFilter],
+    queryKey: ['creator', 'posts', page, kind],
     queryFn: () =>
       creatorApi
-        .getPosts(page, 10, typeFilter || undefined)
+        .getPosts(page, 10, kind === 'all' ? undefined : kind)
         .then((r) => r.data),
   });
 
-  return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="p-1 rounded-xl border border-white/10 bg-surface-elevated flex flex-col sm:flex-row gap-1">
-        {['', 'POST', 'FRAME'].map((filter) => (
-          <button
-            key={filter || 'all'}
-            type="button"
-            className={`flex-1 min-h-11 px-4 rounded-lg text-sm font-medium transition-colors ${
-              typeFilter === filter
-                ? 'bg-brand-primary/15 text-white'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
-            }`}
-            onClick={() => {
-              setTypeFilter(filter);
-              setPage(1);
-            }}
-          >
-            {filter === ''
-              ? t('creator.posts.filter_all')
-              : filter === 'POST'
-                ? t('creator.posts.filter_posts')
-                : t('creator.posts.filter_frames')}
-          </button>
-        ))}
-      </div>
+  const posts = data?.data ?? [];
 
-      {/* Posts Grid */}
+  return (
+    <div className="space-y-4 pb-8">
+      <CreatorViewChoice<Kind>
+        label={t('creator.posts.filter_label')}
+        items={[
+          { value: 'all', label: t('creator.posts.filter_all') },
+          { value: 'POST', label: t('creator.posts.filter_posts') },
+          { value: 'FRAME', label: t('creator.posts.filter_frames') },
+        ]}
+        value={kind}
+        onChange={(next) => {
+          setKind(next);
+          setPage(1);
+        }}
+      />
+
       {isLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'].map((id) => (
+        <div className="space-y-2">
+          {['s1', 's2', 's3', 's4', 's5', 's6'].map((id) => (
             <div
               key={id}
-              className="glass-panel rounded-lg aspect-4/5 animate-pulse bg-white/5"
+              className="h-20 md:h-15 rounded-xl bg-white/5 animate-pulse border border-white/5"
             />
           ))}
         </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-          {data?.data?.map((post) => (
-            <div
-              key={post.id}
-              className="glass-panel rounded-xl border border-white/5 overflow-hidden hover:border-white/10 hover:bg-white/5 transition-all group/card flex flex-col"
-            >
-              {/* Thumbnail */}
-              <div className="aspect-4/5 bg-white/5 relative overflow-hidden shrink-0">
-                {post.media?.[0] ? (
-                  <img
-                    src={post.media[0].url}
-                    alt=""
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover/card:scale-110"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    {post.type === 'FRAME' ? (
-                      <Film size={32} className="text-zinc-700" />
-                    ) : (
-                      <ImageIcon size={32} className="text-zinc-700" />
-                    )}
-                  </div>
-                )}
-                {/* Type badge */}
-                <span className="absolute top-3 left-3 px-2 py-0.5 bg-black/60 rounded text-[11px] text-white">
-                  {post.type}
-                </span>
-              </div>
-
-              {/* Info Area */}
-              <div className="p-4 flex-1 flex flex-col justify-between gap-4">
-                <div>
-                  <p className="text-white text-xs line-clamp-1 mb-3 font-bold">
-                    {post.caption || t('creator.dashboard.untitled_post')}
-                  </p>
-
-                  <div className="space-y-2 mb-4">
-                    <div className="flex items-center justify-between text-xs text-white/40">
-                      <span>{t('creator.dashboard.performance')}</span>
-                      <span className="tabular-nums text-white/70">
-                        {post.performanceScore || 0}%
-                      </span>
-                    </div>
-                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{
-                          width: `${Math.min(post.performanceScore, 100)}%`,
-                        }}
-                        className="h-full rounded-full bg-brand-primary"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-4 text-xs text-white/40">
-                    <span className="flex items-center gap-1">
-                      <Heart size={12} className="text-brand-secondary" />{' '}
-                      {formatNumber(post._count.likes, i18n.language)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle
-                        size={12}
-                        className="text-brand-primary-text"
-                      />{' '}
-                      {formatNumber(post._count.comments, i18n.language)}
-                    </span>
-                    <span className="ml-auto">
-                      {formatNumber(post.views, i18n.language)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col xs:flex-row items-stretch gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() => setInsightsPostId(post.id)}
-                    className="flex-1 min-h-11 bg-brand-primary/10 text-brand-primary-text border-brand-primary/20 hover:bg-brand-primary/20 group/btn"
-                  >
-                    <BarChart3
-                      size={14}
-                      className="group-hover:scale-110 transition-transform mr-2"
-                    />
-                    {t('creator.posts.insights')}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => {
-                      onPromote(post);
-                    }}
-                    className="flex-1 min-h-11 bg-white/5 text-white border-white/10 hover:bg-white/10 group/btn"
-                  >
-                    <Megaphone
-                      size={14}
-                      className="group-hover:rotate-12 transition-transform mr-2"
-                    />
-                    {t('creator.posts.boost')}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!isLoading && !data?.data?.length && (
+      ) : posts.length === 0 ? (
         <CreatorEmpty
           icon={ImageIcon}
           title={t('creator.posts.empty_title')}
           message={t('creator.posts.empty_desc')}
         />
-      )}
-
-      {/* Pagination */}
-      {data?.meta && data.meta.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 flex-wrap">
-          <Button
-            variant="ghost"
-            size="compact"
-            className="min-h-11"
-            disabled={page <= 1}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            {t('creator.posts.prev')}
-          </Button>
-          <span className="text-xs text-white/40 px-2">
-            {page} / {data.meta.totalPages}
-          </span>
-          <Button
-            variant="ghost"
-            size="compact"
-            className="min-h-11"
-            disabled={page >= data.meta.totalPages}
-            onClick={() =>
-              setPage((p) => Math.min(data.meta.totalPages, p + 1))
-            }
-          >
-            {t('creator.posts.next')}
-          </Button>
+      ) : (
+        <div className="space-y-2">
+          {posts.map((post) => (
+            <CreatorPostRow
+              key={post.id}
+              post={post}
+              onOpen={(opened) => setInsightsPostId(opened.id)}
+              onPromote={onPromote}
+            />
+          ))}
         </div>
       )}
+
+      <CreatorPager
+        page={page}
+        totalPages={data?.meta?.totalPages ?? 1}
+        onChange={setPage}
+      />
 
       {insightsPostId && (
         <PostInsightsModal

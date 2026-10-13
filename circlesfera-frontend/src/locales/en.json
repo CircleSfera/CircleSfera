@@ -1934,16 +1934,22 @@
       "filter_frames": "Frames",
       "prev": "Previous",
       "next": "Next",
-      "insights": "Insights",
-      "boost": "Promote"
+      "filter_label": "Kind of post"
     },
     "stories": {
       "empty_title": "No stories yet",
-      "empty_desc": "Share ephemeral moments with your followers to grow your reach.",
+      "empty_desc": "Publish a story to see it here with its views and reactions.",
       "expired": "Expired",
       "active": "Active",
-      "open": "Open story",
-      "open_error": "Could not open this story"
+      "open_error": "Could not open this story",
+      "published": "Published on {{date}}",
+      "open_this": "Open the story of {{date}}",
+      "views_one": "{{formatted}} view",
+      "views_other": "{{formatted}} views",
+      "reactions_one": "{{formatted}} reaction",
+      "reactions_other": "{{formatted}} reactions",
+      "expires": "Expires {{when}}",
+      "expired_on": "Expired on {{date}}"
     },
     "money": {
       "sections": "Monetization sections",
@@ -2176,6 +2182,9 @@
       "promote": "Promote",
       "promote_this": "Promote: {{title}}",
       "statistics_of": "Statistics of: {{title}}"
+    },
+    "pager": {
+      "position": "Page {{page}} of {{total}}"
     }
   },
   "wallet": {

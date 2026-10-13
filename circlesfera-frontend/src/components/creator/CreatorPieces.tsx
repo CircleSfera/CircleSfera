@@ -1,8 +1,9 @@
 import { clsx } from 'clsx';
 import { ChevronRight } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Card } from '../ui';
+import { Button, Card } from '../ui';
 
 // The pieces every page of the creator area is drawn with. Each is a card of
 // its own or plain content of the page: never a card inside a card.
@@ -180,6 +181,68 @@ export function CreatorViewChoice<T extends string>({
           </button>
         );
       })}
+    </div>
+  );
+}
+
+// The state of an item, in words. The filled one is the state that is on.
+export function CreatorBadge({
+  children,
+  on = false,
+}: {
+  children: ReactNode;
+  on?: boolean;
+}) {
+  return (
+    <span
+      className={clsx(
+        'shrink-0 px-2 py-0.5 rounded-md text-[11px] font-medium border whitespace-nowrap',
+        on
+          ? 'bg-brand-primary/15 border-brand-primary/30 text-brand-primary-text'
+          : 'bg-white/5 border-white/10 text-white/60',
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+// The pages of a list. Nothing when the list fits in one.
+export function CreatorPager({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}) {
+  const { t } = useTranslation();
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className="flex items-center justify-center gap-2 flex-wrap">
+      <Button
+        variant="ghost"
+        size="compact"
+        className="min-h-11"
+        disabled={page <= 1}
+        onClick={() => onChange(Math.max(1, page - 1))}
+      >
+        {t('creator.posts.prev')}
+      </Button>
+      <span className="text-xs text-white/60 px-2 tabular-nums">
+        {t('creator.pager.position', { page, total: totalPages })}
+      </span>
+      <Button
+        variant="ghost"
+        size="compact"
+        className="min-h-11"
+        disabled={page >= totalPages}
+        onClick={() => onChange(Math.min(totalPages, page + 1))}
+      >
+        {t('creator.posts.next')}
+      </Button>
     </div>
   );
 }
