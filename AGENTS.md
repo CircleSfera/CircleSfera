@@ -43,11 +43,14 @@ as product intent without an explicit decision. When sources conflict, classify 
 ## Change policy
 
 **No extra confirmation needed:** small refactors, typing, lint or format changes that don't alter
-logic, readability improvements, focused tests of existing behavior.
+logic, readability improvements, focused tests of existing behavior. Schema changes and their
+migrations when the work that was asked for needs them: identify the change, make it, and say in
+the summary what the migration does.
 
-**Explicit confirmation required, then full implementation:** schema and migrations; public API
-contracts; auth, permissions, roles or monetization; deleting code, tables or endpoints; critical
-business logic; new dependencies; infrastructure, deployment or secrets; destructive data operations.
+**Explicit confirmation required, then full implementation:** public API contracts; auth,
+permissions, roles or monetization; deleting code, tables or endpoints; critical business logic;
+new dependencies; infrastructure, deployment or secrets; destructive data operations. Dropping a
+table or a column that holds data is a deletion and a destructive data operation: it stays here.
 
 The confirmation list is a gate (propose → wait → execute), not a ban.
 
