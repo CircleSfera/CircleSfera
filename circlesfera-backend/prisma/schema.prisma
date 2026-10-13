@@ -2458,6 +2458,8 @@ enum NotificationType {
   PAYMENT
   SYSTEM
   REPLY_MESSAGE
+  // A Profile the recipient follows started a live broadcast.
+  LIVE_STARTED
 }
 
 enum PostType {

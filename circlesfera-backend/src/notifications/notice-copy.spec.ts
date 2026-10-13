@@ -41,6 +41,7 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'message_unlocked', amountCents: 499, currency: 'eur' },
   { key: 'tip_received', amountCents: 1250, currency: 'eur' },
   { key: 'support_answered', subject: 'I was charged twice' },
+  { key: 'live_started' },
 ];
 
 describe('renderNotice', () => {

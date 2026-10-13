@@ -20,10 +20,12 @@ import {
 import { LiveController } from './live.controller.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
+import { LiveStartNoticeService } from './live-start-notice.service.js';
 
 describe('LiveController', () => {
   let app: INestApplication;
 
+  const mockStartNotice = { tellFollowers: vi.fn().mockResolvedValue(0) };
   const mockLiveService = {
     startStream: vi.fn(),
     endStream: vi.fn(),
@@ -44,6 +46,7 @@ describe('LiveController', () => {
       controllers: [LiveController],
       providers: [
         { provide: LiveService, useValue: mockLiveService },
+        { provide: LiveStartNoticeService, useValue: mockStartNotice },
         { provide: LiveGiftService, useValue: mockLiveGiftService },
       ],
       guards: [
@@ -84,6 +87,24 @@ describe('LiveController', () => {
       TEST_USER.profileId,
       'My Stream',
     );
+    // Once the live exists, the people who follow the host are told.
+    expect(mockStartNotice.tellFollowers).toHaveBeenCalledWith(
+      'stream-1',
+      TEST_USER.profileId,
+    );
+  });
+
+  it('tells nobody when the live could not start', async () => {
+    mockStartNotice.tellFollowers.mockClear();
+    mockLiveService.startStream.mockRejectedValue(new Error('no video'));
+
+    await request(app.getHttpServer())
+      .post('/api/v1/live/start')
+      .set(BEARER)
+      .send({ title: 'My Stream' })
+      .expect(500);
+
+    expect(mockStartNotice.tellFollowers).not.toHaveBeenCalled();
   });
 
   it('ends a stream as the session profileId', async () => {
