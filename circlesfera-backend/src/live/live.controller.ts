@@ -22,6 +22,7 @@ import { SendGiftDto } from './dto/send-gift.dto.js';
 import { StartStreamDto } from './dto/start-stream.dto.js';
 import { LiveService } from './live.service.js';
 import { LiveGiftService } from './live-gift.service.js';
+import { LiveStartNoticeService } from './live-start-notice.service.js';
 
 @Controller('live')
 @UseGuards(JwtAuthGuard)
@@ -29,15 +30,23 @@ export class LiveController {
   constructor(
     private readonly liveService: LiveService,
     private readonly liveGiftService: LiveGiftService,
+    private readonly startNotice: LiveStartNoticeService,
   ) {}
 
   @Post('start')
   @UseGuards(EmailVerifiedGuard)
-  startStream(
+  async startStream(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: StartStreamDto,
   ) {
-    return this.liveService.startStream(user.profileId, dto.title);
+    const started = await this.liveService.startStream(
+      user.profileId,
+      dto.title,
+    );
+    // The followers are told once the live exists. Not waited for: the host
+    // is on air whether or not everyone has been told yet.
+    void this.startNotice.tellFollowers(started.stream.id, user.profileId);
+    return started;
   }
 
   @Post('end')
