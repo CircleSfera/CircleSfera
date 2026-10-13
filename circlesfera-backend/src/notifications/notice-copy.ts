@@ -1,4 +1,4 @@
-import type { Locale, ReportReason } from '@prisma/client';
+import type { Locale, ReportReason, SuspensionCause } from '@prisma/client';
 
 // In-app notices and push texts, written in the recipient account's
 // language when the notice is created. Social notices hold only the action
@@ -48,6 +48,7 @@ export type Notice =
     }
   | { key: 'profile_banned' }
   | { key: 'profile_suspended_activity'; until: Date }
+  | { key: 'profile_suspended_cause'; until: Date; cause: SuspensionCause }
   | {
       key: 'profile_restricted';
       by: 'automated' | 'staff';
@@ -154,6 +155,30 @@ const RULES: Record<Locale, Record<ReportReason, string>> = {
 
 const rule = (locale: Locale, value: ReportReason) => RULES[locale][value];
 
+// The serious causes of a direct suspension, as the Profile reads them after
+// "for" / "por". A compromised Profile has its own sentence.
+const SUSPENSION_CAUSES: Record<
+  Locale,
+  Record<Exclude<SuspensionCause, 'COMPROMISED'>, string>
+> = {
+  en: {
+    CHILD_EXPLOITATION: 'content or conduct that sexually exploits minors',
+    VIOLENCE: 'violence or threats',
+    ILLEGAL: 'illegal content or activity',
+    HATE_SPEECH: 'hate speech',
+    HARASSMENT: 'serious harassment',
+    SCAM: 'a scam or fraud',
+  },
+  es: {
+    CHILD_EXPLOITATION: 'contenido o conducta de explotación sexual de menores',
+    VIOLENCE: 'violencia o amenazas',
+    ILLEGAL: 'contenido o actividad ilegal',
+    HATE_SPEECH: 'discurso de odio',
+    HARASSMENT: 'acoso grave',
+    SCAM: 'estafa o fraude',
+  },
+};
+
 const withNote = (text: string, label: string, note?: string) =>
   note?.trim() ? `${text} ${label}: ${note.trim()}` : text;
 
@@ -248,6 +273,10 @@ function renderEn(n: Notice): string {
       return 'This profile was banned after a report review. Your other profiles are not affected. You can appeal this decision.';
     case 'profile_suspended_activity':
       return `This profile is suspended until ${day('en', n.until)} after a review of unusual activity. Your other profiles are not affected. You can appeal this decision.`;
+    case 'profile_suspended_cause':
+      return n.cause === 'COMPROMISED'
+        ? `This profile is paused until ${day('en', n.until)} because someone else may have got into it. This protects you and is not a sanction. Your other profiles are not affected. Write to support to get it back.`
+        : `After a review by our team, this profile is suspended until ${day('en', n.until)} for ${SUSPENSION_CAUSES.en[n.cause]}. Your other profiles are not affected. You can appeal this decision.`;
     case 'profile_restricted':
       return n.by === 'automated'
         ? `An automated system detected unusual activity on this profile, such as many actions in a short time or repeated messages. Until a person on our team reviews it, for at most ${n.hours} hours, this profile can follow at most 20 accounts and send at most 5 message requests a day. Nothing is hidden or removed. You can appeal this decision.`
@@ -359,6 +388,10 @@ function renderEs(n: Notice): string {
       return 'Este perfil ha sido bloqueado tras revisar una denuncia. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.';
     case 'profile_suspended_activity':
       return `Este perfil está suspendido hasta el ${day('es', n.until)} tras revisar una actividad inusual. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.`;
+    case 'profile_suspended_cause':
+      return n.cause === 'COMPROMISED'
+        ? `Este perfil está en pausa hasta el ${day('es', n.until)} porque otra persona puede haber entrado en él. Es una protección para ti, no una sanción. Tus otros perfiles no se ven afectados. Escribe a soporte para recuperarlo.`
+        : `Tras una revisión de nuestro equipo, este perfil está suspendido hasta el ${day('es', n.until)} por ${SUSPENSION_CAUSES.es[n.cause]}. Tus otros perfiles no se ven afectados. Puedes apelar esta decisión.`;
     case 'profile_restricted':
       return n.by === 'automated'
         ? `Un sistema automático ha detectado actividad inusual en este perfil, como muchas acciones en poco tiempo o mensajes repetidos. Hasta que una persona de nuestro equipo lo revise, durante un máximo de ${n.hours} horas, este perfil puede seguir como mucho a 20 cuentas y enviar como mucho 5 solicitudes de mensaje al día. No se oculta ni se elimina nada. Puedes apelar esta decisión.`

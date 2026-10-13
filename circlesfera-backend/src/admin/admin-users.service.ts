@@ -344,6 +344,7 @@ export class AdminUsersService {
         isAccountBanned: false,
         banStrikeId: null,
         suspensionStrikeId: null,
+        suspensionCause: null,
       },
     });
     const result = await this.prisma.user.update({
@@ -503,6 +504,7 @@ export class AdminUsersService {
       data: {
         suspendedUntil: until,
         suspensionStrikeId: null,
+        suspensionCause: null,
       },
     });
     await this.prisma.user.update({
@@ -550,6 +552,7 @@ export class AdminUsersService {
       data: {
         suspendedUntil: null,
         suspensionStrikeId: null,
+        suspensionCause: null,
       },
     });
     await this.prisma.user.update({
@@ -767,6 +770,18 @@ export class AdminUsersService {
         (s) => s.kind === 'STRIKE' && s.status === 'ACTIVE',
       ).length,
       strikes,
+      // Every Profile of the person with its own standing: a suspension or
+      // a ban applies to one Profile.
+      profiles: user.profiles.map((p) => ({
+        id: p.id,
+        username: p.username,
+        fullName: p.fullName,
+        isAccountBanned: p.isAccountBanned,
+        suspendedUntil:
+          p.suspendedUntil && p.suspendedUntil > now ? p.suspendedUntil : null,
+        suspensionCause:
+          p.suspendedUntil && p.suspendedUntil > now ? p.suspensionCause : null,
+      })),
       role: linkedAdminIdentities.length > 0 ? Role.ADMIN : user.role,
       profile: primaryProfile
         ? {

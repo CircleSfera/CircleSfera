@@ -35,6 +35,8 @@ const EVERY_NOTICE: Notice[] = [
   },
   { key: 'profile_banned' },
   { key: 'profile_suspended_activity', until: day },
+  { key: 'profile_suspended_cause', until: day, cause: 'HARASSMENT' },
+  { key: 'profile_suspended_cause', until: day, cause: 'COMPROMISED' },
   { key: 'profile_restricted', by: 'automated', hours: 72, days: 7 },
   { key: 'message_unlocked', amountCents: 499, currency: 'eur' },
   { key: 'tip_received', amountCents: 1250, currency: 'eur' },
@@ -68,6 +70,27 @@ describe('renderNotice', () => {
     const until = { key: 'account_suspended', until: day } as const;
     expect(renderNotice('en', until)).toContain('3 November 2026');
     expect(renderNotice('es', until)).toContain('3 de noviembre de 2026');
+  });
+
+  it('tells a suspended Profile its cause and that it can appeal, and a compromised one that it is not a sanction', () => {
+    const sanction = renderNotice('en', {
+      key: 'profile_suspended_cause',
+      until: day,
+      cause: 'SCAM',
+    });
+    expect(sanction).toContain('for a scam or fraud');
+    expect(sanction).toContain('3 November 2026');
+    expect(sanction).toContain('You can appeal');
+
+    for (const locale of ['en', 'es'] as const) {
+      const protection = renderNotice(locale, {
+        key: 'profile_suspended_cause',
+        until: day,
+        cause: 'COMPROMISED',
+      });
+      expect(protection).not.toMatch(/appeal|apelar/);
+      expect(protection).toMatch(/not a sanction|no una sanción/);
+    }
   });
 
   it('adds staff notes and reasons only when there are any', () => {

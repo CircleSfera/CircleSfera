@@ -279,6 +279,28 @@ export interface AdminUserStrike {
   status: 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 }
 
+// The serious causes for which staff may suspend one Profile directly.
+export const SUSPENSION_CAUSES = [
+  'CHILD_EXPLOITATION',
+  'VIOLENCE',
+  'ILLEGAL',
+  'HATE_SPEECH',
+  'HARASSMENT',
+  'SCAM',
+  'COMPROMISED',
+] as const;
+export type SuspensionCause = (typeof SUSPENSION_CAUSES)[number];
+
+// One Profile of a person with its own standing.
+export interface AdminProfileStanding {
+  id: string;
+  username: string;
+  fullName: string | null;
+  isAccountBanned: boolean;
+  suspendedUntil: string | null;
+  suspensionCause: SuspensionCause | null;
+}
+
 export interface AdminUserDetail {
   id: string;
   email: string;
@@ -312,6 +334,8 @@ export interface AdminUserDetail {
   strikeCount?: number;
   // Warnings and strikes of every Profile of the account, newest first.
   strikes?: AdminUserStrike[];
+  // Every Profile of the person; a suspension applies to one of them.
+  profiles?: AdminProfileStanding[];
   _count: {
     posts: number;
     comments: number;
@@ -921,6 +945,16 @@ export const adminApi = {
 
   getUserDetail: (id: string) =>
     apiClient.get<AdminUserDetail>(`admin/users/${id}/detail`),
+
+  // Suspends one Profile for a serious cause; the person's other Profiles
+  // keep working.
+  suspendProfile: (
+    profileId: string,
+    body: { cause: SuspensionCause; days: number; note: string },
+  ) => apiClient.patch(`admin/profiles/${profileId}/suspend`, body),
+
+  liftProfileSuspension: (profileId: string) =>
+    apiClient.patch(`admin/profiles/${profileId}/lift-suspension`),
 
   // The notes the staff left on an account, newest first.
   getStaffNotes: (id: string) =>

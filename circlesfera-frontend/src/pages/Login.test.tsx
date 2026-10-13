@@ -345,6 +345,42 @@ describe('Login Page Integration', () => {
     });
   });
 
+  it('tells a Profile paused because someone else got into it to write to support, as the server really answers, and offers no appeal', async () => {
+    vi.mocked(authApi.login).mockRejectedValueOnce({
+      response: {
+        status: 401,
+        data: {
+          message: 'ACCOUNT_SUSPENDED',
+          // The server gives this refusal the generic code.
+          errorCode: 'HTTP_EXCEPTION',
+          details: {
+            suspendedUntil: '2026-10-20T00:00:00.000Z',
+            cause: 'COMPROMISED',
+          },
+        },
+      },
+    });
+
+    const { i18n } = renderWithProviders(<Login />);
+
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.identifier_label')),
+      { target: { value: 'ana.shop' } },
+    );
+    fireEvent.change(
+      screen.getByLabelText(i18n!.t('auth.login.password_label')),
+      { target: { value: 'password123' } },
+    );
+    fireEvent.click(screen.getByTestId('login-submit-button'));
+
+    expect(
+      await screen.findByText(i18n!.t('auth.login.suspended_compromised')),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(i18n!.t('auth.login.default_error')),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows suspension banner with date and reason when suspended', async () => {
     vi.mocked(authApi.login).mockRejectedValueOnce({
       response: {

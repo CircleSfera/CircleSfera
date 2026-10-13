@@ -958,6 +958,9 @@ export class AuthService {
       loginProfile.suspendedUntil > new Date()
     ) {
       // A suspended Profile can appeal the suspension without signing in.
+      // A Profile paused because someone else got into it is not sanctioned,
+      // so there is nothing to appeal.
+      const compromised = loginProfile.suspensionCause === 'COMPROMISED';
       throw new UnauthorizedException({
         message: ApiErrorCode.ACCOUNT_SUSPENDED,
         // Extra fields go under details: the global exception filter only
@@ -965,7 +968,10 @@ export class AuthService {
         details: {
           suspendedUntil: loginProfile.suspendedUntil.toISOString(),
           reason: loginProfile.accountBanReason || undefined,
-          appealToken: this.signAppealToken(userId, loginProfile.id),
+          cause: loginProfile.suspensionCause || undefined,
+          appealToken: compromised
+            ? undefined
+            : this.signAppealToken(userId, loginProfile.id),
         },
       });
     }

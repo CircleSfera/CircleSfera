@@ -1,3 +1,5 @@
+import type { SuspensionCause } from '@prisma/client';
+
 // Chooses which Profile a session acts as. Sanctions apply to a single
 // Profile, so an account whose first Profile is banned can still sign in with
 // another one.
@@ -7,6 +9,7 @@ export interface SessionProfileCandidate {
   isAccountBanned: boolean;
   accountBanReason?: string | null;
   suspendedUntil?: Date | null;
+  suspensionCause?: SuspensionCause | null;
 }
 
 export const SESSION_PROFILE_SELECT = {
@@ -14,6 +17,7 @@ export const SESSION_PROFILE_SELECT = {
   isAccountBanned: true,
   accountBanReason: true,
   suspendedUntil: true,
+  suspensionCause: true,
 } as const;
 
 // Oldest first, with a stable tie-break.

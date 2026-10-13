@@ -169,7 +169,11 @@ describe('ProfileStrikesService', () => {
       });
       expect(tx.profile.update).toHaveBeenCalledWith({
         where: { id: 'profile-1' },
-        data: { suspendedUntil: until, suspensionStrikeId: 'strike-new' },
+        data: {
+          suspendedUntil: until,
+          suspensionStrikeId: 'strike-new',
+          suspensionCause: null,
+        },
       });
       expect(result?.suspendedUntil).toEqual(until);
       expect(cache.del).toHaveBeenCalledWith('profile:offender');
@@ -288,7 +292,11 @@ describe('ProfileStrikesService', () => {
 
       expect(prisma.profile.update).toHaveBeenCalledWith({
         where: { id: 'profile-1' },
-        data: { suspendedUntil: until, suspensionStrikeId: null },
+        data: {
+          suspendedUntil: until,
+          suspensionStrikeId: null,
+          suspensionCause: null,
+        },
       });
       expect(cache.del).toHaveBeenCalledWith('profile:offender');
       expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -299,6 +307,32 @@ describe('ProfileStrikesService', () => {
         expect.objectContaining({
           notice: { key: 'profile_suspended_activity', until },
           targetType: 'profile_suspension',
+        }),
+      );
+    });
+
+    it('keeps the serious cause on the Profile and tells it that cause', async () => {
+      const until = new Date(NOW.getTime() + 3 * DAY_MS);
+
+      await service.suspendProfile({
+        adminId: 'admin-1',
+        userId: 'user-1',
+        profileId: 'profile-1',
+        until,
+        cause: 'SCAM',
+      });
+
+      expect(prisma.profile.update).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        data: {
+          suspendedUntil: until,
+          suspensionStrikeId: null,
+          suspensionCause: 'SCAM',
+        },
+      });
+      expect(notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          notice: { key: 'profile_suspended_cause', until, cause: 'SCAM' },
         }),
       );
     });
@@ -437,6 +471,7 @@ describe('ProfileStrikesService', () => {
           suspendedUntil: null,
           banStrikeId: null,
           suspensionStrikeId: null,
+          suspensionCause: null,
         },
       });
     });

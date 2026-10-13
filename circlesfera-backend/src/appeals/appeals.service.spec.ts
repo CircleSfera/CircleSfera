@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+} from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -86,6 +90,26 @@ describe('AppealsService', () => {
   });
 
   describe('create', () => {
+    it('refuses an appeal about a Profile paused because someone else got into it: it is not a sanction', async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'profile-1',
+        isAccountBanned: false,
+        suspensionCause: 'COMPROMISED',
+        suspendedUntil: new Date(Date.now() + 86_400_000),
+      });
+      mockPrismaService.appeal.create.mockClear();
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'ACCOUNT_BAN' as any,
+          targetId: 'profile-1',
+          reason: 'Give me my profile back please',
+        }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
     it('should create an appeal and emit a moderation.report_filed event', async () => {
       const dto = {
         targetType: 'ACCOUNT_BAN' as any,

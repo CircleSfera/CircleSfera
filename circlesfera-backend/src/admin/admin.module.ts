@@ -25,6 +25,8 @@ import { AdminOpsController } from './admin-ops.controller.js';
 import { AdminOpsService } from './admin-ops.service.js';
 import { AdminPlansController } from './admin-plans.controller.js';
 import { AdminPlansService } from './admin-plans.service.js';
+import { AdminProfileSuspensionController } from './admin-profile-suspension.controller.js';
+import { AdminProfileSuspensionService } from './admin-profile-suspension.service.js';
 import { AdminRiskCasesController } from './admin-risk-cases.controller.js';
 import { AdminRiskCasesService } from './admin-risk-cases.service.js';
 import { AdminStatsController } from './admin-stats.controller.js';
@@ -71,6 +73,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     ),
   ],
   controllers: [
+    AdminProfileSuspensionController,
     AdminContentController,
     AdminMediaController,
     AdminOpsController,
@@ -84,6 +87,7 @@ import { GetReportsQuery } from './use-cases/content/queries/get-reports.query.j
     AdminRiskCasesController,
   ],
   providers: [
+    AdminProfileSuspensionService,
     AdminService,
     AdminOpsService,
     AdminPlansService,

@@ -365,6 +365,9 @@ model Profile {
   // and direct bans clear these.
   banStrikeId        String?
   suspensionStrikeId String?
+  // Why staff suspended this Profile directly; empty for a suspension that
+  // comes from strikes or from the review of unusual activity.
+  suspensionCause    SuspensionCause?
   // Legacy strike counter. Strikes, their expiry and their consequences are
   // recorded in profile_strikes; nothing reads or writes this column any more.
   strikeCount        Int       @default(0)
@@ -2482,6 +2485,18 @@ enum ReportReason {
   CSAM
   SCAM
   OTHER
+}
+
+// The serious causes for which staff may suspend one Profile directly.
+// COMPROMISED protects the owner and is not a sanction.
+enum SuspensionCause {
+  CHILD_EXPLOITATION
+  VIOLENCE
+  ILLEGAL
+  HATE_SPEECH
+  HARASSMENT
+  SCAM
+  COMPROMISED
 }
 
 enum ReportStatus {
