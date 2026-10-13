@@ -165,7 +165,13 @@ export const CreatorAnalyticsDashboard = () => {
             onChange={setPeriod}
           />
           {error ? (
-            <CreatorEmpty title={t('creator.advanced.error')} />
+            <CreatorEmpty
+              title={t('creator.advanced.error')}
+              action={{
+                label: t('creator.advanced.retry'),
+                onClick: fetchAnalytics,
+              }}
+            />
           ) : loading ? (
             <div
               className="h-24 rounded-xl bg-white/5 animate-pulse border border-white/5"

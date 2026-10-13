@@ -2115,7 +2115,7 @@
       "plan_desc": "Your income by period and by kind, the hours people look at your posts, your best posts and the full export come with the Elite Creator and Business plans.",
       "plan_cta": "See plans",
       "title": "Advanced analytics",
-      "error": "The advanced analytics could not be loaded. Try again in a moment.",
+      "error": "The advanced analytics could not be loaded.",
       "export_csv": "Export",
       "income_title": "Income by period",
       "period_label": "Period",
@@ -2140,7 +2140,8 @@
       "top_hint": "Ordered by how people answered each one: likes, comments, saves, shares and time watched.",
       "no_top_posts": "You have no posts to compare yet.",
       "saves_one": "saved {{formatted}} time",
-      "saves_other": "saved {{formatted}} times"
+      "saves_other": "saved {{formatted}} times",
+      "retry": "Try again"
     },
     "guard": {
       "creators_only": "Creator Studio is available for creator accounts."

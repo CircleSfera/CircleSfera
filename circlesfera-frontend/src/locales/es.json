@@ -2115,7 +2115,7 @@
       "plan_desc": "Tus ingresos por periodo y por tipo, las horas a las que miran tus publicaciones, tus mejores publicaciones y la exportación completa vienen con los planes Elite Creator y Business.",
       "plan_cta": "Ver planes",
       "title": "Analítica avanzada",
-      "error": "No se pudo cargar la analítica avanzada. Inténtalo de nuevo en un momento.",
+      "error": "No se pudo cargar la analítica avanzada.",
       "export_csv": "Exportar",
       "income_title": "Ingresos por periodo",
       "period_label": "Periodo",
@@ -2140,7 +2140,8 @@
       "top_hint": "Ordenadas por cómo respondió la gente a cada una: me gusta, comentarios, guardados, compartidos y tiempo de visionado.",
       "no_top_posts": "Todavía no tienes publicaciones que comparar.",
       "saves_one": "guardada {{formatted}} vez",
-      "saves_other": "guardada {{formatted}} veces"
+      "saves_other": "guardada {{formatted}} veces",
+      "retry": "Reintentar"
     },
     "guard": {
       "creators_only": "Creator Studio solo está disponible para cuentas de creador."

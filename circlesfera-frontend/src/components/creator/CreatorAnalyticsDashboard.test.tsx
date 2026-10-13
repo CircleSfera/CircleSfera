@@ -160,18 +160,22 @@ describe('CreatorAnalyticsDashboard', () => {
     expect(screen.queryByText(/average/)).not.toBeInTheDocument();
   });
 
-  it('says so when the answer does not arrive', async () => {
-    vi.mocked(creatorApi.getRevenueAnalytics).mockRejectedValue(
+  it('says so when the answer does not arrive, and asks again on request', async () => {
+    const user = userEvent.setup();
+    vi.mocked(creatorApi.getRevenueAnalytics).mockRejectedValueOnce(
       new Error('down'),
     );
     renderWithProviders(<CreatorAnalyticsDashboard />);
 
     expect(
-      await screen.findByText(
-        'The advanced analytics could not be loaded. Try again in a moment.',
-      ),
+      await screen.findByText('The advanced analytics could not be loaded.'),
     ).toBeInTheDocument();
     expect(screen.queryByText('Your best posts')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }));
+
+    expect(await screen.findByText('€1,000.00')).toBeInTheDocument();
+    expect(creatorApi.getRevenueAnalytics).toHaveBeenCalledTimes(2);
   });
 
   it('writes its headings in Spanish for a Spanish reader', async () => {
