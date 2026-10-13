@@ -257,7 +257,11 @@ jobs:
                 refuse "${name} is set; ${ENV_NAME} sends no email and no push."
               fi
             done
-            for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET JWT_ADMIN_SECRET CSRF_SECRET; do
+            # The last eight are the ones the backend itself refuses to start
+            # without: said here, before any container changes.
+            for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET JWT_ADMIN_SECRET CSRF_SECRET \
+              JWT_REFRESH_SECRET ENCRYPTION_KEY ABUSE_HASH_PEPPER STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
+              OPENAI_API_KEY LIVEKIT_API_KEY LIVEKIT_API_SECRET TURNSTILE_SECRET_KEY; do
               if [ -z "$(setting "$name")" ]; then
                 refuse "${name} is missing in the settings of ${ENV_NAME}."
               fi
