@@ -1,0 +1,337 @@
+name: Deploy an environment (staging or development)
+
+# Staging receives every merge to main before production does (called from
+# the production deploy). Development receives any branch, by hand.
+#
+# Each environment has its own checkout on the server
+# (/srv/circlesfera-<name>), its own Compose project, database, cache and
+# files, and its own images. Nothing here reads or writes production.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: staging or dev
+        required: true
+        type: string
+      wipe_data:
+        description: Start the environment from an empty database (development only)
+        required: false
+        type: boolean
+        default: false
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to deploy the selected branch to
+        required: true
+        type: choice
+        options:
+          - dev
+          - staging
+      wipe_data:
+        description: Start from an empty database (development only)
+        required: false
+        type: boolean
+        default: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: circlesfera/circlesfera
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  NODE_OPTIONS: "--no-deprecation"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+    name: Build the images of the environment
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image_tag: ${{ steps.tag.outputs.image_tag }}
+
+    steps:
+      - name: Check what may be deployed where
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+          WIPE_DATA: ${{ inputs.wipe_data }}
+        run: |
+          set -euo pipefail
+          case "$ENVIRONMENT" in
+            staging)
+              # Staging is what production will run next: only main.
+              if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+                echo "Staging is deployed from main only (this is $GITHUB_REF)."
+                exit 1
+              fi
+              if [ "$WIPE_DATA" = "true" ]; then
+                echo "The data of staging is kept between deploys; only development can be wiped."
+                exit 1
+              fi
+              ;;
+            dev) ;;
+            *)
+              echo "Unknown environment: $ENVIRONMENT"
+              exit 1
+              ;;
+          esac
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Name the images
+        id: tag
+        env:
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: echo "image_tag=${ENVIRONMENT}-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve the public settings of the web app
+        id: vite_args
+        env:
+          ENV_FILE_B64: ${{ inputs.environment == 'staging' && secrets.ENV_STAGING_B64 || secrets.ENV_DEV_B64 }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          if [ -z "${ENV_FILE_B64:-}" ]; then
+            echo "The settings secret of $ENVIRONMENT is not set (ENV_STAGING_B64 or ENV_DEV_B64)."
+            exit 1
+          fi
+          ENV_FILE="$(mktemp)"
+          echo "$ENV_FILE_B64" | base64 -d > "$ENV_FILE"
+          value() {
+            grep -E "^$1=" "$ENV_FILE" | tail -n1 | cut -d= -f2- | tr -d '\r' \
+              | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//" || true
+          }
+          API_URL="$(value VITE_API_URL)"
+          LIVEKIT_URL="$(value VITE_LIVEKIT_URL)"
+          [ -n "$LIVEKIT_URL" ] || LIVEKIT_URL="$(value LIVEKIT_URL)"
+          SENTRY_DSN="$(value VITE_SENTRY_DSN)"
+          TURNSTILE_SITE_KEY="$(value VITE_TURNSTILE_SITE_KEY)"
+          MAPBOX_ACCESS_TOKEN="$(value VITE_MAPBOX_ACCESS_TOKEN)"
+          rm -f "$ENV_FILE"
+
+          # The web app of an environment must call that environment, never
+          # production.
+          EXPECTED="https://${ENVIRONMENT}.circlesfera.com/api/v1"
+          if [ "$API_URL" != "$EXPECTED" ]; then
+            echo "VITE_API_URL of $ENVIRONMENT must be $EXPECTED."
+            exit 1
+          fi
+          for secret in "$API_URL" "$LIVEKIT_URL" "$SENTRY_DSN" "$TURNSTILE_SITE_KEY" "$MAPBOX_ACCESS_TOKEN"; do
+            [ -z "$secret" ] || echo "::add-mask::$secret"
+          done
+          {
+            echo "api_url=$API_URL"
+            echo "livekit_url=$LIVEKIT_URL"
+            echo "sentry_dsn=$SENTRY_DSN"
+            echo "turnstile_site_key=$TURNSTILE_SITE_KEY"
+            echo "mapbox_access_token=$MAPBOX_ACCESS_TOKEN"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          driver-opts: |
+            image=ghcr.io/circlesfera/circlesfera/mirror/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+
+      # Images of an environment live apart from production's
+      # (.../env/backend, .../env/frontend): the production deploy prunes its
+      # own repositories and would take these with them.
+      - name: Build and push Backend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./circlesfera-backend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/env/backend:${{ steps.tag.outputs.image_tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: ./circlesfera-frontend/Dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/env/frontend:${{ steps.tag.outputs.image_tag }}
+          build-args: |
+            VITE_API_URL=${{ steps.vite_args.outputs.api_url }}
+            VITE_LIVEKIT_URL=${{ steps.vite_args.outputs.livekit_url }}
+            VITE_SENTRY_DSN=${{ steps.vite_args.outputs.sentry_dsn }}
+            VITE_TURNSTILE_SITE_KEY=${{ steps.vite_args.outputs.turnstile_site_key }}
+            VITE_MAPBOX_ACCESS_TOKEN=${{ steps.vite_args.outputs.mapbox_access_token }}
+          cache-from: type=gha,scope=frontend-${{ inputs.environment }}
+          cache-to: type=gha,mode=max,scope=frontend-${{ inputs.environment }}
+
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # One deploy of an environment at a time; the next one waits.
+    concurrency:
+      group: deploy-environment-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Require the pinned VPS host key
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+
+      - name: Deploy on the server
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          ENV_FILE_B64: ${{ inputs.environment == 'staging' && secrets.ENV_STAGING_B64 || secrets.ENV_DEV_B64 }}
+          ENV_NAME: ${{ inputs.environment }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          COMMIT_SHA: ${{ github.sha }}
+          WIPE_DATA: ${{ inputs.wipe_data }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REGISTRY_USER: ${{ github.actor }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: ENV_FILE_B64,ENV_NAME,IMAGE_TAG,COMMIT_SHA,WIPE_DATA,REGISTRY_TOKEN,REGISTRY_USER
+          script: |
+            set -euo pipefail
+
+            case "$ENV_NAME" in
+              staging) PROXY_PORT=8083 ;;
+              dev) PROXY_PORT=8084 ;;
+              *) echo "Unknown environment: $ENV_NAME"; exit 1 ;;
+            esac
+            DIR="/srv/circlesfera-${ENV_NAME}"
+            PROJECT="circlesfera-${ENV_NAME}"
+            REGISTRY="ghcr.io/circlesfera/circlesfera"
+            BACKEND="CircleSfera-${ENV_NAME}-Backend"
+
+            if [ ! -d "${DIR}/.git" ]; then
+              echo "${DIR} does not exist. Run infra/host/apply-environments.sh on the server first."
+              exit 1
+            fi
+            cd "${DIR}"
+
+            echo "$REGISTRY_TOKEN" | docker login ghcr.io -u "$REGISTRY_USER" --password-stdin > /dev/null
+
+            # The Compose file and the proxy rules of the commit being deployed.
+            git fetch --quiet origin "$COMMIT_SHA"
+            git checkout --quiet --detach "$COMMIT_SHA"
+
+            # The settings, private to the deploy user.
+            umask 077
+            echo "$ENV_FILE_B64" | base64 -d > .env.new
+            setting() { grep -E "^$1=" .env.new | tail -n1 | cut -d= -f2- | tr -d '\r"'"'" || true; }
+
+            # An environment that is not production never moves real money
+            # and never writes to a real person. The deploy stops before any
+            # container changes if its settings would let it.
+            refuse() { rm -f .env.new; echo "Refused: $1"; exit 1; }
+            if grep -qE '(sk|rk)_live_' .env.new; then
+              refuse "the settings hold a live key of the payment provider; ${ENV_NAME} takes test keys only."
+            fi
+            for name in BREVO_API_KEY SMTP_PASS VAPID_PRIVATE_KEY; do
+              if [ -n "$(setting "$name")" ]; then
+                refuse "${name} is set; ${ENV_NAME} sends no email and no push."
+              fi
+            done
+            for name in POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB REDIS_PASSWORD JWT_SECRET JWT_ADMIN_SECRET CSRF_SECRET; do
+              if [ -z "$(setting "$name")" ]; then
+                refuse "${name} is missing in the settings of ${ENV_NAME}."
+              fi
+            done
+            if [ -f /srv/circlesfera/.env.production ]; then
+              for name in POSTGRES_PASSWORD REDIS_PASSWORD JWT_SECRET JWT_REFRESH_SECRET JWT_ADMIN_SECRET CSRF_SECRET ENCRYPTION_KEY; do
+                own="$(setting "$name")"
+                theirs="$(grep -E "^${name}=" /srv/circlesfera/.env.production | tail -n1 | cut -d= -f2- | tr -d '\r"'"'" || true)"
+                if [ -n "$own" ] && [ "$own" = "$theirs" ]; then
+                  refuse "${name} is the same as production's; ${ENV_NAME} has its own."
+                fi
+              done
+            fi
+
+            {
+              printf '\nENV_NAME=%s\n' "$ENV_NAME"
+              printf 'PROXY_PORT=%s\n' "$PROXY_PORT"
+              printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
+              printf 'REGISTRY=%s\n' "$REGISTRY"
+            } >> .env.new
+            PREVIOUS_TAG=""
+            if [ -f .env ]; then
+              PREVIOUS_TAG="$(grep -E '^IMAGE_TAG=' .env | tail -n1 | cut -d= -f2- || true)"
+            fi
+            mv .env.new .env
+            chmod 600 .env
+
+            compose() { docker compose -p "$PROJECT" -f docker-compose.env.yml "$@"; }
+
+            if [ "$WIPE_DATA" = "true" ]; then
+              if [ "$ENV_NAME" != "dev" ]; then
+                echo "Only development can be wiped."
+                exit 1
+              fi
+              echo "Removing the containers and the data of development..."
+              compose down --volumes --remove-orphans
+            fi
+
+            compose pull --quiet backend frontend
+            compose up -d --remove-orphans
+            # The proxy reads its rules from this checkout, not from an image.
+            compose up -d --no-deps --force-recreate nginx-proxy
+
+            echo "Waiting for the backend of ${ENV_NAME}..."
+            HEALTH="starting"
+            for i in $(seq 1 48); do
+              HEALTH="$(docker inspect --format='{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$BACKEND" 2> /dev/null || echo none)"
+              [ "$HEALTH" = "healthy" ] && break
+              sleep 5
+            done
+            if [ "$HEALTH" != "healthy" ]; then
+              echo "The backend of ${ENV_NAME} is not healthy (${HEALTH})."
+              compose ps
+              exit 1
+            fi
+
+            check() {
+              code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 15 "http://127.0.0.1:${PROXY_PORT}$1" || echo 000)"
+              if [ "$code" != "200" ]; then
+                echo "  FAIL ${code} $1"
+                exit 1
+              fi
+              echo "  OK   ${code} $1"
+            }
+            check /api/v1/health
+            check /
+            check /api/v1/payments/plans
+
+            # Keep the images of this deploy and of the one before it.
+            for repo in backend frontend; do
+              docker images "${REGISTRY}/env/${repo}" --format '{{.Tag}}' \
+                | grep -E "^${ENV_NAME}-" \
+                | grep -vxF -e "$IMAGE_TAG" -e "${PREVIOUS_TAG:-$IMAGE_TAG}" \
+                | xargs -r -I{} docker rmi "${REGISTRY}/env/${repo}:{}" > /dev/null 2>&1 || true
+            done
+
+            echo "${ENV_NAME} runs ${COMMIT_SHA}."

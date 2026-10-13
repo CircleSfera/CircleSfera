@@ -176,9 +176,26 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+  # Every change reaches staging before production. While staging is not set
+  # up on the server (the repository variable STAGING_ENABLED is not "true")
+  # this job is skipped and production deploys as it always did.
+  staging:
+    name: Staging
+    needs: test
+    if: ${{ vars.STAGING_ENABLED == 'true' }}
+    uses: ./.github/workflows/deploy-environment.yml
+    with:
+      environment: staging
+    secrets: inherit
+    permissions:
+      contents: read
+      packages: write
+
   deploy:
     name: Deploy to Production
-    needs: build
+    needs: [build, staging]
+    # A change that failed on staging stops here. A skipped staging does not.
+    if: ${{ !cancelled() && needs.build.result == 'success' && (needs.staging.result == 'success' || needs.staging.result == 'skipped') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     # GITHUB_TOKEN is passed into the VPS docker login; it must be able to pull GHCR images.
