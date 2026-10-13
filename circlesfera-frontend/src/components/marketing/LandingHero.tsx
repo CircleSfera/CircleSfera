@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { BUTTON_STACK } from '../ui/buttonWidth';
 import { LandingPhone } from './LandingPhone';
 import { MarketingCTA } from './MarketingCTA';
 
@@ -56,7 +57,7 @@ export function LandingHero() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.18, ease: EASE }}
-            className="mt-8 flex w-full flex-col items-center gap-3 sm:w-auto sm:flex-row"
+            className={`mt-8 ${BUTTON_STACK} mx-auto sm:flex sm:flex-row`}
           >
             <MarketingCTA
               to="/accounts/signup"

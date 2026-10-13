@@ -10,6 +10,7 @@ import { ErrorState } from '../components/ErrorEmptyStates';
 import { LoadingSpinner } from '../components/LoadingStates';
 import UserAvatar from '../components/UserAvatar';
 import { Button, Textarea } from '../components/ui';
+import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
 import VerificationBadge from '../components/VerificationBadge';
 import { followsApi, profileApi, uploadApi, usersApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -264,16 +265,18 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              <Button
-                type="button"
-                onClick={() => setStep(2)}
-                size="lg"
-                data-testid="onboarding-continue"
-                className="w-full font-bold"
-              >
-                {t('onboarding.continue', 'Continue')}
-                <ChevronRight size={16} aria-hidden />
-              </Button>
+              <div className={BUTTON_ROW}>
+                <Button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  size="lg"
+                  data-testid="onboarding-continue"
+                  className={`${BUTTON_FIT} font-bold`}
+                >
+                  {t('onboarding.continue', 'Continue')}
+                  <ChevronRight size={16} aria-hidden />
+                </Button>
+              </div>
             </div>
           ) : (
             <div>

@@ -8,6 +8,11 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import TurnstileWidget from '../components/auth/TurnstileWidget';
 import { Button } from '../components/ui';
+import {
+  BUTTON_FIT,
+  BUTTON_FIT_WIDE,
+  BUTTON_ROW,
+} from '../components/ui/buttonWidth';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, passkeyApi, profileApi } from '../services';
 import { apiClient } from '../services/api';
@@ -340,18 +345,20 @@ export default function Login() {
                   />
                 </div>
                 <div className="space-y-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="primary"
-                    onClick={() => appealMutation.mutate()}
-                    isLoading={appealMutation.isPending}
-                    disabled={
-                      appealMutation.isPending || appealReason.length < 10
-                    }
-                    className="w-full font-black text-xs md:text-sm tracking-wide uppercase py-1.5"
-                  >
-                    {t('auth.login.submit_appeal')}
-                  </Button>
+                  <div className={BUTTON_ROW}>
+                    <Button
+                      type="button"
+                      variant="primary"
+                      onClick={() => appealMutation.mutate()}
+                      isLoading={appealMutation.isPending}
+                      disabled={
+                        appealMutation.isPending || appealReason.length < 10
+                      }
+                      className={`${BUTTON_FIT} font-black text-xs md:text-sm tracking-wide uppercase py-1.5`}
+                    >
+                      {t('auth.login.submit_appeal')}
+                    </Button>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
@@ -406,17 +413,19 @@ export default function Login() {
             ) : (
               <div className="space-y-3 pt-2">
                 <TurnstileWidget onToken={onCaptchaToken} />
-                <Button
-                  type="submit"
-                  data-testid="login-submit-button"
-                  variant="white"
-                  size="lg"
-                  isLoading={loginMutation.isPending}
-                  disabled={loginMutation.isPending || passkeyLoading}
-                  className="w-full font-black text-sm tracking-wide"
-                >
-                  {t('auth.login.sign_in')}
-                </Button>
+                <div className={BUTTON_ROW}>
+                  <Button
+                    type="submit"
+                    data-testid="login-submit-button"
+                    variant="white"
+                    size="lg"
+                    isLoading={loginMutation.isPending}
+                    disabled={loginMutation.isPending || passkeyLoading}
+                    className={`${BUTTON_FIT_WIDE} font-black text-sm tracking-wide`}
+                  >
+                    {t('auth.login.sign_in')}
+                  </Button>
+                </div>
 
                 <div className="relative flex items-center gap-4 py-2">
                   <div className="flex-1 h-px bg-white/5"></div>
@@ -426,19 +435,21 @@ export default function Login() {
                   <div className="flex-1 h-px bg-white/5"></div>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handlePasskeyLogin}
-                  isLoading={passkeyLoading}
-                  disabled={loginMutation.isPending || passkeyLoading}
-                  className="w-full flex items-center justify-center gap-3 py-1.5 font-bold text-xs md:text-sm hover:border-brand-primary/30 group"
-                >
-                  {!passkeyLoading && (
-                    <Fingerprint className="w-5 h-5 text-brand-primary-text group-hover:scale-110 transition-transform" />
-                  )}
-                  {t('auth.login.passkey_btn')}
-                </Button>
+                <div className={BUTTON_ROW}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePasskeyLogin}
+                    isLoading={passkeyLoading}
+                    disabled={loginMutation.isPending || passkeyLoading}
+                    className={`${BUTTON_FIT_WIDE} flex items-center justify-center gap-3 py-1.5 font-bold text-xs md:text-sm hover:border-brand-primary/30 group`}
+                  >
+                    {!passkeyLoading && (
+                      <Fingerprint className="w-5 h-5 text-brand-primary-text group-hover:scale-110 transition-transform" />
+                    )}
+                    {t('auth.login.passkey_btn')}
+                  </Button>
+                </div>
               </div>
             )}
           </form>

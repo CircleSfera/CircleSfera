@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import TurnstileWidget from '../components/auth/TurnstileWidget';
 import { Button } from '../components/ui';
+import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
 import LayoutWrapper from '../layouts/LayoutWrapper';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
@@ -234,17 +235,19 @@ export default function Register() {
 
             <TurnstileWidget onToken={onCaptchaToken} />
 
-            <Button
-              type="submit"
-              variant="primary"
-              isLoading={registerMutation.isPending}
-              disabled={registerMutation.isPending}
-              className="w-full font-black text-xs md:text-sm tracking-wide uppercase"
-            >
-              {registerMutation.isPending
-                ? t('auth.register.sign_up_loading')
-                : t('auth.register.sign_up')}
-            </Button>
+            <div className={BUTTON_ROW}>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={registerMutation.isPending}
+                disabled={registerMutation.isPending}
+                className={`${BUTTON_FIT} font-black text-xs md:text-sm tracking-wide uppercase`}
+              >
+                {registerMutation.isPending
+                  ? t('auth.register.sign_up_loading')
+                  : t('auth.register.sign_up')}
+              </Button>
+            </div>
 
             <p className="text-center text-xs text-gray-500 pt-2">
               {t('auth.register.has_account')}{' '}

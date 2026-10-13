@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/ui';
+import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
 import { authApi } from '../services';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
@@ -112,15 +113,17 @@ export default function ForgotPassword() {
             </p>
           )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            size="lg"
-            isLoading={loading}
-            className="w-full font-bold text-sm tracking-wide"
-          >
-            {t('auth.forgot_password.submit')}
-          </Button>
+          <div className={BUTTON_ROW}>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              isLoading={loading}
+              className={`${BUTTON_FIT} font-bold text-sm tracking-wide`}
+            >
+              {t('auth.forgot_password.submit')}
+            </Button>
+          </div>
         </form>
       </motion.div>
     </div>

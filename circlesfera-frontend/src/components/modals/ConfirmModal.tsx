@@ -2,6 +2,7 @@ import { AlertTriangle, X } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui';
+import { BUTTON_STACK } from '../ui/buttonWidth';
 import { Dialog } from '../ui/Dialog';
 
 export interface ConfirmModalProps {
@@ -94,7 +95,7 @@ export default function ConfirmModal({
         </div>
       </div>
 
-      <div className="pt-4 flex flex-col gap-3">
+      <div className={`pt-4 mx-auto ${BUTTON_STACK}`}>
         <Button
           onClick={() => onConfirm(showInput ? inputValue.trim() : undefined)}
           isLoading={isLoading}
