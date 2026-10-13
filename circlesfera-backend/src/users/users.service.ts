@@ -1,7 +1,7 @@
 import type { UserSessionTerminateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ContentRating,
@@ -14,6 +14,7 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
+import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -440,7 +441,9 @@ export class UsersService {
 
   // Get user settings, creating defaults if not exists.
   // Param userId: The user ID
-  async getSettings(userId: string) {
+  // The private choice and the push switch are those of the Profile the
+  // session acts as; the rest belongs to the person.
+  async getSettings(userId: string, profileId: string) {
     let settings = await this.prisma.userSettings.findUnique({
       where: { userId },
     });
@@ -451,34 +454,64 @@ export class UsersService {
       });
     }
 
-    return settings;
+    const profile = await this.prisma.profile.findFirst({
+      where: { id: profileId, userId },
+      select: { privacyLevel: true, pushNotifications: true },
+    });
+    return {
+      ...settings,
+      privacyLevel: profile?.privacyLevel ?? Visibility.PUBLIC,
+      pushNotifications: profile?.pushNotifications ?? true,
+    };
   }
 
   // Update user settings.
   // Param userId: The user ID
   // Param dto: Settings update data
-  async updateSettings(userId: string, dto: UpdateSettingsDto) {
-    return this.prisma.userSettings.upsert({
-      where: { userId },
-      update: {
-        privacyLevel: dto.privacyLevel as Visibility,
-        contentPreference: dto.contentPreference as ContentRating,
-        blurSensitiveContent: dto.blurSensitiveContent,
-        emailNotifications: dto.emailNotifications,
-        pushNotifications: dto.pushNotifications,
-        ...(dto.isOnboarded !== undefined && { isOnboarded: dto.isOnboarded }),
-      },
-      create: {
-        userId,
-        privacyLevel: (dto.privacyLevel as Visibility) || Visibility.PUBLIC,
-        contentPreference:
-          (dto.contentPreference as ContentRating) || ContentRating.GENERAL,
-        blurSensitiveContent: dto.blurSensitiveContent ?? true,
-        emailNotifications: dto.emailNotifications ?? true,
-        pushNotifications: dto.pushNotifications ?? true,
-        isOnboarded: dto.isOnboarded ?? false,
-      },
+  async updateSettings(
+    userId: string,
+    profileId: string,
+    dto: UpdateSettingsDto,
+  ) {
+    const owned = await this.prisma.profile.findFirst({
+      where: { id: profileId, userId },
+      select: { id: true },
     });
+    if (!owned) throw new NotFoundException('Profile not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      // What belongs to the person.
+      await tx.userSettings.upsert({
+        where: { userId },
+        update: {
+          contentPreference: dto.contentPreference as ContentRating,
+          blurSensitiveContent: dto.blurSensitiveContent,
+          emailNotifications: dto.emailNotifications,
+          ...(dto.isOnboarded !== undefined && {
+            isOnboarded: dto.isOnboarded,
+          }),
+        },
+        create: {
+          userId,
+          contentPreference:
+            (dto.contentPreference as ContentRating) || ContentRating.GENERAL,
+          blurSensitiveContent: dto.blurSensitiveContent ?? true,
+          emailNotifications: dto.emailNotifications ?? true,
+          isOnboarded: dto.isOnboarded ?? false,
+        },
+      });
+      // What belongs to the Profile the session acts as.
+      if (dto.pushNotifications !== undefined) {
+        await tx.profile.update({
+          where: { id: profileId },
+          data: { pushNotifications: dto.pushNotifications },
+        });
+      }
+      if (dto.privacyLevel !== undefined) {
+        await setProfilePrivacy(tx, profileId, dto.privacyLevel as Visibility);
+      }
+    });
+    return this.getSettings(userId, profileId);
   }
 
   async updateLocale(userId: string, locale: Locale) {

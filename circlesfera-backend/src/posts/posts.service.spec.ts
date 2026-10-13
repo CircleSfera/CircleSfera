@@ -763,7 +763,8 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PRIVATE } },
+          privacyLevel: Visibility.PRIVATE,
+          user: {},
         },
         likes: [],
       });
@@ -783,7 +784,8 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PRIVATE } },
+          privacyLevel: Visibility.PRIVATE,
+          user: {},
         },
         likes: [],
       });
@@ -798,7 +800,8 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PRIVATE } },
+          privacyLevel: Visibility.PRIVATE,
+          user: {},
         },
         likes: [],
       });
@@ -816,7 +819,8 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PRIVATE } },
+          privacyLevel: Visibility.PRIVATE,
+          user: {},
         },
         likes: [],
       });
@@ -835,7 +839,8 @@ describe('PostsService', () => {
         visibility: Visibility.PRIVATE,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         likes: [],
       });
@@ -852,7 +857,8 @@ describe('PostsService', () => {
         visibility: Visibility.FOLLOWERS,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         likes: [],
       });
@@ -866,7 +872,8 @@ describe('PostsService', () => {
         visibility: Visibility.FOLLOWERS,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         likes: [],
       });
@@ -883,7 +890,8 @@ describe('PostsService', () => {
         visibility: Visibility.FOLLOWERS,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         likes: [{ profileId: 'viewer-1' }],
       });
@@ -902,7 +910,8 @@ describe('PostsService', () => {
         hideLikes: true,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         _count: { likes: 42, comments: 5 },
         likes: [],
@@ -920,7 +929,8 @@ describe('PostsService', () => {
         hideLikes: true,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         _count: { likes: 42, comments: 5 },
         likes: [],
@@ -939,7 +949,8 @@ describe('PostsService', () => {
         visibility: Visibility.PUBLIC,
         profile: {
           id: 'author-1',
-          user: { settings: { privacyLevel: Visibility.PUBLIC } },
+          privacyLevel: Visibility.PUBLIC,
+          user: {},
         },
         likes: [],
       });
@@ -969,7 +980,8 @@ describe('PostsService', () => {
     it('throws ForbiddenException when target profile is private and viewer is not following', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'priv-user',
-        user: { settings: { privacyLevel: Visibility.PRIVATE } },
+        privacyLevel: Visibility.PRIVATE,
+        user: {},
       });
       await expect(
         service.findByUser('priv', { page: 1, limit: 10 }, undefined),
@@ -977,7 +989,8 @@ describe('PostsService', () => {
 
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'priv-user',
-        user: { settings: { privacyLevel: Visibility.PRIVATE } },
+        privacyLevel: Visibility.PRIVATE,
+        user: {},
       });
       mockPrismaService.follow.findUnique.mockResolvedValueOnce({
         status: 'PENDING',
@@ -990,7 +1003,8 @@ describe('PostsService', () => {
     it('allows author or accepted follower to view posts with optional type filter', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'user-1',
-        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
       });
       mockPrismaService.post.findMany.mockResolvedValueOnce([
         { id: 'post-1', profileId: 'user-1', likes: [{ id: 'l1' }] },
@@ -1019,7 +1033,8 @@ describe('PostsService', () => {
     it('constructs follower filter when viewer is logged in and not author', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'user-author',
-        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
       });
       mockPrismaService.post.findMany.mockResolvedValueOnce([]);
       mockPrismaService.post.count.mockResolvedValueOnce(0);
@@ -1044,7 +1059,8 @@ describe('PostsService', () => {
     it('constructs public filter when viewer is not logged in', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValueOnce({
         id: 'user-public',
-        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
       });
       mockPrismaService.post.findMany.mockResolvedValueOnce([]);
       mockPrismaService.post.count.mockResolvedValueOnce(0);
@@ -1074,7 +1090,8 @@ describe('PostsService', () => {
       moderationStatus: 'VISIBLE',
       profile: {
         id: 'author-1',
-        user: { settings: { privacyLevel: Visibility.PUBLIC } },
+        privacyLevel: Visibility.PUBLIC,
+        user: {},
       },
       likes: [],
     };
@@ -1120,7 +1137,7 @@ describe('PostsService', () => {
         moderationStatus: 'VISIBLE',
         profile: {
           AND: [
-            { user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } } },
+            { privacyLevel: Visibility.PUBLIC },
             {
               user: { isTestAccount: false },
               blocking: { none: { blockedId: 'viewer-1' } },

@@ -36,6 +36,7 @@ describe('UsersService', () => {
       deleteMany: vi.fn(),
     },
     profile: {
+      findFirst: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn(),
       update: vi.fn(),
@@ -457,87 +458,129 @@ describe('UsersService', () => {
   });
 
   describe('getSettings and updateSettings', () => {
-    it('getSettings returns existing settings', async () => {
-      mockPrismaService.userSettings.findUnique.mockResolvedValue({
-        userId: 'u_set',
-        privacyLevel: 'PUBLIC',
-      });
+    const tx = {
+      userSettings: { upsert: vi.fn() },
+      profile: { findUnique: vi.fn(), update: vi.fn() },
+      follow: { updateMany: vi.fn() },
+    };
 
-      const res = await service.getSettings('u_set');
-      expect(res.privacyLevel).toBe('PUBLIC');
+    beforeEach(() => {
+      vi.clearAllMocks();
+      mockPrismaService.userSettings.findUnique.mockResolvedValue({
+        userId: 'u-1',
+        // What the person's row still holds is never what is answered.
+        privacyLevel: 'PUBLIC',
+        pushNotifications: true,
+        emailNotifications: false,
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'p-1',
+        privacyLevel: 'PRIVATE',
+        pushNotifications: false,
+      });
+      mockPrismaService.$transaction.mockImplementation(
+        async (fn: (client: typeof tx) => unknown) => fn(tx),
+      );
+      tx.profile.findUnique.mockResolvedValue({ privacyLevel: 'PRIVATE' });
+      tx.follow.updateMany.mockResolvedValue({ count: 2 });
+    });
+
+    it('answers the private choice and the push switch of the Profile the session acts as', async () => {
+      const res = await service.getSettings('u-1', 'p-1');
+
+      expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith({
+        where: { id: 'p-1', userId: 'u-1' },
+        select: { privacyLevel: true, pushNotifications: true },
+      });
+      expect(res.privacyLevel).toBe('PRIVATE');
+      expect(res.pushNotifications).toBe(false);
+      // The email switch stays with the person.
+      expect(res.emailNotifications).toBe(false);
       expect(mockPrismaService.userSettings.create).not.toHaveBeenCalled();
     });
 
-    it('getSettings creates default settings if none exist', async () => {
+    it('creates the settings of a person who has none', async () => {
       mockPrismaService.userSettings.findUnique.mockResolvedValue(null);
       mockPrismaService.userSettings.create.mockResolvedValue({
-        userId: 'u_new_set',
-        privacyLevel: 'PUBLIC',
+        userId: 'u-new',
       });
 
-      const res = await service.getSettings('u_new_set');
+      const res = await service.getSettings('u-new', 'p-1');
+
       expect(mockPrismaService.userSettings.create).toHaveBeenCalledWith({
-        data: { userId: 'u_new_set' },
+        data: { userId: 'u-new' },
       });
-      expect(res.userId).toBe('u_new_set');
+      expect(res.userId).toBe('u-new');
     });
 
-    it('updateSettings upserts settings with provided and fallback values', async () => {
-      mockPrismaService.userSettings.upsert.mockResolvedValue({
-        userId: 'u_up_set',
-        privacyLevel: Visibility.PRIVATE,
-        contentPreference: ContentRating.MATURE,
-      });
-
-      const res = await service.updateSettings('u_up_set', {
-        privacyLevel: VisibilityDto.PRIVATE,
+    it("saves what is the person's on the person and what is the Profile's on the Profile", async () => {
+      await service.updateSettings('u-1', 'p-1', {
+        privacyLevel: VisibilityDto.PUBLIC,
         contentPreference: ContentPreferenceDto.MATURE,
         blurSensitiveContent: false,
         emailNotifications: false,
-        pushNotifications: false,
+        pushNotifications: true,
         isOnboarded: true,
       });
 
-      expect(mockPrismaService.userSettings.upsert).toHaveBeenCalledWith({
-        where: { userId: 'u_up_set' },
+      expect(tx.userSettings.upsert).toHaveBeenCalledWith({
+        where: { userId: 'u-1' },
         update: {
-          privacyLevel: Visibility.PRIVATE,
           contentPreference: ContentRating.MATURE,
           blurSensitiveContent: false,
           emailNotifications: false,
-          pushNotifications: false,
           isOnboarded: true,
         },
         create: {
-          userId: 'u_up_set',
-          privacyLevel: Visibility.PRIVATE,
+          userId: 'u-1',
           contentPreference: ContentRating.MATURE,
           blurSensitiveContent: false,
           emailNotifications: false,
-          pushNotifications: false,
           isOnboarded: true,
         },
       });
-      expect(res.privacyLevel).toBe(Visibility.PRIVATE);
+      expect(tx.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: { pushNotifications: true },
+      });
+      expect(tx.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: { privacyLevel: Visibility.PUBLIC },
+      });
+      // The Profile was private: the requests that waited are accepted.
+      expect(tx.follow.updateMany).toHaveBeenCalledWith({
+        where: { followingId: 'p-1', status: 'PENDING' },
+        data: { status: 'ACCEPTED' },
+      });
     });
 
-    it('updateSettings handles partial DTO with default fallbacks for create', async () => {
-      mockPrismaService.userSettings.upsert.mockResolvedValue({});
+    it('leaves the Profile alone when neither of its two settings is sent', async () => {
+      await service.updateSettings('u-1', 'p-1', {} as any);
 
-      await service.updateSettings('u_partial', {} as any);
-
-      expect(mockPrismaService.userSettings.upsert).toHaveBeenCalledWith(
+      expect(tx.userSettings.upsert).toHaveBeenCalledWith(
         expect.objectContaining({
           create: expect.objectContaining({
-            privacyLevel: Visibility.PUBLIC,
             contentPreference: ContentRating.GENERAL,
             blurSensitiveContent: true,
             emailNotifications: true,
-            pushNotifications: true,
             isOnboarded: false,
           }),
         }),
       );
+      expect(tx.profile.update).not.toHaveBeenCalled();
+      expect(tx.follow.updateMany).not.toHaveBeenCalled();
+    });
+
+    it("refuses the settings of a Profile that is not the person's", async () => {
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.updateSettings('u-1', 'p-of-someone-else', {
+          privacyLevel: VisibilityDto.PUBLIC,
+        }),
+      ).rejects.toThrow('Profile not found');
+
+      expect(mockPrismaService.$transaction).not.toHaveBeenCalled();
     });
   });
 

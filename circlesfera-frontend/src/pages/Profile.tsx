@@ -192,10 +192,7 @@ export default function Profile() {
   const status = followStatus?.data.status as string | undefined;
   const isBlocked = status === 'BLOCKED';
 
-  const isPrivateAccount = !!(
-    profile?.data?.isPrivate ||
-    profile?.data?.user?.settings?.privacyLevel === 'PRIVATE'
-  );
+  const isPrivateAccount = !!profile?.data?.isPrivate;
   // Nothing is shown or requested until the profile says whether it is
   // private and the follow check says whether there is a block (the
   // server enforces the same rules). For a guest the check fails, which

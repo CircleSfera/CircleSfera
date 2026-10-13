@@ -7,12 +7,12 @@ import { PrismaService } from '../prisma/prisma.service.js';
 // non-deactivated, non-banned accounts that are not private, and posts that are
 // public, published, unlocked and not moderated out.
 const PUBLIC_PROFILE_WHERE = {
+  privacyLevel: { not: Visibility.PRIVATE },
   user: {
     isActive: true,
     deactivatedAt: null,
     isRootBanned: false,
     isTestAccount: false,
-    settings: { isNot: { privacyLevel: Visibility.PRIVATE } },
   },
 } satisfies Prisma.ProfileWhereInput;
 

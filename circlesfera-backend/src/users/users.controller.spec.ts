@@ -255,9 +255,15 @@ describe('UsersController', () => {
       .send(dto)
       .expect(200);
 
-    expect(mockUsersService.getSettings).toHaveBeenCalledWith(TEST_USER.userId);
+    // The private choice and the push switch are those of the session's
+    // Profile, so the Profile travels with the person.
+    expect(mockUsersService.getSettings).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.profileId,
+    );
     expect(mockUsersService.updateSettings).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.profileId,
       dto,
     );
   });

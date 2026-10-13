@@ -134,7 +134,7 @@ export class UsersController {
   @Get('me/settings')
   @UseGuards(JwtAuthGuard)
   async getSettings(@CurrentUser() user: CurrentUserData) {
-    return this.usersService.getSettings(user.userId);
+    return this.usersService.getSettings(user.userId, user.profileId);
   }
 
   // Update user settings.
@@ -144,7 +144,7 @@ export class UsersController {
     @CurrentUser() user: CurrentUserData,
     @Body() dto: UpdateSettingsDto,
   ) {
-    return this.usersService.updateSettings(user.userId, dto);
+    return this.usersService.updateSettings(user.userId, user.profileId, dto);
   }
 
   // Language of the account's emails and notices. Not behind the

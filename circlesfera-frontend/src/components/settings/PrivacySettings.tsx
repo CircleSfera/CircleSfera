@@ -24,12 +24,7 @@ export default function PrivacySettings() {
 
   useEffect(() => {
     if (profile) {
-      setIsPrivate(
-        !!(
-          profile.isPrivate ||
-          profile.user?.settings?.privacyLevel === 'PRIVATE'
-        ),
-      );
+      setIsPrivate(!!profile.isPrivate);
     }
   }, [profile]);
 
@@ -37,6 +32,10 @@ export default function PrivacySettings() {
     mutationFn: (data: UpdateProfileDto) => profileApi.updateProfile(data),
     onSuccess: (response) => {
       keepSavedOwnProfile(queryClient, response);
+      // Going public accepts the follow requests that were waiting.
+      void queryClient.invalidateQueries({
+        queryKey: ['pendingFollowRequests'],
+      });
     },
   });
 

@@ -102,10 +102,7 @@ describe('FollowsService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: followingId,
         userId: 'user-2-account',
-        isPrivate: false,
-      });
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        settings: { privacyLevel: 'PUBLIC' },
+        privacyLevel: 'PUBLIC',
       });
       mockPrismaService.block.findUnique.mockResolvedValue(null);
       mockPrismaService.follow.findUnique.mockResolvedValue(null);
@@ -130,10 +127,7 @@ describe('FollowsService', () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: followingId,
         userId: 'user-2-account',
-        isPrivate: true,
-      });
-      mockPrismaService.user.findUnique.mockResolvedValue({
-        settings: { privacyLevel: 'PRIVATE' },
+        privacyLevel: 'PRIVATE',
       });
       mockPrismaService.block.findUnique.mockResolvedValue(null);
       mockPrismaService.follow.findUnique.mockResolvedValue(null);

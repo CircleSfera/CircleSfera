@@ -58,12 +58,12 @@ describe('SeoService', () => {
       const profileWhere = mockPrismaService.profile.findMany.mock.calls[0][0]
         .where as Record<string, unknown>;
       expect(profileWhere).toEqual({
+        privacyLevel: { not: 'PRIVATE' },
         user: {
           isActive: true,
           deactivatedAt: null,
           isRootBanned: false,
           isTestAccount: false,
-          settings: { isNot: { privacyLevel: 'PRIVATE' } },
         },
       });
 

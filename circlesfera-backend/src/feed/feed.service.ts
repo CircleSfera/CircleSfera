@@ -711,8 +711,8 @@ export class FeedService {
       moderationStatus: 'VISIBLE' as const,
       scheduledStatus: 'PUBLISHED' as const,
       profile: {
+        privacyLevel: Visibility.PUBLIC,
         user: {
-          settings: { is: { privacyLevel: Visibility.PUBLIC } },
           isTestAccount: await isTestViewerProfile(
             this.prisma,
             currentProfileId,

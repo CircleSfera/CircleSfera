@@ -195,7 +195,8 @@ describe('ProfilesService', () => {
         id: 'p-1',
         userId: 'u-1',
         username: 'testuser',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       };
 
@@ -254,7 +255,8 @@ describe('ProfilesService', () => {
         username: 'testuser',
         accountType: 'CREATOR',
         verificationLevel: 'BASIC',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -290,7 +292,8 @@ describe('ProfilesService', () => {
         bio: null,
         accountType: 'PERSONAL',
         verificationLevel: 'BASIC',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -299,11 +302,12 @@ describe('ProfilesService', () => {
       expect(mockAiQueue.add).not.toHaveBeenCalled();
     });
 
-    it('should update user settings when isPrivate is provided', async () => {
+    it('makes this Profile private without touching the person or their other Profiles', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue({
         id: 'p-1',
         userId: 'u-1',
         username: 'testuser',
+        privacyLevel: 'PUBLIC',
       });
       mockPrismaService.profile.update.mockResolvedValue({
         id: 'p-1',
@@ -311,7 +315,8 @@ describe('ProfilesService', () => {
         username: 'testuser',
         accountType: 'PERSONAL',
         verificationLevel: 'BASIC',
-        user: { settings: { privacyLevel: 'PRIVATE' } },
+        privacyLevel: 'PRIVATE',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -319,12 +324,11 @@ describe('ProfilesService', () => {
         isPrivate: true,
       });
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'u-1' },
-        data: expect.objectContaining({
-          settings: expect.any(Object),
-        }),
+      expect(mockPrismaService.profile.update).toHaveBeenCalledWith({
+        where: { id: 'p-1' },
+        data: { privacyLevel: 'PRIVATE' },
       });
+      expect(mockPrismaService.user.update).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException if profile does not exist when updating', async () => {
@@ -348,7 +352,8 @@ describe('ProfilesService', () => {
         bio: 'Bio text',
         accountType: 'PERSONAL',
         verificationLevel: 'BASIC',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -393,7 +398,8 @@ describe('ProfilesService', () => {
         id: 'p-1',
         userId: 'u-1',
         username: 'avataruser',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -427,7 +433,8 @@ describe('ProfilesService', () => {
         id: 'p-1',
         userId: 'u-1',
         username: 'nochange',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -447,7 +454,8 @@ describe('ProfilesService', () => {
         userId: 'u-1',
         username: 'clearer',
         avatar: null,
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
         _count: { followers: 0, following: 0 },
       });
 
@@ -680,6 +688,7 @@ describe('ProfilesService', () => {
         id: 'p-me',
         userId: 'u-me',
         username: 'myuser',
+        privacyLevel: 'PRIVATE',
         verificationLevel: 'BUSINESS',
         accountType: 'BUSINESS',
         suspendedUntil: null,
@@ -697,7 +706,7 @@ describe('ProfilesService', () => {
           identityVerifiedAt: null,
           signupCountry: 'US',
           botLabeledAt: null,
-          settings: { isOnboarded: true, privacyLevel: 'PRIVATE' },
+          settings: { isOnboarded: true },
         },
         _count: { followers: 100, following: 50 },
       });

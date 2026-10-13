@@ -23,6 +23,7 @@ import {
   isBlockedEitherWay,
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
+import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
@@ -106,12 +107,6 @@ export class ProfilesService {
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
-
-            settings: {
-              select: {
-                privacyLevel: true,
-              },
-            },
           },
         },
         _count: {
@@ -165,8 +160,8 @@ export class ProfilesService {
         : undefined,
       verificationLevel: profile.verificationLevel,
       accountType: profile.accountType,
-      privacyLevel: user?.settings?.privacyLevel || Visibility.PUBLIC,
-      isPrivate: user?.settings?.privacyLevel === Visibility.PRIVATE,
+      privacyLevel: profile.privacyLevel,
+      isPrivate: profile.privacyLevel === Visibility.PRIVATE,
       isVerified: planVerified,
       companyVerified,
       // The chosen colour shows only while the plan that includes it is
@@ -216,15 +211,7 @@ export class ProfilesService {
         username: true,
         fullName: true,
         avatar: true,
-        user: {
-          select: {
-            settings: {
-              select: {
-                privacyLevel: true,
-              },
-            },
-          },
-        },
+        privacyLevel: true,
       },
     });
   }
@@ -289,27 +276,13 @@ export class ProfilesService {
 
     const { isPrivate, ...profileData } = dto;
 
-    // If isPrivate is provided, update the UserSettings model
+    // Private or public is this Profile's own choice.
     if (isPrivate !== undefined) {
-      await this.prisma.user.update({
-        where: { id: profile.userId },
-        data: {
-          settings: {
-            upsert: {
-              create: {
-                privacyLevel: isPrivate
-                  ? Visibility.PRIVATE
-                  : Visibility.PUBLIC,
-              },
-              update: {
-                privacyLevel: isPrivate
-                  ? Visibility.PRIVATE
-                  : Visibility.PUBLIC,
-              },
-            },
-          },
-        },
-      });
+      await setProfilePrivacy(
+        this.prisma,
+        profileId,
+        isPrivate ? Visibility.PRIVATE : Visibility.PUBLIC,
+      );
     }
 
     const updateData = {
@@ -360,10 +333,6 @@ export class ProfilesService {
               email: true,
               role: true,
               createdAt: true,
-
-              settings: {
-                select: { privacyLevel: true },
-              },
             },
           },
           _count: {
@@ -381,7 +350,7 @@ export class ProfilesService {
       ...updated,
       accountType: updated.accountType,
       verificationLevel: updated.verificationLevel,
-      isPrivate: updated.user?.settings?.privacyLevel === 'PRIVATE',
+      isPrivate: updated.privacyLevel === 'PRIVATE',
     };
 
     const embeddingText = this.buildProfileEmbeddingText(updated);
@@ -463,7 +432,7 @@ export class ProfilesService {
             botLabeledAt: true,
             locale: true,
             settings: {
-              select: { isOnboarded: true, privacyLevel: true },
+              select: { isOnboarded: true },
             },
           },
         },
@@ -532,7 +501,7 @@ export class ProfilesService {
         isActive: profile.user?.isActive ?? true,
         suspendedUntil: profile.suspendedUntil ?? null,
       }),
-      isPrivate: profile.user?.settings?.privacyLevel === 'PRIVATE',
+      isPrivate: profile.privacyLevel === 'PRIVATE',
       isVerified: planVerified,
       // The email shown is the one the person is signed in with.
       user: profile.user && {

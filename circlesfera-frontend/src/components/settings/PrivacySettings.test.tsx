@@ -43,13 +43,15 @@ describe('PrivacySettings', () => {
     await waitFor(() => expect(lock()).toBeChecked());
   });
 
-  it('reads the privacy from the settings of the account when the profile does not say', async () => {
-    await show({
-      username: 'ana',
-      user: { settings: { privacyLevel: 'PRIVATE' } },
-    });
+  it('reads the choice of this profile, and says what going public does', async () => {
+    await show({ username: 'ana', isPrivate: true });
 
     await waitFor(() => expect(lock()).toBeChecked());
+    expect(
+      screen.getByText(
+        /Your other profiles keep their own choice\. If you make it public, the follow requests that are waiting are accepted\./,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('makes the account private and keeps it so', async () => {
