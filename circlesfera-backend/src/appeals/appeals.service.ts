@@ -369,7 +369,16 @@ export class AppealsService {
                   userId: appeal.userId,
                   OR: [
                     { isAccountBanned: true },
-                    { suspendedUntil: { not: null } },
+                    {
+                      suspendedUntil: { not: null },
+                      // A Profile paused because someone else got into
+                      // it is protected, not sanctioned: an appeal about
+                      // the account never gives it back.
+                      OR: [
+                        { suspensionCause: null },
+                        { suspensionCause: { not: 'COMPROMISED' } },
+                      ],
+                    },
                   ],
                 },
                 select: { id: true },

@@ -337,20 +337,6 @@ describe('ProfileStrikesService', () => {
       );
     });
 
-    it('lifts a suspension with its cause and leaves a ban alone', async () => {
-      await service.liftSuspension('profile-1');
-
-      expect(prisma.profile.update).toHaveBeenCalledWith({
-        where: { id: 'profile-1' },
-        data: {
-          suspendedUntil: null,
-          suspensionStrikeId: null,
-          suspensionCause: null,
-        },
-      });
-      expect(cache.del).toHaveBeenCalledWith('profile:offender');
-    });
-
     it('a Profile with no owner on record only skips ending sessions', async () => {
       await service.suspendProfile({
         adminId: 'admin-1',

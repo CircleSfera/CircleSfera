@@ -440,7 +440,17 @@ describe('AppealsService.update — effects and notices', () => {
     expect(t.prisma.profile.findMany).toHaveBeenCalledWith({
       where: {
         userId: 'user-1',
-        OR: [{ isAccountBanned: true }, { suspendedUntil: { not: null } }],
+        // A Profile paused because someone else got into it is left out.
+        OR: [
+          { isAccountBanned: true },
+          {
+            suspendedUntil: { not: null },
+            OR: [
+              { suspensionCause: null },
+              { suspensionCause: { not: 'COMPROMISED' } },
+            ],
+          },
+        ],
       },
       select: { id: true },
     });

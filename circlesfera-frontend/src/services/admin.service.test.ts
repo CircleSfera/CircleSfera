@@ -142,6 +142,26 @@ const cases: Case[] = [
     ['/admin/overview/week/support'],
   ],
   [
+    'suspendProfile',
+    () =>
+      adminApi.suspendProfile('p1', {
+        cause: 'SCAM',
+        days: 7,
+        note: 'A fake giveaway',
+      }),
+    'patch',
+    [
+      'admin/profiles/p1/suspend',
+      { cause: 'SCAM', days: 7, note: 'A fake giveaway' },
+    ],
+  ],
+  [
+    'liftProfileSuspension',
+    () => adminApi.liftProfileSuspension('p1'),
+    'patch',
+    ['admin/profiles/p1/lift-suspension'],
+  ],
+  [
     'getStaffNotes',
     () => adminApi.getStaffNotes('u1'),
     'get',

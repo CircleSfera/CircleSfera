@@ -35,26 +35,40 @@ export class AdminProfileSuspensionService {
     }
 
     const until = new Date(Date.now() + input.days * DAY_MS);
-    await this.strikes.suspendProfile({
+    // The suspension and its audit entry are written together: one never
+    // exists without the other.
+    await this.prisma.$transaction([
+      this.prisma.profile.update({
+        where: { id: profileId },
+        // A staff suspension has no strike behind it.
+        data: {
+          suspendedUntil: until,
+          suspensionStrikeId: null,
+          suspensionCause: input.cause,
+        },
+      }),
+      this.prisma.adminAuditLog.create({
+        data: {
+          adminId,
+          action: AdminAction.ACCOUNT_SUSPENDED,
+          targetType: 'profile',
+          targetId: profileId,
+          details: `Cause ${input.cause}, until ${until.toISOString()}: ${input.note.trim()}`,
+        },
+      }),
+    ]);
+    await this.strikes.announceSuspension({
       adminId,
       userId: profile.userId,
       profileId,
       until,
       cause: input.cause,
     });
-    await this.prisma.adminAuditLog.create({
-      data: {
-        adminId,
-        action: AdminAction.ACCOUNT_SUSPENDED,
-        targetType: 'profile',
-        targetId: profileId,
-        details: `Cause ${input.cause}, until ${until.toISOString()}: ${input.note.trim()}`,
-      },
-    });
     return { success: true, suspendedUntil: until, cause: input.cause };
   }
 
-  // Ends a suspension of one Profile early, whatever set it.
+  // Ends a suspension of one Profile early, whatever set it. A ban is not
+  // touched.
   async lift(adminId: string, profileId: string) {
     const profile = await this.prisma.profile.findUnique({
       where: { id: profileId },
@@ -65,15 +79,25 @@ export class AdminProfileSuspensionService {
       throw new ConflictException('This profile is not suspended');
     }
 
-    await this.strikes.liftSuspension(profileId);
-    await this.prisma.adminAuditLog.create({
-      data: {
-        adminId,
-        action: AdminAction.ACCOUNT_RESTORED,
-        targetType: 'profile',
-        targetId: profileId,
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.profile.update({
+        where: { id: profileId },
+        data: {
+          suspendedUntil: null,
+          suspensionStrikeId: null,
+          suspensionCause: null,
+        },
+      }),
+      this.prisma.adminAuditLog.create({
+        data: {
+          adminId,
+          action: AdminAction.ACCOUNT_RESTORED,
+          targetType: 'profile',
+          targetId: profileId,
+        },
+      }),
+    ]);
+    await this.strikes.invalidateProfileCache([profileId]);
     return { success: true };
   }
 }

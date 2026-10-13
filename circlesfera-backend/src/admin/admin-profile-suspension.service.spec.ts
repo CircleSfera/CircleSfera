@@ -8,12 +8,16 @@ const NOW = new Date('2026-10-05T10:00:00.000Z');
 
 describe('AdminProfileSuspensionService', () => {
   let prisma: {
-    profile: { findUnique: ReturnType<typeof vi.fn> };
+    profile: {
+      findUnique: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+    };
     adminAuditLog: { create: ReturnType<typeof vi.fn> };
+    $transaction: ReturnType<typeof vi.fn>;
   };
   let strikes: {
-    suspendProfile: ReturnType<typeof vi.fn>;
-    liftSuspension: ReturnType<typeof vi.fn>;
+    announceSuspension: ReturnType<typeof vi.fn>;
+    invalidateProfileCache: ReturnType<typeof vi.fn>;
   };
   let service: AdminProfileSuspensionService;
 
@@ -28,12 +32,14 @@ describe('AdminProfileSuspensionService', () => {
           isAccountBanned: false,
           suspendedUntil: null,
         }),
+        update: vi.fn().mockReturnValue('profile-write'),
       },
-      adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
+      adminAuditLog: { create: vi.fn().mockReturnValue('audit-write') },
+      $transaction: vi.fn().mockResolvedValue([]),
     };
     strikes = {
-      suspendProfile: vi.fn().mockResolvedValue(undefined),
-      liftSuspension: vi.fn().mockResolvedValue(undefined),
+      announceSuspension: vi.fn().mockResolvedValue(undefined),
+      invalidateProfileCache: vi.fn().mockResolvedValue(undefined),
     };
     service = new AdminProfileSuspensionService(
       prisma as never,
@@ -53,7 +59,20 @@ describe('AdminProfileSuspensionService', () => {
     });
 
     const until = new Date(NOW.getTime() + 14 * DAY_MS);
-    expect(strikes.suspendProfile).toHaveBeenCalledWith({
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { id: 'p-1' },
+      data: {
+        suspendedUntil: until,
+        suspensionStrikeId: null,
+        suspensionCause: 'HARASSMENT',
+      },
+    });
+    // The suspension and its audit entry are written together.
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      'profile-write',
+      'audit-write',
+    ]);
+    expect(strikes.announceSuspension).toHaveBeenCalledWith({
       adminId: 'admin-1',
       userId: 'u-1',
       profileId: 'p-1',
@@ -92,8 +111,22 @@ describe('AdminProfileSuspensionService', () => {
       ConflictException,
     );
 
-    expect(strikes.suspendProfile).not.toHaveBeenCalled();
-    expect(prisma.adminAuditLog.create).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(strikes.announceSuspension).not.toHaveBeenCalled();
+  });
+
+  it('tells nobody and ends no session when the suspension could not be written', async () => {
+    prisma.$transaction.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(
+      service.suspend('admin-1', 'p-1', {
+        cause: 'SCAM',
+        days: 7,
+        note: 'Fake giveaway.',
+      }),
+    ).rejects.toThrow('db down');
+
+    expect(strikes.announceSuspension).not.toHaveBeenCalled();
   });
 
   it('lifts a running suspension and writes it in the audit log', async () => {
@@ -106,7 +139,19 @@ describe('AdminProfileSuspensionService', () => {
       success: true,
     });
 
-    expect(strikes.liftSuspension).toHaveBeenCalledWith('p-1');
+    expect(prisma.profile.update).toHaveBeenCalledWith({
+      where: { id: 'p-1' },
+      data: {
+        suspendedUntil: null,
+        suspensionStrikeId: null,
+        suspensionCause: null,
+      },
+    });
+    expect(prisma.$transaction).toHaveBeenCalledWith([
+      'profile-write',
+      'audit-write',
+    ]);
+    expect(strikes.invalidateProfileCache).toHaveBeenCalledWith(['p-1']);
     expect(prisma.adminAuditLog.create).toHaveBeenCalledWith({
       data: {
         adminId: 'admin-1',
@@ -133,6 +178,6 @@ describe('AdminProfileSuspensionService', () => {
       NotFoundException,
     );
 
-    expect(strikes.liftSuspension).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 });

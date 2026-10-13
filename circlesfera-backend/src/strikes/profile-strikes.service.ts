@@ -264,6 +264,19 @@ export class ProfileStrikesService {
         suspensionCause: params.cause ?? null,
       },
     });
+    await this.announceSuspension(params);
+  }
+
+  // What follows a staff suspension once it is written: the Profile's page
+  // is read again, its sessions end and it is told. Never undoes the
+  // suspension.
+  async announceSuspension(params: {
+    adminId: string;
+    userId: string | null;
+    profileId: string;
+    until: Date;
+    cause?: SuspensionCause;
+  }): Promise<void> {
     await this.invalidateProfileCache([params.profileId]);
     this.endProfileSessions(
       params.userId,
@@ -283,19 +296,6 @@ export class ProfileStrikesService {
       STRIKE_NOTIFICATION_TARGET.SUSPENDED,
       params.profileId,
     );
-  }
-
-  // Ends the suspension of one Profile early. A ban is not touched.
-  async liftSuspension(profileId: string): Promise<void> {
-    await this.prisma.profile.update({
-      where: { id: profileId },
-      data: {
-        suspendedUntil: null,
-        suspensionStrikeId: null,
-        suspensionCause: null,
-      },
-    });
-    await this.invalidateProfileCache([profileId]);
   }
 
   // Every warning and strike of a Profile, newest first, with its state.
