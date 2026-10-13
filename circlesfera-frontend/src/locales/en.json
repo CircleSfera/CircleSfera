@@ -4507,7 +4507,10 @@
     "duration": "Duration",
     "viewer_ended_title": "This live has ended",
     "viewer_ended_body": "@{{username}} is no longer live.",
-    "viewer_ended_profile": "See their profile"
+    "viewer_ended_profile": "See their profile",
+    "viewers_peak": "Most watching at once",
+    "comments": "Comments",
+    "gifts_received": "Gifts received"
   },
   "shortcuts": {
     "next_post": "Next post",

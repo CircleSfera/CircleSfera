@@ -306,7 +306,7 @@ describe('LiveBroadcaster on the live connection', () => {
       const figure = (label: string) =>
         screen.getByText(label).previousElementSibling?.textContent;
       expect(figure('Likes')).toBe('3');
-      expect(figure('Viewers')).toBe('12');
+      expect(figure('Most watching at once')).toBe('12');
     });
   });
 

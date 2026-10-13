@@ -4507,7 +4507,10 @@
     "duration": "Duración",
     "viewer_ended_title": "Este directo ha terminado",
     "viewer_ended_body": "@{{username}} ya no está en directo.",
-    "viewer_ended_profile": "Ver su perfil"
+    "viewer_ended_profile": "Ver su perfil",
+    "viewers_peak": "Máximo de espectadores",
+    "comments": "Comentarios",
+    "gifts_received": "Regalos recibidos"
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",

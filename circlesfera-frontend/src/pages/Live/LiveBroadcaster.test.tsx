@@ -159,7 +159,7 @@ describe('LiveBroadcaster', () => {
       await screen.findByRole('heading', { name: i18n!.t('live.ended_title') }),
     ).toBeInTheDocument();
     expect(screen.getByText(i18n!.t('live.ended_summary'))).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.viewers'))).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('live.viewers_peak'))).toBeInTheDocument();
     expect(screen.getByText(i18n!.t('live.likes'))).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: i18n!.t('live.close_summary') }),

@@ -215,7 +215,7 @@ export default function LiveViewer() {
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
     };
-  }, [streamId, navigate, t]);
+  }, [streamId, t]);
 
   // If co-host accepted: switch LiveKitRoom to publisher mode
   const activeToken = coHostToken || token;
@@ -568,15 +568,15 @@ export default function LiveViewer() {
             questions={questions}
             onAskQuestion={handleAskQuestion}
           />
+          {streamId ? (
+            <LiveGiftModal
+              isOpen={giftModalOpen}
+              onClose={() => setGiftModalOpen(false)}
+              streamId={streamId}
+            />
+          ) : null}
         </LiveFrame>
       </LiveKitRoom>
-      {streamId ? (
-        <LiveGiftModal
-          isOpen={giftModalOpen}
-          onClose={() => setGiftModalOpen(false)}
-          streamId={streamId}
-        />
-      ) : null}
       <style>{`
         .animate-float-up {
           animation: floatUp 2s ease-in forwards;

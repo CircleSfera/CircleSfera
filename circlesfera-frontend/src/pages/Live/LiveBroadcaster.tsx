@@ -53,12 +53,13 @@ import { profileApi } from '../../services/profile.service';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
+import { formatCents } from '../../utils/money';
 
 /** A neutral picture with the person's initials, for someone without one. */
 const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
 
 export default function LiveBroadcaster() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [token, setToken] = useState('');
   const [streamId, setStreamId] = useState<string | null>(null);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
@@ -80,6 +81,10 @@ export default function LiveBroadcaster() {
   // camera from the preview when it starts.
   const preview = useCameraPreview();
   const [endedAfter, setEndedAfter] = useState('00:00');
+  // What the summary says, counted on this screen while on air.
+  const [peakViewers, setPeakViewers] = useState(0);
+  const [commentsCount, setCommentsCount] = useState(0);
+  const [giftsCents, setGiftsCents] = useState(0);
   // One sheet at a time: opening one closes the other.
   const [sheet, setSheet] = useState<'cohost' | 'questions' | null>(null);
   const coHostFormOpen = sheet === 'cohost';
@@ -163,6 +168,7 @@ export default function LiveBroadcaster() {
 
     socket.on('live:chat_message', (msg: any) => {
       setChatMessages((prev) => [...prev.slice(-49), msg]);
+      setCommentsCount((count) => count + 1);
       setTimeout(
         () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }),
         100,
@@ -172,6 +178,7 @@ export default function LiveBroadcaster() {
     socket.on('live:viewer_count_update', (data: { viewerCount: number }) => {
       if (typeof data?.viewerCount === 'number') {
         setViewerCount(Math.max(0, data.viewerCount - 1)); // Broadcaster doesn't count as viewer
+        setPeakViewers((peak) => Math.max(peak, data.viewerCount - 1));
       }
     });
 
@@ -203,6 +210,7 @@ export default function LiveBroadcaster() {
     // Listen for gifts to update goal
     socket.on('live:gift', (data: { amountCents?: number }) => {
       if (data.amountCents) {
+        setGiftsCents((cents) => cents + (data.amountCents || 0));
         setLiveGoal((prev) => {
           if (!prev) return prev;
           // In this example, 1 cent = 1 unit for the goal
@@ -444,11 +452,16 @@ export default function LiveBroadcaster() {
             </h1>
             <p className="text-sm text-white/60">{t('live.ended_summary')}</p>
           </div>
-          <ul className="grid w-full grid-cols-3 gap-2 text-center">
+          <ul className="grid w-full grid-cols-2 gap-2 text-center sm:grid-cols-3">
             {[
               [t('live.duration'), endedAfter],
-              [t('live.viewers'), String(viewerCount)],
+              [t('live.viewers_peak'), String(peakViewers)],
               [t('live.likes'), String(likesCount)],
+              [t('live.comments'), String(commentsCount)],
+              [
+                t('live.gifts_received'),
+                formatCents(giftsCents, i18n.language),
+              ],
             ].map(([label, value]) => (
               <li
                 key={label}
@@ -766,6 +779,11 @@ export default function LiveBroadcaster() {
             onHighlightQuestion={handleHighlightQuestion}
             onClearHighlight={handleClearHighlightQuestion}
           />
+          <LiveGoalDialog
+            isOpen={goalDialogOpen}
+            onClose={() => setGoalDialogOpen(false)}
+            onSave={handleSetGoal}
+          />
         </LiveFrame>
       </LiveKitRoom>
 
@@ -779,12 +797,6 @@ export default function LiveBroadcaster() {
         cancelText={t('live.end_confirm_keep')}
         isLoading={isEnding}
       />
-      <LiveGoalDialog
-        isOpen={goalDialogOpen}
-        onClose={() => setGoalDialogOpen(false)}
-        onSave={handleSetGoal}
-      />
-
       <style>{`
         .animate-float-up {
           animation: floatUp 2s ease-in forwards;
