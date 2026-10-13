@@ -4503,7 +4503,7 @@
     "cohost_sheet_hint": "They get an invitation and appear on the video next to you when they accept.",
     "cohost_input_label": "Username",
     "preview_refused": "The camera could not be opened. Allow the camera and the microphone for this site to see yourself before going live.",
-    "setup_hint": "Only you see this picture until you go live.",
+    "setup_hint": "Only you see this picture until you go live. What stays between the two lines is never covered by the comments or the controls.",
     "duration": "Duration"
   },
   "shortcuts": {

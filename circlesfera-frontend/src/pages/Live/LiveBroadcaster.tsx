@@ -402,6 +402,21 @@ export default function LiveBroadcaster() {
           </div>
         </div>
 
+        {/* Guides: during the broadcast the top of the picture is covered by
+            the host's name and the live mark, and the bottom by the comments
+            and the field. What stays between the two lines is never covered,
+            so the host can place themself there. */}
+        <div
+          aria-hidden
+          data-testid="live-guide-top"
+          className="live-guide pointer-events-none absolute inset-x-0 top-[calc(var(--live-top)+9rem)]"
+        />
+        <div
+          aria-hidden
+          data-testid="live-guide-bottom"
+          className="live-guide pointer-events-none absolute inset-x-0 bottom-[calc(var(--live-bottom)+15rem)]"
+        />
+
         {/* Bottom band: the title, and going live. */}
         <form
           onSubmit={handleStart}

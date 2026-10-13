@@ -518,6 +518,15 @@ video {
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.45);
 }
 
+/* A guide across the camera preview: a thin dashed line that reads over a
+   bright or a dark picture. */
+
+.live-guide {
+  height: 0;
+  border-top: 1.5px dashed rgba(255, 255, 255, 0.7);
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.8));
+}
+
 /* Where the controls of a Live screen begin and end. A phone's browser may
    draw the page under the clock and the camera island and report no safe
    area for it: a distance is kept even then. */

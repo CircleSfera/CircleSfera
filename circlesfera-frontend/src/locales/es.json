@@ -4503,7 +4503,7 @@
     "cohost_sheet_hint": "Recibe una invitación y aparece en el vídeo junto a ti cuando la acepta.",
     "cohost_input_label": "Nombre de usuario",
     "preview_refused": "No se ha podido abrir la cámara. Permite la cámara y el micrófono para este sitio y te verás antes de salir en directo.",
-    "setup_hint": "Esta imagen solo la ves tú hasta que empieces.",
+    "setup_hint": "Esta imagen solo la ves tú hasta que empieces. Lo que quede entre las dos guías no lo tapan ni los comentarios ni los controles.",
     "duration": "Duración"
   },
   "shortcuts": {

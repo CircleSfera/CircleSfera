@@ -125,6 +125,14 @@ describe('LiveBroadcaster', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('draws two guides over the preview, for what the broadcast will cover at the top and at the bottom', () => {
+    const { i18n } = renderWithProviders(<LiveBroadcaster />);
+
+    expect(screen.getByTestId('live-guide-top')).toBeInTheDocument();
+    expect(screen.getByTestId('live-guide-bottom')).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('live.setup_hint'))).toBeInTheDocument();
+  });
+
   it('uses Spanish setup copy', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />, { lng: 'es' });
 
