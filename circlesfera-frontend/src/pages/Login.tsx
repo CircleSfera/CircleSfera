@@ -147,8 +147,13 @@ export default function Login() {
   const err = loginMutation.error as any;
   // These sign-in outcomes arrive as the error code (or as the message, from
   // older responses) and change the form instead of showing a message.
+  // A refusal with no code of its own carries the generic one, and then the
+  // outcome is in the message.
+  const ownCode = err ? apiErrorCode(err) : undefined;
   const errorCode = err
-    ? apiErrorCode(err) || apiErrorBody(err)?.message || err.message
+    ? (ownCode !== 'HTTP_EXCEPTION' && ownCode) ||
+      apiErrorBody(err)?.message ||
+      err.message
     : undefined;
   const is2FARequired = errorCode === ApiErrorCode.TWO_FA_REQUIRED;
   const isBanned = errorCode === ApiErrorCode.ACCOUNT_BANNED;
@@ -160,7 +165,12 @@ export default function Login() {
     : undefined;
   // Ban and suspension details arrive under `details`.
   const errorDetails = apiErrorDetails(err) as
-    | { reason?: string; suspendedUntil?: string; appealToken?: string }
+    | {
+        reason?: string;
+        suspendedUntil?: string;
+        appealToken?: string;
+        cause?: string;
+      }
     | undefined;
   const banReason = errorDetails?.reason;
   const suspendedUntil = errorDetails?.suspendedUntil;
@@ -280,6 +290,11 @@ export default function Login() {
                   {banReason && (
                     <p className="mt-1 text-white/70 font-normal">
                       {t('auth.login.banned_reason_label')}: {banReason}
+                    </p>
+                  )}
+                  {errorDetails?.cause === 'COMPROMISED' && (
+                    <p className="mt-1 text-white/70 font-normal">
+                      {t('auth.login.suspended_compromised')}
                     </p>
                   )}
                 </div>

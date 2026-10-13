@@ -9,6 +9,7 @@ import {
   type ProfileStrikeConsequence,
   type ProfileStrikeKind,
   type ReportReason,
+  type SuspensionCause,
 } from '@prisma/client';
 import type { Cache } from 'cache-manager';
 import { resolveAdminNotificationSenderId } from '../admin/utils/resolve-admin-notification-sender.js';
@@ -177,7 +178,11 @@ export class ProfileStrikesService {
           suspendedUntil = proposed;
           await tx.profile.update({
             where: { id: violation.profileId },
-            data: { suspendedUntil, suspensionStrikeId: strike.id },
+            data: {
+              suspendedUntil,
+              suspensionStrikeId: strike.id,
+              suspensionCause: null,
+            },
           });
         }
       }
@@ -240,18 +245,24 @@ export class ProfileStrikesService {
     );
   }
 
-  // Staff suspension of one Profile (not from a strike), for example from
-  // the spam review queue. Ends only that Profile's sessions.
+  // Staff suspension of one Profile (not from a strike): from the spam
+  // review queue, or directly for a serious cause. Ends only that Profile's
+  // sessions.
   async suspendProfile(params: {
     adminId: string;
     userId: string | null;
     profileId: string;
     until: Date;
+    cause?: SuspensionCause;
   }): Promise<void> {
     await this.prisma.profile.update({
       where: { id: params.profileId },
       // A staff suspension has no strike behind it.
-      data: { suspendedUntil: params.until, suspensionStrikeId: null },
+      data: {
+        suspendedUntil: params.until,
+        suspensionStrikeId: null,
+        suspensionCause: params.cause ?? null,
+      },
     });
     await this.invalidateProfileCache([params.profileId]);
     this.endProfileSessions(
@@ -262,10 +273,29 @@ export class ProfileStrikesService {
     await this.notify(
       params.adminId,
       params.profileId,
-      { key: 'profile_suspended_activity', until: params.until },
+      params.cause
+        ? {
+            key: 'profile_suspended_cause',
+            until: params.until,
+            cause: params.cause,
+          }
+        : { key: 'profile_suspended_activity', until: params.until },
       STRIKE_NOTIFICATION_TARGET.SUSPENDED,
       params.profileId,
     );
+  }
+
+  // Ends the suspension of one Profile early. A ban is not touched.
+  async liftSuspension(profileId: string): Promise<void> {
+    await this.prisma.profile.update({
+      where: { id: profileId },
+      data: {
+        suspendedUntil: null,
+        suspensionStrikeId: null,
+        suspensionCause: null,
+      },
+    });
+    await this.invalidateProfileCache([profileId]);
   }
 
   // Every warning and strike of a Profile, newest first, with its state.
@@ -355,6 +385,7 @@ export class ProfileStrikesService {
         suspendedUntil: null,
         banStrikeId: null,
         suspensionStrikeId: null,
+        suspensionCause: null,
       },
     });
   }

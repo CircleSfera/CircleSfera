@@ -616,7 +616,8 @@
       "appeal_error": "No se pudo enviar la apelación",
       "back_to_login": "Volver",
       "2fa_code": "Código de autenticación",
-      "2fa_hint": "Introduce el código de 6 dígitos de tu app de autenticación."
+      "2fa_hint": "Introduce el código de 6 dígitos de tu app de autenticación.",
+      "suspended_compromised": "Este perfil está en pausa para protegerlo, porque otra persona puede haber entrado en él. Escribe a soporte para recuperarlo."
     },
     "register": {
       "title": "CircleSfera",
@@ -4002,7 +4003,38 @@
         "BANNED": "Se banea solo el perfil @{{username}}. Sus otros perfiles no se ven afectados. Podrá apelar."
       }
     },
-    "skip_to_content": "Saltar a la sección"
+    "skip_to_content": "Saltar a la sección",
+    "profile_suspension": {
+      "title": "Perfiles",
+      "active": "Activo",
+      "banned": "Bloqueado",
+      "suspend": "Suspender este perfil",
+      "lift": "Levantar la suspensión",
+      "form_title": "Suspender un perfil",
+      "form_message": "Solo se suspende @{{username}}. Los demás perfiles de la persona siguen funcionando.",
+      "cause_label": "Causa grave",
+      "cause_choose": "Elige una causa",
+      "cause": {
+        "CHILD_EXPLOITATION": "Explotación sexual de menores",
+        "VIOLENCE": "Violencia o amenazas creíbles",
+        "ILLEGAL": "Contenido o actividad ilegal",
+        "HATE_SPEECH": "Discurso de odio",
+        "HARASSMENT": "Acoso grave o coordinado",
+        "SCAM": "Estafa o fraude",
+        "COMPROMISED": "Perfil comprometido"
+      },
+      "ban_follows": "Esta suspensión detiene el perfil mientras se revisa el caso. Para esta causa el resultado es un bloqueo, y se conserva la evidencia.",
+      "compromised_hint": "Protege a su dueño y no es una sanción: no tiene apelación. Levántala cuando el dueño haya recuperado el perfil.",
+      "days_label": "Días (de {{min}} a {{max}})",
+      "note_label": "Qué has visto. Se guarda en el registro de auditoría; el perfil no lo lee.",
+      "incomplete": "Elige una causa, un número de días y escribe al menos {{min}} caracteres.",
+      "done": "Perfil suspendido",
+      "error": "No se ha podido suspender el perfil",
+      "lifted": "Suspensión levantada",
+      "lift_error": "No se ha podido levantar la suspensión",
+      "lift_title": "¿Levantar la suspensión?",
+      "lift_message": "@{{username}} podrá volver a iniciar sesión ahora."
+    }
   },
   "collections": {
     "new_collection": "Nueva Colección",

@@ -81,9 +81,26 @@ export class AppealsService {
         if (!targetId) return undefined;
         const profile = await this.prisma.profile.findFirst({
           where: { id: targetId, userId },
-          select: { id: true },
+          select: {
+            id: true,
+            isAccountBanned: true,
+            suspendedUntil: true,
+            suspensionCause: true,
+          },
         });
         if (!profile) throw new NotFoundException('Profile not found');
+        // A Profile paused because someone else got into it is protected,
+        // not sanctioned: support gives it back, there is nothing to appeal.
+        if (
+          !profile.isAccountBanned &&
+          profile.suspensionCause === 'COMPROMISED' &&
+          profile.suspendedUntil &&
+          profile.suspendedUntil > new Date()
+        ) {
+          throw new BadRequestException(
+            'This profile is paused to protect it; contact support to get it back',
+          );
+        }
         return targetId;
       }
       default:

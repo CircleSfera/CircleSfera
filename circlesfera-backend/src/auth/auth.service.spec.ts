@@ -1641,6 +1641,41 @@ describe('AuthService', () => {
       );
     });
 
+    it('gives no appeal token to a Profile paused because someone else got into it, and names the cause', async () => {
+      const hashedPassword = await argon2.hash('Password123!');
+      const futureDate = new Date(Date.now() + 86400000);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-suspended',
+        email: 'suspended@example.com',
+        password: hashedPassword,
+        isActive: true,
+        isRootBanned: false,
+      });
+      mockPrismaService.profile.findFirst.mockResolvedValue({
+        id: 'prof-suspended',
+        suspendedUntil: futureDate,
+        suspensionCause: 'COMPROMISED',
+      });
+
+      await expect(
+        service.login({
+          identifier: 'suspended@example.com',
+          password: 'Password123!',
+        }),
+      ).rejects.toThrow(
+        expect.objectContaining({
+          response: expect.objectContaining({
+            details: {
+              suspendedUntil: futureDate.toISOString(),
+              reason: undefined,
+              cause: 'COMPROMISED',
+              appealToken: undefined,
+            },
+          }),
+        }),
+      );
+    });
+
     it('auto-restores inactive user during GDPR grace period on login', async () => {
       const hashedPassword = await argon2.hash('Password123!');
       const futureDate = new Date(Date.now() + 86400000);

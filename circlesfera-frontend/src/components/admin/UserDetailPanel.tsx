@@ -31,6 +31,7 @@ import VerificationBadge, {
 import { AdminDetailSkeleton } from './AdminSkeletons';
 import { type AdminTab, adminTabPath } from './adminNav';
 import { adminToast } from './adminToast';
+import ProfileSuspensions from './ProfileSuspensions';
 
 interface UserDetailPanelProps {
   userId: string;
@@ -626,6 +627,10 @@ export default function UserDetailPanel({
           )}
         </div>
       </section>
+
+      {user.profiles && user.profiles.length > 0 && (
+        <ProfileSuspensions userId={userId} profiles={user.profiles} />
+      )}
 
       <Sessions userId={userId} />
 

@@ -616,7 +616,8 @@
       "appeal_error": "Failed to submit appeal",
       "back_to_login": "Back",
       "2fa_code": "Authentication Code",
-      "2fa_hint": "Enter the 6-digit code from your authenticator app."
+      "2fa_hint": "Enter the 6-digit code from your authenticator app.",
+      "suspended_compromised": "This profile is paused to protect it, because someone else may have got into it. Write to support to get it back."
     },
     "register": {
       "title": "CircleSfera",
@@ -4002,7 +4003,38 @@
         "BANNED": "Only the profile @{{username}} is banned. Their other profiles are not affected. They can appeal."
       }
     },
-    "skip_to_content": "Skip to the section"
+    "skip_to_content": "Skip to the section",
+    "profile_suspension": {
+      "title": "Profiles",
+      "active": "Active",
+      "banned": "Banned",
+      "suspend": "Suspend this profile",
+      "lift": "Lift the suspension",
+      "form_title": "Suspend one profile",
+      "form_message": "Only @{{username}} is suspended. The person's other profiles keep working.",
+      "cause_label": "Serious cause",
+      "cause_choose": "Choose a cause",
+      "cause": {
+        "CHILD_EXPLOITATION": "Sexual exploitation of minors",
+        "VIOLENCE": "Violence or credible threats",
+        "ILLEGAL": "Illegal content or activity",
+        "HATE_SPEECH": "Hate speech",
+        "HARASSMENT": "Serious or coordinated harassment",
+        "SCAM": "Scam or fraud",
+        "COMPROMISED": "Compromised profile"
+      },
+      "ban_follows": "This suspension stops the profile while the case is reviewed. For this cause the outcome is a ban, and the evidence is kept.",
+      "compromised_hint": "This protects the owner and is not a sanction: it has no appeal. Lift it when the owner has the profile back.",
+      "days_label": "Days ({{min}} to {{max}})",
+      "note_label": "What you saw. Kept in the audit log; the profile does not read it.",
+      "incomplete": "Choose a cause, a number of days and write at least {{min}} characters.",
+      "done": "Profile suspended",
+      "error": "The profile could not be suspended",
+      "lifted": "Suspension lifted",
+      "lift_error": "The suspension could not be lifted",
+      "lift_title": "Lift the suspension?",
+      "lift_message": "@{{username}} will be able to sign in again now."
+    }
   },
   "collections": {
     "new_collection": "New Collection",
