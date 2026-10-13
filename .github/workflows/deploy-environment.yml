@@ -219,8 +219,8 @@ jobs:
             set -euo pipefail
 
             case "$ENV_NAME" in
-              staging) PROXY_PORT=8083 ;;
-              dev) PROXY_PORT=8084 ;;
+              staging) PROXY_PORT=8083; LIVE_HTTP_PORT=7883; LIVE_TCP_PORT=7891; LIVE_UDP_PORT=7892 ;;
+              dev) PROXY_PORT=8084; LIVE_HTTP_PORT=7884; LIVE_TCP_PORT=7893; LIVE_UDP_PORT=7894 ;;
               *) echo "Unknown environment: $ENV_NAME"; exit 1 ;;
             esac
             DIR="/srv/circlesfera-${ENV_NAME}"
@@ -278,6 +278,17 @@ jobs:
               printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG"
               printf 'REGISTRY=%s\n' "$REGISTRY"
             } >> .env.new
+            # The environment's own live service and recorder run only when
+            # its settings point the broadcasts at the environment itself.
+            if [ -n "$(setting LIVEKIT_API_KEY)" ] && [ "$(setting LIVEKIT_URL)" = "wss://${ENV_NAME}.circlesfera.com" ]; then
+              {
+                printf 'COMPOSE_PROFILES=live\n'
+                printf 'LIVE_HTTP_PORT=%s\n' "$LIVE_HTTP_PORT"
+                printf 'LIVE_TCP_PORT=%s\n' "$LIVE_TCP_PORT"
+                printf 'LIVE_UDP_PORT=%s\n' "$LIVE_UDP_PORT"
+              } >> .env.new
+              echo "The live service of ${ENV_NAME} is on (media ports ${LIVE_TCP_PORT}/tcp and ${LIVE_UDP_PORT}/udp)."
+            fi
             PREVIOUS_TAG=""
             if [ -f .env ]; then
               PREVIOUS_TAG="$(grep -E '^IMAGE_TAG=' .env | tail -n1 | cut -d= -f2- || true)"
