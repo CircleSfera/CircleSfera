@@ -197,23 +197,90 @@ describe('CreatorController', () => {
       .send({
         targetType: 'POST',
         targetId: 'post-1',
-        budget: 1000,
+        budget: 35,
         durationDays: 7,
       })
       .expect(201);
 
     expect(res.body).toEqual({ id: 'promo-1' });
+    // The kind arrives in lower case, the way the ownership check reads it.
     expect(mockCreatePromotionUC.execute).toHaveBeenCalledWith(
       TEST_USER.userId,
-      'POST',
+      'post',
       'post-1',
       7,
-      1000,
+      35,
       undefined,
       undefined,
       undefined,
       undefined,
       undefined,
+    );
+  });
+
+  it.each([
+    ['a story, which no feed shows as promoted', { targetType: 'story' }],
+    ['a Profile, which no feed shows as promoted', { targetType: 'profile' }],
+    ['a budget above the most a promotion may cost', { budget: 1500.01 }],
+    ['a budget under one euro', { budget: 0.5 }],
+    ['a negative budget', { budget: -10 }],
+    ['a budget with fractions of a cent', { budget: 10.001 }],
+    ['a budget per day above the range', { dailyBudget: 51 }],
+    [
+      'a whole budget out of range sent next to a valid budget per day',
+      { budget: 999999, dailyBudget: 5 },
+    ],
+    ['a budget per day under the range', { dailyBudget: 4 }],
+    ['more days than a promotion may last', { durationDays: 31 }],
+    ['no days', { durationDays: 0 }],
+    ['a part of a day', { durationDays: 1.5 }],
+    ['a currency other than the euro', { currency: 'USD' }],
+    ['a field the route does not know', { unitAmount: 1 }],
+  ])('refuses a promotion with %s', async (_what, change) => {
+    mockCreatePromotionUC.execute.mockClear();
+
+    await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
+        targetType: 'post',
+        targetId: 'post-1',
+        budget: 35,
+        durationDays: 7,
+        ...change,
+      })
+      .expect(400);
+
+    expect(mockCreatePromotionUC.execute).not.toHaveBeenCalled();
+  });
+
+  it('takes a budget per day in place of the whole budget', async () => {
+    mockCreatePromotionUC.execute.mockClear();
+    mockCreatePromotionUC.execute.mockResolvedValue({ id: 'promo-2' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
+        targetType: 'frame',
+        targetId: 'post-1',
+        dailyBudget: 50,
+        durationDays: 30,
+        currency: 'eur',
+      })
+      .expect(201);
+
+    expect(mockCreatePromotionUC.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'frame',
+      'post-1',
+      30,
+      undefined,
+      'EUR',
+      undefined,
+      undefined,
+      undefined,
+      50,
     );
   });
 

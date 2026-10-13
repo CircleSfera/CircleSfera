@@ -363,9 +363,11 @@ export class AnalyticsService {
   }
 
   // Detailed metrics for a specific post.
-  async getPostInsights(postId: string) {
+  // The figures of a post are for its author. Someone else's post answers
+  // like a post that does not exist.
+  async getPostInsights(postId: string, profileId: string) {
     const post = await this.prisma.post.findUnique({
-      where: { id: postId },
+      where: { id: postId, profileId },
       select: {
         id: true,
         caption: true,

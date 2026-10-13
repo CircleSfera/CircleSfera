@@ -248,6 +248,9 @@ describe('AnalyticsController', () => {
       .set(BEARER)
       .expect(200);
     expect(insightsRes.body).toEqual({ views: 10 });
-    expect(mockAnalyticsService.getPostInsights).toHaveBeenCalledWith('post-1');
+    expect(mockAnalyticsService.getPostInsights).toHaveBeenCalledWith(
+      'post-1',
+      TEST_USER.profileId,
+    );
   });
 });

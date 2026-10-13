@@ -102,10 +102,22 @@ export class StoriesController {
     return this.storiesService.addReaction(id, user.profileId, dto.reaction);
   }
 
-  // Get reactions for a story. Cursor pagination: pass `cursor`
-  // (the last item's id from the previous page) to fetch the next page.
+  // Get reactions for a story. The author reads who reacted; anyone else
+  // who can see the story reads only their own reaction. Cursor pagination:
+  // pass `cursor` (opaque, from the previous page's nextCursor) to fetch
+  // the next page.
   @Get(':id/reactions')
-  async getReactions(@Param('id') id: string, @Query() query: PaginationDto) {
-    return this.storiesService.getReactions(id, query.cursor, query.limit);
+  @UseGuards(JwtAuthGuard)
+  async getReactions(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id') id: string,
+    @Query() query: PaginationDto,
+  ) {
+    return this.storiesService.getReactions(
+      id,
+      user.profileId,
+      query.cursor,
+      query.limit,
+    );
   }
 }

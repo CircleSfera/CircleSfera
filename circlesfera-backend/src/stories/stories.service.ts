@@ -631,17 +631,37 @@ export class StoriesService {
   // Param storyId: The story ID
   // Param cursor: opaque cursor from the previous page's nextCursor
   // Param limit: page size, default 50, capped at 100
+  // Who reacted is for the author alone, like who viewed. Another viewer
+  // who can see the story reads only their own reaction.
   async getReactions(
     storyId: string,
+    viewerProfileId: string,
     cursor?: string,
     limit = 50,
   ): Promise<KeysetPage<SafeStoryReaction>> {
+    const authorId = await this.assertCanAccessStory(storyId, viewerProfileId);
+    const isAuthor = authorId === viewerProfileId;
+    // A story not yet published, or taken down, does not exist for anyone
+    // but its author. An expired one may still be shown in a highlight.
+    if (
+      !isAuthor &&
+      !(await this.prisma.story.count({
+        where: {
+          id: storyId,
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          scheduledStatus: 'PUBLISHED',
+        },
+      }))
+    ) {
+      throw new NotFoundException('Story not found');
+    }
+    const own = isAuthor ? {} : { profileId: viewerProfileId };
     const cappedLimit = Math.min(limit, 100);
     const decoded = cursor ? decodeKeysetCursor(cursor) : null;
     const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};
 
     const reactions = await this.prisma.storyReaction.findMany({
-      where: { storyId, ...cursorWhere },
+      where: { storyId, ...own, ...cursorWhere },
       include: {
         profile: { select: storyViewerSelect },
       },
@@ -657,11 +677,11 @@ export class StoriesService {
   // Viewing or reacting to a story requires the same access as seeing it:
   // no block either way, a follow for private accounts, and close-friend
   // membership for close-friends-only stories. Every denial answers
-  // NotFound so restrictions are never revealed.
+  // NotFound so restrictions are never revealed. Answers the author's id.
   private async assertCanAccessStory(
     storyId: string,
     viewerProfileId: string,
-  ): Promise<void> {
+  ): Promise<string> {
     const story = await this.prisma.story.findUnique({
       where: { id: storyId },
       select: {
@@ -675,7 +695,7 @@ export class StoriesService {
       },
     });
     if (!story) throw new NotFoundException('Story not found');
-    if (story.profileId === viewerProfileId) return;
+    if (story.profileId === viewerProfileId) return story.profileId;
 
     if (
       await isBlockedEitherWay(this.prisma, viewerProfileId, story.profileId)
@@ -710,6 +730,7 @@ export class StoriesService {
       });
       if (!closeFriend) throw new NotFoundException('Story not found');
     }
+    return story.profileId;
   }
 
   async cleanupExpiredStories() {
