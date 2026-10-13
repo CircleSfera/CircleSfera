@@ -4504,7 +4504,10 @@
     "cohost_input_label": "Username",
     "preview_refused": "The camera could not be opened. Allow the camera and the microphone for this site to see yourself before going live.",
     "setup_hint": "Only you see this picture until you go live.",
-    "duration": "Duration"
+    "duration": "Duration",
+    "viewer_ended_title": "This live has ended",
+    "viewer_ended_body": "@{{username}} is no longer live.",
+    "viewer_ended_profile": "See their profile"
   },
   "shortcuts": {
     "next_post": "Next post",

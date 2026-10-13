@@ -641,34 +641,6 @@ export default function LiveBroadcaster() {
               <div ref={chatEndRef} />
             </div>
 
-            {/* Chat Context Menu */}
-            {selectedMessage && (
-              <div className="mb-2 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-2 flex gap-2 shadow-xl animate-in slide-in-from-bottom-2 fade-in duration-200">
-                <button
-                  type="button"
-                  onClick={handlePinMessage}
-                  className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold text-white transition-colors"
-                >
-                  <Pin size={14} /> {t('live.pin')}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDeleteMessage}
-                  className="flex-1 min-h-11 flex items-center justify-center gap-2 px-3 bg-brand-secondary/20 hover:bg-brand-secondary/40 text-brand-secondary rounded-xl text-xs font-semibold transition-colors"
-                >
-                  <Trash2 size={14} /> {t('live.delete_comment')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSelectedMessage(null)}
-                  className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-xl text-white/60 transition-colors"
-                  aria-label={t('common.close')}
-                >
-                  <X size={16} aria-hidden />
-                </button>
-              </div>
-            )}
-
             {/* The field first, then what the host can do. While something
               is being written the actions give way to sending it. */}
             <form onSubmit={handleSend} className="flex items-center gap-2">
@@ -758,6 +730,32 @@ export default function LiveBroadcaster() {
                 <Send size={18} aria-hidden />
               </LiveControl>
             </form>
+          </LiveSheet>
+          {/* What the host does with a comment: the same sheet as the rest. */}
+          <LiveSheet
+            isOpen={!!selectedMessage}
+            onClose={() => setSelectedMessage(null)}
+            title={selectedMessage?.user?.username ?? ''}
+          >
+            <p className="mb-3 text-sm text-white/80 wrap-break-word">
+              {selectedMessage?.message}
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handlePinMessage}
+                className="flex min-h-12 items-center gap-3 rounded-2xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15"
+              >
+                <Pin size={18} aria-hidden /> {t('live.pin')}
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteMessage}
+                className="flex min-h-12 items-center gap-3 rounded-2xl bg-white/10 px-4 text-sm font-semibold text-red-300 hover:bg-white/15"
+              >
+                <Trash2 size={18} aria-hidden /> {t('live.delete_comment')}
+              </button>
+            </div>
           </LiveSheet>
           <LiveQnAPanel
             isOpen={isQnAOpen}

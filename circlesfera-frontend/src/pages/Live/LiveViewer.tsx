@@ -7,6 +7,10 @@ import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import {
+  CREATE_PRIMARY,
+  CREATE_SECONDARY,
+} from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
 import CoHostInviteBanner from '../../components/live/CoHostInviteBanner';
 import LiveGiftModal from '../../components/live/LiveGiftModal';
@@ -53,6 +57,8 @@ export default function LiveViewer() {
   const canSendEliteReactions = hasElitePlan(profile?.verificationLevel);
   const [token, setToken] = useState('');
   const [coHostToken, setCoHostToken] = useState<string | null>(null);
+  // The broadcast is over: said on its own screen, not as a lost connection.
+  const [hasEnded, setHasEnded] = useState(false);
   const [coHostStreamId, setCoHostStreamId] = useState<string | null>(null);
   const [viewerCount, setViewerCount] = useState<number>(1);
   const [giftModalOpen, setGiftModalOpen] = useState(false);
@@ -110,8 +116,7 @@ export default function LiveViewer() {
         setToken(res.data.token);
       })
       .catch(() => {
-        toast.error(t('live.ended_or_not_found'));
-        navigate(-1);
+        setHasEnded(true);
       });
 
     const socket = useSocketStore.getState().socket;
@@ -264,6 +269,53 @@ export default function LiveViewer() {
     setIsQnAOpen(false);
   };
 
+  const hostName =
+    streamDetails?.host?.profile?.username || t('live.host_fallback');
+
+  if (hasEnded) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-4 text-white">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6 text-center">
+          <img
+            src={
+              streamDetails?.host?.profile?.avatar || fallbackAvatar(hostName)
+            }
+            alt=""
+            className="h-20 w-20 rounded-full object-cover ring-2 ring-white/20"
+          />
+          <div>
+            <h1 className="mb-2 text-2xl font-semibold">
+              {t('live.viewer_ended_title')}
+            </h1>
+            <p className="text-sm text-white/60">
+              {t('live.viewer_ended_body', { username: hostName })}
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3">
+            {streamDetails?.host?.profile?.username && (
+              <button
+                type="button"
+                onClick={() =>
+                  navigate(`/${streamDetails.host.profile.username}`)
+                }
+                className={CREATE_PRIMARY}
+              >
+                {t('live.viewer_ended_profile')}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => navigate(-1)}
+              className={`w-full ${CREATE_SECONDARY}`}
+            >
+              {t('common.close')}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (activeToken === '') {
     return (
       <div className="flex h-dvh items-center justify-center bg-black md:bg-transparent text-white font-bold">
@@ -289,8 +341,19 @@ export default function LiveViewer() {
         data-lk-theme="default"
         className="contents"
         onDisconnected={() => {
-          toast.error(t('live.connection_lost'));
-          navigate(-1);
+          // The video stops both when the host ends the broadcast and when
+          // the connection drops: the server says which.
+          api
+            .get(`/live/${streamId}`)
+            .then((res: any) => {
+              if (res.data?.status === 'ENDED') {
+                setHasEnded(true);
+                return;
+              }
+              toast.error(t('live.connection_lost'));
+              navigate(-1);
+            })
+            .catch(() => setHasEnded(true));
         }}
       >
         <LiveFrame
@@ -318,7 +381,14 @@ export default function LiveViewer() {
                   avatar={streamDetails?.host?.profile?.avatar}
                   title={streamDetails?.title}
                 />
-                <LiveStatus viewers={viewerCount} />
+                <LiveStatus
+                  startedAt={
+                    streamDetails?.startedAt
+                      ? Date.parse(streamDetails.startedAt)
+                      : null
+                  }
+                  viewers={viewerCount}
+                />
               </div>
               <LiveGoalBar goal={liveGoal} isHost={false} />
             </div>

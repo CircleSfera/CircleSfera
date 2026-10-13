@@ -4504,7 +4504,10 @@
     "cohost_input_label": "Nombre de usuario",
     "preview_refused": "No se ha podido abrir la cámara. Permite la cámara y el micrófono para este sitio y te verás antes de salir en directo.",
     "setup_hint": "Esta imagen solo la ves tú hasta que empieces.",
-    "duration": "Duración"
+    "duration": "Duración",
+    "viewer_ended_title": "Este directo ha terminado",
+    "viewer_ended_body": "@{{username}} ya no está en directo.",
+    "viewer_ended_profile": "Ver su perfil"
   },
   "shortcuts": {
     "next_post": "Siguiente publicación",

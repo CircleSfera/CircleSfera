@@ -406,7 +406,7 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.getByText('Keep me')).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: /Keep me/ }));
-      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+      fireEvent.click(screen.getAllByRole('button', { name: 'Close' })[0]);
       expect(
         screen.queryByRole('button', { name: 'Pin' }),
       ).not.toBeInTheDocument();

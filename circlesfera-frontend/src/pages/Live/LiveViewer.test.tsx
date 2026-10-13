@@ -154,15 +154,17 @@ describe('LiveViewer', () => {
     expect(toast.success).not.toHaveBeenCalledWith('¡Regalo enviado!');
   });
 
-  it('toasts ended-or-not-found when join fails', async () => {
+  it('says on a screen of its own that the live has ended when it cannot be joined', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error('gone'));
     const { i18n } = renderViewer();
 
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith(
-        i18n!.t('live.ended_or_not_found'),
-      );
-    });
+    expect(
+      await screen.findByRole('heading', {
+        name: i18n!.t('live.viewer_ended_title'),
+      }),
+    ).toBeInTheDocument();
+    // An ended live is not a fault: nothing is reported as an error.
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   describe('the bar under the video', () => {
