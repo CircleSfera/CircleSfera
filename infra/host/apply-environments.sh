@@ -7,10 +7,17 @@
 # Usage (on the VPS):
 #   sudo /srv/circlesfera/infra/host/apply-environments.sh            # both
 #   sudo /srv/circlesfera/infra/host/apply-environments.sh staging    # one
+#   sudo /srv/circlesfera/infra/host/apply-environments.sh --yes      # no questions
 #
-# It never touches production: not its checkout, its containers or its site.
-# An environment whose certificate or password file is missing is skipped,
-# with the commands that create them.
+# It never touches production's checkout or containers. An environment whose
+# certificate or password file is missing is skipped, with the commands that
+# create them.
+#
+# An address that an older site, written by hand, already answers (today
+# dev.circlesfera.com, sent to production) is taken out of that site: the
+# change is shown first and applied only after a yes. The file is copied to
+# /var/backups/circlesfera-nginx before it changes, and everything is put
+# back if nginx rejects the result.
 set -euo pipefail
 
 if [ "$(id -u)" -ne 0 ]; then
@@ -22,8 +29,17 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PRODUCTION_DIR="$(cd "${HERE}/../.." && pwd)"
 DEPLOY_USER="$(stat -c '%U' "${PRODUCTION_DIR}")"
 ORIGIN="$(sudo -u "${DEPLOY_USER}" git -C "${PRODUCTION_DIR}" remote get-url origin)"
-ENVIRONMENTS=("$@")
+ASSUME_YES=0
+ENVIRONMENTS=()
+for argument in "$@"; do
+  case "${argument}" in
+    --yes) ASSUME_YES=1 ;;
+    *) ENVIRONMENTS+=("${argument}") ;;
+  esac
+done
 [ "${#ENVIRONMENTS[@]}" -gt 0 ] || ENVIRONMENTS=(staging dev)
+BACKUPS=/var/backups/circlesfera-nginx
+STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 
 changed=0
 for name in "${ENVIRONMENTS[@]}"; do
@@ -67,14 +83,52 @@ for name in "${ENVIRONMENTS[@]}"; do
     continue
   fi
 
-  # A site written by hand that already answers this address would win or
-  # lose against ours by file order. It is never edited from here.
-  others="$(grep -rlE "server_name[^;]*[[:space:]]${host//./\\.}[[:space:];]" \
-    /etc/nginx/sites-enabled /etc/nginx/conf.d 2> /dev/null | grep -vxF "${site}" || true)"
-  if [ -n "${others}" ]; then
-    echo "Another site already answers ${host}:" >&2
-    echo "${others}" >&2
-    echo "Remove ${host} from it (it sends that address to production), then run this script again." >&2
+  # A site written by hand that already answers one of these addresses would
+  # win or lose against ours by file order, and it sends them to production.
+  # The addresses are taken out of it; nothing else in it changes.
+  declare -A originals=()
+  refused=0
+  for address in "${host}" "admin.${host}" "backoffice.${host}"; do
+    # -R below: the enabled sites are links to the files, and -r does not
+    # follow them.
+    while IFS= read -r listed; do
+      [ -n "${listed}" ] || continue
+      file="$(readlink -f "${listed}")"
+      [ "${file}" != "${site}" ] || continue
+      "${HERE}/release-address.py" "${file}" "${address}" --check || continue
+      proposal="$(mktemp)"
+      "${HERE}/release-address.py" "${file}" "${address}" > "${proposal}"
+      echo "${address} is answered by ${file}. It would change like this:"
+      diff -u "${file}" "${proposal}" || true
+      if [ "${ASSUME_YES}" -ne 1 ]; then
+        read -r -p "Apply this change to ${file}? [y/N] " answer < /dev/tty
+        if [ "${answer}" != "y" ] && [ "${answer}" != "Y" ]; then
+          rm -f "${proposal}"
+          refused=1
+          continue
+        fi
+      fi
+      if [ -z "${originals[${file}]:-}" ]; then
+        install -d -m 0700 "${BACKUPS}"
+        copy="${BACKUPS}/$(basename "${file}").${STAMP}"
+        cp -p "${file}" "${copy}"
+        originals[${file}]="${copy}"
+        echo "Copy of the file as it was: ${copy}"
+      fi
+      # Same owner and mode: the content alone changes.
+      cat "${proposal}" > "${file}"
+      rm -f "${proposal}"
+    done < <(grep -RlF "${address}" /etc/nginx/sites-enabled /etc/nginx/conf.d 2> /dev/null || true)
+  done
+  put_back() {
+    for file in "${!originals[@]}"; do
+      cat "${originals[${file}]}" > "${file}"
+    done
+  }
+  if [ "${refused}" -eq 1 ]; then
+    put_back
+    echo "Left as it was: the older site still answers an address of ${name}." >&2
+    unset originals
     continue
   fi
 
@@ -87,10 +141,13 @@ for name in "${ENVIRONMENTS[@]}"; do
   if ! nginx -t 2> /dev/null; then
     # nginx never reloads a configuration that does not pass its own test.
     if [ -n "${previous}" ]; then cp "${previous}" "${site}"; else rm -f "${site}"; fi
-    echo "nginx rejected the site of ${name}; it was put back as it was." >&2
+    put_back
+    echo "nginx rejected the site of ${name}; everything was put back as it was." >&2
     nginx -t || true
+    unset originals
     continue
   fi
+  unset originals
   [ -z "${previous}" ] || rm -f "${previous}"
   changed=1
   echo "Site of ${name} installed."
