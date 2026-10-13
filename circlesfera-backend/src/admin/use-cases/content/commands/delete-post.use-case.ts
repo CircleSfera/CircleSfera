@@ -21,6 +21,23 @@ export class DeletePostUseCase {
     // reason in the author's language.
     reason?: string,
   ) {
+    const { deletedPost, author } = await this.remove(adminId, postId);
+
+    if (author) {
+      await this.emailService.sendPostRemovedEmail(
+        author.email,
+        author.name,
+        reason,
+      );
+    }
+
+    return deletedPost;
+  }
+
+  // Deletes the post and writes it in the audit log, and says who its
+  // author is without writing to them: whoever deletes several tells each
+  // author once.
+  async remove(adminId: string, postId: string) {
     const post = await this.prisma.post.findUnique({
       where: { id: postId },
       include: {
@@ -44,14 +61,11 @@ export class DeletePostUseCase {
     // About a Profile: to the email that Profile signs in with.
     const email = await emailForProfile(this.prisma, post.profileId);
 
-    if (email) {
-      await this.emailService.sendPostRemovedEmail(
-        email,
-        post.profile?.fullName || post.profile?.username,
-        reason,
-      );
-    }
-
-    return deletedPost;
+    return {
+      deletedPost,
+      author: email
+        ? { email, name: post.profile?.fullName || post.profile?.username }
+        : null,
+    };
   }
 }

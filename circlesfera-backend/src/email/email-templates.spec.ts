@@ -74,6 +74,19 @@ describe('EmailTemplates', () => {
     ).toContain(EMAIL_COPY.en.appealDefaultNotes);
   });
 
+  it('says how many posts were removed, once, with the general reason and the guidelines', () => {
+    const mail = EmailTemplates.postsRemoved(en, '<b>Ana</b>', 12);
+
+    expect(mail.subject).toBe('12 of your posts were removed');
+    expect(mail.html).toContain('12 of your posts were removed by');
+    expect(mail.html).toContain(EMAIL_COPY.en.moderationReason);
+    expect(mail.html).toContain('href="https://circlesfera.com/guidelines"');
+    expect(mail.html).toContain('&lt;b&gt;Ana&lt;/b&gt;');
+    expect(EmailTemplates.postsRemoved(es, 'Ana', 3).subject).toBe(
+      'Hemos retirado 3 publicaciones tuyas',
+    );
+  });
+
   it('approved and rejected appeals read differently', () => {
     expect(EmailTemplates.appealDecision(es, 'Ana', true, 'ok').subject).toBe(
       'Tu apelación ha sido aprobada',

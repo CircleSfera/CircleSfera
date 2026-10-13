@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
+import { EmailService } from '../../../../email/email.service.js';
 import { DeleteCommentUseCase } from './delete-comment.use-case.js';
 import { DeletePostUseCase } from './delete-post.use-case.js';
 
@@ -13,10 +14,40 @@ export class BulkDeleteContentUseCase {
     @Inject(DeletePostUseCase) private readonly deletePost: DeletePostUseCase,
     @Inject(DeleteCommentUseCase)
     private readonly deleteComment: DeleteCommentUseCase,
+    @Inject(EmailService) private readonly emailService: EmailService,
   ) {}
 
-  posts(adminId: string, ids: string[]) {
-    return this.each(ids, (id) => this.deletePost.execute(adminId, id));
+  // Each author is told once, with how many of their posts were removed:
+  // one e-mail per post reads as spam to who receives them.
+  async posts(adminId: string, ids: string[]) {
+    const removed = new Map<
+      string,
+      { name: string | null | undefined; count: number }
+    >();
+    const result = await this.each(ids, async (id) => {
+      const { author } = await this.deletePost.remove(adminId, id);
+      if (!author) return;
+      const told = removed.get(author.email);
+      if (told) told.count++;
+      else removed.set(author.email, { name: author.name, count: 1 });
+    });
+
+    for (const [email, { name, count }] of removed) {
+      try {
+        if (count === 1) {
+          await this.emailService.sendPostRemovedEmail(email, name);
+        } else {
+          await this.emailService.sendPostsRemovedEmail(email, name, count);
+        }
+      } catch (err) {
+        // The posts are deleted whatever happens to the notice.
+        this.logger.warn(
+          `An author could not be told of ${count} removed posts: ${err instanceof Error ? err.message : err}`,
+        );
+      }
+    }
+
+    return result;
   }
 
   comments(adminId: string, ids: string[]) {

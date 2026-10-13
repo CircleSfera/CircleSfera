@@ -184,6 +184,19 @@ export class EmailService {
     );
   }
 
+  // Staff removed several of the account's posts at once: one notice.
+  async sendPostsRemovedEmail(
+    email: string,
+    name: string | null | undefined,
+    count: number,
+  ) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.postsRemoved(ctx, this.nameOr(ctx, name), count),
+    );
+  }
+
   // Outcome of an appeal, with the staff notes when there are any.
   async sendAppealDecisionEmail(
     email: string,

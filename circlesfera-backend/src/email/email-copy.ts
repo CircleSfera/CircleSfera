@@ -29,6 +29,7 @@ export interface EmailCopy {
   };
   accountBanned: { subject: string; title: string; body: string };
   postRemoved: { subject: string; title: string; body: string; button: string };
+  postsRemoved: { subject: string; title: string; body: string };
   appealApproved: { subject: string; title: string; body: string };
   appealRejected: { subject: string; title: string; body: string };
   appealDefaultNotes: string;
@@ -103,6 +104,11 @@ const en: EmailCopy = {
     title: 'Your post was removed',
     body: 'Hello {name},<br><br>One of your posts was removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}',
     button: 'Read the guidelines',
+  },
+  postsRemoved: {
+    subject: '{count} of your posts were removed',
+    title: 'Your posts were removed',
+    body: 'Hello {name},<br><br>{count} of your posts were removed by our moderation team for breaking the community guidelines.<br><br><strong>Reason:</strong> {reason}',
   },
   appealApproved: {
     subject: 'Your appeal was approved',
@@ -192,6 +198,11 @@ const es: EmailCopy = {
     title: 'Publicación retirada',
     body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado una de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}',
     button: 'Leer las normas',
+  },
+  postsRemoved: {
+    subject: 'Hemos retirado {count} publicaciones tuyas',
+    title: 'Publicaciones retiradas',
+    body: 'Hola {name},<br><br>Nuestro equipo de moderación ha retirado {count} de tus publicaciones por incumplir las normas de la comunidad.<br><br><strong>Motivo:</strong> {reason}',
   },
   appealApproved: {
     subject: 'Tu apelación ha sido aprobada',
