@@ -100,7 +100,10 @@ interface RowProps {
   title: string;
   // The facts, in words: a line each on a phone, one line on desktop.
   facts?: string[];
+  // Something short at the end of the row, such as an amount.
   badge?: ReactNode;
+  // The state of the item: under its facts on a phone, at the end on desktop.
+  state?: ReactNode;
   // The one visible action; anything else belongs in a menu.
   action?: ReactNode;
   onOpen?: () => void;
@@ -113,6 +116,7 @@ export function CreatorRow({
   title,
   facts,
   badge,
+  state,
   action,
   onOpen,
   openLabel,
@@ -142,6 +146,7 @@ export function CreatorRow({
             ))}
           </span>
         ) : null}
+        {state ? <span className="mt-1.5 flex md:hidden">{state}</span> : null}
       </span>
     </>
   );
@@ -165,6 +170,7 @@ export function CreatorRow({
           {body}
         </div>
       )}
+      {state ? <span className="hidden md:flex shrink-0">{state}</span> : null}
       {badge}
       {action}
     </Card>

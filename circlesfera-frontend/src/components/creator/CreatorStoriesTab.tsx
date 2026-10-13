@@ -153,7 +153,7 @@ export default function CreatorStoriesTab() {
                         when: timeLeft(story.expiresAt),
                       }),
                 ]}
-                badge={
+                state={
                   <CreatorBadge on={!expired}>
                     {expired
                       ? t('creator.stories.expired')
