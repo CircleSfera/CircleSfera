@@ -1929,21 +1929,27 @@
     "posts": {
       "empty_title": "Aún no tienes publicaciones",
       "empty_desc": "Publica tu primera pieza para verla aquí.",
-      "filter_all": "Todos",
-      "filter_posts": "Posts",
+      "filter_all": "Todas",
+      "filter_posts": "Publicaciones",
       "filter_frames": "Frames",
       "prev": "Anterior",
       "next": "Siguiente",
-      "insights": "Insights",
-      "boost": "Impulsar"
+      "filter_label": "Tipo de publicación"
     },
     "stories": {
-      "empty_title": "No hay historias",
-      "empty_desc": "Comparte momentos efímeros con tus seguidores para aumentar tu alcance.",
-      "expired": "Expirada",
+      "empty_title": "Aún no tienes historias",
+      "empty_desc": "Publica una historia para verla aquí con sus vistas y reacciones.",
+      "expired": "Caducada",
       "active": "Activa",
-      "open": "Abrir historia",
-      "open_error": "No se pudo abrir esta historia"
+      "open_error": "No se pudo abrir esta historia",
+      "published": "Publicada el {{date}}",
+      "open_this": "Abrir la historia del {{date}}",
+      "views_one": "{{formatted}} vista",
+      "views_other": "{{formatted}} vistas",
+      "reactions_one": "{{formatted}} reacción",
+      "reactions_other": "{{formatted}} reacciones",
+      "expires": "Caduca {{when}}",
+      "expired_on": "Caducó el {{date}}"
     },
     "money": {
       "sections": "Secciones de monetización",
@@ -2176,6 +2182,9 @@
       "promote": "Promocionar",
       "promote_this": "Promocionar: {{title}}",
       "statistics_of": "Estadísticas de: {{title}}"
+    },
+    "pager": {
+      "position": "Página {{page}} de {{total}}"
     }
   },
   "wallet": {

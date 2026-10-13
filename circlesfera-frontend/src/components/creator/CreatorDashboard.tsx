@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Film, Image as ImageIcon, Megaphone } from 'lucide-react';
+import { Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -22,16 +22,12 @@ import { formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
 import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import PostInsightsModal from '../modals/PostInsightsModal';
-import { Button, Card } from '../ui';
+import { Card } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
-import {
-  CreatorFigure,
-  CreatorFigures,
-  CreatorRow,
-  CreatorSection,
-} from './CreatorPieces';
+import { CreatorFigure, CreatorFigures, CreatorSection } from './CreatorPieces';
+import CreatorPostRow from './CreatorPostRow';
 import type { CreatorTab } from './creatorNav';
-import { localHour, postFacts, weekdayName } from './creatorWords';
+import { localHour, weekdayName } from './creatorWords';
 
 // A chart of fewer points than this says nothing: words take its place.
 // Its days arrive as dates with no time, so they are written in universal
@@ -236,45 +232,14 @@ export default function CreatorDashboard({
           />
         ) : (
           <div className="space-y-2">
-            {posts.map((post) => {
-              const title = post.caption || t('creator.post.untitled');
-              return (
-                <CreatorRow
-                  key={post.id}
-                  media={
-                    post.media?.[0] ? (
-                      <img
-                        src={post.media[0].url}
-                        className="w-full h-full object-cover"
-                        alt=""
-                      />
-                    ) : post.type === 'FRAME' ? (
-                      <Film size={20} aria-hidden />
-                    ) : (
-                      <ImageIcon size={20} aria-hidden />
-                    )
-                  }
-                  title={title}
-                  facts={postFacts(post, t, language)}
-                  onOpen={() => setInsightsPostId(post.id)}
-                  openLabel={t('creator.post.statistics_of', { title })}
-                  action={
-                    <Button
-                      variant="ghost"
-                      size="compact"
-                      className="min-h-11 min-w-11 gap-1.5 shrink-0"
-                      aria-label={t('creator.post.promote_this', { title })}
-                      onClick={() => onPromote(post)}
-                    >
-                      <Megaphone size={16} aria-hidden />
-                      <span className="hidden sm:inline">
-                        {t('creator.post.promote')}
-                      </span>
-                    </Button>
-                  }
-                />
-              );
-            })}
+            {posts.map((post) => (
+              <CreatorPostRow
+                key={post.id}
+                post={post}
+                onOpen={(opened) => setInsightsPostId(opened.id)}
+                onPromote={onPromote}
+              />
+            ))}
           </div>
         )}
       </CreatorSection>

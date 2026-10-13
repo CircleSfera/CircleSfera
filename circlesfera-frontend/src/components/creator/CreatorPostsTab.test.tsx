@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
@@ -59,7 +59,7 @@ describe('CreatorPostsTab', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('uses Spanish empty chrome and post actions from the catalog', async () => {
+  it('writes a post in words in Spanish, with its statistics and one action', async () => {
     vi.mocked(creatorApi.getPosts).mockResolvedValue({
       data: {
         data: [post],
@@ -72,17 +72,16 @@ describe('CreatorPostsTab', () => {
       { lng: 'es' },
     );
 
+    const title = i18n!.t('creator.post.untitled');
+    expect(await screen.findByText(title)).toBeInTheDocument();
     expect(
-      await screen.findByText(i18n!.t('creator.dashboard.untitled_post')),
+      screen.getByRole('button', { name: `Estadísticas de: ${title}` }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: i18n!.t('creator.posts.insights') }),
+      screen.getByRole('button', { name: `Promocionar: ${title}` }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: i18n!.t('creator.posts.boost') }),
-    ).toBeInTheDocument();
-    expect(i18n!.t('creator.posts.boost')).toBe('Impulsar');
-    expect(screen.queryByText('Boost')).not.toBeInTheDocument();
+    expect(screen.queryByText('POST')).not.toBeInTheDocument();
+    expect(screen.queryByText(/insights|performance/i)).not.toBeInTheDocument();
   });
 
   it('lets a creator promote a post without any paid plan', async () => {
@@ -93,16 +92,32 @@ describe('CreatorPostsTab', () => {
       },
     } as never);
 
-    const { i18n } = renderWithProviders(
-      <CreatorPostsTab onPromote={onPromote} />,
-    );
+    renderWithProviders(<CreatorPostsTab onPromote={onPromote} />);
 
-    fireEvent.click(
-      await screen.findByRole('button', {
-        name: i18n!.t('creator.posts.boost'),
-      }),
-    );
+    fireEvent.click(await screen.findByRole('button', { name: /^Promote: / }));
 
     expect(onPromote).toHaveBeenCalledWith(post);
+  });
+
+  it('asks the server for one kind and goes back to the first page', async () => {
+    vi.mocked(creatorApi.getPosts).mockResolvedValue({
+      data: {
+        data: [post],
+        meta: { total: 30, page: 1, limit: 10, totalPages: 3 },
+      },
+    } as never);
+
+    renderWithProviders(<CreatorPostsTab onPromote={onPromote} />);
+
+    expect(await screen.findByText('Page 1 of 3')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Next' }));
+    await waitFor(() =>
+      expect(creatorApi.getPosts).toHaveBeenLastCalledWith(2, 10, undefined),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Frames' }));
+    await waitFor(() =>
+      expect(creatorApi.getPosts).toHaveBeenLastCalledWith(1, 10, 'FRAME'),
+    );
   });
 });

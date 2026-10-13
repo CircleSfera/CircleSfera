@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CreatorStory } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
@@ -55,7 +55,7 @@ describe('CreatorStoriesTab', () => {
     expect(screen.queryByText('No hay historias')).not.toBeInTheDocument();
   });
 
-  it('uses Spanish active badge and open aria-label from the catalog', async () => {
+  it('writes a story in words in Spanish: its figures, its state and when it ends', async () => {
     vi.mocked(creatorApi.getStories).mockResolvedValue({
       data: {
         data: [activeStory],
@@ -63,17 +63,38 @@ describe('CreatorStoriesTab', () => {
       },
     } as never);
 
-    const { i18n } = renderWithProviders(<CreatorStoriesTab />, { lng: 'es' });
+    renderWithProviders(<CreatorStoriesTab />, { lng: 'es' });
 
     expect(
-      await screen.findByRole('button', {
-        name: i18n!.t('creator.stories.open'),
-      }),
+      await screen.findByRole('button', { name: /^Abrir la historia del / }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('creator.stories.active')),
-    ).toBeInTheDocument();
-    expect(i18n!.t('creator.stories.active')).toBe('Activa');
+    expect(screen.getByText('4 vistas · 1 reacción')).toBeInTheDocument();
+    expect(screen.getByText('Activa')).toBeInTheDocument();
+    expect(screen.getByText(/^Caduca dentro de /)).toBeInTheDocument();
     expect(screen.queryByText('Active')).not.toBeInTheDocument();
+  });
+
+  it('says when a story ended and shows a mark when its picture is gone', async () => {
+    vi.mocked(creatorApi.getStories).mockResolvedValue({
+      data: {
+        data: [
+          {
+            ...activeStory,
+            expiresAt: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
+          },
+        ],
+        meta: { total: 1, page: 1, limit: 12, totalPages: 1 },
+      },
+    } as never);
+
+    const { container } = renderWithProviders(<CreatorStoriesTab />);
+
+    expect(await screen.findByText('Expired')).toBeInTheDocument();
+    expect(screen.getByText(/^Expired on /)).toBeInTheDocument();
+
+    const picture = container.querySelector('img');
+    expect(picture).not.toBeNull();
+    fireEvent.error(picture as HTMLImageElement);
+    expect(container.querySelector('img')).toBeNull();
   });
 });
