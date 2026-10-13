@@ -328,11 +328,22 @@ describe('CreatorMonetizationTab', () => {
   });
 
   describe('Stripe dashboard', () => {
-    it('opens the Stripe dashboard in a new tab', async () => {
-      const open = vi.spyOn(window, 'open').mockReturnValue(null);
-      vi.mocked(monetizationApi.getDashboardLink).mockResolvedValue({
-        url: 'https://connect.stripe.com/express',
-      });
+    it('opens a tab at the tap and sends it to the Stripe dashboard when the link arrives', async () => {
+      const tab = {
+        closed: false,
+        opener: window,
+        close: vi.fn(),
+        location: { replace: vi.fn() },
+      };
+      const open = vi
+        .spyOn(window, 'open')
+        .mockReturnValue(tab as unknown as Window);
+      let arrive: (value: { url: string }) => void = () => {};
+      vi.mocked(monetizationApi.getDashboardLink).mockReturnValue(
+        new Promise((resolve) => {
+          arrive = resolve;
+        }),
+      );
       const { i18n } = renderWithProviders(
         <CreatorMonetizationTab onToast={onToast} section="income" />,
       );
@@ -343,10 +354,15 @@ describe('CreatorMonetizationTab', () => {
         }),
       );
 
+      // The tab exists before the server has answered: a phone refuses one
+      // opened after the wait.
+      expect(open).toHaveBeenCalledWith('', '_blank');
+      expect(tab.location.replace).not.toHaveBeenCalled();
+
+      arrive({ url: 'https://connect.stripe.com/express' });
       await waitFor(() =>
-        expect(open).toHaveBeenCalledWith(
+        expect(tab.location.replace).toHaveBeenCalledWith(
           'https://connect.stripe.com/express',
-          '_blank',
         ),
       );
       open.mockRestore();

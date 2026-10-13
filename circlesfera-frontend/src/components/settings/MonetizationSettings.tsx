@@ -5,6 +5,11 @@ import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import { reportPaymentError } from '../../utils/identityVerification';
 import { formatCents } from '../../utils/money';
+import {
+  dropPendingTab,
+  openPendingTab,
+  sendPendingTab,
+} from '../../utils/pendingTab';
 import { LoadingSpinner } from '../LoadingStates';
 import { Button } from '../ui';
 import SettingsSection from './SettingsSection';
@@ -35,14 +40,15 @@ export function MonetizationSettings() {
     },
   });
 
+  // The tab is opened at the tap and filled when the link arrives: opened
+  // after the wait, a phone refuses it and says nothing.
   const dashboardMutation = useMutation({
-    mutationFn: async () => {
-      return monetizationApi.getDashboardLink();
+    mutationFn: (_tab: Window | null) => monetizationApi.getDashboardLink(),
+    onSuccess: (data, tab) => {
+      sendPendingTab(tab, data.url);
     },
-    onSuccess: (data) => {
-      window.open(data.url, '_blank', 'noopener,noreferrer');
-    },
-    onError: () => {
+    onError: (_error, tab) => {
+      dropPendingTab(tab);
       toast.error(t('settings.monetization.error_dashboard'));
     },
   });
@@ -84,7 +90,7 @@ export function MonetizationSettings() {
               type="button"
               variant="outline"
               size="md"
-              onClick={() => dashboardMutation.mutate()}
+              onClick={() => dashboardMutation.mutate(openPendingTab())}
               isLoading={dashboardMutation.isPending}
               className="shrink-0"
             >
