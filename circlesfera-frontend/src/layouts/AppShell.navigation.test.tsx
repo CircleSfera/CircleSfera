@@ -1,6 +1,7 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Link, Route, Routes } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, Route, Routes, useSearchParams } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/test-utils';
 import AppShell from './AppShell';
@@ -132,6 +133,69 @@ describe('AppShell navigation from Frames', () => {
       expect(screen.getByTestId('notifications-page')).toBeInTheDocument();
     });
     expect(screen.queryByTestId('frames-page')).not.toBeInTheDocument();
+  });
+});
+
+// A screen with something of its own to lose: a number it counts, and a
+// section it keeps in its address.
+function SectionsStub() {
+  const [taps, setTaps] = useState(0);
+  const [params, setParams] = useSearchParams();
+  return (
+    <div>
+      <p data-testid="taps">{taps}</p>
+      <p data-testid="section">{params.get('tab') ?? 'posts'}</p>
+      <button type="button" onClick={() => setTaps((n) => n + 1)}>
+        Tap
+      </button>
+      <button
+        type="button"
+        onClick={() => setParams({ tab: 'frames' }, { replace: true })}
+      >
+        Frames section
+      </button>
+      <Link to="/ana?tab=saved">Saved by link</Link>
+    </div>
+  );
+}
+
+describe('AppShell and a screen that rewrites its own address', () => {
+  const show = () =>
+    renderWithProviders(
+      <Routes>
+        <Route element={<AppShell />}>
+          <Route path="/:username" element={<SectionsStub />} />
+        </Route>
+      </Routes>,
+      { routerProps: { initialEntries: ['/ana'], useTransitions: false } },
+    );
+
+  it('keeps the screen as it is when the section changes in place', async () => {
+    const user = userEvent.setup();
+    show();
+    await user.click(screen.getByRole('button', { name: 'Tap' }));
+    await user.click(screen.getByRole('button', { name: 'Tap' }));
+    expect(screen.getByTestId('taps')).toHaveTextContent('2');
+
+    await user.click(screen.getByRole('button', { name: 'Frames section' }));
+
+    expect(screen.getByTestId('section')).toHaveTextContent('frames');
+    // Mounted again, the screen would have started over from zero.
+    expect(screen.getByTestId('taps')).toHaveTextContent('2');
+  });
+
+  it('still mounts the screen anew when a link leads to it', async () => {
+    const user = userEvent.setup();
+    show();
+    await user.click(screen.getByRole('button', { name: 'Tap' }));
+    expect(screen.getByTestId('taps')).toHaveTextContent('1');
+
+    await user.click(screen.getByRole('link', { name: 'Saved by link' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('section')).toHaveTextContent('saved'),
+    );
+    expect(screen.getByTestId('taps')).toHaveTextContent('0');
   });
 });
 

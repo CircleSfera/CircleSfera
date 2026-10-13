@@ -1,5 +1,10 @@
-import { lazy, Suspense } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useRef } from 'react';
+import {
+  NavigationType,
+  Outlet,
+  useLocation,
+  useNavigationType,
+} from 'react-router-dom';
 import { AppLockScreen } from '../components/auth/AppLockScreen';
 import CookieConsent from '../components/CookieConsent';
 import ScrollToTop from '../components/common/ScrollToTop';
@@ -21,6 +26,23 @@ function routeOutletKey(pathname: string): string {
   return pathname;
 }
 
+// The key the screen is mounted under. Going to a screen mounts it anew. A
+// screen that only rewrites its own address in place (the section of a
+// Profile, a filter) is still the same screen: mounting it again would
+// throw away what it shows and start it over, counters included.
+function useScreenKey(): string {
+  const location = useLocation();
+  const navigationType = useNavigationType();
+  const shown = useRef({ pathname: location.pathname, key: location.key });
+  const sameScreen =
+    navigationType === NavigationType.Replace &&
+    shown.current.pathname === location.pathname;
+  if (!sameScreen) {
+    shown.current = { pathname: location.pathname, key: location.key };
+  }
+  return shown.current.key;
+}
+
 function GlobalCreateHighlightModal() {
   const isOpen = useUIStore((s) => s.isCreateHighlightOpen);
   const close = useUIStore((s) => s.closeCreateHighlight);
@@ -34,6 +56,7 @@ function GlobalCreateHighlightModal() {
 export default function AppShell() {
   const location = useLocation();
   const outletKey = routeOutletKey(location.pathname);
+  const screenKey = useScreenKey();
 
   return (
     <LayoutWrapper>
@@ -47,7 +70,7 @@ export default function AppShell() {
           navigation stays, and going to another screen clears it. */}
       <ErrorBoundary key={location.pathname} scope="page">
         <Suspense
-          key={`${location.key}:${outletKey}`}
+          key={`${screenKey}:${outletKey}`}
           fallback={
             <div className="h-full min-h-[40vh] w-full flex items-center justify-center">
               <div className="w-8 h-8 border-4 border-brand-primary border-t-transparent rounded-full animate-spin" />
