@@ -1,39 +1,30 @@
-import {
-  AlertCircle,
-  Award,
-  Clock,
-  DollarSign,
-  Download,
-  Eye,
-  Heart,
-  Loader2,
-  MessageCircle,
-  Sparkles,
-  Users,
-} from 'lucide-react';
+import { Download, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { creatorApi } from '../../services/creator.service';
+import { formatNumber } from '../../utils/format';
 import { logger } from '../../utils/logger';
+import { formatCents } from '../../utils/money';
 import { Button, Card } from '../ui';
+import CreatorEmpty from './CreatorEmpty';
+import {
+  CreatorFigure,
+  CreatorFigures,
+  CreatorRow,
+  CreatorSection,
+  CreatorViewChoice,
+} from './CreatorPieces';
 
 interface RevenueData {
-  period: string;
   grossRevenue: number;
   subscriptionsTotal: number;
   tipsTotal: number;
   postUnlocksTotal: number;
   giftsTotal: number;
-  activeSubscribersCount: number;
-  totalFollowersCount: number;
-  conversionRate: number;
-  currency: string;
 }
 
 interface RetentionData {
-  avgDwellSeconds: number;
   totalInteractionsSampled: number;
-  peakActivityHourUTC: number;
   hourlyDistribution: number[];
 }
 
@@ -41,22 +32,38 @@ interface TopPost {
   id: string;
   caption: string | null;
   views: number;
-  performanceScore: number;
   likes: number;
   comments: number;
   bookmarks: number;
   thumbnailUrl: string | null;
-  createdAt: string;
 }
 
 const PERIODS = ['7d', '30d', '90d', '1y'] as const;
+type Period = (typeof PERIODS)[number];
 
+// The hours of the axis that carry their name; the rest are read from them.
+const NAMED_HOURS = [0, 6, 12, 18];
+
+// The server counts by hour of universal time; the reader sees their own day.
+function byLocalHour(utcCounts: number[]): number[] {
+  const local = new Array<number>(24).fill(0);
+  utcCounts.forEach((count, utcHour) => {
+    const moment = new Date();
+    moment.setUTCHours(utcHour, 0, 0, 0);
+    local[moment.getHours()] += count;
+  });
+  return local;
+}
+
+// What the Elite Creator and Business plans add to Analytics: the income of a
+// period by kind, the hours the posts are looked at, and the best posts.
 export const CreatorAnalyticsDashboard = () => {
-  const { t } = useTranslation();
-  const [period, setPeriod] = useState<(typeof PERIODS)[number]>('30d');
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
+  const [period, setPeriod] = useState<Period>('30d');
   const [loading, setLoading] = useState(true);
   const [downloadingCsv, setDownloadingCsv] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState(false);
 
   const [revenue, setRevenue] = useState<RevenueData | null>(null);
   const [retention, setRetention] = useState<RetentionData | null>(null);
@@ -65,7 +72,7 @@ export const CreatorAnalyticsDashboard = () => {
   const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
+      setError(false);
       const [revRes, retRes, topRes] = await Promise.all([
         creatorApi.getRevenueAnalytics(period),
         creatorApi.getAudienceRetentionAnalytics(),
@@ -76,11 +83,11 @@ export const CreatorAnalyticsDashboard = () => {
       setTopPosts(topRes.data);
     } catch (err) {
       logger.error('Failed to fetch creator analytics:', err);
-      setError(t('creator.advanced.error'));
+      setError(true);
     } finally {
       setLoading(false);
     }
-  }, [period, t]);
+  }, [period]);
 
   useEffect(() => {
     fetchAnalytics();
@@ -106,277 +113,181 @@ export const CreatorAnalyticsDashboard = () => {
     }
   };
 
-  const share = (part: number) =>
-    revenue?.grossRevenue ? (part / revenue.grossRevenue) * 100 : 0;
+  // These amounts arrive in euros; every amount is written from cents.
+  const amount = (euros: number | undefined) =>
+    formatCents(Math.round((euros ?? 0) * 100), language);
+  const count = (key: string, value: number) =>
+    t(key, { count: value, formatted: formatNumber(value, language) });
+
+  const hours = byLocalHour(retention?.hourlyDistribution ?? []);
+  const sampled = retention?.totalInteractionsSampled ?? 0;
+  const busiest = Math.max(...hours, 1);
+  const peakHour = hours.indexOf(Math.max(...hours));
+  const nameOfHour = (hour: number) => {
+    const moment = new Date();
+    moment.setHours(hour, 0, 0, 0);
+    return moment.toLocaleTimeString(language, {
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+  };
+  const subscriptions = revenue?.subscriptionsTotal ?? 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold text-white tracking-tight">
-            {t('creator.advanced.title')}
-          </h2>
-          <p className="text-sm text-white/50 mt-0.5">
-            {t('creator.advanced.subtitle')}
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div
-            role="tablist"
-            className="flex p-1 rounded-xl border border-white/10 bg-surface-elevated"
-          >
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                role="tab"
-                aria-selected={period === p}
-                onClick={() => setPeriod(p)}
-                className={`px-3 min-h-11 text-sm rounded-lg transition-colors ${
-                  period === p
-                    ? 'bg-brand-primary/15 text-white font-medium'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+    <div className="space-y-8">
+      <CreatorSection
+        title={t('creator.advanced.income_title')}
+        action={
           <Button
-            variant="outline"
-            size="md"
+            variant="ghost"
+            size="compact"
+            className="min-h-11 gap-2 shrink-0"
             onClick={handleExportCsv}
             disabled={downloadingCsv || loading}
-            className="min-h-11 gap-2"
           >
             {downloadingCsv ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 size={14} className="animate-spin" aria-hidden />
             ) : (
-              <Download className="w-4 h-4" />
+              <Download size={14} aria-hidden />
             )}
-            <span className="hidden sm:inline">
-              {t('creator.advanced.export_csv')}
-            </span>
+            {t('creator.advanced.export_csv')}
           </Button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="flex items-center gap-2 p-3 rounded-xl border border-brand-secondary/20 bg-brand-secondary/10 text-sm text-brand-secondary">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex justify-center items-center py-12 text-white/50">
-          <Loader2 className="w-5 h-5 animate-spin mr-3 text-brand-primary-text" />
-          <span className="text-sm">{t('creator.advanced.loading')}</span>
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <Kpi
-              icon={DollarSign}
-              label={t('creator.advanced.gross')}
-              value={`€${(revenue?.grossRevenue || 0).toFixed(2)}`}
-              hint={t('creator.advanced.period_hint', { period })}
+        }
+      >
+        <div className="space-y-3">
+          <CreatorViewChoice
+            label={t('creator.advanced.period_label')}
+            items={PERIODS.map((value) => ({
+              value,
+              label: t(`creator.advanced.period.${value}`),
+            }))}
+            value={period}
+            onChange={setPeriod}
+          />
+          {error ? (
+            <CreatorEmpty title={t('creator.advanced.error')} />
+          ) : loading ? (
+            <div
+              className="h-24 rounded-xl bg-white/5 animate-pulse border border-white/5"
+              data-testid="advanced-loading"
             />
-            <Kpi
-              icon={Users}
-              label={t('creator.advanced.paid_subs')}
-              value={String(revenue?.activeSubscribersCount || 0)}
-              hint={t('creator.advanced.conversion', {
-                rate: revenue?.conversionRate || 0,
-              })}
-            />
-            <Kpi
-              icon={Clock}
-              label={t('creator.advanced.dwell')}
-              value={`${retention?.avgDwellSeconds || 0}s`}
-              hint={t('creator.advanced.peak', {
-                hour: retention?.peakActivityHourUTC ?? '—',
-              })}
-            />
-            <Kpi
-              icon={Sparkles}
-              label={t('creator.advanced.tips_gifts')}
-              value={`€${((revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)).toFixed(2)}`}
-              hint={t('creator.advanced.tips_hint')}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Card variant="glass" className="p-4 space-y-4">
-              <h3 className="text-sm font-medium text-white">
-                {t('creator.advanced.breakdown')}
-              </h3>
-              <ShareRow
-                label={t('creator.advanced.subscriptions')}
-                amount={revenue?.subscriptionsTotal || 0}
-                pct={share(revenue?.subscriptionsTotal || 0)}
+          ) : (
+            <CreatorFigures five={subscriptions > 0}>
+              <CreatorFigure
+                label={t('creator.advanced.gross')}
+                value={amount(revenue?.grossRevenue)}
+                hint={t('creator.advanced.gross_hint')}
               />
-              <ShareRow
+              <CreatorFigure
+                label={t('creator.advanced.tips')}
+                value={amount(revenue?.tipsTotal)}
+              />
+              <CreatorFigure
                 label={t('creator.advanced.unlocks')}
-                amount={revenue?.postUnlocksTotal || 0}
-                pct={share(revenue?.postUnlocksTotal || 0)}
+                value={amount(revenue?.postUnlocksTotal)}
               />
-              <ShareRow
-                label={t('creator.advanced.tips_gifts')}
-                amount={(revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0)}
-                pct={share(
-                  (revenue?.tipsTotal || 0) + (revenue?.giftsTotal || 0),
-                )}
+              <CreatorFigure
+                label={t('creator.advanced.gifts')}
+                value={amount(revenue?.giftsTotal)}
               />
-            </Card>
+              {subscriptions > 0 ? (
+                <CreatorFigure
+                  label={t('creator.advanced.subscriptions')}
+                  value={amount(subscriptions)}
+                />
+              ) : null}
+            </CreatorFigures>
+          )}
+        </div>
+      </CreatorSection>
 
-            <Card variant="glass" className="p-4 space-y-4">
-              <h3 className="text-sm font-medium text-white">
-                {t('creator.advanced.hourly')}
-              </h3>
-              <div className="grid grid-cols-12 gap-1 pt-1">
-                {Array.from({ length: 24 }, (_, hour) => ({
-                  hour,
-                  count: retention?.hourlyDistribution[hour] || 0,
-                })).map((slot) => {
-                  const max = Math.max(
-                    ...(retention?.hourlyDistribution || [1]),
-                    1,
-                  );
-                  const intensity = Math.min(
-                    Math.round((slot.count / max) * 100),
-                    100,
-                  );
-                  return (
-                    <div
-                      key={`hour-slot-${slot.hour}`}
-                      title={t('creator.advanced.hour_slot', {
-                        hour: slot.hour,
-                        count: slot.count,
-                      })}
-                      className="h-10 rounded-md flex flex-col justify-end p-1"
-                      style={{
-                        backgroundColor: `rgba(var(--brand-primary-rgb), ${Math.max(intensity / 100, 0.08)})`,
-                      }}
-                    >
-                      <span className="text-[9px] text-white/70 text-center">
-                        {slot.hour}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-              <p className="text-xs text-white/50">
-                {t('creator.advanced.hourly_hint', {
-                  hour: retention?.peakActivityHourUTC ?? '—',
-                })}
-              </p>
-            </Card>
-          </div>
+      {error || loading ? null : (
+        <>
+          <CreatorSection
+            title={t('creator.advanced.hours_title')}
+            hint={
+              sampled > 0
+                ? t('creator.advanced.hours_hint', {
+                    count: sampled,
+                    formatted: formatNumber(sampled, language),
+                    hour: nameOfHour(peakHour),
+                  })
+                : undefined
+            }
+          >
+            {sampled === 0 ? (
+              <CreatorEmpty title={t('creator.advanced.no_hours')} />
+            ) : (
+              <Card variant="glass" className="p-4">
+                <div
+                  role="img"
+                  aria-label={t('creator.advanced.hours_peak', {
+                    hour: nameOfHour(peakHour),
+                  })}
+                >
+                  <div className="flex items-end gap-0.5 h-24">
+                    {hours.map((value, hour) => (
+                      <div
+                        // biome-ignore lint/suspicious/noArrayIndexKey: the index is the hour of the day
+                        key={hour}
+                        className="flex-1 rounded-sm bg-brand-primary"
+                        style={{
+                          height: `${Math.max((value / busiest) * 100, 3)}%`,
+                          opacity: value > 0 ? 1 : 0.2,
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-2 grid grid-cols-4 text-xs text-white/50 tabular-nums">
+                    {NAMED_HOURS.map((hour) => (
+                      <span key={hour}>{nameOfHour(hour)}</span>
+                    ))}
+                  </div>
+                </div>
+              </Card>
+            )}
+          </CreatorSection>
 
-          <Card variant="glass" className="p-4 space-y-3">
-            <h3 className="text-sm font-medium text-white flex items-center gap-2">
-              <Award
-                size={16}
-                className="text-brand-primary-text"
-                aria-hidden
-              />
-              {t('creator.advanced.top_posts')}
-            </h3>
+          <CreatorSection
+            title={t('creator.advanced.top_posts')}
+            hint={
+              topPosts.length > 0 ? t('creator.advanced.top_hint') : undefined
+            }
+          >
             {topPosts.length === 0 ? (
-              <p className="text-sm text-white/50 py-2">
-                {t('creator.advanced.no_top_posts')}
-              </p>
+              <CreatorEmpty title={t('creator.advanced.no_top_posts')} />
             ) : (
               <div className="space-y-2">
-                {topPosts.map((post, idx) => (
-                  <div
+                {topPosts.map((post) => (
+                  <CreatorRow
                     key={post.id}
-                    className="flex items-center justify-between gap-3 p-3 rounded-lg border border-white/5 bg-white/3"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <span className="w-8 h-8 rounded-lg bg-brand-primary/15 text-brand-primary-text text-xs font-medium flex items-center justify-center">
-                        {idx + 1}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm text-white truncate">
-                          {post.caption || t('creator.dashboard.untitled_post')}
-                        </p>
-                        <div className="flex items-center gap-3 text-[11px] text-white/40 mt-0.5">
-                          <span className="inline-flex items-center gap-1">
-                            <Eye size={12} aria-hidden />
-                            {post.views}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <Heart size={12} aria-hidden />
-                            {post.likes}
-                          </span>
-                          <span className="inline-flex items-center gap-1">
-                            <MessageCircle size={12} aria-hidden />
-                            {post.comments}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-xs text-white/70 tabular-nums shrink-0">
-                      {post.performanceScore.toFixed(1)}
-                    </span>
-                  </div>
+                    media={
+                      post.thumbnailUrl ? (
+                        <img
+                          src={post.thumbnailUrl}
+                          alt=""
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <ImageIcon size={18} aria-hidden />
+                      )
+                    }
+                    title={post.caption || t('creator.post.untitled')}
+                    facts={[
+                      [
+                        count('creator.post.views', post.views),
+                        count('creator.post.likes', post.likes),
+                        count('creator.post.comments', post.comments),
+                      ].join(' · '),
+                      count('creator.advanced.saves', post.bookmarks),
+                    ]}
+                  />
                 ))}
               </div>
             )}
-          </Card>
+          </CreatorSection>
         </>
       )}
     </div>
   );
 };
-
-function Kpi({
-  icon: Icon,
-  label,
-  value,
-  hint,
-}: {
-  icon: typeof DollarSign;
-  label: string;
-  value: string;
-  hint: string;
-}) {
-  return (
-    <Card variant="glass" className="p-4">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs text-white/50">{label}</span>
-        <Icon size={16} className="text-brand-primary-text" aria-hidden />
-      </div>
-      <p className="text-2xl font-semibold text-white tabular-nums">{value}</p>
-      <p className="text-[11px] text-white/40 mt-1">{hint}</p>
-    </Card>
-  );
-}
-
-function ShareRow({
-  label,
-  amount,
-  pct,
-}: {
-  label: string;
-  amount: number;
-  pct: number;
-}) {
-  return (
-    <div className="space-y-1">
-      <div className="flex justify-between text-xs">
-        <span className="text-white/60">{label}</span>
-        <span className="text-white tabular-nums">€{amount.toFixed(2)}</span>
-      </div>
-      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-        <div
-          className="h-full bg-brand-primary rounded-full"
-          style={{ width: `${Math.min(pct, 100)}%` }}
-        />
-      </div>
-    </div>
-  );
-}
