@@ -98,7 +98,7 @@ export default function ProfileSignIns() {
                   <Button
                     variant="secondary"
                     size="md"
-                    className="min-h-11 w-full shrink-0 gap-2 sm:w-auto"
+                    className="min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 shrink-0 gap-2 "
                     onClick={() => setChanging(profile)}
                   >
                     <KeyRound size={16} aria-hidden />

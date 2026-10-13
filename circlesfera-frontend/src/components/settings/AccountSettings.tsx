@@ -325,7 +325,7 @@ export default function AccountSettings() {
               onClick={() => cancelDeletionMutation.mutate()}
               isLoading={cancelDeletionMutation.isPending}
               variant="outline"
-              className="w-full min-h-11 text-sm font-semibold border-white/15 text-white/70"
+              className="button-alone min-h-11 text-sm font-semibold border-white/15 text-white/70"
             >
               {t('settings.account.delete.cancel_btn')}
             </Button>

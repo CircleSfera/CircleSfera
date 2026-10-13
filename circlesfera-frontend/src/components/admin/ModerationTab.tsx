@@ -414,7 +414,7 @@ export default function ModerationTab({ onToast }: Props) {
                       }
                       isLoading={moderationMutation.isPending}
                       variant="success"
-                      className="min-h-11 text-sm font-semibold border-green-500/20 w-full sm:w-auto"
+                      className="min-h-11 text-sm font-semibold border-green-500/20 w-fit min-w-44 max-w-full sm:min-w-0 "
                     >
                       <CheckCircle size={16} className="mr-2" />
                       {t('admin.moderation.approve_safe')}
@@ -428,7 +428,7 @@ export default function ModerationTab({ onToast }: Props) {
                         })
                       }
                       variant="danger"
-                      className="min-h-11 text-sm font-semibold border-red-500/20 w-full sm:w-auto"
+                      className="min-h-11 text-sm font-semibold border-red-500/20 w-fit min-w-44 max-w-full sm:min-w-0 "
                     >
                       <Trash2 size={16} className="mr-2" />
                       {t('admin.moderation.delete')}

@@ -270,7 +270,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             {running && (
               <Button
                 variant="secondary"
-                className="min-h-11 w-full"
+                className="min-h-11 button-alone button-alone-wide"
                 onClick={() => extendPromo(promo)}
               >
                 {t('creator.promotions.extend')}
@@ -279,7 +279,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             {state === 'ACTIVE' && (
               <Button
                 variant="secondary"
-                className="min-h-11 w-full"
+                className="min-h-11 button-alone button-alone-wide"
                 onClick={() => pauseMutation.mutate(promo.id)}
                 isLoading={pauseMutation.isPending}
               >
@@ -290,7 +290,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             {state === 'PAUSED' && (
               <Button
                 variant="secondary"
-                className="min-h-11 w-full"
+                className="min-h-11 button-alone button-alone-wide"
                 onClick={() => resumeMutation.mutate(promo.id)}
                 isLoading={resumeMutation.isPending}
               >
@@ -328,7 +328,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
             ) : (
               <Button
                 variant="ghost"
-                className="min-h-11 w-full text-brand-secondary"
+                className="min-h-11 button-alone button-alone-wide text-brand-secondary"
                 onClick={() => setConfirmCancel(promo.id)}
               >
                 <XCircle size={14} className="mr-2" aria-hidden />
@@ -339,7 +339,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         ) : (
           <Button
             variant="secondary"
-            className="min-h-11 w-full"
+            className="min-h-11 button-alone button-alone-wide"
             onClick={() => handleRepeat(promo)}
           >
             <RefreshCw size={14} className="mr-2" aria-hidden />
@@ -356,7 +356,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         <div className="flex justify-end">
           <Button
             variant="primary"
-            className="min-h-11 w-full sm:w-auto px-5"
+            className="min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 px-5"
             onClick={() => setShowNewPromo(true)}
           >
             <Plus size={16} className="mr-2" aria-hidden />

@@ -204,7 +204,7 @@ export default function AdminPanelLogin() {
                 size="lg"
                 isLoading={loginMutation.isPending}
                 disabled={loginMutation.isPending || !email || !password}
-                className="w-full font-black text-sm tracking-wide"
+                className="button-alone font-black text-sm tracking-wide"
               >
                 {t('adminPanel.login.continue')}
               </Button>
@@ -292,7 +292,7 @@ export default function AdminPanelLogin() {
               size="lg"
               isLoading={mfaMutation.isPending}
               disabled={mfaMutation.isPending || code.trim().length < 6}
-              className="w-full font-black text-sm tracking-wide"
+              className="button-alone font-black text-sm tracking-wide"
             >
               {t('adminPanel.login.verify')}
             </Button>

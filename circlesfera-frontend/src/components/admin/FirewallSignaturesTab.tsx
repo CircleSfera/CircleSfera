@@ -118,7 +118,7 @@ export default function FirewallSignaturesTab({ onToast, views }: Props) {
         {views}
         <Button
           onClick={openCreate}
-          className="min-h-11 w-full sm:w-auto sm:ml-auto"
+          className="min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 sm:ml-auto"
         >
           <Plus size={16} className="mr-2" />
           {t('admin.firewall.new_signature')}

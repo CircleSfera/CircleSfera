@@ -101,7 +101,7 @@ export default function TipModal({
         onClick={handleTip}
         disabled={!selectedAmount}
         isLoading={isSubmitting}
-        className="w-full"
+        className="button-alone"
         variant="primary"
       >
         {t('wallet.send_tip')}

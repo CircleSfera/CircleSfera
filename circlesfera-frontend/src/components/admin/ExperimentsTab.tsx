@@ -448,7 +448,7 @@ export default function ExperimentsTab() {
             actions={
               <Button
                 onClick={() => setSelectedFlagId('new')}
-                className="min-h-11 w-full sm:w-auto"
+                className="min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 "
               >
                 <Plus size={16} className="mr-2" />
                 {t('admin.experiments.create_flag')}
@@ -675,7 +675,7 @@ export default function ExperimentsTab() {
             actions={
               <Button
                 onClick={() => setSelectedExperimentId('new')}
-                className="min-h-11 w-full sm:w-auto"
+                className="min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 "
               >
                 {t('admin.experiments.assign_experiment')}
               </Button>

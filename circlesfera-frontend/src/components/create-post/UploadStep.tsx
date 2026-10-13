@@ -280,7 +280,7 @@ export default function UploadStep({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className={`w-full ${CREATE_PRIMARY}`}
+            className={`button-alone button-alone-wide ${CREATE_PRIMARY}`}
           >
             {mode === 'FRAME'
               ? t('createPost.upload.select_video')
@@ -291,7 +291,7 @@ export default function UploadStep({
             <button
               type="button"
               onClick={openCamera}
-              className={`w-full md:hidden ${CREATE_SECONDARY}`}
+              className={`button-alone button-alone-wide md:hidden ${CREATE_SECONDARY}`}
             >
               <Camera size={18} aria-hidden />
               {t('createPost.upload.take_photo')}
@@ -303,7 +303,7 @@ export default function UploadStep({
               <motion.button
                 type="button"
                 onClick={onTextStory}
-                className={`w-full ${CREATE_SECONDARY}`}
+                className={`button-alone button-alone-wide ${CREATE_SECONDARY}`}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: 8 }}

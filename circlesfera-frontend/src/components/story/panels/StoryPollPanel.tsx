@@ -121,7 +121,7 @@ export default function StoryPollPanel({
         type="button"
         onClick={onAddPoll}
         disabled={!pollQuestion.trim()}
-        className={`w-full ${CREATE_PRIMARY}`}
+        className={`button-alone ${CREATE_PRIMARY}`}
       >
         {t('createPost.storyComposer.add_poll')}
       </button>

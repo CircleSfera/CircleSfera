@@ -125,7 +125,7 @@ export default function ReportModal({
             onClick={handleSubmit}
             disabled={!reason || isSubmitting}
             isLoading={isSubmitting}
-            className="w-full"
+            className="button-alone"
           >
             {isSubmitting ? t('report.submitting') : t('report.submit')}
           </Button>

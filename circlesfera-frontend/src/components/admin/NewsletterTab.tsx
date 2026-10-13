@@ -301,7 +301,7 @@ export default function NewsletterTab({
           type="button"
           variant="secondary"
           onClick={() => setShowPreview(!showPreview)}
-          className="min-h-11 text-sm w-full sm:w-auto"
+          className="min-h-11 text-sm w-fit min-w-44 max-w-full sm:min-w-0 "
         >
           {showPreview
             ? t('admin.newsletter.edit_content')
@@ -315,7 +315,7 @@ export default function NewsletterTab({
           }}
           disabled={testMutation.isPending || isSending}
           isLoading={testMutation.isPending}
-          className="min-h-11 text-sm w-full sm:w-auto"
+          className="min-h-11 text-sm w-fit min-w-44 max-w-full sm:min-w-0 "
         >
           <Mail size={16} className="mr-2" />
           {t('admin.newsletter.send_test')}
@@ -323,7 +323,7 @@ export default function NewsletterTab({
         <Button
           onClick={handleSend}
           disabled={isSending}
-          className="min-h-11 text-sm w-full sm:w-auto"
+          className="min-h-11 text-sm w-fit min-w-44 max-w-full sm:min-w-0 "
         >
           {isSending ? (
             <>

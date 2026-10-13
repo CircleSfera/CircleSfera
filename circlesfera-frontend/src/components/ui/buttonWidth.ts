@@ -27,3 +27,12 @@ export const BUTTON_FIT_WIDE = 'w-fit min-w-56 max-w-full';
  * `w-full`.
  */
 export const BUTTON_STACK = 'grid w-fit min-w-44 max-w-full gap-3';
+
+/**
+ * One button on a line of its own, centred without a row around it: the
+ * same width rule as BUTTON_FIT, for a button that is not inside a flex row.
+ */
+export const BUTTON_ALONE = 'button-alone';
+
+/** The same, for buttons one under another: a shared wider floor. */
+export const BUTTON_ALONE_WIDE = 'button-alone button-alone-wide';

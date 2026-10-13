@@ -650,7 +650,7 @@ export default function ProfileSettings() {
         variant="primary"
         disabled={!canSubmit}
         isLoading={updateProfileMutation.isPending}
-        className="w-full min-h-11 text-sm font-semibold"
+        className="button-alone min-h-11 text-sm font-semibold"
       >
         {t('settings.profile.save')}
       </Button>

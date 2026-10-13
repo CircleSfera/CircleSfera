@@ -158,12 +158,16 @@ export default function ExportModal({
               <Button
                 variant="primary"
                 onClick={() => onPublish(scheduledAt)}
-                className="w-full"
+                className="button-alone button-alone-wide"
                 data-testid="studio-export-publish"
               >
                 {t('studio.export_publish')}
               </Button>
-              <Button variant="outline" onClick={onDownload} className="w-full">
+              <Button
+                variant="outline"
+                onClick={onDownload}
+                className="button-alone button-alone-wide"
+              >
                 {t('studio.export_download')}
               </Button>
               <button
@@ -221,7 +225,7 @@ export default function ExportModal({
             <Button
               variant="primary"
               onClick={handleStart}
-              className="w-full"
+              className="button-alone"
               data-testid="studio-export-start"
             >
               {t('studio.export_start')}

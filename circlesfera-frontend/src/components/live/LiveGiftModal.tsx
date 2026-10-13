@@ -103,7 +103,7 @@ export default function LiveGiftModal({
           type="button"
           onClick={handleSend}
           disabled={isSending}
-          className={`w-full ${CREATE_PRIMARY}`}
+          className={`button-alone ${CREATE_PRIMARY}`}
         >
           {t('live.confirm_send_gift')} (
           {formatWholeEuros(selectedGift.price, i18n.language)})

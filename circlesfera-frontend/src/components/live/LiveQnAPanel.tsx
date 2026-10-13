@@ -50,7 +50,7 @@ export default function LiveQnAPanel({
       <button
         type="button"
         onClick={onClearHighlight}
-        className="w-full min-h-12 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
+        className="button-alone min-h-12 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
       >
         {t('live.qna.clear_screen')}
       </button>

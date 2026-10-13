@@ -98,7 +98,7 @@ export default function ChatDetailsModal({
         <button
           type="button"
           onClick={onViewProfile}
-          className={`relative mt-6 w-full ${CREATE_PRIMARY}`}
+          className={`relative mt-6 button-alone ${CREATE_PRIMARY}`}
         >
           <UserRound size={18} aria-hidden="true" />
           {t('chat.details.view_profile')}

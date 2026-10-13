@@ -41,14 +41,14 @@ export function StoryDeleteConfirm({
             <button
               type="button"
               onClick={onConfirm}
-              className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
+              className="button-alone button-alone-wide py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-colors"
             >
               {t('story.delete')}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="w-full py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
+              className="button-alone button-alone-wide py-3 bg-white/5 hover:bg-white/10 text-white font-semibold rounded-lg transition-colors"
             >
               {t('story.cancel')}
             </button>

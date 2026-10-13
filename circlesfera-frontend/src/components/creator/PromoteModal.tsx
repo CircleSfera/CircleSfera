@@ -182,7 +182,7 @@ export default function PromoteModal({ post, onClose, onToast }: Props) {
             <Button
               variant="primary"
               size="lg"
-              className="w-full min-h-12"
+              className="button-alone min-h-12"
               onClick={() => mutation.mutate(chosen)}
               isLoading={mutation.isPending}
             >

@@ -179,7 +179,7 @@ export default function CaptionsPanel() {
       <button
         type="button"
         onClick={addManualCue}
-        className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold px-4 rounded-full transition-all text-sm min-h-11"
+        className="button-alone button-alone-wide bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold px-4 rounded-full transition-all text-sm min-h-11"
       >
         {t('studio.captions.add_manual')}
       </button>
@@ -195,7 +195,7 @@ export default function CaptionsPanel() {
             <button
               type="button"
               onClick={cancelGeneration}
-              className="w-full border border-white/15 hover:bg-white/5 text-white font-semibold px-4 rounded-full transition-all text-sm min-h-11"
+              className="button-alone button-alone-wide border border-white/15 hover:bg-white/5 text-white font-semibold px-4 rounded-full transition-all text-sm min-h-11"
             >
               {t('studio.captions.cancel')}
             </button>
@@ -204,7 +204,7 @@ export default function CaptionsPanel() {
               type="button"
               onClick={() => generateMutation.mutate()}
               disabled={!canGenerateAi || generateMutation.isPending}
-              className="w-full bg-linear-to-r from-brand-primary to-brand-blue text-white font-bold px-4 min-h-12 rounded-full shadow-lg shadow-brand-primary/20 transition-all flex items-center justify-center gap-2 text-xs min-h-11 disabled:opacity-50"
+              className="button-alone button-alone-wide bg-linear-to-r from-brand-primary to-brand-blue text-white font-bold px-4 min-h-12 rounded-full shadow-lg shadow-brand-primary/20 transition-all flex items-center justify-center gap-2 text-xs min-h-11 disabled:opacity-50"
             >
               <Sparkles size={16} />
               <span>{t('studio.captions.generate')}</span>

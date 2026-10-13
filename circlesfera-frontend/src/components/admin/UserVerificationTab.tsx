@@ -353,7 +353,7 @@ export default function UserVerificationTab({
                         onClick={handleSave}
                         isLoading={updateVerificationMutation.isPending}
                         variant="primary"
-                        className="text-sm font-semibold min-h-11 w-full sm:w-auto"
+                        className="text-sm font-semibold min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 "
                       >
                         <Check size={16} className="mr-2" />{' '}
                         {t('admin.verification.save_changes')}
@@ -434,7 +434,7 @@ export default function UserVerificationTab({
                             }
                             isLoading={syncKycMutation.isPending}
                             variant="secondary"
-                            className="w-full sm:w-auto text-sm font-semibold min-h-11"
+                            className="w-fit min-w-44 max-w-full sm:min-w-0 text-sm font-semibold min-h-11"
                           >
                             <RefreshCw size={16} className="mr-2" />{' '}
                             {t('admin.verification.sync_stripe')}
@@ -449,7 +449,7 @@ export default function UserVerificationTab({
                               onClick={() => setConfirmRevokeOpen(true)}
                               isLoading={revokeKycMutation.isPending}
                               variant="danger"
-                              className="w-full sm:w-auto text-sm font-semibold border-red-500/30 min-h-11"
+                              className="w-fit min-w-44 max-w-full sm:min-w-0 text-sm font-semibold border-red-500/30 min-h-11"
                             >
                               <RefreshCw size={16} className="mr-2" />{' '}
                               {t('admin.verification.revoke_kyc')}

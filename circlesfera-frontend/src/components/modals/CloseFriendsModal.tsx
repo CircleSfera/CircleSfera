@@ -28,7 +28,7 @@ export default function CloseFriendsModal({
           <Button
             onClick={onClose}
             variant="primary"
-            className="w-full min-h-11 font-bold"
+            className="button-alone min-h-11 font-bold"
           >
             {t('settings.close_friends_modal.done')}
           </Button>

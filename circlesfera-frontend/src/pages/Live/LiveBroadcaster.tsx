@@ -479,7 +479,7 @@ export default function LiveBroadcaster() {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className={`w-full ${CREATE_SECONDARY}`}
+            className={`button-alone ${CREATE_SECONDARY}`}
           >
             {t('live.close_summary')}
           </button>

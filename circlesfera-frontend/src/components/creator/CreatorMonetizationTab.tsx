@@ -370,7 +370,7 @@ export default function CreatorMonetizationTab({
                       disabled={checkoutMutation.isPending}
                       isLoading={checkoutMutation.isPending}
                       onClick={() => checkoutMutation.mutate(plan.id)}
-                      className="w-full min-h-11"
+                      className="button-alone min-h-11"
                     >
                       {t('creator.monetization.upgrade_now')}
                     </Button>
