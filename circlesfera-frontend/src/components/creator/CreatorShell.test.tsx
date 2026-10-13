@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import CreatorShell from './CreatorShell';
 
 describe('CreatorShell', () => {
-  it('renders the section rail and page title like Settings', () => {
+  it('renders the page title and the sections as a row of tabs', () => {
     render(
       <MemoryRouter initialEntries={['/creator/overview']}>
         <CreatorShell activeTab="overview">
@@ -21,7 +21,7 @@ describe('CreatorShell', () => {
     // landmark of its own: the layout around it already is the one of the page.
     expect(document.getElementById('creator-main')).toBeInTheDocument();
     expect(screen.queryByRole('main')).not.toBeInTheDocument();
-    expect(screen.getByTestId('creator-sidebar')).toBeInTheDocument();
+    expect(screen.getByTestId('creator-tabs')).toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: /resumen|overview/i }),
     ).toHaveAttribute('href', '/creator/overview');

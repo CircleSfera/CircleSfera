@@ -2,7 +2,7 @@ import { Menu } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CreatorMobileDrawer } from './CreatorMobileNav';
-import CreatorSidebar from './CreatorSidebar';
+import CreatorTabs from './CreatorTabs';
 import type { CreatorTab } from './creatorNav';
 import { findCreatorNavItem } from './creatorNav';
 
@@ -29,7 +29,7 @@ export default function CreatorShell({
 
   return (
     <div className="min-h-dvh pb-20 md:pb-12 pt-2 md:pt-6">
-      <div data-testid="creator-column" className="px-4 md:px-6 max-w-5xl">
+      <div data-testid="creator-column" className="px-4 md:px-6 max-w-6xl">
         <div className="mb-4 md:mb-6 flex items-center gap-3">
           <button
             type="button"
@@ -51,16 +51,15 @@ export default function CreatorShell({
           onClose={() => setDrawerOpen(false)}
         />
 
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8">
-          <CreatorSidebar />
-          <div
-            ref={mainRef}
-            tabIndex={-1}
-            id="creator-main"
-            className="flex-1 min-w-0 outline-none"
-          >
-            {children}
-          </div>
+        <CreatorTabs />
+
+        <div
+          ref={mainRef}
+          tabIndex={-1}
+          id="creator-main"
+          className="min-w-0 outline-none"
+        >
+          {children}
         </div>
       </div>
     </div>

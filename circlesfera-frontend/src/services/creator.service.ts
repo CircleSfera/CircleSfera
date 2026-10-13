@@ -28,12 +28,12 @@ export interface CreatorStats {
   };
 }
 
+// One day of the profile, as the server keeps it.
 export interface CreatorChartDay {
   date: string;
-  likes: number;
-  comments: number;
   views: number;
   followers: number;
+  reach: number;
 }
 
 export interface CreatorPost {
