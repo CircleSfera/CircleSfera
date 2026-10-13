@@ -81,7 +81,8 @@ export function LiveControl({
   );
 }
 
-function clock(seconds: number): string {
+// How long a broadcast has run, as a clock.
+export function liveClock(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds));
   const pad = (n: number) => String(n).padStart(2, '0');
   const hours = Math.floor(s / 3600);
@@ -113,7 +114,7 @@ export function LiveStatus({
         <span className="uppercase tracking-wide">{t('live.now')}</span>
         {startedAt ? (
           <span className="tabular-nums font-semibold" data-testid="live-clock">
-            {clock((now - startedAt) / 1000)}
+            {liveClock((now - startedAt) / 1000)}
           </span>
         ) : null}
       </div>

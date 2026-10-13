@@ -5,6 +5,7 @@ import {
   HelpCircle,
   Pin,
   Send,
+  SwitchCamera,
   Trash2,
   UserMinus,
   UserPlus,
@@ -19,6 +20,10 @@ import {
   CREATE_SECONDARY,
 } from '../../components/create-post/createStyles';
 import CinematicStage from '../../components/live/CinematicStage';
+import {
+  LiveCameraPreview,
+  useCameraPreview,
+} from '../../components/live/LiveCameraPreview';
 import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
@@ -33,6 +38,7 @@ import {
   LiveHost,
   LiveSheet,
   LiveStatus,
+  liveClock,
 } from '../../components/live/LivePieces';
 import LivePinnedComment, {
   type PinnedCommentData,
@@ -70,6 +76,10 @@ export default function LiveBroadcaster() {
   const [isEnding, setIsEnding] = useState(false);
   const [confirmEndOpen, setConfirmEndOpen] = useState(false);
   const profile = useAuthStore((state) => state.profile);
+  // The host sees themself before going live; the broadcast takes the
+  // camera from the preview when it starts.
+  const preview = useCameraPreview();
+  const [endedAfter, setEndedAfter] = useState('00:00');
   // One sheet at a time: opening one closes the other.
   const [sheet, setSheet] = useState<'cohost' | 'questions' | null>(null);
   const coHostFormOpen = sheet === 'cohost';
@@ -119,6 +129,7 @@ export default function LiveBroadcaster() {
     endedRef.current = true;
     setConfirmEndOpen(false);
     setIsEnding(false);
+    if (startedAt) setEndedAfter(liveClock((Date.now() - startedAt) / 1000));
     setIsEnded(true);
     const socket = useSocketStore.getState().socket;
     if (socket && streamId) {
@@ -134,6 +145,7 @@ export default function LiveBroadcaster() {
       const res: any = await api.post('/live/start', { title });
       setToken(res.data.token);
       setStreamId(res.data.stream.id);
+      preview.stop();
       setHasStarted(true);
       setStartedAt(Date.now());
     } catch {
@@ -358,35 +370,55 @@ export default function LiveBroadcaster() {
 
   if (!hasStarted || token === '') {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center px-4 gap-6">
-        <button
-          type="button"
-          onClick={() => navigate(-1)}
-          className="absolute left-4 top-[max(1rem,env(safe-area-inset-top,0px))] w-11 h-11 flex items-center justify-center bg-black/50 rounded-full text-white"
-          aria-label={t('common.close')}
-        >
-          <X className="w-6 h-6" aria-hidden />
-        </button>
-        <h1 className="text-2xl font-semibold text-white text-center">
-          {t('live.setup_title')}
-        </h1>
+      <LiveFrame
+        video={
+          <LiveCameraPreview
+            videoRef={preview.videoRef}
+            state={preview.state}
+            facing={preview.facing}
+          />
+        }
+      >
+        {/* Top band: what this screen is, and the way out. */}
+        <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+          <div className="flex min-w-0 flex-col gap-1">
+            <LiveHost
+              username={profile?.username ?? ''}
+              avatar={profile?.avatar}
+            />
+            <h1 className="sr-only">{t('live.setup_title')}</h1>
+          </div>
+          <div className="flex shrink-0 flex-col gap-2.5">
+            <LiveControl label={t('common.close')} onClick={() => navigate(-1)}>
+              <X className="h-5 w-5" aria-hidden />
+            </LiveControl>
+            <LiveControl
+              label={t('live.turn_camera')}
+              onClick={preview.turn}
+              disabled={preview.state !== 'on'}
+            >
+              <SwitchCamera className="h-5 w-5" aria-hidden />
+            </LiveControl>
+          </div>
+        </div>
+
+        {/* Bottom band: the title, and going live. */}
         <form
           onSubmit={handleStart}
-          className="w-full max-w-sm flex flex-col gap-4"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col gap-3 px-3 pb-(--live-bottom)"
         >
-          <label className="flex flex-col gap-2 text-left">
-            <span className="text-sm text-white/70">
-              {t('live.title_label')}
-            </span>
-            <input
-              type="text"
-              value={titleInput}
-              onChange={(e) => setTitleInput(e.target.value)}
-              placeholder={t('live.title_placeholder')}
-              maxLength={100}
-              className="min-h-12 rounded-2xl bg-white/8 border border-white/10 px-4 text-base text-white placeholder-white/40 outline-none focus:border-brand-primary"
-            />
-          </label>
+          <input
+            type="text"
+            aria-label={t('live.title_label')}
+            value={titleInput}
+            onChange={(e) => setTitleInput(e.target.value)}
+            placeholder={t('live.title_placeholder')}
+            maxLength={100}
+            className="live-glass min-h-12 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+          />
+          <p className="px-1 text-center text-xs text-white/70">
+            {t('live.setup_hint')}
+          </p>
           <button
             type="submit"
             disabled={isStarting}
@@ -395,39 +427,43 @@ export default function LiveBroadcaster() {
             {isStarting ? t('live.starting') : t('live.start_button')}
           </button>
         </form>
-      </div>
+      </LiveFrame>
     );
   }
 
   if (isEnded) {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center bg-surface-base md:bg-transparent px-4 text-white">
-        <div className="w-full max-w-sm bg-black/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center gap-6 shadow-2xl backdrop-blur-xl">
-          <div className="p-4 bg-brand-primary/20 rounded-full">
-            <Heart className="w-12 h-12 text-brand-primary-text" />
-          </div>
+      <div className="flex min-h-dvh flex-col items-center justify-center px-4 text-white">
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
           <div className="text-center">
-            <h1 className="text-2xl font-semibold mb-2">
+            <h1 className="mb-2 text-2xl font-semibold">
               {t('live.ended_title')}
             </h1>
-            <p className="text-white/60 text-sm">{t('live.ended_summary')}</p>
+            <p className="text-sm text-white/60">{t('live.ended_summary')}</p>
           </div>
-          <div className="w-full flex gap-4 text-center mt-2">
-            <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
-              <span className="block text-2xl font-bold">{viewerCount}</span>
-              <span className="text-xs text-white/60">{t('live.viewers')}</span>
-            </div>
-            <div className="flex-1 bg-white/5 rounded-2xl p-4 border border-white/5">
-              <span className="block text-2xl font-bold text-brand-secondary">
-                {likesCount}
-              </span>
-              <span className="text-xs text-white/60">{t('live.likes')}</span>
-            </div>
-          </div>
+          <ul className="grid w-full grid-cols-3 gap-2 text-center">
+            {[
+              [t('live.duration'), endedAfter],
+              [t('live.viewers'), String(viewerCount)],
+              [t('live.likes'), String(likesCount)],
+            ].map(([label, value]) => (
+              <li
+                key={label}
+                className="rounded-2xl border border-white/10 bg-white/5 px-2 py-4"
+              >
+                <span className="block text-xl font-semibold tabular-nums">
+                  {value}
+                </span>
+                <span className="mt-1 block text-xs text-white/60">
+                  {label}
+                </span>
+              </li>
+            ))}
+          </ul>
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className={`w-full mt-4 ${CREATE_SECONDARY}`}
+            className={`w-full ${CREATE_SECONDARY}`}
           >
             {t('live.close_summary')}
           </button>

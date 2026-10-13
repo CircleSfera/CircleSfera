@@ -104,11 +104,13 @@ describe('LiveBroadcaster', () => {
   it('uses catalog copy on the setup screen', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />);
 
-    expect(i18n!.t('live.setup_title')).toBe('Go live');
+    expect(i18n!.t('live.setup_title')).toBe('Before going live');
     expect(
       screen.getByRole('heading', { name: i18n!.t('live.setup_title') }),
     ).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.title_label'))).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: i18n!.t('live.title_label') }),
+    ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(i18n!.t('live.title_placeholder')),
     ).toBeInTheDocument();
@@ -126,7 +128,7 @@ describe('LiveBroadcaster', () => {
   it('uses Spanish setup copy', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />, { lng: 'es' });
 
-    expect(i18n!.t('live.setup_title')).toBe('Empezar directo');
+    expect(i18n!.t('live.setup_title')).toBe('Antes de emitir en directo');
     expect(
       screen.getByRole('heading', { name: i18n!.t('live.setup_title') }),
     ).toBeInTheDocument();

@@ -184,11 +184,14 @@ async function goLive(title = '') {
   );
   const view = renderWithProviders(<LiveBroadcaster />);
   if (title) {
-    fireEvent.change(screen.getByRole('textbox', { name: 'Stream title' }), {
-      target: { value: title },
-    });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Title of the live' }),
+      {
+        target: { value: title },
+      },
+    );
   }
-  fireEvent.click(screen.getByRole('button', { name: 'Start streaming' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Go live' }));
   await screen.findByRole('button', { name: 'End livestream' });
   // The screen is drawn a moment before it starts listening to the room.
   if (live.hasSocket) await waitFor(() => expect(live.handlers.size).toBe(11));
@@ -201,7 +204,7 @@ async function endLive() {
   fireEvent.click(
     within(dialog).getByRole('button', { name: 'End livestream' }),
   );
-  await screen.findByText('Livestream ended');
+  await screen.findByText('Your live has ended');
 }
 
 const comment = () =>
@@ -525,7 +528,7 @@ describe('LiveBroadcaster on the live connection', () => {
       act(() => (live.room.onDisconnected as () => void)());
       expect(toast.error).not.toHaveBeenCalled();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Close summary' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Close' }));
       expect(live.navigate).toHaveBeenCalledWith(-1);
 
       unmount();
