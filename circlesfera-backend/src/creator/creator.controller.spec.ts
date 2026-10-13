@@ -226,6 +226,10 @@ describe('CreatorController', () => {
     ['a negative budget', { budget: -10 }],
     ['a budget with fractions of a cent', { budget: 10.001 }],
     ['a budget per day above the range', { dailyBudget: 51 }],
+    [
+      'a whole budget out of range sent next to a valid budget per day',
+      { budget: 999999, dailyBudget: 5 },
+    ],
     ['a budget per day under the range', { dailyBudget: 4 }],
     ['more days than a promotion may last', { durationDays: 31 }],
     ['no days', { durationDays: 0 }],

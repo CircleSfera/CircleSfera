@@ -640,8 +640,22 @@ export class StoriesService {
     limit = 50,
   ): Promise<KeysetPage<SafeStoryReaction>> {
     const authorId = await this.assertCanAccessStory(storyId, viewerProfileId);
-    const own =
-      authorId === viewerProfileId ? {} : { profileId: viewerProfileId };
+    const isAuthor = authorId === viewerProfileId;
+    // A story not yet published, or taken down, does not exist for anyone
+    // but its author. An expired one may still be shown in a highlight.
+    if (
+      !isAuthor &&
+      !(await this.prisma.story.count({
+        where: {
+          id: storyId,
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          scheduledStatus: 'PUBLISHED',
+        },
+      }))
+    ) {
+      throw new NotFoundException('Story not found');
+    }
+    const own = isAuthor ? {} : { profileId: viewerProfileId };
     const cappedLimit = Math.min(limit, 100);
     const decoded = cursor ? decodeKeysetCursor(cursor) : null;
     const cursorWhere = decoded ? keysetBeforeDesc(decoded) : {};

@@ -31,6 +31,7 @@ describe('StoriesService', () => {
       findMany: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      count: vi.fn(),
       deleteMany: vi.fn(),
       delete: vi.fn(),
     },
@@ -672,6 +673,25 @@ describe('StoriesService', () => {
         profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
       });
       mockPrismaService.block.findFirst.mockResolvedValue(null);
+      mockPrismaService.story.count.mockResolvedValue(1);
+    });
+
+    it('answers not found to another viewer for a story that is scheduled or taken down', async () => {
+      mockPrismaService.storyReaction.findMany.mockClear();
+      mockPrismaService.story.count.mockResolvedValueOnce(0);
+
+      await expect(service.getReactions('s1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockPrismaService.story.count).toHaveBeenLastCalledWith({
+        where: {
+          id: 's1',
+          moderationStatus: { in: ['VISIBLE', 'FLAGGED'] },
+          scheduledStatus: 'PUBLISHED',
+        },
+      });
+      expect(mockPrismaService.storyReaction.findMany).not.toHaveBeenCalled();
     });
 
     it('gives the author every reaction and another viewer only their own', async () => {

@@ -44,7 +44,11 @@ export class CreatePromotionDto {
   durationDays!: number;
 
   // The whole budget, in euros. Either this or the budget per day is sent.
-  @ValidateIf((dto: CreatePromotionDto) => dto.dailyBudget === undefined)
+  // Checked whenever it is sent: it is the amount that is charged.
+  @ValidateIf(
+    (dto: CreatePromotionDto) =>
+      dto.budget !== undefined || dto.dailyBudget === undefined,
+  )
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(MIN_PROMOTION_BUDGET_EUROS)
   @Max(MAX_PROMOTION_BUDGET_EUROS)
