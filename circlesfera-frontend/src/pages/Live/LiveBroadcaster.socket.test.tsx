@@ -43,6 +43,15 @@ vi.mock('@livekit/components-react', () => ({
     return <div data-testid="livekit-room">{props.children}</div>;
   },
   RoomAudioRenderer: () => null,
+  useLocalParticipant: () => ({
+    localParticipant: {
+      setCameraEnabled: vi.fn(),
+      setMicrophoneEnabled: vi.fn(),
+      getTrackPublication: vi.fn(),
+    },
+    isCameraEnabled: true,
+    isMicrophoneEnabled: true,
+  }),
 }));
 vi.mock('../../components/live/CinematicStage', () => ({
   default: () => null,
@@ -455,7 +464,7 @@ describe('LiveBroadcaster on the live connection', () => {
       });
 
       fireEvent.click(
-        screen.getByRole('button', { name: '2 questions, open Q&A' }),
+        screen.getByRole('button', { name: '2 questions, open Questions' }),
       );
       fireEvent.click(
         screen.getByRole('button', { name: 'project Where next?' }),
@@ -480,7 +489,7 @@ describe('LiveBroadcaster on the live connection', () => {
       expect(screen.getByText('Where next?')).toBeInTheDocument();
 
       fireEvent.click(
-        screen.getByRole('button', { name: '2 questions, open Q&A' }),
+        screen.getByRole('button', { name: '2 questions, open Questions' }),
       );
       fireEvent.click(screen.getByRole('button', { name: 'clear projected' }));
       expect(live.socket.emit).toHaveBeenCalledWith('live:clear_question', {
@@ -493,7 +502,7 @@ describe('LiveBroadcaster on the live connection', () => {
 
     it('opens the panel with no question yet and closes it', async () => {
       await goLive();
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'close questions' }));
       expect(
         screen.queryByRole('dialog', { name: 'questions' }),
@@ -551,12 +560,9 @@ describe('LiveBroadcaster on the live connection', () => {
     vi.mocked(liveApi.removeCoHost).mockRejectedValue(new Error('down'));
     await goLive();
     fireEvent.click(screen.getByRole('button', { name: 'Invite a co-host' }));
-    fireEvent.change(
-      screen.getByRole('textbox', { name: '@cohost username' }),
-      {
-        target: { value: '@dan' },
-      },
-    );
+    fireEvent.change(screen.getByRole('textbox', { name: 'Username' }), {
+      target: { value: '@dan' },
+    });
     fireEvent.click(screen.getByRole('button', { name: 'Send invitation' }));
     const remove = await screen.findByRole('button', {
       name: 'Remove co-host',

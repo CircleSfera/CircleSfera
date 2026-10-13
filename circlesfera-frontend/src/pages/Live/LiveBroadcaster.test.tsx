@@ -15,6 +15,15 @@ vi.mock('@livekit/components-react', () => ({
     <div data-testid="livekit-room">{children}</div>
   ),
   RoomAudioRenderer: () => null,
+  useLocalParticipant: () => ({
+    localParticipant: {
+      setCameraEnabled: vi.fn(),
+      setMicrophoneEnabled: vi.fn(),
+      getTrackPublication: vi.fn(),
+    },
+    isCameraEnabled: true,
+    isMicrophoneEnabled: true,
+  }),
 }));
 
 vi.mock('../../components/live/CinematicStage', () => ({
@@ -229,7 +238,7 @@ describe('LiveBroadcaster', () => {
       );
       fireEvent.change(
         screen.getByRole('textbox', {
-          name: view.i18n!.t('live.cohost_input_placeholder'),
+          name: view.i18n!.t('live.cohost_input_label'),
         }),
         { target: { value: username } },
       );

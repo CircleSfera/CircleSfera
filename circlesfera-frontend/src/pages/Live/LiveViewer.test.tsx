@@ -105,7 +105,7 @@ describe('LiveViewer', () => {
     const { i18n } = renderViewer();
 
     expect(await screen.findByText(i18n!.t('live.now'))).toBeInTheDocument();
-    expect(i18n!.t('live.now')).toBe('LIVE');
+    expect(i18n!.t('live.now')).toBe('Live');
     expect(screen.getByText('alice')).toBeInTheDocument();
     expect(screen.getByText('Night set')).toBeInTheDocument();
     expect(
@@ -117,7 +117,7 @@ describe('LiveViewer', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('common.close') }),
     ).toBeInTheDocument();
-    expect(screen.queryByText('VIVO')).not.toBeInTheDocument();
+    expect(screen.queryByText('Directo')).not.toBeInTheDocument();
     expect(screen.queryByText('Creador Live')).not.toBeInTheDocument();
   });
 
@@ -136,7 +136,7 @@ describe('LiveViewer', () => {
       },
     );
 
-    expect(i18n!.t('live.now')).toBe('VIVO');
+    expect(i18n!.t('live.now')).toBe('Directo');
     expect(await screen.findByText(i18n!.t('live.now'))).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: i18n!.t('live.send_gift_btn') }),

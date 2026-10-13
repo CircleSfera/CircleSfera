@@ -1,4 +1,4 @@
-import { TrackToggle, useTracks, VideoTrack } from '@livekit/components-react';
+import { useTracks, VideoTrack } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { useTranslation } from 'react-i18next';
 
@@ -85,21 +85,6 @@ export default function CinematicStage({
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Broadcaster Controls — Sleek & Compact */}
-      {isBroadcaster && (
-        <div className="absolute bottom-20 right-4 flex flex-col gap-2.5 z-50">
-          <TrackToggle
-            source={Track.Source.Camera}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-elevated/80 hover:bg-surface-raised text-white backdrop-blur-xl border border-white/20 shadow-xl transition-all hover:scale-105 active:scale-95 [&>svg]:w-4 [&>svg]:h-4"
-          />
-
-          <TrackToggle
-            source={Track.Source.Microphone}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-elevated/80 hover:bg-surface-raised text-white backdrop-blur-xl border border-white/20 shadow-xl transition-all hover:scale-105 active:scale-95 [&>svg]:w-4 [&>svg]:h-4"
-          />
         </div>
       )}
     </div>

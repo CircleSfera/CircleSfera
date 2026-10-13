@@ -4415,7 +4415,7 @@
     "send_reaction": "Send {{emoji}}",
     "cohost_label": "Co-host:",
     "cohost_remove": "Remove co-host",
-    "cohost_input_placeholder": "@cohost username",
+    "cohost_input_placeholder": "username",
     "setup_title": "Go live",
     "title_label": "Stream title",
     "title_placeholder": "My Live Stream",
@@ -4434,12 +4434,12 @@
       "rocket": "Sfera Rocket"
     },
     "qna": {
-      "title": "Q&A",
+      "title": "Questions",
       "empty_host": "No questions yet.",
-      "open_with_count": "{{count}} questions, open Q&A",
+      "open_with_count": "{{count}} questions, open Questions",
       "empty_viewer": "Ask the first question.",
-      "project": "Project",
-      "clear_screen": "Clear question from screen",
+      "project": "Show on the video",
+      "clear_screen": "Take the question off the video",
       "placeholder": "Write your question…",
       "send": "Send question",
       "question": "Question"
@@ -4458,7 +4458,7 @@
     "cohost_invite_failed": "Could not invite the co-host. Try again.",
     "cohost_remove_failed": "Could not remove the co-host. Try again.",
     "badge": "Live",
-    "now": "LIVE",
+    "now": "Live",
     "pinned": "Pinned",
     "unpin": "Unpin comment",
     "pin": "Pin",
@@ -4493,7 +4493,15 @@
       "body": "invites you as co-host",
       "join": "Join as co-host",
       "decline": "Decline"
-    }
+    },
+    "turn_camera": "Turn the camera",
+    "camera_off": "Turn the camera off",
+    "camera_on": "Turn the camera on",
+    "mic_off": "Mute the microphone",
+    "mic_on": "Unmute the microphone",
+    "cohost_sheet_title": "Invite a co-host",
+    "cohost_sheet_hint": "They get an invitation and appear on the video next to you when they accept.",
+    "cohost_input_label": "Username"
   },
   "shortcuts": {
     "next_post": "Next post",

@@ -408,7 +408,7 @@ describe('LiveViewer on the live connection', () => {
       fire('live:question_asked', { id: 'q1', question: 'Older one' });
       fire('live:question_asked', { id: 'q2', question: 'Newer one' });
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       expect(
         screen.getAllByText(/^asked:/).map((el) => el.textContent),
       ).toEqual(['asked: Newer one', 'asked: Older one']);
@@ -430,13 +430,13 @@ describe('LiveViewer on the live connection', () => {
       useAuthStore.setState({ profile: { username: '  ' } as never });
       await watch();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'close questions' }));
       expect(
         screen.queryByRole('dialog', { name: 'questions' }),
       ).not.toBeInTheDocument();
 
-      fireEvent.click(screen.getByRole('button', { name: 'Q&A' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Questions' }));
       fireEvent.click(screen.getByRole('button', { name: 'ask' }));
       expect(live.socket.emit).toHaveBeenCalledWith(
         'live:ask_question',
