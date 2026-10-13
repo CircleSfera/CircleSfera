@@ -560,7 +560,7 @@ export default function LiveViewer() {
                 placeholder={t('live.chat_placeholder')}
                 value={messageInput}
                 onChange={(e) => setMessageInput(e.target.value)}
-                className="live-glass min-h-11 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+                className="live-glass min-h-12 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
               />
               {messageInput.trim() ? (
                 <LiveControl
