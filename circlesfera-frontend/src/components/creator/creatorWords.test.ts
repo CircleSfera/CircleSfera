@@ -37,3 +37,18 @@ describe('localHour', () => {
     );
   });
 });
+
+describe('chart labels', () => {
+  it('writes a day with no time as that day wherever the reader is', async () => {
+    const { chartDay } = await import('./creatorWords');
+    expect(chartDay('2026-01-01', false, 'en')).toBe('Jan 1');
+    expect(chartDay('2026-01-01', true, 'en')).toBe('January 1');
+  });
+
+  it('writes a month given as year and month, and keeps what it cannot read', async () => {
+    const { chartMonth } = await import('./creatorWords');
+    expect(chartMonth('2026-10', false, 'en')).toBe('Oct');
+    expect(chartMonth('2026-10', true, 'en')).toBe('October 2026');
+    expect(chartMonth('soon', false, 'en')).toBe('soon');
+  });
+});

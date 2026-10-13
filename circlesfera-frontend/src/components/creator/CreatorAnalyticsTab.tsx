@@ -1,22 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Clock, DollarSign, Download, Lock, MapPin, Users } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Line,
-  LineChart,
-  Pie,
-  PieChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import type {
   CreatorChartDay,
   CreatorStats,
@@ -25,13 +10,27 @@ import { creatorApi } from '../../services/creator.service';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import { exportToCSV } from '../../utils/exportUtils';
+import { formatNumber } from '../../utils/format';
+import { formatCents } from '../../utils/money';
 import { hasElitePlan } from '../../utils/plans';
-import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
-import { Card } from '../ui';
+import { Button, Card } from '../ui';
 import { CreatorAnalyticsDashboard } from './CreatorAnalyticsDashboard';
+import CreatorEmpty from './CreatorEmpty';
+import {
+  CreatorFigure,
+  CreatorFigures,
+  CreatorRow,
+  CreatorSection,
+} from './CreatorPieces';
+import CreatorTrendChart from './CreatorTrendChart';
+import { chartDay, chartMonth } from './creatorWords';
+
+// The places with most followers; the rest would be a long tail of ones.
+const TOP_PLACES = 6;
 
 export default function CreatorAnalyticsTab() {
   const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const verificationLevel = useAuthStore(
     (state) => state.profile?.verificationLevel,
   );
@@ -58,496 +57,152 @@ export default function CreatorAnalyticsTab() {
     queryFn: () => monetizationApi.getFinancialSummary(),
   });
 
-  const isLoading =
-    isChartLoading || isStatsLoading || isIncomeLoading || isFinancialLoading;
-
-  if (isLoading) {
+  if (
+    isChartLoading ||
+    isStatsLoading ||
+    isIncomeLoading ||
+    isFinancialLoading
+  ) {
     return (
-      <div className="p-5 rounded-xl border border-white/5 glass-panel animate-pulse min-h-100">
-        <div className="h-6 w-48 bg-white/10 rounded-md mb-8" />
-        <div className="h-75 bg-white/5 rounded-xl" />
+      <div className="space-y-3" data-testid="analytics-loading">
+        <div className="h-8 w-48 rounded-md bg-white/5 animate-pulse" />
+        <div className="h-52 rounded-xl bg-white/5 animate-pulse border border-white/5" />
       </div>
     );
   }
 
+  const days = chartData ?? [];
+  const followers = stats?.followerCount ?? 0;
+  // Followers with no place given are one group, named in words.
+  const places = [...(stats?.geoDistribution ?? [])]
+    .sort((a, b) => b.count - a.count)
+    .slice(0, TOP_PLACES);
+
   return (
-    <div className="space-y-4">
-      <Card variant="glass" className="p-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 sm:mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-white tracking-tight">
-            {t('creator.analytics.audience_evolution')}
-          </h2>
-          {chartData && chartData.length > 0 && (
-            <button
-              type="button"
-              onClick={() => exportToCSV('analytics_report.csv', chartData)}
-              className="inline-flex items-center justify-center gap-2 min-h-11 px-3 py-1.5 rounded-lg text-sm text-white/60 hover:text-white hover:bg-white/5 transition-colors w-full sm:w-auto"
+    <div className="space-y-8 pb-8">
+      <CreatorSection
+        title={t('creator.analytics.audience_evolution')}
+        action={
+          days.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="compact"
+              className="min-h-11 gap-2 shrink-0"
+              onClick={() => exportToCSV('analytics_report.csv', days)}
             >
-              <Download size={14} />
+              <Download size={14} aria-hidden />
               {t('creator.analytics.export_csv')}
-            </button>
-          )}
+            </Button>
+          ) : undefined
+        }
+      >
+        <CreatorTrendChart
+          data={days}
+          xKey="date"
+          series={[
+            {
+              key: 'views',
+              name: t('creator.analytics.views'),
+              color: 'var(--color-brand-primary)',
+            },
+            {
+              key: 'followers',
+              name: t('creator.analytics.followers'),
+              color: 'var(--color-brand-accent)',
+            },
+          ]}
+          formatX={(value, long) => chartDay(value, long, language)}
+          fewText={t('creator.analytics.not_enough_data')}
+        />
+      </CreatorSection>
+
+      <CreatorSection title={t('creator.analytics.follower_locations')}>
+        {places.length === 0 ? (
+          <CreatorEmpty title={t('creator.analytics.no_location_data')} />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+            {places.map((place) => (
+              <CreatorRow
+                key={place.location}
+                title={
+                  place.location === 'Unknown'
+                    ? t('creator.analytics.no_place')
+                    : place.location
+                }
+                facts={[
+                  t('creator.analytics.place_followers', {
+                    count: place.count,
+                    formatted: formatNumber(place.count, language),
+                  }),
+                ]}
+                badge={
+                  <span className="shrink-0 text-sm font-medium text-white tabular-nums">
+                    {followers > 0
+                      ? `${Math.round((place.count / followers) * 100)} %`
+                      : ''}
+                  </span>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </CreatorSection>
+
+      <CreatorSection
+        title={t('creator.analytics.income')}
+        hint={t('creator.analytics.income_history')}
+      >
+        <div className="space-y-3">
+          <CreatorFigures>
+            <CreatorFigure
+              label={t('creator.analytics.current_month_income')}
+              value={formatCents(
+                financialSummary?.currentMonthIncome || 0,
+                language,
+              )}
+            />
+            <CreatorFigure
+              label={t('creator.analytics.total_tips')}
+              value={formatCents(financialSummary?.totalTips || 0, language)}
+            />
+          </CreatorFigures>
+          <CreatorTrendChart
+            data={incomeStats ?? []}
+            xKey="month"
+            series={[
+              {
+                key: 'income',
+                name: t('creator.analytics.income_series'),
+                color: 'var(--color-brand-primary)',
+              },
+            ]}
+            formatX={(value, long) => chartMonth(value, long, language)}
+            formatY={(value) => formatCents(value, language)}
+            fewText={t('creator.analytics.no_income_data')}
+          />
         </div>
-
-        <div className="h-75 w-full mt-2">
-          {chartData && chartData.length > 0 ? (
-            <SafeResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorViews" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-brand-primary)"
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-brand-primary)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                  <linearGradient
-                    id="colorFollowers"
-                    x1="0"
-                    y1="0"
-                    x2="0"
-                    y2="1"
-                  >
-                    <stop
-                      offset="5%"
-                      stopColor="var(--color-brand-accent)"
-                      stopOpacity={0.3}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--color-brand-accent)"
-                      stopOpacity={0}
-                    />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="#ffffff"
-                  strokeOpacity={0.05}
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  stroke="#ffffff"
-                  strokeOpacity={0.3}
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  dy={10}
-                  tickFormatter={(val) => {
-                    const date = new Date(val);
-                    return date.toLocaleDateString(i18n.language, {
-                      day: 'numeric',
-                      month: 'short',
-                    });
-                  }}
-                />
-                <YAxis
-                  stroke="#ffffff"
-                  strokeOpacity={0.3}
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  dx={-10}
-                />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: '#18181b',
-                    borderColor: 'rgba(255,255,255,0.1)',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                  }}
-                  itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-                  labelStyle={{
-                    color: '#a1a1aa',
-                    fontSize: '11px',
-                    marginBottom: '4px',
-                  }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="views"
-                  name={t('creator.analytics.views')}
-                  stroke="var(--color-brand-primary)"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorViews)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="followers"
-                  name={t('creator.analytics.followers')}
-                  stroke="var(--color-brand-accent)"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorFollowers)"
-                />
-              </AreaChart>
-            </SafeResponsiveContainer>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-white/50">
-              <p className="text-sm font-medium">
-                {t('creator.analytics.not_enough_data')}
-              </p>
-              <p className="text-xs mt-1">
-                {t('creator.analytics.upload_content')}
-              </p>
-            </div>
-          )}
-        </div>
-      </Card>
-
-      {/* 1.5. Financials (Income & Summary) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Income Chart */}
-        <Card variant="glass" className="p-5 lg:col-span-2 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <DollarSign size={16} className="text-brand-primary-text" />
-            <h3 className="text-sm font-medium text-white">
-              {t('creator.analytics.income_history')}
-            </h3>
-          </div>
-          <div className="h-60 w-full flex-1">
-            {incomeStats && incomeStats.length > 0 ? (
-              <SafeResponsiveContainer width="100%" height="100%">
-                <AreaChart data={incomeStats}>
-                  <defs>
-                    <linearGradient
-                      id="incomeGradient"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="var(--color-brand-primary)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="var(--color-brand-primary)"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.05}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#ffffff"
-                    strokeOpacity={0.3}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    stroke="#ffffff"
-                    strokeOpacity={0.3}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(val) => `€${(val / 100).toFixed(0)}`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '12px',
-                    }}
-                    itemStyle={{ fontSize: '12px', color: '#fff' }}
-                    formatter={(value: any) => [
-                      `€${(Number(value) / 100).toFixed(2)}`,
-                      t('creator.analytics.income_series'),
-                    ]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="income"
-                    stroke="var(--color-brand-primary)"
-                    strokeWidth={3}
-                    fillOpacity={1}
-                    fill="url(#incomeGradient)"
-                  />
-                </AreaChart>
-              </SafeResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t('creator.analytics.no_income_data')}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Financial KPIs */}
-        <div className="flex flex-col gap-4">
-          <Card
-            variant="glass"
-            className="p-5 flex-1 flex flex-col justify-center"
-          >
-            <h3 className="text-xs text-white/50 mb-2">
-              {t('creator.analytics.current_month_income')}
-            </h3>
-            <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
-              €{((financialSummary?.currentMonthIncome || 0) / 100).toFixed(2)}
-            </div>
-          </Card>
-          <Card
-            variant="glass"
-            className="p-5 flex-1 flex flex-col justify-center"
-          >
-            <h3 className="text-xs text-white/50 mb-2">
-              {t('creator.analytics.total_tips')}
-            </h3>
-            <div className="text-3xl font-semibold text-white tracking-tight tabular-nums">
-              €{((financialSummary?.totalTips || 0) / 100).toFixed(2)}
-            </div>
-          </Card>
-        </div>
-      </div>
-
-      {/* 2. Demographics, Activity Hours, and Retention Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Geographic Distribution */}
-        <Card variant="glass" className="p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <MapPin size={16} className="text-brand-secondary" />
-            <h3 className="text-sm font-medium text-white">
-              {t('creator.analytics.follower_locations')}
-            </h3>
-          </div>
-          <div className="h-60 w-full flex-1">
-            {stats?.geoDistribution && stats.geoDistribution.length > 0 ? (
-              <SafeResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.geoDistribution} layout="vertical">
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.05}
-                    horizontal={false}
-                  />
-                  <XAxis
-                    type="number"
-                    stroke="#ffffff"
-                    strokeOpacity={0.3}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <YAxis
-                    dataKey="location"
-                    type="category"
-                    stroke="#ffffff"
-                    strokeOpacity={0.5}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                    width={80}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '12px',
-                    }}
-                    itemStyle={{ fontSize: '12px', color: '#fff' }}
-                  />
-                  <Bar
-                    dataKey="count"
-                    fill="var(--color-brand-primary)"
-                    radius={[0, 4, 4, 0]}
-                    barSize={16}
-                  />
-                </BarChart>
-              </SafeResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t('creator.analytics.no_location_data')}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Subscriber Retention */}
-        <Card variant="glass" className="p-5 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <Users size={16} className="text-brand-primary-text" />
-            <h3 className="text-sm font-medium text-white">
-              {t('creator.analytics.sub_retention')}
-            </h3>
-          </div>
-          <div className="h-60 w-full flex-1 flex flex-col md:flex-row items-center justify-around gap-4">
-            {stats?.retentionStatus &&
-            (stats.retentionStatus.active > 0 ||
-              stats.retentionStatus.churning > 0 ||
-              stats.retentionStatus.churned > 0) ? (
-              <>
-                <div className="h-45 w-45 shrink-0">
-                  <SafeResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={[
-                          {
-                            name: t('creator.analytics.retained'),
-                            value: stats.retentionStatus.active,
-                          },
-                          {
-                            name: t('creator.analytics.churning'),
-                            value: stats.retentionStatus.churning,
-                          },
-                          {
-                            name: t('creator.analytics.churned'),
-                            value: stats.retentionStatus.churned,
-                          },
-                        ].filter((d) => d.value > 0)}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={70}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        <Cell fill="var(--color-brand-primary)" />
-                        <Cell fill="var(--color-brand-accent)" />
-                        <Cell fill="var(--color-brand-secondary)" />
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: '#18181b',
-                          borderColor: 'rgba(255,255,255,0.1)',
-                          borderRadius: '12px',
-                        }}
-                        itemStyle={{ fontSize: '11px', color: '#fff' }}
-                      />
-                    </PieChart>
-                  </SafeResponsiveContainer>
-                </div>
-                <div className="flex flex-col gap-2.5 text-xs">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-brand-primary" />
-                    <span className="text-white/50 font-medium">
-                      {t('creator.analytics.retained')}:
-                    </span>
-                    <span className="text-white font-bold">
-                      {stats.retentionStatus.active}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-brand-accent" />
-                    <span className="text-white/50 font-medium">
-                      {t('creator.analytics.churning')}:
-                    </span>
-                    <span className="text-white font-bold">
-                      {stats.retentionStatus.churning}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-2.5 h-2.5 rounded-full bg-brand-secondary" />
-                    <span className="text-white/50 font-medium">
-                      {t('creator.analytics.churned')}:
-                    </span>
-                    <span className="text-white font-bold">
-                      {stats.retentionStatus.churned}
-                    </span>
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t('creator.analytics.no_retention_data')}
-              </div>
-            )}
-          </div>
-        </Card>
-
-        {/* Activity Hours */}
-        <Card variant="glass" className="p-5 md:col-span-2 flex flex-col">
-          <div className="flex items-center gap-2 mb-6">
-            <Clock size={16} className="text-brand-primary-text" />
-            <h3 className="text-sm font-medium text-white">
-              {t('creator.analytics.activity_hours')}
-            </h3>
-          </div>
-          <div className="h-60 w-full flex-1">
-            {stats?.activityHours && stats.activityHours.length > 0 ? (
-              <SafeResponsiveContainer width="100%" height="100%">
-                <LineChart data={stats.activityHours}>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    strokeOpacity={0.05}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="hour"
-                    stroke="#ffffff"
-                    strokeOpacity={0.3}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(val) => `${val}:00`}
-                  />
-                  <YAxis
-                    stroke="#ffffff"
-                    strokeOpacity={0.3}
-                    fontSize={10}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '12px',
-                    }}
-                    itemStyle={{ fontSize: '12px', color: '#fff' }}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="count"
-                    stroke="var(--color-brand-primary)"
-                    strokeWidth={3}
-                    dot={false}
-                    activeDot={{ r: 6 }}
-                  />
-                </LineChart>
-              </SafeResponsiveContainer>
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-sm text-white/50">
-                {t('creator.analytics.no_activity_data')}
-              </div>
-            )}
-          </div>
-        </Card>
-      </div>
+      </CreatorSection>
 
       {/* Advanced analytics come with the Elite Creator and Business plans */}
       {hasElitePlan(verificationLevel) ? (
         <CreatorAnalyticsDashboard />
       ) : (
-        <Card className="rounded-3xl p-6 sm:p-8">
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary/15 text-brand-primary-text">
-            <Lock size={22} strokeWidth={1.75} aria-hidden />
-          </span>
-          <h2 className="mt-4 text-lg font-semibold tracking-tight text-white">
-            {t('creator.advanced.title')}
-          </h2>
-          <p className="mt-1 max-w-prose text-sm leading-relaxed text-white/60">
-            {t('creator.advanced.plan_desc')}
-          </p>
-          <Link
-            to="/pricing"
-            className="mt-5 inline-flex h-12 items-center justify-center rounded-xl border border-brand-primary/30 px-6 text-sm font-bold text-white btn-gradient-brand focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+        <CreatorSection title={t('creator.advanced.title')}>
+          <Card
+            variant="glass"
+            className="p-4 flex flex-col sm:flex-row sm:items-center gap-3"
           >
-            {t('creator.advanced.plan_cta')}
-          </Link>
-        </Card>
+            <p className="flex-1 text-sm text-white/60 leading-relaxed">
+              {t('creator.advanced.plan_desc')}
+            </p>
+            <Link
+              to="/pricing"
+              className="inline-flex items-center justify-center min-h-11 px-6 rounded-xl border border-brand-primary/30 text-sm font-bold text-white btn-gradient-brand shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60"
+            >
+              {t('creator.advanced.plan_cta')}
+            </Link>
+          </Card>
+        </CreatorSection>
       )}
     </div>
   );

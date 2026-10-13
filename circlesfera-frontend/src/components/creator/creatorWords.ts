@@ -71,3 +71,24 @@ export function localHour(utcHour: number, language: string): string {
     minute: '2-digit',
   });
 }
+
+// A day of a chart arrives as a date with no time, so it is written in
+// universal time: in the reader's own, a day west of it would be the day before.
+export function chartDay(value: string, long: boolean, language: string) {
+  return new Date(value).toLocaleDateString(language, {
+    day: 'numeric',
+    month: long ? 'long' : 'short',
+    timeZone: 'UTC',
+  });
+}
+
+// A month of a chart arrives as year and month (2026-10).
+export function chartMonth(value: string, long: boolean, language: string) {
+  const moment = new Date(`${value}-01T00:00:00Z`);
+  if (Number.isNaN(moment.getTime())) return value;
+  return moment.toLocaleDateString(language, {
+    month: long ? 'long' : 'short',
+    year: long ? 'numeric' : undefined,
+    timeZone: 'UTC',
+  });
+}
