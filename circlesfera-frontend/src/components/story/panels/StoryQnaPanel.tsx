@@ -90,7 +90,7 @@ export default function StoryQnaPanel({
         type="button"
         onClick={onAddQna}
         disabled={!qnaPrompt.trim()}
-        className={`w-full ${CREATE_PRIMARY}`}
+        className={`button-alone ${CREATE_PRIMARY}`}
       >
         {t('createPost.storyComposer.add_qna')}
       </button>

@@ -213,7 +213,7 @@ export default function AppealsSettings() {
             size="lg"
             disabled={!reason.trim()}
             isLoading={createMutation.isPending}
-            className="w-full"
+            className="button-alone"
           >
             {t('settings.appeals.submit')}
           </Button>

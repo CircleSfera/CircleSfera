@@ -247,7 +247,7 @@ export default function PlansTab({ onToast }: Props) {
                 <Button
                   type="button"
                   variant="primary"
-                  className="w-full"
+                  className="button-alone"
                   disabled={!dirty || saveMutation.isPending}
                   isLoading={
                     saveMutation.isPending &&

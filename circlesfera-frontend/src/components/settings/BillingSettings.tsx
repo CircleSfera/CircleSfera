@@ -131,7 +131,7 @@ export default function BillingSettings() {
                 onClick={handleBillingPortal}
                 isLoading={isProcessingPortal}
                 variant="secondary"
-                className="min-h-11 w-full text-sm font-semibold"
+                className="min-h-11 button-alone text-sm font-semibold"
               >
                 {t('settings.billing.manage')}
               </Button>

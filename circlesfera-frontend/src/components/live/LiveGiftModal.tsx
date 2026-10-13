@@ -139,7 +139,7 @@ export default function LiveGiftModal({
         type="button"
         onClick={handleSend}
         disabled={isSending}
-        className={`w-full ${CREATE_PRIMARY}`}
+        className={`button-alone ${CREATE_PRIMARY}`}
       >
         <Sparkles size={18} aria-hidden />
         {t('live.confirm_send_gift')} (

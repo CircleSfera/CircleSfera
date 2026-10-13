@@ -54,7 +54,7 @@ export default function SettingsDangerZone({
             variant={variant === 'danger' ? 'danger' : 'outline'}
             isLoading={isLoading}
             onClick={() => setOpen(true)}
-            className="w-full min-h-11 text-sm font-semibold"
+            className="button-alone min-h-11 text-sm font-semibold"
           >
             {actionLabel}
           </Button>

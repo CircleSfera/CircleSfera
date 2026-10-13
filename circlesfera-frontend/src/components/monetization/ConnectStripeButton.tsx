@@ -41,7 +41,7 @@ export default function ConnectStripeButton() {
         onClick={() => connectMutation.mutate()}
         isLoading={connectMutation.isPending}
         variant="primary"
-        className="w-full min-h-11"
+        className="button-alone min-h-11"
       >
         <ExternalLink size={16} className="mr-2" aria-hidden />
         {t('monetization.connect_with_stripe')}

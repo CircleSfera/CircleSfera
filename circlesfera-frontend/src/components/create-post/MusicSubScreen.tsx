@@ -363,7 +363,7 @@ export default function MusicSubScreen({
                     <button
                       type="button"
                       onClick={handleClearSelection}
-                      className="w-full px-4 py-2 min-h-11 text-sm font-semibold text-brand-secondary bg-brand-secondary/10 hover:bg-brand-secondary/20 border border-brand-secondary/20 rounded-full flex items-center justify-center transition shrink-0"
+                      className="button-alone px-4 py-2 min-h-11 text-sm font-semibold text-brand-secondary bg-brand-secondary/10 hover:bg-brand-secondary/20 border border-brand-secondary/20 rounded-full flex items-center justify-center transition shrink-0"
                     >
                       {t('modals.audio.clear_selection')}
                     </button>

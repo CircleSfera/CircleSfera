@@ -171,7 +171,7 @@ export default function AudioTab({ onToast }: AudioTabProps) {
           <Button
             onClick={openAddForm}
             variant="primary"
-            className="text-sm font-semibold min-h-11 w-full sm:w-auto shadow-lg shadow-brand-primary/20 px-5"
+            className="text-sm font-semibold min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 shadow-lg shadow-brand-primary/20 px-5"
           >
             <Plus size={16} className="mr-2" />
             {t('admin.audio.add_track')}

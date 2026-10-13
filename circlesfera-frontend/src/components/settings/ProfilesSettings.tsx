@@ -38,7 +38,7 @@ export default function ProfilesSettings() {
           <Button
             variant="secondary"
             size="md"
-            className="w-full gap-2"
+            className="button-alone gap-2"
             onClick={() => setCreating(true)}
             disabled={atLimit}
           >

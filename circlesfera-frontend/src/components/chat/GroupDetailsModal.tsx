@@ -211,7 +211,7 @@ export default function GroupDetailsModal({
                 onLeaveGroup();
               }
             }}
-            className="w-full flex items-center justify-center gap-2 py-3 min-h-11 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 font-medium transition-colors"
+            className="button-alone flex items-center justify-center gap-2 py-3 min-h-11 rounded-xl text-red-400 hover:bg-red-500/10 hover:text-red-300 font-medium transition-colors"
           >
             <LogOut size={18} aria-hidden />
             {t('chat.group_details.leave_group')}

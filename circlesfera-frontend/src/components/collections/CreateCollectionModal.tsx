@@ -96,7 +96,7 @@ export default function CreateCollectionModal({
           disabled={!name.trim()}
           isLoading={mutation.isPending}
           variant="primary"
-          className="w-full min-h-11 font-bold"
+          className="button-alone min-h-11 font-bold"
         >
           {t('collections.create')}
         </Button>

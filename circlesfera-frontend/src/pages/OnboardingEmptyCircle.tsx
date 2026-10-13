@@ -67,7 +67,7 @@ export function OnboardingEmptyCircle({ onRetry }: OnboardingEmptyCircleProps) {
           size="md"
           onClick={onRetry}
           data-testid="onboarding-retry-suggestions"
-          className="w-full font-semibold"
+          className="button-alone font-semibold"
         >
           <RefreshCw size={16} aria-hidden />
           {t('onboarding.retry_suggestions')}

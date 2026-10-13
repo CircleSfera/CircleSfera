@@ -130,7 +130,7 @@ export default function InteractiveSubScreen({
         <button
           type="button"
           onClick={save}
-          className={`w-full ${CREATE_PRIMARY}`}
+          className={`button-alone ${CREATE_PRIMARY}`}
         >
           {t('createPost.interactive.save')}
         </button>

@@ -141,7 +141,7 @@ export default function PostsTab({ onToast }: Props) {
           <Button
             onClick={handleExport}
             variant="outline"
-            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-full sm:w-auto"
+            className="text-sm font-semibold text-white/70 hover:text-white border-white/10 px-4 min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 "
             aria-label={t('admin.posts.export_csv_aria')}
           >
             <Download size={16} className="mr-2" />

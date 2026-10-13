@@ -228,7 +228,7 @@ export default memo(function MessageBubble({
                     <button
                       type="button"
                       onClick={() => onUnlock && msg.id && onUnlock(msg.id)}
-                      className="mt-2 w-full py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
+                      className="mt-2 button-alone py-2 px-4 bg-amber-500 hover:bg-amber-400 text-black font-bold rounded-full transition-colors text-sm shadow-md"
                     >
                       {t('chat.unlock_for', {
                         price: formatCents(msg.priceCents || 0, i18n.language),

@@ -190,7 +190,7 @@ export default function SettingsTab({ onToast }: Props) {
               onClick={handleSave}
               disabled={!hasChanges || updateMutation.isPending}
               variant="primary"
-              className="gap-2 min-h-11 w-full sm:w-auto"
+              className="gap-2 min-h-11 w-fit min-w-44 max-w-full sm:min-w-0 "
             >
               <Save className="w-4 h-4" />
               {updateMutation.isPending

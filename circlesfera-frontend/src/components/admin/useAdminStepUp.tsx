@@ -155,7 +155,7 @@ export function useAdminStepUp(): {
           <Button
             type="submit"
             variant="primary"
-            className="w-full min-h-11 font-semibold"
+            className="button-alone button-alone-wide min-h-11 font-semibold"
             disabled={code.length < 6 || checking}
             isLoading={checking}
           >
@@ -164,7 +164,7 @@ export function useAdminStepUp(): {
           <Button
             type="button"
             variant="ghost"
-            className="w-full min-h-11 font-semibold bg-white/5 text-gray-300"
+            className="button-alone button-alone-wide min-h-11 font-semibold bg-white/5 text-gray-300"
             disabled={checking}
             onClick={cancel}
           >
