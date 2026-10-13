@@ -1,67 +1,54 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  BarChart3,
-  ChevronRight,
-  DollarSign,
-  Film,
-  Image as ImageIcon,
-  Megaphone,
-} from 'lucide-react';
+import { Film, Image as ImageIcon, Megaphone } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import type {
   CreatorChartDay,
   CreatorPost,
   CreatorStats,
 } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
+import { monetizationApi } from '../../services/monetization.service';
 import type { PaginatedResponse } from '../../types';
+import { formatNumber } from '../../utils/format';
+import { formatCents } from '../../utils/money';
+import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import PostInsightsModal from '../modals/PostInsightsModal';
 import { Button, Card } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
-import CreatorHeroCard from './CreatorHeroCard';
+import {
+  CreatorFigure,
+  CreatorFigures,
+  CreatorRow,
+  CreatorSection,
+} from './CreatorPieces';
 import type { CreatorTab } from './creatorNav';
+import { localHour, postFacts, weekdayName } from './creatorWords';
 
-function SectionHeader({
-  title,
-  onSeeAll,
-  seeAllLabel,
-}: {
-  title: string;
-  onSeeAll?: () => void;
-  seeAllLabel?: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-3 mb-3">
-      <h2 className="text-lg font-semibold text-white tracking-tight">
-        {title}
-      </h2>
-      {onSeeAll ? (
-        <button
-          type="button"
-          onClick={onSeeAll}
-          className="text-sm text-white/50 hover:text-white transition-colors inline-flex items-center gap-1 min-h-11 px-2"
-        >
-          {seeAllLabel}
-          <ChevronRight size={14} aria-hidden />
-        </button>
-      ) : null}
-    </div>
-  );
-}
+// A chart of fewer points than this says nothing: words take its place.
+const MIN_CHART_DAYS = 3;
 
 export default function CreatorDashboard({
   onPromote,
-  onNavigate,
   stats,
   chartData,
 }: {
   onPromote: (post: CreatorPost) => void;
-  onNavigate: (target: CreatorTab) => void;
+  // Kept for the page that mounts it; the sections are reached by links now.
+  onNavigate?: (target: CreatorTab) => void;
   stats?: CreatorStats;
   chartData?: CreatorChartDay[];
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const [insightsPostId, setInsightsPostId] = useState<string | null>(null);
 
   const { data: recentPosts, isLoading: postsLoading } = useQuery<
@@ -71,7 +58,18 @@ export default function CreatorDashboard({
     queryFn: () => creatorApi.getPosts(1, 4).then((r) => r.data),
   });
 
+  const { data: monetization } = useQuery<{ lifetimeEarningsCents?: number }>({
+    queryKey: ['monetization'],
+    queryFn: monetizationApi.getMonetization,
+  });
+
   const posts = recentPosts?.data ?? [];
+  const days = chartData ?? [];
+  const growth = stats?.followerGrowth ?? 0;
+
+  // The best day and hour come from the likes received: with none, the server
+  // still answers a day and an hour, which would not be a result.
+  const hasLikes = (stats?.totalLikes ?? 0) > 0;
 
   return (
     <div className="space-y-8 pb-8">
@@ -82,21 +80,147 @@ export default function CreatorDashboard({
         />
       )}
 
-      <CreatorHeroCard stats={stats} chartData={chartData} />
-
-      <section>
-        <SectionHeader
-          title={t('creator.dashboard.content_performance')}
-          onSeeAll={() => onNavigate('content')}
-          seeAllLabel={t('creator.dashboard.see_all_content')}
+      <CreatorFigures>
+        <CreatorFigure
+          label={t('creator.overview.followers')}
+          value={formatNumber(stats?.followerCount ?? 0, language)}
+          hint={
+            growth === 0
+              ? t('creator.overview.followers_flat')
+              : t('creator.overview.followers_change', {
+                  value: `${growth > 0 ? '+' : ''}${formatNumber(growth, language)}`,
+                })
+          }
         />
+        <CreatorFigure
+          label={t('creator.overview.reach')}
+          value={formatNumber(stats?.totalReach ?? 0, language)}
+          hint={t('creator.overview.reach_hint')}
+        />
+        <CreatorFigure
+          label={t('creator.overview.interaction')}
+          value={`${formatNumber(stats?.engagementRate ?? 0, language)} %`}
+          hint={t('creator.overview.interaction_hint')}
+        />
+        <CreatorFigure
+          label={t('creator.overview.income')}
+          value={formatCents(
+            monetization?.lifetimeEarningsCents ?? 0,
+            language,
+          )}
+          hint={t('creator.overview.income_hint')}
+        />
+      </CreatorFigures>
 
+      <CreatorSection title={t('creator.overview.views_title')}>
+        <Card variant="glass" className="p-4">
+          {days.length >= MIN_CHART_DAYS ? (
+            <div className="h-48 w-full">
+              <SafeResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={days}
+                  margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
+                >
+                  <defs>
+                    <linearGradient
+                      id="overviewViews"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="var(--color-brand-primary)"
+                        stopOpacity={0.3}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--color-brand-primary)"
+                        stopOpacity={0}
+                      />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#ffffff"
+                    strokeOpacity={0.05}
+                    vertical={false}
+                  />
+                  <XAxis
+                    dataKey="date"
+                    stroke="#ffffff"
+                    strokeOpacity={0.5}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    dy={8}
+                    tickFormatter={(value) =>
+                      new Date(value).toLocaleDateString(language, {
+                        day: 'numeric',
+                        month: 'short',
+                      })
+                    }
+                  />
+                  <YAxis
+                    stroke="#ffffff"
+                    strokeOpacity={0.5}
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#18181b',
+                      borderColor: 'rgba(255,255,255,0.1)',
+                      borderRadius: '12px',
+                    }}
+                    itemStyle={{ fontSize: '12px', fontWeight: 600 }}
+                    labelStyle={{ color: '#a1a1aa', fontSize: '11px' }}
+                    labelFormatter={(value) =>
+                      new Date(String(value)).toLocaleDateString(language, {
+                        day: 'numeric',
+                        month: 'long',
+                      })
+                    }
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="views"
+                    name={t('creator.overview.views_series')}
+                    stroke="var(--color-brand-primary)"
+                    strokeWidth={2}
+                    fill="url(#overviewViews)"
+                  />
+                </AreaChart>
+              </SafeResponsiveContainer>
+            </div>
+          ) : (
+            <p className="py-6 text-sm text-white/60 text-center">
+              {t('creator.overview.views_few')}
+            </p>
+          )}
+        </Card>
+      </CreatorSection>
+
+      <CreatorSection
+        title={t('creator.overview.latest_posts')}
+        link={
+          posts.length > 0
+            ? {
+                label: t('creator.overview.see_all_posts'),
+                to: '/creator/content',
+              }
+            : undefined
+        }
+      >
         {postsLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2">
             {['sk-1', 'sk-2', 'sk-3', 'sk-4'].map((id) => (
               <div
                 key={id}
-                className="h-24 rounded-xl bg-white/5 animate-pulse border border-white/5"
+                className="h-20 md:h-15 rounded-xl bg-white/5 animate-pulse border border-white/5"
               />
             ))}
           </div>
@@ -107,204 +231,73 @@ export default function CreatorDashboard({
             message={t('creator.posts.empty_desc')}
           />
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {posts.map((post) => (
-              <Card
-                key={post.id}
-                variant="glass"
-                className="p-3.5 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors"
-                onClick={() => setInsightsPostId(post.id)}
-              >
-                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-surface-raised border border-white/10 text-white/40 flex items-center justify-center">
-                  {post.media?.[0] ? (
-                    <img
-                      src={post.media[0].url}
-                      className="w-full h-full object-cover"
-                      alt=""
-                    />
-                  ) : post.type === 'FRAME' ? (
-                    <Film size={20} aria-hidden />
-                  ) : (
-                    <ImageIcon size={20} aria-hidden />
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="text-white text-sm font-medium truncate">
-                      {post.caption || t('creator.dashboard.untitled_post')}
-                    </p>
-                    <span className="text-[11px] text-white/50 shrink-0">
-                      {post.type}
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs text-white/40 mb-1">
-                    <span>{t('creator.dashboard.performance')}</span>
-                    <span className="tabular-nums text-white/70">
-                      {post.performanceScore || 0}%
-                    </span>
-                  </div>
-                  <div className="h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-brand-primary rounded-full"
-                      style={{
-                        width: `${Math.min(post.performanceScore || 0, 100)}%`,
-                      }}
-                    />
-                  </div>
-
-                  <Button
-                    variant="ghost"
-                    size="compact"
-                    className="mt-2 min-h-11 gap-1.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPromote(post);
-                    }}
-                  >
-                    <Megaphone size={14} aria-hidden />
-                    {t('creator.dashboard.promote_post')}
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <section className="lg:col-span-2">
-          <SectionHeader title={t('creator.dashboard.studio_management')} />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => onNavigate('monetization')}
-              className="glass-panel p-4 rounded-xl border border-white/5 hover:bg-white/5 transition-colors text-left min-h-11"
-            >
-              <DollarSign
-                size={18}
-                className="text-brand-primary-text mb-3"
-                aria-hidden
-              />
-              <h3 className="text-white text-sm font-medium mb-1">
-                {t('creator.dashboard.finance_earnings')}
-              </h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                {t('creator.dashboard.finance_desc')}
-              </p>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate('ads')}
-              className="glass-panel p-4 rounded-xl border border-white/5 hover:bg-white/5 transition-colors text-left min-h-11"
-            >
-              <Megaphone
-                size={18}
-                className="text-brand-primary-text mb-3"
-                aria-hidden
-              />
-              <h3 className="text-white text-sm font-medium mb-1">
-                {t('creator.dashboard.ads_promotions')}
-              </h3>
-              <p className="text-xs text-white/50 leading-relaxed">
-                {t('creator.dashboard.ads_desc')}
-              </p>
-            </button>
-          </div>
-        </section>
-
-        <section>
-          <SectionHeader title={t('creator.dashboard.audience')} />
-          <Card
-            variant="glass"
-            className="p-4 flex flex-col items-center text-center"
-          >
-            <div
-              className="relative w-28 h-28 mb-4"
-              role="img"
-              aria-label={t('creator.dashboard.retention_chart_aria', {
-                rate: stats?.insights.retentionRate || 0,
-              })}
-            >
-              <svg aria-hidden="true" className="w-full h-full -rotate-90">
-                <circle
-                  cx="56"
-                  cy="56"
-                  r="48"
-                  stroke="currentColor"
-                  strokeWidth="8"
-                  fill="transparent"
-                  className="text-white/10"
-                />
-                <circle
-                  cx="56"
-                  cy="56"
-                  r="48"
-                  stroke="var(--color-brand-primary)"
-                  strokeWidth="8"
-                  fill="transparent"
-                  strokeLinecap="round"
-                  strokeDasharray={301.5}
-                  strokeDashoffset={
-                    301.5 * (1 - (stats?.insights.retentionRate || 0) / 100)
+          <div className="space-y-2">
+            {posts.map((post) => {
+              const title = post.caption || t('creator.post.untitled');
+              return (
+                <CreatorRow
+                  key={post.id}
+                  media={
+                    post.media?.[0] ? (
+                      <img
+                        src={post.media[0].url}
+                        className="w-full h-full object-cover"
+                        alt=""
+                      />
+                    ) : post.type === 'FRAME' ? (
+                      <Film size={20} aria-hidden />
+                    ) : (
+                      <ImageIcon size={20} aria-hidden />
+                    )
+                  }
+                  title={title}
+                  facts={postFacts(post, t, language)}
+                  onOpen={() => setInsightsPostId(post.id)}
+                  openLabel={t('creator.post.statistics_of', { title })}
+                  action={
+                    <Button
+                      variant="ghost"
+                      size="compact"
+                      className="min-h-11 min-w-11 gap-1.5 shrink-0"
+                      aria-label={t('creator.post.promote_this', { title })}
+                      onClick={() => onPromote(post)}
+                    >
+                      <Megaphone size={16} aria-hidden />
+                      <span className="hidden sm:inline">
+                        {t('creator.post.promote')}
+                      </span>
+                    </Button>
                   }
                 />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-white font-semibold text-xl tabular-nums">
-                  {stats?.insights.retentionRate || 0}%
-                </span>
-                <span className="text-white/50 text-[11px]">
-                  {t('creator.dashboard.retention')}
-                </span>
-              </div>
-            </div>
+              );
+            })}
+          </div>
+        )}
+      </CreatorSection>
 
-            <div className="w-full grid grid-cols-2 gap-2">
-              <div className="bg-white/3 p-2.5 rounded-lg border border-white/5 text-left">
-                <p className="text-white/40 text-[11px] mb-0.5">
-                  {t('creator.dashboard.best_day')}
-                </p>
-                <p className="text-white text-sm font-medium">
-                  {stats?.insights.bestDayToPost || '—'}
-                </p>
-              </div>
-              <div className="bg-white/3 p-2.5 rounded-lg border border-white/5 text-left">
-                <p className="text-white/40 text-[11px] mb-0.5">
-                  {t('creator.dashboard.peak_hour')}
-                </p>
-                <p className="text-white text-sm font-medium tabular-nums">
-                  {stats?.insights.bestHourToPost || '—'}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </section>
-      </div>
-
-      <button
-        type="button"
-        onClick={() => onNavigate('analytics')}
-        className="w-full glass-panel p-4 rounded-xl border border-white/5 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-white/5 transition-colors text-left"
-      >
-        <div className="w-11 h-11 rounded-xl bg-brand-primary/15 flex items-center justify-center text-brand-primary-text shrink-0">
-          <BarChart3 size={20} aria-hidden />
-        </div>
-        <div className="flex-1 min-w-0">
-          <h3 className="text-white font-medium mb-0.5">
-            {t('creator.dashboard.analytics_teaser_title')}
-          </h3>
-          <p className="text-white/50 text-sm leading-relaxed">
-            {t('creator.dashboard.analytics_teaser_desc')}
-          </p>
-        </div>
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-primary-text shrink-0 min-h-11">
-          {t('creator.dashboard.see_analytics')}
-          <ChevronRight size={14} aria-hidden />
-        </span>
-      </button>
+      <CreatorSection title={t('creator.overview.audience')}>
+        <CreatorFigures>
+          <CreatorFigure
+            label={t('creator.overview.active_followers')}
+            value={`${formatNumber(stats?.insights?.retentionRate ?? 0, language)} %`}
+            hint={t('creator.overview.active_followers_hint')}
+          />
+          {hasLikes && stats?.insights ? (
+            <>
+              <CreatorFigure
+                label={t('creator.overview.best_day')}
+                value={weekdayName(stats.insights.bestDayToPost, language)}
+                hint={t('creator.overview.best_day_hint')}
+              />
+              <CreatorFigure
+                label={t('creator.overview.peak_hour')}
+                value={localHour(stats.insights.bestHourToPost, language)}
+                hint={t('creator.overview.peak_hour_hint')}
+              />
+            </>
+          ) : null}
+        </CreatorFigures>
+      </CreatorSection>
     </div>
   );
 }

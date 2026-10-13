@@ -371,7 +371,7 @@ for (const lang of ['es', 'en'] as const) {
       await page.goto('/creator/overview');
       // Show the part of the panel whose figures the product calculates.
       const performance = page.getByRole('heading', {
-        name: /Rendimiento del Contenido|Content Performance/i,
+        name: /Últimas publicaciones|Latest posts/i,
       });
       await performance.waitFor();
       await performance.evaluate((heading) => {
