@@ -107,36 +107,60 @@ describe('CreatorAnalyticsTab', () => {
     },
   );
 
-  it('labels analytics section headers from the catalog', async () => {
-    const { i18n } = renderWithProviders(<CreatorAnalyticsTab />);
+  it('shows the audience, where the followers are and the income, and nothing the server does not measure', async () => {
+    vi.mocked(creatorApi.getStats).mockResolvedValue({
+      data: {
+        ...emptyStats,
+        followerCount: 4,
+        geoDistribution: [
+          { location: 'Unknown', count: 1 },
+          { location: 'Madrid', count: 3 },
+        ],
+      },
+    } as never);
+    vi.mocked(monetizationApi.getFinancialSummary).mockResolvedValue({
+      currentMonthIncome: 899,
+      totalTips: 500,
+    } as never);
+    renderWithProviders(<CreatorAnalyticsTab />);
 
     expect(
-      await screen.findByText(i18n!.t('creator.analytics.audience_evolution')),
+      await screen.findByRole('heading', {
+        name: 'Views and followers, day by day',
+      }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('creator.analytics.income_history')),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(i18n!.t('creator.analytics.sub_retention')),
-    ).toBeInTheDocument();
-    expect(i18n!.t('creator.analytics.income_history')).toBe(
-      'Income history (6 months)',
-    );
+    // The place with most followers first; the ones with none given, in words.
+    const places = screen.getAllByText(/^(Madrid|No place given)$/);
+    expect(places.map((place) => place.textContent)).toEqual([
+      'Madrid',
+      'No place given',
+    ]);
+    expect(screen.getByText('3 followers')).toBeInTheDocument();
+    expect(screen.getByText('75 %')).toBeInTheDocument();
+    expect(screen.queryByText('Unknown')).not.toBeInTheDocument();
+    expect(screen.getByText('€8.99')).toBeInTheDocument();
+    expect(screen.getByText('€5.00')).toBeInTheDocument();
+    // Fixed zeros and an answer that is always empty are not drawn.
+    expect(screen.queryByText(/retention of subscriptions/i)).toBeNull();
+    expect(screen.queryByText(/most active hours/i)).toBeNull();
   });
 
-  it('uses Spanish section headers when locale is es', async () => {
-    const { i18n } = renderWithProviders(<CreatorAnalyticsTab />, {
-      lng: 'es',
-    });
+  it('says in Spanish what will appear while there is nothing to draw', async () => {
+    renderWithProviders(<CreatorAnalyticsTab />, { lng: 'es' });
 
     expect(
-      await screen.findByText(i18n!.t('creator.analytics.income_history')),
+      await screen.findByText(
+        'Todavía no hay días suficientes para dibujar la evolución.',
+      ),
     ).toBeInTheDocument();
-    expect(i18n!.t('creator.analytics.income_history')).toBe(
-      'Historial de ingresos (6 meses)',
-    );
     expect(
-      screen.queryByText('Income history (6 months)'),
-    ).not.toBeInTheDocument();
+      screen.getByText('Tus seguidores aún no han indicado dónde están.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Todavía no hay meses suficientes para dibujar tus ingresos.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Exportar' })).toBeNull();
   });
 });

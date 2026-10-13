@@ -2,14 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts';
 import type {
   CreatorChartDay,
   CreatorPost,
@@ -20,19 +12,13 @@ import { monetizationApi } from '../../services/monetization.service';
 import type { PaginatedResponse } from '../../types';
 import { formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
-import SafeResponsiveContainer from '../common/SafeResponsiveContainer';
 import PostInsightsModal from '../modals/PostInsightsModal';
-import { Card } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorFigure, CreatorFigures, CreatorSection } from './CreatorPieces';
 import CreatorPostRow from './CreatorPostRow';
+import CreatorTrendChart from './CreatorTrendChart';
 import type { CreatorTab } from './creatorNav';
-import { localHour, weekdayName } from './creatorWords';
-
-// A chart of fewer points than this says nothing: words take its place.
-// Its days arrive as dates with no time, so they are written in universal
-// time: in the reader's own, a day west of it would show as the day before.
-const MIN_CHART_DAYS = 3;
+import { chartDay, localHour, weekdayName } from './creatorWords';
 
 export default function CreatorDashboard({
   onPromote,
@@ -111,97 +97,19 @@ export default function CreatorDashboard({
       </CreatorFigures>
 
       <CreatorSection title={t('creator.overview.views_title')}>
-        <Card variant="glass" className="p-4">
-          {days.length >= MIN_CHART_DAYS ? (
-            <div className="h-48 w-full">
-              <SafeResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={days}
-                  margin={{ top: 8, right: 8, left: -16, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient
-                      id="overviewViews"
-                      x1="0"
-                      y1="0"
-                      x2="0"
-                      y2="1"
-                    >
-                      <stop
-                        offset="5%"
-                        stopColor="var(--color-brand-primary)"
-                        stopOpacity={0.3}
-                      />
-                      <stop
-                        offset="95%"
-                        stopColor="var(--color-brand-primary)"
-                        stopOpacity={0}
-                      />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="#ffffff"
-                    strokeOpacity={0.05}
-                    vertical={false}
-                  />
-                  <XAxis
-                    dataKey="date"
-                    stroke="#ffffff"
-                    strokeOpacity={0.5}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    dy={8}
-                    tickFormatter={(value) =>
-                      new Date(value).toLocaleDateString(language, {
-                        day: 'numeric',
-                        month: 'short',
-                        timeZone: 'UTC',
-                      })
-                    }
-                  />
-                  <YAxis
-                    stroke="#ffffff"
-                    strokeOpacity={0.5}
-                    fontSize={11}
-                    tickLine={false}
-                    axisLine={false}
-                    allowDecimals={false}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: '#18181b',
-                      borderColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '12px',
-                    }}
-                    itemStyle={{ fontSize: '12px', fontWeight: 600 }}
-                    labelStyle={{ color: '#a1a1aa', fontSize: '11px' }}
-                    labelFormatter={(value) =>
-                      new Date(String(value)).toLocaleDateString(language, {
-                        day: 'numeric',
-                        month: 'long',
-                        timeZone: 'UTC',
-                      })
-                    }
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="views"
-                    name={t('creator.overview.views_series')}
-                    stroke="var(--color-brand-primary)"
-                    strokeWidth={2}
-                    fill="url(#overviewViews)"
-                  />
-                </AreaChart>
-              </SafeResponsiveContainer>
-            </div>
-          ) : (
-            <p className="py-6 text-sm text-white/60 text-center">
-              {t('creator.overview.views_few')}
-            </p>
-          )}
-        </Card>
+        <CreatorTrendChart
+          data={days}
+          xKey="date"
+          series={[
+            {
+              key: 'views',
+              name: t('creator.overview.views_series'),
+              color: 'var(--color-brand-primary)',
+            },
+          ]}
+          formatX={(value, long) => chartDay(value, long, language)}
+          fewText={t('creator.overview.views_few')}
+        />
       </CreatorSection>
 
       <CreatorSection
