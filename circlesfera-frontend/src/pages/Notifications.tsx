@@ -6,6 +6,7 @@ import {
   Coins,
   Heart,
   MessageCircle,
+  Radio,
   Rocket,
   Shield,
   UserPlus,
@@ -34,14 +35,22 @@ const STRIKE_NOTICE_KEYS: Record<string, string> = {
     'notifications.types.moderation_restriction_review',
 };
 
-/** The page of the support request a notice is about, when it is about one. */
+/**
+ * The page a notice leads to when it is about something other than a post
+ * or a person: a support request, or a live broadcast that has started.
+ */
 function supportRequestPath(notif: {
   targetType?: string | null;
   targetId?: string | null;
 }): string | null {
-  return notif.targetType === 'support_ticket' && notif.targetId
-    ? `/support/requests/${encodeURIComponent(notif.targetId)}`
-    : null;
+  if (!notif.targetId) return null;
+  if (notif.targetType === 'support_ticket') {
+    return `/support/requests/${encodeURIComponent(notif.targetId)}`;
+  }
+  if (notif.targetType === 'live') {
+    return `/live/${encodeURIComponent(notif.targetId)}`;
+  }
+  return null;
 }
 
 export default function Notifications() {
@@ -145,6 +154,8 @@ export default function Notifications() {
         return <MessageCircle size={13} />;
       case 'MENTION':
         return <AtSign size={13} />;
+      case 'LIVE_STARTED':
+        return <Radio size={13} />;
       case 'MODERATION':
         return <Shield size={13} />;
       case 'PROMOTION_SUCCESS':

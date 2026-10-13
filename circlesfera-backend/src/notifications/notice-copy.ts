@@ -58,7 +58,8 @@ export type Notice =
   | { key: 'message_unlocked'; amountCents: number; currency: string }
   | { key: 'tip_received'; amountCents: number; currency: string }
   // The app shows it as coming from Support, like a sender.
-  | { key: 'support_answered'; subject: string };
+  | { key: 'support_answered'; subject: string }
+  | { key: 'live_started' };
 
 export type NoticeKey = Notice['key'];
 
@@ -287,6 +288,8 @@ function renderEn(n: Notice): string {
       return `sent you a ${money('en', n.amountCents, n.currency)} tip`;
     case 'support_answered':
       return `answered your request "${n.subject}"`;
+    case 'live_started':
+      return 'started a live';
   }
 }
 
@@ -402,6 +405,8 @@ function renderEs(n: Notice): string {
       return `te ha enviado una propina de ${money('es', n.amountCents, n.currency)}`;
     case 'support_answered':
       return `ha respondido a tu solicitud «${n.subject}»`;
+    case 'live_started':
+      return 'ha empezado un directo';
   }
 }
 
