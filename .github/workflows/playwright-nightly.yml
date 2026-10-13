@@ -29,7 +29,6 @@ jobs:
     services:
       postgres:
         # Our own copy of the pinned image (see "Ops — copy pinned images").
-        # Redis below is an official image and comes from its public mirror.
         image: ghcr.io/circlesfera/circlesfera/mirror/pgvector:pg16@sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
         credentials:
           username: ${{ github.actor }}
@@ -44,7 +43,12 @@ jobs:
           --health-timeout 5s
           --health-retries 10
       redis:
-        image: public.ecr.aws/docker/library/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        # Our own copy of the pinned image (see "Ops — copy pinned images"):
+        # the public mirror stops serving it once its daily allowance is used.
+        image: ghcr.io/circlesfera/circlesfera/mirror/redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+        credentials:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s

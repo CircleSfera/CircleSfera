@@ -1,9 +1,10 @@
 name: Ops — copy pinned images
 
 # Keeps, in the registry of this repository, a copy of the images the
-# workflows need that are not official Docker images. The only other public
-# source of their pinned digests without signing in is a best-effort cache
-# that may drop them. Each image is copied by its digest, with every platform,
+# workflows start from. The public sources of their pinned digests either
+# may drop them (a best-effort cache) or stop serving them for hours once a
+# day's allowance of unsigned downloads is used up, which fails every run
+# that needs them, a production deploy included. Each image is copied by its digest, with every platform,
 # and the run fails if the copy does not have that same digest.
 #
 # It writes only to the packages of this repository; it does not touch
@@ -40,6 +41,7 @@ jobs:
           images='
           pgvector:pg16|mirror.gcr.io/pgvector/pgvector|sha256:ccc6e83d6e35e931dc7c5def2022729d5a6c370318d099181995567ff1fb4d6b
           buildkit:buildx-stable-1|mirror.gcr.io/moby/buildkit|sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
+          redis:7-alpine|mirror.gcr.io/library/redis|sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
           '
           echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
           echo "$images" | while IFS='|' read -r name source digest; do
