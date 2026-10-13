@@ -15,9 +15,9 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { hasCreatorTools } from '../../utils/creatorTools';
 
-// A floating capsule of glass above the home indicator: the content scrolls
-// under it. The page keeps var(--nav-bottom-height) + safe-area-inset-bottom
-// free at its end. Strictly 5 core items max, each a touch target of 44 px.
+// A bar of glass against the bottom edge: the content scrolls behind it and
+// nothing shows under it. The page keeps var(--nav-bottom-height) +
+// safe-area-inset-bottom free at its end. Strictly 5 core items max, each a touch target of 44 px.
 export default function BottomNav() {
   const location = useLocation();
   const path = location.pathname;
@@ -79,14 +79,17 @@ export default function BottomNav() {
   return (
     <nav
       aria-label={t('nav.mobile')}
-      className="md:hidden fixed left-3 right-3 z-50 rounded-full bottom-nav-glass"
+      className="md:hidden fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bottom-nav-glass"
       style={{
-        bottom:
-          'calc(env(safe-area-inset-bottom, 0px) + var(--nav-bottom-gap))',
-        height: 'var(--nav-bottom-bar-height)',
+        // Against the bottom edge; the row of destinations sits above the
+        // home indicator, and the material fills the space under it.
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
-      <div className="flex items-center justify-around w-full h-full px-1.5">
+      <div
+        className="flex items-center justify-around w-full px-1.5"
+        style={{ height: 'var(--nav-bottom-bar-height)' }}
+      >
         {navItems.map((item) => {
           const isActive =
             item.label === t('nav.profile')

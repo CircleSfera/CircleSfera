@@ -325,7 +325,9 @@
   /* The space a page keeps free at its end for the bottom bar on a phone:
      the bar itself plus the gap it floats above the edge with. */
   --nav-bottom-bar-height: 56px;
-  --nav-bottom-gap: 8px;
+  /* The bar stands against the bottom edge: no gap for the content to show
+     through under it. */
+  --nav-bottom-gap: 0px;
   --nav-bottom-height: calc(
     var(--nav-bottom-bar-height) +
     var(--nav-bottom-gap)
@@ -465,6 +467,21 @@ video {
     0 2px 8px rgba(0, 0, 0, 0.28),
     inset 0 1px 0 rgba(255, 255, 255, 0.22),
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* Nothing of the page shows under the bar. It stands against the bottom
+   edge, and its material goes on below it: a phone's browser draws the page
+   behind its own toolbar too, further down than the page can place
+   anything, and without this the content would be seen there. */
+
+.bottom-nav-glass::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: -1px;
+  right: -1px;
+  height: 50vh;
+  background: rgb(20, 18, 28);
 }
 
 /* The destination the person is on: a lighter pill of the same glass. */
