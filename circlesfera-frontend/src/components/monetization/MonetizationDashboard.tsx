@@ -1,12 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 import type { TFunction } from 'i18next';
-import { ArrowDownLeft, ArrowUpRight, Coins, ShieldCheck } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Coins } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { monetizationApi } from '../../services/monetization.service';
 import { useAuthStore } from '../../stores/authStore';
 import { formatDate } from '../../utils/format';
 import { formatCents } from '../../utils/money';
-import { Card } from '../ui';
+import CreatorEmpty from '../creator/CreatorEmpty';
+import {
+  CreatorFigure,
+  CreatorFigures,
+  CreatorRow,
+  CreatorSection,
+} from '../creator/CreatorPieces';
 
 interface Transaction {
   id: string;
@@ -68,153 +74,99 @@ export default function MonetizationDashboard() {
   const breakdown = summary?.breakdown;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {breakdown ? (
-        <Card variant="glass" className="p-5 space-y-3">
-          <h3 className="text-sm font-medium text-white">
-            {t('creator.income.breakdown')}
-          </h3>
-          <p className="text-xs text-white/50">
-            {t('creator.income.breakdown_hint')}
-          </p>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <CreatorSection
+          title={t('creator.income.breakdown')}
+          hint={t('creator.income.breakdown_hint')}
+        >
+          <CreatorFigures five>
             {(
               [
-                ['creator.income.posts_ppv', 'Post PPV', breakdown.postUnlocks],
-                [
-                  'creator.income.stories_ppv',
-                  'Story PPV',
-                  breakdown.storyUnlocks,
-                ],
-                [
-                  'creator.income.messages_ppv',
-                  'Locked DMs',
-                  breakdown.messageUnlocks,
-                ],
-                ['creator.income.tips', 'Tips', breakdown.tips],
-                [
-                  'creator.income.live_gifts',
-                  'Live gifts',
-                  breakdown.liveGifts,
-                ],
+                ['creator.income.posts_ppv', breakdown.postUnlocks],
+                ['creator.income.stories_ppv', breakdown.storyUnlocks],
+                ['creator.income.messages_ppv', breakdown.messageUnlocks],
+                ['creator.income.tips', breakdown.tips],
+                ['creator.income.live_gifts', breakdown.liveGifts],
               ] as const
-            ).map(([key, fallback, cents]) => (
-              <div
+            ).map(([key, cents]) => (
+              <CreatorFigure
                 key={key}
-                className="p-3 rounded-lg bg-white/3 border border-white/5"
-              >
-                <p className="text-[11px] text-white/50">{t(key, fallback)}</p>
-                <p className="text-base font-semibold text-white tabular-nums mt-0.5">
-                  {formatCents(cents || 0, i18n.language)}
-                </p>
-              </div>
+                label={t(key)}
+                value={formatCents(cents || 0, i18n.language)}
+              />
             ))}
-          </div>
-        </Card>
+          </CreatorFigures>
+        </CreatorSection>
       ) : null}
 
       {hasConnect && payoutsSummary ? (
-        <Card variant="glass" className="p-5 space-y-3">
-          <h3 className="text-sm font-medium text-white flex items-center gap-1.5">
-            <ShieldCheck
-              size={14}
-              className="text-brand-primary-text"
-              aria-hidden
+        <CreatorSection
+          title={t('creator.income.stripe_balances')}
+          hint={t('creator.income.stripe_balances_hint')}
+        >
+          <CreatorFigures>
+            <CreatorFigure
+              label={t('creator.income.available')}
+              value={formatCents(
+                payoutsSummary.available?.[0]?.amountCents || 0,
+                i18n.language,
+                payoutsSummary.available?.[0]?.currency || 'EUR',
+              )}
             />
-            {t('creator.income.stripe_balances')}
-          </h3>
-          <p className="text-xs text-white/50">
-            {t('creator.income.stripe_balances_hint')}
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
-              <p className="text-[11px] text-white/50 mb-0.5">
-                {t('creator.income.available')}
-              </p>
-              <p className="text-2xl font-semibold text-white tabular-nums">
-                {formatCents(
-                  payoutsSummary.available?.[0]?.amountCents || 0,
-                  i18n.language,
-                  payoutsSummary.available?.[0]?.currency || 'EUR',
-                )}
-              </p>
-            </div>
-            <div className="p-3.5 rounded-lg bg-white/3 border border-white/5">
-              <p className="text-[11px] text-white/50 mb-0.5">
-                {t('creator.income.pending')}
-              </p>
-              <p className="text-2xl font-semibold text-white tabular-nums">
-                {formatCents(
-                  payoutsSummary.pending?.[0]?.amountCents || 0,
-                  i18n.language,
-                  payoutsSummary.pending?.[0]?.currency || 'EUR',
-                )}
-              </p>
-            </div>
-          </div>
-        </Card>
+            <CreatorFigure
+              label={t('creator.income.pending')}
+              value={formatCents(
+                payoutsSummary.pending?.[0]?.amountCents || 0,
+                i18n.language,
+                payoutsSummary.pending?.[0]?.currency || 'EUR',
+              )}
+            />
+          </CreatorFigures>
+        </CreatorSection>
       ) : null}
 
-      <Card variant="glass" className="p-5 space-y-3">
-        <h3 className="text-sm font-medium text-white">
-          {t('creator.income.transactions')}
-        </h3>
-        <div className="space-y-2">
-          {transactions.map((tx) => {
-            const isIncoming = tx.receiverId === monetization?.userId;
-            const isPurchase =
-              tx.type.includes('UNLOCK') || tx.type.includes('SUBSCRIPTION');
-            const cents = tx.amount ?? tx.amountCents ?? 0;
+      <CreatorSection title={t('creator.income.transactions')}>
+        {transactions.length === 0 ? (
+          <CreatorEmpty title={t('creator.income.no_transactions')} />
+        ) : (
+          <div className="space-y-2">
+            {transactions.map((tx) => {
+              const isIncoming = tx.receiverId === monetization?.userId;
+              const isPurchase =
+                tx.type.includes('UNLOCK') || tx.type.includes('SUBSCRIPTION');
+              const cents = tx.amount ?? tx.amountCents ?? 0;
 
-            return (
-              <div
-                key={tx.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-white/5 bg-white/3"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                      isIncoming
-                        ? 'bg-brand-primary/15 text-brand-primary-text'
-                        : 'bg-brand-secondary/15 text-brand-secondary'
-                    }`}
-                  >
-                    {isPurchase ? (
-                      <Coins size={18} />
+              return (
+                <CreatorRow
+                  key={tx.id}
+                  media={
+                    isPurchase ? (
+                      <Coins size={18} aria-hidden />
                     ) : isIncoming ? (
-                      <ArrowDownLeft size={18} />
+                      <ArrowDownLeft size={18} aria-hidden />
                     ) : (
-                      <ArrowUpRight size={18} />
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">
-                      {transactionLabel(tx, t)}
-                    </p>
-                    <p className="text-[11px] text-white/40">
-                      {formatDate(tx.createdAt, i18n.language)}
-                    </p>
-                  </div>
-                </div>
-                <span
-                  className={`text-sm font-medium tabular-nums ${
-                    isIncoming ? 'text-white' : 'text-brand-secondary'
-                  }`}
-                >
-                  {isIncoming ? '+' : '-'}
-                  {formatCents(cents, i18n.language, tx.currency || 'EUR')}
-                </span>
-              </div>
-            );
-          })}
-
-          {transactions.length === 0 && (
-            <p className="text-sm text-white/50 text-center py-6">
-              {t('creator.income.no_transactions')}
-            </p>
-          )}
-        </div>
-      </Card>
+                      <ArrowUpRight size={18} aria-hidden />
+                    )
+                  }
+                  title={transactionLabel(tx, t)}
+                  facts={[formatDate(tx.createdAt, i18n.language)]}
+                  badge={
+                    <span
+                      className={`shrink-0 text-sm font-medium tabular-nums ${
+                        isIncoming ? 'text-white' : 'text-brand-secondary'
+                      }`}
+                    >
+                      {isIncoming ? '+' : '-'}
+                      {formatCents(cents, i18n.language, tx.currency || 'EUR')}
+                    </span>
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+      </CreatorSection>
     </div>
   );
 }

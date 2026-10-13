@@ -49,7 +49,7 @@ export default function CreatorPpvIncome({
       {showConnect ? (
         <Button
           variant="primary"
-          className="w-full min-h-11 gap-2"
+          className="w-full sm:w-auto min-h-11 gap-2 px-6"
           disabled={isConnecting}
           onClick={onConnect}
         >

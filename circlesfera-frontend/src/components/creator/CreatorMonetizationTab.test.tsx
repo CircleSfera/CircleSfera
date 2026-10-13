@@ -119,7 +119,7 @@ describe('CreatorMonetizationTab', () => {
     expect(
       await screen.findByText(i18n!.t('creator.monetization.stripe_connected')),
     ).toBeInTheDocument();
-    expect(i18n!.t('creator.monetization.lifetime')).toBe('Lifetime earnings');
+    expect(i18n!.t('creator.monetization.lifetime')).toBe('Income received');
     expect(screen.getByText('€12.50')).toBeInTheDocument();
     expect(
       await screen.findByText(
@@ -135,7 +135,9 @@ describe('CreatorMonetizationTab', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('€9.99')).toBeInTheDocument();
     expect(screen.getByText('feature one')).toBeInTheDocument();
-    expect(i18n!.t('creator.monetization.upgrade_now')).toBe('Upgrade Now');
+    expect(i18n!.t('creator.monetization.upgrade_now')).toBe(
+      'Choose this plan',
+    );
     expect(screen.queryByText('Ganancias de por vida')).not.toBeInTheDocument();
     expect(screen.queryByText('Mejorar Ahora')).not.toBeInTheDocument();
   });

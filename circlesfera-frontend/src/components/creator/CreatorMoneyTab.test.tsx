@@ -28,17 +28,17 @@ describe('CreatorMoneyTab', () => {
     );
 
     expect(
-      await screen.findByRole('tab', {
+      await screen.findByRole('button', {
         name: i18n!.t('creator.money.income'),
       }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', {
+      screen.getByRole('button', {
         name: i18n!.t('creator.money.plans'),
       }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('tab', { name: /^wallet$/i }),
+      screen.queryByRole('button', { name: /^wallet$/i }),
     ).not.toBeInTheDocument();
   });
 
@@ -52,20 +52,20 @@ describe('CreatorMoneyTab', () => {
         },
       },
     );
-    const income = await screen.findByRole('tab', {
+    const income = await screen.findByRole('button', {
       name: i18n!.t('creator.money.income'),
     });
-    const plans = screen.getByRole('tab', {
+    const plans = screen.getByRole('button', {
       name: i18n!.t('creator.money.plans'),
     });
     expect(await screen.findByTestId('money-section')).toHaveTextContent(
       'income',
     );
-    expect(income).toHaveAttribute('aria-selected', 'true');
+    expect(income).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(plans);
     expect(screen.getByTestId('money-section')).toHaveTextContent('plans');
-    expect(plans).toHaveAttribute('aria-selected', 'true');
+    expect(plans).toHaveAttribute('aria-pressed', 'true');
 
     fireEvent.click(income);
     expect(screen.getByTestId('money-section')).toHaveTextContent('income');

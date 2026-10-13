@@ -9,9 +9,23 @@ import { Button, Card } from '../ui';
 // its own or plain content of the page: never a card inside a card.
 
 // A row of figures: two per row on a phone, four on desktop.
-export function CreatorFigures({ children }: { children: ReactNode }) {
+export function CreatorFigures({
+  children,
+  five = false,
+}: {
+  children: ReactNode;
+  // Five figures of one kind share a row on desktop.
+  five?: boolean;
+}) {
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">{children}</div>
+    <div
+      className={clsx(
+        'grid grid-cols-2 gap-3',
+        five ? 'lg:grid-cols-5' : 'lg:grid-cols-4',
+      )}
+    >
+      {children}
+    </div>
   );
 }
 
@@ -40,10 +54,20 @@ interface SectionProps {
   title: string;
   // Where the rest of it is, when the page shows only a part.
   link?: { label: string; to: string };
+  // What the section explains about itself, under its heading.
+  hint?: string;
+  // The one thing that can be done with the section as a whole.
+  action?: ReactNode;
   children: ReactNode;
 }
 
-export function CreatorSection({ title, link, children }: SectionProps) {
+export function CreatorSection({
+  title,
+  link,
+  hint,
+  action,
+  children,
+}: SectionProps) {
   return (
     <section>
       <div className="flex items-center justify-between gap-3 mb-3 min-h-11">
@@ -59,7 +83,13 @@ export function CreatorSection({ title, link, children }: SectionProps) {
             <ChevronRight size={14} aria-hidden />
           </Link>
         ) : null}
+        {action}
       </div>
+      {hint ? (
+        <p className="-mt-2 mb-3 text-xs text-white/50 leading-relaxed">
+          {hint}
+        </p>
+      ) : null}
       {children}
     </section>
   );

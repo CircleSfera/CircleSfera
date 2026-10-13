@@ -1,7 +1,7 @@
-import { clsx } from 'clsx';
 import { lazy, Suspense, useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
+import { CreatorViewChoice } from './CreatorPieces';
 import type { CreatorToastFn } from './creatorToast';
 
 const CreatorMonetizationTab = lazy(() => import('./CreatorMonetizationTab'));
@@ -60,34 +60,15 @@ export default function CreatorMoneyTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4">
-      <div className="sticky top-[calc(env(safe-area-inset-top)+4.25rem)] sm:top-2 z-20 p-1 rounded-xl border border-white/10 bg-surface-elevated">
-        <div
-          role="tablist"
-          aria-label={t('creator.money.sections')}
-          className="flex gap-1 overflow-x-auto no-scrollbar"
-        >
-          {SECTIONS.map((item) => {
-            const active = section === item.id;
-            return (
-              <button
-                key={item.id}
-                type="button"
-                role="tab"
-                aria-selected={active}
-                onClick={() => setSection(item.id)}
-                className={clsx(
-                  'flex-1 min-h-11 px-4 rounded-lg text-sm font-medium transition-colors',
-                  active
-                    ? 'bg-brand-primary/15 text-white'
-                    : 'text-white/60 hover:text-white hover:bg-white/5',
-                )}
-              >
-                {t(item.labelKey)}
-              </button>
-            );
-          })}
-        </div>
-      </div>
+      <CreatorViewChoice<MoneySection>
+        label={t('creator.money.sections')}
+        items={SECTIONS.map((item) => ({
+          value: item.id,
+          label: t(item.labelKey),
+        }))}
+        value={section}
+        onChange={setSection}
+      />
 
       <Suspense
         fallback={
