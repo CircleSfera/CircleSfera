@@ -20,7 +20,7 @@ vi.mock('../../services/creator.service', () => ({
 vi.mock('framer-motion', async () =>
   (await import('../../test/still-motion')).stillMotion(),
 );
-vi.mock('./NewPromoModal', () => ({
+vi.mock('./PromoteModal', () => ({
   default: ({ onClose }: { onClose: () => void }) => (
     <div role="dialog" aria-label="new campaign">
       <button type="button" onClick={onClose}>

@@ -182,6 +182,8 @@ interface ChoiceProps<T extends string> {
   items: readonly { value: T; label: string }[];
   value: T;
   onChange: (value: T) => void;
+  // In a narrow place the choices take a second line instead of scrolling.
+  wrap?: boolean;
 }
 
 // A choice between views: separate buttons in one row, the chosen one filled.
@@ -190,13 +192,17 @@ export function CreatorViewChoice<T extends string>({
   items,
   value,
   onChange,
+  wrap = false,
 }: ChoiceProps<T>) {
   return (
     // biome-ignore lint/a11y/useSemanticElements: a fieldset draws its own frame; this is a group of choices
     <div
       role="group"
       aria-label={label}
-      className="flex gap-2 overflow-x-auto no-scrollbar"
+      className={clsx(
+        'flex gap-2',
+        wrap ? 'flex-wrap' : 'overflow-x-auto no-scrollbar',
+      )}
     >
       {items.map((item) => {
         const active = item.value === value;

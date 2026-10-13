@@ -1,272 +1,234 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  DollarSign,
-  Globe,
-  Hash,
-  Megaphone,
-  Sparkles,
-  Target,
-} from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Image as ImageIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CreatorPost } from '../../services/creator.service';
 import { creatorApi } from '../../services/creator.service';
-import type { Post } from '../../types';
-import { formatNumber } from '../../utils/format';
+import type { PaginatedResponse, Post } from '../../types';
+import { formatWholeEuros } from '../../utils/money';
 import { Button } from '../ui';
 import { Dialog } from '../ui/Dialog';
+import { CreatorViewChoice } from './CreatorPieces';
+import { postFacts } from './creatorWords';
+
+// What can be spent each day and for how long: fixed choices, in euros.
+const DAILY_BUDGETS = [5, 10, 25, 50] as const;
+const DURATIONS = [3, 7, 14, 30] as const;
 
 interface Props {
-  post: CreatorPost | Post;
+  // The post to promote. Without one, choosing it is the first step.
+  post?: CreatorPost | Post;
   onClose: () => void;
   onToast: (msg: string, type: 'success' | 'error') => void;
 }
 
+const fieldClass =
+  'w-full min-h-12 rounded-xl bg-white/5 border border-white/10 px-4 text-white text-sm placeholder:text-white/40 focus:outline-none focus:border-brand-primary';
+
+function Thumbnail({ url }: { url?: string }) {
+  return (
+    <span className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-surface-raised border border-white/10 text-white/40 flex items-center justify-center">
+      {url ? (
+        <img src={url} alt="" className="w-full h-full object-cover" />
+      ) : (
+        <ImageIcon size={18} aria-hidden />
+      )}
+    </span>
+  );
+}
+
+// A campaign for one post: which post, how much each day, for how long and,
+// if wanted, where. Paying happens at the checkout it leads to.
 export default function PromoteModal({ post, onClose, onToast }: Props) {
   const { t, i18n } = useTranslation();
+  const language = i18n.language;
   const queryClient = useQueryClient();
 
-  const [objective, setObjective] = useState('PROFILE_VISITS');
-  const [dailyBudget, setDailyBudget] = useState(5);
-  const [durationDays, setDurationDays] = useState(3);
-  const [countries, setCountries] = useState('');
-  const [interests, setInterests] = useState('');
+  const [chosen, setChosen] = useState<CreatorPost | Post | null>(post ?? null);
+  const [dailyBudget, setDailyBudget] = useState<number>(DAILY_BUDGETS[0]);
+  const [durationDays, setDurationDays] = useState<number>(DURATIONS[1]);
+  const [places, setPlaces] = useState('');
 
-  const totalBudget = dailyBudget * durationDays;
-  const minReach = totalBudget * 300;
-  const maxReach = totalBudget * 700;
+  const { data: posts, isLoading: loadingPosts } = useQuery<
+    PaginatedResponse<CreatorPost>
+  >({
+    queryKey: ['creator', 'posts', 'promo-select'],
+    queryFn: () => creatorApi.getPosts(1, 20).then((r) => r.data),
+    enabled: !post,
+  });
 
   const mutation = useMutation({
-    mutationFn: () =>
+    mutationFn: (target: CreatorPost | Post) =>
       creatorApi.createPromotion({
-        targetType: (post.type || 'POST').toLowerCase(),
-        targetId: post.id,
+        targetType: target.type?.toLowerCase() === 'frame' ? 'frame' : 'post',
+        targetId: target.id,
         dailyBudget,
         durationDays,
         currency: 'EUR',
-        objective,
-        countries: countries.trim(),
-        interests: interests.trim(),
+        countries: places.trim() || undefined,
       }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
-      onToast(t('creator.promotions.redirecting'), 'success');
-      const { url } = response.data;
-      if (url) {
-        window.location.href = url;
-      } else {
+      const url = response.data?.url;
+      if (!url) {
         onToast(t('creator.promotions.error_create'), 'error');
+        return;
       }
+      onToast(t('creator.promotions.redirecting'), 'success');
+      window.location.href = url;
     },
     onError: () => onToast(t('creator.promotions.error_create'), 'error'),
   });
 
-  const objectives = [
-    {
-      id: 'PROFILE_VISITS',
-      label: t('creator.promotions.objective_profile'),
-    },
-    {
-      id: 'FOLLOWS',
-      label: t('creator.promotions.objective_follows'),
-    },
-    {
-      id: 'TIER_CONVERSIONS',
-      label: t('creator.promotions.objective_conversions'),
-    },
-  ];
+  const total = formatWholeEuros(dailyBudget * durationDays, language);
+  const titleOf = (item: CreatorPost | Post) =>
+    item.caption || t('creator.post.untitled');
 
   return (
     <Dialog
       isOpen
       onClose={onClose}
-      title={t('post.menu.promote')}
+      title={
+        chosen ? t('creator.promote.title') : t('creator.promote.choose_title')
+      }
       maxWidth="md"
       className="max-h-[90vh]"
     >
-      {/* Content Preview */}
-      <div className="pb-4 mb-4 border-b border-white/5">
-        <div className="flex items-center gap-3">
-          <div className="w-14 h-14 rounded-xl bg-white/5 overflow-hidden shrink-0">
-            {post.media?.[0] ? (
-              <img
-                src={post.media[0].url}
-                alt=""
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/40">
-                <Sparkles size={24} />
-              </div>
-            )}
+      {chosen ? (
+        <div className="space-y-5">
+          <div className="flex items-center gap-3">
+            <Thumbnail url={chosen.media?.[0]?.url} />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">
+                {titleOf(chosen)}
+              </p>
+              {post ? null : (
+                <button
+                  type="button"
+                  onClick={() => setChosen(null)}
+                  className="min-h-11 -my-2 text-sm text-brand-primary-text hover:text-white transition-colors"
+                >
+                  {t('creator.promote.change_post')}
+                </button>
+              )}
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="text-white text-sm font-bold truncate">
-              {post.caption || t('creator.promotions.untitled')}
+
+          <div className="space-y-2">
+            <p className="text-sm text-white/70">
+              {t('creator.promote.daily_budget')}
             </p>
-            <p className="text-white/40 text-xs mt-0.5">
-              {post.type} ·{' '}
-              {t('post.content.likes_count', {
-                count: post._count?.likes || 0,
-              })}{' '}
-              ·{' '}
-              {t('post.content.comments_count', {
-                count: post._count?.comments || 0,
-              })}
+            <CreatorViewChoice
+              wrap
+              label={t('creator.promote.daily_budget')}
+              items={DAILY_BUDGETS.map((value) => ({
+                value: String(value),
+                label: formatWholeEuros(value, language),
+              }))}
+              value={String(dailyBudget)}
+              onChange={(value) => setDailyBudget(Number(value))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-sm text-white/70">
+              {t('creator.promote.duration')}
+            </p>
+            <CreatorViewChoice
+              wrap
+              label={t('creator.promote.duration')}
+              items={DURATIONS.map((value) => ({
+                value: String(value),
+                label: t('creator.promote.days', { count: value }),
+              }))}
+              value={String(durationDays)}
+              onChange={(value) => setDurationDays(Number(value))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label htmlFor="promote-places" className="text-sm text-white/70">
+              {t('creator.promote.places')}
+            </label>
+            <input
+              id="promote-places"
+              type="text"
+              value={places}
+              onChange={(e) => setPlaces(e.target.value)}
+              placeholder={t('creator.promote.places_placeholder')}
+              aria-describedby="promote-places-hint"
+              className={fieldClass}
+            />
+            <p
+              id="promote-places-hint"
+              className="text-xs text-white/50 leading-relaxed"
+            >
+              {t('creator.promote.places_hint')}
+            </p>
+          </div>
+
+          <div className="pt-4 border-t border-white/10 space-y-3">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="text-sm text-white/70">
+                {t('creator.promote.total')}
+              </span>
+              <span className="text-2xl font-semibold text-white tabular-nums tracking-tight">
+                {total}
+              </span>
+            </div>
+            <p className="text-xs text-white/50 leading-relaxed">
+              {t('creator.promote.total_hint', { count: durationDays })}
+            </p>
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full min-h-12"
+              onClick={() => mutation.mutate(chosen)}
+              isLoading={mutation.isPending}
+            >
+              {t('creator.promote.pay', { total })}
+            </Button>
+            <p className="text-center text-xs text-white/50">
+              {t('creator.promote.terms')}
             </p>
           </div>
         </div>
-      </div>
-
-      <div className="space-y-5">
-        {/* Objective Selection */}
-        <div>
-          <h3 className="text-xs text-white/50 mb-3 flex items-center gap-1">
-            <Target size={14} /> {t('creator.promotions.campaign_objective')}
-          </h3>
-          <div className="grid grid-cols-1 gap-2">
-            {objectives.map((obj) => (
+      ) : loadingPosts ? (
+        <div className="space-y-2" data-testid="promote-loading">
+          {['a', 'b', 'c'].map((id) => (
+            <div
+              key={id}
+              className="h-16 rounded-lg bg-white/5 animate-pulse"
+            />
+          ))}
+        </div>
+      ) : posts?.data?.length ? (
+        <ul className="-mx-2 space-y-1">
+          {posts.data.map((item) => (
+            <li key={item.id}>
               <button
-                key={obj.id}
-                onClick={() => setObjective(obj.id)}
-                className={`p-3 text-left rounded-xl border transition-all text-sm font-bold ${
-                  objective === obj.id
-                    ? 'bg-brand-primary/10 border-brand-primary text-brand-primary-text'
-                    : 'bg-white/5 border-white/5 text-gray-300 hover:border-white/15'
-                }`}
                 type="button"
+                onClick={() => setChosen(item)}
+                className="w-full flex items-center gap-3 p-2 rounded-xl text-left hover:bg-white/5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/50"
               >
-                {obj.label}
+                <Thumbnail url={item.media?.[0]?.url} />
+                <span className="flex-1 min-w-0">
+                  <span className="block text-sm font-medium text-white truncate">
+                    {titleOf(item)}
+                  </span>
+                  <span className="block mt-0.5 text-xs text-white/60 truncate">
+                    {postFacts(item, t, language)[0]}
+                  </span>
+                </span>
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Budget & Duration */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label
-              htmlFor="dailyBudgetInput"
-              className="text-white/50 text-xs mb-2 block"
-            >
-              {t('creator.promotions.daily_budget', { currency: 'EUR' })}
-            </label>
-            <input
-              id="dailyBudgetInput"
-              type="number"
-              min="1"
-              max="1000"
-              value={dailyBudget}
-              onChange={(e) => setDailyBudget(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-brand-primary"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="durationDaysInput"
-              className="text-white/50 text-xs mb-2 block"
-            >
-              {t('creator.promotions.campaign_duration')}
-            </label>
-            <input
-              id="durationDaysInput"
-              type="number"
-              min="1"
-              max="30"
-              value={durationDays}
-              onChange={(e) => setDurationDays(Number(e.target.value))}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-medium focus:outline-none focus:border-brand-primary"
-            />
-          </div>
-        </div>
-
-        {/* Segmentation */}
-        <div className="space-y-4">
-          <div>
-            <label
-              htmlFor="countriesInput"
-              className="text-white/50 text-xs mb-2 flex items-center gap-1"
-            >
-              <Globe size={14} /> {t('creator.promotions.countries_hint')}
-            </label>
-            <input
-              id="countriesInput"
-              type="text"
-              placeholder={t('creator.promotions.all_countries')}
-              value={countries}
-              onChange={(e) => setCountries(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-primary"
-            />
-          </div>
-          <div>
-            <label
-              htmlFor="interestsInput"
-              className="text-white/50 text-xs mb-2 flex items-center gap-1"
-            >
-              <Hash size={14} /> {t('creator.promotions.interests_hint')}
-            </label>
-            <input
-              id="interestsInput"
-              type="text"
-              placeholder={t('creator.promotions.all_interests')}
-              value={interests}
-              onChange={(e) => setInterests(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-brand-primary"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Summary */}
-      <div className="px-5 pb-5">
-        <div className="bg-brand-primary/5 border border-brand-primary/20 rounded-xl p-4 space-y-2">
-          <div className="flex items-center justify-between text-sm">
-            <span className="flex items-center gap-1 text-brand-primary-text/80">
-              <DollarSign size={14} /> {t('creator.promotions.investment')}
-            </span>
-            <span className="text-white font-semibold text-lg tabular-nums">
-              €{totalBudget}
-            </span>
-          </div>
-          <div className="flex items-center justify-between text-xs text-brand-primary-text/60">
-            <span>
-              €{dailyBudget}/{t('creator.promotions.per_day')} ·{' '}
-              {t('creator.promotions.days', { count: durationDays })}
-            </span>
-          </div>
-        </div>
-
-        <div className="mt-3 bg-white/5 border border-white/10 rounded-xl p-4 flex items-center justify-between">
-          <span className="text-gray-300 text-sm font-bold flex items-center gap-2">
-            <Sparkles size={16} className="text-brand-accent" />
-            {t('creator.promotions.estimated_reach')}
-          </span>
-          <span className="text-white font-medium text-sm tabular-nums">
-            {formatNumber(minReach, i18n.language)} -{' '}
-            {formatNumber(maxReach, i18n.language)}
-          </span>
-        </div>
-      </div>
-
-      {/* Action */}
-      <div className="p-5 pt-0">
-        <Button
-          variant="primary"
-          onClick={() => mutation.mutate()}
-          isLoading={mutation.isPending}
-          className="w-full"
-          disabled={totalBudget <= 0}
-        >
-          <Megaphone size={16} className="mr-2" />{' '}
-          {t('creator.promotions.boost_total', {
-            currency: '€',
-            total: totalBudget,
-          })}
-        </Button>
-        <p className="text-center text-white/40 text-xs mt-3">
-          {t('creator.promotions.accept_terms')}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="py-8 text-center text-sm text-white/60">
+          {t('creator.promote.no_posts')}
         </p>
-      </div>
+      )}
     </Dialog>
   );
 }
