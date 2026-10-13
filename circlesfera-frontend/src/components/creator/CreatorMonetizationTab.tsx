@@ -22,6 +22,11 @@ import {
 } from '../../utils/apiErrorMessage';
 import { promptIdentityVerification } from '../../utils/identityVerification';
 import { formatCents } from '../../utils/money';
+import {
+  dropPendingTab,
+  openPendingTab,
+  sendPendingTab,
+} from '../../utils/pendingTab';
 import { planFeatureLabel } from '../../utils/planFeatures';
 import MonetizationDashboard from '../monetization/MonetizationDashboard';
 import { Button, Card } from '../ui';
@@ -123,12 +128,15 @@ export default function CreatorMonetizationTab({
     },
   });
 
+  // The tab is opened at the tap and filled when the link arrives: opened
+  // after the wait, a phone refuses it and says nothing.
   const dashboardMutation = useMutation({
-    mutationFn: () => monetizationApi.getDashboardLink(),
-    onSuccess: (data) => {
-      window.open(data.url, '_blank');
+    mutationFn: (_tab: Window | null) => monetizationApi.getDashboardLink(),
+    onSuccess: (data, tab) => {
+      sendPendingTab(tab, data.url);
     },
-    onError: (err: unknown) => {
+    onError: (err: unknown, tab) => {
+      dropPendingTab(tab);
       onToast(
         apiErrorMessage(err, t, 'creator.monetization.error_dashboard'),
         'error',
@@ -226,7 +234,7 @@ export default function CreatorMonetizationTab({
                 <Button
                   variant="secondary"
                   disabled={dashboardMutation.isPending}
-                  onClick={() => dashboardMutation.mutate()}
+                  onClick={() => dashboardMutation.mutate(openPendingTab())}
                   isLoading={dashboardMutation.isPending}
                   className="min-h-11 px-4 shrink-0"
                 >

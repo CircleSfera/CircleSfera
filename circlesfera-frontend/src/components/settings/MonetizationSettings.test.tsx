@@ -117,7 +117,15 @@ describe('MonetizationSettings', () => {
     vi.mocked(monetizationApi.getDashboardLink).mockResolvedValue({
       url: 'https://connect.stripe.com/express/x',
     });
-    const open = vi.spyOn(window, 'open').mockReturnValue(null);
+    const tab = {
+      closed: false,
+      opener: window,
+      close: vi.fn(),
+      location: { replace: vi.fn() },
+    };
+    const open = vi
+      .spyOn(window, 'open')
+      .mockReturnValue(tab as unknown as Window);
     const { i18n } = renderWithProviders(<MonetizationSettings />);
 
     expect(
@@ -130,13 +138,14 @@ describe('MonetizationSettings', () => {
       }),
     );
 
+    // Opened at the tap, then sent to the link, with no handle on this page.
+    expect(open).toHaveBeenCalledWith('', '_blank');
     await waitFor(() =>
-      expect(open).toHaveBeenCalledWith(
+      expect(tab.location.replace).toHaveBeenCalledWith(
         'https://connect.stripe.com/express/x',
-        '_blank',
-        'noopener,noreferrer',
       ),
     );
+    expect(tab.opener).toBeNull();
     open.mockRestore();
   });
 
