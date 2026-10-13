@@ -15,6 +15,16 @@ export const MIN_TIP_CENTS = 200; // €2.00
 // Cost charged against a promotion budget per sponsored view (1 cent).
 export const PROMOTION_COST_PER_VIEW_CENTS = 1;
 
+// What a promotion may cost and last. The route takes euros; the range per
+// day and the days are the ones the app offers.
+export const MIN_PROMOTION_DAYS = 1;
+export const MAX_PROMOTION_DAYS = 30;
+export const MIN_PROMOTION_DAILY_BUDGET_EUROS = 5;
+export const MAX_PROMOTION_DAILY_BUDGET_EUROS = 50;
+export const MIN_PROMOTION_BUDGET_EUROS = 1;
+export const MAX_PROMOTION_BUDGET_EUROS =
+  MAX_PROMOTION_DAILY_BUDGET_EUROS * MAX_PROMOTION_DAYS;
+
 // Convert major currency units (e.g. EUR) to integer cents.
 export function eurosToCents(euros: number): number {
   return Math.max(0, Math.round(euros * 100));

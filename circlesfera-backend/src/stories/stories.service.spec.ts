@@ -665,6 +665,40 @@ describe('StoriesService', () => {
   });
 
   describe('getReactions', () => {
+    beforeEach(() => {
+      mockPrismaService.story.findUnique.mockResolvedValue({
+        profileId: 'author-1',
+        isCloseFriendsOnly: false,
+        profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+      });
+      mockPrismaService.block.findFirst.mockResolvedValue(null);
+    });
+
+    it('gives the author every reaction and another viewer only their own', async () => {
+      mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
+
+      await service.getReactions('s1', 'author-1');
+      expect(
+        mockPrismaService.storyReaction.findMany.mock.lastCall?.[0].where,
+      ).toEqual({ storyId: 's1' });
+
+      await service.getReactions('s1', 'viewer-1');
+      expect(
+        mockPrismaService.storyReaction.findMany.mock.lastCall?.[0].where,
+      ).toEqual({ storyId: 's1', profileId: 'viewer-1' });
+    });
+
+    it('answers not found, and reads no reaction, for a story the viewer cannot see', async () => {
+      mockPrismaService.storyReaction.findMany.mockClear();
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b1' });
+
+      await expect(service.getReactions('s1', 'viewer-1')).rejects.toThrow(
+        NotFoundException,
+      );
+
+      expect(mockPrismaService.storyReaction.findMany).not.toHaveBeenCalled();
+    });
+
     it('should return reactions with public-safe reactor profiles, never the raw User record', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([
         {
@@ -683,7 +717,7 @@ describe('StoriesService', () => {
           },
         },
       ]);
-      const result = await service.getReactions('s1');
+      const result = await service.getReactions('s1', 'author-1');
       expect(result.data).toHaveLength(1);
       expect(result.data[0].profile.username).toBe('alice');
       expect(result.data[0].profile).not.toHaveProperty('user');
@@ -712,7 +746,7 @@ describe('StoriesService', () => {
         id: 'r5',
       });
 
-      await service.getReactions('s1', cursor);
+      await service.getReactions('s1', 'author-1', cursor);
 
       expect(mockPrismaService.storyReaction.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(
@@ -731,7 +765,7 @@ describe('StoriesService', () => {
     it('should degrade to the first page for a malformed or stale cursor', async () => {
       mockPrismaService.storyReaction.findMany.mockResolvedValue([]);
 
-      await service.getReactions('s1', 'stale-cursor');
+      await service.getReactions('s1', 'author-1', 'stale-cursor');
 
       expect(mockPrismaService.storyReaction.findUnique).not.toHaveBeenCalled();
       expect(mockPrismaService.storyReaction.findMany).toHaveBeenCalledWith(

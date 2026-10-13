@@ -394,7 +394,24 @@ describe('AnalyticsService', () => {
   describe('getPostInsights', () => {
     it('throws AppException if post is not found', async () => {
       mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
-      await expect(service.getPostInsights('missing-post')).rejects.toThrow();
+      await expect(
+        service.getPostInsights('missing-post', 'prof-1'),
+      ).rejects.toThrow();
+    });
+
+    it('looks the post up among those of the Profile that asks, so the post of someone else is not found', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValueOnce(null);
+
+      await expect(
+        service.getPostInsights('p-1', 'prof-other'),
+      ).rejects.toThrow();
+
+      expect(mockPrismaService.post.findUnique).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: { id: 'p-1', profileId: 'prof-other' },
+        }),
+      );
+      expect(mockPrismaService.postView.findMany).not.toHaveBeenCalled();
     });
 
     it('returns detailed post insights including daily views and interaction events', async () => {
@@ -419,7 +436,7 @@ describe('AnalyticsService', () => {
         { eventType: 'DWELL_TIME', dwellTime: 4500 },
       ]);
 
-      const insights = await service.getPostInsights('p-1');
+      const insights = await service.getPostInsights('p-1', 'prof-1');
 
       expect(insights.post.impressions).toBe(2);
       expect(insights.post.shares).toBe(1);
@@ -444,7 +461,7 @@ describe('AnalyticsService', () => {
       mockPrismaService.postView.findMany.mockResolvedValueOnce([]);
       mockPrismaService.interactionEvent.findMany.mockResolvedValueOnce([]);
 
-      const insights = await service.getPostInsights('p-zero');
+      const insights = await service.getPostInsights('p-zero', 'prof-1');
       expect(insights.post.conversionRate).toBe(0);
     });
   });

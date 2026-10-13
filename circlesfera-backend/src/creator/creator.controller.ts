@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -21,6 +20,7 @@ import { type CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { CreatePromotionDto } from './dto/create-promotion.dto.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
@@ -142,27 +142,8 @@ export class CreatorController {
   @UseGuards(CreatorAccountGuard)
   async createPromotion(
     @Req() req: AuthRequest,
-    @Body()
-    body: {
-      targetType: string;
-      targetId: string;
-      budget?: number;
-      dailyBudget?: number;
-      durationDays: number;
-      currency?: string;
-      objective?: string;
-      interests?: string;
-      countries?: string;
-    },
+    @Body() body: CreatePromotionDto,
   ) {
-    if (
-      !body.targetType ||
-      !body.targetId ||
-      (!body.budget && !body.dailyBudget) ||
-      !body.durationDays
-    ) {
-      throw new BadRequestException('Missing required fields');
-    }
     return this.createPromotionUC.execute(
       req.user.userId,
       body.targetType,

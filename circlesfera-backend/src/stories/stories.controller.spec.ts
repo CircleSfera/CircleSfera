@@ -193,13 +193,25 @@ describe('StoriesController', () => {
 
     const reactionsRes = await request(app.getHttpServer())
       .get('/api/v1/stories/story-1/reactions')
+      .set(BEARER)
       .expect(200);
     expect(reactionsRes.body).toEqual({ data: [{ id: 'r-1' }] });
     expect(mockService.getReactions).toHaveBeenCalledWith(
       'story-1',
+      TEST_USER.profileId,
       undefined,
       10,
     );
+  });
+
+  it('refuses the reactions of a story to someone who is not signed in', async () => {
+    mockService.getReactions.mockClear();
+
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/story-1/reactions')
+      .expect(401);
+
+    expect(mockService.getReactions).not.toHaveBeenCalled();
   });
 
   it('forwards cursor and limit query params for story views pagination', async () => {

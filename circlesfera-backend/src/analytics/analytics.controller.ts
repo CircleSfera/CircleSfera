@@ -92,11 +92,14 @@ export class AnalyticsController {
     );
   }
 
-  // Get detailed insights for a specific post
+  // Get detailed insights for a specific post (author only)
   @Get('post/:id/insights')
   @UseGuards(JwtAuthGuard)
-  async getPostInsights(@Param('id') postId: string) {
-    return this.analyticsService.getPostInsights(postId);
+  async getPostInsights(
+    @Param('id') postId: string,
+    @CurrentUser('profileId') profileId: string,
+  ) {
+    return this.analyticsService.getPostInsights(postId, profileId);
   }
 
   // Manual trigger for testing aggregation (ADMIN only)
