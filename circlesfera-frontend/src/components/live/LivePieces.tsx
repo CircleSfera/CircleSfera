@@ -202,7 +202,7 @@ export function LiveSheet({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="live-glass-sheet relative flex max-h-[66%] flex-col rounded-t-3xl pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] animate-in slide-in-from-bottom-8 duration-200"
+        className="live-glass-sheet relative flex max-h-[66%] flex-col rounded-t-3xl pb-(--live-bottom) animate-in slide-in-from-bottom-8 duration-200"
       >
         <div className="flex items-center justify-between gap-3 px-4 pt-3 pb-2">
           <h3

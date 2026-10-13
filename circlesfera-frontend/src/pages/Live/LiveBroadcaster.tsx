@@ -380,7 +380,10 @@ export default function LiveBroadcaster() {
         }
       >
         {/* Top band: what this screen is, and the way out. */}
-        <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+        <div
+          data-testid="live-top-band"
+          className="pointer-events-none absolute inset-x-(--live-side) top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto"
+        >
           <div className="flex min-w-0 flex-col gap-1">
             <LiveHost
               username={profile?.username ?? ''}
@@ -402,25 +405,10 @@ export default function LiveBroadcaster() {
           </div>
         </div>
 
-        {/* Guides: during the broadcast the top of the picture is covered by
-            the host's name and the live mark, and the bottom by the comments
-            and the field. What stays between the two lines is never covered,
-            so the host can place themself there. */}
-        <div
-          aria-hidden
-          data-testid="live-guide-top"
-          className="live-guide pointer-events-none absolute inset-x-0 top-[calc(var(--live-top)+9rem)]"
-        />
-        <div
-          aria-hidden
-          data-testid="live-guide-bottom"
-          className="live-guide pointer-events-none absolute inset-x-0 bottom-[calc(var(--live-bottom)+15rem)]"
-        />
-
         {/* Bottom band: the title, and going live. */}
         <form
           onSubmit={handleStart}
-          className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col gap-3 px-3 pb-(--live-bottom)"
+          className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col gap-3 px-(--live-side) pb-(--live-bottom)"
         >
           <input
             type="text"
@@ -522,7 +510,10 @@ export default function LiveBroadcaster() {
         >
           {/* Top band: whose broadcast it is and what it is doing; the way
             out on the right, with the host's own picture and sound under it. */}
-          <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+          <div
+            data-testid="live-top-band"
+            className="pointer-events-none absolute inset-x-(--live-side) top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto"
+          >
             <div className="flex min-w-0 flex-col items-start gap-2">
               <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
                 <LiveHost
@@ -593,7 +584,7 @@ export default function LiveBroadcaster() {
           )}
 
           {/* Floating Hearts */}
-          <div className="pointer-events-none absolute bottom-24 right-6 top-0 flex w-16 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
+          <div className="pointer-events-none absolute right-(--live-side) top-(--live-top) bottom-[calc(var(--live-bottom)+4rem)] flex w-16 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
             {hearts.map((heart) => (
               <div
                 key={heart.id}
@@ -610,7 +601,10 @@ export default function LiveBroadcaster() {
           </div>
 
           {/* Bottom band: the comments and what the host writes. */}
-          <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-3 pt-3 pb-(--live-bottom)">
+          <div
+            data-testid="live-bottom-band"
+            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-(--live-side) pt-3 pb-(--live-bottom)"
+          >
             <LivePinnedComment
               pinnedComment={pinnedComment}
               onUnpin={handleUnpinMessage}

@@ -304,7 +304,10 @@ export default function LiveViewer() {
         >
           {/* Top band: whose broadcast it is and what it is doing; the way
               out on the right. */}
-          <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+          <div
+            data-testid="live-top-band"
+            className="pointer-events-none absolute inset-x-(--live-side) top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto"
+          >
             <div className="flex min-w-0 flex-col items-start gap-2">
               <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
                 <LiveHost
@@ -364,7 +367,7 @@ export default function LiveViewer() {
             </div>
           )}
           {/* Floating Reactions Overlay */}
-          <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
+          <div className="pointer-events-none absolute right-(--live-side) top-(--live-top) bottom-[calc(var(--live-bottom)+7.5rem)] flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
             <AnimatePresence>
               {reactions.map((r) => (
                 <motion.div
@@ -387,7 +390,10 @@ export default function LiveViewer() {
           </div>
 
           {/* Bottom band: the comments, the reactions and what is written. */}
-          <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-3 pt-4 pb-(--live-bottom)">
+          <div
+            data-testid="live-bottom-band"
+            className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-(--live-side) pt-4 pb-(--live-bottom)"
+          >
             {/* Pinned Comment Banner */}
             <LivePinnedComment pinnedComment={pinnedComment} />
 

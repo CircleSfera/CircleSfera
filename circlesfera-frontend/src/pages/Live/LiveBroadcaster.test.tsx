@@ -125,14 +125,6 @@ describe('LiveBroadcaster', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('draws two guides over the preview, for what the broadcast will cover at the top and at the bottom', () => {
-    const { i18n } = renderWithProviders(<LiveBroadcaster />);
-
-    expect(screen.getByTestId('live-guide-top')).toBeInTheDocument();
-    expect(screen.getByTestId('live-guide-bottom')).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.setup_hint'))).toBeInTheDocument();
-  });
-
   it('uses Spanish setup copy', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />, { lng: 'es' });
 
@@ -339,6 +331,17 @@ describe('LiveBroadcaster', () => {
     await waitFor(() =>
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
     );
+  });
+
+  it('lays the bands on the shared margins of Live, never on a distance of their own', async () => {
+    await startStream();
+
+    const top = screen.getByTestId('live-top-band').className;
+    expect(top).toContain('top-(--live-top)');
+    expect(top).toContain('inset-x-(--live-side)');
+    const bottom = screen.getByTestId('live-bottom-band').className;
+    expect(bottom).toContain('pb-(--live-bottom)');
+    expect(bottom).toContain('px-(--live-side)');
   });
 
   it('names every control of the live screen', async () => {

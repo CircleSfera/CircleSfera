@@ -42,7 +42,7 @@ export default function CinematicStage({
               trackRef={tracks[0]}
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
+            <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>
                 {tracks[0].participant.identity || t('live.host_n', { n: 1 })}
@@ -54,7 +54,7 @@ export default function CinematicStage({
               trackRef={tracks[1]}
               className="w-full h-full object-cover"
             />
-            <div className="absolute top-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
+            <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/60 backdrop-blur-md rounded-full border border-white/15 text-xs font-bold text-white shadow-lg flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
               <span>
                 {tracks[1].participant.identity || t('live.cohost_fallback')}
