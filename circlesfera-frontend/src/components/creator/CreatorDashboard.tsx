@@ -34,6 +34,8 @@ import type { CreatorTab } from './creatorNav';
 import { localHour, postFacts, weekdayName } from './creatorWords';
 
 // A chart of fewer points than this says nothing: words take its place.
+// Its days arrive as dates with no time, so they are written in universal
+// time: in the reader's own, a day west of it would show as the day before.
 const MIN_CHART_DAYS = 3;
 
 export default function CreatorDashboard({
@@ -159,6 +161,7 @@ export default function CreatorDashboard({
                       new Date(value).toLocaleDateString(language, {
                         day: 'numeric',
                         month: 'short',
+                        timeZone: 'UTC',
                       })
                     }
                   />
@@ -182,6 +185,7 @@ export default function CreatorDashboard({
                       new Date(String(value)).toLocaleDateString(language, {
                         day: 'numeric',
                         month: 'long',
+                        timeZone: 'UTC',
                       })
                     }
                   />
