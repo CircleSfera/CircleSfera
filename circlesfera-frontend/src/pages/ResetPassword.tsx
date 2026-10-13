@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../components/ui';
+import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
 import { authApi } from '../services';
 import { apiErrorMessage } from '../utils/apiErrorMessage';
 
@@ -141,14 +142,16 @@ export default function ResetPassword() {
             </div>
           )}
 
-          <Button
-            type="submit"
-            variant="primary"
-            isLoading={loading}
-            className="w-full font-bold py-3"
-          >
-            {t('auth.reset_password.submit')}
-          </Button>
+          <div className={BUTTON_ROW}>
+            <Button
+              type="submit"
+              variant="primary"
+              isLoading={loading}
+              className={`${BUTTON_FIT} font-bold py-3`}
+            >
+              {t('auth.reset_password.submit')}
+            </Button>
+          </div>
         </form>
 
         <div className="mt-8 text-center">

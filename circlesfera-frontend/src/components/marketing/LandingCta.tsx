@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { BUTTON_STACK } from '../ui/buttonWidth';
 import { EYEBROW } from './eyebrow';
 import { MarketingCTA } from './MarketingCTA';
 
@@ -20,7 +21,9 @@ export function LandingCta() {
           <p className="mx-auto mt-4 max-w-md text-base leading-relaxed text-white/65 sm:text-lg">
             {t('landing.cta.subtitle')}
           </p>
-          <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div
+            className={`mt-8 ${BUTTON_STACK} mx-auto sm:flex sm:flex-row sm:justify-center`}
+          >
             <MarketingCTA
               to="/accounts/signup"
               variant="primary"
