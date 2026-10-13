@@ -199,7 +199,7 @@ export function AdminListRow({
                         setMenuOpen(false);
                       }}
                       className={clsx(
-                        'button-alone flex items-center gap-2.5 px-3 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-40 min-h-10',
+                        'w-full flex items-center gap-2.5 px-3 py-2 text-sm font-medium tracking-tight transition-colors disabled:opacity-40 min-h-10',
                         isDanger
                           ? 'text-red-400 hover:bg-red-500/10'
                           : 'text-white hover:bg-white/6',
