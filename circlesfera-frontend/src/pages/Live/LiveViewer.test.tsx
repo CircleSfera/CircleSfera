@@ -242,7 +242,7 @@ describe('LiveViewer', () => {
       const { i18n } = renderViewer();
       await screen.findByText(i18n!.t('live.now'));
 
-      const picture = screen.getByRole('img', { name: 'alice' });
+      const picture = screen.getByTestId('live-host-picture');
       // Drawn in the app: the name is not sent to another site.
       const src = picture.getAttribute('src') ?? '';
       expect(src).toMatch(/^data:image\/svg\+xml,/);

@@ -367,7 +367,7 @@ describe('LiveViewer on the live connection', () => {
       await watch();
       live.socket.emit.mockClear();
 
-      fireEvent.doubleClick(screen.getByTestId('livekit-room'));
+      fireEvent.doubleClick(screen.getByTestId('live-video'));
 
       expect(live.socket.emit).toHaveBeenCalledWith('live:send_reaction', {
         streamId: 'stream-1',

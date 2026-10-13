@@ -141,7 +141,9 @@ export function LiveHost({
     <div className="flex min-w-0 items-center gap-2">
       <img
         src={avatar || initialsAvatarUrl(username)}
+        // The name is written next to it: read aloud once, not twice.
         alt=""
+        data-testid="live-host-picture"
         className="h-9 w-9 shrink-0 rounded-full object-cover ring-2 ring-white/25"
       />
       <div className="min-w-0">

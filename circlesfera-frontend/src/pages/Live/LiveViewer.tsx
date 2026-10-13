@@ -1,7 +1,7 @@
 import '@livekit/components-styles';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Eye, Gift, Heart, HelpCircle, Send, X } from 'lucide-react';
+import { Gift, Heart, HelpCircle, Send, X } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -13,6 +13,12 @@ import LiveGiftModal from '../../components/live/LiveGiftModal';
 import LiveGoalBar, {
   type LiveGoalData,
 } from '../../components/live/LiveGoalBar';
+import {
+  LiveControl,
+  LiveFrame,
+  LiveHost,
+  LiveStatus,
+} from '../../components/live/LivePieces';
 import LivePinnedComment, {
   type PinnedCommentData,
 } from '../../components/live/LivePinnedComment';
@@ -271,102 +277,65 @@ export default function LiveViewer() {
     'wss://circlesfera-6sxa79qt.livekit.cloud';
 
   return (
-    <div className="w-full h-dvh bg-surface-base md:bg-transparent flex items-center justify-center overflow-hidden">
-      {/* A double tap anywhere sends a heart. It is not a button: it holds
+    <>
+      {/* The room holds the whole screen and draws no box of its own. A
+          double tap anywhere sends a heart: it is not a button, it holds
           every control of the screen, and the reactions have their own. */}
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: double tap on the video area, with the reaction buttons as the keyboard path */}
-      <div
-        className="w-full h-full md:max-w-105 md:h-[88vh] md:rounded-3xl border border-white/10 shadow-[0_0_60px_rgba(0,0,0,0.9)] relative flex flex-col overflow-hidden bg-black select-none"
-        onDoubleClick={handleDoubleTap}
+      <LiveKitRoom
+        video={!!coHostToken}
+        audio={!!coHostToken}
+        token={activeToken}
+        serverUrl={serverUrl}
+        data-lk-theme="default"
+        className="contents"
+        onDisconnected={() => {
+          toast.error(t('live.connection_lost'));
+          navigate(-1);
+        }}
       >
-        {/* Top Header Overlay */}
-        <div className="absolute left-4 right-4 top-[max(1rem,env(safe-area-inset-top,0px))] z-50 flex items-center justify-between gap-2 pointer-events-auto">
-          <div className="flex items-center gap-2.5">
-            {/* Host Avatar with Gradient Ring */}
-            <div className="p-0.5 bg-linear-to-tr from-brand-accent via-brand-secondary to-brand-primary rounded-full shadow-lg">
-              <img
-                src={
-                  streamDetails?.host?.profile?.avatar ||
-                  fallbackAvatar(
+        <LiveFrame
+          onDoubleClick={handleDoubleTap}
+          video={
+            <>
+              <CinematicStage />
+              <RoomAudioRenderer />
+            </>
+          }
+        >
+          {/* Top band: whose broadcast it is and what it is doing; the way
+              out on the right. */}
+          <div className="pointer-events-none absolute inset-x-3 top-(--live-top) z-50 flex items-start justify-between gap-2 [&>*]:pointer-events-auto">
+            <div className="flex min-w-0 flex-col items-start gap-2">
+              <div className="flex min-w-0 max-w-full flex-wrap items-center gap-x-2.5 gap-y-2">
+                <LiveHost
+                  username={
                     streamDetails?.host?.profile?.username ||
-                      t('live.host_fallback'),
-                  )
-                }
-                alt={
-                  streamDetails?.host?.profile?.username || t('common.alt.host')
-                }
-                className="w-9 h-9 rounded-full object-cover border-2 border-black"
-              />
-            </div>
-
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-extrabold text-white tracking-wide drop-shadow-md">
-                  {streamDetails?.host?.profile?.username ||
-                    t('live.host_fallback')}
-                </span>
-                <span className="bg-brand-secondary text-xs font-bold text-white px-2 py-0.5 rounded-full uppercase tracking-wide shadow-md shadow-brand-secondary/30">
-                  {t('live.now')}
-                </span>
+                    t('live.host_fallback')
+                  }
+                  avatar={streamDetails?.host?.profile?.avatar}
+                  title={streamDetails?.title}
+                />
+                <LiveStatus viewers={viewerCount} />
               </div>
-              {streamDetails?.title && (
-                <span className="text-xs text-white/70 truncate max-w-35">
-                  {streamDetails.title}
-                </span>
-              )}
+              <LiveGoalBar goal={liveGoal} isHost={false} />
             </div>
+            <LiveControl label={t('common.close')} onClick={() => navigate(-1)}>
+              <X className="h-5 w-5" aria-hidden />
+            </LiveControl>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* Viewer Count Badge */}
-            <div className="flex items-center space-x-1.5 px-3 py-1.5 bg-black/40 border border-white/15 rounded-full backdrop-blur-xl text-xs font-bold text-white shadow-xl">
-              <Eye className="w-3.5 h-3.5 text-brand-secondary" />
-              <span>{viewerCount}</span>
-            </div>
-
-            {/* Close Button */}
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="w-11 h-11 shrink-0 flex items-center justify-center bg-black/40 hover:bg-black/60 rounded-full text-white backdrop-blur-xl border border-white/10 transition-all shadow-xl hover:scale-105 active:scale-95"
-              aria-label={t('common.close')}
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-        {/* Live Goal Bar (Top Center/Left below header) */}
-        <div className="absolute left-4 top-[calc(max(1rem,env(safe-area-inset-top,0px))+3.25rem)] z-50 pointer-events-auto">
-          <LiveGoalBar goal={liveGoal} isHost={false} />
-        </div>
-        {/* Co-Host Invite Banner */}
-        <CoHostInviteBanner
-          invite={pendingInvite}
-          onAccepted={(t, sid) => {
-            setCoHostToken(t);
-            setCoHostStreamId(sid);
-            setPendingInvite(null);
-          }}
-          onDismiss={() => setPendingInvite(null)}
-        />
-        <div className="flex-1 overflow-hidden relative">
-          <LiveKitRoom
-            video={!!coHostToken}
-            audio={!!coHostToken}
-            token={activeToken}
-            serverUrl={serverUrl}
-            data-lk-theme="default"
-            className="h-full w-full"
-            onDisconnected={() => {
-              toast.error(t('live.connection_lost'));
-              navigate(-1);
+          {/* The invitation to join as co-host */}
+          <CoHostInviteBanner
+            invite={pendingInvite}
+            onAccepted={(t, sid) => {
+              setCoHostToken(t);
+              setCoHostStreamId(sid);
+              setPendingInvite(null);
             }}
-          >
-            <CinematicStage />
-            <RoomAudioRenderer />
-          </LiveKitRoom>
+            onDismiss={() => setPendingInvite(null)}
+          />
 
-          {/* Projected Question Overlay */}
+          {/* The question the host put on the video */}
           {highlightedQuestion && (
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 z-40 w-[80%] max-w-sm pointer-events-none">
               <div className="bg-white p-4 rounded-3xl shadow-[0_10px_40px_rgba(0,0,0,0.5)] border border-neutral-100 animate-in zoom-in duration-300">
@@ -394,146 +363,145 @@ export default function LiveViewer() {
               </div>
             </div>
           )}
-        </div>
-        {/* Floating Reactions Overlay */}
-        <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
-          <AnimatePresence>
-            {reactions.map((r) => (
-              <motion.div
-                key={r.id}
-                initial={{ opacity: 0, y: 50, scale: 0.5 }}
-                animate={{ opacity: 1, y: 0, scale: 1.2 }}
-                exit={{ opacity: 0, y: -60, scale: 0.8 }}
-                transition={{ duration: 2, ease: 'easeOut' }}
-                className="absolute bottom-0 text-3xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
-                style={{ transform: `translateX(${r.x}px)` }}
-              >
-                {r.emoji === '❤️' ? (
-                  <Heart className="h-8 w-8 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
-                ) : (
-                  <span>{r.emoji}</span>
-                )}
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-        {/* Live chat and interactivity overlay */}
-        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/95 via-black/60 to-transparent px-4 pt-4 pb-[max(1rem,env(safe-area-inset-bottom,0px))] flex flex-col justify-end z-40">
-          {/* Pinned Comment Banner */}
-          <LivePinnedComment pinnedComment={pinnedComment} />
-
-          {/* Live chat messages — stream of semi-transparent text lines */}
-          <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
-            <AnimatePresence initial={false}>
-              {chatMessages.map((msg) => (
+          {/* Floating Reactions Overlay */}
+          <div className="pointer-events-none absolute bottom-36 right-8 top-16 flex w-20 flex-col-reverse items-center justify-start overflow-hidden pb-4 z-40">
+            <AnimatePresence>
+              {reactions.map((r) => (
                 <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-                  className="text-white text-xs sm:text-sm bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit max-w-[85%] shadow-md flex items-center gap-1.5"
+                  key={r.id}
+                  initial={{ opacity: 0, y: 50, scale: 0.5 }}
+                  animate={{ opacity: 1, y: 0, scale: 1.2 }}
+                  exit={{ opacity: 0, y: -60, scale: 0.8 }}
+                  transition={{ duration: 2, ease: 'easeOut' }}
+                  className="absolute bottom-0 text-3xl drop-shadow-[0_4px_12px_rgba(0,0,0,0.8)]"
+                  style={{ transform: `translateX(${r.x}px)` }}
                 >
-                  <span className="font-extrabold text-white drop-shadow-sm">
-                    {msg.user.username}
-                  </span>
-                  <span className="text-white/90 font-medium">
-                    {msg.message}
-                  </span>
+                  {r.emoji === '❤️' ? (
+                    <Heart className="h-8 w-8 fill-brand-secondary text-brand-secondary drop-shadow-[0_0_12px_rgba(239,68,68,0.8)]" />
+                  ) : (
+                    <span>{r.emoji}</span>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>
-            <div ref={chatEndRef} />
           </div>
 
-          {/* The plan reactions, on a row of their own above the others */}
-          {canSendEliteReactions && (
-            <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar pointer-events-auto">
-              {ELITE_REACTION_EMOJIS.map((emoji) => (
+          {/* Bottom band: the comments, the reactions and what is written. */}
+          <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-40 flex flex-col justify-end bg-linear-to-t from-black/85 via-black/40 to-transparent px-3 pt-4 pb-(--live-bottom)">
+            {/* Pinned Comment Banner */}
+            <LivePinnedComment pinnedComment={pinnedComment} />
+
+            {/* Live chat messages — stream of semi-transparent text lines */}
+            <div className="overflow-y-auto max-h-52 mb-4 space-y-1.5 no-scrollbar relative mask-[linear-gradient(to_bottom,transparent,black_20%)] pt-6">
+              <AnimatePresence initial={false}>
+                {chatMessages.map((msg) => (
+                  <motion.div
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                    className="text-white text-xs sm:text-sm bg-black/40 border border-white/10 backdrop-blur-md px-3 py-1.5 rounded-full w-fit max-w-[85%] shadow-md flex items-center gap-1.5"
+                  >
+                    <span className="font-extrabold text-white drop-shadow-sm">
+                      {msg.user.username}
+                    </span>
+                    <span className="text-white/90 font-medium">
+                      {msg.message}
+                    </span>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* The plan reactions, on a row of their own above the others */}
+            {canSendEliteReactions && (
+              <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar">
+                {ELITE_REACTION_EMOJIS.map((emoji) => (
+                  <button
+                    type="button"
+                    key={emoji}
+                    onClick={() => sendQuickReaction(emoji)}
+                    className="live-glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform active:scale-90"
+                    aria-label={t('live.send_reaction', { emoji })}
+                  >
+                    <span aria-hidden>{emoji}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Reactions on their own row, so the comment field keeps its width */}
+            <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar">
+              {REACTION_EMOJIS.map((emoji) => (
                 <button
                   type="button"
                   key={emoji}
                   onClick={() => sendQuickReaction(emoji)}
-                  className="w-11 h-11 shrink-0 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-lg transition-all backdrop-blur-xl border border-white/10"
+                  className="live-glass flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-lg transition-transform active:scale-90"
                   aria-label={t('live.send_reaction', { emoji })}
                 >
                   <span aria-hidden>{emoji}</span>
                 </button>
               ))}
             </div>
-          )}
 
-          {/* Reactions on their own row, so the comment field keeps its width */}
-          <div className="flex items-center gap-2 mb-2 overflow-x-auto no-scrollbar pointer-events-auto">
-            {REACTION_EMOJIS.map((emoji) => (
-              <button
-                type="button"
-                key={emoji}
-                onClick={() => sendQuickReaction(emoji)}
-                className="w-11 h-11 shrink-0 rounded-full bg-white/15 hover:bg-white/25 active:scale-90 flex items-center justify-center text-lg transition-all backdrop-blur-xl border border-white/10"
-                aria-label={t('live.send_reaction', { emoji })}
-              >
-                <span aria-hidden>{emoji}</span>
-              </button>
-            ))}
+            {/* The field first, then what a viewer can do. While something
+                is being written the actions give way to sending it. */}
+            <form onSubmit={handleSend} className="flex items-center gap-2">
+              <input
+                type="text"
+                aria-label={t('live.chat_placeholder')}
+                placeholder={t('live.chat_placeholder')}
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                className="live-glass min-h-11 min-w-0 flex-1 rounded-full px-4 text-base text-white placeholder-white/60 outline-none focus:border-white/40"
+              />
+              {messageInput.trim() ? (
+                <LiveControl
+                  type="submit"
+                  tone="brand"
+                  label={t('live.send_comment')}
+                >
+                  <Send className="h-4 w-4" aria-hidden />
+                </LiveControl>
+              ) : (
+                <>
+                  <LiveControl
+                    label={t('live.qna.title')}
+                    onClick={() => setIsQnAOpen(true)}
+                  >
+                    <HelpCircle className="h-5 w-5" aria-hidden />
+                  </LiveControl>
+                  <LiveControl
+                    label={t('live.send_gift_btn')}
+                    onClick={() => setGiftModalOpen(true)}
+                  >
+                    <Gift className="h-5 w-5" aria-hidden />
+                  </LiveControl>
+                </>
+              )}
+            </form>
           </div>
 
-          {/* Comment bar */}
-          <form
-            onSubmit={handleSend}
-            className="flex gap-2 items-center pointer-events-auto"
-          >
-            <button
-              type="button"
-              onClick={() => setIsQnAOpen(true)}
-              className="w-11 h-11 shrink-0 flex items-center justify-center bg-white/15 hover:bg-white/25 rounded-full text-white transition-colors"
-              aria-label={t('live.qna.title')}
-            >
-              <HelpCircle size={20} aria-hidden />
-            </button>
-            <input
-              type="text"
-              aria-label={t('live.chat_placeholder')}
-              placeholder={t('live.chat_placeholder')}
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              className="flex-1 min-w-0 min-h-12 rounded-full bg-white/15 border border-white/25 px-4 text-base text-white placeholder-white/60 outline-none backdrop-blur-xl focus:bg-white/25 transition-colors"
-            />
-            {messageInput.trim() ? (
-              <button
-                type="submit"
-                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-brand-primary text-white hover:bg-brand-primary/90 active:scale-95 transition-all shadow-md shadow-brand-primary/30"
-                aria-label={t('live.send_comment')}
-              >
-                <Send className="h-4 w-4" aria-hidden />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setGiftModalOpen(true)}
-                className="w-11 h-11 shrink-0 flex items-center justify-center rounded-full bg-linear-to-tr from-brand-accent to-brand-secondary text-white shadow-lg shadow-brand-secondary/30 active:scale-95 transition-all"
-                aria-label={t('live.send_gift_btn')}
-              >
-                <Gift className="w-5 h-5 text-white" aria-hidden />
-              </button>
-            )}
-          </form>
-        </div>
-        {streamId ? (
-          <LiveGiftModal
-            isOpen={giftModalOpen}
-            onClose={() => setGiftModalOpen(false)}
-            streamId={streamId}
+          <LiveQnAPanel
+            isOpen={isQnAOpen}
+            onClose={() => setIsQnAOpen(false)}
+            isHost={false}
+            questions={questions}
+            onAskQuestion={handleAskQuestion}
           />
-        ) : null}
-        <LiveQnAPanel
-          isOpen={isQnAOpen}
-          onClose={() => setIsQnAOpen(false)}
-          isHost={false}
-          questions={questions}
-          onAskQuestion={handleAskQuestion}
+        </LiveFrame>
+      </LiveKitRoom>
+      {streamId ? (
+        <LiveGiftModal
+          isOpen={giftModalOpen}
+          onClose={() => setGiftModalOpen(false)}
+          streamId={streamId}
         />
-        <style>{`
+      ) : null}
+      <style>{`
         .animate-float-up {
           animation: floatUp 2s ease-in forwards;
         }
@@ -543,7 +511,6 @@ export default function LiveViewer() {
           100% { transform: translateY(-160px) scale(1); opacity: 0; }
         }
       `}</style>
-      </div>
-    </div>
+    </>
   );
 }
