@@ -8,9 +8,8 @@ function resolveApexBaseURL(): string {
   ].filter(Boolean) as string[];
   for (const url of candidates) {
     try {
-      const { port, hostname } = new URL(url);
+      const { port } = new URL(url);
       if (port === '3000' || port === '3005') continue;
-      if (hostname === 'api.circlesfera.com') continue;
       return url;
     } catch {
       /* ignore invalid */
