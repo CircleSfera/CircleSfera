@@ -15,8 +15,9 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { hasCreatorTools } from '../../utils/creatorTools';
 
-// Height: var(--nav-bottom-height) (48px) + safe-area-inset-bottom
-// Strictly 5 core items max for clean spacing and touch target density
+// A floating capsule of glass above the home indicator: the content scrolls
+// under it. The page keeps var(--nav-bottom-height) + safe-area-inset-bottom
+// free at its end. Strictly 5 core items max, each a touch target of 44 px.
 export default function BottomNav() {
   const location = useLocation();
   const path = location.pathname;
@@ -78,23 +79,14 @@ export default function BottomNav() {
   return (
     <nav
       aria-label={t('nav.mobile')}
-      className="flex flex-col justify-start md:hidden fixed bottom-0 left-0 right-0 z-50"
+      className="md:hidden fixed left-3 right-3 z-50 rounded-full bottom-nav-glass"
       style={{
-        background: 'rgba(18, 18, 18, 0.85)',
-        backdropFilter: 'blur(28px) saturate(200%)',
-        WebkitBackdropFilter: 'blur(28px) saturate(200%)',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        boxShadow:
-          '0 -4px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)',
-        // Explicit height to fix WebKit padding clip bugs
-        height:
-          'calc(var(--nav-bottom-height) + env(safe-area-inset-bottom, 0px))',
+        bottom:
+          'calc(env(safe-area-inset-bottom, 0px) + var(--nav-bottom-gap))',
+        height: 'var(--nav-bottom-bar-height)',
       }}
     >
-      <div
-        className="flex items-center justify-around w-full px-1"
-        style={{ height: 'var(--nav-bottom-height)' }}
-      >
+      <div className="flex items-center justify-around w-full h-full px-1.5">
         {navItems.map((item) => {
           const isActive =
             item.label === t('nav.profile')
@@ -106,28 +98,24 @@ export default function BottomNav() {
 
           const content = (
             <motion.div
-              className={`flex flex-col items-center justify-center gap-0.5 relative ${
-                isActive ? 'text-white' : 'text-gray-400/70'
+              className={`flex flex-col items-center justify-center gap-0.5 relative px-2 ${
+                isActive ? 'text-white' : 'text-white/70'
               }`}
-              style={{ minWidth: 44, minHeight: 44 }}
-              whileHover={{ scale: 1.08 }}
-              whileTap={{ scale: 0.88 }}
+              style={{ minWidth: 60, minHeight: 44 }}
+              whileTap={{ scale: 0.92 }}
             >
-              {/* Active indicator line top */}
+              {/* The destination the person is on: a pill of lighter glass
+                  that slides from one destination to the next. */}
               <AnimatePresence>
                 {isActive && (
                   <motion.div
-                    key="active-top-line"
-                    layoutId="activeBottomNavLine"
-                    className="absolute -top-px left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
-                    initial={{ opacity: 0, scaleX: 0 }}
-                    animate={{ opacity: 1, scaleX: 1 }}
-                    exit={{ opacity: 0, scaleX: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 32 }}
-                    style={{
-                      background: 'linear-gradient(90deg, #ff5757, #884cff)',
-                      boxShadow: '0 0 8px rgba(136,76,255,0.6)',
-                    }}
+                    key="active-pill"
+                    layoutId="activeBottomNavPill"
+                    className="absolute inset-0 rounded-full bottom-nav-glass-pill"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                   />
                 )}
               </AnimatePresence>
@@ -136,15 +124,13 @@ export default function BottomNav() {
               <item.icon
                 size={22}
                 strokeWidth={isActive ? 2.5 : 1.8}
-                className={`relative z-10 transition-all duration-150 ${
-                  isActive ? 'drop-shadow-[0_0_6px_rgba(136,76,255,0.7)]' : ''
-                }`}
+                className="relative z-10"
               />
 
               {/* Label — always visible for native feel */}
               <span
-                className={`text-[10px] font-medium leading-none transition-all duration-150 ${
-                  isActive ? 'font-bold text-white' : 'text-gray-500'
+                className={`relative z-10 text-[10px] leading-none ${
+                  isActive ? 'font-semibold' : 'font-medium'
                 }`}
               >
                 {item.label}
@@ -175,7 +161,7 @@ export default function BottomNav() {
                   triggerHaptic();
                   item.onClick?.();
                 }}
-                className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+                className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-full"
                 aria-label={item.label}
               >
                 {content}
@@ -188,7 +174,7 @@ export default function BottomNav() {
               key={item.label}
               to={item.to!}
               onClick={triggerHaptic}
-              className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
+              className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-full"
               aria-label={item.label}
               aria-current={isActive ? 'page' : undefined}
             >

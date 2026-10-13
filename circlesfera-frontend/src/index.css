@@ -322,7 +322,14 @@
 
   /* Navigation */
   --nav-top-height: 52px; /* 48-52px for high density mobile UI */
-  --nav-bottom-height: 48px; /* Standard dense mobile height */
+  /* The space a page keeps free at its end for the bottom bar on a phone:
+     the bar itself plus the gap it floats above the edge with. */
+  --nav-bottom-bar-height: 56px;
+  --nav-bottom-gap: 8px;
+  --nav-bottom-height: calc(
+    var(--nav-bottom-bar-height) +
+    var(--nav-bottom-gap)
+  );
   --nav-sidebar-width: 260px; /* 260–280px */
   --nav-sidebar-collapsed: 68px;
 
@@ -438,6 +445,55 @@ video {
   box-shadow:
     0 24px 48px -12px rgba(0, 0, 0, 0.5),
     inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* The bottom navigation on a phone: a floating capsule of glass. The content
+   scrolls under it and shows through, blurred; a light edge on top and a
+   soft shadow lift it from the content. */
+
+.bottom-nav-glass {
+  background: linear-gradient(
+    180deg,
+    rgba(52, 48, 62, 0.5) 0%,
+    rgba(24, 22, 32, 0.56) 100%
+  );
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.42),
+    0 2px 8px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* The destination the person is on: a lighter pill of the same glass. */
+
+.bottom-nav-glass-pill {
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+/* Without blur the glass would be a see-through film over the content, and
+   a person who asks for less transparency gets none: the bar is solid. */
+
+@supports not (
+    (backdrop-filter: blur(1px)) or
+    (-webkit-backdrop-filter: blur(1px))
+  ) {
+  .bottom-nav-glass {
+    background: rgba(24, 22, 32, 0.96);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .bottom-nav-glass {
+    background: rgba(24, 22, 32, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 /* Premium Surface Card (Enhanced Glass) */
