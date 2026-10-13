@@ -7,6 +7,7 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 
 // The pieces every Live screen is made of: the frame the video fills, the
@@ -179,14 +180,11 @@ export function LiveSheet({
 }) {
   const { t } = useTranslation();
   const titleId = useId();
-  useEffect(() => {
-    if (!isOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [isOpen, onClose]);
+  // The same trap the shared dialog uses: the keyboard stays inside the
+  // sheet, Escape closes it, and the focus goes back where it was.
+  const sheetRef = useFocusTrap<HTMLDivElement>(isOpen, undefined, {
+    onEscape: onClose,
+  });
 
   if (!isOpen) return null;
   return (
@@ -199,6 +197,7 @@ export function LiveSheet({
         onClick={onClose}
       />
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

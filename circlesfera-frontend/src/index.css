@@ -540,6 +540,23 @@ video {
   }
 }
 
+/* On a phone the controls lie over moving video: blurring what is behind each
+   one on every frame costs too much there, so they are a darker film
+   instead. */
+
+@media (max-width: 768px) {
+  .live-glass {
+    background: rgba(20, 18, 28, 0.72);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .live-glass-sheet {
+    background: rgba(18, 16, 26, 0.96);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
 @supports not (
     (backdrop-filter: blur(1px)) or
     (-webkit-backdrop-filter: blur(1px))

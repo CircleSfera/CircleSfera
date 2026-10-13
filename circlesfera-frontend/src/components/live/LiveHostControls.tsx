@@ -2,6 +2,7 @@ import { useLocalParticipant } from '@livekit/components-react';
 import { Track } from 'livekit-client';
 import { Mic, MicOff, SwitchCamera, Video, VideoOff } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { logger } from '../../utils/logger';
 import { LiveControl } from './LivePieces';
@@ -45,13 +46,24 @@ export function LiveCameraMicSwitches() {
   const { localParticipant, isCameraEnabled, isMicrophoneEnabled } =
     useLocalParticipant();
 
+  // The device may refuse (no permission, no camera): the host is told, and
+  // the control stays in the state it was in.
+  const switchDevice = (change: Promise<unknown>) => {
+    change.catch((error: unknown) => {
+      logger.error('Live device switch failed', error);
+      toast.error(t('live.device_switch_failed'));
+    });
+  };
+
   return (
     <>
       <LiveControl
         label={isCameraEnabled ? t('live.camera_off') : t('live.camera_on')}
         aria-pressed={!isCameraEnabled}
         tone={isCameraEnabled ? 'glass' : 'on'}
-        onClick={() => void localParticipant.setCameraEnabled(!isCameraEnabled)}
+        onClick={() =>
+          switchDevice(localParticipant.setCameraEnabled(!isCameraEnabled))
+        }
       >
         {isCameraEnabled ? (
           <Video className="h-5 w-5" aria-hidden />
@@ -64,7 +76,9 @@ export function LiveCameraMicSwitches() {
         aria-pressed={!isMicrophoneEnabled}
         tone={isMicrophoneEnabled ? 'glass' : 'on'}
         onClick={() =>
-          void localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled)
+          switchDevice(
+            localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled),
+          )
         }
       >
         {isMicrophoneEnabled ? (

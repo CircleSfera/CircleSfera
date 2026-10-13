@@ -4496,6 +4496,7 @@
     },
     "turn_camera": "Girar la cámara",
     "camera_off": "Apagar la cámara",
+    "device_switch_failed": "No se ha podido cambiar el dispositivo. Revisa los permisos del navegador.",
     "camera_on": "Encender la cámara",
     "mic_off": "Silenciar el micrófono",
     "mic_on": "Activar el micrófono",

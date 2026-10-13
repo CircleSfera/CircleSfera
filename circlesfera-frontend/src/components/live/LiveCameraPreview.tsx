@@ -16,13 +16,23 @@ export function useCameraPreview() {
   const [state, setState] = useState<PreviewState>('starting');
   const [facing, setFacing] = useState<Facing>('user');
 
-  const stop = useCallback(() => {
+  // The preview was stopped on purpose: a camera that answers afterwards is
+  // released at once, never kept beside the broadcast's own capture.
+  const stoppedRef = useRef(false);
+
+  const release = useCallback(() => {
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
   }, []);
 
+  const stop = useCallback(() => {
+    stoppedRef.current = true;
+    release();
+  }, [release]);
+
   useEffect(() => {
     let gone = false;
+    stoppedRef.current = false;
     const devices = navigator.mediaDevices;
     if (!devices?.getUserMedia) {
       setState('refused');
@@ -32,11 +42,11 @@ export function useCameraPreview() {
     devices
       .getUserMedia({ video: { facingMode: facing }, audio: false })
       .then((stream) => {
-        if (gone) {
+        if (gone || stoppedRef.current) {
           for (const track of stream.getTracks()) track.stop();
           return;
         }
-        stop();
+        release();
         streamRef.current = stream;
         if (videoRef.current) videoRef.current.srcObject = stream;
         setState('on');
@@ -46,9 +56,9 @@ export function useCameraPreview() {
       });
     return () => {
       gone = true;
-      stop();
+      release();
     };
-  }, [facing, stop]);
+  }, [facing, release]);
 
   const turn = useCallback(
     () => setFacing((now) => (now === 'user' ? 'environment' : 'user')),

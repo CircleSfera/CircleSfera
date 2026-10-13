@@ -32,6 +32,7 @@ import LiveQnAPanel, {
 import { apiClient as api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSocketStore } from '../../stores/socketStore';
+import { apiErrorCode } from '../../utils/apiErrorMessage';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
 import { hasElitePlan } from '../../utils/plans';
 
@@ -48,6 +49,11 @@ interface FloatingReaction {
 
 /** A neutral picture with the person's initials, for someone without one. */
 const fallbackAvatar = (username: string) => initialsAvatarUrl(username);
+
+// The server answers this way when the live is over, was never there, or is
+// not for this person. Any other failure is a problem of the connection.
+const isStreamGone = (error: unknown) =>
+  apiErrorCode(error) === 'STREAM_NOT_FOUND';
 
 export default function LiveViewer() {
   const { t } = useTranslation();
@@ -83,6 +89,7 @@ export default function LiveViewer() {
 
   const navigate = useNavigate();
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const isLeavingRef = useRef(false);
 
   const [streamDetails, setStreamDetails] = useState<any>(null);
 
@@ -115,8 +122,13 @@ export default function LiveViewer() {
       .then((res: any) => {
         setToken(res.data.token);
       })
-      .catch(() => {
-        setHasEnded(true);
+      .catch((error: unknown) => {
+        if (isStreamGone(error)) {
+          setHasEnded(true);
+          return;
+        }
+        toast.error(t('live.connection_lost'));
+        navigate(-1);
       });
 
     const socket = useSocketStore.getState().socket;
@@ -215,7 +227,7 @@ export default function LiveViewer() {
       socket.off('live:question_highlighted');
       socket.off('live:question_cleared');
     };
-  }, [streamId, t]);
+  }, [streamId, t, navigate]);
 
   // If co-host accepted: switch LiveKitRoom to publisher mode
   const activeToken = coHostToken || token;
@@ -341,6 +353,9 @@ export default function LiveViewer() {
         data-lk-theme="default"
         className="contents"
         onDisconnected={() => {
+          // Leaving on purpose also disconnects; the person is already on
+          // their way back.
+          if (isLeavingRef.current) return;
           // The video stops both when the host ends the broadcast and when
           // the connection drops: the server says which.
           api
@@ -353,7 +368,14 @@ export default function LiveViewer() {
               toast.error(t('live.connection_lost'));
               navigate(-1);
             })
-            .catch(() => setHasEnded(true));
+            .catch((error: unknown) => {
+              if (isStreamGone(error)) {
+                setHasEnded(true);
+                return;
+              }
+              toast.error(t('live.connection_lost'));
+              navigate(-1);
+            });
         }}
       >
         <LiveFrame
@@ -392,7 +414,13 @@ export default function LiveViewer() {
               </div>
               <LiveGoalBar goal={liveGoal} isHost={false} />
             </div>
-            <LiveControl label={t('common.close')} onClick={() => navigate(-1)}>
+            <LiveControl
+              label={t('common.close')}
+              onClick={() => {
+                isLeavingRef.current = true;
+                navigate(-1);
+              }}
+            >
               <X className="h-5 w-5" aria-hidden />
             </LiveControl>
           </div>

@@ -4496,6 +4496,7 @@
     },
     "turn_camera": "Turn the camera",
     "camera_off": "Turn the camera off",
+    "device_switch_failed": "The device could not be switched. Check the browser's permissions.",
     "camera_on": "Turn the camera on",
     "mic_off": "Mute the microphone",
     "mic_on": "Unmute the microphone",

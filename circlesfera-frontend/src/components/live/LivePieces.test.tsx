@@ -68,7 +68,7 @@ describe('the pieces of a Live screen', () => {
     const closers = screen.getAllByRole('button', { name: 'Close' });
     fireEvent.click(closers[0]);
     fireEvent.click(closers[1]);
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 });

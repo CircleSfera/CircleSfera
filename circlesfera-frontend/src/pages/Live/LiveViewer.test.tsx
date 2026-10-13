@@ -155,7 +155,12 @@ describe('LiveViewer', () => {
   });
 
   it('says on a screen of its own that the live has ended when it cannot be joined', async () => {
-    vi.mocked(apiClient.get).mockRejectedValue(new Error('gone'));
+    vi.mocked(apiClient.get).mockRejectedValue(
+      Object.assign(new Error('gone'), {
+        status: 404,
+        data: { errorCode: 'STREAM_NOT_FOUND' },
+      }),
+    );
     const { i18n } = renderViewer();
 
     expect(
@@ -165,6 +170,22 @@ describe('LiveViewer', () => {
     ).toBeInTheDocument();
     // An ended live is not a fault: nothing is reported as an error.
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed connection as such, not as a live that ended', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(
+      Object.assign(new Error('down'), { isNetworkError: true }),
+    );
+    const { i18n } = renderViewer();
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(i18n!.t('live.connection_lost')),
+    );
+    expect(
+      screen.queryByRole('heading', {
+        name: i18n!.t('live.viewer_ended_title'),
+      }),
+    ).not.toBeInTheDocument();
   });
 
   describe('the bar under the video', () => {
