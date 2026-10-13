@@ -80,7 +80,9 @@ export default function StoryList() {
             key={stream.id}
             to={`/live/${stream.id}`}
             className="flex flex-col items-center gap-1 shrink-0 group focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-lg"
-            style={{ width: 52 }}
+            // As wide as the name asks for: who is live is read whole, never
+            // cut short.
+            style={{ minWidth: 52 }}
           >
             {/* Ring 52px total, avatar 40px (md) inside */}
             <div
@@ -98,7 +100,7 @@ export default function StoryList() {
             </div>
             <div className="text-center w-full">
               <span
-                className="truncate block w-full text-gray-300 font-medium"
+                className="block whitespace-nowrap text-gray-300 font-medium"
                 style={{ fontSize: 'var(--text-badge, 11px)' }}
               >
                 {stream.host.profile?.username}

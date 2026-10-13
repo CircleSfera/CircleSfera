@@ -44,7 +44,7 @@ export default function CoHostInviteBanner({
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -60, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28 }}
-          className="fixed top-4 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-sm"
+          className="pointer-events-auto absolute inset-x-(--live-side) top-[calc(var(--live-top)+3.5rem)] z-50 mx-auto max-w-sm"
         >
           <div className="bg-black/90 backdrop-blur-xl border border-brand-primary/40 rounded-2xl p-4 shadow-2xl shadow-brand-primary/20">
             <div className="flex items-center gap-2 mb-3">

@@ -15,6 +15,15 @@ vi.mock('@livekit/components-react', () => ({
     <div data-testid="livekit-room">{children}</div>
   ),
   RoomAudioRenderer: () => null,
+  useLocalParticipant: () => ({
+    localParticipant: {
+      setCameraEnabled: vi.fn(),
+      setMicrophoneEnabled: vi.fn(),
+      getTrackPublication: vi.fn(),
+    },
+    isCameraEnabled: true,
+    isMicrophoneEnabled: true,
+  }),
 }));
 
 vi.mock('../../components/live/CinematicStage', () => ({
@@ -95,11 +104,13 @@ describe('LiveBroadcaster', () => {
   it('uses catalog copy on the setup screen', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />);
 
-    expect(i18n!.t('live.setup_title')).toBe('Go live');
+    expect(i18n!.t('live.setup_title')).toBe('Before going live');
     expect(
       screen.getByRole('heading', { name: i18n!.t('live.setup_title') }),
     ).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.title_label'))).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: i18n!.t('live.title_label') }),
+    ).toBeInTheDocument();
     expect(
       screen.getByPlaceholderText(i18n!.t('live.title_placeholder')),
     ).toBeInTheDocument();
@@ -117,7 +128,7 @@ describe('LiveBroadcaster', () => {
   it('uses Spanish setup copy', () => {
     const { i18n } = renderWithProviders(<LiveBroadcaster />, { lng: 'es' });
 
-    expect(i18n!.t('live.setup_title')).toBe('Empezar directo');
+    expect(i18n!.t('live.setup_title')).toBe('Antes de emitir en directo');
     expect(
       screen.getByRole('heading', { name: i18n!.t('live.setup_title') }),
     ).toBeInTheDocument();
@@ -148,7 +159,7 @@ describe('LiveBroadcaster', () => {
       await screen.findByRole('heading', { name: i18n!.t('live.ended_title') }),
     ).toBeInTheDocument();
     expect(screen.getByText(i18n!.t('live.ended_summary'))).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('live.viewers'))).toBeInTheDocument();
+    expect(screen.getByText(i18n!.t('live.viewers_peak'))).toBeInTheDocument();
     expect(screen.getByText(i18n!.t('live.likes'))).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: i18n!.t('live.close_summary') }),
@@ -229,7 +240,7 @@ describe('LiveBroadcaster', () => {
       );
       fireEvent.change(
         screen.getByRole('textbox', {
-          name: view.i18n!.t('live.cohost_input_placeholder'),
+          name: view.i18n!.t('live.cohost_input_label'),
         }),
         { target: { value: username } },
       );
@@ -322,19 +333,40 @@ describe('LiveBroadcaster', () => {
     );
   });
 
+  it('lays the bands on the shared margins of Live, never on a distance of their own', async () => {
+    await startStream();
+
+    const top = screen.getByTestId('live-top-band').className;
+    expect(top).toContain('top-(--live-top)');
+    expect(top).toContain('inset-x-(--live-side)');
+    const bottom = screen.getByTestId('live-bottom-band').className;
+    expect(bottom).toContain('pb-(--live-bottom)');
+    expect(bottom).toContain('px-(--live-side)');
+  });
+
   it('names every control of the live screen', async () => {
     const { i18n } = await startStream();
 
     for (const name of [
       i18n!.t('live.end_stream'),
-      i18n!.t('live.cohost_invite_button'),
+      i18n!.t('live.camera_off'),
+      i18n!.t('live.mic_off'),
       i18n!.t('live.qna.title'),
-      i18n!.t('live.send_comment'),
+      i18n!.t('live.cohost_invite_button'),
+      i18n!.t('live.turn_camera'),
     ]) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
+    const field = screen.getByRole('textbox', {
+      name: i18n!.t('live.chat_placeholder'),
+    });
+    // While something is being written, the actions give way to sending it.
+    fireEvent.change(field, { target: { value: 'hello' } });
     expect(
-      screen.getByRole('textbox', { name: i18n!.t('live.chat_placeholder') }),
+      screen.getByRole('button', { name: i18n!.t('live.send_comment') }),
     ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: i18n!.t('live.turn_camera') }),
+    ).not.toBeInTheDocument();
   });
 });

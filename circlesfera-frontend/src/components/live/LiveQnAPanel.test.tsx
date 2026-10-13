@@ -28,7 +28,7 @@ describe('LiveQnAPanel', () => {
       />,
     );
 
-    expect(i18n!.t('live.qna.title')).toBe('Q&A');
+    expect(i18n!.t('live.qna.title')).toBe('Questions');
     expect(
       screen.getByRole('heading', { name: i18n!.t('live.qna.title') }),
     ).toBeInTheDocument();
@@ -57,9 +57,29 @@ describe('LiveQnAPanel', () => {
     expect(
       screen.getByText(i18n!.t('live.qna.empty_host')),
     ).toBeInTheDocument();
+    // Nothing to take off the video while no question is on it.
     expect(
+      screen.queryByRole('button', { name: i18n!.t('live.qna.clear_screen') }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers to take the question off the video only while one is on it', () => {
+    const onClear = vi.fn();
+    const { i18n } = renderWithProviders(
+      <LiveQnAPanel
+        isOpen
+        onClose={vi.fn()}
+        isHost
+        hasHighlight
+        questions={[]}
+        onClearHighlight={onClear}
+      />,
+    );
+
+    fireEvent.click(
       screen.getByRole('button', { name: i18n!.t('live.qna.clear_screen') }),
-    ).toBeInTheDocument();
+    );
+    expect(onClear).toHaveBeenCalled();
   });
 
   it('labels project from the catalog when the host has questions', () => {

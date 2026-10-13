@@ -1,7 +1,8 @@
-import { HelpCircle, Send, X } from 'lucide-react';
+import { HelpCircle, Send } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { initialsAvatarUrl } from '../../utils/initialsAvatar';
+import { LiveSheet } from './LivePieces';
 
 export interface LiveQuestion {
   id: string;
@@ -19,6 +20,8 @@ interface LiveQnAPanelProps {
   onAskQuestion?: (q: string) => void;
   onHighlightQuestion?: (q: LiveQuestion) => void;
   onClearHighlight?: () => void;
+  // Host: whether a question is on the video now.
+  hasHighlight?: boolean;
 }
 
 export default function LiveQnAPanel({
@@ -29,11 +32,10 @@ export default function LiveQnAPanel({
   onAskQuestion,
   onHighlightQuestion,
   onClearHighlight,
+  hasHighlight = false,
 }: LiveQnAPanelProps) {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
-
-  if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,26 +44,49 @@ export default function LiveQnAPanel({
     setInput('');
   };
 
-  return (
-    <div className="absolute inset-x-0 bottom-0 top-[20%] bg-black/90 backdrop-blur-2xl rounded-t-3xl border-t border-white/10 flex flex-col z-50 animate-in slide-in-from-bottom-8 duration-300">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-        <div className="flex items-center gap-2 text-white">
-          <HelpCircle size={20} className="text-brand-secondary" />
-          <h3 className="font-bold">{t('live.qna.title')}</h3>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="w-11 h-11 flex items-center justify-center bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"
-          aria-label={t('common.close')}
-        >
-          <X size={16} />
-        </button>
-      </div>
+  const footer = isHost ? (
+    // Nothing to take off the video while no question is on it.
+    hasHighlight ? (
+      <button
+        type="button"
+        onClick={onClearHighlight}
+        className="button-alone min-h-12 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
+      >
+        {t('live.qna.clear_screen')}
+      </button>
+    ) : null
+  ) : (
+    <form onSubmit={handleSubmit} className="flex gap-2">
+      <input
+        type="text"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        placeholder={t('live.qna.placeholder')}
+        aria-label={t('live.qna.placeholder')}
+        className="flex-1 min-w-0 min-h-12 bg-white/10 border border-white/10 rounded-full px-4 text-base text-white outline-none focus:border-brand-primary"
+      />
+      <button
+        type="submit"
+        disabled={!input.trim()}
+        className="w-11 h-11 flex items-center justify-center bg-brand-primary rounded-full text-white disabled:opacity-50 hover:bg-brand-primary/90 transition-colors shrink-0"
+        aria-label={t('live.qna.send')}
+      >
+        <Send size={18} />
+      </button>
+    </form>
+  );
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+  return (
+    <LiveSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('live.qna.title')}
+      icon={<HelpCircle size={20} className="shrink-0" aria-hidden />}
+      footer={footer}
+    >
+      <div className="space-y-3">
         {questions.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-white/50 text-sm text-center">
+          <div className="flex flex-col items-center justify-center py-8 text-center text-sm text-white/60">
             <HelpCircle size={40} className="mb-2 opacity-50" />
             <p>
               {isHost ? t('live.qna.empty_host') : t('live.qna.empty_viewer')}
@@ -100,40 +125,6 @@ export default function LiveQnAPanel({
           ))
         )}
       </div>
-
-      {isHost ? (
-        <div className="p-4 border-t border-white/10 bg-black">
-          <button
-            type="button"
-            onClick={onClearHighlight}
-            className="button-alone min-h-12 rounded-full bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-colors"
-          >
-            {t('live.qna.clear_screen')}
-          </button>
-        </div>
-      ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="p-4 border-t border-white/10 bg-black flex gap-2"
-        >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={t('live.qna.placeholder')}
-            aria-label={t('live.qna.placeholder')}
-            className="flex-1 min-w-0 min-h-12 bg-white/10 border border-white/10 rounded-full px-4 text-base text-white outline-none focus:border-brand-primary"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim()}
-            className="w-11 h-11 flex items-center justify-center bg-brand-primary rounded-full text-white disabled:opacity-50 hover:bg-brand-primary/90 transition-colors shrink-0"
-            aria-label={t('live.qna.send')}
-          >
-            <Send size={18} />
-          </button>
-        </form>
-      )}
-    </div>
+    </LiveSheet>
   );
 }

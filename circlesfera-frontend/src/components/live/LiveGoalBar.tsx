@@ -25,9 +25,9 @@ export default function LiveGoalBar({
       <button
         type="button"
         onClick={onClick}
-        className="flex items-center gap-1.5 min-h-11 px-4 bg-black/40 border border-white/10 border-dashed rounded-full text-white/70 hover:bg-black/60 hover:text-white transition-all text-xs"
+        className="live-glass flex min-h-11 items-center gap-1.5 rounded-full px-4 text-xs font-semibold text-white transition-transform active:scale-95"
       >
-        <Target size={14} />
+        <Target size={16} aria-hidden />
         <span>{t('live.goal.add')}</span>
       </button>
     );
@@ -41,16 +41,16 @@ export default function LiveGoalBar({
   // People watching see the goal; only the host can press it to change it.
   if (!onClick) {
     return (
-      <div className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl min-h-11 px-3 py-2 w-48 shadow-lg select-none transition-colors block text-left">
+      <div className="live-glass block min-h-11 w-48 select-none rounded-2xl px-3 py-2 text-left">
         <div className="flex justify-between items-center mb-1.5">
-          <span className="text-xs font-bold text-white tracking-wide uppercase truncate pr-2">
+          <span className="truncate pr-2 text-xs font-semibold text-white">
             {goal.title}
           </span>
-          <span className="text-xs font-black text-brand-accent shrink-0">
+          <span className="shrink-0 text-xs font-semibold tabular-nums text-white/85">
             {goal.current}/{goal.target}
           </span>
         </div>
-        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+        <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden relative">
           <div
             className="absolute top-0 left-0 h-full bg-linear-to-r from-brand-primary to-brand-blue transition-all duration-500"
             style={{ width: `${percentage}%` }}
@@ -63,18 +63,18 @@ export default function LiveGoalBar({
   return (
     <button
       type="button"
-      className="bg-black/40 backdrop-blur-md border border-white/10 rounded-xl min-h-11 px-3 py-2 w-48 shadow-lg select-none cursor-pointer hover:bg-black/50 transition-colors block text-left"
+      className="live-glass block min-h-11 w-48 cursor-pointer select-none rounded-2xl px-3 py-2 text-left transition-transform active:scale-95"
       onClick={onClick}
     >
       <div className="flex justify-between items-center mb-1.5">
-        <span className="text-xs font-bold text-white tracking-wide uppercase truncate pr-2">
+        <span className="truncate pr-2 text-xs font-semibold text-white">
           {goal.title}
         </span>
-        <span className="text-xs font-black text-brand-accent shrink-0">
+        <span className="shrink-0 text-xs font-semibold tabular-nums text-white/85">
           {goal.current}/{goal.target}
         </span>
       </div>
-      <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden relative">
+      <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden relative">
         <div
           className="absolute top-0 left-0 h-full bg-linear-to-r from-brand-primary to-brand-blue transition-all duration-500"
           style={{ width: `${percentage}%` }}

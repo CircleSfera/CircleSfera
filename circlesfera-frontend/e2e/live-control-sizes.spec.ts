@@ -64,9 +64,9 @@ async function goLive(page: Page) {
 
 async function startBroadcast(page: Page) {
   await goLive(page);
-  await page.getByRole('button', { name: 'Empezar a emitir' }).click();
+  await page.getByRole('button', { name: 'Emitir en directo' }).click();
   await expect(
-    page.getByRole('button', { name: 'Terminar transmisión' }),
+    page.getByRole('button', { name: 'Terminar el directo' }),
   ).toBeVisible();
 }
 
@@ -101,33 +101,33 @@ test.describe('Going live', () => {
   test('inviting a co-host', async ({ page }) => {
     await startBroadcast(page);
     await page
-      .getByRole('button', { name: 'Invitar a un co-anfitrión' })
+      .getByRole('button', { name: 'Invitar a un coanfitrión' })
       .click();
     await expectScreenInOrder(page);
   });
 
   test('setting the goal', async ({ page }) => {
     await startBroadcast(page);
-    await page.getByRole('button', { name: 'Añadir Objetivo' }).click();
+    await page.getByRole('button', { name: 'Añadir objetivo' }).click();
     await expectScreenInOrder(page);
   });
 
   test('questions panel', async ({ page }) => {
     await startBroadcast(page);
-    await page.getByRole('button', { name: 'Q&A' }).click();
+    await page.getByRole('button', { name: /Preguntas/ }).click();
     await expectScreenInOrder(page);
   });
 
   test('ending asks first, then shows the summary', async ({ page }) => {
     await startBroadcast(page);
-    await page.getByRole('button', { name: 'Terminar transmisión' }).click();
+    await page.getByRole('button', { name: 'Terminar el directo' }).click();
     const dialog = page.getByRole('dialog');
     await expect(dialog.getByText('¿Terminar el directo?')).toBeVisible();
     await expectScreenInOrder(page);
 
-    await dialog.getByRole('button', { name: 'Terminar transmisión' }).click();
+    await dialog.getByRole('button', { name: 'Terminar el directo' }).click();
     await expect(
-      page.getByRole('heading', { name: 'Live Finalizado' }),
+      page.getByRole('heading', { name: 'Tu directo ha terminado' }),
     ).toBeVisible();
     await expectScreenInOrder(page);
   });
@@ -164,7 +164,7 @@ test.describe('Watching a live', () => {
 
   test('questions panel', async ({ page }) => {
     await watchLive(page);
-    await page.getByRole('button', { name: 'Q&A' }).click();
+    await page.getByRole('button', { name: /Preguntas/ }).click();
     await expectScreenInOrder(page);
   });
 });

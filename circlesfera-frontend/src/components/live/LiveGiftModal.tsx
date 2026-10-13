@@ -6,7 +6,7 @@ import { liveApi } from '../../services/live';
 import { reportPaymentError } from '../../utils/identityVerification';
 import { formatWholeEuros } from '../../utils/money';
 import { CREATE_PRIMARY } from '../create-post/createStyles';
-import { Dialog } from '../ui/Dialog';
+import { LiveSheet } from './LivePieces';
 
 export interface VirtualGift {
   id: string;
@@ -93,20 +93,25 @@ export default function LiveGiftModal({
   };
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose} maxWidth="md">
-      <div className="flex items-center gap-2 pb-4 mb-4 border-b border-white/10 pr-10">
-        <div className="p-2 rounded-xl bg-brand-primary/20 text-brand-primary-text border border-brand-primary/30">
-          <Sparkles size={20} aria-hidden />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-white">
-            {t('live.send_gift_title')}
-          </h3>
-          <p className="text-xs text-white/60">{t('live.send_gift_desc')}</p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 mb-6">
+    <LiveSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={t('live.send_gift_title')}
+      icon={<Sparkles size={20} className="shrink-0" aria-hidden />}
+      footer={
+        <button
+          type="button"
+          onClick={handleSend}
+          disabled={isSending}
+          className={`button-alone ${CREATE_PRIMARY}`}
+        >
+          {t('live.confirm_send_gift')} (
+          {formatWholeEuros(selectedGift.price, i18n.language)})
+        </button>
+      }
+    >
+      <p className="mb-3 text-sm text-white/70">{t('live.send_gift_desc')}</p>
+      <div className="grid grid-cols-3 gap-2">
         {VIRTUAL_GIFTS.map((gift) => {
           const Icon = gift.icon;
           const isSelected = selectedGift.id === gift.id;
@@ -115,36 +120,28 @@ export default function LiveGiftModal({
               key={gift.id}
               type="button"
               onClick={() => setSelectedGift(gift)}
-              className={`flex flex-col items-center px-2 py-4 rounded-3xl border transition-all text-center ${
+              aria-pressed={isSelected}
+              className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-3 text-center transition-colors ${
                 isSelected
-                  ? 'bg-brand-primary/20 border-brand-primary text-white shadow-[0_0_15px_rgba(59,130,246,0.2)] scale-105'
-                  : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white'
+                  ? 'border-white/60 bg-white/15 text-white'
+                  : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10'
               }`}
             >
-              <div className={`p-3 rounded-2xl mb-2 border ${gift.color}`}>
-                <Icon size={24} />
-              </div>
-              <span className="text-xs font-semibold leading-tight line-clamp-2 max-w-full">
+              <Icon
+                size={26}
+                className={gift.color.split(' ')[0]}
+                aria-hidden
+              />
+              <span className="line-clamp-2 max-w-full text-xs font-semibold leading-tight">
                 {t(gift.nameKey)}
               </span>
-              <span className="text-xs font-extrabold text-brand-primary-text mt-1">
+              <span className="text-xs font-semibold tabular-nums text-white">
                 {formatWholeEuros(gift.price, i18n.language)}
               </span>
             </button>
           );
         })}
       </div>
-
-      <button
-        type="button"
-        onClick={handleSend}
-        disabled={isSending}
-        className={`button-alone ${CREATE_PRIMARY}`}
-      >
-        <Sparkles size={18} aria-hidden />
-        {t('live.confirm_send_gift')} (
-        {formatWholeEuros(selectedGift.price, i18n.language)})
-      </button>
-    </Dialog>
+    </LiveSheet>
   );
 }
