@@ -69,7 +69,8 @@ describe('CreatorStoriesTab', () => {
       await screen.findByRole('button', { name: /^Abrir la historia del / }),
     ).toBeInTheDocument();
     expect(screen.getByText('4 vistas · 1 reacción')).toBeInTheDocument();
-    expect(screen.getByText('Activa')).toBeInTheDocument();
+    // Under the facts on a phone, at the end of the row on desktop.
+    expect(screen.getAllByText('Activa')).toHaveLength(2);
     expect(screen.getByText(/^Caduca dentro de /)).toBeInTheDocument();
     expect(screen.queryByText('Active')).not.toBeInTheDocument();
   });
@@ -89,7 +90,7 @@ describe('CreatorStoriesTab', () => {
 
     const { container } = renderWithProviders(<CreatorStoriesTab />);
 
-    expect(await screen.findByText('Expired')).toBeInTheDocument();
+    expect(await screen.findAllByText('Expired')).toHaveLength(2);
     expect(screen.getByText(/^Expired on /)).toBeInTheDocument();
 
     const picture = container.querySelector('img');

@@ -31,8 +31,10 @@ describe('CreatorPromotionsTab', () => {
         name: i18n!.t('creator.promotions.create_first'),
       }),
     ).toBeInTheDocument();
-    expect(i18n!.t('creator.promotions.no_active')).toBe('No active campaigns');
-    expect(screen.queryByText('Sin campañas activas')).not.toBeInTheDocument();
+    expect(i18n!.t('creator.promotions.no_active')).toBe('No campaigns yet');
+    expect(
+      screen.queryByText('Aún no tienes campañas'),
+    ).not.toBeInTheDocument();
   });
 
   it('uses Spanish empty chrome when locale is es', async () => {

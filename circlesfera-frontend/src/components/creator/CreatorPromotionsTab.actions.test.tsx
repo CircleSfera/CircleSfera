@@ -73,18 +73,19 @@ async function show(promos: CreatorPromotion[], totalPages = 1) {
   list(promos, totalPages);
   const view = renderWithProviders(<CreatorPromotionsTab onToast={toastSpy} />);
   await waitFor(() => expect(creatorApi.getPromotions).toHaveBeenCalled());
-  if (promos.length) await screen.findByText('Campaigns');
+  if (promos.length)
+    await screen.findByRole('button', { name: 'New campaign' });
   return view;
 }
 
-/** Opens a campaign from the list and gives back its detail pane. */
+/** Opens a campaign from the list and gives back its detail. */
 async function open(caption: string) {
   fireEvent.click(
-    await screen.findByRole('button', { name: new RegExp(caption) }),
+    await screen.findByRole('button', {
+      name: new RegExp(`^Open the campaign: .*${caption}`),
+    }),
   );
-  return screen
-    .getByRole('button', { name: /\+1 day|Repeat/ })
-    .closest('div.p-4') as HTMLElement;
+  return screen.getByRole('dialog');
 }
 
 describe('CreatorPromotionsTab with campaigns', () => {
@@ -104,7 +105,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(3);
   });
 
-  it('groups the campaigns under way and the finished ones, each with its count', async () => {
+  it('lists every campaign with its state in words, running or not', async () => {
     await show([
       promo('a'),
       promo('b', { status: 'PENDING' }),
@@ -113,93 +114,92 @@ describe('CreatorPromotionsTab with campaigns', () => {
       promo('e', { status: 'cancelled', target: null }),
     ]);
 
-    expect(screen.getByText('In Progress (3)')).toBeInTheDocument();
-    expect(screen.getByText('Campaign History (2)')).toBeInTheDocument();
-    expect(screen.getByText('Completed Campaign')).toBeInTheDocument();
-    expect(screen.getByText('Paused')).toBeInTheDocument();
+    // The state is drawn twice per row: under the facts on a phone, at the
+    // end of the row on desktop.
+    expect(screen.getAllByText('Running')).toHaveLength(2);
+    expect(screen.getAllByText('Awaiting payment')).toHaveLength(2);
+    expect(screen.getAllByText('Paused')).toHaveLength(2);
+    expect(screen.getAllByText('Finished')).toHaveLength(2);
+    expect(screen.getAllByText('Cancelled')).toHaveLength(2);
     expect(
-      screen.getByText('Select a campaign from the list'),
-    ).toBeInTheDocument();
+      screen.getAllByText('€25.00 left · 1,200 people reached'),
+    ).toHaveLength(5);
+    expect(screen.queryByText(/ACTIVE|PENDING|25\.00 EUR/)).toBeNull();
   });
 
   it.each([
     ['REJECTED', 'Rejected'],
     ['FAILED', 'Payment failed'],
   ])(
-    'keeps a campaign that ended as %s in the history, saying why',
+    'keeps a campaign that ended as %s in the list, saying why',
     async (status, badge) => {
       await show([promo('r', { status })]);
 
-      expect(screen.getByText('Campaign History (1)')).toBeInTheDocument();
-      expect(screen.getByText(badge)).toBeInTheDocument();
-
-      await open('Caption r');
       expect(screen.getAllByText(badge)).toHaveLength(2);
+
+      const detail = within(await open('Caption r'));
+      expect(detail.getByText(badge)).toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Repeat' }),
+        detail.getByRole('button', { name: 'Repeat' }),
       ).toBeInTheDocument();
     },
   );
 
   it('names a campaign by its kind when its post has no caption or picture', async () => {
     await show([promo('a', { target: null, targetType: 'FRAME' })]);
-    expect(screen.getByText('FRAME Campaign')).toBeInTheDocument();
+    expect(screen.getByText('Campaign of a frame')).toBeInTheDocument();
   });
 
   describe('the detail of a campaign under way', () => {
-    it('shows the budget, the reach and the figures worked out from them', async () => {
+    it('shows the budget left, the reach and the click rate worked out from them', async () => {
       await show([promo('a')]);
       const detail = within(await open('Caption a'));
 
-      expect(detail.getByText('25.00 EUR')).toBeInTheDocument();
-      expect(detail.getByText('+1,200')).toBeInTheDocument();
-      // 60 clicks out of 1200 people; 25.00 over 60 clicks.
-      expect(detail.getByText(/5\.00\s*%/)).toBeInTheDocument();
-      expect(detail.getByText(/€\s*0\.42/)).toBeInTheDocument();
-      expect(detail.getByText('8 Days Left')).toBeInTheDocument();
+      expect(detail.getByText('Budget left')).toBeInTheDocument();
+      expect(detail.getByText('€25.00')).toBeInTheDocument();
+      expect(detail.getByText('1,200')).toBeInTheDocument();
+      // 60 clicks out of 1200 people.
+      expect(detail.getByText('5.00 %')).toBeInTheDocument();
+      expect(detail.getByText('8 days left')).toBeInTheDocument();
+      // A cost per click cannot be worked out from the budget that is left.
+      expect(detail.queryByText(/CPC/)).not.toBeInTheDocument();
     });
 
-    it('shows zero rates for a campaign nobody has seen yet', async () => {
+    it('shows a zero rate for a campaign nobody has seen yet', async () => {
       await show([promo('a', { reach: 0, clicks: 0 })]);
       const detail = within(await open('Caption a'));
 
-      expect(detail.getByText(/0\.00\s*%/)).toBeInTheDocument();
-      expect(detail.getByText(/€\s*0\.00/)).toBeInTheDocument();
+      expect(detail.getByText('0.00 %')).toBeInTheDocument();
     });
 
     it.each([
       [
         'before it starts',
         { startDate: day(1), endDate: day(5) },
-        '0%',
-        '5 Days Left',
+        '0',
+        '5 days left',
       ],
       [
         'half way',
         { startDate: day(-5), endDate: day(5) },
-        '50%',
-        '5 Days Left',
+        '50',
+        '5 days left',
       ],
       [
         'past its end',
         { startDate: day(-9), endDate: day(-1) },
-        '100%',
-        '0 Days Left',
+        '100',
+        '0 days left',
       ],
-    ])('draws how far it has run %s', async (_when, dates, width, left) => {
-      const { container } = await show([promo('a', dates)]);
-      await open('Caption a');
+    ])('draws how far it has run %s', async (_when, dates, done, left) => {
+      await show([promo('a', dates)]);
+      const detail = within(await open('Caption a'));
 
-      expect(
-        (container.querySelector('.h-2 > div') as HTMLElement).className,
-      ).toContain(
-        width === '0%'
-          ? 'from-brand-primary'
-          : width === '50%'
-            ? 'from-amber-500'
-            : 'from-rose-500',
+      expect(detail.getByRole('progressbar')).toHaveAttribute(
+        'aria-valuenow',
+        done,
       );
-      expect(screen.getByText(left)).toBeInTheDocument();
+      expect(detail.getByText(left)).toBeInTheDocument();
     });
 
     it('pauses a campaign under way and says so', async () => {
@@ -290,7 +290,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
       first.unmount();
 
       await show([promo('b', { status: 'PENDING' })]);
-      fireEvent.click(await screen.findByRole('button', { name: /Caption b/ }));
+      await open('Caption b');
       expect(
         screen.queryByRole('button', { name: '+1 day' }),
       ).not.toBeInTheDocument();
@@ -298,7 +298,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
         screen.queryByRole('button', { name: 'Pause' }),
       ).not.toBeInTheDocument();
       expect(
-        screen.getByRole('button', { name: 'Cancel' }),
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
       ).toBeInTheDocument();
     });
   });
@@ -308,9 +308,11 @@ describe('CreatorPromotionsTab with campaigns', () => {
       await show([promo('a')]);
       await open('Caption a');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
+      );
       expect(
-        screen.getByText('Unused budget (25.00 EUR) will be refunded.'),
+        screen.getByText('The budget not used will be refunded: €25.00.'),
       ).toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'No' }));
@@ -323,7 +325,9 @@ describe('CreatorPromotionsTab with campaigns', () => {
     it('does not promise a refund for a campaign with nothing left', async () => {
       await show([promo('a', { budgetCents: 0 })]);
       await open('Caption a');
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
+      );
       expect(screen.queryByText(/will be refunded/)).not.toBeInTheDocument();
     });
 
@@ -336,12 +340,14 @@ describe('CreatorPromotionsTab with campaigns', () => {
       await show([promo('a')]);
       await open('Caption a');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
       await waitFor(() =>
         expect(toastSpy).toHaveBeenCalledWith(
-          'Promotion cancelled. Refund: 12.50 EUR',
+          'Campaign cancelled. €12.50 will be refunded.',
           'success',
         ),
       );
@@ -368,11 +374,13 @@ describe('CreatorPromotionsTab with campaigns', () => {
       await show([promo('a')]);
       await open('Caption a');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
       await waitFor(() =>
-        expect(toastSpy).toHaveBeenCalledWith('Promotion cancelled', 'success'),
+        expect(toastSpy).toHaveBeenCalledWith('Campaign cancelled', 'success'),
       );
     });
 
@@ -383,7 +391,9 @@ describe('CreatorPromotionsTab with campaigns', () => {
       await show([promo('a')]);
       await open('Caption a');
 
-      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Cancel the campaign' }),
+      );
       fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
       await waitFor(() =>
@@ -419,7 +429,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
       ]);
       await open('Caption d');
       expect(
-        screen.queryByRole('button', { name: 'Cancel' }),
+        screen.queryByRole('button', { name: 'Cancel the campaign' }),
       ).not.toBeInTheDocument();
 
       fireEvent.click(screen.getByRole('button', { name: 'Repeat' }));
@@ -486,7 +496,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
 
   it('opens the new campaign dialog from the button, and from the empty state', async () => {
     const first = await show([promo('a')]);
-    fireEvent.click(screen.getByRole('button', { name: 'New Campaign' }));
+    fireEvent.click(screen.getByRole('button', { name: 'New campaign' }));
     expect(
       screen.getByRole('dialog', { name: 'new campaign' }),
     ).toBeInTheDocument();
@@ -509,20 +519,20 @@ describe('CreatorPromotionsTab with campaigns', () => {
     await show([promo('a')], 2);
     const prev = screen.getByRole('button', { name: /prev/i });
     const next = screen.getByRole('button', { name: /next/i });
-    expect(screen.getByText('1 / 2')).toBeInTheDocument();
+    expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
     expect(prev).toBeDisabled();
 
     fireEvent.click(next);
-    await screen.findByText('2 / 2');
+    await screen.findByText('Page 2 of 2');
     expect(creatorApi.getPromotions).toHaveBeenLastCalledWith(2, 10);
     expect(screen.getByRole('button', { name: /next/i })).toBeDisabled();
 
     fireEvent.click(screen.getByRole('button', { name: /prev/i }));
-    await screen.findByText('1 / 2');
+    await screen.findByText('Page 1 of 2');
   });
 
   it('shows no page controls for a single page', async () => {
     await show([promo('a')]);
-    expect(screen.queryByText('1 / 1')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^Page /)).not.toBeInTheDocument();
   });
 });
