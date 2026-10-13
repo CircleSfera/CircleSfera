@@ -327,7 +327,7 @@
   --nav-bottom-bar-height: 56px;
   /* The bar stands against the bottom edge: no gap for the content to show
      through under it. */
-  --nav-bottom-gap: 0px;
+  --nav-bottom-gap: 8px;
   --nav-bottom-height: calc(
     var(--nav-bottom-bar-height) +
     var(--nav-bottom-gap)
@@ -469,19 +469,39 @@ video {
     inset 0 -1px 0 rgba(255, 255, 255, 0.04);
 }
 
-/* Nothing of the page shows under the bar. It stands against the bottom
-   edge, and its material goes on below it: a phone's browser draws the page
-   behind its own toolbar too, further down than the page can place
-   anything, and without this the content would be seen there. */
+/* Nothing of the page shows under the capsule. A floor of the page's colour
+   stands against the bottom edge behind it: clear at the capsule's top,
+   solid from its middle down, so the content fades out instead of being cut.
+   The floor goes on below the edge too: a phone's browser draws the page
+   behind its own toolbar, further down than the page can place anything. */
 
-.bottom-nav-glass::after {
+.bottom-nav-floor {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  height: calc(
+    env(safe-area-inset-bottom, 0px) +
+    var(--nav-bottom-height) +
+    1.5rem
+  );
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    rgba(12, 11, 18, 0) 0%,
+    rgb(12, 11, 18) 55%
+  );
+}
+
+.bottom-nav-floor::after {
   content: "";
   position: absolute;
   top: 100%;
-  left: -1px;
-  right: -1px;
+  left: 0;
+  right: 0;
   height: 50vh;
-  background: rgb(20, 18, 28);
+  background: rgb(12, 11, 18);
 }
 
 /* The destination the person is on: a lighter pill of the same glass. */

@@ -15,9 +15,11 @@ import { useAuthStore } from '../../stores/authStore';
 import { useUIStore } from '../../stores/uiStore';
 import { hasCreatorTools } from '../../utils/creatorTools';
 
-// A bar of glass against the bottom edge: the content scrolls behind it and
-// nothing shows under it. The page keeps var(--nav-bottom-height) +
-// safe-area-inset-bottom free at its end. Strictly 5 core items max, each a touch target of 44 px.
+// A capsule of glass, whole, a little above the bottom edge. Under it the
+// page ends: a floor of the page's own colour rises behind the capsule, so
+// the content fades out there and nothing of it shows beneath. The page keeps
+// var(--nav-bottom-height) + safe-area-inset-bottom free at its end.
+// Strictly 5 core items max, each a touch target of 44 px.
 export default function BottomNav() {
   const location = useLocation();
   const path = location.pathname;
@@ -77,115 +79,119 @@ export default function BottomNav() {
       : consumerNavItems;
 
   return (
-    <nav
-      aria-label={t('nav.mobile')}
-      className="md:hidden fixed inset-x-0 bottom-0 z-50 rounded-t-3xl bottom-nav-glass"
-      style={{
-        // Against the bottom edge; the row of destinations sits above the
-        // home indicator, and the material fills the space under it.
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
-    >
-      <div
-        className="flex items-center justify-around w-full px-1.5"
-        style={{ height: 'var(--nav-bottom-bar-height)' }}
+    <>
+      <div aria-hidden className="md:hidden bottom-nav-floor" />
+      <nav
+        aria-label={t('nav.mobile')}
+        className="md:hidden fixed left-3 right-3 z-50 rounded-full bottom-nav-glass"
+        style={{
+          bottom:
+            'calc(env(safe-area-inset-bottom, 0px) + var(--nav-bottom-gap))',
+          height: 'var(--nav-bottom-bar-height)',
+        }}
       >
-        {navItems.map((item) => {
-          const isActive =
-            item.label === t('nav.profile')
-              ? isProfileActive
-              : item.to
-                ? path === item.to ||
-                  (item.to !== '/' && path.startsWith(item.to))
-                : false;
+        <div className="flex items-center justify-around w-full h-full px-1.5">
+          {navItems.map((item) => {
+            const isActive =
+              item.label === t('nav.profile')
+                ? isProfileActive
+                : item.to
+                  ? path === item.to ||
+                    (item.to !== '/' && path.startsWith(item.to))
+                  : false;
 
-          const content = (
-            <motion.div
-              className={`flex flex-col items-center justify-center gap-0.5 relative px-2 ${
-                isActive ? 'text-white' : 'text-white/70'
-              }`}
-              style={{ minWidth: 60, minHeight: 44 }}
-              whileTap={{ scale: 0.92 }}
-            >
-              {/* The destination the person is on: a pill of lighter glass
-                  that slides from one destination to the next. */}
-              <AnimatePresence>
-                {isActive && (
-                  <motion.div
-                    key="active-pill"
-                    layoutId="activeBottomNavPill"
-                    className="absolute inset-0 rounded-full bottom-nav-glass-pill"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                  />
-                )}
-              </AnimatePresence>
-
-              {/* Icon — 22px navigation size */}
-              <item.icon
-                size={22}
-                strokeWidth={isActive ? 2.5 : 1.8}
-                className="relative z-10"
-              />
-
-              {/* Label — always visible for native feel */}
-              <span
-                className={`relative z-10 text-[10px] leading-none ${
-                  isActive ? 'font-semibold' : 'font-medium'
+            const content = (
+              <motion.div
+                className={`flex flex-col items-center justify-center gap-0.5 relative px-2 ${
+                  isActive ? 'text-white' : 'text-white/70'
                 }`}
+                style={{ minWidth: 60, minHeight: 44 }}
+                whileTap={{ scale: 0.92 }}
               >
-                {item.label}
-              </span>
+                {/* The destination the person is on: a pill of lighter glass
+                  that slides from one destination to the next. */}
+                <AnimatePresence>
+                  {isActive && (
+                    <motion.div
+                      key="active-pill"
+                      layoutId="activeBottomNavPill"
+                      className="absolute inset-0 rounded-full bottom-nav-glass-pill"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      transition={{
+                        type: 'spring',
+                        stiffness: 500,
+                        damping: 38,
+                      }}
+                    />
+                  )}
+                </AnimatePresence>
 
-              {/* Notification badge */}
-              {item.badge > 0 && (
+                {/* Icon — 22px navigation size */}
+                <item.icon
+                  size={22}
+                  strokeWidth={isActive ? 2.5 : 1.8}
+                  className="relative z-10"
+                />
+
+                {/* Label — always visible for native feel */}
                 <span
-                  className="absolute -top-0.5 right-0 min-w-4 h-4 flex items-center justify-center font-bold text-white rounded-full px-1"
-                  style={{
-                    fontSize: '9px',
-                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                    boxShadow: '0 2px 6px rgba(239,68,68,0.5)',
-                  }}
+                  className={`relative z-10 text-[10px] leading-none ${
+                    isActive ? 'font-semibold' : 'font-medium'
+                  }`}
                 >
-                  {item.badge > 99 ? '99+' : item.badge}
+                  {item.label}
                 </span>
-              )}
-            </motion.div>
-          );
 
-          if (item.onClick) {
+                {/* Notification badge */}
+                {item.badge > 0 && (
+                  <span
+                    className="absolute -top-0.5 right-0 min-w-4 h-4 flex items-center justify-center font-bold text-white rounded-full px-1"
+                    style={{
+                      fontSize: '9px',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      boxShadow: '0 2px 6px rgba(239,68,68,0.5)',
+                    }}
+                  >
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </motion.div>
+            );
+
+            if (item.onClick) {
+              return (
+                <button
+                  type="button"
+                  key={item.label}
+                  onClick={() => {
+                    triggerHaptic();
+                    item.onClick?.();
+                  }}
+                  className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-full"
+                  aria-label={item.label}
+                >
+                  {content}
+                </button>
+              );
+            }
+
             return (
-              <button
-                type="button"
+              <Link
                 key={item.label}
-                onClick={() => {
-                  triggerHaptic();
-                  item.onClick?.();
-                }}
+                to={item.to!}
+                onClick={triggerHaptic}
                 className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-full"
                 aria-label={item.label}
+                aria-current={isActive ? 'page' : undefined}
               >
                 {content}
-              </button>
+              </Link>
             );
-          }
-
-          return (
-            <Link
-              key={item.label}
-              to={item.to!}
-              onClick={triggerHaptic}
-              className="relative focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/60 rounded-full"
-              aria-label={item.label}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              {content}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+          })}
+        </div>
+      </nav>
+    </>
   );
 }
