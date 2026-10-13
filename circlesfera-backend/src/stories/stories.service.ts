@@ -28,10 +28,7 @@ import {
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
-import {
-  PUBLIC_USER_SELECT,
-  PUBLIC_USER_WITH_PRIVACY_SELECT,
-} from '../common/selects/public-user.select.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -268,9 +265,7 @@ export class StoriesService {
       whereClause.profileId = { in: followingIds };
     } else {
       // If no profileId (guest), only public user stories
-      whereClause.profile = {
-        user: { settings: { privacyLevel: Visibility.PUBLIC } },
-      };
+      whereClause.profile = { privacyLevel: Visibility.PUBLIC };
       whereClause.isCloseFriendsOnly = false;
     }
     // Never stories from the other audience, even through a follow.
@@ -402,7 +397,7 @@ export class StoriesService {
   async findByUser(username: string, currentProfileId?: string) {
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT } },
+      include: { user: { select: PUBLIC_USER_SELECT } },
     });
 
     if (
@@ -413,8 +408,7 @@ export class StoriesService {
     }
 
     // Authorization check for private accounts
-    const isProfilePrivate =
-      profile.user.settings?.privacyLevel === Visibility.PRIVATE;
+    const isProfilePrivate = profile.privacyLevel === Visibility.PRIVATE;
     if (isProfilePrivate && profile.id !== currentProfileId) {
       const follow = currentProfileId
         ? await this.prisma.follow.findUnique({
@@ -687,11 +681,7 @@ export class StoriesService {
       select: {
         profileId: true,
         isCloseFriendsOnly: true,
-        profile: {
-          select: {
-            user: { select: { settings: { select: { privacyLevel: true } } } },
-          },
-        },
+        profile: { select: { privacyLevel: true } },
       },
     });
     if (!story) throw new NotFoundException('Story not found');
@@ -703,7 +693,7 @@ export class StoriesService {
       throw new NotFoundException('Story not found');
     }
 
-    if (story.profile.user?.settings?.privacyLevel === Visibility.PRIVATE) {
+    if (story.profile.privacyLevel === Visibility.PRIVATE) {
       const follow = await this.prisma.follow.findUnique({
         where: {
           followerId_followingId: {

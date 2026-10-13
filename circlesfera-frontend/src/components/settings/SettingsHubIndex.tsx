@@ -41,9 +41,7 @@ export default function SettingsHubIndex() {
 
   const planName =
     billingStatus?.subscription?.planName || t('settings.billing.free');
-  const isPrivate = !!(
-    profile?.isPrivate || profile?.user?.settings?.privacyLevel === 'PRIVATE'
-  );
+  const isPrivate = !!profile?.isPrivate;
 
   const aboutLabel = t('settings.hub.about');
   const showAboutRow = useMemo(() => {

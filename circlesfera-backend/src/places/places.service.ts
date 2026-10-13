@@ -276,9 +276,7 @@ export class PlacesService {
     const base: Prisma.PostWhereInput = {
       visibility: Visibility.PUBLIC,
       moderationStatus: 'VISIBLE',
-      profile: {
-        user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } },
-      },
+      profile: { privacyLevel: Visibility.PUBLIC },
     };
 
     if (!currentProfileId) {

@@ -185,7 +185,7 @@
       "title": "Privacy",
       "subtitle": "Visibility and control",
       "private_account": "Private account",
-      "private_desc": "When your account is private, only people you approve can see your posts and stories.",
+      "private_desc": "When this profile is private, only people you approve can see its posts and stories. Your other profiles keep their own choice. If you make it public, the follow requests that are waiting are accepted.",
       "export_data": "Export data (GDPR)",
       "export_desc": "Download a copy of your personal data registered in CircleSfera.",
       "export_requested": "Export request created. We will notify you when it is ready.",

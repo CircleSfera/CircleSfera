@@ -8,6 +8,7 @@ import { NotificationsService } from './notifications.service.js';
 describe('NotificationsService', () => {
   let service: NotificationsService;
 
+  const recipientPush = { on: true };
   const mockPrismaService = {
     user: { findMany: vi.fn().mockResolvedValue([]) },
     notification: {
@@ -22,11 +23,17 @@ describe('NotificationsService', () => {
       findFirst: vi.fn().mockResolvedValue({ pushNotifications: true }),
     },
     block: { findFirst: vi.fn().mockResolvedValue(null) },
-    // Recipient account language and the sender's username.
+    // Recipient account language and the sender's username; and, when the
+    // push switch is asked for, the one of the Profile that receives.
     profile: {
-      findUnique: vi
-        .fn()
-        .mockResolvedValue({ username: 'Alice', user: { locale: 'es' } }),
+      findUnique: vi.fn(
+        async (args?: {
+          select?: Record<string, unknown>;
+        }): Promise<Record<string, unknown>> =>
+          args?.select?.pushNotifications
+            ? { pushNotifications: recipientPush.on }
+            : { username: 'Alice', user: { locale: 'es' } },
+      ),
     },
   };
 
@@ -352,9 +359,7 @@ describe('NotificationsService', () => {
         recipientId: 'user-1',
         type: 'FOLLOW',
       });
-      mockPrismaService.userSettings.findFirst.mockResolvedValueOnce({
-        pushNotifications: false,
-      });
+      recipientPush.on = false;
 
       const res = await service.create({
         recipientId: 'user-1',
@@ -379,9 +384,7 @@ describe('NotificationsService', () => {
         sender: { username: 'alice' },
         type: 'FOLLOW',
       });
-      mockPrismaService.userSettings.findFirst.mockResolvedValueOnce({
-        pushNotifications: true,
-      });
+      recipientPush.on = true;
       mockPushService.sendNotification.mockRejectedValueOnce(
         new Error('FCM unreachable'),
       );

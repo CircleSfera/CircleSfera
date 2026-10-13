@@ -122,11 +122,9 @@ export class HighlightsService {
 
     const owner = await this.prisma.profile.findUnique({
       where: { id: ownerProfileId },
-      select: {
-        user: { select: { settings: { select: { privacyLevel: true } } } },
-      },
+      select: { privacyLevel: true },
     });
-    const isPrivate = owner?.user?.settings?.privacyLevel === 'PRIVATE';
+    const isPrivate = owner?.privacyLevel === 'PRIVATE';
 
     const [follow, closeFriend] = viewerProfileId
       ? await Promise.all([

@@ -225,7 +225,7 @@ describe('SearchService', () => {
       // Valid column reference on profiles table (pr.id, not pr."profileId")
       expect(sql).toContain('pr.id NOT IN');
       expect(sql).not.toContain('pr."profileId" NOT IN');
-      expect(sql).toContain(`us."privacyLevel" = 'PUBLIC'`);
+      expect(sql).toContain(`pr."privacyLevel" = 'PUBLIC'`);
       expect(sql).toContain(`u."deactivatedAt" IS NULL`);
     });
   });
@@ -580,7 +580,7 @@ describe('SearchService', () => {
       expect(sql).toContain('FROM comments c');
       expect(sql).not.toContain('"Comment"');
       expect(sql).toContain(`p."moderationStatus" = 'VISIBLE'`);
-      expect(sql).toContain(`us."privacyLevel" = 'PUBLIC'`);
+      expect(sql).toContain(`pr."privacyLevel" = 'PUBLIC'`);
       expect(sql).toContain(`u."deactivatedAt" IS NULL`);
     });
 

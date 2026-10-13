@@ -97,7 +97,6 @@ export interface ProfileWithUser extends IProfile {
     locale?: 'en' | 'es';
     settings?: {
       isOnboarded: boolean;
-      privacyLevel?: string;
     } | null;
   };
   _count?: {

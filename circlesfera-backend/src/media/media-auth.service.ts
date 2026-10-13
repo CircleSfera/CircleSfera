@@ -13,9 +13,7 @@ interface StoryAccess {
   profileId: string;
   isPremium: boolean;
   isCloseFriendsOnly: boolean;
-  profile: {
-    user: { settings: { privacyLevel: Visibility } | null } | null;
-  } | null;
+  profile: { privacyLevel: Visibility } | null;
 }
 
 interface MessageAccess {
@@ -135,13 +133,7 @@ export class MediaAuthService {
           profileId: true,
           isPremium: true,
           isCloseFriendsOnly: true,
-          profile: {
-            select: {
-              user: {
-                select: { settings: { select: { privacyLevel: true } } },
-              },
-            },
-          },
+          profile: { select: { privacyLevel: true } },
         },
       }),
       this.prisma.message.findMany({
@@ -311,8 +303,7 @@ export class MediaAuthService {
       return !!closeFriend;
     }
 
-    const isProfilePrivate =
-      story.profile?.user?.settings?.privacyLevel === Visibility.PRIVATE;
+    const isProfilePrivate = story.profile?.privacyLevel === Visibility.PRIVATE;
     if (isProfilePrivate) {
       const follow = await this.prisma.follow.findUnique({
         where: {

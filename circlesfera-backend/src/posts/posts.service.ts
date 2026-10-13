@@ -29,10 +29,7 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
-import {
-  PUBLIC_USER_SELECT,
-  PUBLIC_USER_WITH_PRIVACY_SELECT,
-} from '../common/selects/public-user.select.js';
+import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
 import { assertVideoUrlDuration } from '../common/utils/media-duration.util.js';
 import {
@@ -552,7 +549,7 @@ export class PostsService {
       include: {
         profile: {
           include: {
-            user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT },
+            user: { select: PUBLIC_USER_SELECT },
           },
         },
         _count: {
@@ -608,7 +605,7 @@ export class PostsService {
 
     const profile = await this.prisma.profile.findFirst({
       where: { username: { equals: username, mode: 'insensitive' } },
-      include: { user: { select: PUBLIC_USER_WITH_PRIVACY_SELECT } },
+      include: { user: { select: PUBLIC_USER_SELECT } },
     });
 
     if (
@@ -619,8 +616,7 @@ export class PostsService {
     }
 
     // Authorization check for private accounts
-    const isProfilePrivate =
-      profile.user.settings?.privacyLevel === Visibility.PRIVATE;
+    const isProfilePrivate = profile.privacyLevel === Visibility.PRIVATE;
     if (isProfilePrivate && profile.id !== currentProfileId) {
       const follow = currentProfileId
         ? await this.prisma.follow.findUnique({
@@ -855,7 +851,7 @@ export class PostsService {
       moderationStatus: 'VISIBLE',
       profile: {
         AND: [
-          { user: { settings: { is: { privacyLevel: Visibility.PUBLIC } } } },
+          { privacyLevel: Visibility.PUBLIC },
           await visibleToViewerWhere(this.prisma, currentProfileId),
         ],
       },

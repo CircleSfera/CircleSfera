@@ -113,12 +113,8 @@ export class FollowsService {
       // Per-Profile follow caps (spam protection).
       await this.actionLimits.consume(followerId, 'follow');
       // Follow
-      // Check privacy level from settings
-      const targetUser = await this.prisma.user.findUnique({
-        where: { id: profile.userId },
-        include: { settings: true },
-      });
-      const isPrivate = targetUser?.settings?.privacyLevel === 'PRIVATE';
+      // A private Profile is asked first; each Profile chooses for itself.
+      const isPrivate = profile.privacyLevel === 'PRIVATE';
 
       const status: FollowStatus = isPrivate ? 'PENDING' : 'ACCEPTED';
 

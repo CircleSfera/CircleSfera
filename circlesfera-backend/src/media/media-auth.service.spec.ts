@@ -338,7 +338,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: false,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: null } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
       expect(
@@ -357,7 +357,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: false,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PRIVATE' } } },
+          profile: { privacyLevel: 'PRIVATE' },
         },
       ]);
       expect(
@@ -372,7 +372,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: false,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
       expect(
@@ -391,7 +391,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: true,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
 
@@ -423,7 +423,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: false,
           isCloseFriendsOnly: true,
-          profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
 
@@ -455,7 +455,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-1',
           isPremium: false,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PRIVATE' } } },
+          profile: { privacyLevel: 'PRIVATE' },
         },
       ]);
 
@@ -724,7 +724,7 @@ describe('MediaAuthService', () => {
           profileId: 'victim-1',
           isPremium: true,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
       mockPrismaService.storyUnlock.findUnique.mockResolvedValue(null);
@@ -755,7 +755,7 @@ describe('MediaAuthService', () => {
           profileId: 'author-2',
           isPremium: false,
           isCloseFriendsOnly: false,
-          profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+          profile: { privacyLevel: 'PUBLIC' },
         },
       ]);
 

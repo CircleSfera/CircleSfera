@@ -20,7 +20,8 @@ describe('HighlightsService', () => {
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     profile: {
       findUnique: vi.fn().mockResolvedValue({
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
       }),
     },
     follow: { findUnique: vi.fn().mockResolvedValue(null) },
@@ -105,7 +106,8 @@ describe('HighlightsService', () => {
 
     it('returns nothing for a private account the viewer does not follow', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValueOnce({
-        user: { settings: { privacyLevel: 'PRIVATE' } },
+        privacyLevel: 'PRIVATE',
+        user: {},
       });
 
       await expect(service.findAll('owner', 'viewer')).resolves.toEqual([]);

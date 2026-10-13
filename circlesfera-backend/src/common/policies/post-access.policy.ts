@@ -14,9 +14,7 @@ export type AccessiblePost = {
   moderationStatus: string;
   turnOffComments: boolean;
   hideLikes?: boolean;
-  profile?: {
-    user?: { settings?: { privacyLevel: Visibility } | null } | null;
-  } | null;
+  profile?: { privacyLevel?: Visibility } | null;
 };
 
 // Single read-access rule for a post, shared by every path that shows or
@@ -60,8 +58,7 @@ export async function assertCanAccessPost(
     return follow?.status === 'ACCEPTED';
   };
 
-  const isProfilePrivate =
-    post.profile?.user?.settings?.privacyLevel === Visibility.PRIVATE;
+  const isProfilePrivate = post.profile?.privacyLevel === Visibility.PRIVATE;
   if (isProfilePrivate && !(await isFollower())) {
     throw new ForbiddenException('This account is private');
   }
@@ -88,11 +85,7 @@ function loadPost(
       moderationStatus: true,
       turnOffComments: true,
       hideLikes: true,
-      profile: {
-        select: {
-          user: { select: { settings: { select: { privacyLevel: true } } } },
-        },
-      },
+      profile: { select: { privacyLevel: true } },
     },
   });
 }

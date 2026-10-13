@@ -383,7 +383,7 @@ describe('StoriesService', () => {
     const publicStory = {
       profileId: 'author-1',
       isCloseFriendsOnly: false,
-      profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+      profile: { privacyLevel: 'PUBLIC' },
     };
 
     beforeEach(() => {
@@ -433,7 +433,7 @@ describe('StoriesService', () => {
     it('requires an accepted follow to view a private account story', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue({
         ...publicStory,
-        profile: { user: { settings: { privacyLevel: 'PRIVATE' } } },
+        profile: { privacyLevel: 'PRIVATE' },
       });
       mockPrismaService.follow.findUnique.mockResolvedValueOnce({
         status: 'PENDING',
@@ -533,7 +533,8 @@ describe('StoriesService', () => {
     it('should return stories for public user', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: 'u1',
-        user: { settings: { privacyLevel: 'PUBLIC' } },
+        privacyLevel: 'PUBLIC',
+        user: {},
       });
       mockPrismaService.story.findMany.mockResolvedValue([
         { id: 's1', views: [] },
@@ -546,7 +547,8 @@ describe('StoriesService', () => {
     it('should return empty for private user if not following', async () => {
       mockPrismaService.profile.findFirst.mockResolvedValue({
         id: 'u1',
-        user: { settings: { privacyLevel: 'PRIVATE' } },
+        privacyLevel: 'PRIVATE',
+        user: {},
       });
       mockPrismaService.follow.findUnique.mockResolvedValue(null);
 
@@ -670,7 +672,7 @@ describe('StoriesService', () => {
       mockPrismaService.story.findUnique.mockResolvedValue({
         profileId: 'author-1',
         isCloseFriendsOnly: false,
-        profile: { user: { settings: { privacyLevel: 'PUBLIC' } } },
+        profile: { privacyLevel: 'PUBLIC' },
       });
       mockPrismaService.block.findFirst.mockResolvedValue(null);
       mockPrismaService.story.count.mockResolvedValue(1);

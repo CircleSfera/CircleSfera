@@ -245,6 +245,9 @@ model UserSettings {
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  // Legacy: the private choice and the push switch are per Profile now
+  // (profiles.privacyLevel, profiles.pushNotifications). Nothing reads or
+  // writes these two columns any more.
   privacyLevel         Visibility    @default(PUBLIC)
   contentPreference    ContentRating @default(GENERAL)
   blurSensitiveContent Boolean       @default(true)
@@ -365,6 +368,13 @@ model Profile {
   // and direct bans clear these.
   banStrikeId        String?
   suspensionStrikeId String?
+  // Who may see this Profile's content: each Profile of a person chooses for
+  // itself. PRIVATE asks for an accepted follow.
+  privacyLevel      Visibility @default(PUBLIC)
+  // Push notifications of this Profile; the person's other Profiles keep
+  // their own choice.
+  pushNotifications Boolean    @default(true)
+
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
   suspensionCause    SuspensionCause?
@@ -426,6 +436,7 @@ model Profile {
 
   @@index([userId])
   @@index([signInId])
+  @@index([privacyLevel])
   @@map("profiles")
 }
 
