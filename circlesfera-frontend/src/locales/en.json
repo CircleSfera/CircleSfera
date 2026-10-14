@@ -892,10 +892,10 @@
       "no_posts": "No posts here yet",
       "no_posts_hint": "Be the first to tag this place.",
       "area_generic": "This area",
-      "token_missing": "Mapbox token required",
-      "token_missing_hint": "Set VITE_MAPBOX_ACCESS_TOKEN in your frontend .env and restart Vite.",
+      "token_missing": "The map is not available right now",
+      "token_missing_hint": "Try again later.",
       "render_error": "Couldn't load the map",
-      "render_error_hint": "Check the browser console or reload the page.",
+      "render_error_hint": "Reload the page to try again.",
       "retry": "Retry"
     },
     "cold_start": {
@@ -1409,7 +1409,7 @@
       "hide_like_view": "Hide like and view counts",
       "hide_like_view_desc": "Only you will see the total number of likes and views on this post.",
       "turn_off_comments": "Turn off commenting",
-      "turn_off_comments_desc": "You can change this later from the post's menu.",
+      "turn_off_comments_desc": "Nobody can comment on this post. This can't be changed after it's published.",
       "mark_sensitive": "Mark as sensitive content",
       "mark_sensitive_desc": "Graphic violence, strong language, or artistic context. Explicit sexual content is not allowed on CircleSfera and is removed, not filtered.",
       "price_eur": "Price (EUR)"
@@ -1532,7 +1532,8 @@
       "token_missing": "Place search is not available right now.",
       "retrieve_failed": "Could not resolve that place. Try another result.",
       "clear": "Clear",
-      "mapbox_hint": "Pick a place to add it to your post. Places by Mapbox."
+      "mapbox_hint": "Pick a place to add it to your post.",
+      "provider_attribution": "© Mapbox"
     },
     "upload": {
       "post": "Post",

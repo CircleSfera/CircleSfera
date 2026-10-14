@@ -106,6 +106,15 @@ describe('language of places', () => {
     });
   });
 
+  it('keeps the map provider mark apart from the instruction', async () => {
+    await renderLocation({ profileLanguage: 'es', appLanguage: 'es' });
+
+    expect(
+      screen.getByText('Elige un lugar para añadirlo a tu publicación.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('© Mapbox')).toBeInTheDocument();
+  });
+
   it('asks in English for a profile in English, even on a Spanish screen', async () => {
     await renderLocation({ profileLanguage: 'en', appLanguage: 'es' });
 

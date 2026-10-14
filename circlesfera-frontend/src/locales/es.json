@@ -892,10 +892,10 @@
       "no_posts": "Aún no hay publicaciones aquí",
       "no_posts_hint": "Sé el primero en etiquetar este lugar.",
       "area_generic": "Esta zona",
-      "token_missing": "Falta el token de Mapbox",
-      "token_missing_hint": "Configura VITE_MAPBOX_ACCESS_TOKEN en el .env del frontend y reinicia Vite.",
+      "token_missing": "El mapa no está disponible ahora",
+      "token_missing_hint": "Inténtalo más tarde.",
       "render_error": "No se pudo cargar el mapa",
-      "render_error_hint": "Revisa la consola del navegador o recarga la página.",
+      "render_error_hint": "Recarga la página para intentarlo de nuevo.",
       "retry": "Reintentar"
     },
     "cold_start": {
@@ -1409,7 +1409,7 @@
       "hide_like_view": "Ocultar recuento de me gusta y visualizaciones",
       "hide_like_view_desc": "Solo tú verás el número total de me gusta y visualizaciones en esta publicación.",
       "turn_off_comments": "Desactivar comentarios",
-      "turn_off_comments_desc": "Puedes cambiarlo después desde el menú de la publicación.",
+      "turn_off_comments_desc": "Nadie podrá comentar esta publicación. No se puede cambiar después de publicarla.",
       "mark_sensitive": "Marcar como contenido sensible",
       "mark_sensitive_desc": "Violencia gráfica, lenguaje fuerte o contexto artístico. El contenido sexual explícito no está permitido en CircleSfera y se retira, no se filtra.",
       "price_eur": "Precio (EUR)"
@@ -1532,7 +1532,8 @@
       "token_missing": "La búsqueda de lugares no está disponible ahora.",
       "retrieve_failed": "No se pudo resolver ese lugar. Prueba otro resultado.",
       "clear": "Quitar",
-      "mapbox_hint": "Elige un lugar para añadirlo a tu publicación. Lugares de Mapbox."
+      "mapbox_hint": "Elige un lugar para añadirlo a tu publicación.",
+      "provider_attribution": "© Mapbox"
     },
     "upload": {
       "post": "Post",

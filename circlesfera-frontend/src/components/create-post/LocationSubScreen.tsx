@@ -297,7 +297,11 @@ export default function LocationSubScreen({
 
         <div className="px-4 pb-4 mt-auto text-xs font-medium text-white/40 flex items-start gap-2 shrink-0">
           <MapPin size={14} className="mt-0.5 shrink-0" />
-          <p>{t('createPost.location.mapbox_hint')}</p>
+          <p className="flex-1">{t('createPost.location.mapbox_hint')}</p>
+          {/* The map provider's terms ask for its mark next to its results. */}
+          <span className="shrink-0">
+            {t('createPost.location.provider_attribution')}
+          </span>
         </div>
       </motion.div>
     </div>

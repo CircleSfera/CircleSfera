@@ -13,6 +13,7 @@ import { buildPlaceMarkerElement } from '../../components/explore-map/placeMapMa
 import { Button } from '../../components/ui';
 import { placesApi } from '../../services';
 import type { PlaceMapPin } from '../../types';
+import { logger } from '../../utils/logger';
 import {
   MAP_CHIP_CLASS,
   MAP_FAB_CLASS,
@@ -151,9 +152,8 @@ export default function ExploreMapPage() {
     });
 
     map.on('error', (event) => {
-      const message =
-        event.error?.message || t('explore.map.render_error_hint');
-      setMapError(message);
+      logger.warn('The map failed to render', event.error);
+      setMapError(t('explore.map.render_error_hint'));
     });
 
     map.on('moveend', () => {

@@ -34,6 +34,22 @@ describe('AdvancedSettingsSubScreen', () => {
     expect(screen.queryByText(/mature/i)).not.toBeInTheDocument();
   });
 
+  it('says turning off comments is final, since a published post cannot change it', () => {
+    renderWithProviders(
+      <AdvancedSettingsSubScreen {...baseProps} showSensitiveToggle />,
+      {
+        lng: 'es',
+      },
+    );
+
+    expect(
+      screen.getByText(
+        'Nadie podrá comentar esta publicación. No se puede cambiar después de publicarla.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/menú/)).not.toBeInTheDocument();
+  });
+
   it('toggles sensitive content on', () => {
     const setIsSensitive = vi.fn();
     renderWithProviders(

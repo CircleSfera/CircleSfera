@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { act, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
@@ -88,6 +88,21 @@ describe('ExploreMapPage', () => {
     expect(
       screen.queryByTestId('explore-map-places-chip'),
     ).not.toBeInTheDocument();
+  });
+
+  it('tells the person to reload when the map fails, without the technical cause', async () => {
+    vi.stubEnv('VITE_MAPBOX_ACCESS_TOKEN', 'pk.test-token');
+    const { i18n } = renderPage();
+
+    const onError = mapInstance.on.mock.calls.find(
+      ([event]) => event === 'error',
+    )?.[1] as (event: { error?: Error }) => void;
+    act(() => onError({ error: new Error('Unauthorized: 401 tile request') }));
+
+    expect(
+      await screen.findByText(i18n!.t('explore.map.render_error_hint')),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/401 tile request/)).not.toBeInTheDocument();
   });
 
   it('does not render the generic area label when the map has no pins', async () => {
