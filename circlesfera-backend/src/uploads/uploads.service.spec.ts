@@ -13,6 +13,7 @@ import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
 import { LocalStorageProvider } from './providers/local.provider.js';
 import { UploadsService } from './uploads.service.js';
+import { VoiceNoteConverter } from './voice-note.converter.js';
 
 // Mock Sharp to handle both default import and requirement types
 vi.mock('sharp', () => {
@@ -61,6 +62,13 @@ const mockMediaCleanupQueue = {
   add: vi.fn().mockResolvedValue({ id: 'job-clean-1' }),
 };
 
+const mockVoiceNoteConverter = {
+  isRecordedVoice: vi.fn(
+    (mime: string) => mime === 'audio/webm' || mime === 'audio/mp4',
+  ),
+  toM4a: vi.fn().mockResolvedValue(Buffer.from('converted-voice')),
+};
+
 const mockOutboxService = {
   enqueue: vi.fn().mockResolvedValue({ id: 'outbox-1' }),
 };
@@ -90,6 +98,7 @@ describe('UploadsService', () => {
           provide: MediaSignatureValidator,
           useValue: { validate: vi.fn().mockResolvedValue(undefined) },
         },
+        { provide: VoiceNoteConverter, useValue: mockVoiceNoteConverter },
         {
           provide: STORAGE_PROVIDER,
           useFactory: (_config: ConfigService) => new LocalStorageProvider(),
@@ -130,6 +139,67 @@ describe('UploadsService', () => {
       expect(result.url).toContain('.png');
       expect(result.type).toBe('image');
       expect(fs.promises.writeFile).toHaveBeenCalled();
+    });
+  });
+
+  describe('a recorded voice note', () => {
+    const recording: UploadedFile = {
+      originalname: 'voice-note.webm',
+      mimetype: 'audio/webm',
+      buffer: Buffer.from('recorded-bytes'),
+    };
+
+    it('is stored converted, as an m4a file, and is not queued as a video', async () => {
+      const upload = vi
+        .spyOn(provider, 'upload')
+        .mockResolvedValue({ url: '/uploads/voice.m4a', type: 'audio' });
+
+      const result = await service.uploadFile(recording, 'user-1');
+
+      expect(mockVoiceNoteConverter.toM4a).toHaveBeenCalledWith(
+        recording.buffer,
+      );
+      expect(upload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          buffer: Buffer.from('converted-voice'),
+          mimetype: 'audio/x-m4a',
+        }),
+      );
+      expect(result).toEqual({ url: '/uploads/voice.m4a', type: 'audio' });
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('is not stored when it cannot be converted', async () => {
+      const upload = vi.spyOn(provider, 'upload');
+      mockVoiceNoteConverter.toM4a.mockRejectedValueOnce(
+        new Error('not a recording'),
+      );
+
+      await expect(service.uploadFile(recording, 'user-1')).rejects.toThrow(
+        'not a recording',
+      );
+      expect(upload).not.toHaveBeenCalled();
+    });
+
+    it('leaves any other sound file as it was sent', async () => {
+      const upload = vi
+        .spyOn(provider, 'upload')
+        .mockResolvedValue({ url: '/uploads/song.mp3', type: 'audio' });
+      const song: UploadedFile = {
+        originalname: 'song.mp3',
+        mimetype: 'audio/mpeg',
+        buffer: Buffer.from('mp3-bytes'),
+      };
+
+      await service.uploadFile(song, 'user-1');
+
+      expect(mockVoiceNoteConverter.toM4a).not.toHaveBeenCalled();
+      expect(upload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          buffer: song.buffer,
+          mimetype: 'audio/mpeg',
+        }),
+      );
     });
   });
 

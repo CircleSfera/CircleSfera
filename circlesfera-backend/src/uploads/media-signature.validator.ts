@@ -155,6 +155,11 @@ export class MediaSignatureValidator {
       'audio/mpeg': ['audio/mp3', 'audio/mpeg3'],
       'audio/wav': ['audio/wave', 'audio/x-wav'],
       'audio/x-m4a': ['audio/m4a', 'audio/mp4'],
+      // A recording of the microphone: webm and mp4 also carry video, so
+      // the content reads as video whatever is inside. The upload converts
+      // what is declared as audio to sound only.
+      'video/webm': ['audio/webm'],
+      'video/mp4': ['audio/mp4'],
       'video/quicktime': ['video/mov'],
       'image/jpeg': ['image/jpg'],
     };

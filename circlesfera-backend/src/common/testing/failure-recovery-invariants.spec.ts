@@ -82,9 +82,13 @@ describe('Failure Injection & Recovery Invariants', () => {
         mockStorageProvider,
         mockMediaProcessor,
         mockSignatureValidator,
-        mockVideoQueue as unknown as ConstructorParameters<
+        // None of these uploads is a recorded voice note.
+        { isRecordedVoice: () => false } as unknown as ConstructorParameters<
           typeof UploadsService
         >[3],
+        mockVideoQueue as unknown as ConstructorParameters<
+          typeof UploadsService
+        >[4],
         mockConfigService,
       );
     });
