@@ -167,56 +167,118 @@ describe('PaymentsService', () => {
   });
 
   describe('getLedgerCsv', () => {
-    it('returns CSV filtered by userId with sanitized descriptions', async () => {
+    const tx = (over: object) => ({
+      id: 'tx_1',
+      createdAt: new Date('2026-01-01T00:00:00.000Z'),
+      type: 'DIRECT_TIP',
+      amount: 500,
+      currency: 'EUR',
+      status: 'COMPLETED',
+      senderId: 'user_1',
+      receiverId: 'user_2',
+      description: 'A "special" tip',
+      ...over,
+    });
+
+    it('gives a person their own record, in euros, saying what they sent and what they received', async () => {
       prisma.transaction.findMany = vi.fn().mockResolvedValue([
-        {
-          id: 'tx_1',
-          createdAt: new Date('2026-01-01T00:00:00.000Z'),
-          type: 'DIRECT_TIP',
-          amount: 500,
-          currency: 'EUR',
-          status: 'COMPLETED',
-          sender: { email: 'sender@test.com' },
-          receiver: { email: 'receiver@test.com' },
-          description: 'A "special" tip',
-        },
+        tx({}),
+        tx({
+          id: 'tx_2',
+          type: 'DIRECT_UNLOCK',
+          amount: 1999,
+          senderId: 'user_3',
+          receiverId: 'user_1',
+          description: null,
+        }),
       ]);
 
       const csv = await service.getLedgerCsv('user_1');
-      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { OR: [{ senderId: 'user_1' }, { receiverId: 'user_1' }] },
-        }),
-      );
-      expect(csv).toContain(
-        'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description',
-      );
-      expect(csv).toContain(
-        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","500","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
-      );
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+        where: { OR: [{ senderId: 'user_1' }, { receiverId: 'user_1' }] },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(csv.split('\n')).toEqual([
+        'ID,Date,Type,Direction,Amount,Currency,Status,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","SENT","5.00","EUR","COMPLETED","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","DIRECT_UNLOCK","RECEIVED","19.99","EUR","COMPLETED",""',
+      ]);
     });
 
-    it('returns CSV for admin with null sender/receiver mapped to SYSTEM', async () => {
+    it("never names the other party in a person's own record", async () => {
       prisma.transaction.findMany = vi.fn().mockResolvedValue([
-        {
+        tx({
+          sender: { email: 'sender@test.com' },
+          receiver: { email: 'receiver@test.com' },
+        }),
+      ]);
+
+      const csv = await service.getLedgerCsv('user_1');
+
+      expect(csv).not.toContain('@test.com');
+      expect(csv).not.toContain('user_2');
+    });
+
+    it('gives staff every transaction with who sent and received it, in euros', async () => {
+      prisma.transaction.findMany = vi.fn().mockResolvedValue([
+        tx({
+          sender: { email: 'sender@test.com' },
+          receiver: { email: 'receiver@test.com' },
+        }),
+        tx({
           id: 'tx_2',
-          createdAt: new Date('2026-01-02T00:00:00.000Z'),
           type: 'PROMOTION_PAYMENT',
           amount: 1000,
-          currency: 'EUR',
-          status: 'COMPLETED',
           sender: null,
           receiver: null,
           description: null,
-        },
+        }),
       ]);
 
       const csv = await service.getLedgerCsv();
-      expect(prisma.transaction.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: undefined }),
-      );
-      expect(csv).toContain('"SYSTEM","SYSTEM",""');
+
+      expect(prisma.transaction.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        orderBy: { createdAt: 'desc' },
+        include: {
+          sender: { select: { email: true } },
+          receiver: { select: { email: true } },
+        },
+      });
+      expect(csv.split('\n')).toEqual([
+        'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description',
+        '"tx_1","2026-01-01T00:00:00.000Z","DIRECT_TIP","5.00","EUR","COMPLETED","sender@test.com","receiver@test.com","A ""special"" tip"',
+        '"tx_2","2026-01-01T00:00:00.000Z","PROMOTION_PAYMENT","10.00","EUR","COMPLETED","SYSTEM","SYSTEM",""',
+      ]);
     });
+
+    it.each([
+      '=HYPERLINK("x")',
+      '+1',
+      '-1',
+      '@SUM(A1)',
+      '\tlead',
+      '\rlead',
+      '\nlead',
+    ])(
+      'writes a text that starts like a formula (%s) as text',
+      async (text) => {
+        prisma.transaction.findMany = vi
+          .fn()
+          .mockResolvedValue([
+            tx({ description: text, sender: { email: text }, receiver: null }),
+          ]);
+
+        // Whole files: a text may hold a line break of its own.
+        const own = await service.getLedgerCsv('user_1');
+        const staff = await service.getLedgerCsv();
+
+        const quoted = `"'${text.replace(/"/g, '""')}"`;
+        expect(own.endsWith(`"COMPLETED",${quoted}`)).toBe(true);
+        expect(staff).toContain(`"COMPLETED",${quoted},"SYSTEM",${quoted}`);
+      },
+    );
   });
 
   describe('findAllPlans', () => {

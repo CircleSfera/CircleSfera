@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { changeAppLanguage } from '../../i18n';
 import { profileApi } from '../../services';
 import * as dataExportApi from '../../services/data-export.service';
+import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { renderWithProviders } from '../../test/test-utils';
 import AccountSettings from './AccountSettings';
@@ -17,6 +18,9 @@ vi.mock('../../services', () => ({
 vi.mock('../../services/data-export.service', () => ({
   getLatestDataExport: vi.fn(),
   requestDataExport: vi.fn(),
+}));
+vi.mock('../../services/payments.service', () => ({
+  paymentsApi: { getLedger: vi.fn() },
 }));
 vi.mock('../../services/users.service', () => ({
   usersApi: {
@@ -65,6 +69,7 @@ vi.mock('../profile/AboutAccountDialog', async (importOriginal) => ({
 const profiles = vi.mocked(profileApi);
 const exportsApi = vi.mocked(dataExportApi);
 const users = vi.mocked(usersApi);
+const payments = vi.mocked(paymentsApi);
 const language = vi.mocked(changeAppLanguage);
 
 const mine = (over: object = {}) => ({
@@ -314,6 +319,50 @@ describe('AccountSettings', () => {
       await screen.findByRole('button', { name: 'Request export' }),
     ).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Download data' })).toBeNull();
+  });
+
+  it('downloads the record of money sent and received as a file, and says so', async () => {
+    const ledger = new Blob(['ID,Date']);
+    payments.getLedger.mockResolvedValue(ledger as never);
+    URL.createObjectURL = vi.fn(() => 'blob:ledger');
+    URL.revokeObjectURL = vi.fn();
+    const clicked: Array<{ href: string; download: string | null }> = [];
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, 'click')
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        clicked.push({
+          href: this.href,
+          download: this.getAttribute('download'),
+        });
+      });
+    await show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Download Ledger' }),
+    );
+
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith('Ledger downloaded.'),
+    );
+    expect(URL.createObjectURL).toHaveBeenCalledWith(ledger);
+    expect(clicked).toEqual([{ href: 'blob:ledger', download: 'ledger.csv' }]);
+    // Neither the link nor the file's address stays behind.
+    expect(document.querySelector('a[download="ledger.csv"]')).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:ledger');
+    click.mockRestore();
+  });
+
+  it('says so when the record could not be downloaded', async () => {
+    payments.getLedger.mockRejectedValue(new Error('down'));
+    await show();
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Download Ledger' }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Failed to download ledger.'),
+    );
   });
 
   it('deactivates the account only after confirming, then signs out', async () => {

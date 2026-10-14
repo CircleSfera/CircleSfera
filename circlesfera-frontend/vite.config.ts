@@ -247,7 +247,7 @@ export default defineConfig({
           lines: 100,
         },
         // Privacy, a person's own data and appeals.
-        'src/components/DataExportSettings.tsx': {
+        'src/components/settings/AccountSettings.tsx': {
           statements: 100,
           lines: 100,
         },

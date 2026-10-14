@@ -3,7 +3,6 @@ export { VoiceRecorder } from './audio/VoiceRecorder';
 export { default as CommentList } from './CommentList';
 // ContentCalendar is deprecated mock — not exported
 export { CreatorAnalyticsDashboard } from './creator/CreatorAnalyticsDashboard';
-export { DataExportSettings } from './DataExportSettings';
 export { EmptyState, ErrorState } from './ErrorEmptyStates';
 export { default as FollowButton } from './FollowButton';
 export { PollWidget } from './interactive/PollWidget';

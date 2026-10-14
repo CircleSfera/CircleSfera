@@ -246,10 +246,8 @@
         "btn": "Solicitar exportación",
         "processing": "Procesando tu solicitud…",
         "download": "Descargar datos",
-        "request_new": "Solicitar una nueva exportación",
-        "history": "Historial de exportaciones"
+        "request_new": "Solicitar una nueva exportación"
       },
-      "export_success": "Exportación iniciada. Recibirás un correo cuando esté lista.",
       "export_error": "Error al solicitar la exportación de datos.",
       "delete_scheduled": "Cuenta programada para eliminación. Inicia sesión en 30 días para restaurarla.",
       "delete_cancelled": "Eliminación cancelada. Tu cuenta está activa de nuevo.",
