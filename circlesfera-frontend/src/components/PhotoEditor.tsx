@@ -24,7 +24,11 @@ interface PhotoEditorProps {
   onCancel: () => void;
   onStateChange?: (state: PhotoEditorSavedState) => void;
   initialState?: PhotoEditorSavedState;
-  onApplyToAll?: (filterString: string) => void;
+  /** Gives the look of the photo on show to the other items. */
+  onApplyToAll?: (
+    filterString: string,
+    look: Pick<PhotoEditorSavedState, 'filter' | 'adjustments'>,
+  ) => void;
   /** Open on this tab (e.g. TRIM for Frame re-edit). */
   initialTab?: PhotoEditorTab;
   /** When set, video trim length is clamped to [min, max] seconds. */
@@ -75,7 +79,12 @@ export default function PhotoEditor({
               <EditorHeaderAction
                 kind="plain"
                 label={t('createPost.edit.apply_to_all')}
-                onClick={() => onApplyToAll(editor.filterString)}
+                onClick={() =>
+                  onApplyToAll(editor.filterString, {
+                    filter: editor.selectedFilter.class,
+                    adjustments: editor.adjustments,
+                  })
+                }
               />
             )}
             <EditorHeaderAction

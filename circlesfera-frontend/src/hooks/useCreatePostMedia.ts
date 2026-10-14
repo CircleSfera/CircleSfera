@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { CropData, VideoData } from '../components/PhotoEditor';
+import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
 import {
   FRAME_MIN_DURATION_SEC,
   MAX_UPLOAD_BYTES,
@@ -200,6 +201,7 @@ export function useCreatePostMedia({
     cropData?: CropData,
     overlayDataUrl?: string,
     videoData?: VideoData,
+    editorState?: PhotoEditorSavedState,
   ) => {
     if (currentEditIndex !== null) {
       const type = file.type.startsWith('video')
@@ -220,6 +222,7 @@ export function useCreatePostMedia({
           cropData,
           overlayDataUrl,
           videoData,
+          editorState,
         };
         return updated;
       });

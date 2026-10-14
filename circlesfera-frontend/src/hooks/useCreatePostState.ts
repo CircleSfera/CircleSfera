@@ -3,6 +3,7 @@ import type { PlaceInput } from '@circlesfera/shared';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
+import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
 import type { Audio as AudioTrack, StoryElement } from '../types';
 
 export type CreateMode = 'POST' | 'STORY' | 'FRAME';
@@ -40,6 +41,8 @@ export interface MediaFile {
   overlayDataUrl?: string;
   videoData?: VideoData;
   remoteUrl?: string;
+  /** What was chosen in the photo editor, to open it again the same way. */
+  editorState?: PhotoEditorSavedState;
 }
 
 export function useCreatePostState() {
