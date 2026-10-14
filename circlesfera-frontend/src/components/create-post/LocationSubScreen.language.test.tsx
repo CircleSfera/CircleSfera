@@ -112,7 +112,10 @@ describe('language of places', () => {
     expect(
       screen.getByText('Elige un lugar para añadirlo a tu publicación.'),
     ).toBeInTheDocument();
-    expect(screen.getByText('© Mapbox')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '© Mapbox' })).toHaveAttribute(
+      'href',
+      'https://www.mapbox.com/about/maps/',
+    );
   });
 
   it('asks in English for a profile in English, even on a Spanish screen', async () => {

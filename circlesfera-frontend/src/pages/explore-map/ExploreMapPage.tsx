@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import mapboxgl from 'mapbox-gl';
 import MapboxWorker from 'mapbox-gl/dist/mapbox-gl-csp-worker?worker';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -13,7 +14,6 @@ import { buildPlaceMarkerElement } from '../../components/explore-map/placeMapMa
 import { Button } from '../../components/ui';
 import { placesApi } from '../../services';
 import type { PlaceMapPin } from '../../types';
-import { logger } from '../../utils/logger';
 import {
   MAP_CHIP_CLASS,
   MAP_FAB_CLASS,
@@ -152,7 +152,14 @@ export default function ExploreMapPage() {
     });
 
     map.on('error', (event) => {
-      logger.warn('The map failed to render', event.error);
+      // The cause goes to error reporting, never to the screen. A failed
+      // request names its address, which carries the map key.
+      const cause = event.error;
+      Sentry.captureException(
+        new Error(
+          `The map failed to render: ${(cause?.message ?? 'unknown').replace(/access_token=[^&\s]+/g, 'access_token=[redacted]')}`,
+        ),
+      );
       setMapError(t('explore.map.render_error_hint'));
     });
 

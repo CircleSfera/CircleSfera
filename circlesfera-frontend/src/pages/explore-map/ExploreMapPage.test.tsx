@@ -32,6 +32,9 @@ vi.mock('mapbox-gl/dist/mapbox-gl-csp-worker?worker', () => ({
 
 vi.mock('mapbox-gl/dist/mapbox-gl.css', () => ({}));
 
+const sentry = vi.hoisted(() => ({ captureException: vi.fn() }));
+vi.mock('@sentry/react', () => sentry);
+
 vi.mock('../../services', () => ({
   placesApi: {
     getMap: vi.fn().mockResolvedValue({ data: { data: [] } }),
@@ -103,6 +106,26 @@ describe('ExploreMapPage', () => {
       await screen.findByText(i18n!.t('explore.map.render_error_hint')),
     ).toBeInTheDocument();
     expect(screen.queryByText(/401 tile request/)).not.toBeInTheDocument();
+  });
+
+  it('reports why the map failed, without the map key', () => {
+    vi.stubEnv('VITE_MAPBOX_ACCESS_TOKEN', 'pk.test-token');
+    renderPage();
+
+    const onError = mapInstance.on.mock.calls.find(
+      ([event]) => event === 'error',
+    )?.[1] as (event: { error?: Error }) => void;
+    act(() =>
+      onError({
+        error: new Error(
+          'Unauthorized: https://api.mapbox.com/v4/tile.png?access_token=pk.secret&x=1',
+        ),
+      }),
+    );
+
+    const [[reported]] = sentry.captureException.mock.calls;
+    expect(reported.message).toContain('access_token=[redacted]&x=1');
+    expect(reported.message).not.toContain('pk.secret');
   });
 
   it('does not render the generic area label when the map has no pins', async () => {
