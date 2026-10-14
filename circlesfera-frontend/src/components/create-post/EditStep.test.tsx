@@ -59,6 +59,79 @@ describe('EditStep', () => {
     vi.restoreAllMocks();
   });
 
+  describe('the row of filters', () => {
+    const renderStep = (
+      props: Partial<React.ComponentProps<typeof EditStep>> = {},
+    ) => {
+      const onApplyFilter = vi.fn();
+      renderWithProviders(
+        <EditStep
+          mediaFiles={mediaFiles}
+          mode="POST"
+          setMode={vi.fn()}
+          setCurrentEditIndex={vi.fn()}
+          handleRemoveFile={vi.fn()}
+          fileInputRef={{ current: null }}
+          onApplyFilter={onApplyFilter}
+          {...props}
+        />,
+        { lng: 'es' },
+      );
+      return { onApplyFilter };
+    };
+
+    it('gives the photo on show a filter in one tap', () => {
+      const { onApplyFilter } = renderStep();
+
+      const row = within(screen.getByRole('group', { name: 'Filtros' }));
+      expect(row.getByRole('button', { name: 'Normal' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      fireEvent.click(row.getByRole('button', { name: 'Moon' }));
+
+      expect(onApplyFilter).toHaveBeenCalledWith(
+        0,
+        'grayscale brightness-110 contrast-110',
+      );
+    });
+
+    it('shows the filter the photo has, saved or from an older look', () => {
+      renderStep({
+        mediaFiles: [
+          {
+            ...mediaFiles[0],
+            filter:
+              'filter-class:sepia-[.25] contrast-125 brightness-115__style:x__temp:100__vignette:0__noise:0',
+          },
+        ],
+      });
+
+      expect(
+        within(screen.getByRole('group', { name: 'Filtros' })).getByRole(
+          'button',
+          { name: 'Crema' },
+        ),
+      ).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('is not offered for a video or a composed story', () => {
+      renderStep({
+        mediaFiles: [{ file, url: 'blob:clip', type: 'video' as const }],
+      });
+      expect(
+        screen.queryByRole('group', { name: 'Filtros' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('is not offered for a composed story', () => {
+      renderStep({ mode: 'STORY', onEditMedia: vi.fn() });
+      expect(
+        screen.queryByRole('group', { name: 'Filtros' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('shows edit and remove controls without requiring hover', () => {
     const setCurrentEditIndex = vi.fn();
     const handleRemoveFile = vi.fn();

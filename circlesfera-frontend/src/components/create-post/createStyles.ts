@@ -42,6 +42,10 @@ export const CREATE_TOOL = `flex-1 min-w-0 min-h-14 flex flex-col items-center j
 export const CREATE_THUMB =
   'h-14 w-auto min-w-11 shrink-0 rounded-md overflow-hidden border-2';
 
+/** A filter preview of the edit step: larger, it fills the space below. */
+export const CREATE_QUICK_THUMB =
+  'h-20 w-auto min-w-11 shrink-0 rounded-lg overflow-hidden border-2';
+
 /** The shape of a small preview for what is being created. */
 export const createThumbRatio = (mode: 'POST' | 'FRAME' | 'STORY') =>
   mode === 'POST' ? '4 / 5' : '9 / 16';

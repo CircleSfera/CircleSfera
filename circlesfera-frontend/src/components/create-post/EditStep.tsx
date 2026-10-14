@@ -28,6 +28,7 @@ import {
   CREATE_THUMB,
   CREATE_TOOL,
 } from './createStyles';
+import QuickFilterRow from './QuickFilterRow';
 
 interface EditStepProps {
   mediaFiles: MediaFile[];
@@ -41,6 +42,8 @@ interface EditStepProps {
   handleRemoveFile: (index: number) => void;
   /** Moves a file to another place in the carousel. */
   onMoveFile?: (from: number, to: number) => void;
+  /** Gives the item a filter, from the row under the preview. */
+  onApplyFilter?: (index: number, filterClass: string) => void;
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
   allowModeSwitch?: boolean;
 }
@@ -104,6 +107,7 @@ export default function EditStep({
   onEditMedia,
   handleRemoveFile,
   onMoveFile,
+  onApplyFilter,
   fileInputRef,
   allowModeSwitch = true,
 }: EditStepProps) {
@@ -210,6 +214,15 @@ export default function EditStep({
           },
         ];
 
+  // The row of filters is for a photo; a video and a composed story keep
+  // their own editors.
+  const selectedItem = mediaFiles[selectedIndex];
+  const showFilterRow =
+    Boolean(onApplyFilter) && !onEditMedia && selectedItem?.type === 'image';
+  const selectedFilterClass =
+    selectedItem?.editorState?.filter ??
+    parseFilter(selectedItem?.filter).className;
+
   // On phones the preview is a card with a side gutter, like the Frames
   // card; the larger radius is kept from md up.
   const frameChrome =
@@ -291,6 +304,15 @@ export default function EditStep({
           </div>
         </div>
       </div>
+
+      {showFilterRow && selectedItem && onApplyFilter ? (
+        <QuickFilterRow
+          imageUrl={selectedItem.url}
+          ratio={`${ratioW} / ${ratioH}`}
+          selectedClass={selectedFilterClass}
+          onSelect={(filterClass) => onApplyFilter(selectedIndex, filterClass)}
+        />
+      ) : null}
 
       {allowModeSwitch ? (
         <div className="py-1.5 px-3 bg-surface-elevated border-t border-white/8 flex justify-center z-10 shrink-0">

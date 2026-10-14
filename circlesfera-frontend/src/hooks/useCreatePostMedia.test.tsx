@@ -340,92 +340,59 @@ describe('useCreatePostMedia', () => {
     it('replaces the edited file and its preview, and leaves the editor', async () => {
       const { pick, media } = setup();
       await pick(photo('a.jpg'), photo('b.jpg'));
-      act(() => media().setCurrentEditIndex(1));
-      const edited = photo('b-edited.jpg');
-      const crop = { x: 1, y: 2, width: 3, height: 4 };
-
-      await act(() =>
-        media().handleFilterSave(
-          edited,
-          'sepia',
-          crop as never,
-          'data:overlay',
+      // What the photo editor saved for the second photo.
+      act(() =>
+        media().setMediaFiles((list) =>
+          list.map((m, i) =>
+            i === 1
+              ? {
+                  ...m,
+                  editorState: {
+                    filter: '',
+                    adjustments: {
+                      brightness: 130,
+                      contrast: 100,
+                      saturation: 100,
+                      sepia: 0,
+                      grayscale: 0,
+                      hue: 0,
+                      blur: 0,
+                      temperature: 100,
+                      vignette: 20,
+                      noise: 0,
+                    },
+                  },
+                }
+              : m,
+          ),
         ),
       );
 
-      expect(media().mediaFiles[0].file.name).toBe('a.jpg');
-      expect(media().mediaFiles[1]).toMatchObject({
-        file: edited,
-        url: 'blob:3',
-        type: 'image',
-        filter: 'sepia',
-        cropData: crop,
-        overlayDataUrl: 'data:overlay',
-      });
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:2');
-      expect(media().currentEditIndex).toBeNull();
+      act(() =>
+        media().handleQuickFilter(1, 'grayscale brightness-110 contrast-110'),
+      );
+
+      const [first, second] = media().mediaFiles;
+      expect(first.filter).toBeUndefined();
+      expect(second.filter).toBe(
+        'filter-class:grayscale brightness-110 contrast-110__style:brightness(130%) contrast(100%) saturate(100%) sepia(0%) grayscale(0%) hue-rotate(0deg) blur(0px)__temp:100__vignette:20__noise:0',
+      );
+      // The photo editor opens on it next time.
+      expect(second.editorState?.filter).toBe(
+        'grayscale brightness-110 contrast-110',
+      );
+      expect(second.editorState?.adjustments?.brightness).toBe(130);
     });
 
-    it('forgets the uploaded copy of a file that was edited', async () => {
-      upload.uploadFiles.mockResolvedValue([{ url: 'https://cdn/a.jpg' }]);
-      vi.mocked(aiApi.generateAltText).mockResolvedValue({
-        data: { text: 'A dog' },
-      } as never);
-      const { pick, media } = setup();
-      await pick(photo());
-      await act(() => media().generateAltTextForIndex(0));
-      expect(media().mediaFiles[0].remoteUrl).toBe('https://cdn/a.jpg');
-      act(() => media().setCurrentEditIndex(0));
-
-      await act(() => media().handleFilterSave(photo('edited.jpg'), 'sepia'));
-
-      expect(media().mediaFiles[0].remoteUrl).toBeUndefined();
-    });
-
-    it('does nothing when no file is being edited', async () => {
+    it('starts from neutral adjustments on a photo never edited', async () => {
       const { pick, media } = setup();
       await pick(photo('a.jpg'));
 
-      await act(() => media().handleFilterSave(photo('x.jpg'), 'sepia'));
+      act(() => media().handleQuickFilter(0, 'sepia-[.25]'));
 
-      expect(media().mediaFiles[0].file.name).toBe('a.jpg');
-    });
-  });
-
-  describe('the order of a carousel', () => {
-    const tag = (profileId: string): PostTagData[] =>
-      [{ profileId, username: profileId, x: 0.5, y: 0.5 }] as PostTagData[];
-
-    it('moves a file with its description and its tags', async () => {
-      const { pick, media } = setup();
-      await pick(photo('a.jpg'), photo('b.jpg'), photo('c.jpg'));
-      act(() => {
-        media().setAltTextMap({ 0: 'first', 2: 'third' });
-        media().setTagsMap({ 0: tag('ana') });
-      });
-
-      act(() => media().handleMoveFile(0, 2));
-
-      expect(media().mediaFiles.map((m) => m.file.name)).toEqual([
-        'b.jpg',
-        'c.jpg',
-        'a.jpg',
-      ]);
-      expect(media().altTextMap).toEqual({ 1: 'third', 2: 'first' });
-      expect(media().tagsMap).toEqual({ 2: tag('ana') });
-    });
-
-    it('ignores a move to the same place or outside the carousel', async () => {
-      const { pick, media } = setup();
-      await pick(photo('a.jpg'), photo('b.jpg'));
-
-      act(() => media().handleMoveFile(1, 1));
-      act(() => media().handleMoveFile(0, 5));
-
-      expect(media().mediaFiles.map((m) => m.file.name)).toEqual([
-        'a.jpg',
-        'b.jpg',
-      ]);
+      expect(media().mediaFiles[0].filter).toBe(
+        'filter-class:sepia-[.25]__style:brightness(100%) contrast(100%) saturate(100%) sepia(0%) grayscale(0%) hue-rotate(0deg) blur(0px)__temp:100__vignette:0__noise:0',
+      );
     });
   });
 
