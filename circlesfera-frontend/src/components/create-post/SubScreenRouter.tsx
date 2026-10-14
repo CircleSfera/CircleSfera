@@ -1,125 +1,59 @@
-import type { Dispatch, SetStateAction } from 'react';
-import type { MediaFile } from '../../hooks/useCreatePost';
-import type { Audio } from '../../types';
 import AccessibilitySubScreen from './AccessibilitySubScreen';
 import AdvancedSettingsSubScreen from './AdvancedSettingsSubScreen';
 import CloseFriendsSubScreen from './CloseFriendsSubScreen';
+import { useComposer } from './ComposerContext';
 import CoverSubScreen from './CoverSubScreen';
-import InteractiveSubScreen, {
-  type InteractiveDraft,
-} from './InteractiveSubScreen';
+import InteractiveSubScreen from './InteractiveSubScreen';
 import LocationSubScreen from './LocationSubScreen';
 import MonetizationSubScreen from './MonetizationSubScreen';
-import MusicSubScreen, { type AudioSelection } from './MusicSubScreen';
+import MusicSubScreen from './MusicSubScreen';
 import TagPeopleSubScreen from './TagPeopleSubScreen';
 
 /** Routes caption sub-screens for the stepped Post/Frame composer. */
 
 interface SubScreenRouterProps {
-  /** What is being created; previews take the shape of that format. */
-  mode?: 'POST' | 'FRAME' | 'STORY';
-  subScreen:
-    | 'none'
-    | 'location'
-    | 'accessibility'
-    | 'advanced'
-    | 'tags'
-    | 'monetization'
-    | 'interactive'
-    | 'music'
-    | 'cover'
-    | 'close_friends';
-  setSubScreen: (
-    screen:
-      | 'none'
-      | 'location'
-      | 'accessibility'
-      | 'advanced'
-      | 'tags'
-      | 'monetization'
-      | 'interactive'
-      | 'music'
-      | 'cover'
-      | 'close_friends',
-  ) => void;
-  mediaFiles: MediaFile[];
-  altTextMap: Record<number, string>;
-  setAltTextMap: Dispatch<SetStateAction<Record<number, string>>>;
-  tagsMap: Record<number, any>;
-  setTagsMap: Dispatch<SetStateAction<Record<number, any>>>;
-  hideLikes: boolean;
-  setHideLikes: (val: boolean) => void;
-  turnOffComments: boolean;
-  setTurnOffComments: (val: boolean) => void;
-  coverTimeMs?: number | null;
-  setCoverTimeMs?: (val: number | null) => void;
-  isSensitive: boolean;
-  setIsSensitive: (val: boolean) => void;
-  showSensitiveToggle: boolean;
-  setLocation: (loc: string) => void;
-  location: string;
-  setSelectedPlace: (
-    place: {
-      mapboxId: string;
-      name: string;
-      fullName?: string;
-      latitude: number;
-      longitude: number;
-      country?: string;
-      region?: string;
-      locality?: string;
-    } | null,
-  ) => void;
-  onGenerateAltText: (index: number) => Promise<void>;
-  isPremium?: boolean;
-  setIsPremium?: (val: boolean) => void;
-  price?: number;
-  setPrice?: (val: number) => void;
-  scheduledAt?: string;
-  setScheduledAt?: (val: string) => void;
-  interactiveDraft?: InteractiveDraft;
-  setInteractiveDraft?: (val: InteractiveDraft) => void;
-  selectedAudio?: Audio | null;
-  setSelectedAudio?: (val: AudioSelection | null) => void;
-  audioStartMs?: number;
+  /** How much of a track fits what is being created. */
   clipWindowMs?: number;
 }
 
 export default function SubScreenRouter({
-  mode,
-  subScreen,
-  setSubScreen,
-  mediaFiles,
-  altTextMap,
-  setAltTextMap,
-  tagsMap,
-  setTagsMap,
-  hideLikes,
-  setHideLikes,
-  turnOffComments,
-  setTurnOffComments,
-  coverTimeMs = null,
-  setCoverTimeMs,
-  isSensitive,
-  setIsSensitive,
-  showSensitiveToggle,
-  setLocation,
-  location,
-  setSelectedPlace,
-  onGenerateAltText,
-  isPremium,
-  setIsPremium,
-  price,
-  setPrice,
-  scheduledAt = '',
-  setScheduledAt,
-  interactiveDraft = null,
-  setInteractiveDraft,
-  selectedAudio,
-  setSelectedAudio,
-  audioStartMs,
   clipWindowMs,
 }: SubScreenRouterProps) {
+  const {
+    mode,
+    subScreen,
+    setSubScreen,
+    mediaFiles,
+    altTextMap,
+    setAltTextMap,
+    tagsMap,
+    setTagsMap,
+    hideLikes,
+    setHideLikes,
+    turnOffComments,
+    setTurnOffComments,
+    coverTimeMs,
+    setCoverTimeMs,
+    isSensitive,
+    setIsSensitive,
+    setLocation,
+    location,
+    setSelectedPlace,
+    generateAltTextForIndex,
+    isPremium,
+    setIsPremium,
+    price,
+    setPrice,
+    scheduledAt,
+    setScheduledAt,
+    interactiveDraft,
+    setInteractiveDraft,
+    selectedAudio,
+    setSelectedAudio,
+    audioStartMs,
+    setAudioStartMs,
+  } = useComposer();
+
   if (subScreen === 'location') {
     return (
       <LocationSubScreen
@@ -146,7 +80,7 @@ export default function SubScreenRouter({
         altTextMap={altTextMap}
         setAltTextMap={setAltTextMap}
         onClose={() => setSubScreen('none')}
-        onGenerateAltText={onGenerateAltText}
+        onGenerateAltText={generateAltTextForIndex}
         mode={mode}
       />
     );
@@ -157,7 +91,7 @@ export default function SubScreenRouter({
       <CoverSubScreen
         mediaFiles={mediaFiles}
         coverTimeMs={coverTimeMs}
-        setCoverTimeMs={setCoverTimeMs || (() => undefined)}
+        setCoverTimeMs={setCoverTimeMs}
         onClose={() => setSubScreen('none')}
       />
     );
@@ -172,9 +106,9 @@ export default function SubScreenRouter({
         setTurnOffComments={setTurnOffComments}
         isSensitive={isSensitive}
         setIsSensitive={setIsSensitive}
-        showSensitiveToggle={showSensitiveToggle}
+        showSensitiveToggle={mode !== 'STORY'}
         scheduledAt={scheduledAt}
-        setScheduledAt={setScheduledAt || (() => undefined)}
+        setScheduledAt={setScheduledAt}
         onClose={() => setSubScreen('none')}
       />
     );
@@ -194,16 +128,16 @@ export default function SubScreenRouter({
   if (subScreen === 'monetization') {
     return (
       <MonetizationSubScreen
-        isPremium={isPremium!}
-        setIsPremium={setIsPremium!}
-        price={price!}
-        setPrice={setPrice!}
+        isPremium={isPremium}
+        setIsPremium={setIsPremium}
+        price={price}
+        setPrice={setPrice}
         onClose={() => setSubScreen('none')}
       />
     );
   }
 
-  if (subScreen === 'interactive' && setInteractiveDraft) {
+  if (subScreen === 'interactive') {
     return (
       <InteractiveSubScreen
         value={interactiveDraft}
@@ -213,13 +147,17 @@ export default function SubScreenRouter({
     );
   }
 
-  if (subScreen === 'music' && setSelectedAudio) {
+  if (subScreen === 'music') {
     return (
       <MusicSubScreen
         selectedAudioId={selectedAudio?.id}
         selectedAudioStartMs={audioStartMs}
         clipWindowMs={clipWindowMs}
-        onSelectAudio={setSelectedAudio}
+        onSelectAudio={(selection) => {
+          // A track comes with the moment it starts; taking it off clears both.
+          setSelectedAudio(selection?.audio ?? null);
+          setAudioStartMs(selection?.audioStartMs ?? 0);
+        }}
         onClose={() => setSubScreen('none')}
       />
     );

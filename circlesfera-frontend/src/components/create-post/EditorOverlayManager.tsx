@@ -5,11 +5,9 @@ import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
 } from '../../constants/uploadLimits';
-import type { MediaFile } from '../../hooks/useCreatePost';
-import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
-import type { CropData, VideoData } from '../PhotoEditor';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
+import { useComposer } from './ComposerContext';
 import { CREATE_FULL_SCREEN, createThumbRatio } from './createStyles';
 import FrameTrimOverlay from './FrameTrimOverlay';
 
@@ -18,77 +16,41 @@ const StoryComposer = lazy(() => import('../story/StoryComposer'));
 interface EditorOverlayManagerProps {
   showStoryComposer: boolean;
   setShowStoryComposer: (val: boolean) => void;
-  currentEditIndex: number | null;
-  setCurrentEditIndex: (val: number | null) => void;
   /** The tab the photo editor opens on; filters when not given. */
   initialEditorTab?: PhotoEditorTab;
-  /** What is being created; small previews take its shape. */
-  mode?: 'POST' | 'FRAME' | 'STORY';
-  showFrameTrim?: boolean;
-  frameSourceDurationSec?: number;
-  onFrameTrimConfirm?: (videoData: VideoData) => void;
-  onFrameTrimCancel?: () => void;
-  mediaFiles: MediaFile[];
-  setMediaFiles: (files: MediaFile[]) => void;
-  setIsComposed: (val: boolean) => void;
-  setStep: (step: 'edit' | 'caption') => void;
-  originalStoryMedia: {
-    file: File;
-    url: string;
-    type: 'image' | 'video';
-  } | null;
-  setOriginalStoryMedia: (
-    media: { file: File; url: string; type: 'image' | 'video' } | null,
-  ) => void;
-  storyElements: StoryElement[];
-  storyBgStyle: string;
-  setStoryElements: (elements: StoryElement[]) => void;
-  setStoryBgStyle: (style: string) => void;
-  handleFilterSave: (
-    file: File,
-    filterString: string,
-    cropData?: CropData,
-    overlayDataUrl?: string,
-    videoData?: VideoData,
-  ) => void;
-  isProcessingEdit?: boolean;
-  /** When true, PhotoEditor constrains trim to Frame 15–90s window. */
-  constrainFrameDuration?: boolean;
 }
 
 export default function EditorOverlayManager({
   showStoryComposer,
   setShowStoryComposer,
-  currentEditIndex,
-  setCurrentEditIndex,
   initialEditorTab,
-  mode = 'POST',
-  showFrameTrim = false,
-  frameSourceDurationSec = 0,
-  onFrameTrimConfirm,
-  onFrameTrimCancel,
-  mediaFiles,
-  setMediaFiles,
-  setIsComposed,
-  setStep,
-  originalStoryMedia,
-  setOriginalStoryMedia,
-  storyElements,
-  storyBgStyle,
-  setStoryElements,
-  setStoryBgStyle,
-  handleFilterSave,
-  isProcessingEdit,
-  constrainFrameDuration = false,
 }: EditorOverlayManagerProps) {
+  const {
+    mode,
+    currentEditIndex,
+    setCurrentEditIndex,
+    showFrameTrim,
+    frameSourceDurationSec,
+    handleFrameTrimConfirm,
+    handleFrameTrimCancel,
+    mediaFiles,
+    setMediaFiles,
+    setIsComposed,
+    setStep,
+    originalStoryMedia,
+    setOriginalStoryMedia,
+    storyElements,
+    storyBgStyle,
+    setStoryElements,
+    setStoryBgStyle,
+    handleFilterSave,
+    isProcessingEdit,
+  } = useComposer();
+  // The trim of a frame keeps to the length a frame may have.
+  const constrainFrameDuration = mode === 'FRAME';
   const { t } = useTranslation();
 
-  if (
-    showFrameTrim &&
-    mediaFiles[0]?.type === 'video' &&
-    onFrameTrimConfirm &&
-    onFrameTrimCancel
-  ) {
+  if (showFrameTrim && mediaFiles[0]?.type === 'video') {
     const clip = mediaFiles[0];
     const initialWindow = clip.videoData
       ? {
@@ -103,8 +65,8 @@ export default function EditorOverlayManager({
         sourceDurationSec={frameSourceDurationSec}
         initialWindow={initialWindow}
         muted={clip.videoData?.muted}
-        onConfirm={onFrameTrimConfirm}
-        onCancel={onFrameTrimCancel}
+        onConfirm={handleFrameTrimConfirm}
+        onCancel={handleFrameTrimCancel}
       />
     );
   }

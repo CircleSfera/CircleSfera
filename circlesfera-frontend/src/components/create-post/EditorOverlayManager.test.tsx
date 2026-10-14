@@ -1,9 +1,8 @@
 import { act, screen } from '@testing-library/react';
-import type { ComponentProps } from 'react';
 import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MediaFile } from '../../hooks/useCreatePost';
-import { renderWithProviders } from '../../test/test-utils';
+import { renderInComposer } from '../../test/composer';
 import EditorOverlayManager from './EditorOverlayManager';
 
 type Props = Record<string, any>;
@@ -46,12 +45,18 @@ const media = (
   ...over,
 });
 
+/** What the page itself holds; the rest comes from the composer. */
+const OF_THE_PAGE = ['showStoryComposer', 'initialEditorTab'];
+
 function show(more: Props = {}) {
   const props = {
+    mode: 'POST',
     showStoryComposer: false,
     setShowStoryComposer: vi.fn(),
     currentEditIndex: null,
     setCurrentEditIndex: vi.fn(),
+    showFrameTrim: false,
+    frameSourceDurationSec: 0,
     mediaFiles: [] as MediaFile[],
     setMediaFiles: vi.fn(),
     setIsComposed: vi.fn(),
@@ -63,14 +68,21 @@ function show(more: Props = {}) {
     setStoryElements: vi.fn(),
     setStoryBgStyle: vi.fn(),
     handleFilterSave: vi.fn(),
-    onFrameTrimConfirm: vi.fn(),
-    onFrameTrimCancel: vi.fn(),
+    handleFrameTrimConfirm: vi.fn(),
+    handleFrameTrimCancel: vi.fn(),
+    isProcessingEdit: false,
     ...more,
   };
-  const view = renderWithProviders(
+  const composer = Object.fromEntries(
+    Object.entries(props).filter(([key]) => !OF_THE_PAGE.includes(key)),
+  );
+  const view = renderInComposer(
     <EditorOverlayManager
-      {...(props as unknown as ComponentProps<typeof EditorOverlayManager>)}
+      showStoryComposer={props.showStoryComposer}
+      setShowStoryComposer={props.setShowStoryComposer}
+      initialEditorTab={(more as Props).initialEditorTab}
     />,
+    composer,
   );
   return { props, ...view };
 }
@@ -225,7 +237,7 @@ describe('EditorOverlayManager', () => {
       show({
         currentEditIndex: 0,
         mediaFiles: [media('video')],
-        constrainFrameDuration: true,
+        mode: 'FRAME',
       });
       await screen.findByTestId('photo-editor');
 
@@ -237,7 +249,7 @@ describe('EditorOverlayManager', () => {
       show({
         currentEditIndex: 0,
         mediaFiles: [media('video')],
-        constrainFrameDuration: true,
+        mode: 'FRAME',
         initialEditorTab: 'FILTERS',
       });
       await screen.findByTestId('photo-editor');
