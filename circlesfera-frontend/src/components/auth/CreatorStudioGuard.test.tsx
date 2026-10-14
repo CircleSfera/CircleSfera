@@ -1,5 +1,6 @@
 import { screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAuthStore } from '../../stores/authStore';
 import { renderWithProviders } from '../../test/test-utils';
@@ -19,6 +20,12 @@ vi.mock('react-hot-toast', () => ({
     success: vi.fn(),
   },
 }));
+
+// The sign-in page, saying where the guard says the person came from.
+function CameFrom() {
+  const { state } = useLocation();
+  return <div>came from {state?.from?.pathname}</div>;
+}
 
 describe('CreatorStudioGuard', () => {
   beforeEach(() => {
@@ -94,5 +101,47 @@ describe('CreatorStudioGuard', () => {
         i18n!.t('creator.guard.creators_only'),
       );
     });
+  });
+
+  const signedOut = (isSessionChecked: boolean) =>
+    vi.mocked(useAuthStore).mockImplementation(((selector: any) => {
+      const state = { isAuthenticated: false, isSessionChecked, profile: null };
+      return selector ? selector(state) : state;
+    }) as any);
+  const showAt = (path: string) =>
+    renderWithProviders(
+      <Routes>
+        <Route
+          path="/creator/*"
+          element={
+            <CreatorStudioGuard>
+              <div>Studio Content</div>
+            </CreatorStudioGuard>
+          }
+        />
+        <Route path="/accounts/login" element={<CameFrom />} />
+      </Routes>,
+      { routerProps: { initialEntries: [path], useTransitions: false } },
+    );
+
+  it('shows nothing of the studio while the session is still being checked', () => {
+    signedOut(false);
+
+    showAt('/creator/posts');
+
+    expect(screen.queryByText('Studio Content')).not.toBeInTheDocument();
+    expect(screen.queryByText(/^came from/)).not.toBeInTheDocument();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('sends someone without a session to sign in, remembering where they were going', () => {
+    signedOut(true);
+
+    showAt('/creator/posts');
+
+    expect(screen.getByText('came from /creator/posts')).toBeInTheDocument();
+    expect(screen.queryByText('Studio Content')).not.toBeInTheDocument();
+    // Not being signed in is not "creators only".
+    expect(toast.error).not.toHaveBeenCalled();
   });
 });
