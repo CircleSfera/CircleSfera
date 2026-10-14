@@ -44,12 +44,6 @@ export class SlackGuard implements CanActivate {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawBody = (req as { rawBody?: Buffer }).rawBody;
     if (!rawBody) return false;
-    if (!rawBody) {
-      this.logger.error('Raw body not available for signature verification');
-      throw new UnauthorizedException(
-        'Raw body is required for Slack signature verification',
-      );
-    }
 
     const sigBasestring = `v0:${slackTimestamp}:${rawBody.toString('utf8')}`;
     const mySignature =
