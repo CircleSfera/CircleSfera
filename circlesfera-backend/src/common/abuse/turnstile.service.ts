@@ -30,12 +30,17 @@ export class TurnstileService {
   ) {}
 
   async isRequired(): Promise<boolean> {
+    return (await this.secretWhenRequired()) !== null;
+  }
+
+  // The secret the check is made with, or nothing when no check is made.
+  private async secretWhenRequired(): Promise<string | null> {
     const enabled = await this.systemSettings.isEnabled(
       SYSTEM_SETTING_KEYS.TURNSTILE_REQUIRED,
     );
-    if (!enabled) return false;
+    if (!enabled) return null;
     const secret = this.config.get<string>('TURNSTILE_SECRET_KEY');
-    if (secret) return true;
+    if (secret) return secret;
     if (this.config.get('NODE_ENV') === 'production') {
       throw new Error(
         'SECURITY ALERT: TURNSTILE_SECRET_KEY is required in production when turnstile_required is on.',
@@ -44,7 +49,7 @@ export class TurnstileService {
     this.logger.warn(
       'Turnstile required but TURNSTILE_SECRET_KEY is unset; skipping verification outside production.',
     );
-    return false;
+    return null;
   }
 
   // Lets the authenticated post-deploy smoke check sign in without a
@@ -65,17 +70,13 @@ export class TurnstileService {
     remoteIp?: string | null,
     bypassToken?: string | null,
   ): Promise<void> {
-    if (!(await this.isRequired())) return;
+    const secret = await this.secretWhenRequired();
+    if (!secret) return;
     if (this.isBypassToken(bypassToken)) return;
 
     if (!token?.trim()) {
       await this.increment(TURNSTILE_FAIL_CACHE_KEY);
       throw new BadRequestException(ApiErrorCode.CAPTCHA_REQUIRED);
-    }
-
-    const secret = this.config.get<string>('TURNSTILE_SECRET_KEY');
-    if (!secret) {
-      throw new BadRequestException(ApiErrorCode.CAPTCHA_FAILED);
     }
 
     const body = new URLSearchParams();

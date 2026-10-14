@@ -250,15 +250,10 @@ export class DataExportService {
       }
     }
 
-    // 3. If neither or not authorized:
+    // 3. Neither a session nor a token: a wrong one was refused above.
     if (!authorized) {
-      if (!requesterUserId && !token) {
-        throw new UnauthorizedException(
-          'Authentication or valid download token required.',
-        );
-      }
-      throw new ForbiddenException(
-        'You are not authorized to access this data export.',
+      throw new UnauthorizedException(
+        'Authentication or valid download token required.',
       );
     }
 

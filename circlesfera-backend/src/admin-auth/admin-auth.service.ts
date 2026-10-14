@@ -174,8 +174,7 @@ export class AdminAuthService {
     };
 
     if (admin?.status !== 'ACTIVE') {
-      await fail(admin?.id);
-      throw new UnauthorizedException('Invalid credentials');
+      return fail(admin?.id);
     }
 
     if (admin.lockedUntil && admin.lockedUntil > new Date()) {
