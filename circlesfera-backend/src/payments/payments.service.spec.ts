@@ -270,11 +270,12 @@ describe('PaymentsService', () => {
             tx({ description: text, sender: { email: text }, receiver: null }),
           ]);
 
-        const [, own] = (await service.getLedgerCsv('user_1')).split('\n');
-        const [, staff] = (await service.getLedgerCsv()).split('\n');
+        // Whole files: a text may hold a line break of its own.
+        const own = await service.getLedgerCsv('user_1');
+        const staff = await service.getLedgerCsv();
 
         const quoted = `"'${text.replace(/"/g, '""')}"`;
-        expect(own.endsWith(quoted)).toBe(true);
+        expect(own.endsWith(`"COMPLETED",${quoted}`)).toBe(true);
         expect(staff).toContain(`"COMPLETED",${quoted},"SYSTEM",${quoted}`);
       },
     );
