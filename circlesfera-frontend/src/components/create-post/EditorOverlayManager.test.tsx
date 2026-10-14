@@ -221,6 +221,49 @@ describe('EditorOverlayManager', () => {
       expect(seen.photo.initialState).toMatchObject({ filter: 'sepia' });
     });
 
+    it('opens on the filter of the saved look, not on the whole look', async () => {
+      show({
+        currentEditIndex: 0,
+        mediaFiles: [
+          media('image', {
+            filter:
+              'filter-class:sepia__style:brightness(120%)__temp:100__vignette:0__noise:0',
+          }),
+        ],
+      });
+      await screen.findByTestId('photo-editor');
+
+      expect(seen.photo.initialState.filter).toBe('sepia');
+    });
+
+    it('opens where it was left: crop, shape, adjustments and drawing', async () => {
+      const editorState = {
+        filter: 'sepia',
+        adjustments: { brightness: 120 },
+        cropData: { x: 1, y: 2, width: 30, height: 40, rotation: 90 },
+        aspect: 1,
+        overlays: [{ id: 'a', type: 'text', text: 'hola', x: 0, y: 0 }],
+      };
+      const videoData = { startTime: 2, endTime: 9, muted: true };
+      show({
+        currentEditIndex: 0,
+        mediaFiles: [
+          media('video', {
+            editorState: {
+              ...editorState,
+              videoData: { startTime: 0, endTime: 5, muted: false },
+            } as never,
+            videoData,
+          }),
+        ],
+      });
+      await screen.findByTestId('photo-editor');
+
+      // The clip window can change on the trim screen too, so it comes
+      // from the item.
+      expect(seen.photo.initialState).toEqual({ ...editorState, videoData });
+    });
+
     it('leaves the editor on cancel', async () => {
       const { props } = show({
         currentEditIndex: 0,
@@ -270,12 +313,20 @@ describe('EditorOverlayManager', () => {
       const { props } = show({ currentEditIndex: 0, mediaFiles: files });
       await screen.findByTestId('photo-editor');
 
-      seen.photo.onApplyToAll('sepia');
+      seen.photo.onApplyToAll('sepia', {
+        filter: 'sepia',
+        adjustments: { brightness: 110 },
+      });
 
       const [[next]] = props.setMediaFiles.mock.calls;
       // The one being edited keeps what its own editor decides.
       expect(next[0].filter).toBeUndefined();
       expect(next[1].filter).toBe('sepia');
+      // The others open on that look next time.
+      expect(next[1].editorState).toEqual({
+        filter: 'sepia',
+        adjustments: { brightness: 110 },
+      });
       expect(toast.success).toHaveBeenCalledWith(
         'Filters applied to all files',
       );

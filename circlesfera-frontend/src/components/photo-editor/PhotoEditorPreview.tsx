@@ -25,6 +25,7 @@ export default function PhotoEditorPreview({
     setZoom,
     setRotation,
     onCropComplete,
+    initialCroppedAreaPixels,
     imageRef,
     adjustments,
     imageDims,
@@ -67,6 +68,7 @@ export default function PhotoEditorPreview({
               onZoomChange={setZoom}
               onRotationChange={setRotation}
               onCropComplete={onCropComplete}
+              initialCroppedAreaPixels={initialCroppedAreaPixels}
               style={{
                 containerStyle: { background: 'transparent' },
                 mediaStyle: computedStyle,

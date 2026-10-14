@@ -75,20 +75,21 @@ export function usePhotoEditor({
   const [activeAdjustment, setActiveAdjustment] =
     useState<keyof Adjustments>('brightness');
 
-  // Crop state
-  const [crop, setCrop] = useState(
-    initialState?.cropData
-      ? { x: initialState.cropData.x, y: initialState.cropData.y }
-      : { x: 0, y: 0 },
-  );
+  // Crop state. The crop area is in pixels of the image; the position and
+  // zoom of the cropper are its own, so a saved crop is handed to it as its
+  // starting area and it works them out.
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(
     initialState?.cropData?.rotation || 0,
   );
-  const [aspect, setAspect] = useState<number | undefined>(undefined);
+  const [aspect, setAspect] = useState<number | undefined>(
+    initialState?.aspect,
+  );
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<CropData | null>(
     initialState?.cropData || null,
   );
+  const initialCroppedAreaPixels = initialState?.cropData ?? undefined;
 
   const [overlays, setOverlays] = useState<OverlayElement[]>(
     initialState?.overlays || [],
@@ -268,6 +269,14 @@ export function usePhotoEditor({
       croppedAreaPixels || undefined,
       overlayDataUrl,
       nextVideoData,
+      {
+        filter: selectedFilter.class,
+        adjustments,
+        cropData: croppedAreaPixels,
+        aspect,
+        overlays,
+        videoData: nextVideoData,
+      },
     );
   };
 
@@ -292,6 +301,7 @@ export function usePhotoEditor({
     aspect,
     setAspect,
     onCropComplete,
+    initialCroppedAreaPixels,
     overlays,
     setOverlays,
     selectedOverlayId,

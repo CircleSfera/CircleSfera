@@ -25,6 +25,7 @@ export default function PhotoFiltersPanel({
           type="button"
           key={filter.name}
           onClick={() => setSelectedFilter(filter)}
+          aria-pressed={selectedFilter.name === filter.name}
           className="flex flex-col items-center gap-1 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg snap-start"
         >
           <div

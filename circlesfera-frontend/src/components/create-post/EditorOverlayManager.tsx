@@ -5,6 +5,7 @@ import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
 } from '../../constants/uploadLimits';
+import { parseFilter } from '../../utils/styleUtils';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
 import { useComposer } from './ComposerContext';
@@ -141,9 +142,13 @@ export default function EditorOverlayManager({
             onSave={handleFilterSave}
             onCancel={() => setCurrentEditIndex(null)}
             thumbnailRatio={createThumbRatio(mode)}
+            // Opens where it was left. The clip of a video can also change on
+            // the trim screen, so its window comes from the item itself.
             initialState={{
+              filter: parseFilter(mediaFiles[currentEditIndex].filter)
+                .className,
+              ...mediaFiles[currentEditIndex].editorState,
               videoData: mediaFiles[currentEditIndex].videoData,
-              filter: mediaFiles[currentEditIndex].filter,
             }}
             // The tab asked for; a frame video opened without one starts on
             // its trim.
@@ -164,11 +169,15 @@ export default function EditorOverlayManager({
             }
             onApplyToAll={
               mediaFiles.length > 1
-                ? (filterString) => {
+                ? (filterString, look) => {
                     setMediaFiles(
                       mediaFiles.map((m, idx) => {
                         if (idx === currentEditIndex) return m;
-                        return { ...m, filter: filterString };
+                        return {
+                          ...m,
+                          filter: filterString,
+                          editorState: { ...m.editorState, ...look },
+                        };
                       }),
                     );
                     toast.success(t('createPost.edit.filters_applied_all'));

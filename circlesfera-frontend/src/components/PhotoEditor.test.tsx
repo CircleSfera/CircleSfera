@@ -11,6 +11,7 @@ vi.mock('react-easy-crop', () => ({
   default: (props: {
     aspect?: number;
     rotation: number;
+    initialCroppedAreaPixels?: unknown;
     onCropComplete: (area: unknown, pixels: unknown) => void;
   }) => (
     <button
@@ -18,6 +19,7 @@ vi.mock('react-easy-crop', () => ({
       data-testid="cropper"
       data-aspect={String(props.aspect)}
       data-rotation={props.rotation}
+      data-initial-area={JSON.stringify(props.initialCroppedAreaPixels ?? null)}
       onClick={() =>
         props.onCropComplete({}, { x: 10, y: 20, width: 300, height: 400 })
       }
@@ -162,6 +164,56 @@ describe('PhotoEditor', () => {
       );
     });
 
+    it('reports everything chosen when it saves, to be opened with again', () => {
+      const { onSave } = renderEditor();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Moon' }));
+      save();
+
+      expect(onSave.mock.calls[0][5]).toEqual({
+        filter: 'grayscale brightness-110 contrast-110',
+        adjustments: expect.objectContaining({ brightness: 100 }),
+        cropData: null,
+        aspect: undefined,
+        overlays: [],
+        videoData: undefined,
+      });
+    });
+
+    it('opens a saved crop where it was left, and keeps it when saved untouched', async () => {
+      const cropData = { x: 10, y: 20, width: 300, height: 400, rotation: 0 };
+      const { onSave } = renderEditor({
+        initialState: { cropData, aspect: 0.8 },
+      });
+
+      save();
+      expect(onSave.mock.calls[0][2]).toEqual(cropData);
+
+      await openTab('Recorte', () => button('4:5'));
+      expect(screen.getByTestId('cropper')).toHaveAttribute(
+        'data-aspect',
+        '0.8',
+      );
+      expect(screen.getByTestId('cropper')).toHaveAttribute(
+        'data-initial-area',
+        JSON.stringify(cropData),
+      );
+    });
+
+    it('opens with the drawing layer it was given', () => {
+      renderEditor({
+        initialState: {
+          overlays: [
+            { id: 't1', type: 'text', text: 'hola', x: 0, y: 0 },
+          ] as OverlayElement[],
+        },
+      });
+
+      expect(
+        screen.getByRole('button', { name: 'overlay hola' }),
+      ).toBeInTheDocument();
+    });
+
     it('changes one adjustment at a time and saves them all', async () => {
       const { onSave } = renderEditor();
 
@@ -293,6 +345,10 @@ describe('PhotoEditor', () => {
 
       expect(onApplyToAll).toHaveBeenCalledWith(
         `filter-class:grayscale brightness-110 contrast-110__style:${NEUTRAL_STYLE}__temp:100__vignette:0__noise:0`,
+        {
+          filter: 'grayscale brightness-110 contrast-110',
+          adjustments: expect.objectContaining({ brightness: 100 }),
+        },
       );
     });
 
