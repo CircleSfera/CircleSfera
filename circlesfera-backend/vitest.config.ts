@@ -40,14 +40,20 @@ export default defineConfig({
 
         // Security & Authentication: auth services, 2FA, passkeys, credential lifecycle
         'src/auth/**': {
-          statements: 99,
-          lines: 99,
+          statements: 100,
+          lines: 100,
         },
 
         // Staff sign-in and sessions
         'src/admin-auth/**': {
-          statements: 99,
-          lines: 99,
+          statements: 100,
+          lines: 100,
+        },
+
+        // Signature check on what Slack sends
+        'src/slack/slack.guard.ts': {
+          statements: 100,
+          lines: 100,
         },
 
         // Authorization guards (target 100%)
@@ -111,8 +117,8 @@ export default defineConfig({
 
         // Data Lifecycle: GDPR personal data export and account deletion
         'src/users/data-export.service.ts': {
-          statements: 98,
-          lines: 99,
+          statements: 99,
+          lines: 100,
         },
         'src/users/data-export.processor.ts': {
           statements: 100,
@@ -151,8 +157,8 @@ export default defineConfig({
 
         // Security: abuse protection (Turnstile, device signals) and policies
         'src/common/abuse/**': {
-          statements: 99,
-          lines: 99,
+          statements: 100,
+          lines: 100,
         },
         'src/common/policies/**': {
           statements: 98,
