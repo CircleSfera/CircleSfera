@@ -8,6 +8,7 @@ import { useCreatePost } from '../hooks/useCreatePost';
 import SEO from './common/SEO';
 import CaptionStep from './create-post/CaptionStep';
 import ComposerChrome from './create-post/ComposerChrome';
+import { ComposerProvider } from './create-post/ComposerContext';
 import EditorOverlayManager from './create-post/EditorOverlayManager';
 import EditStep from './create-post/EditStep';
 import Header from './create-post/Header';
@@ -39,6 +40,7 @@ export default function ContentComposerPage() {
   );
   const [clipWindowMs, setClipWindowMs] = React.useState(15_000);
 
+  const composer = useCreatePost();
   const {
     mode,
     setMode,
@@ -47,66 +49,33 @@ export default function ContentComposerPage() {
     subScreen,
     setSubScreen,
     mediaFiles,
-    setMediaFiles,
     currentEditIndex,
     setCurrentEditIndex,
     showFrameTrim,
-    frameSourceDurationSec,
-    handleFrameTrimConfirm,
-    handleFrameTrimCancel,
     showDiscardConfirm,
     setShowDiscardConfirm,
     confirmDiscard,
     caption,
     setCaption,
     location,
-    setLocation,
-    setSelectedPlace,
-    hideLikes,
-    setHideLikes,
-    turnOffComments,
-    setTurnOffComments,
     coverTimeMs,
-    setCoverTimeMs,
-    isSensitive,
-    setIsSensitive,
     selectedAudio,
     setSelectedAudio,
-    audioStartMs,
     setAudioStartMs,
     isCloseFriendsOnly,
     setIsCloseFriendsOnly,
-    altTextMap,
-    setAltTextMap,
-    tagsMap,
-    setTagsMap,
     fileInputRef,
     handleFileSelect,
-    handleFilterSave,
     handleRemoveFile,
     handleMoveFile,
     handleSubmit,
     reset,
-    generateAltTextForIndex,
-    storyElements,
-    setStoryElements,
-    storyBgStyle,
-    setStoryBgStyle,
     isComposed,
     setIsComposed,
-    originalStoryMedia,
-    setOriginalStoryMedia,
     isPremium,
-    setIsPremium,
-    price,
-    setPrice,
-    scheduledAt,
-    setScheduledAt,
     interactiveDraft,
-    setInteractiveDraft,
     isPending,
-    isProcessingEdit,
-  } = useCreatePost();
+  } = composer;
 
   const isStoryMode = mode === 'STORY';
 
@@ -211,93 +180,31 @@ export default function ContentComposerPage() {
     <EditorOverlayManager
       showStoryComposer={showStoryComposer}
       setShowStoryComposer={setShowStoryComposer}
-      currentEditIndex={currentEditIndex}
-      setCurrentEditIndex={setCurrentEditIndex}
       initialEditorTab={editorTab}
-      mode={mode}
-      showFrameTrim={showFrameTrim}
-      frameSourceDurationSec={frameSourceDurationSec}
-      onFrameTrimConfirm={handleFrameTrimConfirm}
-      onFrameTrimCancel={handleFrameTrimCancel}
-      mediaFiles={mediaFiles}
-      setMediaFiles={setMediaFiles}
-      setIsComposed={setIsComposed}
-      setStep={setStep}
-      originalStoryMedia={originalStoryMedia}
-      setOriginalStoryMedia={setOriginalStoryMedia}
-      storyElements={storyElements}
-      storyBgStyle={storyBgStyle}
-      setStoryElements={setStoryElements}
-      setStoryBgStyle={setStoryBgStyle}
-      handleFilterSave={handleFilterSave}
-      isProcessingEdit={isProcessingEdit}
-      constrainFrameDuration={mode === 'FRAME'}
     />
   );
 
   if (showFrameTrim || showStoryComposer || currentEditIndex !== null)
     return (
-      <>
+      <ComposerProvider value={composer}>
         <SEO title={documentTitle} noIndex />
         {editorOverlay}
-      </>
+      </ComposerProvider>
     );
 
   if (subScreen !== 'none') {
     return (
-      <>
+      <ComposerProvider value={composer}>
         <SEO title={documentTitle} noIndex />
         <ComposerChrome size="fit">
-          <SubScreenRouter
-            mode={mode}
-            subScreen={subScreen}
-            setSubScreen={setSubScreen}
-            mediaFiles={mediaFiles}
-            altTextMap={altTextMap}
-            setAltTextMap={setAltTextMap}
-            hideLikes={hideLikes}
-            setHideLikes={setHideLikes}
-            turnOffComments={turnOffComments}
-            setTurnOffComments={setTurnOffComments}
-            coverTimeMs={coverTimeMs}
-            setCoverTimeMs={setCoverTimeMs}
-            isSensitive={isSensitive}
-            setIsSensitive={setIsSensitive}
-            showSensitiveToggle={mode !== 'STORY'}
-            setLocation={setLocation}
-            location={location}
-            setSelectedPlace={setSelectedPlace}
-            onGenerateAltText={generateAltTextForIndex}
-            tagsMap={tagsMap}
-            setTagsMap={setTagsMap}
-            isPremium={isPremium}
-            setIsPremium={setIsPremium}
-            price={price}
-            setPrice={setPrice}
-            scheduledAt={scheduledAt}
-            setScheduledAt={setScheduledAt}
-            interactiveDraft={interactiveDraft}
-            setInteractiveDraft={setInteractiveDraft}
-            selectedAudio={selectedAudio}
-            setSelectedAudio={(selection) => {
-              if (!selection) {
-                setSelectedAudio(null);
-                setAudioStartMs(0);
-                return;
-              }
-              setSelectedAudio(selection.audio);
-              setAudioStartMs(selection.audioStartMs);
-            }}
-            audioStartMs={audioStartMs}
-            clipWindowMs={clipWindowMs}
-          />
+          <SubScreenRouter clipWindowMs={clipWindowMs} />
         </ComposerChrome>
-      </>
+      </ComposerProvider>
     );
   }
 
   return (
-    <>
+    <ComposerProvider value={composer}>
       <SEO title={documentTitle} noIndex />
       <ComposerChrome
         size={step === 'caption' ? 'wide' : 'default'}
@@ -421,6 +328,6 @@ export default function ContentComposerPage() {
         confirmText={t('createPost.discard.confirm')}
         cancelText={t('createPost.discard.cancel')}
       />
-    </>
+    </ComposerProvider>
   );
 }

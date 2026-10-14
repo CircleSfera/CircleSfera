@@ -45,22 +45,35 @@ vi.mock('./create-post/ComposerChrome', () => ({
 vi.mock('./create-post/StepAnimationWrapper.tsx', () => ({
   default: ({ children }: Props) => <>{children}</>,
 }));
-vi.mock('./create-post/EditorOverlayManager', () => ({
-  default: (props: Props) => {
-    seen.overlay = props;
-    return props.showStoryComposer ||
-      props.showFrameTrim ||
-      props.currentEditIndex !== null ? (
-      <div data-testid="editor" />
-    ) : null;
-  },
-}));
-vi.mock('./create-post/SubScreenRouter', () => ({
-  default: (props: Props) => {
-    seen.subScreen = props;
-    return <div data-testid="sub-screen">{props.subScreen}</div>;
-  },
-}));
+// These two read the composer the page provides, besides their own props.
+vi.mock('./create-post/EditorOverlayManager', async () => {
+  const { useComposer } = await vi.importActual<
+    typeof import('./create-post/ComposerContext')
+  >('./create-post/ComposerContext');
+  return {
+    default: (props: Props) => {
+      const held = useComposer();
+      seen.overlay = { ...held, ...props };
+      return props.showStoryComposer ||
+        held.showFrameTrim ||
+        held.currentEditIndex !== null ? (
+        <div data-testid="editor" />
+      ) : null;
+    },
+  };
+});
+vi.mock('./create-post/SubScreenRouter', async () => {
+  const { useComposer } = await vi.importActual<
+    typeof import('./create-post/ComposerContext')
+  >('./create-post/ComposerContext');
+  return {
+    default: (props: Props) => {
+      const held = useComposer();
+      seen.subScreen = { ...held, ...props };
+      return <div data-testid="sub-screen">{held.subScreen}</div>;
+    },
+  };
+});
 vi.mock('./create-post/UploadStep', () => ({
   default: (props: Props) => {
     seen.upload = props;
@@ -361,14 +374,6 @@ describe('ContentComposerPage', () => {
       compose({ mode: 'STORY' });
       expect(useCloseFriendsList).toHaveBeenLastCalledWith(true);
     });
-
-    it('has no sensitive-content switch', () => {
-      compose({ mode: 'STORY', subScreen: 'advanced' }).unmount();
-      expect(seen.subScreen.showSensitiveToggle).toBe(false);
-
-      compose({ mode: 'POST', subScreen: 'advanced' });
-      expect(seen.subScreen.showSensitiveToggle).toBe(true);
-    });
   });
 
   describe('the editors', () => {
@@ -389,14 +394,15 @@ describe('ContentComposerPage', () => {
       expect(seen.overlay.initialEditorTab).toBe('filters');
     });
 
-    it('limits the length of the video only for a frame', () => {
+    it('shows the trim of a frame alone, and tells the editors what is being created', () => {
       const frame = compose({ mode: 'FRAME', showFrameTrim: true });
-      expect(seen.overlay.constrainFrameDuration).toBe(true);
+      expect(seen.overlay.mode).toBe('FRAME');
       expect(screen.getByTestId('editor')).toBeInTheDocument();
+      expect(screen.queryByTestId('content-composer')).not.toBeInTheDocument();
       frame.unmount();
 
       compose({ mode: 'POST', mediaFiles: [clip()], currentEditIndex: 0 });
-      expect(seen.overlay.constrainFrameDuration).toBe(false);
+      expect(seen.overlay.mode).toBe('POST');
     });
   });
 
@@ -407,21 +413,6 @@ describe('ContentComposerPage', () => {
       expect(screen.getByTestId('sub-screen')).toHaveTextContent('location');
       expect(screen.getByTestId('chrome')).toHaveAttribute('data-size', 'fit');
       expect(screen.queryByTestId('caption-step')).not.toBeInTheDocument();
-    });
-
-    it('keep the track and where it starts together', () => {
-      const { hook } = compose({ subScreen: 'music' });
-
-      seen.subScreen.setSelectedAudio({
-        audio: { id: 'track-1' },
-        audioStartMs: 12_000,
-      });
-      expect(hook.setSelectedAudio).toHaveBeenLastCalledWith({ id: 'track-1' });
-      expect(hook.setAudioStartMs).toHaveBeenLastCalledWith(12_000);
-
-      seen.subScreen.setSelectedAudio(null);
-      expect(hook.setSelectedAudio).toHaveBeenLastCalledWith(null);
-      expect(hook.setAudioStartMs).toHaveBeenLastCalledWith(0);
     });
 
     it('take the track off from the caption step, back to its start', () => {
