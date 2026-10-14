@@ -21,13 +21,13 @@ export default function PhotoTrimPanel({
       className="w-full max-w-md mx-auto flex flex-col gap-2 px-3 py-0.5"
     >
       <div className="flex items-center justify-between">
-        <span className="text-[11px] font-bold text-white/55 uppercase tracking-wider">
+        <span className="text-xs font-bold text-white/55 uppercase tracking-wider">
           {t('createPost.edit.audio')}
         </span>
         <button
           type="button"
           onClick={() => setVideoData((v) => ({ ...v, muted: !v.muted }))}
-          className={`min-h-11 px-3 rounded-full text-[11px] font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
+          className={`min-h-11 px-3 rounded-full text-xs font-bold transition-all outline-none focus-visible:ring-2 focus-visible:ring-white/25 ${
             videoData.muted
               ? 'bg-brand-secondary/20 text-brand-secondary'
               : 'bg-brand-primary/20 text-brand-primary-text'
