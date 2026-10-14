@@ -19,6 +19,13 @@ export interface MapboxPlaceProperties {
   };
 }
 
+/** One entry of the list the map provider suggests while typing. */
+export interface MapboxSuggestion {
+  mapbox_id: string;
+  name: string;
+  place_formatted?: string;
+}
+
 export interface PlaceSelection {
   location: string;
   place: PlaceInput;

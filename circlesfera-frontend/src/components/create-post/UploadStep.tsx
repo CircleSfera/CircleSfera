@@ -22,7 +22,7 @@ import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
 
 interface UploadStepProps {
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
-  handleFileSelect: (e: ChangeEvent<HTMLInputElement>) => void;
+  handleFileSelect: (e: Pick<ChangeEvent<HTMLInputElement>, 'target'>) => void;
   mode: CreateMode;
   setMode: (mode: CreateMode) => void;
   onTextStory?: () => void;
@@ -193,8 +193,7 @@ export default function UploadStep({
       input.type = 'file';
       input.accept = 'image/*';
       input.capture = 'environment';
-      input.onchange = (ev) =>
-        handleFileSelect(ev as unknown as ChangeEvent<HTMLInputElement>);
+      input.onchange = () => handleFileSelect({ target: input });
       input.click();
     }
   };

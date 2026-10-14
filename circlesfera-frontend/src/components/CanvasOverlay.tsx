@@ -1,9 +1,13 @@
+import type Konva from 'konva';
+import type { KonvaEventObject } from 'konva/lib/Node';
 import React, { useEffect, useRef, useState } from 'react';
 import { Image, Layer, Line, Stage, Text, Transformer } from 'react-konva';
 import useImage from 'use-image';
 import type { OverlayElement } from '../services/edits.service';
 
 /** Konva overlay layer for PhotoEditor (draw / text / stickers). */
+
+type StageEvent = KonvaEventObject<MouseEvent | TouchEvent>;
 
 interface CanvasOverlayProps {
   width: number;
@@ -13,7 +17,7 @@ interface CanvasOverlayProps {
   drawMode: boolean;
   brushColor: string;
   brushSize: number;
-  stageRef?: React.RefObject<any>;
+  stageRef?: React.RefObject<Konva.Stage | null>;
   selectedOverlayId?: string | null;
   onSelectOverlay?: (id: string | null) => void;
 }
@@ -32,13 +36,13 @@ const URLImage = ({
   onChange: (attrs: OverlayElement) => void;
 }) => {
   const [img] = useImage(image.src || '');
-  const shapeRef = useRef<any>(null);
-  const trRef = useRef<any>(null);
+  const shapeRef = useRef<Konva.Image>(null);
+  const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected && trRef.current) {
+    if (isSelected && trRef.current && shapeRef.current) {
       trRef.current.nodes([shapeRef.current]);
-      trRef.current.getLayer().batchDraw();
+      trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected]);
 
@@ -60,6 +64,7 @@ const URLImage = ({
         }}
         onTransformEnd={(_e) => {
           const node = shapeRef.current;
+          if (!node) return;
           const scaleX = node.scaleX();
           const scaleY = node.scaleY();
           // Reset scale and update width/height
@@ -101,13 +106,13 @@ const TextNode = ({
   onSelect: () => void;
   onChange: (attrs: OverlayElement) => void;
 }) => {
-  const shapeRef = useRef<any>(null);
-  const trRef = useRef<any>(null);
+  const shapeRef = useRef<Konva.Text>(null);
+  const trRef = useRef<Konva.Transformer>(null);
 
   useEffect(() => {
-    if (isSelected && trRef.current) {
+    if (isSelected && trRef.current && shapeRef.current) {
       trRef.current.nodes([shapeRef.current]);
-      trRef.current.getLayer().batchDraw();
+      trRef.current.getLayer()?.batchDraw();
     }
   }, [isSelected]);
 
@@ -128,6 +133,7 @@ const TextNode = ({
         }}
         onTransformEnd={(_e) => {
           const node = shapeRef.current;
+          if (!node) return;
           const scaleX = node.scaleX();
           node.scaleX(1);
           node.scaleY(1);
@@ -198,19 +204,18 @@ export default function CanvasOverlay({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [selectedId, overlays, onChange, setSelectedId]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const checkDeselect = (e: any) => {
+  const checkDeselect = (e: StageEvent) => {
     const clickedOnEmpty = e.target === e.target.getStage();
     if (clickedOnEmpty) {
       setSelectedId(null);
     }
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleMouseDown = (e: any) => {
+  const handleMouseDown = (e: StageEvent) => {
     if (!drawMode) return;
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (!pos) return;
     isDrawing.current = true;
-    const pos = e.target.getStage().getPointerPosition();
     const newId = Math.random().toString(36).substr(2, 9);
     onChange([
       ...overlays,
@@ -226,11 +231,10 @@ export default function CanvasOverlay({
     ]);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const handleMouseMove = (e: any) => {
+  const handleMouseMove = (e: StageEvent) => {
     if (!drawMode || !isDrawing.current) return;
-    const stage = e.target.getStage();
-    const point = stage.getPointerPosition();
+    const point = e.target.getStage()?.getPointerPosition();
+    if (!point) return;
     const lastLine = overlays[overlays.length - 1];
     if (lastLine && lastLine.type === 'line') {
       const updatedLine = { ...lastLine };
