@@ -303,7 +303,7 @@ export default function LocationSubScreen({
             href="https://www.mapbox.com/about/maps/"
             target="_blank"
             rel="noopener noreferrer"
-            className="shrink-0 underline-offset-2 hover:underline"
+            className="shrink-0 -my-3 inline-flex min-h-11 min-w-11 items-center justify-center underline-offset-2 hover:underline"
           >
             {t('createPost.location.provider_attribution')}
           </a>
