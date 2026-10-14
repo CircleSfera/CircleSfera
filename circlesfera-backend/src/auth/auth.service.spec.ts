@@ -99,6 +99,7 @@ describe('AuthService', () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
