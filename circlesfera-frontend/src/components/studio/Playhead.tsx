@@ -61,7 +61,7 @@ export default function Playhead() {
       className="absolute top-0 bottom-0 z-30"
       style={{ left: `calc(var(--timeline-offset) + ${xPos}px)` }}
     >
-      <div className="w-px h-full bg-brand-primary relative shadow-[0_0_8px_rgba(136,76,255,0.8),0_0_2px_rgba(255,255,255,0.8)] pointer-events-none">
+      <div className="w-px h-full bg-brand-primary relative shadow-[0_0_8px_rgba(var(--brand-primary-rgb),0.8),0_0_2px_rgba(255,255,255,0.8)] pointer-events-none">
         <div
           role="slider"
           tabIndex={0}

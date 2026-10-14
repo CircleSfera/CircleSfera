@@ -3,7 +3,7 @@ export const STORY_SAFE_GUIDE_TOP_PCT = 14;
 export const STORY_SAFE_GUIDE_BOTTOM_PCT = 20;
 
 const GUIDE_LINE =
-  'absolute inset-x-0 h-0.5 bg-[#ff00ea] shadow-[0_0_15px_rgba(255,0,234,0.8)]';
+  'absolute inset-x-0 h-0.5 bg-snap-guide shadow-[0_0_15px_rgba(var(--snap-guide-rgb),0.8)]';
 
 interface StorySafeGuidesProps {
   visible: boolean;
