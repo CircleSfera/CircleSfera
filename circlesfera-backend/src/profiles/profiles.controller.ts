@@ -93,7 +93,8 @@ export class ProfilesController {
       user.email,
       userAgent,
       ip,
-      undefined,
+      // The same session, on another Profile.
+      user.sessionId,
       activeProfile.id,
       // Switching asks for no password: the session keeps its sign-in.
       user.signInId,

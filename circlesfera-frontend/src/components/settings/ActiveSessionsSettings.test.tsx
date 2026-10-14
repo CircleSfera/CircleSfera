@@ -22,6 +22,8 @@ const session = (id: string, over: object = {}) => ({
   ipAddress: '203.0.113.7',
   createdAt: '2026-03-01T10:00:00Z',
   expiresAt: '2026-04-01T10:00:00Z',
+  // Session 1 is the one of this device, unless a test says otherwise.
+  isCurrent: id === '1',
   ...over,
 });
 const rows = () =>
@@ -103,19 +105,42 @@ describe('ActiveSessionsSettings', () => {
     expect(within(rows()[6]).getByText('IP: —')).toBeInTheDocument();
   });
 
-  it('marks the first session as this device and offers to close only the others', async () => {
+  it('marks the session the server says is this device, and offers to close only the others', async () => {
+    // The newest session is another device: it is not marked, and it can
+    // be closed.
     api.getSessions.mockResolvedValue({
-      data: [session('1'), session('2')],
+      data: [session('2'), session('1')],
     } as never);
     show();
 
     await waitFor(() => expect(rows()).toHaveLength(2));
-    expect(within(rows()[0]).getByText('This device')).toBeInTheDocument();
-    expect(within(rows()[0]).queryByRole('button')).toBeNull();
-    expect(within(rows()[1]).queryByText('This device')).toBeNull();
+    expect(within(rows()[1]).getByText('This device')).toBeInTheDocument();
+    expect(within(rows()[1]).queryByRole('button')).toBeNull();
+    expect(within(rows()[0]).queryByText('This device')).toBeNull();
     expect(
-      within(rows()[1]).getByRole('button', { name: 'Log out this session' }),
+      within(rows()[0]).getByRole('button', { name: 'Log out this session' }),
     ).toBeInTheDocument();
+  });
+
+  it('marks none and does not offer to close the others when the server names no session as this one', async () => {
+    api.getSessions.mockResolvedValue({
+      data: [
+        session('1', { isCurrent: false }),
+        session('2', { isCurrent: undefined }),
+      ],
+    } as never);
+    show();
+
+    await waitFor(() => expect(rows()).toHaveLength(2));
+    expect(screen.queryByText('This device')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Log out other sessions' }),
+    ).not.toBeInTheDocument();
+    for (const row of rows()) {
+      expect(
+        within(row).getByRole('button', { name: 'Log out this session' }),
+      ).toBeInTheDocument();
+    }
   });
 
   it('closes one session and takes it off the list', async () => {

@@ -25,6 +25,7 @@ export const TEST_USER: CurrentUserData = {
   role: 'USER',
   profileId: 'profile-1',
   signInId: 'sign-in-1',
+  sessionId: 'session-of-the-request',
   isTestAccount: false,
 };
 

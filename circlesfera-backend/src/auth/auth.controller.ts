@@ -221,14 +221,14 @@ export class AuthController {
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
   async getSessions(@CurrentUser() user: CurrentUserData) {
-    return this.authService.getUserSessions(user.userId);
+    return this.authService.getUserSessions(user.userId, user.sessionId);
   }
 
-  // Revoke all other active sessions for the current user.
+  // Close every session of the account but the one that asks.
   @Delete('sessions/other')
   @UseGuards(JwtAuthGuard)
   async revokeOtherSessions(@CurrentUser() user: CurrentUserData) {
-    return this.authService.revokeOtherSessions(user.userId);
+    return this.authService.revokeOtherSessions(user.userId, user.sessionId);
   }
 
   // Revoke a specific active session by ID.

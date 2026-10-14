@@ -1165,18 +1165,113 @@ describe('AuthService', () => {
       });
     });
 
-    it('should revoke other sessions', async () => {
-      await service.revokeOtherSessions('user-1', 's1');
+    it('closes every session but the one that asks, sessions with no family included', async () => {
+      mockPrismaService.refreshToken.count = vi.fn().mockResolvedValue(1);
+      await service.revokeOtherSessions('user-1', 'family-current');
+      // The session that asks is looked for among the open ones.
+      expect(mockPrismaService.refreshToken.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          familyId: 'family-current',
+          isRevoked: false,
+          expiresAt: { gt: expect.any(Date) },
+        },
+      });
       expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1', id: { not: 's1' } },
+        where: {
+          userId: 'user-1',
+          OR: [{ familyId: null }, { familyId: { not: 'family-current' } }],
+        },
       });
     });
 
-    it('should revoke all other sessions when currentSessionId is omitted', async () => {
-      await service.revokeOtherSessions('user-1');
-      expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
-        where: { userId: 'user-1' },
+    it('closes nothing when the request does not say which session it is', async () => {
+      mockPrismaService.refreshToken.deleteMany.mockClear();
+      await expect(service.revokeOtherSessions('user-1')).rejects.toThrow(
+        ConflictException,
+      );
+      expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('closes nothing when the session that asks is already closed', async () => {
+      mockPrismaService.refreshToken.count = vi.fn().mockResolvedValue(0);
+      mockPrismaService.refreshToken.deleteMany.mockClear();
+
+      await expect(
+        service.revokeOtherSessions('user-1', 'family-closed'),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('marks the session that asks and lists it first, whatever its age', async () => {
+      mockPrismaService.refreshToken.findMany = vi.fn().mockResolvedValue([
+        { id: 'newest', familyId: 'family-other', userAgent: 'Firefox' },
+        { id: 'older', familyId: 'family-current', userAgent: 'Chrome' },
+      ]);
+
+      const sessions = await service.getUserSessions(
+        'user-1',
+        'family-current',
+      );
+
+      expect(sessions).toEqual([
+        { id: 'older', userAgent: 'Chrome', isCurrent: true },
+        { id: 'newest', userAgent: 'Firefox', isCurrent: false },
+      ]);
+    });
+
+    it('marks no session when the request does not say which one it is', async () => {
+      mockPrismaService.refreshToken.findMany = vi
+        .fn()
+        .mockResolvedValue([{ id: 's1', familyId: 'family-1' }]);
+
+      const sessions = await service.getUserSessions('user-1');
+
+      expect(sessions).toEqual([{ id: 's1', isCurrent: false }]);
+    });
+
+    it('lists a session once when it holds more than one live token', async () => {
+      mockPrismaService.refreshToken.findMany = vi.fn().mockResolvedValue([
+        { id: 'after-switch', familyId: 'family-1' },
+        { id: 'before-switch', familyId: 'family-1' },
+        { id: 'no-family-a', familyId: null },
+        { id: 'no-family-b', familyId: null },
+      ]);
+
+      const sessions = await service.getUserSessions('user-1', 'family-1');
+
+      expect(sessions.map((session) => session.id)).toEqual([
+        'after-switch',
+        'no-family-a',
+        'no-family-b',
+      ]);
+    });
+
+    it('names the session in the access token, the same one as the stored token', async () => {
+      mockJwtService.sign.mockClear();
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-1',
       });
+
+      await service.generateTokens(
+        'user-1',
+        'a@example.com',
+        undefined,
+        undefined,
+        'family-kept',
+      );
+
+      // The access token is the first of the two that are signed.
+      expect(mockJwtService.sign).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({ sessionId: 'family-kept' }),
+        expect.anything(),
+      );
+      expect(mockPrismaService.refreshToken.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ familyId: 'family-kept' }),
+        }),
+      );
     });
   });
 

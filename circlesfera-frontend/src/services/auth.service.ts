@@ -44,6 +44,7 @@ export const authApi = {
         ipAddress?: string;
         createdAt: string;
         expiresAt: string;
+        isCurrent: boolean;
       }>
     >('/auth/sessions'),
 
