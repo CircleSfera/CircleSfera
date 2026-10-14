@@ -27,7 +27,14 @@ class FakeRecorder {
   stop = vi.fn(() => {
     this.state = 'inactive';
   });
-  constructor() {
+  // What the browser says it can record, and what it says it records.
+  static supported: string[] = ['audio/webm'];
+  static isTypeSupported = (type: string) =>
+    FakeRecorder.supported.includes(type);
+  static recorded = 'audio/webm;codecs=opus';
+  mimeType: string;
+  constructor(_stream: unknown, options?: { mimeType?: string }) {
+    this.mimeType = options?.mimeType ?? FakeRecorder.recorded;
     recorder = this;
   }
   /** The recorder has finished and hands over what it has. */
@@ -61,6 +68,8 @@ describe('VoiceRecorder', () => {
     vi.clearAllMocks();
     track = { stop: vi.fn() };
     recorder = undefined as unknown as FakeRecorder;
+    FakeRecorder.supported = ['audio/webm'];
+    FakeRecorder.recorded = 'audio/webm;codecs=opus';
     vi.stubGlobal('MediaRecorder', FakeRecorder);
     vi.stubGlobal('navigator', {
       ...navigator,
@@ -264,8 +273,12 @@ describe('VoiceRecorder', () => {
 
       await waitFor(() => expect(onSendVoice).toHaveBeenCalledTimes(1));
       const [path, form] = vi.mocked(apiClient.post).mock.calls[0];
-      expect(path).toBe('uploads/file');
-      expect((form as FormData).get('file')).toBeInstanceOf(Blob);
+      expect(path).toBe('uploads');
+      const file = (form as FormData).get('file') as File;
+      expect(file).toBeInstanceOf(Blob);
+      // Declared as what was recorded, without the codec.
+      expect(file.type).toBe('audio/webm');
+      expect(file.name).toBe('voice-note.webm');
       const sent = onSendVoice.mock.calls[0][0];
       expect(sent.voiceUrl).toBe('https://cdn/note.webm');
       expect(sent.voiceDuration).toBe(4);
@@ -274,6 +287,35 @@ describe('VoiceRecorder', () => {
       expect(
         await screen.findByRole('button', { name: 'Record voice' }),
       ).toBeInTheDocument();
+    });
+
+    const sentFile = async () => {
+      show();
+      await start();
+      stop();
+      fireEvent.click(screen.getByTitle('Send voice note'));
+      await waitFor(() => expect(apiClient.post).toHaveBeenCalled());
+      const form = vi.mocked(apiClient.post).mock.calls[0][1] as FormData;
+      return form.get('file') as File;
+    };
+
+    it('declares a note as mp4 where the browser records mp4', async () => {
+      FakeRecorder.supported = ['audio/mp4'];
+
+      const file = await sentFile();
+
+      expect(recorder.mimeType).toBe('audio/mp4');
+      expect(file.type).toBe('audio/mp4');
+      expect(file.name).toBe('voice-note.m4a');
+    });
+
+    it('declares what the recorder says when the browser cannot be asked for a format', async () => {
+      FakeRecorder.supported = [];
+      FakeRecorder.recorded = 'audio/mp4;codecs=mp4a.40.2';
+
+      const file = await sentFile();
+
+      expect(file.type).toBe('audio/mp4');
     });
 
     it('never says a note lasts less than a second', async () => {

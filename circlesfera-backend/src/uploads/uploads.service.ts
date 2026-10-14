@@ -22,6 +22,7 @@ import {
 import type { UploadedFile } from './interfaces/uploaded-file.interface.js';
 import { MediaProcessorService } from './media-processor.service.js';
 import { MediaSignatureValidator } from './media-signature.validator.js';
+import { VOICE_NOTE_MIME, VoiceNoteConverter } from './voice-note.converter.js';
 
 export const DEFAULT_MAX_VIDEO_QUEUE_BACKLOG = 20;
 export const DEFAULT_MAX_USER_CONCURRENT_VIDEO_JOBS = 2;
@@ -43,6 +44,7 @@ export class UploadsService {
     @Inject(MediaProcessorService)
     private readonly mediaProcessor: MediaProcessorService,
     private readonly signatureValidator: MediaSignatureValidator,
+    private readonly voiceNoteConverter: VoiceNoteConverter,
     @InjectQueue('video-transcoding') private readonly videoQueue: Queue,
     @Optional() private readonly configService?: ConfigService,
     @Optional()
@@ -108,7 +110,7 @@ export class UploadsService {
   // Param userId: The ID of the user requesting the upload (used for video quota enforcement)
   // Returns The public URLs and MIME type of the stored file
   async uploadFile(
-    file: UploadedFile,
+    received: UploadedFile,
     userId?: string,
   ): Promise<{
     url: string;
@@ -117,12 +119,22 @@ export class UploadsService {
     type: string;
   }> {
     this.logger.log(
-      `Received upload request for: ${file.originalname} (${file.mimetype}) user: ${userId ?? 'anonymous'}`,
+      `Received upload request for: ${received.originalname} (${received.mimetype}) user: ${userId ?? 'anonymous'}`,
     );
+    let file = received;
 
     try {
       // Validate file signature before any processing or storage.
       await this.signatureValidator.validate(file.buffer, file.mimetype);
+
+      // A recorded voice note is stored as sound only, in one format.
+      if (this.voiceNoteConverter.isRecordedVoice(file.mimetype)) {
+        file = {
+          ...file,
+          buffer: await this.voiceNoteConverter.toM4a(file.buffer),
+          mimetype: VOICE_NOTE_MIME,
+        };
+      }
 
       // Perform video admission control before processing or uploading bytes to storage
       if (file.mimetype.startsWith('video/')) {

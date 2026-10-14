@@ -16,6 +16,7 @@ import { S3Provider } from './providers/s3.provider.js';
 import { MediaReconciliationService } from './services/media-reconciliation.service.js';
 import { UploadsController } from './uploads.controller.js';
 import { UploadsService } from './uploads.service.js';
+import { VoiceNoteConverter } from './voice-note.converter.js';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { UploadsService } from './uploads.service.js';
     UploadsService,
     MediaProcessorService,
     MediaSignatureValidator,
+    VoiceNoteConverter,
     VideoProcessor,
     MediaCleanupProcessor,
     MediaReconciliationService,

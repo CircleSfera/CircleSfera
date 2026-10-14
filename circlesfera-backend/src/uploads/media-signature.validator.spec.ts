@@ -72,6 +72,22 @@ function svgBuffer(
 // Tests
 // ---------------------------------------------------------------------------
 
+/** The first bytes of a webm file, as a browser records the microphone. */
+function webmBuffer(): Buffer {
+  return Buffer.from(
+    'GkXfo59ChoEBQveBAULygQRC84EIQoKEd2VibUKHgQRChYECGFOAZwEAAAAAABEq',
+    'base64',
+  );
+}
+
+/** The first bytes of an mp4 file, as Safari records the microphone. */
+function mp4Buffer(): Buffer {
+  return Buffer.from(
+    'AAAAHGZ0eXBpc281AAACAGlzbzVpc282bXA0MQAAArxtb292AAAAbA==',
+    'base64',
+  );
+}
+
 describe('MediaSignatureValidator', () => {
   let validator: MediaSignatureValidator;
 
@@ -260,6 +276,27 @@ describe('MediaSignatureValidator', () => {
   });
 
   // ── Alias compatibility ───────────────────────────────────────────────────
+
+  it('accepts a webm recording declared as audio, as a browser sends a voice note', async () => {
+    await expect(
+      validator.validate(webmBuffer(), 'audio/webm'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('accepts an mp4 recording declared as audio, as Safari sends a voice note', async () => {
+    await expect(
+      validator.validate(mp4Buffer(), 'audio/mp4'),
+    ).resolves.toBeUndefined();
+  });
+
+  it('still refuses a recording declared as something it is not', async () => {
+    await expect(
+      validator.validate(webmBuffer(), 'audio/mpeg'),
+    ).rejects.toThrow(UnsupportedMediaTypeException);
+    await expect(validator.validate(mp4Buffer(), 'video/webm')).rejects.toThrow(
+      UnsupportedMediaTypeException,
+    );
+  });
 
   it('accepts a JPEG buffer declared as image/jpg (alias)', async () => {
     // image/jpg is a common browser alias for image/jpeg

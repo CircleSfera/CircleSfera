@@ -16,6 +16,24 @@ interface VoiceRecorderProps {
   compact?: boolean;
 }
 
+// The formats the server takes for a voice note, in order of preference:
+// Chrome, Firefox and Android record webm, Safari records mp4.
+const RECORDED_TYPES = ['audio/webm', 'audio/mp4'] as const;
+type RecordedType = (typeof RECORDED_TYPES)[number];
+
+// The format a recorder is asked for, when the browser says it can.
+const supportedRecordedType = (): RecordedType | undefined =>
+  RECORDED_TYPES.find(
+    (type) =>
+      typeof MediaRecorder.isTypeSupported === 'function' &&
+      MediaRecorder.isTypeSupported(type),
+  );
+
+// What a recorder says it records, without the codec it adds after the
+// type. A note is declared as what it is, or the server refuses it.
+const recordedTypeOf = (mimeType?: string): RecordedType =>
+  mimeType?.split(';')[0].includes('mp4') ? 'audio/mp4' : 'audio/webm';
+
 export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
   onSendVoice,
   onCancel,
@@ -77,7 +95,10 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
       discardRef.current = false;
       audioChunksRef.current = [];
       waveformPeaksRef.current = [];
-      const recorder = new MediaRecorder(stream);
+      const asked = supportedRecordedType();
+      const recorder = asked
+        ? new MediaRecorder(stream, { mimeType: asked })
+        : new MediaRecorder(stream);
 
       // Web Audio API context setup for real waveform calculation
       try {
@@ -135,7 +156,9 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
           audioChunksRef.current = [];
           return;
         }
-        const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(audioChunksRef.current, {
+          type: asked ?? recordedTypeOf(recorder.mimeType),
+        });
         setRecordedBlob(blob);
       };
 
@@ -215,10 +238,16 @@ export const VoiceRecorder: React.FC<VoiceRecorderProps> = ({
 
       setUploading(true);
       const formData = new FormData();
-      formData.append('file', recordedBlob, 'voice-note.webm');
+      formData.append(
+        'file',
+        recordedBlob,
+        recordedBlob.type === 'audio/mp4'
+          ? 'voice-note.m4a'
+          : 'voice-note.webm',
+      );
 
       const uploadRes = await apiClient.post<{ url: string }>(
-        'uploads/file',
+        'uploads',
         formData,
         {
           headers: { 'Content-Type': 'multipart/form-data' },

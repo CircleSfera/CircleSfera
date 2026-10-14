@@ -15,9 +15,6 @@ const BACKEND_SRC = join(root, '../circlesfera-backend/src');
 // one is a feature that does not work; the list is here so that it can
 // only get shorter.
 const KNOWN_MISSING = [
-  // Voice notes: the upload route is `uploads`, and it does not take the
-  // recorded format yet.
-  'POST uploads/file',
   // Push notifications of the native apps.
   'POST push/subscribe-native',
   'DELETE push/unsubscribe-native',
