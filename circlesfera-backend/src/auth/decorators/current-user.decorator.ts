@@ -8,6 +8,9 @@ export interface CurrentUserData {
   profileId: string;
   // The sign-in that opened the session.
   signInId?: string;
+  // The session the request belongs to. Absent in tokens issued before
+  // they carried it.
+  sessionId?: string;
   // Test Account. Read from the database on every request, never
   // from the token, so it cannot be forged or go stale.
   isTestAccount: boolean;

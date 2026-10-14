@@ -182,7 +182,8 @@ describe('ProfilesController', () => {
       // The session now records the client address (req.ip is populated by
       // the HTTP adapter even without proxy headers).
       expect.stringMatching(/127\.0\.0\.1$/),
-      undefined,
+      // The same session, on another Profile.
+      TEST_USER.sessionId,
       'profile-2',
       // The session keeps the sign-in that opened it.
       TEST_USER.signInId,

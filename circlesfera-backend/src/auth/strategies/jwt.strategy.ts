@@ -19,6 +19,9 @@ export interface JwtPayload {
   // The sign-in that opened the session. Absent in tokens issued before
   // sessions carried it.
   signInId?: string;
+  // The session the token belongs to. Absent in tokens issued before they
+  // carried it.
+  sessionId?: string;
   jti?: string;
 }
 
@@ -56,6 +59,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     role: string;
     profileId: string;
     signInId: string;
+    sessionId?: string;
     isTestAccount: boolean;
   }> {
     const user = await this.prisma.user.findUnique({
@@ -101,6 +105,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: role,
       profileId: profile?.id || '',
       signInId: signIn.id,
+      sessionId: payload.sessionId,
       isTestAccount: user!.isTestAccount === true,
     };
   }

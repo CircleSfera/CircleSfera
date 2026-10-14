@@ -254,7 +254,11 @@ describe('AuthController', () => {
       TEST_USER.userId,
       TEST_USER.signInId,
     );
-    expect(mockService.getUserSessions).toHaveBeenCalledWith(TEST_USER.userId);
+    // The list is told which session asks, to mark it.
+    expect(mockService.getUserSessions).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      TEST_USER.sessionId,
+    );
   });
 
   it('revokes other sessions and one session as the caller userId', async () => {
@@ -270,8 +274,10 @@ describe('AuthController', () => {
       .set(BEARER)
       .expect(200);
 
+    // The session that asks is named, so it is the one kept.
     expect(mockService.revokeOtherSessions).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.sessionId,
     );
     expect(mockService.revokeSession).toHaveBeenCalledWith(
       TEST_USER.userId,

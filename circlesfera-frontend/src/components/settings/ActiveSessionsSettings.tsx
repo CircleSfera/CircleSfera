@@ -21,6 +21,8 @@ interface ActiveSession {
   ipAddress?: string;
   createdAt: string;
   expiresAt: string;
+  // The session this device is signed in with, as the server says.
+  isCurrent?: boolean;
 }
 
 export const ActiveSessionsSettings: React.FC = () => {
@@ -85,6 +87,10 @@ export const ActiveSessionsSettings: React.FC = () => {
     }
   };
 
+  // Without knowing which session is this one, closing "the others" could
+  // not keep it.
+  const knowsCurrent = sessions.some((session) => session.isCurrent);
+
   const getDeviceIcon = (ua?: string) => {
     if (!ua) return <Globe className="w-5 h-5 text-gray-400" />;
     const lower = ua.toLowerCase();
@@ -126,7 +132,7 @@ export const ActiveSessionsSettings: React.FC = () => {
           </div>
         </div>
 
-        {!loadFailed && sessions.length > 1 && (
+        {!loadFailed && knowsCurrent && sessions.length > 1 && (
           <button
             type="button"
             onClick={handleRevokeOthers}
@@ -166,8 +172,8 @@ export const ActiveSessionsSettings: React.FC = () => {
         </p>
       ) : (
         <div className="space-y-2 pt-1">
-          {sessions.map((session, index) => {
-            const isCurrent = index === 0;
+          {sessions.map((session) => {
+            const isCurrent = session.isCurrent === true;
             return (
               <div
                 key={session.id}

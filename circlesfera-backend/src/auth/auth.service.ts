@@ -865,8 +865,8 @@ export class AuthService {
   }
 
   // Get all active sessions for a user.
-  async getUserSessions(userId: string) {
-    const sessions = await this.prisma.refreshToken.findMany({
+  async getUserSessions(userId: string, currentSessionId?: string) {
+    const tokens = await this.prisma.refreshToken.findMany({
       where: {
         userId,
         isRevoked: false,
@@ -875,6 +875,7 @@ export class AuthService {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
+        familyId: true,
         userAgent: true,
         ipAddress: true,
         createdAt: true,
@@ -882,7 +883,26 @@ export class AuthService {
       },
     });
 
-    return sessions;
+    // One row per session: a session that changed Profile holds more than
+    // one live token, and the newest stands for it.
+    const seen = new Set<string>();
+    const sessions = tokens
+      .filter((token) => {
+        if (!token.familyId) return true;
+        if (seen.has(token.familyId)) return false;
+        seen.add(token.familyId);
+        return true;
+      })
+      .map(({ familyId, ...session }) => ({
+        ...session,
+        isCurrent: !!currentSessionId && familyId === currentSessionId,
+      }));
+
+    // The session that asks comes first, the rest newest first.
+    return [
+      ...sessions.filter((session) => session.isCurrent),
+      ...sessions.filter((session) => !session.isCurrent),
+    ];
   }
 
   // Revoke a specific session by ID for a user.
@@ -902,12 +922,17 @@ export class AuthService {
     return { success: true };
   }
 
-  // Revoke all sessions for a user except an optional current session ID.
+  // Close every session of the account but the one that asks. A request
+  // that does not say which session it belongs to closes nothing: closing
+  // all of them would sign out the device that asked.
   async revokeOtherSessions(userId: string, currentSessionId?: string) {
+    if (!currentSessionId) {
+      throw new ConflictException('The current session is not known');
+    }
     await this.prisma.refreshToken.deleteMany({
       where: {
         userId,
-        ...(currentSessionId ? { id: { not: currentSessionId } } : {}),
+        OR: [{ familyId: null }, { familyId: { not: currentSessionId } }],
       },
     });
     return { success: true };
@@ -1026,6 +1051,9 @@ export class AuthService {
         email,
         ...(profileId ? { profileId } : {}),
         signInId: sessionSignIn.id,
+        // The session the request belongs to, the same through every
+        // renewal.
+        sessionId: tokenFamilyId,
         jti: randomUUID(),
       },
       {
