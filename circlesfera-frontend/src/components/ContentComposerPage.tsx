@@ -39,6 +39,14 @@ export default function ContentComposerPage() {
     undefined,
   );
   const [clipWindowMs, setClipWindowMs] = React.useState(15_000);
+  // In the iOS app, how "Next" continues from the gallery of the upload step.
+  const [galleryNext, setGalleryNext] = React.useState<(() => void) | null>(
+    null,
+  );
+  const onGalleryNextChange = React.useCallback(
+    (proceed: (() => void) | null) => setGalleryNext(() => proceed),
+    [],
+  );
 
   const composer = useCreatePost();
   const {
@@ -168,7 +176,9 @@ export default function ContentComposerPage() {
   })();
 
   const handleNext = () => {
-    if (step === 'edit') {
+    if (step === 'upload') {
+      galleryNext?.();
+    } else if (step === 'edit') {
       if (isStoryMode) handleSubmit();
       else setStep('caption');
     } else if (step === 'caption') {
@@ -225,8 +235,10 @@ export default function ContentComposerPage() {
           nextLabel={nextLabel}
           isPending={isPending}
           canNext={
-            mediaFiles.length > 0 &&
-            !(step === 'caption' && caption.length > 2200)
+            step === 'upload'
+              ? galleryNext !== null
+              : mediaFiles.length > 0 &&
+                !(step === 'caption' && caption.length > 2200)
           }
         />
 
@@ -263,6 +275,7 @@ export default function ContentComposerPage() {
                   setMode={setMode}
                   allowModeSwitch={!modeLockedFromEntry}
                   onTextStory={() => setShowStoryComposer(true)}
+                  onContinueChange={onGalleryNextChange}
                 />
               </StepAnimationWrapper>
             )}

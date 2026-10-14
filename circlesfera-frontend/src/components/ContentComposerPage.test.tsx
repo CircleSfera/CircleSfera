@@ -223,6 +223,21 @@ describe('ContentComposerPage', () => {
       expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
     });
 
+    it('goes on from the gallery of the upload step once something is chosen', () => {
+      compose({ step: 'upload' });
+      const next = screen.getByRole('button', { name: 'Next' });
+      expect(next).toBeDisabled();
+
+      const proceed = vi.fn();
+      act(() => seen.upload.onContinueChange(proceed));
+      expect(next).toBeEnabled();
+      fireEvent.click(next);
+      expect(proceed).toHaveBeenCalledTimes(1);
+
+      act(() => seen.upload.onContinueChange(null));
+      expect(next).toBeDisabled();
+    });
+
     it('goes from editing a post to its caption', () => {
       const { hook } = compose({ step: 'edit', mediaFiles: [photo] });
 
