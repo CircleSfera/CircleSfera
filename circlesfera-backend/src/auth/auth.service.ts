@@ -924,9 +924,21 @@ export class AuthService {
 
   // Close every session of the account but the one that asks. A request
   // that does not say which session it belongs to closes nothing: closing
-  // all of them would sign out the device that asked.
+  // all of them would sign out the device that asked. Neither does one
+  // whose session is already closed: its access token outlives it for a
+  // few minutes, and must not be enough to close everyone else's.
   async revokeOtherSessions(userId: string, currentSessionId?: string) {
-    if (!currentSessionId) {
+    const open =
+      !!currentSessionId &&
+      (await this.prisma.refreshToken.count({
+        where: {
+          userId,
+          familyId: currentSessionId,
+          isRevoked: false,
+          expiresAt: { gt: new Date() },
+        },
+      })) > 0;
+    if (!currentSessionId || !open) {
       throw new ConflictException('The current session is not known');
     }
     await this.prisma.refreshToken.deleteMany({

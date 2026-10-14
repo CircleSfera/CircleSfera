@@ -1166,7 +1166,17 @@ describe('AuthService', () => {
     });
 
     it('closes every session but the one that asks, sessions with no family included', async () => {
+      mockPrismaService.refreshToken.count = vi.fn().mockResolvedValue(1);
       await service.revokeOtherSessions('user-1', 'family-current');
+      // The session that asks is looked for among the open ones.
+      expect(mockPrismaService.refreshToken.count).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          familyId: 'family-current',
+          isRevoked: false,
+          expiresAt: { gt: expect.any(Date) },
+        },
+      });
       expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
         where: {
           userId: 'user-1',
@@ -1180,6 +1190,16 @@ describe('AuthService', () => {
       await expect(service.revokeOtherSessions('user-1')).rejects.toThrow(
         ConflictException,
       );
+      expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
+    });
+
+    it('closes nothing when the session that asks is already closed', async () => {
+      mockPrismaService.refreshToken.count = vi.fn().mockResolvedValue(0);
+      mockPrismaService.refreshToken.deleteMany.mockClear();
+
+      await expect(
+        service.revokeOtherSessions('user-1', 'family-closed'),
+      ).rejects.toThrow(ConflictException);
       expect(mockPrismaService.refreshToken.deleteMany).not.toHaveBeenCalled();
     });
 
