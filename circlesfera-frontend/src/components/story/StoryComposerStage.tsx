@@ -197,10 +197,10 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
         <StorySafeGuides visible={p.draggingLayer} />
 
         {p.showVGuide && (
-          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-[#ff00ea] z-100 pointer-events-none shadow-[0_0_15px_rgba(255,0,234,0.8)]" />
+          <div className="absolute inset-y-0 left-1/2 w-0.5 bg-snap-guide z-100 pointer-events-none shadow-[0_0_15px_rgba(var(--snap-guide-rgb),0.8)]" />
         )}
         {p.showHGuide && (
-          <div className="absolute inset-x-0 top-1/2 h-0.5 bg-[#ff00ea] z-100 pointer-events-none shadow-[0_0_15px_rgba(255,0,234,0.8)]" />
+          <div className="absolute inset-x-0 top-1/2 h-0.5 bg-snap-guide z-100 pointer-events-none shadow-[0_0_15px_rgba(var(--snap-guide-rgb),0.8)]" />
         )}
       </div>
     </div>

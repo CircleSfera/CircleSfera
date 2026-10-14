@@ -387,7 +387,7 @@ export default function EditStep({
                   type="button"
                   className={`${CREATE_THUMB} transition-all cursor-pointer appearance-none bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white/30 ${
                     isSelected
-                      ? 'border-brand-primary shadow-[0_0_0_1px_rgba(136,76,255,0.35)]'
+                      ? 'border-brand-primary shadow-[0_0_0_1px_rgba(var(--brand-primary-rgb),0.35)]'
                       : 'border-white/10 hover:border-white/25'
                   }`}
                   style={{ aspectRatio: `${ratioW} / ${ratioH}` }}

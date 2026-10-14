@@ -13,6 +13,8 @@
   --color-surface-raised: var(--surface-raised);
   --color-surface-high: var(--surface-high);
 
+  --color-snap-guide: var(--snap-guide);
+
   --animate-heart-pop: heart-pop 0.8s ease-out forwards;
   --animate-marquee: marquee 40s linear infinite;
   --animate-gradient-x: gradient-x 15s ease infinite;
@@ -242,6 +244,11 @@
   --brand-secondary: #ff5757; /* Coral red */
   --brand-accent: #ff7657; /* Soft Coral */
   --brand-blue: #5271ff; /* Electric Blue */
+
+  /* The lines an editor shows while a piece is dragged onto the centre or
+     the safe area. A colour no picture or brand uses, so they stand out. */
+  --snap-guide: #ff00ea;
+  --snap-guide-rgb: 255, 0, 234;
 
   --neon-accent: var(--brand-primary);
   --neon-secondary: var(--brand-secondary);
