@@ -40,8 +40,14 @@ export default defineConfig({
 
         // Security & Authentication: auth services, 2FA, passkeys, credential lifecycle
         'src/auth/**': {
-          statements: 95,
-          lines: 95,
+          statements: 99,
+          lines: 99,
+        },
+
+        // Staff sign-in and sessions
+        'src/admin-auth/**': {
+          statements: 99,
+          lines: 99,
         },
 
         // Authorization guards (target 100%)
