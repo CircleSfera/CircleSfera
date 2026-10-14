@@ -68,6 +68,7 @@ export default function ContentComposerPage() {
     handleFileSelect,
     handleRemoveFile,
     handleMoveFile,
+    handleQuickFilter,
     handleSubmit,
     reset,
     isComposed,
@@ -285,6 +286,7 @@ export default function ContentComposerPage() {
                   }
                   handleRemoveFile={handleRemoveFile}
                   onMoveFile={handleMoveFile}
+                  onApplyFilter={handleQuickFilter}
                   fileInputRef={fileInputRef}
                   allowModeSwitch={!modeLockedFromEntry}
                 />

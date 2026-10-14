@@ -2,6 +2,8 @@ import { useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { CropData, VideoData } from '../components/PhotoEditor';
+import { DEFAULT_PHOTO_ADJUSTMENTS } from '../components/photo-editor/photoEditor.constants';
+import { buildPhotoFilterString } from '../components/photo-editor/photoEditor.look';
 import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
 import {
   FRAME_MIN_DURATION_SEC,
@@ -240,6 +242,25 @@ export function useCreatePostMedia({
     setTagsMap((prev) => remapByCarouselOrder(prev, order));
   };
 
+  // A filter chosen from the row of the edit step. The adjustments already
+  // made in the photo editor stay.
+  const handleQuickFilter = (index: number, filterClass: string) => {
+    setMediaFiles((list) =>
+      list.map((m, i) =>
+        i !== index
+          ? m
+          : {
+              ...m,
+              filter: buildPhotoFilterString(
+                filterClass,
+                m.editorState?.adjustments ?? DEFAULT_PHOTO_ADJUSTMENTS,
+              ),
+              editorState: { ...m.editorState, filter: filterClass },
+            },
+      ),
+    );
+  };
+
   const handleRemoveFile = (index: number) => {
     setMediaFiles((prev) => prev.filter((_, i) => i !== index));
     setAltTextMap((prev) => {
@@ -316,6 +337,7 @@ export function useCreatePostMedia({
     handleFilterSave,
     handleRemoveFile,
     handleMoveFile,
+    handleQuickFilter,
     generateAltTextForIndex,
   };
 }
