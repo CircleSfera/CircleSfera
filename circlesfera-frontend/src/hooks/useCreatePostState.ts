@@ -1,4 +1,5 @@
 // Facade state hook for useCreatePost
+import type { PlaceInput } from '@circlesfera/shared';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
@@ -66,16 +67,7 @@ export function useCreatePostState() {
 
   const [caption, setCaption] = useState('');
   const [location, setLocation] = useState('');
-  const [selectedPlace, setSelectedPlace] = useState<{
-    mapboxId: string;
-    name: string;
-    fullName?: string;
-    latitude: number;
-    longitude: number;
-    country?: string;
-    region?: string;
-    locality?: string;
-  } | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceInput | null>(null);
 
   const [hideLikes, setHideLikes] = useState(false);
   const [turnOffComments, setTurnOffComments] = useState(false);

@@ -11,6 +11,7 @@ import PhotoOverlayPanel from './photo-editor/panels/PhotoOverlayPanel';
 import PhotoTrimPanel from './photo-editor/panels/PhotoTrimPanel';
 import type {
   PhotoEditorSave,
+  PhotoEditorSavedState,
   PhotoEditorTab,
 } from './photo-editor/photoEditor.types';
 import { usePhotoEditor } from './photo-editor/usePhotoEditor';
@@ -21,8 +22,8 @@ interface PhotoEditorProps {
   image: File;
   onSave: PhotoEditorSave;
   onCancel: () => void;
-  onStateChange?: (state: any) => void;
-  initialState?: any;
+  onStateChange?: (state: PhotoEditorSavedState) => void;
+  initialState?: PhotoEditorSavedState;
   onApplyToAll?: (filterString: string) => void;
   /** Open on this tab (e.g. TRIM for Frame re-edit). */
   initialTab?: PhotoEditorTab;

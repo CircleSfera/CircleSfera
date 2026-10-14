@@ -10,6 +10,7 @@ import { toAppLocale } from '../../utils/appLocale';
 import { SUBSCREEN_SHELL } from './ComposerChrome';
 import {
   loadPlaceSelection,
+  type MapboxSuggestion,
   type PlaceSelection,
   retrievePlace,
   reversePlace,
@@ -70,7 +71,7 @@ export default function LocationSubScreen({
       sessionToken,
       placeLanguage,
     ],
-    queryFn: async (): Promise<any[]> => {
+    queryFn: async (): Promise<MapboxSuggestion[]> => {
       const url = new URL('https://api.mapbox.com/search/searchbox/v1/suggest');
       url.searchParams.set('q', debouncedQuery);
       url.searchParams.set('access_token', MAPBOX_TOKEN ?? '');
@@ -96,7 +97,7 @@ export default function LocationSubScreen({
   // Results kept from the previous search must not outlive the text.
   const suggestions = trimmedQuery ? (foundPlaces ?? []) : [];
 
-  const handleSelectSuggestion = async (suggestion: any) => {
+  const handleSelectSuggestion = async (suggestion: MapboxSuggestion) => {
     const token = MAPBOX_TOKEN;
     if (!token) return;
 

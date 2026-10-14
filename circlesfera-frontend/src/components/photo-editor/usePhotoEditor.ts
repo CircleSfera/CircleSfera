@@ -1,3 +1,4 @@
+import type Konva from 'konva';
 import {
   useCallback,
   useEffect,
@@ -6,6 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import type { Area } from 'react-easy-crop';
 import type { OverlayElement } from '../../services/edits.service';
 import { clampFrameWindow } from '../../utils/frameClip';
 import {
@@ -20,6 +22,7 @@ import {
 import type {
   CropData,
   PhotoEditorSave,
+  PhotoEditorSavedState,
   PhotoEditorTab,
   VideoData,
 } from './photoEditor.types';
@@ -31,8 +34,8 @@ const FILTERS = PHOTO_FILTERS;
 interface UsePhotoEditorOptions {
   image: File;
   onSave: PhotoEditorSave;
-  onStateChange?: (state: any) => void;
-  initialState?: any;
+  onStateChange?: (state: PhotoEditorSavedState) => void;
+  initialState?: PhotoEditorSavedState;
   initialTab?: PhotoEditorTab;
   constrainDuration?: { min: number; max: number };
   /** The shape of the small previews, as a CSS aspect ratio. */
@@ -106,7 +109,7 @@ export function usePhotoEditor({
 
   const imageRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const stageRef = useRef<any>(null);
+  const stageRef = useRef<Konva.Stage>(null);
   const [imageDims, setImageDims] = useState({ width: 0, height: 0 });
 
   // The size of the preview image on screen, which the drawing layer copies.
@@ -129,7 +132,7 @@ export function usePhotoEditor({
   }, [activeTab, measureImage]);
 
   const onCropComplete = useCallback(
-    (_croppedArea: any, croppedAreaPixels: any) => {
+    (_croppedArea: Area, croppedAreaPixels: Area) => {
       setCroppedAreaPixels({ ...croppedAreaPixels, rotation });
     },
     [rotation],

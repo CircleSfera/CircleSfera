@@ -55,7 +55,9 @@ export function useCreatePostMedia({
   const { processFiles } = useMediaProcessing();
   const { isUploading, uploadFiles } = useMediaUpload();
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    e: Pick<React.ChangeEvent<HTMLInputElement>, 'target'>,
+  ) => {
     if (e.target.files && e.target.files.length > 0) {
       let selectedFiles = Array.from(e.target.files);
 

@@ -1,3 +1,4 @@
+import type { PlaceInput } from '@circlesfera/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +24,7 @@ import type {
   MediaFile,
   PostTagData,
 } from './useCreatePostState';
+import type { UploadResult } from './useMediaUpload';
 
 interface MutationDeps {
   mode: CreateMode;
@@ -32,7 +34,7 @@ interface MutationDeps {
   coverTimeMs: number | null;
   isSensitive: boolean;
   location: string;
-  selectedPlace: any;
+  selectedPlace: PlaceInput | null;
   selectedAudio: AudioTrack | null;
   audioStartMs: number;
   isCloseFriendsOnly: boolean;
@@ -49,7 +51,7 @@ interface MutationDeps {
   uploadFiles: (
     files: MediaFile[],
     altTextMap: Record<number, string>,
-  ) => Promise<any[]>;
+  ) => Promise<UploadResult[]>;
   setShowFrameTrim: (val: boolean) => void;
 }
 
