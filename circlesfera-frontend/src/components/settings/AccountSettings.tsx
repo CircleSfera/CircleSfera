@@ -6,6 +6,7 @@ import {
   Download,
   Globe,
   Info,
+  Receipt,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
@@ -14,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { changeAppLanguage } from '../../i18n';
 import { profileApi } from '../../services';
 import * as dataExportApi from '../../services/data-export.service';
+import { paymentsApi } from '../../services/payments.service';
 import { usersApi } from '../../services/users.service';
 import { useAuthStore } from '../../stores/authStore';
 import { apiErrorMessage } from '../../utils/apiErrorMessage';
@@ -99,6 +101,25 @@ export default function AccountSettings() {
     },
     onError: (error: unknown) => {
       toast.error(apiErrorMessage(error, t, 'settings.account.export_error'));
+    },
+  });
+
+  // The record of the money the person sent and received, as a file.
+  const downloadLedgerMutation = useMutation({
+    mutationFn: () => paymentsApi.getLedger(),
+    onSuccess: (ledger: Blob) => {
+      const url = window.URL.createObjectURL(ledger);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'ledger.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success(t('settings.account.ledger_success'));
+    },
+    onError: () => {
+      toast.error(t('settings.account.ledger_error'));
     },
   });
 
@@ -293,6 +314,25 @@ export default function AccountSettings() {
                 {t('settings.account.export.btn')}
               </Button>
             )}
+          </div>
+
+          <div className="rounded-xl border border-white/5 bg-white/[0.02] p-4">
+            <h3 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
+              <Receipt size={14} aria-hidden />
+              {t('settings.account.ledger.title')}
+            </h3>
+            <p className="text-xs text-white/50 leading-relaxed mb-3">
+              {t('settings.account.ledger.desc')}
+            </p>
+            <Button
+              onClick={() => downloadLedgerMutation.mutate()}
+              isLoading={downloadLedgerMutation.isPending}
+              variant="outline"
+              className="min-h-11 text-sm font-semibold gap-2"
+            >
+              <Download size={16} aria-hidden />
+              {t('settings.account.ledger.button')}
+            </Button>
           </div>
         </div>
       </SettingsSection>

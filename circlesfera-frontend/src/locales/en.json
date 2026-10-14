@@ -246,10 +246,8 @@
         "btn": "Request export",
         "processing": "Processing your request…",
         "download": "Download data",
-        "request_new": "Request a new export",
-        "history": "Export History"
+        "request_new": "Request a new export"
       },
-      "export_success": "Data export started. You will receive an email when it is ready.",
       "export_error": "Failed to request data export.",
       "delete_scheduled": "Account scheduled for deletion. Log in within 30 days to restore it.",
       "delete_cancelled": "Account deletion cancelled. Your account is active again.",

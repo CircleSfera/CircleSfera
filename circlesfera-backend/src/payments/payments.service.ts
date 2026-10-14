@@ -35,6 +35,18 @@ export function planAccountType(
   return null;
 }
 
+// An amount kept in cents, written in euros with two decimals.
+function centsToEuros(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+// Text for a cell of a spreadsheet. A cell that starts like a formula is
+// written as text, so a spreadsheet shows it instead of running it.
+function csvText(value: string | null | undefined): string {
+  const text = value ?? '';
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+}
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -85,6 +97,10 @@ export class PaymentsService {
     }
   }
 
+  // The record of money a person sent and received, or of every
+  // transaction for staff. A person's own record never names the other
+  // party: a transaction is between accounts, and naming one could tell
+  // which Profile is behind it. Amounts are in euros, not cents.
   async getLedgerCsv(userId?: string): Promise<string> {
     const transactions = await this.prisma.transaction.findMany({
       where: userId
@@ -93,22 +109,42 @@ export class PaymentsService {
           }
         : undefined,
       orderBy: { createdAt: 'desc' },
-      include: {
-        sender: { select: { email: true } },
-        receiver: { select: { email: true } },
-      },
+      ...(userId
+        ? {}
+        : {
+            include: {
+              sender: { select: { email: true } },
+              receiver: { select: { email: true } },
+            },
+          }),
     });
 
-    const header =
-      'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description\n';
+    const header = userId
+      ? 'ID,Date,Type,Direction,Amount,Currency,Status,Description\n'
+      : 'ID,Date,Type,Amount,Currency,Status,Sender,Receiver,Description\n';
     const rows = transactions
       .map((tx) => {
-        const senderStr = tx.sender?.email || 'SYSTEM';
-        const receiverStr = tx.receiver?.email || 'SYSTEM';
-        const dateStr = tx.createdAt.toISOString();
-        const descStr = (tx.description || '').replace(/"/g, '""');
-
-        return `"${tx.id}","${dateStr}","${tx.type}","${tx.amount}","${tx.currency}","${tx.status}","${senderStr}","${receiverStr}","${descStr}"`;
+        const parties = tx as typeof tx & {
+          sender?: { email: string } | null;
+          receiver?: { email: string } | null;
+        };
+        const common = [tx.id, tx.createdAt.toISOString(), tx.type];
+        const money = [centsToEuros(tx.amount), tx.currency, tx.status];
+        const cells = userId
+          ? [
+              ...common,
+              tx.senderId === userId ? 'SENT' : 'RECEIVED',
+              ...money,
+              csvText(tx.description),
+            ]
+          : [
+              ...common,
+              ...money,
+              csvText(parties.sender?.email || 'SYSTEM'),
+              csvText(parties.receiver?.email || 'SYSTEM'),
+              csvText(tx.description),
+            ];
+        return cells.map((cell) => `"${cell.replace(/"/g, '""')}"`).join(',');
       })
       .join('\n');
 
