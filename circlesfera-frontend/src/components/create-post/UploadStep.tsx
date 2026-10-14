@@ -18,7 +18,9 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { CreateMode } from '../../hooks/useCreatePost';
+import { hasDeviceGallery } from '../../utils/photoLibrary';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
+import DeviceGallery from './gallery/DeviceGallery';
 
 interface UploadStepProps {
   fileInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -27,6 +29,11 @@ interface UploadStepProps {
   setMode: (mode: CreateMode) => void;
   onTextStory?: () => void;
   allowModeSwitch?: boolean;
+  /**
+   * In the iOS app, says how "Next" continues with the photos chosen in the
+   * gallery, or that nothing is chosen.
+   */
+  onContinueChange?: (proceed: (() => void) | null) => void;
 }
 
 const MODE_CONFIG = {
@@ -68,8 +75,10 @@ export default function UploadStep({
   setMode,
   onTextStory,
   allowModeSwitch = true,
+  onContinueChange,
 }: UploadStepProps) {
   const { t } = useTranslation();
+  const showGallery = hasDeviceGallery();
   const [isDragging, setIsDragging] = useState(false);
   const dropRef = useRef<HTMLDivElement>(null);
   const dragCounter = useRef(0);
@@ -198,6 +207,122 @@ export default function UploadStep({
     }
   };
 
+  // The panel to drop or pick files, and its buttons. In the iOS app it is
+  // what shows when the photos of the device cannot be listed.
+  const renderClassic = (reason?: 'denied' | 'failed') => (
+    <>
+      {/* The place to drop or pick files: a large panel with the brand glow,
+            so the screen is not an empty black page. */}
+      <motion.div
+        className={`relative w-full flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center overflow-hidden rounded-3xl border border-dashed transition-colors duration-300 ${
+          isDragging
+            ? `${translatedConfig.borderAccent} bg-white/8`
+            : 'border-white/15 bg-white/3'
+        }`}
+        animate={{ scale: isDragging ? 1.005 : 1 }}
+        transition={{ duration: 0.2 }}
+      >
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_42%,rgba(var(--brand-primary-rgb),0.22),transparent_70%)]"
+          aria-hidden
+        />
+        <div className="relative w-16 h-16 rounded-3xl flex items-center justify-center bg-linear-to-br from-brand-primary/30 to-brand-blue/20 border border-white/12 shadow-lg shadow-brand-primary/20 shrink-0">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={isDragging ? 'drag' : mode}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.2 }}
+            >
+              {isDragging ? (
+                <ArrowUpFromLine
+                  size={28}
+                  className="text-white"
+                  strokeWidth={1.5}
+                />
+              ) : (
+                <translatedConfig.icon
+                  size={28}
+                  className="text-white"
+                  strokeWidth={1.5}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <div className="relative space-y-1.5 w-full">
+          <p className="text-xl font-semibold text-white leading-tight">
+            {isDragging
+              ? t('createPost.upload.drop_files')
+              : translatedConfig.description}
+          </p>
+          {!isDragging ? (
+            <p className="text-sm text-white/60 text-balance">
+              <span className="hidden md:inline">
+                {t('createPost.upload.drag_files')}
+                {' · '}
+              </span>
+              {translatedConfig.hint}
+            </p>
+          ) : null}
+        </div>
+      </motion.div>
+
+      {reason ? (
+        <p className="text-sm text-white/60 text-center text-balance shrink-0">
+          {t(
+            reason === 'denied'
+              ? 'createPost.upload.gallery_denied'
+              : 'createPost.upload.gallery_failed',
+          )}
+        </p>
+      ) : null}
+
+      {/* Actions at the bottom, within reach of the thumb. */}
+      <div className="flex flex-col w-full gap-2 shrink-0 md:max-w-sm md:mx-auto">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className={`button-alone button-alone-wide ${CREATE_PRIMARY}`}
+        >
+          {mode === 'FRAME'
+            ? t('createPost.upload.select_video')
+            : t('createPost.upload.select_device')}
+        </button>
+
+        {mode !== 'FRAME' ? (
+          <button
+            type="button"
+            onClick={openCamera}
+            className={`button-alone button-alone-wide md:hidden ${CREATE_SECONDARY}`}
+          >
+            <Camera size={18} aria-hidden />
+            {t('createPost.upload.take_photo')}
+          </button>
+        ) : null}
+
+        <AnimatePresence>
+          {mode === 'STORY' && onTextStory && (
+            <motion.button
+              type="button"
+              onClick={onTextStory}
+              className={`button-alone button-alone-wide ${CREATE_SECONDARY}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Sparkles size={18} className="text-brand-accent" aria-hidden />
+              {t('createPost.upload.create_text_story')}
+            </motion.button>
+          )}
+        </AnimatePresence>
+      </div>
+    </>
+  );
+
   return (
     <div className="flex-1 flex flex-col w-full h-full relative overflow-hidden bg-surface-elevated">
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Main drop zone container */}
@@ -215,105 +340,37 @@ export default function UploadStep({
         onDrop={handleDrop}
         role="presentation"
       >
-        {/* The place to drop or pick files: a large panel with the brand glow,
-            so the screen is not an empty black page. */}
-        <motion.div
-          className={`relative w-full flex-1 min-h-0 flex flex-col items-center justify-center gap-4 px-6 text-center overflow-hidden rounded-3xl border border-dashed transition-colors duration-300 ${
-            isDragging
-              ? `${translatedConfig.borderAccent} bg-white/8`
-              : 'border-white/15 bg-white/3'
-          }`}
-          animate={{ scale: isDragging ? 1.005 : 1 }}
-          transition={{ duration: 0.2 }}
-        >
-          <div
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_40%_at_50%_42%,rgba(var(--brand-primary-rgb),0.22),transparent_70%)]"
-            aria-hidden
+        {showGallery && onContinueChange ? (
+          <DeviceGallery
+            key={mode === 'FRAME' ? 'videos' : 'all'}
+            videosOnly={mode === 'FRAME'}
+            single={mode === 'FRAME'}
+            ratio={mode === 'POST' ? '4 / 5' : '9 / 16'}
+            fileInputRef={fileInputRef}
+            onContinueChange={onContinueChange}
+            onPickOther={() => fileInputRef.current?.click()}
+            onOpenCamera={mode !== 'FRAME' ? openCamera : undefined}
+            fallback={renderClassic}
+            footer={
+              mode === 'STORY' && onTextStory ? (
+                <button
+                  type="button"
+                  onClick={onTextStory}
+                  className={`button-alone button-alone-wide shrink-0 ${CREATE_SECONDARY}`}
+                >
+                  <Sparkles
+                    size={18}
+                    className="text-brand-accent"
+                    aria-hidden
+                  />
+                  {t('createPost.upload.create_text_story')}
+                </button>
+              ) : null
+            }
           />
-          <div className="relative w-16 h-16 rounded-3xl flex items-center justify-center bg-linear-to-br from-brand-primary/30 to-brand-blue/20 border border-white/12 shadow-lg shadow-brand-primary/20 shrink-0">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={isDragging ? 'drag' : mode}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                transition={{ duration: 0.2 }}
-              >
-                {isDragging ? (
-                  <ArrowUpFromLine
-                    size={28}
-                    className="text-white"
-                    strokeWidth={1.5}
-                  />
-                ) : (
-                  <translatedConfig.icon
-                    size={28}
-                    className="text-white"
-                    strokeWidth={1.5}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          <div className="relative space-y-1.5 w-full">
-            <p className="text-xl font-semibold text-white leading-tight">
-              {isDragging
-                ? t('createPost.upload.drop_files')
-                : translatedConfig.description}
-            </p>
-            {!isDragging ? (
-              <p className="text-sm text-white/60 text-balance">
-                <span className="hidden md:inline">
-                  {t('createPost.upload.drag_files')}
-                  {' · '}
-                </span>
-                {translatedConfig.hint}
-              </p>
-            ) : null}
-          </div>
-        </motion.div>
-
-        {/* Actions at the bottom, within reach of the thumb. */}
-        <div className="flex flex-col w-full gap-2 shrink-0 md:max-w-sm md:mx-auto">
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className={`button-alone button-alone-wide ${CREATE_PRIMARY}`}
-          >
-            {mode === 'FRAME'
-              ? t('createPost.upload.select_video')
-              : t('createPost.upload.select_device')}
-          </button>
-
-          {mode !== 'FRAME' ? (
-            <button
-              type="button"
-              onClick={openCamera}
-              className={`button-alone button-alone-wide md:hidden ${CREATE_SECONDARY}`}
-            >
-              <Camera size={18} aria-hidden />
-              {t('createPost.upload.take_photo')}
-            </button>
-          ) : null}
-
-          <AnimatePresence>
-            {mode === 'STORY' && onTextStory && (
-              <motion.button
-                type="button"
-                onClick={onTextStory}
-                className={`button-alone button-alone-wide ${CREATE_SECONDARY}`}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 8 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Sparkles size={18} className="text-brand-accent" aria-hidden />
-                {t('createPost.upload.create_text_story')}
-              </motion.button>
-            )}
-          </AnimatePresence>
-        </div>
+        ) : (
+          renderClassic()
+        )}
       </div>
 
       <input

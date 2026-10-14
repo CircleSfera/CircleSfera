@@ -9,8 +9,31 @@ vi.mock('framer-motion', async () =>
 );
 vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
 
+const platform = vi.hoisted(() => ({ name: 'web', galleryShown: false }));
 vi.mock('@capacitor/core', () => ({
-  Capacitor: { isNativePlatform: () => false },
+  Capacitor: {
+    isNativePlatform: () => platform.name !== 'web',
+    getPlatform: () => platform.name,
+  },
+  registerPlugin: () => ({}),
+}));
+vi.mock('./gallery/DeviceGallery', () => ({
+  default: (props: {
+    videosOnly: boolean;
+    single: boolean;
+    ratio: string;
+    fallback: (reason: 'denied') => React.ReactNode;
+    footer?: React.ReactNode;
+  }) => (
+    <div
+      data-testid="device-gallery"
+      data-videos-only={String(props.videosOnly)}
+      data-single={String(props.single)}
+      data-ratio={props.ratio}
+    >
+      {platform.galleryShown ? props.footer : props.fallback('denied')}
+    </div>
+  ),
 }));
 
 vi.mock('@capacitor/camera', () => ({
@@ -199,5 +222,82 @@ describe('UploadStep', () => {
   it('hides the tabs when the kind was chosen on the way in', () => {
     show('POST', { allowModeSwitch: false });
     expect(screen.queryByRole('tab')).toBeNull();
+  });
+});
+
+describe('UploadStep in the iOS app', () => {
+  const show = (mode: 'POST' | 'STORY' | 'FRAME') =>
+    renderWithProviders(
+      <UploadStep
+        fileInputRef={{ current: null }}
+        handleFileSelect={vi.fn()}
+        mode={mode}
+        setMode={vi.fn()}
+        onContinueChange={vi.fn()}
+        onTextStory={vi.fn()}
+      />,
+      { lng: 'es' },
+    );
+
+  beforeEach(() => {
+    platform.name = 'ios';
+  });
+  afterEach(() => {
+    platform.name = 'web';
+  });
+
+  it('shows the photos of the device in the shape of a post', () => {
+    show('POST');
+
+    const gallery = screen.getByTestId('device-gallery');
+    expect(gallery).toHaveAttribute('data-ratio', '4 / 5');
+    expect(gallery).toHaveAttribute('data-single', 'false');
+  });
+
+  it('takes one video for a frame', () => {
+    show('FRAME');
+
+    const gallery = screen.getByTestId('device-gallery');
+    expect(gallery).toHaveAttribute('data-videos-only', 'true');
+    expect(gallery).toHaveAttribute('data-single', 'true');
+    expect(gallery).toHaveAttribute('data-ratio', '9 / 16');
+  });
+
+  it('keeps the text story of a story beside the gallery', () => {
+    platform.galleryShown = true;
+    show('STORY');
+    platform.galleryShown = false;
+
+    expect(
+      screen.getByRole('button', { name: /Crear Historia de Texto/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers the text story once when the gallery gives way to picking files', () => {
+    show('STORY');
+
+    expect(
+      screen.getAllByRole('button', { name: /Crear Historia de Texto/ }),
+    ).toHaveLength(1);
+  });
+
+  it('falls back to picking files, and says why, when photos cannot be listed', () => {
+    show('POST');
+
+    expect(
+      screen.getByText(
+        'Permite el acceso a tus fotos en Ajustes para verlas aquí.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Seleccionar del dispositivo' }),
+    ).toBeInTheDocument();
+  });
+
+  it('is not shown on the web', () => {
+    platform.name = 'web';
+    show('POST');
+
+    expect(screen.queryByTestId('device-gallery')).not.toBeInTheDocument();
   });
 });
