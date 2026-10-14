@@ -253,7 +253,15 @@ describe('PaymentsService', () => {
       ]);
     });
 
-    it.each(['=HYPERLINK("x")', '+1', '-1', '@SUM(A1)', '\tlead', '\rlead'])(
+    it.each([
+      '=HYPERLINK("x")',
+      '+1',
+      '-1',
+      '@SUM(A1)',
+      '\tlead',
+      '\rlead',
+      '\nlead',
+    ])(
       'writes a text that starts like a formula (%s) as text',
       async (text) => {
         prisma.transaction.findMany = vi
