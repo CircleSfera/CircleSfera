@@ -286,10 +286,10 @@ describe('StoryComposer', () => {
       fireEvent.click(tool('Dibujar'));
       const width = screen.getByRole('slider', { name: 'Grosor' });
       fireEvent.change(width, { target: { value: '12' } });
-      fireEvent.click(screen.getByRole('button', { name: '#FF3B30' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Rojo' }));
 
       expect(width).toHaveValue('12');
-      expect(screen.getByRole('button', { name: '#FF3B30' })).toHaveAttribute(
+      expect(screen.getByRole('button', { name: 'Rojo' })).toHaveAttribute(
         'aria-pressed',
         'true',
       );
@@ -432,7 +432,7 @@ describe('StoryComposer', () => {
         screen.getByRole('button', { name: 'Alinear a la izquierda' }),
       );
       fireEvent.click(
-        screen.getAllByRole('button', { name: /^Color de texto / })[1],
+        screen.getByRole('button', { name: 'Color de texto: Negro' }),
       );
       fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
 
@@ -442,7 +442,7 @@ describe('StoryComposer', () => {
         textStyle: 'neon',
         align: 'left',
       });
-      expect(lastElements()[0].color).not.toBe('#FFFFFF');
+      expect(lastElements()[0].color).toBe('#000000');
     });
 
     it('opens the type options with font, gradient, size, spacing and width', async () => {

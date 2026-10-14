@@ -1,4 +1,6 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { storyColorName } from './storyColorNames';
 
 interface ColorPickerProps {
   selectedColor: string;
@@ -26,11 +28,13 @@ export default function ColorPicker({
   onColorSelect,
   colors = DEFAULT_COLORS,
 }: ColorPickerProps) {
+  const { t } = useTranslation();
   return (
     <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar px-0.5">
       {colors.map((color) => {
         const isSelected = selectedColor === color;
         const isBlack = color === '#000000';
+        const name = storyColorName(t, color);
         return (
           <motion.button
             type="button"
@@ -39,8 +43,8 @@ export default function ColorPicker({
             whileTap={{ scale: 0.85 }}
             onClick={() => onColorSelect(color)}
             className="relative shrink-0 flex items-center justify-center"
-            title={color}
-            aria-label={color}
+            title={name}
+            aria-label={name}
             aria-pressed={isSelected}
           >
             {/* Selection ring */}

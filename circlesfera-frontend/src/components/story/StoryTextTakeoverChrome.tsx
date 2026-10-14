@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import StoryTextTypePanel from './StoryTextTypePanel';
+import { storyColorName } from './storyColorNames';
 import type { StoryFontOption } from './storyComposer.types';
 
 const STYLE_COLORS = [
@@ -158,7 +159,7 @@ export default function StoryTextTakeoverChrome({
                 }`}
                 style={{ backgroundColor: c }}
                 aria-label={t('createPost.storyComposer.text_color', {
-                  color: c,
+                  color: storyColorName(t, c),
                 })}
               />
             ))}
