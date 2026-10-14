@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import mapboxgl from 'mapbox-gl';
 import MapboxWorker from 'mapbox-gl/dist/mapbox-gl-csp-worker?worker';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -151,9 +152,15 @@ export default function ExploreMapPage() {
     });
 
     map.on('error', (event) => {
-      const message =
-        event.error?.message || t('explore.map.render_error_hint');
-      setMapError(message);
+      // The cause goes to error reporting, never to the screen. A failed
+      // request names its address, which carries the map key.
+      const cause = event.error;
+      Sentry.captureException(
+        new Error(
+          `The map failed to render: ${(cause?.message ?? 'unknown').replace(/access_token=[^&\s]+/g, 'access_token=[redacted]')}`,
+        ),
+      );
+      setMapError(t('explore.map.render_error_hint'));
     });
 
     map.on('moveend', () => {
