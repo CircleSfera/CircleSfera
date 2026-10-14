@@ -140,6 +140,22 @@ describe('PasskeyController', () => {
     );
   });
 
+  it('passes on how strict the login must be when the app asks for it', async () => {
+    mockPasskey.generateAuthenticationOptions.mockResolvedValue({
+      challenge: 'c',
+    });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/passkey/login-options')
+      .send({ email: 'test@example.com', sensitivity: 'sensitive' })
+      .expect(201);
+
+    expect(mockPasskey.generateAuthenticationOptions).toHaveBeenCalledWith(
+      'test@example.com',
+      'sensitive',
+    );
+  });
+
   it('verifies login, issues cookies via loginById, and returns success', async () => {
     mockPasskey.verifyAuthentication.mockResolvedValue({
       verified: true,

@@ -99,8 +99,8 @@ export default defineConfig({
 
         // Payments: Stripe integration, checkout sessions, invoices, and billing
         'src/payments/**': {
-          statements: 99,
-          lines: 99,
+          statements: 100,
+          lines: 100,
         },
 
         // Monetization: Creator payouts, tips, and fee calculations
@@ -111,8 +111,8 @@ export default defineConfig({
 
         // Data Lifecycle: GDPR personal data export and account deletion
         'src/users/data-export.service.ts': {
-          statements: 96,
-          lines: 97,
+          statements: 98,
+          lines: 99,
         },
         'src/users/data-export.processor.ts': {
           statements: 100,

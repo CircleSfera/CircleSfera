@@ -517,6 +517,52 @@ describe('PaymentsService', () => {
       );
     });
 
+    it('says so in the log and lets the person try again when the provider refuses the checkout', async () => {
+      prisma.user.findUnique = vi.fn().mockResolvedValue({
+        id: 'u_year',
+        email: 'year@test.com',
+        stripeCustomerId: 'cust_year',
+        platformSubscriptions: [],
+      });
+      prisma.platformPlan.findFirst = vi.fn().mockResolvedValue({
+        id: 'plan_1',
+        stripePriceId: 'price_monthly',
+        yearlyStripePriceId: 'price_yearly',
+      });
+      const logged = vi
+        .spyOn(
+          (service as unknown as { logger: { error: () => void } }).logger,
+          'error',
+        )
+        .mockImplementation(() => {});
+      const attempt = () =>
+        service.createCheckout('u_year', 'plan_1', 'YEARLY', 'prof_1');
+
+      stripeService.createCheckoutSession.mockRejectedValueOnce(
+        new Error('provider down'),
+      );
+      await expect(attempt()).rejects.toThrow('provider down');
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringContaining('provider down'),
+      );
+
+      // What is refused is not always an error.
+      stripeService.createCheckoutSession.mockRejectedValueOnce('refused');
+      await expect(attempt()).rejects.toBe('refused');
+      expect(logged).toHaveBeenLastCalledWith(
+        expect.stringContaining('refused'),
+      );
+
+      // The failed attempt is not kept: the next one asks the provider again.
+      stripeService.createCheckoutSession.mockResolvedValueOnce({
+        url: 'https://checkout.again',
+      });
+      await expect(attempt()).resolves.toEqual({
+        url: 'https://checkout.again',
+      });
+      logged.mockRestore();
+    });
+
     it('ensureStripeCustomer returns existing stripeCustomerId immediately', async () => {
       const res = await service.ensureStripeCustomer({
         id: 'u1',

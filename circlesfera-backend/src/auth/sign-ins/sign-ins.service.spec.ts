@@ -274,6 +274,14 @@ describe('SignInsService', () => {
       expect(email.sendVerificationEmail).not.toHaveBeenCalled();
     });
 
+    it('does not take any other failure of the database for a taken address', async () => {
+      const down = new Error('connection lost');
+      tx.signIn.create.mockRejectedValueOnce(down);
+
+      await expect(service.giveOwn(session, own, proof)).rejects.toBe(down);
+      expect(email.sendVerificationEmail).not.toHaveBeenCalled();
+    });
+
     it('lets one new sign-in through an hour and five a day, and says when to try again', async () => {
       expect(NEW_SIGN_INS_PER_HOUR).toBe(1);
       expect(NEW_SIGN_INS_PER_DAY).toBe(5);
