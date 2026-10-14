@@ -99,6 +99,7 @@ describe('AuthService', () => {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
+      count: vi.fn(),
       create: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
@@ -1361,6 +1362,24 @@ describe('AuthService', () => {
           },
         }),
       );
+    });
+
+    it('brings back an account its owner deactivated when they sign in with a passkey', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u-back',
+        email: 'back@example.com',
+        isActive: false,
+        isRootBanned: false,
+        deactivatedAt: new Date('2026-09-01T00:00:00.000Z'),
+      });
+
+      const result = await service.loginById('u-back');
+
+      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
+        where: { id: 'u-back' },
+        data: { isActive: true, deactivatedAt: null },
+      });
+      expect(result).toHaveProperty('accessToken');
     });
 
     it('throws UnauthorizedException with appealToken when inactive user is not root banned', async () => {

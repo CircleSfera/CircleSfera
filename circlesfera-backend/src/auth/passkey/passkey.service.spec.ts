@@ -233,6 +233,24 @@ describe('PasskeyService', () => {
       });
     });
 
+    it('does not store a passkey for an account with no sign-in to hold it', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        currentChallenge: 'expected-challenge',
+      });
+      mockVerifyRegistrationResponse.mockResolvedValue({
+        verified: true,
+        registrationInfo: {
+          credential: { id: 'cred-1', publicKey: Buffer.from('k'), counter: 0 },
+        },
+      } as unknown as VerifiedRegistrationResponse);
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null);
+
+      await expect(
+        service.verifyRegistration('user-1', { response: {} }),
+      ).rejects.toThrow('Sign-in not found');
+      expect(mockPrismaService.passkey.create).not.toHaveBeenCalled();
+    });
+
     it('does not store a passkey that would go past the limit, even after a valid ceremony', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         currentChallenge: 'expected-challenge',
@@ -1275,6 +1293,32 @@ describe('PasskeyService', () => {
       expect(mockPrismaService.passkey.deleteMany).toHaveBeenCalledWith({
         where: { id: 'pk-1', userId: 'user-1' },
       });
+      verify.mockRestore();
+    });
+  });
+
+  describe('deletePasskey, removed meanwhile', () => {
+    it('says not found when the passkey was removed between the check and the removal', async () => {
+      mockPrismaService.passkey.findUnique.mockResolvedValue({
+        id: 'pk-1',
+        userId: 'user-1',
+      });
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-1',
+        email: 'me@example.com',
+      });
+      const verify = vi
+        .spyOn(service, 'verifyAuthentication')
+        .mockResolvedValue({
+          verified: true,
+          userId: 'user-1',
+          userVerified: true,
+        } as never);
+      mockPrismaService.passkey.deleteMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.deletePasskey('user-1', 'pk-1', { id: 'cred-1' }),
+      ).rejects.toThrow(NotFoundException);
       verify.mockRestore();
     });
   });

@@ -231,7 +231,32 @@ export default defineConfig({
           lines: 100,
         },
         'src/components/admin/PayoutsTab.tsx': { statements: 100, lines: 100 },
+        // Registration, the sign-ins of a Profile, passkeys and the creator guard.
+        'src/pages/Register.tsx': { statements: 100, lines: 100 },
+        'src/services/signIns.service.ts': { statements: 100, lines: 100 },
+        'src/components/profiles/ProfileSignIns.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/settings/PasskeySettings.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/auth/CreatorStudioGuard.tsx': {
+          statements: 100,
+          lines: 100,
+        },
         // Privacy, a person's own data and appeals.
+        'src/components/DataExportSettings.tsx': {
+          statements: 100,
+          lines: 100,
+        },
+        'src/components/CookieConsent.tsx': { statements: 100, lines: 100 },
+        'src/utils/cookieConsent.ts': { statements: 100, lines: 100 },
+        'src/components/settings/AppealsSettings.tsx': {
+          statements: 100,
+          lines: 100,
+        },
         'src/components/settings/PrivacySettings.tsx': {
           statements: 100,
           lines: 100,

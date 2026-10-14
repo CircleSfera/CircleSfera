@@ -17,6 +17,7 @@ import { bookmarksApi } from './bookmarks.service';
 import { paymentsApi } from './payments.service';
 import { profileApi } from './profile.service';
 import { reportsApi } from './reports.service';
+import { signInsApi } from './signIns.service';
 import { usersApi } from './users.service';
 
 type Verb = keyof typeof client;
@@ -112,6 +113,43 @@ const cases: Case[] = [
     ['bookmarks', { params: { page: 2, limit: 12, collectionId: 'c1' } }],
   ],
   ['auth.getSessions', () => authApi.getSessions(), 'get', ['/auth/sessions']],
+  // How each Profile signs in
+  ['signIns.list', () => signInsApi.list(), 'get', ['/sign-ins']],
+  [
+    'signIns.giveOwn',
+    () =>
+      signInsApi.giveOwn({
+        profileId: 'p1',
+        email: 'own@example.com',
+        password: 'new',
+        currentPassword: 'current',
+      }),
+    'post',
+    [
+      '/sign-ins',
+      {
+        profileId: 'p1',
+        email: 'own@example.com',
+        password: 'new',
+        currentPassword: 'current',
+      },
+    ],
+  ],
+  [
+    'signIns.share',
+    () =>
+      signInsApi.share({
+        profileId: 'p1',
+        signInId: 's1',
+        currentPassword: 'current',
+      }),
+    'post',
+    [
+      '/sign-ins/share',
+      { profileId: 'p1', signInId: 's1', currentPassword: 'current' },
+    ],
+  ],
+
   [
     'auth.revokeSession',
     () => authApi.revokeSession('s1'),

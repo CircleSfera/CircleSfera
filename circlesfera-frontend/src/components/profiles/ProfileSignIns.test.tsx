@@ -109,6 +109,27 @@ describe('ProfileSignIns', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('settings.profiles.retry') }),
     ).toBeVisible();
+
+    // Trying again reads the list once more.
+    vi.mocked(signInsApi.list).mockResolvedValue({ data: shared } as never);
+    await userEvent.click(
+      screen.getByRole('button', { name: i18n!.t('settings.profiles.retry') }),
+    );
+    expect(await screen.findByText('@ana.shop')).toBeVisible();
+  });
+
+  it('closes the change without doing anything', async () => {
+    const { user, i18n } = await open();
+
+    await user.click(
+      screen.getAllByRole('button', { name: i18n.t('common.close_dialog') })[0],
+    );
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+    );
+    expect(signInsApi.giveOwn).not.toHaveBeenCalled();
+    expect(signInsApi.share).not.toHaveBeenCalled();
   });
 
   describe('giving a profile its own sign-in', () => {
@@ -262,6 +283,45 @@ describe('ProfileSignIns', () => {
       );
       expect(toast.success).toHaveBeenCalledWith(
         i18n.t('settings.signIns.share_form.done', { username: 'ana.shop' }),
+      );
+    });
+
+    it('sends the sign-in the person picks among several', async () => {
+      const third = {
+        profileId: 'p-3',
+        username: 'ana.art',
+        signIn: {
+          id: 's-art',
+          email: 'art@example.com',
+          emailVerified: true,
+          shared: false,
+          current: false,
+        },
+      };
+      vi.mocked(signInsApi.share).mockResolvedValue({ data: shared } as never);
+      const { user, i18n, dialog } = await open([...withOwn, third]);
+
+      await user.selectOptions(
+        within(dialog).getByLabelText(
+          i18n.t('settings.signIns.share_form.target'),
+        ),
+        's-art',
+      );
+      await user.type(
+        screen.getByLabelText(i18n.t('settings.signIns.current_password')),
+        'Current-Password-1',
+      );
+      await user.click(
+        screen.getByRole('button', {
+          name: i18n.t('settings.signIns.share_form.submit'),
+        }),
+      );
+
+      await waitFor(() =>
+        expect(signInsApi.share).toHaveBeenCalledWith(
+          expect.objectContaining({ profileId: 'p-2', signInId: 's-art' }),
+          expect.anything(),
+        ),
       );
     });
 

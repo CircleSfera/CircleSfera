@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { PassThrough } from 'node:stream';
@@ -201,6 +202,35 @@ describe('DataExportService', () => {
 
       const verified = service.verifyDownloadToken(tampered);
       expect(verified).toBeNull();
+    });
+
+    // Signed with the right secret, so only what is inside can refuse it.
+    const signed = (payload: string) =>
+      `${payload}.${createHmac('sha256', 'test-secret-jwt-key-for-export')
+        .update(payload)
+        .digest('base64url')}`;
+    const encoded = (value: object) =>
+      Buffer.from(JSON.stringify(value)).toString('base64url');
+
+    it.each([
+      ['who it is for', { requestId: 'export-1', exp: Date.now() + 60_000 }],
+      ['which export it opens', { userId: 'user-1', exp: Date.now() + 60_000 }],
+      ['when it ends', { userId: 'user-1', requestId: 'export-1' }],
+    ])(
+      'returns null for a signed token that does not say %s',
+      (_what, payload) => {
+        expect(
+          service.verifyDownloadToken(signed(encoded(payload))),
+        ).toBeNull();
+      },
+    );
+
+    it('returns null for a signed token whose content cannot be read', () => {
+      expect(
+        service.verifyDownloadToken(
+          signed(Buffer.from('not json').toString('base64url')),
+        ),
+      ).toBeNull();
     });
 
     it('returns null for an invalid token format', () => {

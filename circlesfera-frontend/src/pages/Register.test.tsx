@@ -1,6 +1,6 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import toast from 'react-hot-toast';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { authApi, profileApi } from '../services';
 import { useAuthStore } from '../stores/authStore';
 import { renderWithProviders } from '../test/test-utils';
@@ -13,8 +13,13 @@ vi.mock('../services', () => ({
 vi.mock('../utils/visitorId', () => ({
   getVisitorId: vi.fn().mockResolvedValue('visitor-1'),
 }));
+// The bot check, passed with a button.
 vi.mock('../components/auth/TurnstileWidget', () => ({
-  default: () => null,
+  default: ({ onToken }: { onToken: (token: string | null) => void }) => (
+    <button type="button" onClick={() => onToken('token-1')}>
+      pass the check
+    </button>
+  ),
 }));
 vi.mock('react-hot-toast', () => {
   const t = Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() });
@@ -131,5 +136,100 @@ describe('Register', () => {
       ),
     );
     expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('sends the invitation of the link, or the one the person types', async () => {
+    vi.mocked(authApi.register).mockResolvedValue({} as never);
+    vi.mocked(profileApi.getMyProfile).mockResolvedValue({
+      data: { id: 'p-1' },
+    } as never);
+    const { i18n } = renderWithProviders(<Register />, {
+      routerProps: {
+        initialEntries: ['/accounts/signup?inviteCode=FROM-LINK'],
+        useTransitions: false,
+      },
+    });
+    const invite = screen.getByLabelText(
+      i18n!.t('auth.register.invite_label'),
+      { exact: false },
+    );
+    expect(invite).toHaveValue('FROM-LINK');
+
+    fireEvent.change(invite, { target: { value: 'TYPED' } });
+    fillForm(i18n!, yearsAgo(25));
+
+    await waitFor(() =>
+      expect(authApi.register).toHaveBeenCalledWith(
+        expect.objectContaining({ inviteCode: 'TYPED' }),
+      ),
+    );
+  });
+
+  describe('the age, counted to the day', () => {
+    const born = (years: number, days: number) => {
+      const d = new Date();
+      d.setFullYear(d.getFullYear() - years);
+      d.setDate(d.getDate() + days);
+      // The local day, as the date field gives it.
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    };
+
+    it('refuses someone who turns 16 tomorrow', () => {
+      const { i18n } = renderWithProviders(<Register />);
+
+      fillForm(i18n!, born(16, 1));
+
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('auth.register.age_error'),
+      );
+      expect(authApi.register).not.toHaveBeenCalled();
+    });
+
+    it('takes someone who turns 16 today', async () => {
+      vi.mocked(authApi.register).mockResolvedValue({} as never);
+      vi.mocked(profileApi.getMyProfile).mockResolvedValue({
+        data: { id: 'p-1' },
+      } as never);
+      const { i18n } = renderWithProviders(<Register />);
+
+      fillForm(i18n!, born(16, 0));
+
+      await waitFor(() => expect(authApi.register).toHaveBeenCalled());
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('with the bot check on', () => {
+    beforeEach(() => {
+      vi.stubEnv('VITE_TURNSTILE_SITE_KEY', 'site-key');
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('does not send the form until the check is passed, and sends its token after', async () => {
+      vi.mocked(authApi.register).mockResolvedValue({} as never);
+      vi.mocked(profileApi.getMyProfile).mockResolvedValue({
+        data: { id: 'p-1' },
+      } as never);
+      const { i18n } = renderWithProviders(<Register />);
+
+      fillForm(i18n!, yearsAgo(25));
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('auth.captcha_required'),
+      );
+      expect(authApi.register).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'pass the check' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: i18n!.t('auth.register.sign_up') }),
+      );
+
+      await waitFor(() =>
+        expect(authApi.register).toHaveBeenCalledWith(
+          expect.objectContaining({ captchaToken: 'token-1' }),
+        ),
+      );
+    });
   });
 });

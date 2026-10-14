@@ -1,5 +1,5 @@
 import { fireEvent, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
 import PasskeySettings from './PasskeySettings';
 
@@ -283,5 +283,51 @@ describe('PasskeySettings', () => {
       ),
     ).toBeInTheDocument();
     expect(startRegistration).not.toHaveBeenCalled();
+  });
+
+  describe('what the device can do', () => {
+    const device = (answer?: () => Promise<boolean>) =>
+      vi.stubGlobal(
+        'PublicKeyCredential',
+        answer
+          ? { isUserVerifyingPlatformAuthenticatorAvailable: answer }
+          : undefined,
+      );
+    const badge = (i18n: { t: (key: string) => string }) =>
+      screen.queryByText(
+        i18n.t('settings.passkey_settings.biometric_available'),
+      );
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('says so when the device can check a fingerprint or a face', async () => {
+      device(() => Promise.resolve(true));
+      const { i18n } = renderWithProviders(<PasskeySettings />);
+
+      await waitFor(() => expect(badge(i18n!)).toBeInTheDocument());
+    });
+
+    it.each([
+      ['says it cannot', () => Promise.resolve(false)],
+      ['cannot be asked', () => Promise.reject(new Error('blocked'))],
+    ])('does not say so when the device %s', async (_case, answer) => {
+      const asked = vi.fn(answer);
+      device(asked);
+      const { i18n } = renderWithProviders(<PasskeySettings />);
+
+      await waitFor(() => expect(asked).toHaveBeenCalled());
+      await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
+      expect(badge(i18n!)).not.toBeInTheDocument();
+    });
+
+    it('does not say so in a browser without passkeys', async () => {
+      device();
+      const { i18n } = renderWithProviders(<PasskeySettings />);
+
+      await screen.findByText(i18n!.t('settings.passkey_settings.empty'));
+      expect(badge(i18n!)).not.toBeInTheDocument();
+    });
   });
 });
