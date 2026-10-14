@@ -44,7 +44,7 @@ function centsToEuros(cents: number): string {
 // written as text, so a spreadsheet shows it instead of running it.
 function csvText(value: string | null | undefined): string {
   const text = value ?? '';
-  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return /^[=+\-@\t\r\n]/.test(text) ? `'${text}` : text;
 }
 
 @Injectable()
