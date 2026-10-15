@@ -172,12 +172,13 @@ jobs:
 
       # Opens every screen of the content editor and of the live at 390×844
       # and measures its controls, then drags a sticker and a slider in the
-      # story composer and undoes them. The API is replaced inside the browser, so it only needs
+      # story composer and undoes them, and creates a text story with a poll and a
+      # video story up to sharing. The API is replaced inside the browser, so it only needs
       # the frontend that is already running.
       - name: Check control sizes of the editor and the live, and undo
         run: |
           cd circlesfera-frontend
-          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts e2e/explore-notifications.spec.ts e2e/messages-sizes.spec.ts e2e/messages.spec.ts e2e/frames-viewer.spec.ts e2e/settings-sizes.spec.ts e2e/entry-screens.spec.ts --project=chromium
+          npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/story-flow.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts e2e/explore-notifications.spec.ts e2e/messages-sizes.spec.ts e2e/messages.spec.ts e2e/frames-viewer.spec.ts e2e/settings-sizes.spec.ts e2e/entry-screens.spec.ts --project=chromium
 
       # Walks a post and a frame through the composer and compares four of its
       # screens with the captures in e2e/composer-visual.spec.ts-snapshots
