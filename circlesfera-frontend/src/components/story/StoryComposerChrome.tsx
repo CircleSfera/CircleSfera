@@ -40,9 +40,10 @@ export default function StoryComposerChrome({
 
   return (
     <div
-      className={`absolute inset-0 z-40 transition-opacity duration-150 ${
+      // Touches pass through to the canvas; only the buttons take them.
+      className={`absolute inset-0 z-40 pointer-events-none transition-opacity duration-150 ${
         hidden ? 'opacity-0' : 'opacity-100'
-      } ${hidden || !pointerArmed ? 'pointer-events-none' : ''}`}
+      } ${hidden || !pointerArmed ? '[&_*]:pointer-events-none!' : ''}`}
       aria-hidden={hidden || undefined}
     >
       <div className="absolute top-3 left-3 pointer-events-auto">
