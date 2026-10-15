@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import type { StoryCanvasSize } from '../components/story/storyComposer.export';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
@@ -18,6 +19,7 @@ import type {
 } from '../types';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
+import { placementFromElement } from '../utils/storySticker';
 import type {
   CreateMode,
   InteractiveDraft,
@@ -43,6 +45,8 @@ interface MutationDeps {
   scheduledAt: string;
   interactiveDraft: InteractiveDraft;
   storyElements: StoryElement[];
+  /** The canvas the story elements were placed on, once composed. */
+  storyCanvasSize: StoryCanvasSize | null;
   mediaFiles: MediaFile[];
   altTextMap: Record<number, string>;
   tagsMap: Record<number, PostTagData[]>;
@@ -194,6 +198,11 @@ export function useCreatePostMutation(deps: MutationDeps) {
           ),
         );
 
+        // Where the creator placed a sticker, so viewers answer it there.
+        const stickerPlacement = (el: StoryElement) =>
+          deps.storyCanvasSize
+            ? placementFromElement(el, deps.storyCanvasSize)
+            : undefined;
         const pollElement = deps.storyElements.find((el) => {
           const type = el.type as string;
           return (
@@ -213,6 +222,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
                 question: pollPayload.question,
                 options: pollPayload.options,
                 storyId: createdStories[0].data.id,
+                placement: stickerPlacement(pollElement),
               });
             }
           } catch (pollError) {
@@ -239,6 +249,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
               await interactiveApi.createQna({
                 prompt: qnaPayload.prompt,
                 storyId: createdStories[0].data.id,
+                placement: stickerPlacement(qnaElement),
               });
             }
           } catch (qnaError) {

@@ -61,6 +61,7 @@ function setup(overrides: Record<string, unknown> = {}) {
     scheduledAt: '',
     interactiveDraft: null,
     storyElements: [],
+    storyCanvasSize: null,
     mediaFiles: [image()],
     altTextMap: {},
     tagsMap: {},
@@ -280,6 +281,46 @@ describe('useCreatePostMutation', () => {
       storyId: 'story-1',
     });
     expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('sends where the poll and the question sit on the story', async () => {
+    const { submit } = setup({
+      mode: 'STORY',
+      storyCanvasSize: { width: 360, height: 640 },
+      storyElements: [
+        {
+          type: 'poll',
+          content: JSON.stringify({ question: 'Q?', options: ['a', 'b'] }),
+          x: 36,
+          y: -160,
+          scale: 1.2,
+          rotation: 370,
+        },
+        {
+          type: 'qna',
+          content: JSON.stringify({ prompt: 'Ask me' }),
+          x: -500,
+          y: 320,
+          scale: 3,
+          rotation: -10,
+        },
+      ],
+    });
+    await submit();
+
+    expect(interactiveApi.createPoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storyId: 'story-1',
+        placement: { x: 0.1, y: -0.25, scale: 1.2, rotation: 10 },
+      }),
+    );
+    // Kept within the story and the sizes the server accepts.
+    expect(interactiveApi.createQna).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt: 'Ask me',
+        placement: { x: -0.5, y: 0.5, scale: 1.35, rotation: -10 },
+      }),
+    );
   });
 
   describe('a photo that already has an uploaded copy', () => {

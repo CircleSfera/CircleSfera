@@ -66,6 +66,7 @@ function show(more: Props = {}) {
     storyElements: [],
     storyBgStyle: '',
     setStoryElements: vi.fn(),
+    setStoryCanvasSize: vi.fn(),
     setStoryBgStyle: vi.fn(),
     handleFilterSave: vi.fn(),
     handleFrameTrimConfirm: vi.fn(),
@@ -163,7 +164,9 @@ describe('EditorOverlayManager', () => {
       const { props } = show({ showStoryComposer: true });
       await screen.findByTestId('story-composer');
 
-      await act(() => seen.story.onPost(new Blob(['png'])));
+      await act(() =>
+        seen.story.onPost(new Blob(['png']), { width: 360, height: 640 }),
+      );
 
       const [[files]] = props.setMediaFiles.mock.calls;
       expect(files).toHaveLength(1);
@@ -172,6 +175,11 @@ describe('EditorOverlayManager', () => {
       expect(props.setIsComposed).toHaveBeenCalledWith(true);
       expect(props.setShowStoryComposer).toHaveBeenCalledWith(false);
       expect(props.setStep).toHaveBeenCalledWith('edit');
+      // Kept to send where its poll or question sits.
+      expect(props.setStoryCanvasSize).toHaveBeenCalledWith({
+        width: 360,
+        height: 640,
+      });
     });
 
     it('keeps a story as composed when the editor is closed with media in it', async () => {

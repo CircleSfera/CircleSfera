@@ -174,6 +174,11 @@ describe('StoryComposer', () => {
       question: '¿Playa o montaña?',
       options: ['Sí', 'No'],
     });
+    // Answered on the story itself, so it is left out of the picture.
+    expect(screen.getByTestId('story-element')).toHaveAttribute(
+      'data-export-ignore',
+      'true',
+    );
   });
 
   it('adds a question box from the "Más" menu', async () => {

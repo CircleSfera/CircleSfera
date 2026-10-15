@@ -4,11 +4,12 @@ import { CREATE_FULL_SCREEN } from '../create-post/createStyles';
 import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
+import type { StoryCanvasSize } from './storyComposer.export';
 import { useStoryComposerState } from './useStoryComposerState';
 
 interface StoryComposerProps {
   initialMedia?: File | null;
-  onPost: (blob: Blob) => void;
+  onPost: (blob: Blob, canvas: StoryCanvasSize) => void;
   onClose: () => void;
   elements?: StoryElement[];
   bgStyle?: string;

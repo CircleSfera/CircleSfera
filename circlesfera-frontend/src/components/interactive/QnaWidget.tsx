@@ -4,6 +4,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/api';
 import { logger } from '../../utils/logger';
+import {
+  STICKER_BADGE,
+  STICKER_CARD,
+  STICKER_HEADER,
+  STICKER_LABEL,
+  STICKER_TITLE,
+} from './stickerStyles';
 
 type QnaAnswer = {
   id: string;
@@ -85,21 +92,19 @@ export const QnaWidget: React.FC<{
   };
 
   return (
-    <div className="p-4 bg-linear-to-br from-purple-900/30 to-indigo-900/20 border border-purple-500/20 rounded-2xl space-y-3 shadow-lg">
-      <div className="flex items-center space-x-2 text-purple-400">
-        <HelpCircle className="w-4 h-4" />
-        <h4 className="text-xs font-bold uppercase tracking-wider">
-          {t('interactive.qna.title')}
-        </h4>
+    <div className={STICKER_CARD}>
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
+          <HelpCircle size={13} strokeWidth={2.5} aria-hidden />
+        </span>
+        <h4 className={STICKER_LABEL}>{t('interactive.qna.title')}</h4>
       </div>
 
-      <p className="text-sm font-bold text-white tracking-tight">
-        {displayPrompt}
-      </p>
+      <p className={STICKER_TITLE}>{displayPrompt}</p>
 
       {isOwner ? (
         <div className="space-y-2">
-          <p className="text-[11px] text-white/50 font-medium">
+          <p className="text-xs text-white/60 font-medium">
             {t('interactive.qna.answers_heading', {
               count: box?.totalAnswers ?? 0,
             })}
@@ -118,9 +123,9 @@ export const QnaWidget: React.FC<{
               {box?.answers.map((answer) => (
                 <li
                   key={answer.id}
-                  className="p-2.5 rounded-xl bg-black/30 border border-white/5"
+                  className="p-2.5 rounded-xl bg-surface-high border border-white/10"
                 >
-                  <p className="text-[11px] font-semibold text-purple-300 truncate">
+                  <p className="text-xs font-semibold text-brand-primary-text truncate">
                     @{answer.user.username}
                   </p>
                   <p className="text-xs text-white/90 mt-0.5">
@@ -144,13 +149,13 @@ export const QnaWidget: React.FC<{
               onChange={(e) => setAnswerText(e.target.value)}
               aria-label={t('interactive.qna.placeholder')}
               placeholder={t('interactive.qna.placeholder')}
-              className="flex-1 min-w-0 min-h-12 px-3 bg-black/40 border border-white/10 rounded-xl text-base text-white placeholder-gray-400 focus:outline-none focus:border-purple-400"
+              className="flex-1 min-w-0 min-h-12 px-3 bg-surface-high border border-white/15 rounded-xl text-base text-white placeholder-white/50 focus:outline-none focus:border-brand-primary"
             />
             <button
               type="submit"
               disabled={submitting || !answerText.trim()}
               aria-label={t('interactive.qna.send')}
-              className="min-h-11 min-w-11 px-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition-all disabled:opacity-50 flex items-center justify-center"
+              className="min-h-11 min-w-11 px-3 bg-brand-primary hover:opacity-90 text-white rounded-xl text-xs font-bold transition-opacity disabled:opacity-50 flex items-center justify-center"
             >
               {submitting ? (
                 <Loader2 className="w-4 h-4 animate-spin" aria-hidden />

@@ -23,9 +23,11 @@ import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
+import { placementOf } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
+import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
 import PaywallOverlay from './monetization/PaywallOverlay';
@@ -433,21 +435,21 @@ export default function StoryViewer({
             <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20" />
 
             {currentStory.poll?.id && !isLocked && (
-              <div
-                className="absolute inset-x-4 bottom-28 z-50 pointer-events-auto"
+              <PlacedSticker
+                placement={placementOf(currentStory.poll)}
                 onPointerDown={() => setIsPaused(true)}
               >
                 <PollWidget pollId={currentStory.poll.id} />
-              </div>
+              </PlacedSticker>
             )}
 
             {currentStory.qnaBox?.id && !isLocked && !isOwner && (
-              <div
-                className="absolute inset-x-4 bottom-28 z-50 pointer-events-auto"
+              <PlacedSticker
+                placement={placementOf(currentStory.qnaBox)}
                 onPointerDown={() => setIsPaused(true)}
               >
                 <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
-              </div>
+              </PlacedSticker>
             )}
 
             {/* Progress Bars */}

@@ -14,9 +14,17 @@ vi.mock('react-hot-toast', () => ({
 
 const GRADIENT = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 
+/** A story canvas of 360 × 640 px. */
+function canvas() {
+  const node = document.createElement('div');
+  Object.defineProperty(node, 'clientWidth', { value: 360 });
+  Object.defineProperty(node, 'clientHeight', { value: 640 });
+  return node;
+}
+
 function exportWith(bgStyle: string, onPost = vi.fn()) {
   return exportStoryCanvas({
-    container: document.createElement('div'),
+    container: canvas(),
     backgroundUrl: null,
     bgStyle,
     elementCount: 0,
@@ -30,14 +38,14 @@ describe('story export', () => {
     vi.mocked(toast.error).mockReset();
   });
 
-  it('hands the image of the canvas to the owner', async () => {
+  it('hands the image of the canvas, and its size, to the owner', async () => {
     const image = new Blob(['png'], { type: 'image/png' });
     vi.mocked(toBlob).mockResolvedValue(image);
     const onPost = vi.fn();
 
     await exportWith(GRADIENT, onPost);
 
-    expect(onPost).toHaveBeenCalledWith(image);
+    expect(onPost).toHaveBeenCalledWith(image, { width: 360, height: 640 });
   });
 
   it('fills the image with black only when the story has no gradient or colour behind it', async () => {

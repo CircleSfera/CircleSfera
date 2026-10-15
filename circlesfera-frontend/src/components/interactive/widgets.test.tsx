@@ -76,7 +76,7 @@ describe('PollWidget', () => {
     expect(screen.getByText('40%')).toBeInTheDocument();
     expect(screen.getByText('5 votes')).toBeInTheDocument();
     const bars = [
-      ...container.querySelectorAll<HTMLElement>('.bg-accent-blue\\/20'),
+      ...container.querySelectorAll<HTMLElement>('.bg-brand-primary\\/25'),
     ];
     expect(bars.map((bar) => bar.style.width)).toEqual(['60%', '40%']);
   });

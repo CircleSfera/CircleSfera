@@ -1,3 +1,4 @@
+import type { StickerPlacement } from '../utils/storySticker';
 import { apiClient } from './api';
 
 export const interactiveApi = {
@@ -6,10 +7,17 @@ export const interactiveApi = {
     options: string[];
     postId?: string;
     storyId?: string;
+    /** Where it sits on a story. */
+    placement?: StickerPlacement;
   }) => apiClient.post('interactive/poll', data),
 
-  createQna: (data: { prompt: string; postId?: string; storyId?: string }) =>
-    apiClient.post('interactive/qna', data),
+  createQna: (data: {
+    prompt: string;
+    postId?: string;
+    storyId?: string;
+    /** Where it sits on a story. */
+    placement?: StickerPlacement;
+  }) => apiClient.post('interactive/qna', data),
 
   getPoll: (id: string) => apiClient.get(`interactive/poll/${id}`),
 
