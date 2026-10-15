@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { StoryElement } from '../../types';
 import {
+  buildAnswerElement,
   buildHashtagElement,
   buildLocationElement,
   buildMentionElement,
@@ -22,6 +23,7 @@ import {
   isLiveElement,
   isPollElement,
   isQnaElement,
+  parseAnswerPayload,
   parseHashtagPayload,
   parseLocationPayload,
   parseMentionPayload,
@@ -240,5 +242,32 @@ describe('mentions and places', () => {
       }),
       expect.objectContaining({ kind: 'LOCATION', settings: {} }),
     ]);
+  });
+});
+
+describe('an answer shared as a story', () => {
+  it('is a card of the picture: not a question anyone answers, never sent as a sticker', () => {
+    const card = buildAnswerElement({ prompt: 'Ask me', answer: 'Why?' });
+
+    expect(parseAnswerPayload(card)).toEqual({
+      prompt: 'Ask me',
+      answer: 'Why?',
+    });
+    expect(isLiveElement(card)).toBe(false);
+    expect(isQnaElement(card)).toBe(false);
+    expect(isPollElement(card)).toBe(false);
+    expect(card.width).toBe(INTERACTIVE_WIDTH_PCT);
+    expect(stickersFromElements([card], { width: 400, height: 800 })).toEqual(
+      [],
+    );
+    expect(parseAnswerPayload({ ...card, content: '{}' })).toBeNull();
+  });
+
+  it('keeps the question within the length of a question sticker', () => {
+    const card = buildAnswerElement({
+      prompt: 'x'.repeat(QNA_PROMPT_MAX + 20),
+      answer: 'A',
+    });
+    expect(parseAnswerPayload(card)?.prompt).toHaveLength(QNA_PROMPT_MAX);
   });
 });

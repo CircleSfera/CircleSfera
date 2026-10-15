@@ -37,4 +37,24 @@ describe('DraggableStoryElement', () => {
       zOf({ isSelected: false }),
     );
   });
+
+  it('paints an answer card into the picture, at the width of a sticker', () => {
+    renderWithProviders(
+      <DraggableStoryElement
+        el={{
+          ...piece,
+          type: 'answer',
+          content: JSON.stringify({ prompt: 'Ask me', answer: 'Why?' }),
+        }}
+        containerRef={{ current: null }}
+        onPointerDown={vi.fn()}
+        isSelected={false}
+      />,
+    );
+
+    const el = screen.getByTestId('story-element');
+    expect(el).toHaveTextContent('Ask me');
+    expect(el).toHaveTextContent('Why?');
+    expect(el).not.toHaveAttribute('data-export-ignore');
+  });
 });

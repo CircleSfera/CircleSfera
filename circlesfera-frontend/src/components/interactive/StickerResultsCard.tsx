@@ -4,10 +4,14 @@ import {
   BarChart2,
   Check,
   HelpCircle,
+  Send,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { FeedSticker } from '../../utils/storySticker';
+import { buildAnswerElement } from '../story/storyComposer.append';
+import { storyStartRoute } from '../story/storyStart';
 import UserAvatar from '../UserAvatar';
 import {
   type ResponderProfile,
@@ -67,6 +71,7 @@ const percent = (value: number) => `${Math.round(value * 100)} %`;
  */
 export function StickerResultsCard({ sticker }: { sticker: FeedSticker }) {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { data, isLoading, isError } = useQuery({
     queryKey: ['story-sticker', sticker.id],
     queryFn: () => readSticker(sticker.id),
@@ -182,6 +187,28 @@ export function StickerResultsCard({ sticker }: { sticker: FeedSticker }) {
               <p className="pl-11 text-sm leading-snug text-white/90">
                 {answer.text}
               </p>
+              <div className="pl-9">
+                <button
+                  type="button"
+                  onClick={() => {
+                    // A new story with the question and this answer on it.
+                    const route = storyStartRoute({
+                      elements: [
+                        buildAnswerElement({
+                          prompt: String(data.settings.prompt ?? ''),
+                          answer: answer.text,
+                        }),
+                      ],
+                    });
+                    navigate(route.to, route.options);
+                  }}
+                  aria-label={t('story.results.share_answer_label')}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-2 text-sm font-semibold text-brand-primary-text hover:bg-white/6"
+                >
+                  <Send size={15} aria-hidden />
+                  {t('story.results.share_answer')}
+                </button>
+              </div>
             </li>
           ))}
         </ul>

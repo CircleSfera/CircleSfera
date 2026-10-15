@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
 import { renderWithProviders } from '../../test/test-utils';
@@ -6,6 +6,11 @@ import { StickerResultsCard } from './StickerResultsCard';
 
 vi.mock('../../services/api', () => ({ apiClient: { get: vi.fn() } }));
 vi.mock('../UserAvatar', () => ({ default: () => null }));
+const navigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => navigate,
+}));
 
 const at = { x: 0, y: 0, scale: 1, rotation: 0 };
 const person = (id: string) => ({
@@ -122,6 +127,44 @@ describe('StickerResultsCard', () => {
       />,
     );
     expect(await screen.findByText('No responses yet')).toBeInTheDocument();
+  });
+
+  it('shares an answer as a new story with the question and the answer on a card', async () => {
+    answers({
+      id: 'q',
+      kind: 'QUESTION',
+      settings: { prompt: 'Ask me' },
+      totalResponses: 1,
+      answers: [
+        { id: 'a1', text: 'Why?', createdAt: '', profile: person('ana') },
+      ],
+    });
+    renderWithProviders(
+      <StickerResultsCard
+        sticker={{ id: 'q', kind: 'QUESTION', settings: {}, ...at }}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Share this answer in a story',
+      }),
+    );
+
+    expect(navigate).toHaveBeenCalledWith('/create?mode=story', {
+      state: {
+        storyStart: {
+          elements: [
+            expect.objectContaining({
+              type: 'answer',
+              content: JSON.stringify({ prompt: 'Ask me', answer: 'Why?' }),
+            }),
+          ],
+        },
+      },
+    });
+    // Who wrote the answer does not go on the new story.
+    expect(JSON.stringify(navigate.mock.calls[0])).not.toContain('ana');
   });
 
   it('says so when the results cannot be read', async () => {

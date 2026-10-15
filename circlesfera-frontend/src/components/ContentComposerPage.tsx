@@ -1,14 +1,17 @@
 import { AnimatePresence } from 'framer-motion';
 import React from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { probeVideoDuration } from '../constants/uploadLimits';
 import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
 import { useCreatePost } from '../hooks/useCreatePost';
+import BrandAmbientBackground from './common/BrandAmbientBackground';
 import SEO from './common/SEO';
 import CaptionStep from './create-post/CaptionStep';
 import ComposerChrome from './create-post/ComposerChrome';
 import { ComposerProvider } from './create-post/ComposerContext';
+import { CREATE_FULL_SCREEN } from './create-post/createStyles';
 import EditorOverlayManager from './create-post/EditorOverlayManager';
 import EditStep from './create-post/EditStep';
 import Header from './create-post/Header';
@@ -18,6 +21,7 @@ import SubScreenRouter from './create-post/SubScreenRouter';
 import UploadStep from './create-post/UploadStep';
 import ConfirmModal from './modals/ConfirmModal';
 import type { PhotoEditorTab } from './photo-editor/photoEditor.types';
+import { pictureFile, readStoryStart } from './story/storyStart';
 
 const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
 
@@ -87,6 +91,51 @@ export default function ContentComposerPage() {
   } = composer;
 
   const isStoryMode = mode === 'STORY';
+
+  // A story started from another (an answer shared, a mention added to one's
+  // own story) opens the editor with what it starts from. The route forgets
+  // it, so going back here starts afresh.
+  const routerLocation = useLocation();
+  const navigate = useNavigate();
+  const [isStarting, setIsStarting] = React.useState(() =>
+    Boolean(readStoryStart(routerLocation.state)),
+  );
+  const startedRef = React.useRef(false);
+  const { setStoryElements, setOriginalStoryMedia, setStoryBgStyle } = composer;
+  React.useEffect(() => {
+    const start = readStoryStart(routerLocation.state);
+    if (!start || startedRef.current) return;
+    startedRef.current = true;
+    navigate(`${routerLocation.pathname}${routerLocation.search}`, {
+      replace: true,
+      state: null,
+    });
+    void (async () => {
+      setStoryElements(start.elements);
+      if (start.backgroundUrl) {
+        try {
+          const file = await pictureFile(start.backgroundUrl);
+          setOriginalStoryMedia({
+            file,
+            url: URL.createObjectURL(file),
+            type: 'image',
+          });
+          setStoryBgStyle('');
+        } catch {
+          toast.error(t('story.start_picture_error'));
+        }
+      }
+      setShowStoryComposer(true);
+      setIsStarting(false);
+    })();
+  }, [
+    routerLocation,
+    navigate,
+    setStoryElements,
+    setOriginalStoryMedia,
+    setStoryBgStyle,
+    t,
+  ]);
 
   const { closeFriendsCount } = useCloseFriendsList(isStoryMode);
 
@@ -194,6 +243,17 @@ export default function ContentComposerPage() {
       initialEditorTab={editorTab}
     />
   );
+
+  if (isStarting)
+    return (
+      <div
+        className={`${CREATE_FULL_SCREEN} flex items-center justify-center text-white font-medium`}
+      >
+        <SEO title={documentTitle} noIndex />
+        <BrandAmbientBackground placement="editor" />
+        {t('createPost.edit.loading_story_editor')}
+      </div>
+    );
 
   if (showFrameTrim || showStoryComposer || currentEditIndex !== null)
     return (

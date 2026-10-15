@@ -13,7 +13,8 @@ export interface StoryElement {
     | 'slider'
     | 'hashtag'
     | 'mention'
-    | 'location';
+    | 'location'
+    | 'answer';
   content: string;
   x: number;
   y: number;

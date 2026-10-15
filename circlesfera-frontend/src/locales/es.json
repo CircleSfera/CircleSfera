@@ -1190,8 +1190,12 @@
       "kind_poll": "Encuesta",
       "kind_quiz": "Quiz",
       "kind_slider": "Deslizador",
-      "kind_question": "Preguntas"
-    }
+      "kind_question": "Preguntas",
+      "share_answer": "Compartir",
+      "share_answer_label": "Compartir esta respuesta en una historia"
+    },
+    "add_to_your_story": "Añadir a tu historia",
+    "start_picture_error": "No se pudo abrir la imagen de la historia."
   },
   "comments": {
     "send_error": "No se pudo publicar tu comentario. Inténtalo de nuevo.",

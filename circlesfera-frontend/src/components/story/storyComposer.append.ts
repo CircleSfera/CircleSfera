@@ -153,6 +153,21 @@ export function buildMentionElement(profile: {
   });
 }
 
+/** A question and one of its answers, shared by the author as a card. */
+export function buildAnswerElement(card: {
+  prompt: string;
+  answer: string;
+}): StoryElement {
+  return {
+    ...interactiveElement('answer', {
+      prompt: card.prompt.slice(0, QNA_PROMPT_MAX),
+      answer: card.answer,
+    }),
+    // Above the middle, where the answer is read before the rest.
+    y: -80,
+  };
+}
+
 /** The place of the story, by its name; the server gives it the place. */
 export function buildLocationElement(name: string): StoryElement {
   return pillElement('location', { name });
