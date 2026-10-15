@@ -15,6 +15,8 @@ interface DeviceGalleryProps {
   /** A frame takes one video; a post or a story, photos and videos. */
   videosOnly: boolean;
   single: boolean;
+  /** The most items that can be chosen at once, when there is a limit. */
+  maxSelected?: number;
   /** The shape of what is being created, as a CSS aspect ratio. */
   ratio: string;
   /** Where the chosen files go, so they take the path of files picked by hand. */
@@ -41,6 +43,7 @@ const formatDuration = (seconds: number) => {
 export default function DeviceGallery({
   videosOnly,
   single,
+  maxSelected,
   ratio,
   fileInputRef,
   onContinueChange,
@@ -104,6 +107,10 @@ export default function DeviceGallery({
     }
     const isSelected = selected.includes(item.id);
     if (!isSelected) {
+      if (maxSelected !== undefined && selected.length >= maxSelected) {
+        toast.error(t('createPost.upload.carousel_full', { max: maxSelected }));
+        return;
+      }
       setSelected([...selected, item.id]);
       setPreviewId(item.id);
     } else if (previewId === item.id) {

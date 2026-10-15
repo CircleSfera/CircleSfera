@@ -163,3 +163,23 @@ describe('the moment of the cover of a frame', () => {
     expect(await rules(UpdatePostDto, undefined)).toEqual([]);
   });
 });
+
+describe('the number of photos and videos of a post', () => {
+  const rules = async (count: number) => {
+    const media = Array.from({ length: count }, (_, i) => ({
+      url: `https://cdn/${i}.jpg`,
+      type: 'image',
+    }));
+    const errors = await validate(
+      plainToInstance(CreatePostDto, { media }) as object,
+    );
+    return Object.keys(
+      errors.find((error) => error.property === 'media')?.constraints ?? {},
+    );
+  };
+
+  it('is at most twenty', async () => {
+    expect(await rules(20)).toEqual([]);
+    expect(await rules(21)).toEqual(['arrayMaxSize']);
+  });
+});

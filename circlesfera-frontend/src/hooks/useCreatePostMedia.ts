@@ -10,6 +10,7 @@ import {
   MAX_UPLOAD_BYTES,
   MAX_UPLOAD_MB,
   POST_MAX_DURATION_SEC,
+  POST_MAX_MEDIA_ITEMS,
   probeVideoDuration,
   STORY_MAX_DURATION_SEC,
 } from '../constants/uploadLimits';
@@ -74,6 +75,26 @@ export function useCreatePostMedia({
           return;
         }
         selectedFiles = selectedFiles.slice(0, 1);
+      }
+
+      if (mode === 'POST') {
+        const room = POST_MAX_MEDIA_ITEMS - mediaFiles.length;
+        if (room <= 0) {
+          toast.error(
+            t('createPost.upload.carousel_full', { max: POST_MAX_MEDIA_ITEMS }),
+          );
+          e.target.value = '';
+          return;
+        }
+        if (selectedFiles.length > room) {
+          toast.error(
+            t('createPost.upload.carousel_left_out', {
+              max: POST_MAX_MEDIA_ITEMS,
+              count: selectedFiles.length - room,
+            }),
+          );
+          selectedFiles = selectedFiles.slice(0, room);
+        }
       }
 
       const oversized = selectedFiles.filter(

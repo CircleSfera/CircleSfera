@@ -17,6 +17,7 @@ import type { ChangeEvent, MutableRefObject } from 'react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { POST_MAX_MEDIA_ITEMS } from '../../constants/uploadLimits';
 import type { CreateMode } from '../../hooks/useCreatePost';
 import { hasDeviceGallery } from '../../utils/photoLibrary';
 import { CREATE_PRIMARY, CREATE_SECONDARY } from './createStyles';
@@ -345,6 +346,7 @@ export default function UploadStep({
             key={mode === 'FRAME' ? 'videos' : 'all'}
             videosOnly={mode === 'FRAME'}
             single={mode === 'FRAME'}
+            maxSelected={mode === 'POST' ? POST_MAX_MEDIA_ITEMS : undefined}
             ratio={mode === 'POST' ? '4 / 5' : '9 / 16'}
             fileInputRef={fileInputRef}
             onContinueChange={onContinueChange}

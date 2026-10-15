@@ -142,6 +142,19 @@ describe('DeviceGallery', () => {
     });
   });
 
+  it('chooses no more than the limit, and says why', async () => {
+    show({ maxSelected: 2 });
+    await ready();
+    fireEvent.click(tile('Foto 2'));
+
+    fireEvent.click(tile('Vídeo 3, 1:15'));
+
+    expect(tile('Vídeo 3, 1:15')).toHaveAttribute('aria-pressed', 'false');
+    expect(toast.error).toHaveBeenCalledWith(
+      'Una publicación admite hasta 2 fotos y vídeos.',
+    );
+  });
+
   it('nothing chosen, nothing to go on with', async () => {
     const { proceed } = show();
     await ready();
