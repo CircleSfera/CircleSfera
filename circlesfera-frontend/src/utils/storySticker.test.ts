@@ -4,6 +4,7 @@ import {
   normalizeDegrees,
   placementFromElement,
   placementOf,
+  placementOfSticker,
   stickerOnScreen,
 } from './storySticker';
 
@@ -125,5 +126,23 @@ describe('where a sticker goes on the screen', () => {
         { width: 0, height: 0 },
       ).width,
     ).toBe(0);
+  });
+});
+
+describe('the place of a sticker of the feed', () => {
+  it('is read from its own fields, or is none when it had none', () => {
+    const base = { id: 's', kind: 'POLL' as const, settings: {} };
+    expect(
+      placementOfSticker({ ...base, x: 0.1, y: -0.2, scale: 1, rotation: 4 }),
+    ).toEqual({ x: 0.1, y: -0.2, scale: 1, rotation: 4 });
+    expect(
+      placementOfSticker({
+        ...base,
+        x: null,
+        y: null,
+        scale: null,
+        rotation: null,
+      }),
+    ).toBeNull();
   });
 });

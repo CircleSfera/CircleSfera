@@ -81,21 +81,26 @@ test('a text story with a poll is shared from its editor, with the poll where it
   // Shared from the editor itself, with no step after it.
   await page.getByRole('button', { name: 'Tu historia', exact: true }).click();
 
-  await expect.poll(() => sent.polls.length, { timeout: 15_000 }).toBe(1);
+  await expect.poll(() => sent.stories.length, { timeout: 15_000 }).toBe(1);
   expect(sent.uploads).toEqual(['image/png']);
-  expect(sent.stories).toHaveLength(1);
   expect(sent.stories[0]).toMatchObject({
     mediaType: 'image',
     isCloseFriendsOnly: false,
   });
-  const [created] = sent.polls;
+  // The poll goes with the story, as one of its stickers, where it sits.
+  const [created] = sent.stories[0].stickers as {
+    kind: string;
+    settings: { question: string };
+    x: number;
+    y: number;
+  }[];
   expect(created).toMatchObject({
-    question: '¿Playa o montaña?',
-    storyId: 'story-e2e',
+    kind: 'POLL',
+    settings: { question: '¿Playa o montaña?' },
   });
-  const placement = created.placement as { x: number; y: number };
-  expect(Math.abs(placement.x)).toBeLessThan(0.05);
-  expect(placement.y).toBeLessThan(-0.1);
+  expect(Math.abs(created.x)).toBeLessThan(0.05);
+  expect(created.y).toBeLessThan(-0.1);
+  expect(sent.polls).toEqual([]);
 });
 
 test('a video story is shared as a video', async ({ page }) => {

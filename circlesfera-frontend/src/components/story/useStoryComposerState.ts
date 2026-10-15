@@ -151,6 +151,8 @@ export function useStoryComposerState(props: {
       setTextTakeover(null);
       setSelectedElementId(null);
     }
+    // A tool opens its own panel: the piece that was selected lets go.
+    if (tab !== 'none') setSelectedElementId(null);
     setActiveTab(tab === activeTab ? 'none' : tab);
   };
 

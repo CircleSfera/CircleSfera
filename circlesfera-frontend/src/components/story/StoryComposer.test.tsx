@@ -95,6 +95,25 @@ describe('StoryComposer', () => {
     expect(tool('Texto')).toBeInTheDocument();
   });
 
+  it('opens the panel of a tool even while a piece is selected', async () => {
+    renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+    expect(
+      await screen.findByRole('button', { name: 'Estilo' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(tool('Más'));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Preguntas' }));
+
+    expect(
+      screen.getByPlaceholderText('Pregúntame lo que quieras…'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Estilo' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('closes from the X', () => {
     const { onClose } = renderComposer();
 

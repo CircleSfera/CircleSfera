@@ -28,7 +28,31 @@ interface PollData {
   options: PollOption[];
 }
 
-export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
+/** What the sticker routes answer for a poll. */
+interface StickerPollResults {
+  id: string;
+  settings: { question?: string };
+  totalResponses: number;
+  myResponse: { optionIndex: number | null } | null;
+  options: PollOption[];
+}
+
+const fromSticker = (r: StickerPollResults): PollData => ({
+  id: r.id,
+  question: r.settings.question ?? '',
+  totalVotes: r.totalResponses,
+  userVoteIndex: r.myResponse?.optionIndex ?? null,
+  options: r.options,
+});
+
+/**
+ * A poll with its results. A poll of a post is read through its own route;
+ * a poll of a story is a sticker, read and answered through the routes of
+ * stickers (pass `stickerId` instead).
+ */
+export const PollWidget: React.FC<
+  { pollId: string; stickerId?: never } | { stickerId: string; pollId?: never }
+> = ({ pollId, stickerId }) => {
   const { t } = useTranslation();
   const [poll, setPoll] = useState<PollData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -38,14 +62,21 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
   const fetchPoll = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiClient.get<PollData>(`interactive/poll/${pollId}`);
-      setPoll(res.data);
+      if (stickerId) {
+        const res = await apiClient.get<StickerPollResults>(
+          `stories/stickers/${stickerId}`,
+        );
+        setPoll(fromSticker(res.data));
+      } else {
+        const res = await apiClient.get<PollData>(`interactive/poll/${pollId}`);
+        setPoll(res.data);
+      }
     } catch (err) {
       logger.error('Failed to load poll:', err);
     } finally {
       setLoading(false);
     }
-  }, [pollId]);
+  }, [pollId, stickerId]);
 
   useEffect(() => {
     fetchPoll();
@@ -55,11 +86,19 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
     try {
       setVotingIndex(optionIndex);
       setVoteFailed(false);
-      const res = await apiClient.post<PollData>('interactive/poll/vote', {
-        pollId,
-        optionIndex,
-      });
-      setPoll(res.data);
+      if (stickerId) {
+        const res = await apiClient.post<StickerPollResults>(
+          `stories/stickers/${stickerId}/responses`,
+          { optionIndex },
+        );
+        setPoll(fromSticker(res.data));
+      } else {
+        const res = await apiClient.post<PollData>('interactive/poll/vote', {
+          pollId,
+          optionIndex,
+        });
+        setPoll(res.data);
+      }
     } catch (err) {
       logger.error('Failed to vote on poll:', err);
       // The option stays as it was: the person must know the vote did not count.

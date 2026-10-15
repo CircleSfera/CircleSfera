@@ -96,7 +96,8 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
           }}
           // The fingers move, turn and draw the pieces of the story here: the
           // browser does not pan or zoom the page from this surface.
-          className="absolute inset-0 touch-none overflow-hidden bg-black rounded-2xl md:rounded-3xl md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
+          // Its own layer: the pieces never rise over the controls above it.
+          className="absolute inset-0 isolate touch-none overflow-hidden bg-black rounded-2xl md:rounded-3xl md:border md:border-white/10 md:shadow-[0_12px_48px_rgba(0,0,0,0.55)]"
           style={{
             ...(p.bgStyle?.startsWith('linear-gradient') ||
             p.bgStyle?.startsWith('radial-gradient')
@@ -193,8 +194,11 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
               key={el.id}
               el={el}
               containerRef={p.containerRef}
+              // The piece under the fingers rises above the others.
               isSelected={
-                p.selectedElementId === el.id && !p.textTakeoverActive
+                (p.selectedElementId === el.id ||
+                  gestures.activeId === el.id) &&
+                !p.textTakeoverActive
               }
               hidden={
                 p.textTakeover === 'edit' && el.id === p.selectedElementId

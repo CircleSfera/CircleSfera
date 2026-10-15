@@ -1,8 +1,12 @@
+import type { StoryStickerInput } from '@circlesfera/shared';
 import { BarChart2, HelpCircle } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { StoryElement } from '../../types';
-import { STICKER_WIDTH_PCT } from '../../utils/storySticker';
+import {
+  placementFromElement,
+  STICKER_WIDTH_PCT,
+} from '../../utils/storySticker';
 import {
   STICKER_BADGE,
   STICKER_CARD,
@@ -149,4 +153,38 @@ export function QnaStickerPreview({
       </div>
     </div>
   );
+}
+
+/**
+ * The stickers a composed story is shared with: its polls and questions,
+ * each with where it sits on a canvas of the given size.
+ */
+export function stickersFromElements(
+  elements: StoryElement[],
+  canvas: { width: number; height: number } | null,
+): StoryStickerInput[] {
+  if (!canvas) return [];
+  const stickers: StoryStickerInput[] = [];
+  for (const el of elements) {
+    const place = placementFromElement(el, canvas);
+    if (!place) continue;
+    const poll = isPollElement(el) ? parsePollPayload(el.content) : null;
+    if (poll) {
+      stickers.push({
+        kind: 'POLL',
+        settings: { question: poll.question, options: poll.options },
+        ...place,
+      });
+      continue;
+    }
+    const qna = isQnaElement(el) ? parseQnaPayload(el.content) : null;
+    if (qna) {
+      stickers.push({
+        kind: 'QUESTION',
+        settings: { prompt: qna.prompt },
+        ...place,
+      });
+    }
+  }
+  return stickers;
 }
