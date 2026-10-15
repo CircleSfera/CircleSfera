@@ -12,7 +12,10 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { STICKER_CATEGORIES } from '../storyComposer.constants';
+import {
+  STICKER_CATEGORIES,
+  STORY_STICKER_MAX,
+} from '../storyComposer.constants';
 import type { StoryComposerTab } from '../storyComposer.types';
 
 /** The interactive stickers, first in the tray, as on Instagram. */
@@ -38,6 +41,8 @@ export interface StoryStickersPanelProps {
   onOpenSticker: (tab: StoryComposerTab) => void;
   /** The story can carry a place: the editor shares it itself. */
   canPlace?: boolean;
+  /** The story already holds as many interactive stickers as it may. */
+  full?: boolean;
 }
 
 const fold = (text: string) =>
@@ -57,6 +62,7 @@ export default function StoryStickersPanel({
   onAddSticker,
   onOpenSticker,
   canPlace = false,
+  full = false,
 }: StoryStickersPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
@@ -102,13 +108,21 @@ export default function StoryStickersPanel({
         <section
           aria-label={t('createPost.storyComposer.stickers_interactive')}
         >
+          {full ? (
+            <p className="text-sm text-white/60 text-center pb-2">
+              {t('createPost.storyComposer.stickers_limit', {
+                max: STORY_STICKER_MAX,
+              })}
+            </p>
+          ) : null}
           <div className="grid grid-cols-3 gap-2">
             {interactive.map(({ tab, icon: Icon, labelKey }) => (
               <button
                 type="button"
                 key={tab}
                 onClick={() => onOpenSticker(tab)}
-                className="min-h-12 px-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white text-black text-sm font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] active:scale-95"
+                disabled={full}
+                className="disabled:opacity-40 min-h-12 px-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white text-black text-sm font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] active:scale-95"
               >
                 <Icon
                   size={16}

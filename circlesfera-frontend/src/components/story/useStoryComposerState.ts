@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import { type StoryCanvasRef } from './Editor/StoryCanvas';
@@ -9,6 +10,7 @@ import {
 } from './storyComposer.append';
 import {
   DEFAULT_BRUSH_WIDTH,
+  STORY_STICKER_MAX,
   type StoryTemplate,
 } from './storyComposer.constants';
 import {
@@ -22,6 +24,7 @@ import {
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
+import { isLiveElement } from './storyInteractive';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
@@ -157,7 +160,18 @@ export function useStoryComposerState(props: {
     if (wasSelected) setTextInput('');
   };
 
+  /** A story holds as many stickers as the server takes, and no more. */
+  const liveCount = elements.filter(isLiveElement).length;
+  const roomFor = (el: StoryElement | undefined) => {
+    if (!el || !isLiveElement(el) || liveCount < STORY_STICKER_MAX) return true;
+    toast.error(
+      t('createPost.storyComposer.stickers_limit', { max: STORY_STICKER_MAX }),
+    );
+    return false;
+  };
+
   const appendElement = (newElement: StoryElement) => {
+    if (!roomFor(newElement)) return;
     changeElements((current) => [...current, newElement]);
     setSelectedElementId(newElement.id);
   };
@@ -321,7 +335,10 @@ export function useStoryComposerState(props: {
     handleUploadBackground: bg.handleUploadBackground,
     handleSelectGradient: bg.handleSelectGradient,
     handleFileChange: bg.handleFileChange,
-    duplicateElement,
+    duplicateElement: (id: string) => {
+      if (roomFor(elements.find((el) => el.id === id))) duplicateElement(id);
+    },
+    liveCount,
     moveElementLayer,
     removeElement,
     selectedElement,

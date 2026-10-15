@@ -45,6 +45,8 @@ export const QNA_PROMPT_MAX = 120;
 export const POLL_MIN_OPTIONS = 2;
 export const POLL_MAX_OPTIONS = 4;
 export const HASHTAG_MAX = 50;
+/** Stickers a story carries at most; the server holds the same limit. */
+export const STORY_STICKER_MAX = 10;
 /** The emoji a slider can carry; the first is the one it starts with. */
 export const SLIDER_EMOJIS = ['😍', '🔥', '😂', '😮', '😢', '👏', '💯', '❤️'];
 

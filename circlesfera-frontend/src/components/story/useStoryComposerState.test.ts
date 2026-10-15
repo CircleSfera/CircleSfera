@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import type { StoryElement } from '../../types';
+import { buildHashtagElement } from './storyComposer.append';
 import { GRADIENTS, TEMPLATES } from './storyComposer.constants';
 import { exportStoryCanvas } from './storyComposer.export';
 import { parsePollPayload, parseQnaPayload } from './storyInteractive';
@@ -46,6 +47,27 @@ describe('useStoryComposerState', () => {
   beforeEach(() => {
     vi.mocked(exportStoryCanvas).mockReset();
     vi.mocked(toast.error).mockReset();
+  });
+
+  it('adds no eleventh sticker, by copy or from a panel, and says why', () => {
+    const tags = Array.from({ length: 10 }, (_, i) => ({
+      ...(buildHashtagElement(`tag${i}`) as StoryElement),
+      id: `tag-${i}`,
+    }));
+    const { result } = setup({ elements: tags });
+
+    act(() => result.current.duplicateElement('tag-0'));
+    act(() =>
+      result.current.addElement(buildHashtagElement('otra') as StoryElement),
+    );
+
+    expect(result.current.elements).toHaveLength(10);
+    expect(result.current.liveCount).toBe(10);
+    expect(toast.error).toHaveBeenCalledTimes(2);
+
+    // A piece of the picture is not a sticker of the story.
+    act(() => result.current.addSticker('🔥'));
+    expect(result.current.elements).toHaveLength(11);
   });
 
   afterEach(async () => {

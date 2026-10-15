@@ -48,8 +48,8 @@ export default function CloseFriendsManager({
     <div className="flex flex-col min-h-0 flex-1">
       {showHeader && (
         <div className="flex items-center gap-3 mb-4 shrink-0">
-          <div className="w-9 h-9 rounded-full bg-green-500/20 text-green-500 border border-green-500/30 flex items-center justify-center">
-            <Star size={18} className="fill-green-500" aria-hidden />
+          <div className="w-9 h-9 rounded-full bg-close-friends/20 text-close-friends border border-close-friends/30 flex items-center justify-center">
+            <Star size={18} className="fill-close-friends" aria-hidden />
           </div>
           <div>
             <h2 className="text-lg font-bold text-white">

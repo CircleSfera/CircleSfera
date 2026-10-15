@@ -1609,6 +1609,7 @@
       "stickers_search": "Buscar stickers",
       "stickers_interactive": "Interactivos",
       "stickers_no_results": "No hay stickers con ese nombre",
+      "stickers_limit": "Una historia lleva hasta {{max}} stickers interactivos",
       "poll_option_n": "Opción {{n}}",
       "poll_add_option": "Añadir opción",
       "poll_remove_option": "Quitar opción {{n}}",

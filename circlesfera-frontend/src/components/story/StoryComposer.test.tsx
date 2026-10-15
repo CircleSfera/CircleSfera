@@ -5,6 +5,7 @@ import { searchApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
 import type { StoryElement } from '../../types';
 import StoryComposer from './StoryComposer';
+import { buildHashtagElement } from './storyComposer.append';
 import { GRADIENTS } from './storyComposer.constants';
 import { exportStoryCanvas } from './storyComposer.export';
 import { parsePollPayload, parseQnaPayload } from './storyInteractive';
@@ -377,6 +378,23 @@ describe('StoryComposer', () => {
     expect(
       await screen.findByText('No hay nadie con ese nombre'),
     ).toBeInTheDocument();
+  });
+
+  it('holds ten interactive stickers at most: the tray says so, and emoji still go', async () => {
+    const tags = Array.from({ length: 10 }, (_, i) => ({
+      ...buildHashtagElement(`tag${i}`),
+      id: `tag-${i}`,
+    })) as StoryElement[];
+    const { lastElements } = renderComposer({ elements: tags });
+
+    fireEvent.click(tool('Stickers'));
+    expect(
+      screen.getByText('Una historia lleva hasta 10 stickers interactivos'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Encuesta' })).toBeDisabled();
+    // Emoji are part of the picture, not stickers of the story.
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+    await waitFor(() => expect(lastElements()).toHaveLength(11));
   });
 
   it('offers a location only when the editor shares the story, as it is the story’s place', () => {

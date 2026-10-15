@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { STORY_STICKER_MAX } from '../components/story/storyComposer.constants';
 import type { StoryCanvasSize } from '../components/story/storyComposer.export';
 import { stickersFromElements } from '../components/story/storyInteractive';
 import {
@@ -95,6 +96,19 @@ export function useCreatePostMutation(deps: MutationDeps) {
 
     if (deps.caption.length > 2200) {
       toast.error(t('createPost.caption.too_long'));
+      return;
+    }
+
+    if (
+      deps.mode === 'STORY' &&
+      stickersFromElements(deps.storyElements, deps.storyCanvasSize).length >
+        STORY_STICKER_MAX
+    ) {
+      toast.error(
+        t('createPost.storyComposer.stickers_limit', {
+          max: STORY_STICKER_MAX,
+        }),
+      );
       return;
     }
 

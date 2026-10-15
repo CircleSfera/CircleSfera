@@ -2,8 +2,12 @@ import { AnimatePresence } from 'framer-motion';
 import type { MouseEvent, RefObject } from 'react';
 import type { StoryElement } from '../../../types';
 import type { StoryCanvasRef } from '../Editor/StoryCanvas';
-import type { StoryTemplate } from '../storyComposer.constants';
+import {
+  STORY_STICKER_MAX,
+  type StoryTemplate,
+} from '../storyComposer.constants';
 import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
+import { isLiveElement } from '../storyInteractive';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
@@ -155,6 +159,7 @@ export default function StoryDockContent({
           onAddSticker={onAddSticker}
           onOpenSticker={onOpenTab}
           canPlace={Boolean(place)}
+          full={elements.filter(isLiveElement).length >= STORY_STICKER_MAX}
         />
       )}
 

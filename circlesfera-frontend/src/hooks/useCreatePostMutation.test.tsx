@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { I18nextProvider } from 'react-i18next';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildHashtagElement } from '../components/story/storyComposer.append';
 import { interactiveApi, postsApi, storiesApi } from '../services';
 import { createTestI18n, createTestQueryClient } from '../test/test-utils';
 import { exportEditedImage } from '../utils/imageExport';
@@ -107,6 +108,21 @@ describe('useCreatePostMutation', () => {
     await submit();
     expect(toast.error).toHaveBeenCalledWith(
       i18n.t('createPost.caption.too_long'),
+    );
+    expect(deps.uploadFiles).not.toHaveBeenCalled();
+  });
+
+  it('refuses a story with more stickers than the server takes, before uploading', async () => {
+    const { deps, submit } = setup({
+      mode: 'STORY',
+      storyCanvasSize: { width: 360, height: 640 },
+      storyElements: Array.from({ length: 11 }, () =>
+        buildHashtagElement('verano'),
+      ),
+    });
+    await submit();
+    expect(toast.error).toHaveBeenCalledWith(
+      i18n.t('createPost.storyComposer.stickers_limit', { max: 10 }),
     );
     expect(deps.uploadFiles).not.toHaveBeenCalled();
   });
