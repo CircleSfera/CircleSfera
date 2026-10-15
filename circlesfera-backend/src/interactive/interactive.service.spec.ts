@@ -31,6 +31,15 @@ describe('InteractiveService', () => {
     story: {
       findUnique: vi.fn(),
     },
+    storySticker: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+    },
+    storyStickerResponse: {
+      upsert: vi.fn(),
+      create: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
   };
 
   beforeEach(async () => {
@@ -163,7 +172,8 @@ describe('InteractiveService', () => {
         id: 'story-1',
         profileId: 'p-1',
       });
-      mockPrismaService.poll.findUnique.mockResolvedValueOnce({
+      // The poll of a story is one of its stickers.
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce({
         id: 'existing',
       });
       await expect(
@@ -179,9 +189,9 @@ describe('InteractiveService', () => {
         id: 'story-1',
         profileId: 'p-1',
       });
-      mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.poll.create.mockResolvedValueOnce({
+      mockPrismaService.storySticker.create.mockResolvedValueOnce({
         id: 'new-story-poll',
+        createdAt: new Date(),
       });
 
       const res = await service.createPoll('p-1', {
@@ -189,7 +199,20 @@ describe('InteractiveService', () => {
         options: ['Yes', 'No'],
         storyId: 'story-1',
       } as any);
-      expect(res.id).toBe('new-story-poll');
+      expect(res).toMatchObject({
+        id: 'new-story-poll',
+        question: 'Story Q?',
+        options: ['Yes', 'No'],
+        storyId: 'story-1',
+      });
+      expect(mockPrismaService.storySticker.create).toHaveBeenLastCalledWith({
+        data: {
+          storyId: 'story-1',
+          kind: 'POLL',
+          settings: { question: 'Story Q?', options: ['Yes', 'No'] },
+        },
+      });
+      expect(mockPrismaService.poll.create).not.toHaveBeenCalled();
     });
   });
 
@@ -271,7 +294,7 @@ describe('InteractiveService', () => {
         id: 's-1',
         profileId: 'p-1',
       });
-      mockPrismaService.qnaBox.findUnique.mockResolvedValueOnce({
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce({
         id: 'existing',
       });
       await expect(
@@ -282,16 +305,23 @@ describe('InteractiveService', () => {
         id: 's-1',
         profileId: 'p-1',
       });
-      mockPrismaService.qnaBox.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.qnaBox.create.mockResolvedValueOnce({
+      mockPrismaService.storySticker.create.mockResolvedValueOnce({
         id: 'qna-story',
+        createdAt: new Date(),
       });
 
       const res = await service.createQnaBox('p-1', {
         prompt: 'Ask story',
         storyId: 's-1',
       } as any);
-      expect(res.id).toBe('qna-story');
+      expect(res).toMatchObject({ id: 'qna-story', prompt: 'Ask story' });
+      expect(mockPrismaService.storySticker.create).toHaveBeenLastCalledWith({
+        data: {
+          storyId: 's-1',
+          kind: 'QUESTION',
+          settings: { prompt: 'Ask story' },
+        },
+      });
     });
   });
 
@@ -303,8 +333,10 @@ describe('InteractiveService', () => {
         id: 'story-1',
         profileId: 'p-1',
       });
-      mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.poll.create.mockResolvedValueOnce({ id: 'poll-1' });
+      mockPrismaService.storySticker.create.mockResolvedValueOnce({
+        id: 'poll-1',
+        createdAt: new Date(),
+      });
 
       await service.createPoll('p-1', {
         question: 'Q?',
@@ -313,13 +345,14 @@ describe('InteractiveService', () => {
         placement,
       });
 
-      expect(mockPrismaService.poll.create).toHaveBeenLastCalledWith({
+      expect(mockPrismaService.storySticker.create).toHaveBeenLastCalledWith({
         data: expect.objectContaining({
           storyId: 'story-1',
-          stickerX: 0.1,
-          stickerY: -0.25,
-          stickerScale: 1.2,
-          stickerRotation: -8,
+          kind: 'POLL',
+          x: 0.1,
+          y: -0.25,
+          scale: 1.2,
+          rotation: -8,
         }),
       });
     });
@@ -329,8 +362,10 @@ describe('InteractiveService', () => {
         id: 's-1',
         profileId: 'p-1',
       });
-      mockPrismaService.qnaBox.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.qnaBox.create.mockResolvedValueOnce({ id: 'qna-1' });
+      mockPrismaService.storySticker.create.mockResolvedValueOnce({
+        id: 'qna-1',
+        createdAt: new Date(),
+      });
 
       await service.createQnaBox('p-1', {
         prompt: 'Ask',
@@ -338,12 +373,13 @@ describe('InteractiveService', () => {
         placement,
       });
 
-      expect(mockPrismaService.qnaBox.create).toHaveBeenLastCalledWith({
+      expect(mockPrismaService.storySticker.create).toHaveBeenLastCalledWith({
         data: expect.objectContaining({
-          stickerX: 0.1,
-          stickerY: -0.25,
-          stickerScale: 1.2,
-          stickerRotation: -8,
+          kind: 'QUESTION',
+          x: 0.1,
+          y: -0.25,
+          scale: 1.2,
+          rotation: -8,
         }),
       });
     });
@@ -353,8 +389,10 @@ describe('InteractiveService', () => {
         id: 'story-1',
         profileId: 'p-1',
       });
-      mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.poll.create.mockResolvedValueOnce({ id: 'poll-2' });
+      mockPrismaService.storySticker.create.mockResolvedValueOnce({
+        id: 'poll-2',
+        createdAt: new Date(),
+      });
 
       await service.createPoll('p-1', {
         question: 'Q?',
@@ -362,8 +400,9 @@ describe('InteractiveService', () => {
         storyId: 'story-1',
       });
 
-      const { data } = mockPrismaService.poll.create.mock.calls.at(-1)![0];
-      expect(data).not.toHaveProperty('stickerX');
+      const { data } =
+        mockPrismaService.storySticker.create.mock.calls.at(-1)![0];
+      expect(data).not.toHaveProperty('x');
     });
 
     it('refuses a place on a post, which has none', async () => {
@@ -383,6 +422,133 @@ describe('InteractiveService', () => {
         }),
       ).rejects.toThrow('A placement is only for a story');
       expect(mockPrismaService.post.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('the poll and question of a story, through the routes apps already installed use', () => {
+    const storyPoll = {
+      id: 'st-poll',
+      storyId: 'story-1',
+      settings: { question: '¿Playa?', options: ['Sí', 'No'] },
+      story: { profileId: 'author' },
+    };
+
+    it('records a vote on the sticker and answers in the poll shape', async () => {
+      mockPrismaService.storySticker.findFirst.mockResolvedValue(storyPoll);
+      mockPrismaService.storyStickerResponse.findMany.mockResolvedValueOnce([
+        { profileId: 'viewer', optionIndex: 1 },
+        { profileId: 'x', optionIndex: 0 },
+      ]);
+
+      const res = await service.votePoll('viewer', 'st-poll', 1);
+
+      expect(
+        mockPrismaService.storyStickerResponse.upsert,
+      ).toHaveBeenCalledWith({
+        where: {
+          voteKey_profileId: { voteKey: 'st-poll', profileId: 'viewer' },
+        },
+        create: {
+          stickerId: 'st-poll',
+          voteKey: 'st-poll',
+          profileId: 'viewer',
+          optionIndex: 1,
+        },
+        update: { optionIndex: 1 },
+      });
+      expect(mockPrismaService.pollVote.upsert).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        id: 'st-poll',
+        question: '¿Playa?',
+        totalVotes: 2,
+        userVoteIndex: 1,
+        options: [
+          { index: 0, text: 'Sí', votes: 1, percentage: 50 },
+          { index: 1, text: 'No', votes: 1, percentage: 50 },
+        ],
+        postId: null,
+        storyId: 'story-1',
+      });
+      mockPrismaService.storySticker.findFirst.mockResolvedValue(null);
+    });
+
+    it('hides the poll of a story from a viewer blocked either way', async () => {
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(storyPoll);
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b' });
+      await expect(service.getPoll('st-poll', 'viewer')).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('refuses an option the sticker does not have', async () => {
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(storyPoll);
+      await expect(service.votePoll('viewer', 'st-poll', 5)).rejects.toThrow(
+        AppException,
+      );
+    });
+
+    it('keeps an answer to the question of a story on its sticker', async () => {
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce({
+        ...storyPoll,
+        id: 'st-q',
+        settings: { prompt: 'Pregunta' },
+      });
+      mockPrismaService.storyStickerResponse.create.mockResolvedValueOnce({
+        id: 'r1',
+        text: 'Hola',
+        createdAt: new Date('2026-01-01'),
+      });
+
+      const res = await service.answerQna('viewer', 'st-q', ' Hola ');
+
+      expect(
+        mockPrismaService.storyStickerResponse.create,
+      ).toHaveBeenCalledWith({
+        data: { stickerId: 'st-q', profileId: 'viewer', text: 'Hola' },
+      });
+      expect(mockPrismaService.qnaAnswer.create).not.toHaveBeenCalled();
+      expect(res).toMatchObject({
+        id: 'r1',
+        qnaBoxId: 'st-q',
+        answerText: 'Hola',
+      });
+    });
+
+    it('gives the answers of a story question to its author only', async () => {
+      const question = {
+        ...storyPoll,
+        id: 'st-q',
+        settings: { prompt: 'Pregunta' },
+      };
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(question);
+      expect(await service.getQnaBox('st-q', 'viewer')).toEqual({
+        id: 'st-q',
+        prompt: 'Pregunta',
+        totalAnswers: 0,
+        answers: [],
+      });
+
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(question);
+      mockPrismaService.storyStickerResponse.findMany.mockResolvedValueOnce([
+        {
+          id: 'r1',
+          text: 'Hola',
+          createdAt: new Date('2026-01-01'),
+          profile: {
+            id: 'viewer',
+            username: 'bea',
+            fullName: 'Bea',
+            avatar: null,
+            user: { id: 'u-bea' },
+          },
+        },
+      ]);
+      const forAuthor = await service.getQnaBox('st-q', 'author');
+      expect(forAuthor.totalAnswers).toBe(1);
+      expect(forAuthor.answers[0]).toMatchObject({
+        answerText: 'Hola',
+        user: { id: 'u-bea', username: 'bea' },
+      });
     });
   });
 

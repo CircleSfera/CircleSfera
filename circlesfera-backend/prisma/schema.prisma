@@ -360,8 +360,8 @@ model Profile {
 
   // Account Ban Flags
 
-  isAccountBanned    Boolean   @default(false)
-  accountBanReason   String?   @db.Text
+  isAccountBanned    Boolean    @default(false)
+  accountBanReason   String?    @db.Text
   suspendedUntil     DateTime?
   // The strike that caused the current ban or suspension, if any. An appeal
   // about that strike lifts only a restriction it caused; staff restrictions
@@ -370,17 +370,17 @@ model Profile {
   suspensionStrikeId String?
   // Who may see this Profile's content: each Profile of a person chooses for
   // itself. PRIVATE asks for an accepted follow.
-  privacyLevel      Visibility @default(PUBLIC)
+  privacyLevel       Visibility @default(PUBLIC)
   // Push notifications of this Profile; the person's other Profiles keep
   // their own choice.
-  pushNotifications Boolean    @default(true)
+  pushNotifications  Boolean    @default(true)
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.
-  suspensionCause    SuspensionCause?
+  suspensionCause SuspensionCause?
   // Legacy strike counter. Strikes, their expiry and their consequences are
   // recorded in profile_strikes; nothing reads or writes this column any more.
-  strikeCount        Int       @default(0)
+  strikeCount     Int              @default(0)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -430,6 +430,7 @@ model Profile {
   editProjects          EditProject[]
   pollVotes             PollVote[]
   qnaAnswers            QnaAnswer[]
+  storyStickerResponses StoryStickerResponse[]
   metrics               ProfileMetric[]
   embedding             ProfileEmbedding?
   platformSubscriptions PlatformSubscription[]
@@ -696,8 +697,12 @@ model Story {
 
   scheduledAt     DateTime?
   scheduledStatus ScheduledPostStatus @default(PUBLISHED)
+  // Polls and questions of stories are stickers since the story editor
+  // redesign; these two stay for stories published before, and are no
+  // longer read for stories.
   poll            Poll?
   qnaBox          QnaBox?
+  stickers        StorySticker[]
 
   @@index([profileId, expiresAt])
   @@index([profileId, createdAt])
@@ -1060,6 +1065,65 @@ model Poll {
   votes PollVote[]
 
   @@map("polls")
+}
+
+/// The kinds of sticker a story can carry. Countdown, link and music join
+/// with their phase of the story editor.
+enum StoryStickerKind {
+  POLL
+  QUESTION
+  QUIZ
+  SLIDER
+  MENTION
+  LOCATION
+  HASHTAG
+}
+
+/// A sticker on a story: a poll, a question, a quiz, a slider, a mention, a
+/// place or a hashtag, answered or opened where the creator placed it.
+model StorySticker {
+  id        String           @id @default(uuid())
+  storyId   String
+  kind      StoryStickerKind
+  /// What the kind needs (question and options, prompt, emoji, profile,
+  /// place, tag), validated by the server for each kind.
+  settings  Json
+  /// The centre as a share of the story's width and height from its middle,
+  /// the scale and the angle in degrees. Empty only for stickers copied from
+  /// before the place was kept; viewers then show them across the bottom.
+  x         Float?
+  y         Float?
+  scale     Float?
+  rotation  Float?
+  createdAt DateTime         @default(now())
+
+  story     Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  responses StoryStickerResponse[]
+
+  @@index([storyId])
+  @@map("story_stickers")
+}
+
+/// What a viewer gave a sticker: a vote, a slider value or an answer.
+model StoryStickerResponse {
+  id          String   @id @default(uuid())
+  stickerId   String
+  profileId   String
+  /// The sticker's id for a vote or a slider value, which count once per
+  /// person; empty for an answer to a question, which may be several.
+  voteKey     String?
+  optionIndex Int?
+  value       Float?
+  text        String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  sticker StorySticker @relation(fields: [stickerId], references: [id], onDelete: Cascade)
+  profile Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([voteKey, profileId])
+  @@index([stickerId])
+  @@map("story_sticker_responses")
 }
 
 model PollVote {

@@ -22,13 +22,97 @@ function assertPlacementOnStory(dto: {
   }
 }
 
-function stickerColumns(placement?: StickerPlacementDto) {
+/** The place of a story sticker, from the place the old routes send. */
+function stickerPlace(placement?: StickerPlacementDto) {
   if (!placement) return {};
   return {
-    stickerX: placement.x,
-    stickerY: placement.y,
-    stickerScale: placement.scale,
-    stickerRotation: placement.rotation,
+    x: placement.x,
+    y: placement.y,
+    scale: placement.scale,
+    rotation: placement.rotation,
+  };
+}
+
+function stickerOptions(settings: unknown): string[] {
+  const options = (settings as Record<string, unknown> | null)?.options;
+  return Array.isArray(options) ? options.map(String) : [];
+}
+
+/** A poll with its counts, in the shape the poll routes answer. */
+function pollShape(
+  poll: {
+    id: string;
+    question: string;
+    options: string[];
+    postId: string | null;
+    storyId: string | null;
+  },
+  votes: { profileId: string; optionIndex: number }[],
+  profileId?: string,
+) {
+  const totalVotes = votes.length;
+  const optionCounts = new Array(poll.options.length).fill(0);
+  let userVoteIndex: number | null = null;
+  for (const vote of votes) {
+    if (vote.optionIndex >= 0 && vote.optionIndex < poll.options.length) {
+      optionCounts[vote.optionIndex] += 1;
+    }
+    if (profileId && vote.profileId === profileId) {
+      userVoteIndex = vote.optionIndex;
+    }
+  }
+  return {
+    id: poll.id,
+    question: poll.question,
+    totalVotes,
+    userVoteIndex,
+    options: poll.options.map((text, index) => {
+      const count = optionCounts[index] || 0;
+      return {
+        index,
+        text,
+        votes: count,
+        percentage:
+          totalVotes > 0 ? Number(((count / totalVotes) * 100).toFixed(1)) : 0,
+      };
+    }),
+    postId: poll.postId,
+    storyId: poll.storyId,
+  };
+}
+
+const ANSWER_PROFILE_SELECT = {
+  id: true,
+  username: true,
+  avatar: true,
+  fullName: true,
+  user: { select: { id: true } },
+} as const;
+
+/** An answer to a question, with who gave it, for its owner. */
+function answerShape(
+  id: string,
+  answerText: string,
+  createdAt: Date,
+  profile: {
+    id: string;
+    username: string | null;
+    avatar: string | null;
+    fullName: string | null;
+    user: { id: string } | null;
+  } | null,
+) {
+  const username = profile?.username || 'usuario';
+  return {
+    id,
+    answerText,
+    createdAt,
+    user: {
+      id: profile?.user?.id ?? profile?.id ?? '',
+      username,
+      fullName: profile?.fullName || username,
+      avatar: profile?.avatar ?? null,
+    },
   };
 }
 
@@ -95,14 +179,33 @@ export class InteractiveService {
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
         );
-      const existing = await this.prisma.poll.findUnique({
-        where: { storyId: dto.storyId },
+      // The poll of a story is a sticker of it.
+      const existing = await this.prisma.storySticker.findFirst({
+        where: { storyId: dto.storyId, kind: 'POLL' },
+        select: { id: true },
       });
       if (existing)
         throw AppException.BadRequest(
           ErrorCode.POLL_ALREADY_EXISTS,
           'Story already has a poll',
         );
+      const question = dto.question.trim();
+      const sticker = await this.prisma.storySticker.create({
+        data: {
+          storyId: dto.storyId,
+          kind: 'POLL',
+          settings: { question, options },
+          ...stickerPlace(dto.placement),
+        },
+      });
+      return {
+        id: sticker.id,
+        question,
+        options,
+        postId: null,
+        storyId: dto.storyId,
+        createdAt: sticker.createdAt,
+      };
     }
 
     return this.prisma.poll.create({
@@ -111,7 +214,6 @@ export class InteractiveService {
         options,
         postId: dto.postId,
         storyId: dto.storyId,
-        ...stickerColumns(dto.placement),
       },
     });
   }
@@ -167,14 +269,32 @@ export class InteractiveService {
           ErrorCode.FORBIDDEN_ACCESS,
           'Not your story',
         );
-      const existing = await this.prisma.qnaBox.findUnique({
-        where: { storyId: dto.storyId },
+      // The question of a story is a sticker of it.
+      const existing = await this.prisma.storySticker.findFirst({
+        where: { storyId: dto.storyId, kind: 'QUESTION' },
+        select: { id: true },
       });
       if (existing)
         throw AppException.BadRequest(
           ErrorCode.QNA_ALREADY_EXISTS,
           'Story already has a Q&A box',
         );
+      const prompt = dto.prompt.trim();
+      const sticker = await this.prisma.storySticker.create({
+        data: {
+          storyId: dto.storyId,
+          kind: 'QUESTION',
+          settings: { prompt },
+          ...stickerPlace(dto.placement),
+        },
+      });
+      return {
+        id: sticker.id,
+        prompt,
+        postId: null,
+        storyId: dto.storyId,
+        createdAt: sticker.createdAt,
+      };
     }
 
     return this.prisma.qnaBox.create({
@@ -182,13 +302,30 @@ export class InteractiveService {
         prompt: dto.prompt.trim(),
         postId: dto.postId,
         storyId: dto.storyId,
-        ...stickerColumns(dto.placement),
       },
     });
   }
 
   // Cast or change a user vote in a poll.
   async votePoll(profileId: string, pollId: string, optionIndex: number) {
+    const sticker = await this.storySticker(pollId, 'POLL');
+    if (sticker) {
+      const options = stickerOptions(sticker.settings);
+      if (optionIndex < 0 || optionIndex >= options.length) {
+        throw AppException.BadRequest(
+          ErrorCode.INVALID_POLL_OPTION,
+          'Invalid poll option index',
+        );
+      }
+      const key = { voteKey: pollId, profileId };
+      await this.prisma.storyStickerResponse.upsert({
+        where: { voteKey_profileId: key },
+        create: { stickerId: pollId, ...key, optionIndex },
+        update: { optionIndex },
+      });
+      return this.getPoll(pollId, profileId);
+    }
+
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
     });
@@ -227,6 +364,43 @@ export class InteractiveService {
 
   // Get poll details with vote count and breakdown.
   async getPoll(pollId: string, profileId?: string) {
+    const sticker = await this.storySticker(pollId, 'POLL');
+    if (sticker) {
+      if (
+        await isBlockedEitherWay(
+          this.prisma,
+          profileId,
+          sticker.story.profileId,
+        )
+      ) {
+        throw AppException.NotFound(
+          ErrorCode.INTERACTIVE_NOT_FOUND,
+          'Poll not found',
+        );
+      }
+      const options = stickerOptions(sticker.settings);
+      const votes = await this.prisma.storyStickerResponse.findMany({
+        where: { stickerId: pollId, voteKey: pollId },
+        select: { profileId: true, optionIndex: true },
+      });
+      return pollShape(
+        {
+          id: pollId,
+          question: String(
+            (sticker.settings as Record<string, unknown>).question ?? '',
+          ),
+          options,
+          postId: null,
+          storyId: sticker.storyId,
+        },
+        votes.map((v) => ({
+          profileId: v.profileId,
+          optionIndex: v.optionIndex ?? -1,
+        })),
+        profileId,
+      );
+    }
+
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
       include: {
@@ -255,41 +429,7 @@ export class InteractiveService {
       );
     }
 
-    const totalVotes = poll.votes.length;
-    const optionCounts = new Array(poll.options.length).fill(0);
-
-    let userVoteIndex: number | null = null;
-
-    for (const vote of poll.votes) {
-      if (vote.optionIndex >= 0 && vote.optionIndex < poll.options.length) {
-        optionCounts[vote.optionIndex] += 1;
-      }
-      if (profileId && vote.profileId === profileId) {
-        userVoteIndex = vote.optionIndex;
-      }
-    }
-
-    const optionsBreakdown = poll.options.map((option: string, idx: number) => {
-      const votes = optionCounts[idx] || 0;
-      const percentage =
-        totalVotes > 0 ? Number(((votes / totalVotes) * 100).toFixed(1)) : 0;
-      return {
-        index: idx,
-        text: option,
-        votes,
-        percentage,
-      };
-    });
-
-    return {
-      id: poll.id,
-      question: poll.question,
-      totalVotes,
-      userVoteIndex,
-      options: optionsBreakdown,
-      postId: poll.postId,
-      storyId: poll.storyId,
-    };
+    return pollShape(poll, poll.votes, profileId);
   }
 
   // Submit an answer to a Q&A box ("Hazme una pregunta").
@@ -299,6 +439,23 @@ export class InteractiveService {
         ErrorCode.EMPTY_ANSWER_TEXT,
         'Answer text cannot be empty',
       );
+    }
+
+    const sticker = await this.storySticker(qnaBoxId, 'QUESTION');
+    if (sticker) {
+      const answer = await this.prisma.storyStickerResponse.create({
+        data: {
+          stickerId: qnaBoxId,
+          profileId,
+          text: answerText.trim(),
+        },
+      });
+      return {
+        id: answer.id,
+        qnaBoxId,
+        answerText: answer.text ?? '',
+        createdAt: answer.createdAt,
+      };
     }
 
     const qnaBox = await this.prisma.qnaBox.findUnique({
@@ -332,6 +489,31 @@ export class InteractiveService {
   // that owns the post or story it sits on. People answer a creator, not
   // each other: the answers and who gave them go to nobody else.
   async getQnaBox(qnaBoxId: string, viewerProfileId?: string) {
+    const sticker = await this.storySticker(qnaBoxId, 'QUESTION');
+    if (sticker) {
+      const prompt = String(
+        (sticker.settings as Record<string, unknown>).prompt ?? '',
+      );
+      const isOwner =
+        !!viewerProfileId && viewerProfileId === sticker.story.profileId;
+      if (!isOwner) {
+        return { id: qnaBoxId, prompt, totalAnswers: 0, answers: [] };
+      }
+      const answers = await this.prisma.storyStickerResponse.findMany({
+        where: { stickerId: qnaBoxId },
+        include: { profile: { select: ANSWER_PROFILE_SELECT } },
+        orderBy: { createdAt: 'desc' },
+      });
+      return {
+        id: qnaBoxId,
+        prompt,
+        totalAnswers: answers.length,
+        answers: answers.map((a) =>
+          answerShape(a.id, a.text ?? '', a.createdAt, a.profile),
+        ),
+      };
+    }
+
     const qnaBox = await this.prisma.qnaBox.findUnique({
       where: { id: qnaBoxId },
       select: {
@@ -362,17 +544,7 @@ export class InteractiveService {
 
     const answers = await this.prisma.qnaAnswer.findMany({
       where: { qnaBoxId },
-      include: {
-        profile: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-            fullName: true,
-            user: { select: { id: true } },
-          },
-        },
-      },
+      include: { profile: { select: ANSWER_PROFILE_SELECT } },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -380,21 +552,22 @@ export class InteractiveService {
       id: qnaBox.id,
       prompt: qnaBox.prompt,
       totalAnswers: answers.length,
-      answers: answers.map((a) => {
-        const profile = a.profile;
-        const username = profile?.username || 'usuario';
-        return {
-          id: a.id,
-          answerText: a.answerText,
-          createdAt: a.createdAt,
-          user: {
-            id: profile?.user?.id ?? profile?.id ?? '',
-            username,
-            fullName: profile?.fullName || username,
-            avatar: profile?.avatar ?? null,
-          },
-        };
-      }),
+      answers: answers.map((a) =>
+        answerShape(a.id, a.answerText, a.createdAt, a.profile),
+      ),
     };
+  }
+
+  /** A story's sticker of a kind by its id, the way the old routes reach it. */
+  private storySticker(id: string, kind: 'POLL' | 'QUESTION') {
+    return this.prisma.storySticker.findFirst({
+      where: { id, kind },
+      select: {
+        id: true,
+        storyId: true,
+        settings: true,
+        story: { select: { profileId: true } },
+      },
+    });
   }
 }

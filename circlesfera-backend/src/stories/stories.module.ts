@@ -6,6 +6,7 @@ import {
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
 import { registerRecurringJob } from '../common/queues/recurring-jobs.js';
+import { StoryStickersModule } from '../story-stickers/story-stickers.module.js';
 import { UploadsModule } from '../uploads/uploads.module.js';
 import { StoriesProcessor } from './processors/stories.processor.js';
 import { StoriesController } from './stories.controller.js';
@@ -13,6 +14,7 @@ import { StoriesService } from './stories.service.js';
 
 @Module({
   imports: [
+    StoryStickersModule,
     BullModule.registerQueue(
       getRegisterQueueOptions(QUEUE_NAMES.AI_PROCESSING),
       getRegisterQueueOptions(QUEUE_NAMES.STORIES_PROCESSING),

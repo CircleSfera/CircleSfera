@@ -18,8 +18,14 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { StoriesController } from './stories.controller.js';
 import { StoriesService } from './stories.service.js';
+
+const mockStickers = {
+  respond: vi.fn(async () => ({ id: 'sticker-1' })),
+  results: vi.fn(async () => ({ id: 'sticker-1' })),
+};
 
 describe('StoriesController', () => {
   let app: INestApplication;
@@ -39,7 +45,10 @@ describe('StoriesController', () => {
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [StoriesController],
-      providers: [{ provide: StoriesService, useValue: mockService }],
+      providers: [
+        { provide: StoriesService, useValue: mockService },
+        { provide: StoryStickersService, useValue: mockStickers },
+      ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
@@ -94,6 +103,46 @@ describe('StoriesController', () => {
       expect.objectContaining({
         url: 'https://cdn.example/story.jpg',
       }),
+    );
+  });
+
+  it('answers a sticker as the session profile', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .set(BEARER)
+      .send({ optionIndex: 1 })
+      .expect(201);
+
+    expect(res.body).toEqual({ id: 'sticker-1' });
+    expect(mockStickers.respond).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'sticker-1',
+      { optionIndex: 1 },
+    );
+  });
+
+  it('refuses an answer without a session or with an unknown field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .send({ optionIndex: 1 })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .set(BEARER)
+      .send({ optionIndex: 1, votes: 99 })
+      .expect(400);
+    expect(mockStickers.respond).not.toHaveBeenCalled();
+  });
+
+  it('reads what a sticker has gathered for the session profile', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/stickers/sticker-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockStickers.results).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'sticker-1',
     );
   });
 
