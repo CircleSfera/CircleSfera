@@ -1,7 +1,8 @@
-import { RotateCcw, RotateCw, X } from 'lucide-react';
+import { MapPin, Music, RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import StoryToolRail from './StoryToolRail';
 import type { StoryComposerTab } from './storyComposer.types';
+import type { StoryShareOptions } from './storyShare.types';
 
 interface StoryComposerChromeProps {
   onClose: () => void;
@@ -15,10 +16,15 @@ interface StoryComposerChromeProps {
   hidden: boolean;
   /** Off for a moment after text mode, so its last tap does not land here. */
   pointerArmed: boolean;
+  /** Music and place of the story, when the editor shares it itself. */
+  share?: StoryShareOptions;
 }
 
 const roundButton =
-  'w-11 h-11 inline-flex items-center justify-center rounded-full bg-black/45 border border-white/15 text-white transition-colors hover:bg-black/60 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-35 disabled:cursor-not-allowed';
+  'w-11 h-11 inline-flex items-center justify-center rounded-full text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.65))] transition-colors hover:bg-white/10 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/60 disabled:opacity-35 disabled:cursor-not-allowed';
+
+const chip =
+  'max-w-full min-h-11 px-3.5 inline-flex items-center gap-1.5 rounded-full bg-black/55 border border-white/15 text-sm font-semibold text-white outline-none focus-visible:ring-2 focus-visible:ring-white/40';
 
 /**
  * The controls laid over the story canvas: close at the top left, undo and
@@ -35,6 +41,7 @@ export default function StoryComposerChrome({
   onSelectTab,
   hidden,
   pointerArmed,
+  share,
 }: StoryComposerChromeProps) {
   const { t } = useTranslation();
 
@@ -57,7 +64,12 @@ export default function StoryComposerChrome({
         </button>
       </div>
 
-      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-auto">
+      {/* Undo and redo show once there is something to undo or redo. */}
+      <div
+        className={`absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1 pointer-events-auto ${
+          canUndo || canRedo ? '' : 'invisible'
+        }`}
+      >
         <button
           type="button"
           onClick={onUndo}
@@ -79,8 +91,40 @@ export default function StoryComposerChrome({
       </div>
 
       <div className="absolute top-3 right-3 md:right-auto md:left-full md:ml-4 pointer-events-auto">
-        <StoryToolRail activeTab={activeTab} onSelectTab={onSelectTab} />
+        <StoryToolRail
+          activeTab={activeTab}
+          onSelectTab={onSelectTab}
+          share={share}
+        />
       </div>
+
+      {share && (share.musicTitle || share.placeName) ? (
+        // What was chosen for the story, at the bottom left; a tap changes it.
+        <div className="absolute bottom-3 left-3 right-16 flex flex-col items-start gap-2 pointer-events-auto">
+          {share.musicTitle ? (
+            <button
+              type="button"
+              onClick={share.onOpenMusic}
+              className={chip}
+              aria-label={`${t('createPost.story.add_music')}: ${share.musicTitle}`}
+            >
+              <Music size={14} aria-hidden />
+              <span className="truncate">{share.musicTitle}</span>
+            </button>
+          ) : null}
+          {share.placeName ? (
+            <button
+              type="button"
+              onClick={share.onOpenPlace}
+              className={chip}
+              aria-label={`${t('createPost.story.add_location')}: ${share.placeName}`}
+            >
+              <MapPin size={14} aria-hidden />
+              <span className="truncate">{share.placeName}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

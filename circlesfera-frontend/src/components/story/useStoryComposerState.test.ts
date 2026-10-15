@@ -425,8 +425,27 @@ describe('useStoryComposerState', () => {
         backgroundUrl: null,
         bgStyle: GRADIENTS[0],
         elementCount: 1,
-        onPost,
+        onPost: expect.any(Function),
       });
+      // The picture reaches the owner with the audience it is shared to.
+      const blob = new Blob(['png']);
+      const handOver = vi.mocked(exportStoryCanvas).mock.calls[0][0].onPost;
+      await handOver(blob, { width: 360, height: 640 });
+      expect(onPost).toHaveBeenCalledWith(
+        blob,
+        { width: 360, height: 640 },
+        undefined,
+      );
+      await act(() => result.current.handlePost('close_friends'));
+      await vi.mocked(exportStoryCanvas).mock.calls[1][0].onPost(blob, {
+        width: 360,
+        height: 640,
+      });
+      expect(onPost).toHaveBeenLastCalledWith(
+        blob,
+        { width: 360, height: 640 },
+        'close_friends',
+      );
       // Nothing stays selected, so no selection frame ends up in the image.
       expect(result.current.selectedElementId).toBeNull();
       expect(result.current.isExporting).toBe(false);

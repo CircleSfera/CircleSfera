@@ -13,6 +13,7 @@ import { useStoryGestures } from './useStoryGestures';
 
 export interface StoryComposerStageProps {
   stagePadClass: string;
+  stageFitClass: string;
   cardSizeClass: string;
   panelOpen: boolean;
   textTakeoverActive: boolean;
@@ -76,7 +77,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
   return (
     <div
       // The canvas is sized from this stage with container units.
-      className={`relative flex-1 min-h-0 w-full flex items-start md:items-center justify-center md:px-10 [container-type:size] transition-[padding] duration-200 ${p.stagePadClass}`}
+      className={`relative w-full flex items-start md:items-center justify-center md:px-10 transition-[padding] duration-200 ${p.stageFitClass} ${p.stagePadClass}`}
       onPointerDown={(e) => {
         if (e.target === e.currentTarget && !p.textTakeoverActive) {
           p.setSelectedElementId(null);

@@ -18,16 +18,22 @@ import {
 } from './storyComposer.export';
 import {
   getStoryCardSizeClass,
+  getStoryStageFitClass,
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
+import type { StoryAudience } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
 import { useStoryTextTakeover } from './useStoryTextTakeover';
 
 export function useStoryComposerState(props: {
   initialMedia?: File | null;
-  onPost: (blob: Blob, canvas: StoryCanvasSize) => void;
+  onPost: (
+    blob: Blob,
+    canvas: StoryCanvasSize,
+    audience?: StoryAudience,
+  ) => void;
   onClose: () => void;
   elements?: StoryElement[];
   bgStyle?: string;
@@ -193,7 +199,8 @@ export function useStoryComposerState(props: {
     setActiveTab('none');
   };
 
-  const handlePost = async () => {
+  /** Exports the story; with an audience, it is shared to it right away. */
+  const handlePost = async (audience?: StoryAudience) => {
     if (!containerRef.current) return;
     setIsExporting(true);
     setSelectedElementId(null);
@@ -203,7 +210,7 @@ export function useStoryComposerState(props: {
         backgroundUrl: bg.backgroundUrl,
         bgStyle: bg.bgStyle,
         elementCount: elements.length,
-        onPost,
+        onPost: (blob, canvas) => onPost(blob, canvas, audience),
       });
     } catch (err: unknown) {
       reportStoryExportError(err);
@@ -223,7 +230,10 @@ export function useStoryComposerState(props: {
     !textTakeoverActive &&
     selectedElement?.type !== 'text';
   const stagePadClass = getStoryStagePadClass({ textTakeoverActive });
-  const cardSizeClass = getStoryCardSizeClass();
+  // The canvas fills the free height while a panel or text mode needs room.
+  const stageFill = panelOpen || textTakeoverActive;
+  const cardSizeClass = getStoryCardSizeClass(stageFill);
+  const stageFitClass = getStoryStageFitClass(stageFill);
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 
   return {
@@ -292,6 +302,7 @@ export function useStoryComposerState(props: {
     editingElement,
     stagePadClass,
     cardSizeClass,
+    stageFitClass,
     canUndo,
     canRedo,
     canPost,

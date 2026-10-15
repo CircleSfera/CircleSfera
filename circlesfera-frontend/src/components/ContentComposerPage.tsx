@@ -200,6 +200,15 @@ export default function ContentComposerPage() {
       <ComposerProvider value={composer}>
         <SEO title={documentTitle} noIndex />
         {editorOverlay}
+        {/* Music, place and close friends open over the story editor, which
+            stays as it is underneath. */}
+        {showStoryComposer && subScreen !== 'none' ? (
+          <div className="beside-sidebar fixed inset-0 z-60 flex items-center justify-center bg-black/80">
+            <ComposerChrome size="fit">
+              <SubScreenRouter clipWindowMs={clipWindowMs} />
+            </ComposerChrome>
+          </div>
+        ) : null}
       </ComposerProvider>
     );
 

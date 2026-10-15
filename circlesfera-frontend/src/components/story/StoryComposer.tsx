@@ -6,11 +6,18 @@ import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
 import type { StoryCanvasSize } from './storyComposer.export';
+import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryComposerState } from './useStoryComposerState';
 
 interface StoryComposerProps {
   initialMedia?: File | null;
-  onPost: (blob: Blob, canvas: StoryCanvasSize) => void;
+  onPost: (
+    blob: Blob,
+    canvas: StoryCanvasSize,
+    audience?: StoryAudience,
+  ) => void;
+  /** Share from the editor; without it the editor ends with "Listo". */
+  share?: StoryShareOptions;
   onClose: () => void;
   elements?: StoryElement[];
   bgStyle?: string;
@@ -24,10 +31,13 @@ export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
 
   return (
-    <div className={`${CREATE_FULL_SCREEN} font-sans flex flex-col`}>
+    <div
+      className={`${CREATE_FULL_SCREEN} font-sans flex flex-col md:justify-center`}
+    >
       <BrandAmbientBackground placement="editor" />
       <StoryComposerStage
         stagePadClass={s.stagePadClass}
+        stageFitClass={s.stageFitClass}
         cardSizeClass={s.cardSizeClass}
         panelOpen={s.panelOpen}
         textTakeoverActive={s.textTakeoverActive}
@@ -75,6 +85,7 @@ export default function StoryComposer(props: StoryComposerProps) {
               onSelectTab={s.handleSelectTab}
               hidden={s.draggingLayer}
               pointerArmed={s.chromePointerArmed}
+              share={props.share}
             />
           )
         }
@@ -84,6 +95,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         <StoryComposerShellChrome
           chromePointerArmed={s.chromePointerArmed}
           handlePost={s.handlePost}
+          share={props.share}
           canPost={s.canPost}
           isExporting={s.isExporting}
           panelOpen={s.panelOpen}

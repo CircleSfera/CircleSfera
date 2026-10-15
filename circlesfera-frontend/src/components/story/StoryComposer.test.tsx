@@ -245,6 +245,84 @@ describe('StoryComposer', () => {
     );
   });
 
+  describe('sharing from the editor', () => {
+    const share = (over = {}) => ({
+      closeFriendsCount: 2,
+      onManageCloseFriends: vi.fn(),
+      isSharing: false,
+      musicTitle: null,
+      onOpenMusic: vi.fn(),
+      placeName: null,
+      onOpenPlace: vi.fn(),
+      ...over,
+    });
+
+    it('shares to your story or to close friends in one tap, instead of "Listo"', async () => {
+      vi.mocked(exportStoryCanvas).mockImplementation(async (o) => {
+        await o.onPost(new Blob(['png']), { width: 360, height: 640 });
+      });
+      const { onPost } = renderComposer({ share: share() });
+      expect(
+        screen.queryByRole('button', { name: 'Listo' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Tu historia' }));
+      await waitFor(() =>
+        expect(onPost).toHaveBeenLastCalledWith(
+          expect.any(Blob),
+          { width: 360, height: 640 },
+          'everyone',
+        ),
+      );
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mejores amigos' }));
+      await waitFor(() =>
+        expect(onPost).toHaveBeenLastCalledWith(
+          expect.any(Blob),
+          { width: 360, height: 640 },
+          'close_friends',
+        ),
+      );
+    });
+
+    it('opens the close friends list when it is empty, instead of sharing', () => {
+      const options = share({ closeFriendsCount: 0 });
+      const { onPost } = renderComposer({ share: options });
+
+      fireEvent.click(screen.getByRole('button', { name: 'Mejores amigos' }));
+
+      expect(options.onManageCloseFriends).toHaveBeenCalled();
+      expect(onPost).not.toHaveBeenCalled();
+    });
+
+    it('keeps both buttons busy while the story is being shared', () => {
+      renderComposer({ share: share({ isSharing: true }) });
+
+      expect(
+        screen.getByRole('button', { name: 'Tu historia' }),
+      ).toBeDisabled();
+      expect(
+        screen.getByRole('button', { name: 'Mejores amigos' }),
+      ).toBeDisabled();
+    });
+
+    it('has music and place among the tools, and shows what was chosen on the story', () => {
+      const options = share({ musicTitle: 'Song', placeName: 'Madrid' });
+      renderComposer({ share: options });
+
+      expect(tool('Añadir música')).toHaveAttribute('aria-pressed', 'true');
+      expect(tool('Añadir lugar')).toHaveAttribute('aria-pressed', 'true');
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Añadir lugar: Madrid' }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Añadir música: Song' }),
+      );
+      expect(options.onOpenPlace).toHaveBeenCalled();
+      expect(options.onOpenMusic).toHaveBeenCalled();
+    });
+  });
+
   describe('background panel', () => {
     it('names each background and marks the chosen one', () => {
       const onBgStyleChange = vi.fn();

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoryElement } from '../../types';
 import {
   getStoryCardSizeClass,
+  getStoryStageFitClass,
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import { getTextStyleCSS, neonTextShadow } from './storyTextStyles';
@@ -121,10 +122,21 @@ describe('story stage space', () => {
     expect(text).toContain('pb-[calc(4.25rem');
   });
 
-  it('sizes the canvas 9:16 from the space of its stage, at most 600 px tall on desktop', () => {
-    const size = getStoryCardSizeClass();
-    expect(size).toContain('aspect-9/16');
-    expect(size).toContain('w-[min(100cqw,calc(100cqh*9/16))]');
-    expect(size).toContain('min(100cqh,600px)');
+  it('sizes the canvas 9:16: at rest from the screen, with a panel from the free height, at most 600 px tall on desktop', () => {
+    const rest = getStoryCardSizeClass(false);
+    const fill = getStoryCardSizeClass(true);
+    for (const size of [rest, fill]) {
+      expect(size).toContain('aspect-9/16');
+    }
+    expect(rest).toContain('100dvh-6.5rem');
+    // 600 px tall on desktop: 337.5 px wide.
+    expect(rest).toContain('md:w-[min(337.5px');
+    expect(fill).toContain('min(100cqh,600px)');
+    expect(fill).toContain('w-[min(100cqw,calc(100cqh*9/16))]');
+  });
+
+  it('lets the stage take the free height only with a panel or text mode', () => {
+    expect(getStoryStageFitClass(true)).toContain('flex-1');
+    expect(getStoryStageFitClass(false)).toBe('shrink-0');
   });
 });

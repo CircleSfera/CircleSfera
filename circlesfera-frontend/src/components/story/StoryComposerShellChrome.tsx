@@ -5,12 +5,15 @@ import { EditorHeaderAction } from '../create-post/EditorHeader';
 import type { StoryCanvasRef } from './Editor/StoryCanvas';
 import StoryDockContent from './panels/StoryDockContent';
 import StoryPanelSheet from './StoryPanelSheet';
+import StoryShareRow from './StoryShareRow';
 import type { StoryTemplate } from './storyComposer.constants';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
+import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 
 interface StoryComposerShellChromeProps {
   chromePointerArmed: boolean;
-  handlePost: () => void;
+  handlePost: (audience?: StoryAudience) => void;
+  share?: StoryShareOptions;
   canPost: boolean;
   isExporting: boolean;
   panelOpen: boolean;
@@ -68,7 +71,15 @@ export default function StoryComposerShellChrome(
   const { t } = useTranslation();
 
   return (
-    <div className="relative z-40 shrink-0 w-full flex flex-col items-center">
+    // At rest it takes what the canvas leaves and holds the share row in its
+    // middle; with a panel open it is as tall as the panel.
+    <div
+      className={`relative z-40 w-full flex flex-col items-center ${
+        p.panelOpen
+          ? 'shrink-0'
+          : 'flex-1 min-h-24 justify-center md:flex-none md:min-h-0'
+      }`}
+    >
       {p.panelOpen ? (
         <div className="flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-surface-elevated md:max-w-md">
           <StoryPanelSheet open>
@@ -121,13 +132,22 @@ export default function StoryComposerShellChrome(
           p.panelOpen ? 'bg-surface-elevated md:bg-transparent' : ''
         } ${p.chromePointerArmed ? '' : 'pointer-events-none'}`}
       >
-        <EditorHeaderAction
-          label={t('createPost.storyComposer.post')}
-          onClick={p.handlePost}
-          disabled={!p.canPost}
-          isPending={p.isExporting}
-          withCheck
-        />
+        {p.share ? (
+          <StoryShareRow
+            share={p.share}
+            canPost={p.canPost}
+            isExporting={p.isExporting}
+            onShare={p.handlePost}
+          />
+        ) : (
+          <EditorHeaderAction
+            label={t('createPost.storyComposer.post')}
+            onClick={() => p.handlePost()}
+            disabled={!p.canPost}
+            isPending={p.isExporting}
+            withCheck
+          />
+        )}
       </div>
     </div>
   );
