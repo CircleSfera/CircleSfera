@@ -60,9 +60,8 @@ describe('what each sticker holds', () => {
     expect(parseStickerSettings('MENTION', { profileId: 'p-1' })).toEqual({
       profileId: 'p-1',
     });
-    expect(parseStickerSettings('LOCATION', { placeId: 'pl-1' })).toEqual({
-      placeId: 'pl-1',
-    });
+    // A location holds nothing from the client: it is the story's place.
+    expect(parseStickerSettings('LOCATION', { placeId: 'pl-1' })).toEqual({});
     expect(parseStickerSettings('HASHTAG', { tag: '#Verano_2026' })).toEqual({
       tag: 'Verano_2026',
     });

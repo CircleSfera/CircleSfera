@@ -13,6 +13,7 @@ export type Notice =
   | { key: 'comment_replied' }
   | { key: 'mentioned_in_comment' }
   | { key: 'mentioned_in_post' }
+  | { key: 'mentioned_in_story' }
   | { key: 'followed' }
   | { key: 'follow_requested' }
   | { key: 'follow_accepted' }
@@ -197,6 +198,8 @@ function renderEn(n: Notice): string {
       return 'mentioned you in a comment';
     case 'mentioned_in_post':
       return 'mentioned you in a post';
+    case 'mentioned_in_story':
+      return 'mentioned you in their story';
     case 'followed':
       return 'started following you';
     case 'follow_requested':
@@ -307,6 +310,8 @@ function renderEs(n: Notice): string {
       return 'te ha mencionado en un comentario';
     case 'mentioned_in_post':
       return 'te ha mencionado en una publicación';
+    case 'mentioned_in_story':
+      return 'te ha mencionado en su historia';
     case 'followed':
       return 'ha empezado a seguirte';
     case 'follow_requested':

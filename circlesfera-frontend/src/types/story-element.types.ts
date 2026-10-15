@@ -4,7 +4,16 @@
  */
 export interface StoryElement {
   id: string;
-  type: 'text' | 'sticker' | 'poll' | 'qna' | 'quiz' | 'slider' | 'hashtag';
+  type:
+    | 'text'
+    | 'sticker'
+    | 'poll'
+    | 'qna'
+    | 'quiz'
+    | 'slider'
+    | 'hashtag'
+    | 'mention'
+    | 'location';
   content: string;
   x: number;
   y: number;

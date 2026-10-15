@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
 import {
+  AtSign,
   BadgeCheck,
   BarChart2,
   Hash,
   HelpCircle,
   type LucideIcon,
+  MapPin,
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
@@ -24,6 +26,8 @@ const INTERACTIVE: {
   { tab: 'quiz', icon: BadgeCheck, labelKey: 'tool_quiz' },
   { tab: 'slider', icon: SlidersHorizontal, labelKey: 'tool_slider' },
   { tab: 'hashtag', icon: Hash, labelKey: 'tool_hashtag' },
+  { tab: 'mention', icon: AtSign, labelKey: 'tool_mention' },
+  { tab: 'location', icon: MapPin, labelKey: 'tool_location' },
 ];
 
 export interface StoryStickersPanelProps {
@@ -32,6 +36,8 @@ export interface StoryStickersPanelProps {
   onAddSticker: (sticker: string) => void;
   /** Opens the setup of an interactive sticker. */
   onOpenSticker: (tab: StoryComposerTab) => void;
+  /** The story can carry a place: the editor shares it itself. */
+  canPlace?: boolean;
 }
 
 const fold = (text: string) =>
@@ -42,20 +48,23 @@ const fold = (text: string) =>
 
 /**
  * The sticker tray: a search field, the interactive stickers (poll,
- * questions, quiz, slider, hashtag), then the emoji by category.
+ * questions, quiz, slider, hashtag, mention and, when the editor shares the
+ * story, location), then the emoji by category.
  */
 export default function StoryStickersPanel({
   activeStickerCategory,
   onActiveStickerCategoryChange,
   onAddSticker,
   onOpenSticker,
+  canPlace = false,
 }: StoryStickersPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const q = fold(query.trim());
   const interactive = INTERACTIVE.filter(
-    ({ labelKey }) =>
-      !q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q),
+    ({ tab, labelKey }) =>
+      (canPlace || tab !== 'location') &&
+      (!q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q)),
   );
   const categoryName = (label: string) =>
     t(`createPost.storyComposer.sticker_categories.${label.toLowerCase()}`, {

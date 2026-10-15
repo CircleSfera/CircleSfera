@@ -97,8 +97,9 @@ describe('StoriesService', () => {
         {
           provide: StoryStickersService,
           useValue: {
-            createForStory: vi.fn(async () => undefined),
+            createForStory: vi.fn(async (): Promise<string[]> => []),
             forFeed: vi.fn((stickers: unknown[] = []) => stickers),
+            mentionNames: vi.fn(async () => new Map()),
           },
         },
       ],
@@ -234,7 +235,87 @@ describe('StoriesService', () => {
         'story-1',
         'user-1',
         [poll],
+        null,
       );
+    });
+
+    describe('a mention on the story', () => {
+      const mentionOf = (profileId: string) => ({
+        kind: 'MENTION' as const,
+        settings: { profileId },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      });
+
+      beforeEach(() => {
+        mockPrismaService.story.create.mockResolvedValue({
+          id: 'story-1',
+          url: 'https://cdn.example.com/story.png',
+        } as unknown as Story);
+      });
+
+      it('tells the person mentioned, linked to the story, when they can see it', async () => {
+        const stickers = module.get(StoryStickersService);
+        vi.mocked(stickers.createForStory).mockResolvedValueOnce(['p-ana']);
+        mockPrismaService.story.findUnique.mockResolvedValueOnce({
+          profileId: 'user-1',
+          expiresAt: new Date(Date.now() + 3_600_000),
+          isCloseFriendsOnly: false,
+          profile: { privacyLevel: 'PUBLIC' },
+        });
+
+        await service.create('user-1', {
+          url: 'https://cdn.example.com/story.png',
+          stickers: [mentionOf('p-ana')],
+        });
+
+        expect(eventEmitter.emit).toHaveBeenCalledWith('notification.create', {
+          recipientId: 'p-ana',
+          senderId: 'user-1',
+          type: 'MENTION',
+          notice: { key: 'mentioned_in_story' },
+          targetType: 'story',
+          targetId: 'story-1',
+        });
+      });
+
+      it('tells no one who cannot see the story', async () => {
+        const stickers = module.get(StoryStickersService);
+        vi.mocked(stickers.createForStory).mockResolvedValueOnce(['p-out']);
+        // Close friends only, and the person is not on the list.
+        mockPrismaService.story.findUnique.mockResolvedValueOnce({
+          profileId: 'user-1',
+          expiresAt: new Date(Date.now() + 3_600_000),
+          isCloseFriendsOnly: true,
+          profile: { privacyLevel: 'PUBLIC' },
+        });
+        mockPrismaService.closeFriend.findUnique.mockResolvedValueOnce(null);
+
+        await service.create('user-1', {
+          url: 'https://cdn.example.com/story.png',
+          stickers: [mentionOf('p-out')],
+        });
+
+        expect(eventEmitter.emit).not.toHaveBeenCalledWith(
+          'notification.create',
+          expect.anything(),
+        );
+      });
+
+      it('tells no one while the story is scheduled', async () => {
+        const stickers = module.get(StoryStickersService);
+        vi.mocked(stickers.createForStory).mockResolvedValueOnce(['p-ana']);
+
+        await service.create('user-1', {
+          url: 'https://cdn.example.com/story.png',
+          scheduledAt: new Date(Date.now() + 1_000_000),
+          stickers: [mentionOf('p-ana')],
+        });
+
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+      });
     });
 
     it('creates scheduled story without queuing immediate moderation', async () => {
@@ -346,6 +427,38 @@ describe('StoriesService', () => {
         stickerRotation: 5,
       });
       expect(story.qnaBox).toBeNull();
+    });
+
+    it('names the people mentioned and the place of each story, for the viewer', async () => {
+      const stickers = module.get(StoryStickersService);
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      const mention = { id: 'st-m', kind: 'MENTION', settings: {} };
+      mockPrismaService.story.findMany.mockResolvedValue([
+        {
+          id: 's-1',
+          profileId: 'user-2',
+          isCloseFriendsOnly: false,
+          place: { name: 'Madrid' },
+          stickers: [mention],
+        },
+        { id: 's-2', profileId: 'user-2', isCloseFriendsOnly: false },
+      ]);
+      const usernames = new Map([['p-ana', 'ana']]);
+      vi.mocked(stickers.mentionNames).mockResolvedValueOnce(usernames);
+
+      await service.findAll('user-1');
+
+      expect(stickers.mentionNames).toHaveBeenCalledWith([mention], 'user-1');
+      expect(stickers.forFeed).toHaveBeenCalledWith([mention], false, {
+        usernames,
+        placeName: 'Madrid',
+      });
+      expect(stickers.forFeed).toHaveBeenCalledWith([], false, {
+        usernames,
+        placeName: null,
+      });
     });
 
     it('should allow viewing own close friends story', async () => {

@@ -7,8 +7,12 @@ import {
   isLiveElement,
   isPollElement,
   isQnaElement,
+  LocationStickerPreview,
+  MentionStickerPreview,
   PollStickerPreview,
   parseHashtagPayload,
+  parseLocationPayload,
+  parseMentionPayload,
   parsePollPayload,
   parseQnaPayload,
   parseQuizPayload,
@@ -52,9 +56,11 @@ export default function DraggableStoryElement({
   const quiz = parseQuizPayload(el);
   const slider = parseSliderPayload(el);
   const hashtag = parseHashtagPayload(el);
+  const mention = parseMentionPayload(el);
+  const location = parseLocationPayload(el);
   // Live on the story, not painted into its picture.
   const isLive = isLiveElement(el);
-  // At the width of a sticker; a hashtag takes its own width.
+  // At the width of a sticker; a hashtag, a mention or a place takes its own.
   const isInteractive = Boolean(poll || qna || quiz || slider);
   const canvasWidth = useStoryCanvasWidth(containerRef);
   const interactivePx =
@@ -104,6 +110,10 @@ export default function DraggableStoryElement({
         />
       ) : hashtag ? (
         <HashtagStickerPreview tag={hashtag.tag} />
+      ) : mention ? (
+        <MentionStickerPreview username={mention.username} />
+      ) : location ? (
+        <LocationStickerPreview name={location.name} />
       ) : qna ? (
         <QnaStickerPreview
           prompt={qna.prompt}

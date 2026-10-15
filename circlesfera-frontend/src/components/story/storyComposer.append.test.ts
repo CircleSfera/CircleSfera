@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { StoryElement } from '../../types';
 import {
   buildHashtagElement,
+  buildLocationElement,
+  buildMentionElement,
   buildPollElement,
   buildQnaElement,
   buildQuizElement,
@@ -21,10 +23,13 @@ import {
   isPollElement,
   isQnaElement,
   parseHashtagPayload,
+  parseLocationPayload,
+  parseMentionPayload,
   parsePollPayload,
   parseQnaPayload,
   parseQuizPayload,
   parseSliderPayload,
+  stickersFromElements,
 } from './storyInteractive';
 
 describe('story elements built from the panels', () => {
@@ -190,5 +195,50 @@ describe('story elements built from the panels', () => {
     expect(parsePollPayload(JSON.stringify({ prompt: 'x' }))).toBeNull();
     expect(parseQnaPayload('not json')).toBeNull();
     expect(parseQnaPayload(JSON.stringify({ question: 'x' }))).toBeNull();
+  });
+});
+
+describe('mentions and places', () => {
+  const canvas = { width: 400, height: 800 };
+
+  it('are pills with free sizes, live on the story and never answered', () => {
+    const mention = buildMentionElement({ id: 'p-ana', username: 'ana' });
+    const place = buildLocationElement('Madrid');
+
+    expect(parseMentionPayload(mention)).toEqual({
+      profileId: 'p-ana',
+      username: 'ana',
+    });
+    expect(parseLocationPayload(place)).toEqual({ name: 'Madrid' });
+    for (const el of [mention, place]) {
+      expect(isLiveElement(el)).toBe(true);
+      expect(isAnswerableElement(el)).toBe(false);
+      expect(isPollElement(el)).toBe(false);
+    }
+    expect(parseMentionPayload({ ...mention, content: '{}' })).toBeNull();
+    expect(parseLocationPayload({ ...place, content: 'x' })).toBeNull();
+    expect(parseMentionPayload(place)).toBeNull();
+  });
+
+  it('go with the story as the profile mentioned and one place, which the server fills', () => {
+    const big = {
+      ...buildMentionElement({ id: 'p-ana', username: 'ana' }),
+      scale: 4,
+    };
+    const place = buildLocationElement('Madrid');
+
+    const stickers = stickersFromElements(
+      [big, place, { ...place, id: 'copy' }],
+      canvas,
+    );
+
+    expect(stickers).toEqual([
+      expect.objectContaining({
+        kind: 'MENTION',
+        settings: { profileId: 'p-ana' },
+        scale: 4,
+      }),
+      expect.objectContaining({ kind: 'LOCATION', settings: {} }),
+    ]);
   });
 });

@@ -126,6 +126,38 @@ export function buildHashtagElement(raw: string): StoryElement | null {
   };
 }
 
+/** A pill with free sizes, as a hashtag, a mention or a place. */
+const pillElement = (
+  type: 'mention' | 'location',
+  content: object,
+): StoryElement => ({
+  id: crypto.randomUUID(),
+  type,
+  content: JSON.stringify(content),
+  x: 0,
+  y: 0,
+  scale: 1.2,
+  rotation: 0,
+  align: 'center',
+  opacity: 1,
+});
+
+/** A mention of a profile, opened by viewers from the story. */
+export function buildMentionElement(profile: {
+  id: string;
+  username: string;
+}): StoryElement {
+  return pillElement('mention', {
+    profileId: profile.id,
+    username: profile.username,
+  });
+}
+
+/** The place of the story, by its name; the server gives it the place. */
+export function buildLocationElement(name: string): StoryElement {
+  return pillElement('location', { name });
+}
+
 export function buildQnaElement(promptRaw: string): StoryElement | null {
   const prompt = promptRaw.trim();
   if (!prompt) return null;

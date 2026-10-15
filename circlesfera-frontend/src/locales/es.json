@@ -1604,6 +1604,8 @@
       "tool_quiz": "Quiz",
       "tool_slider": "Deslizador",
       "tool_hashtag": "Hashtag",
+      "tool_mention": "Mención",
+      "tool_location": "Ubicación",
       "stickers_search": "Buscar stickers",
       "stickers_interactive": "Interactivos",
       "stickers_no_results": "No hay stickers con ese nombre",
@@ -1623,6 +1625,15 @@
       "hashtag_ph": "hashtag",
       "hashtag_invalid": "Solo letras, números y _",
       "add_hashtag": "Añadir hashtag",
+      "mention_create_hint": "La persona que menciones recibe un aviso",
+      "mention_search": "Buscar personas",
+      "mention_no_results": "No hay nadie con ese nombre",
+      "location_create_hint": "El lugar de tu historia, en el mapa",
+      "location_choose": "Elegir lugar",
+      "location_change": "Cambiar lugar",
+      "location_placeholder": "Ubicación",
+      "location_on_story": "Tu historia ya muestra su lugar",
+      "add_location_sticker": "Añadir sticker de ubicación",
       "drop_to_delete": "Suelta aquí para borrar",
       "sticker_categories": {
         "popular": "Populares",
@@ -1803,6 +1814,7 @@
       "follow": "ha comenzado a seguirte.",
       "comment": "ha comentado en tu publicación.",
       "mention": "te ha mencionado en un comentario.",
+      "mention_story": "te ha mencionado en su historia.",
       "follow_request": "ha solicitado seguirte.",
       "follow_accepted": "ha aceptado tu solicitud de seguimiento.",
       "moderation": "Actualización de moderación: {{content}}",
@@ -5009,6 +5021,12 @@
     },
     "hashtag": {
       "open": "Abrir #{{tag}}"
+    },
+    "mention": {
+      "open": "Abrir el perfil de @{{username}}"
+    },
+    "location": {
+      "open": "Ver {{name}} en el mapa"
     }
   },
   "create_menu": {

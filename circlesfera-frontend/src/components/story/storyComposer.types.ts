@@ -11,6 +11,8 @@ export type StoryComposerTab =
   | 'quiz'
   | 'slider'
   | 'hashtag'
+  | 'mention'
+  | 'location'
   | 'draw';
 
 export type PanelTab = 'style' | 'transform' | 'layers';

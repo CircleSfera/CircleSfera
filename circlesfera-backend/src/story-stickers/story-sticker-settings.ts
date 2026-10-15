@@ -20,7 +20,7 @@ export type StickerSettings =
   | { prompt: string } // QUESTION
   | { question: string; emoji: string } // SLIDER
   | { profileId: string } // MENTION
-  | { placeId: string } // LOCATION
+  | { placeId?: string } // LOCATION: the story's place, set by the service
   | { tag: string }; // HASHTAG
 
 const fail = (message: string): never => {
@@ -51,8 +51,8 @@ const options = (value: unknown) => {
 
 /**
  * Checks what a sticker of a kind holds and keeps only that, trimmed. A
- * mention names a profile and a location a place; whether they exist is
- * checked by the service.
+ * mention names a profile, whose existence the service checks; a location
+ * holds nothing from the client, as the service gives it the story's place.
  */
 export function parseStickerSettings(
   kind: StoryStickerKind,
@@ -95,7 +95,7 @@ export function parseStickerSettings(
     case 'MENTION':
       return { profileId: text(s.profileId, 'profileId', 64) };
     case 'LOCATION':
-      return { placeId: text(s.placeId, 'placeId', 64) };
+      return {};
     case 'HASHTAG': {
       const tag = text(s.tag, 'tag', STICKER_LIMITS.tagMax + 1).replace(
         /^#/,

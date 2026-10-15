@@ -22,7 +22,7 @@ import {
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
-import type { StoryAudience } from './storyShare.types';
+import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
 import { useStoryTextTakeover } from './useStoryTextTakeover';
@@ -40,6 +40,8 @@ export function useStoryComposerState(props: {
   onElementsChange?: (elements: StoryElement[]) => void;
   onBgStyleChange?: (style: string) => void;
   onBackgroundChange?: (file: File) => void;
+  /** Sharing from the editor; its place is the location sticker's. */
+  share?: StoryShareOptions;
 }) {
   const { t } = useTranslation();
   const {
@@ -127,6 +129,27 @@ export function useStoryComposerState(props: {
     disarmChromeBriefly,
     updateElement,
   });
+
+  // The location sticker is the place of the story: it shows the place's
+  // name, and goes when the place is taken off.
+  const sharing = Boolean(props.share);
+  const placeName = props.share?.placeStickerName ?? null;
+  useEffect(() => {
+    if (!sharing) return;
+    changeElements((current) => {
+      if (!current.some((el) => el.type === 'location')) return current;
+      if (!placeName) return current.filter((el) => el.type !== 'location');
+      const content = JSON.stringify({ name: placeName });
+      if (
+        current.every((el) => el.type !== 'location' || el.content === content)
+      ) {
+        return current;
+      }
+      return current.map((el) =>
+        el.type === 'location' ? { ...el, content } : el,
+      );
+    });
+  }, [sharing, placeName, changeElements]);
 
   const removeElement = (id: string) => {
     const wasSelected = selectedElementId === id;

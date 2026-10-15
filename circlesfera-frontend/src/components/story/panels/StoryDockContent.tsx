@@ -8,6 +8,8 @@ import StoryBackgroundPanel from './StoryBackgroundPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
 import StoryHashtagPanel from './StoryHashtagPanel';
+import StoryLocationPanel from './StoryLocationPanel';
+import StoryMentionPanel from './StoryMentionPanel';
 import StoryPollPanel from './StoryPollPanel';
 import StoryQnaPanel from './StoryQnaPanel';
 import StoryQuizPanel from './StoryQuizPanel';
@@ -57,6 +59,8 @@ export interface StoryDockContentProps {
   onQnaPromptChange: (value: string) => void;
   onAddQna: () => void;
   onApplyTemplate: (template: StoryTemplate) => void;
+  /** The place of the story, when the editor shares it itself. */
+  place?: { name: string | null; onOpen: () => void };
 }
 
 export default function StoryDockContent({
@@ -99,6 +103,7 @@ export default function StoryDockContent({
   onQnaPromptChange,
   onAddQna,
   onApplyTemplate,
+  place,
 }: StoryDockContentProps) {
   return (
     <AnimatePresence mode="wait">
@@ -149,6 +154,7 @@ export default function StoryDockContent({
           onActiveStickerCategoryChange={onActiveStickerCategoryChange}
           onAddSticker={onAddSticker}
           onOpenSticker={onOpenTab}
+          canPlace={Boolean(place)}
         />
       )}
 
@@ -180,6 +186,19 @@ export default function StoryDockContent({
 
       {!selectedElementId && activeTab === 'hashtag' && (
         <StoryHashtagPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'mention' && (
+        <StoryMentionPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'location' && place && (
+        <StoryLocationPanel
+          placeName={place.name}
+          onOpenPlace={place.onOpen}
+          onStory={elements.some((el) => el.type === 'location')}
+          onAdd={onAddElement}
+        />
       )}
 
       {!selectedElementId && activeTab === 'templates' && (

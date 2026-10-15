@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   BarChart2,
   HelpCircle,
+  MapPin,
   SlidersHorizontal,
 } from 'lucide-react';
 import type React from 'react';
@@ -34,6 +35,8 @@ export type QuizPayload = {
 };
 export type SliderPayload = { question: string; emoji: string };
 export type HashtagPayload = { tag: string };
+export type MentionPayload = { profileId: string; username: string };
+export type LocationPayload = { name: string };
 
 const parseJson = (content: string): Record<string, unknown> | null => {
   try {
@@ -75,10 +78,31 @@ export function parseHashtagPayload(el: StoryElement): HashtagPayload | null {
   return d && typeof d.tag === 'string' ? { tag: d.tag } : null;
 }
 
+export function parseMentionPayload(el: StoryElement): MentionPayload | null {
+  if (el.type !== 'mention') return null;
+  const d = parseJson(el.content);
+  return d && typeof d.profileId === 'string' && typeof d.username === 'string'
+    ? { profileId: d.profileId, username: d.username }
+    : null;
+}
+
+export function parseLocationPayload(el: StoryElement): LocationPayload | null {
+  if (el.type !== 'location') return null;
+  const d = parseJson(el.content);
+  return d && typeof d.name === 'string' ? { name: d.name } : null;
+}
+
+/** Pieces with free sizes that a viewer opens: a hashtag, a mention, a place. */
+const PILL_KINDS: ReadonlySet<string> = new Set([
+  'hashtag',
+  'mention',
+  'location',
+]);
+
 /**
  * Pieces that live on the story instead of in its picture: polls, questions,
- * quizzes, sliders and hashtags. Their sizes are the sizes the server
- * accepts for answerable stickers, except a hashtag.
+ * quizzes, sliders, hashtags, mentions and places. Their sizes are the sizes
+ * the server accepts for answerable stickers, except the pills.
  */
 export function isLiveElement(el: StoryElement): boolean {
   return (
@@ -86,20 +110,24 @@ export function isLiveElement(el: StoryElement): boolean {
     isQnaElement(el) ||
     el.type === 'quiz' ||
     el.type === 'slider' ||
-    el.type === 'hashtag'
+    PILL_KINDS.has(el.type)
   );
 }
 
 /** Answerable pieces keep the sizes of the editor (0.5–1.35). */
 export function isAnswerableElement(el: StoryElement): boolean {
-  return isLiveElement(el) && el.type !== 'hashtag';
+  return isLiveElement(el) && !PILL_KINDS.has(el.type);
 }
 
 /** Width of a sticker at scale 1, as a share of the story canvas. */
 export const INTERACTIVE_WIDTH_PCT = STICKER_WIDTH_PCT;
 
 /** Kinds that carry their own type and are never read by their content. */
-const TYPED_KINDS: ReadonlySet<string> = new Set(['quiz', 'slider', 'hashtag']);
+const TYPED_KINDS: ReadonlySet<string> = new Set([
+  'quiz',
+  'slider',
+  ...PILL_KINDS,
+]);
 
 export function isPollElement(el: StoryElement): boolean {
   const type = String(el.type);
@@ -237,8 +265,9 @@ export function QnaStickerPreview({
 }
 
 /**
- * The stickers a composed story is shared with: its polls and questions,
- * each with where it sits on a canvas of the given size.
+ * The stickers a composed story is shared with, each with where it sits on
+ * a canvas of the given size. A place goes once: the server gives it the
+ * story's place.
  */
 export function stickersFromElements(
   elements: StoryElement[],
@@ -246,6 +275,7 @@ export function stickersFromElements(
 ): StoryStickerInput[] {
   if (!canvas) return [];
   const stickers: StoryStickerInput[] = [];
+  let hasLocation = false;
   for (const el of elements) {
     const place = placementFromElement(
       el,
@@ -277,6 +307,17 @@ export function stickersFromElements(
     const hashtag = parseHashtagPayload(el);
     if (hashtag)
       stickers.push({ kind: 'HASHTAG', settings: hashtag, ...place });
+    const mention = parseMentionPayload(el);
+    if (mention)
+      stickers.push({
+        kind: 'MENTION',
+        settings: { profileId: mention.profileId },
+        ...place,
+      });
+    if (parseLocationPayload(el) && !hasLocation) {
+      hasLocation = true;
+      stickers.push({ kind: 'LOCATION', settings: {}, ...place });
+    }
   }
   return stickers;
 }
@@ -360,12 +401,38 @@ export function SliderStickerPreview({
   );
 }
 
+/** The look of a pill: white, with the text in the brand's gradient. */
+export const PILL =
+  'inline-flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.35)]';
+export const PILL_TEXT =
+  'text-lg font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-brand-primary to-brand-blue';
+
 export function HashtagStickerPreview({ tag }: { tag: string }) {
   return (
-    <div className="pointer-events-none select-none rounded-xl bg-white px-3 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.35)]">
-      <span className="text-lg font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-brand-primary to-brand-blue">
-        #{tag.toUpperCase()}
-      </span>
+    <div className={`${PILL} pointer-events-none select-none`}>
+      <span className={PILL_TEXT}>#{tag.toUpperCase()}</span>
+    </div>
+  );
+}
+
+export function MentionStickerPreview({ username }: { username: string }) {
+  return (
+    <div className={`${PILL} pointer-events-none select-none`}>
+      <span className={PILL_TEXT}>@{username.toUpperCase()}</span>
+    </div>
+  );
+}
+
+export function LocationStickerPreview({ name }: { name: string }) {
+  return (
+    <div className={`${PILL} max-w-[260px] pointer-events-none select-none`}>
+      <MapPin
+        size={18}
+        strokeWidth={2.6}
+        className="shrink-0 text-brand-primary"
+        aria-hidden
+      />
+      <span className={`${PILL_TEXT} truncate`}>{name.toUpperCase()}</span>
     </div>
   );
 }

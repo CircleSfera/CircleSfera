@@ -45,6 +45,31 @@ describe('Notifications written for the reader', () => {
     vi.useRealTimers();
   });
 
+  it('says a mention was in a story when it points at one, once per story', async () => {
+    const inStory = (id: string, targetId: string) =>
+      notice({
+        id,
+        type: 'MENTION',
+        content: 'te ha mencionado en su historia',
+        targetType: 'story',
+        targetId,
+      });
+    show([
+      inStory('n-1', 's-1'),
+      inStory('n-2', 's-2'),
+      notice({ id: 'n-3', type: 'MENTION', content: 'en un comentario' }),
+    ]);
+
+    renderWithProviders(<Notifications />, { lng: 'es' });
+
+    expect(
+      await screen.findAllByText('te ha mencionado en su historia.'),
+    ).toHaveLength(2);
+    expect(
+      screen.getByText('te ha mencionado en un comentario.'),
+    ).toBeInTheDocument();
+  });
+
   it('shows payment notices, which the server writes in the reader language', async () => {
     show([
       notice({

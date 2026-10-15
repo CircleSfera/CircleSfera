@@ -1,11 +1,21 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { searchApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
 import type { StoryElement } from '../../types';
 import StoryComposer from './StoryComposer';
 import { GRADIENTS } from './storyComposer.constants';
 import { exportStoryCanvas } from './storyComposer.export';
 import { parsePollPayload, parseQnaPayload } from './storyInteractive';
+
+vi.mock('../../services', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../services')>();
+  return {
+    ...actual,
+    searchApi: { ...actual.searchApi, searchUsers: vi.fn() },
+  };
+});
 
 vi.mock('./storyComposer.export', async (importOriginal) => ({
   ...(await importOriginal<typeof import('./storyComposer.export')>()),
@@ -332,6 +342,51 @@ describe('StoryComposer', () => {
     });
   });
 
+  it('mentions a person found by their name', async () => {
+    vi.mocked(searchApi.searchUsers).mockResolvedValue({
+      data: [{ id: 'p-ana', username: 'ana', avatar: null }],
+    } as never);
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mención' }));
+    fireEvent.change(
+      screen.getByRole('searchbox', { name: 'Buscar personas' }),
+      { target: { value: '@an' } },
+    );
+
+    fireEvent.click(await screen.findByRole('button', { name: /ana/ }));
+
+    expect(searchApi.searchUsers).toHaveBeenCalledWith('an');
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0]).toMatchObject({
+      type: 'mention',
+      content: JSON.stringify({ profileId: 'p-ana', username: 'ana' }),
+    });
+  });
+
+  it('says when no one has that name', async () => {
+    vi.mocked(searchApi.searchUsers).mockResolvedValue({ data: [] } as never);
+    renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Mención' }));
+    fireEvent.change(
+      screen.getByRole('searchbox', { name: 'Buscar personas' }),
+      { target: { value: 'zz' } },
+    );
+
+    expect(
+      await screen.findByText('No hay nadie con ese nombre'),
+    ).toBeInTheDocument();
+  });
+
+  it('offers a location only when the editor shares the story, as it is the story’s place', () => {
+    renderComposer();
+    fireEvent.click(tool('Stickers'));
+    expect(
+      screen.queryByRole('button', { name: 'Ubicación' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('searches the tray by the name of a sticker or of an emoji category', () => {
     renderComposer();
     fireEvent.click(tool('Stickers'));
@@ -388,6 +443,7 @@ describe('StoryComposer', () => {
       musicTitle: null,
       onOpenMusic: vi.fn(),
       placeName: null,
+      placeStickerName: null,
       onOpenPlace: vi.fn(),
       ...over,
     });
@@ -455,6 +511,108 @@ describe('StoryComposer', () => {
       );
       expect(options.onOpenPlace).toHaveBeenCalled();
       expect(options.onOpenMusic).toHaveBeenCalled();
+    });
+  });
+
+  describe('the location sticker', () => {
+    /** The editor in its screen, whose place picker sets Madrid. */
+    function Sharing({
+      initialPlace = null,
+      onElementsChange,
+    }: {
+      initialPlace?: string | null;
+      onElementsChange: (elements: StoryElement[]) => void;
+    }) {
+      const [placeName, setPlaceName] = useState<string | null>(initialPlace);
+      return (
+        <>
+          <button type="button" onClick={() => setPlaceName(null)}>
+            quitar lugar
+          </button>
+          <StoryComposer
+            onPost={vi.fn()}
+            onClose={vi.fn()}
+            onElementsChange={onElementsChange}
+            share={{
+              closeFriendsCount: 0,
+              onManageCloseFriends: vi.fn(),
+              isSharing: false,
+              musicTitle: null,
+              onOpenMusic: vi.fn(),
+              // The label with its area, and the place's own name.
+              placeName: placeName ? `${placeName}, España` : null,
+              placeStickerName: placeName,
+              onOpenPlace: () => setPlaceName('Madrid'),
+            }}
+          />
+        </>
+      );
+    }
+
+    const renderSharing = (initialPlace: string | null = null) => {
+      const onElementsChange = vi.fn();
+      renderWithProviders(
+        <Sharing
+          initialPlace={initialPlace}
+          onElementsChange={onElementsChange}
+        />,
+        { lng: 'es' },
+      );
+      return (): StoryElement[] =>
+        onElementsChange.mock.calls.at(-1)?.[0] ?? [];
+    };
+
+    it('with no place yet, asks for one and is added once it is chosen', async () => {
+      const lastElements = renderSharing();
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Ubicación' }));
+
+      fireEvent.click(screen.getByRole('button', { name: 'Elegir lugar' }));
+
+      await waitFor(() => expect(lastElements()).toHaveLength(1));
+      expect(lastElements()[0]).toMatchObject({
+        type: 'location',
+        content: JSON.stringify({ name: 'Madrid' }),
+      });
+    });
+
+    it('with a place, is added at once, once, and goes when the place is taken off', async () => {
+      const lastElements = renderSharing('Sevilla');
+      expect(
+        screen.getByRole('button', { name: 'Añadir lugar: Sevilla, España' }),
+      ).toBeInTheDocument();
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Ubicación' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Añadir sticker de ubicación' }),
+      );
+      await waitFor(() => expect(lastElements()).toHaveLength(1));
+      expect(JSON.parse(lastElements()[0].content)).toEqual({
+        name: 'Sevilla',
+      });
+      // The place shows once: as the sticker, not also as the chip.
+      expect(
+        screen.queryByRole('button', { name: 'Añadir lugar: Sevilla, España' }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Ubicación' }));
+      expect(
+        screen.getByText('Tu historia ya muestra su lugar'),
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Añadir sticker de ubicación' }),
+      ).not.toBeInTheDocument();
+
+      // Another place renames it; no place takes it off.
+      fireEvent.click(screen.getByRole('button', { name: 'Cambiar lugar' }));
+      await waitFor(() =>
+        expect(JSON.parse(lastElements()[0].content)).toEqual({
+          name: 'Madrid',
+        }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'quitar lugar' }));
+      await waitFor(() => expect(lastElements()).toHaveLength(0));
     });
   });
 

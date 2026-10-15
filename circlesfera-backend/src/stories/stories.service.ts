@@ -1,3 +1,4 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,
@@ -9,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import {
+  NotificationType,
   type Prisma,
   type StoryReaction,
   type StoryView,
@@ -244,20 +246,23 @@ export class StoriesService {
         },
       });
       // Its stickers are saved with it or not at all.
-      await this.stickers.createForStory(
+      const mentioned = await this.stickers.createForStory(
         tx,
         story.id,
         profileId,
         dto.stickers ?? [],
+        placeAttachment.placeId,
       );
-      return story;
+      return { story, mentioned };
     });
-    const story = resolveMediaFields(createdStory);
+    const story = resolveMediaFields(createdStory.story);
 
     // Skip fan-out moderation side effects for still-scheduled stories
     if (scheduledAt) {
       return story;
     }
+
+    await this.notifyMentioned(story.id, profileId, createdStory.mentioned);
 
     // Moderate content in the background (Visual Moderation)
     await this.aiQueue.add('moderate-content', {
@@ -268,6 +273,36 @@ export class StoriesService {
     });
 
     return story;
+  }
+
+  /**
+   * Tells each profile mentioned on a published story, when they can see it:
+   * its audience, close friends and blocks are those of watching it.
+   */
+  private async notifyMentioned(
+    storyId: string,
+    authorProfileId: string,
+    mentioned: string[],
+  ): Promise<void> {
+    for (const recipientId of mentioned) {
+      const canSee = await assertCanAccessStory(
+        this.prisma,
+        storyId,
+        recipientId,
+      ).then(
+        () => true,
+        () => false,
+      );
+      if (!canSee) continue;
+      this.eventEmitter.emit('notification.create', {
+        recipientId,
+        senderId: authorProfileId,
+        type: NotificationType.MENTION,
+        notice: { key: 'mentioned_in_story' },
+        targetType: 'story',
+        targetId: storyId,
+      } satisfies NotificationCreateEvent['payload']);
+    }
   }
 
   // Retrieve all active (non-expired) stories, optionally filtered to followed users.
@@ -333,12 +368,18 @@ export class StoriesService {
       },
     });
 
+    const usernames = await this.stickers.mentionNames(
+      stories.flatMap((s) => s.stickers ?? []),
+      profileId,
+    );
+
     // Remap to include isViewed boolean and clean up nested views
     const mappedStories = stories.map((s: any) => {
       const { views, media, stickers, ...storyData } = s;
       const feedStickers = this.stickers.forFeed(
         stickers ?? [],
         storyData.profileId === profileId,
+        { usernames, placeName: storyData.place?.name ?? null },
       );
       return {
         ...storyData,

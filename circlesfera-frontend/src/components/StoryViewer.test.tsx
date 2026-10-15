@@ -262,6 +262,31 @@ describe('StoryViewer', () => {
 
       expect(screen.queryByTestId('qna')).not.toBeInTheDocument();
     });
+
+    it('opens a mention and a place, and leaves out one the server could not name', () => {
+      show([
+        story('s1', {
+          stickers: [
+            sticker('st-m', 'MENTION', { profileId: 'p-ana', username: 'ana' }),
+            sticker('st-l', 'LOCATION', { placeId: 'pl-1', name: 'Madrid' }),
+            sticker('st-x', 'MENTION', { profileId: 'p-gone' }),
+            sticker('st-y', 'LOCATION', { placeId: 'pl-2' }),
+          ],
+        } as Partial<Story>),
+      ]);
+
+      // Found by label: a placed sticker is hidden until it is measured,
+      // and the test page has no layout.
+      expect(screen.getByLabelText("Open @ana's profile")).toHaveAttribute(
+        'href',
+        '/ana',
+      );
+      expect(screen.getByLabelText('See Madrid on the map')).toHaveAttribute(
+        'href',
+        '/explore/map?place=pl-1',
+      );
+      expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
+    });
   });
 
   describe('my own story', () => {

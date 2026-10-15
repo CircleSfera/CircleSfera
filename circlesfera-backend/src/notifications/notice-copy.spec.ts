@@ -11,6 +11,7 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'comment_replied' },
   { key: 'mentioned_in_comment' },
   { key: 'mentioned_in_post' },
+  { key: 'mentioned_in_story' },
   { key: 'followed' },
   { key: 'follow_requested' },
   { key: 'follow_accepted' },

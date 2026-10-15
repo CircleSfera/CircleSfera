@@ -86,6 +86,7 @@ export default function StoryComposer(props: StoryComposerProps) {
               hidden={s.draggingLayer}
               pointerArmed={s.chromePointerArmed}
               share={props.share}
+              placeOnStory={s.elements.some((el) => el.type === 'location')}
             />
           )
         }

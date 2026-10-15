@@ -1,4 +1,4 @@
-import { useEffect, useReducer, useState } from 'react';
+import { useCallback, useEffect, useReducer, useState } from 'react';
 import type { StoryElement } from '../../types';
 
 /**
@@ -80,9 +80,11 @@ export function useStoryElements(options: {
   }, [elements, onElementsChange]);
 
   /** Changes the elements; the result is one undo step. */
-  const changeElements = (
-    change: (elements: StoryElement[]) => StoryElement[],
-  ) => dispatch({ type: 'change', change, record: true });
+  const changeElements = useCallback(
+    (change: (elements: StoryElement[]) => StoryElement[]) =>
+      dispatch({ type: 'change', change, record: true }),
+    [],
+  );
 
   const undo = () => dispatch({ type: 'undo' });
   const redo = () => dispatch({ type: 'redo' });

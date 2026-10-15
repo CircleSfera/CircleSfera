@@ -64,6 +64,27 @@ describe('ExploreMapPage', () => {
     );
   });
 
+  it('opens on the place it was sent to, as from a story’s location', async () => {
+    vi.stubEnv('VITE_MAPBOX_ACCESS_TOKEN', 'pk.test-token');
+    const { placesApi } = await import('../../services');
+    vi.mocked(placesApi.getById).mockResolvedValue({
+      data: { id: 'pl-1', name: 'Madrid' },
+    } as never);
+    renderWithProviders(
+      <div className="h-[800px]">
+        <ExploreMapPage />
+      </div>,
+      { routerProps: { initialEntries: ['/explore/map?place=pl-1'] } },
+    );
+
+    await vi.waitFor(() =>
+      expect(placesApi.getById).toHaveBeenCalledWith('pl-1'),
+    );
+    expect(
+      screen.queryByTestId('explore-map-places-chip'),
+    ).not.toBeInTheDocument();
+  });
+
   it('shows token missing state when Mapbox token is absent', () => {
     vi.stubEnv('VITE_MAPBOX_ACCESS_TOKEN', '');
     const { i18n } = renderPage();

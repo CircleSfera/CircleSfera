@@ -208,6 +208,9 @@ export interface NotificationCreateEvent {
     // fields follow the backend notice catalog.
     notice?: { key: string } & Record<string, unknown>;
     postId?: string;
+    // What the notice is about when it is not a post, e.g. a story.
+    targetType?: string;
+    targetId?: string;
   };
 }
 
