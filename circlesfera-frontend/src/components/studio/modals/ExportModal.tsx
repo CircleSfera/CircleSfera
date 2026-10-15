@@ -185,7 +185,7 @@ export default function ExportModal({
               {t('studio.export_quality_hint')}
             </p>
             {constrained ? (
-              <p className="text-xs text-brand-accent mb-3 text-left w-full">
+              <p className="text-xs text-white/70 mb-3 text-left w-full">
                 {t('studio.export_mobile_hint')}
               </p>
             ) : null}
