@@ -1,46 +1,36 @@
-import { Eye, HelpCircle, MoreHorizontal, X } from 'lucide-react';
+import { BarChart2, Eye, MoreHorizontal, X } from 'lucide-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UserWithProfile } from '../types';
+import type { FeedSticker } from '../utils/storySticker';
+import { StickerResultsCard } from './interactive/StickerResultsCard';
 import UserAvatar from './UserAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
-
-export type StoryQnaAnswer = {
-  id: string;
-  answerText: string;
-  createdAt: string;
-  user: {
-    id: string;
-    username: string;
-    fullName?: string;
-    avatar?: string | null;
-  };
-};
 
 interface StoryViewersSheetProps {
   viewers: UserWithProfile[];
   isLoading: boolean;
   onClose: (e?: React.MouseEvent) => void;
-  // Q&A answers for this story (owner insights). Omit when story has no QnA.
-  qnaAnswers?: StoryQnaAnswer[];
-  isLoadingQna?: boolean;
-  qnaPrompt?: string | null;
-  hasQna?: boolean;
+  /**
+   * The polls, quizzes, sliders and questions of the story, whose results
+   * its author reads here. Empty when it has none.
+   */
+  stickers?: FeedSticker[];
 }
 
-type SheetTab = 'views' | 'questions';
+type SheetTab = 'views' | 'responses';
 
 export function StoryViewersSheet({
   viewers,
   isLoading,
   onClose,
-  qnaAnswers = [],
-  isLoadingQna = false,
-  qnaPrompt,
-  hasQna = false,
+  stickers = [],
 }: StoryViewersSheetProps) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<SheetTab>(hasQna ? 'questions' : 'views');
+  const hasResponses = stickers.length > 0;
+  const [tab, setTab] = useState<SheetTab>(
+    hasResponses ? 'responses' : 'views',
+  );
 
   return (
     <>
@@ -73,7 +63,7 @@ export function StoryViewersSheet({
         <div className="px-4 pb-3 border-b border-white/5 space-y-3">
           <div className="flex items-center justify-between">
             <h3 id="viewers-title" className="text-white font-bold text-lg">
-              {hasQna ? t('story.insights_title') : t('story.viewers')}
+              {hasResponses ? t('story.insights_title') : t('story.viewers')}
             </h3>
             <button
               type="button"
@@ -85,7 +75,7 @@ export function StoryViewersSheet({
             </button>
           </div>
 
-          {hasQna ? (
+          {hasResponses ? (
             <div
               className="grid grid-cols-2 gap-1 p-1 rounded-xl bg-white/5"
               role="tablist"
@@ -93,19 +83,16 @@ export function StoryViewersSheet({
               <button
                 type="button"
                 role="tab"
-                aria-selected={tab === 'questions'}
-                onClick={() => setTab('questions')}
+                aria-selected={tab === 'responses'}
+                onClick={() => setTab('responses')}
                 className={`min-h-11 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                  tab === 'questions'
+                  tab === 'responses'
                     ? 'bg-white text-black'
                     : 'text-white/60 hover:text-white'
                 }`}
               >
-                <HelpCircle size={14} />
-                {t('story.questions_tab')}
-                <span className="text-xs opacity-70">
-                  ({qnaAnswers.length})
-                </span>
+                <BarChart2 size={14} />
+                {t('story.responses_tab')}
               </button>
               <button
                 type="button"
@@ -134,55 +121,12 @@ export function StoryViewersSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto p-2 custom-scrollbar">
-          {hasQna && tab === 'questions' ? (
-            isLoadingQna ? (
-              <div className="flex justify-center p-8">
-                <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-purple-500" />
-              </div>
-            ) : qnaAnswers.length > 0 ? (
-              <div className="space-y-2 p-1">
-                {qnaPrompt ? (
-                  <p className="px-3 pt-1 pb-2 text-xs text-white/40">
-                    {t('story.qna_prompt_label')}: {qnaPrompt}
-                  </p>
-                ) : null}
-                {qnaAnswers.map((answer) => (
-                  <div
-                    key={answer.id}
-                    className="flex items-start gap-3 p-3 rounded-xl border border-white/5 bg-white/3"
-                  >
-                    <UserAvatar
-                      src={answer.user.avatar || undefined}
-                      alt={answer.user.username}
-                      size="md"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold truncate">
-                        @{answer.user.username}
-                      </p>
-                      {answer.user.fullName ? (
-                        <p className="text-white/40 text-xs truncate">
-                          {answer.user.fullName}
-                        </p>
-                      ) : null}
-                      <p className="text-white/90 text-sm mt-1.5 leading-snug">
-                        {answer.answerText}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-16 opacity-40">
-                <HelpCircle size={48} className="mb-3 text-white/50" />
-                <p className="text-white font-medium">
-                  {t('story.no_questions')}
-                </p>
-                <p className="text-white/50 text-sm text-center px-8">
-                  {t('story.no_questions_desc')}
-                </p>
-              </div>
-            )
+          {hasResponses && tab === 'responses' ? (
+            <div className="space-y-3 p-2">
+              {stickers.map((sticker) => (
+                <StickerResultsCard key={sticker.id} sticker={sticker} />
+              ))}
+            </div>
           ) : isLoading ? (
             <div className="flex justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-2 border-white/20 border-t-blue-500" />

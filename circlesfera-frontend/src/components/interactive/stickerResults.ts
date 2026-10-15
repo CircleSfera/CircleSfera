@@ -6,6 +6,7 @@ export interface StickerResults {
   kind: string;
   settings: {
     question?: string;
+    prompt?: string;
     options?: string[];
     correctIndex?: number;
     emoji?: string;
@@ -19,6 +20,29 @@ export interface StickerResults {
     percentage: number;
   }[];
   average?: number | null;
+  /** For the story's author: who voted or slid, most recent first. */
+  responders?: StickerResponder[];
+  /** For the story's author: the answers to a question. */
+  answers?: {
+    id: string;
+    text: string;
+    createdAt: string;
+    profile: ResponderProfile;
+  }[];
+}
+
+export interface ResponderProfile {
+  id: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+}
+
+export interface StickerResponder {
+  optionIndex: number | null;
+  value: number | null;
+  createdAt: string;
+  profile: ResponderProfile;
 }
 
 export const readSticker = (stickerId: string) =>
