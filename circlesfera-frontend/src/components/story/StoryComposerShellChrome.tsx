@@ -1,20 +1,15 @@
 import type { RefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
+import { EditorHeaderAction } from '../create-post/EditorHeader';
 import type { StoryCanvasRef } from './Editor/StoryCanvas';
 import StoryDockContent from './panels/StoryDockContent';
-import StoryComposerChrome from './StoryComposerChrome';
 import StoryPanelSheet from './StoryPanelSheet';
-import StoryToolRail from './StoryToolRail';
 import type { StoryTemplate } from './storyComposer.constants';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
 
 interface StoryComposerShellChromeProps {
   chromePointerArmed: boolean;
-  onClose: () => void;
-  undo: () => void;
-  redo: () => void;
-  canUndo: boolean;
-  canRedo: boolean;
   handlePost: () => void;
   canPost: boolean;
   isExporting: boolean;
@@ -60,35 +55,23 @@ interface StoryComposerShellChromeProps {
   setQnaPrompt: (v: string) => void;
   addQna: () => void;
   applyTemplate: (t: StoryTemplate) => void;
-  handleSelectTab: (tab: StoryComposerTab) => void;
 }
 
-/** Idle header + bottom dock (hidden during text takeover). */
+/**
+ * The bottom of the story editor, under the canvas: the open panel of a tool
+ * or of the selected piece, if any, over the row that finishes the story,
+ * which is always there. Hidden in text mode.
+ */
 export default function StoryComposerShellChrome(
   p: StoryComposerShellChromeProps,
 ) {
-  return (
-    <>
-      <div
-        className={`absolute top-0 left-0 right-0 z-40 bg-linear-to-b from-black/70 via-black/35 to-transparent md:bg-none ${
-          p.chromePointerArmed ? 'pointer-events-auto' : 'pointer-events-none'
-        }`}
-      >
-        <StoryComposerChrome
-          onClose={p.onClose}
-          onUndo={p.undo}
-          onRedo={p.redo}
-          canUndo={p.canUndo}
-          canRedo={p.canRedo}
-          onPost={p.handlePost}
-          canPost={p.canPost}
-          isExporting={p.isExporting}
-        />
-      </div>
+  const { t } = useTranslation();
 
-      <div className="absolute bottom-0 left-0 right-0 z-40 pointer-events-none flex justify-center md:pb-6 md:px-4">
-        <div className="pointer-events-auto flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-zinc-950/92 backdrop-blur-2xl shadow-[0_-12px_40px_rgba(0,0,0,0.45)] safe-area-bottom md:max-w-md">
-          <StoryPanelSheet open={p.panelOpen}>
+  return (
+    <div className="relative z-40 shrink-0 w-full flex flex-col items-center">
+      {p.panelOpen ? (
+        <div className="flex w-full flex-col rounded-t-2xl md:rounded-3xl border-t md:border border-white/10 bg-surface-elevated md:max-w-md">
+          <StoryPanelSheet open>
             <StoryDockContent
               selectedElementId={p.selectedElementId}
               selectedElement={p.selectedElement}
@@ -131,15 +114,21 @@ export default function StoryComposerShellChrome(
               onApplyTemplate={p.applyTemplate}
             />
           </StoryPanelSheet>
-
-          {!p.selectedElementId && (
-            <StoryToolRail
-              activeTab={p.activeTab}
-              onSelectTab={p.handleSelectTab}
-            />
-          )}
         </div>
+      ) : null}
+      <div
+        className={`w-full flex items-center justify-end gap-3 px-4 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom,0px))] md:justify-center md:pb-6 ${
+          p.panelOpen ? 'bg-surface-elevated md:bg-transparent' : ''
+        } ${p.chromePointerArmed ? '' : 'pointer-events-none'}`}
+      >
+        <EditorHeaderAction
+          label={t('createPost.storyComposer.post')}
+          onClick={p.handlePost}
+          disabled={!p.canPost}
+          isPending={p.isExporting}
+          withCheck
+        />
       </div>
-    </>
+    </div>
   );
 }

@@ -222,11 +222,7 @@ export function useStoryComposerState(props: {
     Boolean(selectedElementId) &&
     !textTakeoverActive &&
     selectedElement?.type !== 'text';
-  const stagePadClass = getStoryStagePadClass({
-    textTakeoverActive,
-    editingElement: Boolean(editingElement),
-    panelOpen,
-  });
+  const stagePadClass = getStoryStagePadClass({ textTakeoverActive });
   const cardSizeClass = getStoryCardSizeClass();
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 

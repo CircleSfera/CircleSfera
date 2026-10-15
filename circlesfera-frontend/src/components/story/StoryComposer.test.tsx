@@ -79,6 +79,22 @@ describe('StoryComposer', () => {
     expect(screen.getByRole('button', { name: 'Listo' })).toBeEnabled();
   });
 
+  it('keeps the tools in one column and the story ready to finish while a piece is edited', async () => {
+    renderComposer();
+    expect(
+      screen.getByRole('toolbar', { name: 'Herramientas de historia' }),
+    ).toHaveAttribute('aria-orientation', 'vertical');
+
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: '🔥' }));
+
+    expect(
+      await screen.findByRole('button', { name: 'Estilo' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Listo' })).toBeEnabled();
+    expect(tool('Texto')).toBeInTheDocument();
+  });
+
   it('closes from the X', () => {
     const { onClose } = renderComposer();
 

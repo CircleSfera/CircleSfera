@@ -112,35 +112,19 @@ describe('story text look', () => {
 });
 
 describe('story stage space', () => {
-  const pad = (over: Partial<Parameters<typeof getStoryStagePadClass>[0]>) =>
-    getStoryStagePadClass({
-      textTakeoverActive: false,
-      editingElement: false,
-      panelOpen: false,
-      ...over,
-    });
+  it('keeps room for the floating bars of text mode only', () => {
+    const idle = getStoryStagePadClass({ textTakeoverActive: false });
+    const text = getStoryStagePadClass({ textTakeoverActive: true });
 
-  it('leaves a different room under the story for each state of the editor', () => {
-    const all = [
-      pad({}),
-      pad({ panelOpen: true }),
-      pad({ editingElement: true }),
-      pad({ textTakeoverActive: true }),
-    ];
-
-    expect(new Set(all).size).toBe(4);
+    expect(text).not.toBe(idle);
+    expect(text).toContain('pt-[calc(4rem');
+    expect(text).toContain('pb-[calc(4.25rem');
   });
 
-  it('gives text mode priority over an open panel, and editing over the tool panel', () => {
-    expect(pad({ textTakeoverActive: true, panelOpen: true })).toBe(
-      pad({ textTakeoverActive: true }),
-    );
-    expect(pad({ editingElement: true, panelOpen: true })).toBe(
-      pad({ editingElement: true }),
-    );
-  });
-
-  it('keeps the story card inside the screen height', () => {
-    expect(getStoryCardSizeClass()).toContain('max-h-[65dvh]');
+  it('sizes the canvas 9:16 from the space of its stage, at most 600 px tall on desktop', () => {
+    const size = getStoryCardSizeClass();
+    expect(size).toContain('aspect-9/16');
+    expect(size).toContain('w-[min(100cqw,calc(100cqh*9/16))]');
+    expect(size).toContain('min(100cqh,600px)');
   });
 });

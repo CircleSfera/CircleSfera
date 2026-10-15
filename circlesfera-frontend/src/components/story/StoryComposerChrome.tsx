@@ -1,9 +1,7 @@
-import { RotateCcw, RotateCw } from 'lucide-react';
+import { RotateCcw, RotateCw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import EditorHeader, {
-  EditorHeaderAction,
-  editorIconButton,
-} from '../create-post/EditorHeader';
+import StoryToolRail from './StoryToolRail';
+import type { StoryComposerTab } from './storyComposer.types';
 
 interface StoryComposerChromeProps {
   onClose: () => void;
@@ -11,63 +9,77 @@ interface StoryComposerChromeProps {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  onPost: () => void;
-  canPost: boolean;
-  isExporting: boolean;
+  activeTab: StoryComposerTab;
+  onSelectTab: (tab: StoryComposerTab) => void;
+  /** While a piece is dragged the controls step aside. */
+  hidden: boolean;
+  /** Off for a moment after text mode, so its last tap does not land here. */
+  pointerArmed: boolean;
 }
 
-const historyButton = `${editorIconButton} text-white/80 hover:text-white disabled:opacity-35 disabled:cursor-not-allowed`;
+const roundButton =
+  'w-11 h-11 inline-flex items-center justify-center rounded-full bg-black/45 border border-white/15 text-white transition-colors hover:bg-black/60 active:scale-95 outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:opacity-35 disabled:cursor-not-allowed';
 
-/** Top bar of the story composer: close, undo and redo, done. */
+/**
+ * The controls laid over the story canvas: close at the top left, undo and
+ * redo at the top, and the tools in a column at the right. On desktop the
+ * column stands beside the canvas.
+ */
 export default function StoryComposerChrome({
   onClose,
   onUndo,
   onRedo,
   canUndo,
   canRedo,
-  onPost,
-  canPost,
-  isExporting,
+  activeTab,
+  onSelectTab,
+  hidden,
+  pointerArmed,
 }: StoryComposerChromeProps) {
   const { t } = useTranslation();
 
   return (
-    <EditorHeader
-      surface="overlay"
-      leading="close"
-      leadingLabel={t('createPost.storyComposer.close')}
-      onLeading={onClose}
-      center={
-        <div className="flex items-center justify-center gap-1.5">
-          <button
-            type="button"
-            onClick={onUndo}
-            disabled={!canUndo}
-            className={historyButton}
-            aria-label={t('createPost.storyComposer.undo')}
-          >
-            <RotateCcw size={16} strokeWidth={2} />
-          </button>
-          <button
-            type="button"
-            onClick={onRedo}
-            disabled={!canRedo}
-            className={historyButton}
-            aria-label={t('createPost.storyComposer.redo')}
-          >
-            <RotateCw size={16} strokeWidth={2} />
-          </button>
-        </div>
-      }
-      trailing={
-        <EditorHeaderAction
-          label={t('createPost.storyComposer.post')}
-          onClick={onPost}
-          disabled={!canPost}
-          isPending={isExporting}
-          withCheck
-        />
-      }
-    />
+    <div
+      className={`absolute inset-0 z-40 transition-opacity duration-150 ${
+        hidden ? 'opacity-0' : 'opacity-100'
+      } ${hidden || !pointerArmed ? 'pointer-events-none' : ''}`}
+      aria-hidden={hidden || undefined}
+    >
+      <div className="absolute top-3 left-3 pointer-events-auto">
+        <button
+          type="button"
+          onClick={onClose}
+          className={roundButton}
+          aria-label={t('createPost.storyComposer.close')}
+        >
+          <X size={20} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+
+      <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 pointer-events-auto">
+        <button
+          type="button"
+          onClick={onUndo}
+          disabled={!canUndo}
+          className={roundButton}
+          aria-label={t('createPost.storyComposer.undo')}
+        >
+          <RotateCcw size={18} strokeWidth={2} aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={onRedo}
+          disabled={!canRedo}
+          className={roundButton}
+          aria-label={t('createPost.storyComposer.redo')}
+        >
+          <RotateCw size={18} strokeWidth={2} aria-hidden />
+        </button>
+      </div>
+
+      <div className="absolute top-3 right-3 md:right-auto md:left-full md:ml-4 pointer-events-auto">
+        <StoryToolRail activeTab={activeTab} onSelectTab={onSelectTab} />
+      </div>
+    </div>
   );
 }
