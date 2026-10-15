@@ -59,6 +59,18 @@ jobs:
           driver-opts: |
             image=ghcr.io/circlesfera/circlesfera/mirror/buildkit:buildx-stable-1@sha256:cec9f139f45e93c5c69c60f8b07cfad9f43f4ef6b6a6cd917527fea5ff2e3dea
 
+      # The base images of the Dockerfiles come from our own copy, made here
+      # when a digest is new: the public mirror stops serving once its
+      # allowance is used up and failed deploys with "toomanyrequests".
+      - name: Build from our own copy of the base images
+        env:
+          REGISTRY_USER: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$REGISTRY_TOKEN" | skopeo login ghcr.io --username "$REGISTRY_USER" --password-stdin
+          ./scripts/use-own-base-images.sh ghcr.io/circlesfera/circlesfera/mirror \
+            circlesfera-backend/Dockerfile circlesfera-frontend/Dockerfile
+
       - name: Resolve frontend Vite build args
         id: vite_args
         env:
