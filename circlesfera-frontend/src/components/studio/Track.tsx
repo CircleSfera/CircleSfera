@@ -298,11 +298,11 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
     icon = <Type size={12} className="shrink-0 text-white" />;
   }
 
+  // The trim handles sit beside the clip's own button, not inside it: a
+  // button inside a button is not valid and a screen reader cannot reach it.
   return (
-    <button
-      type="button"
-      onPointerDown={handleDragStart}
-      className={`absolute top-1 bottom-1 rounded-xl overflow-hidden flex items-center cursor-grab active:cursor-grabbing transition-all border shadow-md ${
+    <div
+      className={`absolute top-1 bottom-1 rounded-xl overflow-hidden transition-all border shadow-md ${
         isSelected
           ? 'border-white z-10 ring-2 ring-brand-primary ring-offset-2 ring-offset-surface-elevated scale-[1.01] brightness-110'
           : 'border-white/10 hover:brightness-110'
@@ -310,17 +310,23 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
       style={{
         width: `${width}px`,
         left: `${left}px`,
-        touchAction: 'none',
       }}
     >
-      <div className="flex items-center gap-1.5 px-3 w-full h-full text-white pointer-events-none">
-        {icon}
-        <span className="text-xs font-bold truncate select-none drop-shadow-md">
-          {clip.type === 'text'
-            ? (clip as { content: string }).content
-            : t(`studio.clip_types.${clip.type}`)}
-        </span>
-      </div>
+      <button
+        type="button"
+        onPointerDown={handleDragStart}
+        className="absolute inset-0 flex items-center cursor-grab active:cursor-grabbing"
+        style={{ touchAction: 'none' }}
+      >
+        <div className="flex items-center gap-1.5 px-3 w-full h-full text-white pointer-events-none">
+          {icon}
+          <span className="text-xs font-bold truncate select-none drop-shadow-md">
+            {clip.type === 'text'
+              ? (clip as { content: string }).content
+              : t(`studio.clip_types.${clip.type}`)}
+          </span>
+        </div>
+      </button>
 
       {isSelected && (
         <button
@@ -343,6 +349,6 @@ function ClipItem({ clip, zoom }: ClipItemProps) {
           <div className="w-1 h-5 bg-white rounded-full shadow-sm" />
         </button>
       )}
-    </button>
+    </div>
   );
 }

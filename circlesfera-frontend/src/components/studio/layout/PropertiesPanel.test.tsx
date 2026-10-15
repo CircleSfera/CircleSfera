@@ -74,6 +74,14 @@ describe('PropertiesPanel', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('gives a still image its position and its filters, and no sound', () => {
+      open('photo');
+      expect(tab('Filters')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: 'Audio & speed' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('gives a sound no look to change', () => {
       open('song');
       expect(tab('Audio & speed')).toBeInTheDocument();

@@ -52,7 +52,7 @@ export default function StudioPlaybackControls() {
 
   return (
     <div className="min-h-14 bg-surface-base/80 border-t border-white/5 shrink-0 flex items-center justify-between px-4 sm:px-6 z-20">
-      <div className="w-16 sm:w-32 shrink-0">
+      <div className="flex-1 min-w-0 sm:flex-none sm:w-32">
         <span className="font-mono text-xs sm:text-sm text-brand-primary-text bg-brand-primary/10 px-1.5 py-0.5 sm:px-2 sm:py-1 rounded">
           {formatTimecode(playhead)}
         </span>
@@ -61,7 +61,7 @@ export default function StudioPlaybackControls() {
         </span>
       </div>
 
-      <div className="flex items-center gap-1 sm:gap-3">
+      <div className="flex items-center shrink-0 sm:gap-3">
         <button
           type="button"
           onClick={() => setPlayhead(0)}
@@ -114,7 +114,7 @@ export default function StudioPlaybackControls() {
         </button>
       </div>
 
-      <div className="w-20 sm:w-32 flex justify-end gap-2 shrink-0">
+      <div className="flex-1 min-w-0 sm:flex-none sm:w-32 flex justify-end">
         <button
           type="button"
           onClick={toggleFullscreen}

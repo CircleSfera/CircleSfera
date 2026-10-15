@@ -166,8 +166,18 @@ describe('a track of the studio', () => {
     it('places each clip by its time and length, at the zoom of the timeline', () => {
       show([track('v1', 'video', [media('a')])]);
 
-      const clip = screen.getByRole('button', { name: 'Video' });
+      // The box of the clip holds its button and its trim handles.
+      const clip = screen.getByRole('button', { name: 'Video' }).parentElement;
       expect(clip).toHaveStyle({ left: '20px', width: '60px' });
+    });
+
+    it('keeps the trim handles of a chosen clip out of its button', () => {
+      show([track('v1', 'video', [media('a')])], 'a');
+
+      for (const name of ['Trim start', 'Trim end']) {
+        const handle = screen.getByRole('button', { name });
+        expect(handle.parentElement?.closest('button')).toBeNull();
+      }
     });
 
     it('names a clip by its kind, and a text by what it says', () => {
@@ -333,7 +343,8 @@ describe('a track of the studio', () => {
   it('cannot be worked on while it is locked', () => {
     show([track('v1', 'video', [media('a')], { locked: true })]);
 
-    const clips = screen.getByRole('button', { name: 'Video' }).parentElement;
+    const clips = screen.getByRole('button', { name: 'Video' }).parentElement
+      ?.parentElement;
     expect(clips).toHaveClass('pointer-events-none');
   });
 });

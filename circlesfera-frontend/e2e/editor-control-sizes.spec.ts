@@ -271,6 +271,15 @@ test.describe('Edits studio', () => {
       () => document.documentElement.scrollWidth,
     );
     expect(width).toBeLessThanOrEqual(390);
+
+    // The last button of the playback row is whole on the screen, not cut
+    // by its edge.
+    const fullscreen = await page
+      .getByRole('button', { name: 'Pantalla completa' })
+      .boundingBox();
+    expect((fullscreen?.x ?? 0) + (fullscreen?.width ?? 0)).toBeLessThanOrEqual(
+      390,
+    );
   });
 
   test('with an image on the timeline: the clip is free of the track button, and its properties', async ({
@@ -307,9 +316,38 @@ test.describe('Edits studio', () => {
     await clip.click();
     await expect(sheet.getByText('Propiedades')).toBeVisible();
     await expectControlsAtSize(page);
-    for (const section of ['Filtros', 'Audio y velocidad']) {
-      await sheet.getByRole('button', { name: section }).click();
-      await expectControlsAtSize(page);
-    }
+    await sheet.getByRole('button', { name: 'Filtros' }).click();
+    await expectControlsAtSize(page);
+    // A still image has no sound to change.
+    await expect(
+      sheet.getByRole('button', { name: 'Audio y velocidad' }),
+    ).toHaveCount(0);
+    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
+
+    // A video added next goes after the image instead of covering it.
+    await page.getByRole('button', { name: 'Medios', exact: true }).click();
+    await page
+      .locator('input[type="file"][accept*="video"]')
+      .setInputFiles(FIXTURES.frameVideo);
+    await sheet.getByRole('button', { name: 'Cerrar' }).last().click();
+    const video = page
+      .locator('[data-studio-timeline]')
+      .getByText('Vídeo', { exact: true });
+    await expect(video).toBeVisible();
+    // The boxes of the clips themselves, not of their names.
+    const imageBox = await clip
+      .locator('xpath=ancestor::button[1]')
+      .boundingBox();
+    const videoBox = await video
+      .locator('xpath=ancestor::button[1]')
+      .boundingBox();
+    // The clips touch; a pixel is left for rounding.
+    expect((videoBox?.x ?? 0) + 1).toBeGreaterThanOrEqual(
+      (imageBox?.x ?? 0) + (imageBox?.width ?? 0),
+    );
+
+    await video.click();
+    await sheet.getByRole('button', { name: 'Audio y velocidad' }).click();
+    await expectControlsAtSize(page);
   });
 });

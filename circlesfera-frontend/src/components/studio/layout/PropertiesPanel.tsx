@@ -43,10 +43,10 @@ export default function PropertiesPanel() {
   const isAudio = selectedClip.type === 'audio';
 
   // The tab is remembered between clips, but not every clip has every tab:
-  // text has no sound and sound has no look. A tab the clip lacks would
-  // leave the panel empty, so it falls back to the first one.
+  // text and a still image have no sound, and sound has no look. A tab the
+  // clip lacks would leave the panel empty, so it falls back to the first one.
   const hasStyleTab = isText || isMedia;
-  const hasAudioTab = isMedia || isAudio;
+  const hasAudioTab = selectedClip.type === 'video' || isAudio;
   const tab =
     (chosenTab === 'style' && !hasStyleTab) ||
     (chosenTab === 'audio' && !hasAudioTab)
