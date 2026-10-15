@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
-import { BarChart2 } from 'lucide-react';
+import { BarChart2, Plus, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { CREATE_PRIMARY } from '../../create-post/createStyles';
 import {
+  POLL_MAX_OPTIONS,
+  POLL_MIN_OPTIONS,
   POLL_OPTION_MAX,
   POLL_QUESTION_MAX,
   POLL_SUGGESTION_KEYS,
@@ -11,21 +13,18 @@ import { PollStickerPreview } from '../storyInteractive';
 
 export interface StoryPollPanelProps {
   pollQuestion: string;
-  pollOption1: string;
-  pollOption2: string;
+  /** Two to four answers. */
+  pollOptions: string[];
   onPollQuestionChange: (value: string) => void;
-  onPollOption1Change: (value: string) => void;
-  onPollOption2Change: (value: string) => void;
+  onPollOptionsChange: (value: string[]) => void;
   onAddPoll: () => void;
 }
 
 export default function StoryPollPanel({
   pollQuestion,
-  pollOption1,
-  pollOption2,
+  pollOptions,
   onPollQuestionChange,
-  onPollOption1Change,
-  onPollOption2Change,
+  onPollOptionsChange,
   onAddPoll,
 }: StoryPollPanelProps) {
   const { t } = useTranslation();
@@ -60,10 +59,11 @@ export default function StoryPollPanel({
             pollQuestion.trim() ||
             t('createPost.storyComposer.poll_question_ph')
           }
-          options={[
-            pollOption1.trim() || t('createPost.storyComposer.poll_option_1'),
-            pollOption2.trim() || t('createPost.storyComposer.poll_option_2'),
-          ]}
+          options={pollOptions.map(
+            (o, i) =>
+              o.trim() ||
+              t('createPost.storyComposer.poll_option_n', { n: i + 1 }),
+          )}
           label={t('createPost.storyComposer.tool_poll')}
         />
       </div>
@@ -84,23 +84,53 @@ export default function StoryPollPanel({
           className="w-full min-h-12 bg-white/6 text-white px-4 py-3 rounded-2xl outline-none border border-white/10 text-base focus:border-brand-primary/40"
         />
       </div>
-      <div className="grid grid-cols-2 gap-2.5">
-        <input
-          type="text"
-          value={pollOption1}
-          maxLength={POLL_OPTION_MAX}
-          onChange={(e) => onPollOption1Change(e.target.value)}
-          placeholder={t('createPost.storyComposer.poll_option_1')}
-          className="min-h-12 bg-white/6 text-white px-4 py-2 rounded-2xl outline-none border border-white/10 text-base"
-        />
-        <input
-          type="text"
-          value={pollOption2}
-          maxLength={POLL_OPTION_MAX}
-          onChange={(e) => onPollOption2Change(e.target.value)}
-          placeholder={t('createPost.storyComposer.poll_option_2')}
-          className="min-h-12 bg-white/6 text-white px-4 py-2 rounded-2xl outline-none border border-white/10 text-base"
-        />
+      <div className="space-y-2">
+        {pollOptions.map((option, index) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: options are edited in place by position
+          <div key={index} className="flex items-center gap-2">
+            <input
+              type="text"
+              value={option}
+              maxLength={POLL_OPTION_MAX}
+              onChange={(e) =>
+                onPollOptionsChange(
+                  pollOptions.map((o, i) => (i === index ? e.target.value : o)),
+                )
+              }
+              placeholder={t('createPost.storyComposer.poll_option_n', {
+                n: index + 1,
+              })}
+              aria-label={t('createPost.storyComposer.poll_option_n', {
+                n: index + 1,
+              })}
+              className="flex-1 min-w-0 min-h-12 bg-white/6 text-white px-4 py-2 rounded-2xl outline-none border border-white/10 text-base"
+            />
+            {pollOptions.length > POLL_MIN_OPTIONS ? (
+              <button
+                type="button"
+                onClick={() =>
+                  onPollOptionsChange(pollOptions.filter((_, i) => i !== index))
+                }
+                aria-label={t('createPost.storyComposer.poll_remove_option', {
+                  n: index + 1,
+                })}
+                className="w-11 h-11 shrink-0 inline-flex items-center justify-center rounded-full bg-white/6 border border-white/10 text-white/70 hover:text-white"
+              >
+                <X size={16} aria-hidden />
+              </button>
+            ) : null}
+          </div>
+        ))}
+        {pollOptions.length < POLL_MAX_OPTIONS ? (
+          <button
+            type="button"
+            onClick={() => onPollOptionsChange([...pollOptions, ''])}
+            className="min-h-11 px-3 inline-flex items-center gap-1.5 rounded-full text-sm font-semibold text-white/80 bg-white/6 border border-white/10 hover:bg-white/10"
+          >
+            <Plus size={16} aria-hidden />
+            {t('createPost.storyComposer.poll_add_option')}
+          </button>
+        ) : null}
       </div>
       <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
         {POLL_SUGGESTION_KEYS.map((key) => {

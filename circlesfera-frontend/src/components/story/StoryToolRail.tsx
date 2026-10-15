@@ -1,7 +1,4 @@
 import {
-  BarChart2,
-  Ellipsis,
-  HelpCircle,
   Image as ImageIcon,
   MapPin,
   Music,
@@ -10,13 +7,12 @@ import {
   Sparkles,
   Type,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryComposerTab } from './storyComposer.types';
 import type { StoryShareOptions } from './storyShare.types';
 
 const PRIMARY: {
-  tab: Exclude<StoryComposerTab, 'none' | 'poll' | 'qna'>;
+  tab: 'text' | 'stickers' | 'draw' | 'background' | 'templates';
   icon: typeof Type;
   labelKey: string;
 }[] = [
@@ -27,14 +23,14 @@ const PRIMARY: {
   { tab: 'templates', icon: Sparkles, labelKey: 'templates' },
 ];
 
-const MORE_TOOLS: {
-  tab: 'poll' | 'qna';
-  icon: typeof BarChart2;
-  labelKey: string;
-}[] = [
-  { tab: 'poll', icon: BarChart2, labelKey: 'poll' },
-  { tab: 'qna', icon: HelpCircle, labelKey: 'qna' },
-];
+/** The setups of the stickers of the tray, under the stickers tool. */
+const STICKER_SETUPS: ReadonlySet<StoryComposerTab> = new Set([
+  'poll',
+  'qna',
+  'quiz',
+  'slider',
+  'hashtag',
+]);
 
 /**
  * A tool over the story: a white icon with a shadow, readable on any
@@ -56,7 +52,8 @@ interface StoryToolRailProps {
 
 /**
  * The tools of the story editor, as a column at the right of the canvas:
- * text, stickers, draw, background, templates, and more (poll, questions).
+ * text, stickers (polls, questions and the rest are in their tray), draw,
+ * background, templates, and music and place when the editor shares.
  * Icons only; each has its name for screen readers and as a tooltip.
  */
 export default function StoryToolRail({
@@ -65,20 +62,6 @@ export default function StoryToolRail({
   share,
 }: StoryToolRailProps) {
   const { t } = useTranslation();
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreRef = useRef<HTMLDivElement>(null);
-  const moreToolActive = activeTab === 'poll' || activeTab === 'qna';
-
-  useEffect(() => {
-    if (!moreOpen) return;
-    const onPointer = (e: PointerEvent) => {
-      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
-        setMoreOpen(false);
-      }
-    };
-    document.addEventListener('pointerdown', onPointer);
-    return () => document.removeEventListener('pointerdown', onPointer);
-  }, [moreOpen]);
 
   return (
     <div
@@ -88,16 +71,15 @@ export default function StoryToolRail({
       aria-label={t('createPost.storyComposer.tools')}
     >
       {PRIMARY.map(({ tab, icon: Icon, labelKey }) => {
-        const isActive = activeTab === tab;
+        const isActive =
+          activeTab === tab ||
+          (tab === 'stickers' && STICKER_SETUPS.has(activeTab));
         const label = t(`createPost.storyComposer.tool_${labelKey}`);
         return (
           <button
             type="button"
             key={tab}
-            onClick={() => {
-              setMoreOpen(false);
-              onSelectTab(isActive ? 'none' : tab);
-            }}
+            onClick={() => onSelectTab(isActive ? 'none' : tab)}
             className={toolButton(isActive)}
             aria-label={label}
             title={label}
@@ -132,61 +114,6 @@ export default function StoryToolRail({
           </button>
         </>
       ) : null}
-
-      <div className="relative" ref={moreRef}>
-        <button
-          type="button"
-          onClick={() => setMoreOpen((v) => !v)}
-          className={toolButton(moreToolActive || moreOpen)}
-          aria-label={t('createPost.storyComposer.tool_more')}
-          title={t('createPost.storyComposer.tool_more')}
-          aria-expanded={moreOpen}
-          aria-haspopup="menu"
-        >
-          <Ellipsis size={20} strokeWidth={2} aria-hidden />
-        </button>
-
-        {moreOpen && (
-          <div
-            role="menu"
-            className="absolute top-0 right-full mr-2 w-52 rounded-2xl border border-white/12 bg-surface-high shadow-[0_12px_40px_rgba(0,0,0,0.55)] overflow-hidden z-50"
-          >
-            <p className="px-3.5 pt-3 pb-1.5 text-xs font-bold uppercase tracking-[0.14em] text-white/50">
-              {t('createPost.storyComposer.more_section')}
-            </p>
-            {MORE_TOOLS.map(({ tab, icon: Icon, labelKey }) => {
-              const selected = activeTab === tab;
-              return (
-                <button
-                  type="button"
-                  role="menuitem"
-                  key={tab}
-                  onClick={() => {
-                    onSelectTab(selected ? 'none' : tab);
-                    setMoreOpen(false);
-                  }}
-                  className={`w-full min-h-12 px-3.5 flex items-center gap-3 text-left text-sm font-semibold transition-colors outline-none focus-visible:bg-white/10 ${
-                    selected
-                      ? 'bg-brand-primary/15 text-white'
-                      : 'text-white/80 hover:bg-white/8 hover:text-white'
-                  }`}
-                >
-                  <span
-                    className={`flex h-9 w-9 items-center justify-center rounded-xl border ${
-                      selected
-                        ? 'border-brand-primary/40 bg-brand-primary/20 text-brand-primary-text'
-                        : 'border-white/8 bg-white/5 text-white/70'
-                    }`}
-                  >
-                    <Icon size={18} aria-hidden />
-                  </span>
-                  {t(`createPost.storyComposer.tool_${labelKey}`)}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
     </div>
   );
 }

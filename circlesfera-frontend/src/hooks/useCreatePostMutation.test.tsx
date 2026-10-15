@@ -314,6 +314,47 @@ describe('useCreatePostMutation', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
+  it('sends a quiz, a slider and a hashtag as stickers too', async () => {
+    const at = { x: 0, y: 0, scale: 1, rotation: 0 };
+    const { submit } = setup({
+      mode: 'STORY',
+      storyCanvasSize: { width: 360, height: 640 },
+      storyElements: [
+        {
+          type: 'quiz',
+          content: JSON.stringify({
+            question: 'Q',
+            options: ['a', 'b'],
+            correctIndex: 1,
+          }),
+          ...at,
+        },
+        {
+          type: 'slider',
+          content: JSON.stringify({ question: '', emoji: '🔥' }),
+          ...at,
+        },
+        {
+          type: 'hashtag',
+          content: JSON.stringify({ tag: 'verano' }),
+          ...at,
+          scale: 2,
+        },
+      ],
+    });
+    await submit();
+
+    expect(vi.mocked(storiesApi.create).mock.calls[0][0].stickers).toEqual([
+      {
+        kind: 'QUIZ',
+        settings: { question: 'Q', options: ['a', 'b'], correctIndex: 1 },
+        ...at,
+      },
+      { kind: 'SLIDER', settings: { question: '', emoji: '🔥' }, ...at },
+      { kind: 'HASHTAG', settings: { tag: 'verano' }, ...at, scale: 2 },
+    ]);
+  });
+
   it('publishes a story without stickers when nothing interactive is on it', async () => {
     const { submit } = setup({ mode: 'STORY' });
     await submit();

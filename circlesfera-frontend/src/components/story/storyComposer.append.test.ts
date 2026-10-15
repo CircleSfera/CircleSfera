@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest';
+import type { StoryElement } from '../../types';
 import {
+  buildHashtagElement,
   buildPollElement,
   buildQnaElement,
+  buildQuizElement,
+  buildSliderElement,
   buildStickerElement,
+  cleanHashtag,
 } from './storyComposer.append';
 import {
   POLL_OPTION_MAX,
@@ -11,10 +16,15 @@ import {
 } from './storyComposer.constants';
 import {
   INTERACTIVE_WIDTH_PCT,
+  isAnswerableElement,
+  isLiveElement,
   isPollElement,
   isQnaElement,
+  parseHashtagPayload,
   parsePollPayload,
   parseQnaPayload,
+  parseQuizPayload,
+  parseSliderPayload,
 } from './storyInteractive';
 
 describe('story elements built from the panels', () => {
@@ -36,8 +46,7 @@ describe('story elements built from the panels', () => {
   it('builds a poll that reads back as question and two options', () => {
     const poll = buildPollElement({
       question: '  ¿Playa o montaña?  ',
-      option1: ' Playa ',
-      option2: ' Montaña ',
+      options: [' Playa ', ' Montaña '],
       defaultOptions: ['Sí', 'No'],
     });
 
@@ -55,8 +64,7 @@ describe('story elements built from the panels', () => {
   it('fills an answer left empty with the default in the app language', () => {
     const poll = buildPollElement({
       question: '¿Vienes?',
-      option1: '   ',
-      option2: '',
+      options: ['   ', ''],
       defaultOptions: ['Sí', 'No'],
     });
 
@@ -70,8 +78,7 @@ describe('story elements built from the panels', () => {
     expect(
       buildPollElement({
         question: '   ',
-        option1: 'a',
-        option2: 'b',
+        options: ['a', 'b'],
         defaultOptions: ['Sí', 'No'],
       }),
     ).toBeNull();
@@ -80,8 +87,10 @@ describe('story elements built from the panels', () => {
   it('cuts the question and the options of a poll at their limits', () => {
     const poll = buildPollElement({
       question: 'q'.repeat(POLL_QUESTION_MAX + 20),
-      option1: 'a'.repeat(POLL_OPTION_MAX + 5),
-      option2: 'b'.repeat(POLL_OPTION_MAX + 5),
+      options: [
+        'a'.repeat(POLL_OPTION_MAX + 5),
+        'b'.repeat(POLL_OPTION_MAX + 5),
+      ],
       defaultOptions: ['Sí', 'No'],
     });
 
@@ -89,6 +98,71 @@ describe('story elements built from the panels', () => {
     expect(payload?.question).toHaveLength(POLL_QUESTION_MAX);
     expect(payload?.options[0]).toHaveLength(POLL_OPTION_MAX);
     expect(payload?.options[1]).toHaveLength(POLL_OPTION_MAX);
+  });
+
+  it('keeps up to four answers of a poll, and needs two', () => {
+    const four = buildPollElement({
+      question: 'Q',
+      options: ['a', 'b', 'c', 'd', 'e'],
+      defaultOptions: ['Sí', 'No'],
+    });
+    expect(parsePollPayload(four?.content ?? '')?.options).toEqual([
+      'a',
+      'b',
+      'c',
+      'd',
+    ]);
+    // A third answer left empty is dropped, not filled.
+    const two = buildPollElement({
+      question: 'Q',
+      options: ['a', 'b', '  '],
+      defaultOptions: ['Sí', 'No'],
+    });
+    expect(parsePollPayload(two?.content ?? '')?.options).toEqual(['a', 'b']);
+  });
+
+  it('builds a quiz with its right answer, and refuses one with an empty or missing option', () => {
+    const quiz = buildQuizElement({
+      question: ' ¿Capital? ',
+      options: [' Madrid ', 'Roma'],
+      correctIndex: 0,
+    });
+    expect(quiz && parseQuizPayload(quiz)).toEqual({
+      question: '¿Capital?',
+      options: ['Madrid', 'Roma'],
+      correctIndex: 0,
+    });
+    expect(isLiveElement(quiz as StoryElement)).toBe(true);
+    expect(
+      buildQuizElement({ question: 'Q', options: ['a', ''], correctIndex: 0 }),
+    ).toBeNull();
+    expect(
+      buildQuizElement({ question: 'Q', options: ['a', 'b'], correctIndex: 2 }),
+    ).toBeNull();
+    expect(
+      buildQuizElement({ question: '', options: ['a', 'b'], correctIndex: 0 }),
+    ).toBeNull();
+  });
+
+  it('builds a slider with its emoji, its question may be empty', () => {
+    const slider = buildSliderElement({ question: '  ', emoji: '🔥' });
+    expect(slider && parseSliderPayload(slider)).toEqual({
+      question: '',
+      emoji: '🔥',
+    });
+    expect(isAnswerableElement(slider as StoryElement)).toBe(true);
+  });
+
+  it('builds a hashtag without its # and refuses spaces and signs', () => {
+    expect(cleanHashtag(' #Verano_2026 ')).toBe('Verano_2026');
+    expect(cleanHashtag('dos palabras')).toBe('dospalabras');
+    expect(cleanHashtag('a-b')).toBeNull();
+    expect(cleanHashtag('#')).toBeNull();
+    const tag = buildHashtagElement('#verano');
+    expect(tag && parseHashtagPayload(tag)).toEqual({ tag: 'verano' });
+    // Live on the story but sized freely, as text.
+    expect(isLiveElement(tag as StoryElement)).toBe(true);
+    expect(isAnswerableElement(tag as StoryElement)).toBe(false);
   });
 
   it('builds a question box that reads back as its prompt', () => {

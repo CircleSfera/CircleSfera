@@ -8,6 +8,9 @@ export type StoryComposerTab =
   | 'templates'
   | 'poll'
   | 'qna'
+  | 'quiz'
+  | 'slider'
+  | 'hashtag'
   | 'draw';
 
 export type PanelTab = 'style' | 'transform' | 'layers';

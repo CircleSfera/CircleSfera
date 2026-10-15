@@ -1,5 +1,7 @@
 import type { StoryElement } from '../../types';
 import {
+  POLL_MAX_OPTIONS,
+  POLL_MIN_OPTIONS,
   POLL_OPTION_MAX,
   POLL_QUESTION_MAX,
   QNA_PROMPT_MAX,
@@ -20,31 +22,15 @@ export function buildStickerElement(sticker: string): StoryElement {
   };
 }
 
-export function buildPollElement(options: {
-  question: string;
-  option1: string;
-  option2: string;
-  /** The answers used when one is left empty, in the app language. */
-  defaultOptions: [string, string];
-}): StoryElement | null {
-  const question = options.question.trim();
-  if (!question) return null;
+/** An interactive piece of the story, at the centre, at the width of a sticker. */
+function interactiveElement(
+  type: StoryElement['type'],
+  content: object,
+): StoryElement {
   return {
     id: crypto.randomUUID(),
-    type: 'poll',
-    content: JSON.stringify({
-      question: question.slice(0, POLL_QUESTION_MAX),
-      options: [
-        (options.option1.trim() || options.defaultOptions[0]).slice(
-          0,
-          POLL_OPTION_MAX,
-        ),
-        (options.option2.trim() || options.defaultOptions[1]).slice(
-          0,
-          POLL_OPTION_MAX,
-        ),
-      ],
-    }),
+    type,
+    content: JSON.stringify(content),
     x: 0,
     y: 0,
     scale: 1,
@@ -52,6 +38,91 @@ export function buildPollElement(options: {
     align: 'center',
     opacity: 1,
     width: INTERACTIVE_WIDTH_PCT,
+  };
+}
+
+/** Trims the options, fills an empty one from the defaults, keeps 2 to 4. */
+function cleanOptions(options: string[], defaults: string[]): string[] {
+  return options
+    .slice(0, POLL_MAX_OPTIONS)
+    .map((o, i) => (o.trim() || defaults[i] || '').slice(0, POLL_OPTION_MAX))
+    .filter(Boolean);
+}
+
+export function buildPollElement(options: {
+  question: string;
+  /** Two to four answers. */
+  options: string[];
+  /** The answers used when one is left empty, in the app language. */
+  defaultOptions: [string, string];
+}): StoryElement | null {
+  const question = options.question.trim();
+  const answers = cleanOptions(options.options, options.defaultOptions);
+  if (!question || answers.length < POLL_MIN_OPTIONS) return null;
+  return interactiveElement('poll', {
+    question: question.slice(0, POLL_QUESTION_MAX),
+    options: answers,
+  });
+}
+
+/** A quiz: a question, two to four options and the right one. */
+export function buildQuizElement(quiz: {
+  question: string;
+  options: string[];
+  correctIndex: number;
+}): StoryElement | null {
+  const question = quiz.question.trim();
+  const options = quiz.options.map((o) => o.trim()).filter(Boolean);
+  if (
+    !question ||
+    options.length < POLL_MIN_OPTIONS ||
+    options.length !== quiz.options.length ||
+    quiz.correctIndex < 0 ||
+    quiz.correctIndex >= options.length
+  ) {
+    return null;
+  }
+  return interactiveElement('quiz', {
+    question: question.slice(0, POLL_QUESTION_MAX),
+    options: options
+      .slice(0, POLL_MAX_OPTIONS)
+      .map((o) => o.slice(0, POLL_OPTION_MAX)),
+    correctIndex: quiz.correctIndex,
+  });
+}
+
+/** A slider: a question, which may be empty, and its emoji. */
+export function buildSliderElement(slider: {
+  question: string;
+  emoji: string;
+}): StoryElement | null {
+  if (!slider.emoji) return null;
+  return interactiveElement('slider', {
+    question: slider.question.trim().slice(0, POLL_QUESTION_MAX),
+    emoji: slider.emoji,
+  });
+}
+
+/** The tag of a hashtag without its #, or null if it has none. */
+export function cleanHashtag(raw: string): string | null {
+  const tag = raw.trim().replace(/^#+/, '').replace(/\s+/g, '');
+  return /^[\p{L}\p{N}_]{1,50}$/u.test(tag) ? tag : null;
+}
+
+/** A hashtag: letters, numbers and _, opened by viewers from the story. */
+export function buildHashtagElement(raw: string): StoryElement | null {
+  const tag = cleanHashtag(raw);
+  if (!tag) return null;
+  return {
+    id: crypto.randomUUID(),
+    type: 'hashtag',
+    content: JSON.stringify({ tag }),
+    x: 0,
+    y: 0,
+    scale: 1.2,
+    rotation: 0,
+    align: 'center',
+    opacity: 1,
   };
 }
 

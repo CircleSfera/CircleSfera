@@ -11,6 +11,14 @@ export const STICKER_LABEL =
   'text-xs font-bold uppercase tracking-wider text-white/80';
 export const STICKER_TITLE =
   'text-sm font-bold text-white leading-snug break-words whitespace-normal mb-2.5';
+/**
+ * The shape of an answer of a poll or a quiz, or of the field of a question,
+ * without its colours, for rows whose colour says something (chosen, right,
+ * wrong): one border colour each, so none overrides another.
+ */
+export const STICKER_ROW_SHAPE =
+  'w-full min-h-11 rounded-xl border px-3 text-xs font-semibold text-white';
+/** The plain colours of a row. */
+export const STICKER_ROW_PLAIN = 'border-white/15 bg-surface-high';
 /** An answer of a poll, or the field of a question. */
-export const STICKER_ROW =
-  'w-full min-h-11 rounded-xl border border-white/15 bg-surface-high px-3 text-xs font-semibold text-white';
+export const STICKER_ROW = `${STICKER_ROW_SHAPE} ${STICKER_ROW_PLAIN}`;

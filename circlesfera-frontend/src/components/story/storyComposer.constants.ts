@@ -41,6 +41,12 @@ export const DEFAULT_BRUSH_WIDTH = 5;
 export const POLL_QUESTION_MAX = 120;
 export const POLL_OPTION_MAX = 32;
 export const QNA_PROMPT_MAX = 120;
+/** A poll or a quiz has two to four options. */
+export const POLL_MIN_OPTIONS = 2;
+export const POLL_MAX_OPTIONS = 4;
+export const HASHTAG_MAX = 50;
+/** The emoji a slider can carry; the first is the one it starts with. */
+export const SLIDER_EMOJIS = ['😍', '🔥', '😂', '😮', '😢', '👏', '💯', '❤️'];
 
 export const POLL_SUGGESTION_KEYS = [
   'createPost.storyComposer.poll_suggestion_1',

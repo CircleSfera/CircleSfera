@@ -31,8 +31,7 @@ interface StoryComposerShellChromeProps {
   bgDarken: number;
   activeStickerCategory: number;
   pollQuestion: string;
-  pollOption1: string;
-  pollOption2: string;
+  pollOptions: string[];
   qnaPrompt: string;
   setPanelTab: (t: PanelTab) => void;
   duplicateElement: (id: string) => void;
@@ -52,9 +51,10 @@ interface StoryComposerShellChromeProps {
   setActiveStickerCategory: (n: number) => void;
   addSticker: (s: string) => void;
   setPollQuestion: (v: string) => void;
-  setPollOption1: (v: string) => void;
-  setPollOption2: (v: string) => void;
+  setPollOptions: (v: string[]) => void;
   addPoll: () => void;
+  addElement: (el: StoryElement) => void;
+  openTab: (tab: StoryComposerTab) => void;
   setQnaPrompt: (v: string) => void;
   addQna: () => void;
   applyTemplate: (t: StoryTemplate) => void;
@@ -98,8 +98,7 @@ export default function StoryComposerShellChrome(
               bgDarken={p.bgDarken}
               activeStickerCategory={p.activeStickerCategory}
               pollQuestion={p.pollQuestion}
-              pollOption1={p.pollOption1}
-              pollOption2={p.pollOption2}
+              pollOptions={p.pollOptions}
               qnaPrompt={p.qnaPrompt}
               onPanelTabChange={p.setPanelTab}
               onDuplicateElement={p.duplicateElement}
@@ -117,9 +116,10 @@ export default function StoryComposerShellChrome(
               onActiveStickerCategoryChange={p.setActiveStickerCategory}
               onAddSticker={p.addSticker}
               onPollQuestionChange={p.setPollQuestion}
-              onPollOption1Change={p.setPollOption1}
-              onPollOption2Change={p.setPollOption2}
+              onPollOptionsChange={p.setPollOptions}
               onAddPoll={p.addPoll}
+              onAddElement={p.addElement}
+              onOpenTab={p.openTab}
               onQnaPromptChange={p.setQnaPrompt}
               onAddQna={p.addQna}
               onApplyTemplate={p.applyTemplate}

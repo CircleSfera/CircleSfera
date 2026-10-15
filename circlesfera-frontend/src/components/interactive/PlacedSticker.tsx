@@ -9,6 +9,8 @@ interface PlacedStickerProps {
   /** Where the creator placed it; null for a story published without one. */
   placement: StickerPlacement | null;
   onPointerDown?: () => void;
+  /** A hashtag takes the width of its text instead of a sticker's. */
+  fitContent?: boolean;
   children: ReactNode;
 }
 
@@ -20,6 +22,7 @@ interface PlacedStickerProps {
 export function PlacedSticker({
   placement,
   onPointerDown,
+  fitContent = false,
   children,
 }: PlacedStickerProps) {
   const areaRef = useRef<HTMLDivElement>(null);
@@ -64,9 +67,10 @@ export function PlacedSticker({
         style={{
           left: spot.left,
           top: spot.top,
-          width: spot.width,
+          width: fitContent ? undefined : spot.width,
           transform: `translate(-50%, -50%) scale(${placement.scale}) rotate(${placement.rotation}deg)`,
           visibility: spot.width > 0 ? 'visible' : 'hidden',
+          whiteSpace: fitContent ? 'nowrap' : undefined,
         }}
       >
         {children}

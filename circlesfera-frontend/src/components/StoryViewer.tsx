@@ -27,9 +27,12 @@ import { placementOf, placementOfSticker } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
+import { HashtagSticker } from './interactive/HashtagSticker';
 import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
+import { QuizWidget } from './interactive/QuizWidget';
+import { SliderWidget } from './interactive/SliderWidget';
 import PaywallOverlay from './monetization/PaywallOverlay';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { type StoryQnaAnswer, StoryViewersSheet } from './StoryViewersSheet';
@@ -445,6 +448,33 @@ export default function StoryViewer({
                         onPointerDown={() => setIsPaused(true)}
                       >
                         <PollWidget stickerId={sticker.id} />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'QUIZ' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <QuizWidget stickerId={sticker.id} />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'SLIDER' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <SliderWidget stickerId={sticker.id} />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'HASHTAG' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                        fitContent
+                      >
+                        <HashtagSticker
+                          tag={String(sticker.settings.tag ?? '')}
+                        />
                       </PlacedSticker>
                     ) : sticker.kind === 'QUESTION' && !isOwner ? (
                       <PlacedSticker

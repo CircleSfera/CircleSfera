@@ -1601,6 +1601,28 @@
       "tool_poll": "Encuesta",
       "tool_qna": "Preguntas",
       "tool_more": "Más",
+      "tool_quiz": "Quiz",
+      "tool_slider": "Deslizador",
+      "tool_hashtag": "Hashtag",
+      "stickers_search": "Buscar stickers",
+      "stickers_interactive": "Interactivos",
+      "stickers_no_results": "No hay stickers con ese nombre",
+      "poll_option_n": "Opción {{n}}",
+      "poll_add_option": "Añadir opción",
+      "poll_remove_option": "Quitar opción {{n}}",
+      "quiz_create_hint": "Quien la vea elige una respuesta y sabe si acierta",
+      "quiz_question_ph": "Haz una pregunta…",
+      "quiz_correct_hint": "Toca la letra de la respuesta correcta",
+      "quiz_mark_correct": "Marcar {{letter}} como la correcta",
+      "add_quiz": "Añadir quiz",
+      "slider_create_hint": "Quien la vea desliza el emoji para decir cuánto",
+      "slider_question_ph": "¿Cuánto te gusta?",
+      "slider_emoji": "Emoji del deslizador: {{emoji}}",
+      "add_slider": "Añadir deslizador",
+      "hashtag_create_hint": "Quien la vea abre el hashtag desde tu historia",
+      "hashtag_ph": "hashtag",
+      "hashtag_invalid": "Solo letras, números y _",
+      "add_hashtag": "Añadir hashtag",
       "drop_to_delete": "Suelta aquí para borrar",
       "sticker_categories": {
         "popular": "Populares",
@@ -4966,6 +4988,27 @@
       "loading_answers": "Cargando respuestas…",
       "no_answers": "Aún no hay respuestas.",
       "answers_heading": "{{count}} respuestas"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "loading": "Cargando quiz…",
+      "right": "✓ Respuesta correcta",
+      "wrong": "No era esa: la correcta está marcada",
+      "answer_error": "No se pudo enviar tu respuesta. Inténtalo de nuevo.",
+      "answers_one": "{{count}} respuesta",
+      "answers_other": "{{count}} respuestas",
+      "option": "Respuesta {{letter}}: {{text}}"
+    },
+    "slider": {
+      "title": "Deslizador",
+      "loading": "Cargando deslizador…",
+      "label": "Desliza para responder",
+      "average": "Media: {{percent}} %",
+      "sent": "✓ Respuesta registrada",
+      "answer_error": "No se pudo enviar tu respuesta. Inténtalo de nuevo."
+    },
+    "hashtag": {
+      "open": "Abrir #{{tag}}"
     }
   },
   "create_menu": {

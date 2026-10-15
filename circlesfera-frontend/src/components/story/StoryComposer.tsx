@@ -113,8 +113,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           bgDarken={s.bgDarken}
           activeStickerCategory={s.activeStickerCategory}
           pollQuestion={s.pollQuestion}
-          pollOption1={s.pollOption1}
-          pollOption2={s.pollOption2}
+          pollOptions={s.pollOptions}
           qnaPrompt={s.qnaPrompt}
           setPanelTab={s.setPanelTab}
           duplicateElement={s.duplicateElement}
@@ -132,9 +131,10 @@ export default function StoryComposer(props: StoryComposerProps) {
           setActiveStickerCategory={s.setActiveStickerCategory}
           addSticker={s.addSticker}
           setPollQuestion={s.setPollQuestion}
-          setPollOption1={s.setPollOption1}
-          setPollOption2={s.setPollOption2}
+          setPollOptions={s.setPollOptions}
           addPoll={s.addPoll}
+          addElement={s.addElement}
+          openTab={s.handleSelectTab}
           setQnaPrompt={s.setQnaPrompt}
           addQna={s.addQna}
           applyTemplate={s.applyTemplate}

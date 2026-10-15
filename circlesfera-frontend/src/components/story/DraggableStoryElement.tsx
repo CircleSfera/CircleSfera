@@ -2,13 +2,20 @@ import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import {
+  HashtagStickerPreview,
   INTERACTIVE_WIDTH_PCT,
+  isLiveElement,
   isPollElement,
   isQnaElement,
   PollStickerPreview,
+  parseHashtagPayload,
   parsePollPayload,
   parseQnaPayload,
+  parseQuizPayload,
+  parseSliderPayload,
   QnaStickerPreview,
+  QuizStickerPreview,
+  SliderStickerPreview,
   useStoryCanvasWidth,
 } from './storyInteractive';
 import { getTextStyleCSS } from './storyTextStyles';
@@ -42,7 +49,13 @@ export default function DraggableStoryElement({
   const { t } = useTranslation();
   const poll = isPollElement(el) ? parsePollPayload(el.content) : null;
   const qna = isQnaElement(el) ? parseQnaPayload(el.content) : null;
-  const isInteractive = Boolean(poll || qna);
+  const quiz = parseQuizPayload(el);
+  const slider = parseSliderPayload(el);
+  const hashtag = parseHashtagPayload(el);
+  // Live on the story, not painted into its picture.
+  const isLive = isLiveElement(el);
+  // At the width of a sticker; a hashtag takes its own width.
+  const isInteractive = Boolean(poll || qna || quiz || slider);
   const canvasWidth = useStoryCanvasWidth(containerRef);
   const interactivePx =
     canvasWidth > 0
@@ -68,7 +81,7 @@ export default function DraggableStoryElement({
       data-testid="story-element"
       // A poll or a question is answered on the story itself, not painted
       // into its picture.
-      data-export-ignore={isInteractive ? 'true' : undefined}
+      data-export-ignore={isLive ? 'true' : undefined}
       className={`absolute cursor-move touch-none select-none border-2 rounded-2xl p-0.5 transition-[border-color,opacity] ${
         isSelected ? 'border-white/55' : 'border-transparent'
       }`}
@@ -79,6 +92,18 @@ export default function DraggableStoryElement({
           options={poll.options}
           label={t('createPost.storyComposer.tool_poll')}
         />
+      ) : quiz ? (
+        <QuizStickerPreview
+          quiz={quiz}
+          label={t('createPost.storyComposer.tool_quiz')}
+        />
+      ) : slider ? (
+        <SliderStickerPreview
+          slider={slider}
+          label={t('createPost.storyComposer.tool_slider')}
+        />
+      ) : hashtag ? (
+        <HashtagStickerPreview tag={hashtag.tag} />
       ) : qna ? (
         <QnaStickerPreview
           prompt={qna.prompt}

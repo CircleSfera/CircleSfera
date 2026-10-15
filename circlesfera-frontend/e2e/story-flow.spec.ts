@@ -58,8 +58,8 @@ test('a text story with a poll is shared from its editor, with the poll where it
   await page.goto('/create?mode=story');
   await page.getByRole('button', { name: /Crear Historia de Texto/ }).click();
 
-  await page.getByRole('button', { name: 'Más', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Encuesta' }).click();
+  await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+  await page.getByRole('button', { name: 'Encuesta', exact: true }).click();
   await page.getByPlaceholder('Escribe tu pregunta…').fill('¿Playa o montaña?');
   await page.getByRole('button', { name: 'Añadir encuesta' }).click();
   const poll = page.getByTestId('story-element');
