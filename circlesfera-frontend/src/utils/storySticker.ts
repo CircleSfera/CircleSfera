@@ -37,6 +37,12 @@ export interface FeedSticker {
 export const STICKER_WIDTH_PCT = 82;
 export const STICKER_MIN_SCALE = 0.5;
 export const STICKER_MAX_SCALE = 1.35;
+/** Sizes the server accepts: answerable stickers, and the rest (hashtag). */
+export const ANSWERABLE_SCALE = {
+  min: STICKER_MIN_SCALE,
+  max: STICKER_MAX_SCALE,
+};
+export const FREE_SCALE = { min: 0.1, max: 8 };
 
 /** A story is upright, 9:16. */
 export const STORY_RATIO = 9 / 16;
@@ -57,12 +63,13 @@ export function normalizeDegrees(deg: number): number {
 export function placementFromElement(
   el: { x: number; y: number; scale: number; rotation: number },
   canvas: { width: number; height: number },
+  scaleLimits: { min: number; max: number } = ANSWERABLE_SCALE,
 ): StickerPlacement | undefined {
   if (!(canvas.width > 0 && canvas.height > 0)) return undefined;
   return {
     x: clamp(el.x / canvas.width, -0.5, 0.5),
     y: clamp(el.y / canvas.height, -0.5, 0.5),
-    scale: clamp(el.scale, STICKER_MIN_SCALE, STICKER_MAX_SCALE),
+    scale: clamp(el.scale, scaleLimits.min, scaleLimits.max),
     rotation: normalizeDegrees(el.rotation),
   };
 }

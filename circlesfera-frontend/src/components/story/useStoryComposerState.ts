@@ -57,12 +57,11 @@ export function useStoryComposerState(props: {
   const [panelTab, setPanelTab] = useState<PanelTab>('style');
   const [isExporting, setIsExporting] = useState(false);
   const [pollQuestion, setPollQuestion] = useState('');
-  const [pollOption1, setPollOption1] = useState(() =>
+  const defaultPollOptions = () => [
     t('createPost.storyComposer.poll_yes'),
-  );
-  const [pollOption2, setPollOption2] = useState(() =>
     t('createPost.storyComposer.poll_no'),
-  );
+  ];
+  const [pollOptions, setPollOptions] = useState<string[]>(defaultPollOptions);
   const [qnaPrompt, setQnaPrompt] = useState('');
   const [showVGuide, setShowVGuide] = useState(false);
   const [showHGuide, setShowHGuide] = useState(false);
@@ -165,8 +164,7 @@ export function useStoryComposerState(props: {
   const addPoll = () => {
     const el = buildPollElement({
       question: pollQuestion,
-      option1: pollOption1,
-      option2: pollOption2,
+      options: pollOptions,
       defaultOptions: [
         t('createPost.storyComposer.poll_yes'),
         t('createPost.storyComposer.poll_no'),
@@ -176,8 +174,14 @@ export function useStoryComposerState(props: {
     appendElement(el);
     setPanelTab('style');
     setPollQuestion('');
-    setPollOption1(t('createPost.storyComposer.poll_yes'));
-    setPollOption2(t('createPost.storyComposer.poll_no'));
+    setPollOptions(defaultPollOptions());
+    setActiveTab('none');
+  };
+
+  /** Adds a piece built by a setup panel (quiz, slider, hashtag). */
+  const addElement = (el: StoryElement) => {
+    appendElement(el);
+    setPanelTab('style');
     setActiveTab('none');
   };
 
@@ -258,10 +262,8 @@ export function useStoryComposerState(props: {
     ...textPublic,
     pollQuestion,
     setPollQuestion,
-    pollOption1,
-    setPollOption1,
-    pollOption2,
-    setPollOption2,
+    pollOptions,
+    setPollOptions,
     qnaPrompt,
     setQnaPrompt,
     selectedElementId,
@@ -290,6 +292,7 @@ export function useStoryComposerState(props: {
     commitElements,
     addSticker,
     addPoll,
+    addElement,
     addQna,
     applyTemplate,
     handleUploadBackground: bg.handleUploadBackground,

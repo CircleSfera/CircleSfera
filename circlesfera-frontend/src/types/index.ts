@@ -23,6 +23,7 @@ import type {
   SuggestedUser as ISuggestedUser,
   UpdateProfileDto as IUpdateProfileDto,
   User as IUser,
+  StoryStickerInput,
 } from '@circlesfera/shared';
 import type { FeedSticker, StoryStickerRef } from '../utils/storySticker';
 import type { StoryElement } from './story-element.types';
@@ -212,6 +213,8 @@ export type CreateStoryDto = {
   isPremium?: boolean;
   priceCents?: number;
   scheduledAt?: string | Date;
+  /** Polls, questions, quizzes, sliders and hashtags, up to ten. */
+  stickers?: StoryStickerInput[];
 };
 
 export type Message = Omit<

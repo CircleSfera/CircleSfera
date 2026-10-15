@@ -12,7 +12,7 @@ import {
   TAP_SLOP_PX,
   transformFromFingers,
 } from './storyGesture';
-import { isPollElement, isQnaElement } from './storyInteractive';
+import { isAnswerableElement } from './storyInteractive';
 
 interface GestureOptions {
   containerRef: React.RefObject<HTMLDivElement | null>;
@@ -45,7 +45,7 @@ interface Gesture {
 }
 
 const limitsFor = (el: StoryElement) =>
-  isPollElement(el) || isQnaElement(el) ? INTERACTIVE_SCALE : PIECE_SCALE;
+  isAnswerableElement(el) ? INTERACTIVE_SCALE : PIECE_SCALE;
 
 const pieceOf = (el: StoryElement): PieceTransform => ({
   x: el.x,

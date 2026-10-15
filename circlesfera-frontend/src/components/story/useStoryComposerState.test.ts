@@ -146,8 +146,7 @@ describe('useStoryComposerState', () => {
       await act(() => i18n.changeLanguage('es'));
       const { result } = setup();
 
-      expect(result.current.pollOption1).toBe('Sí');
-      expect(result.current.pollOption2).toBe('No');
+      expect(result.current.pollOptions).toEqual(['Sí', 'No']);
     });
 
     it('adds a poll with its question and answers, then empties the form', async () => {
@@ -155,8 +154,7 @@ describe('useStoryComposerState', () => {
       const { result } = setup();
 
       act(() => result.current.setPollQuestion('¿Playa o montaña?'));
-      act(() => result.current.setPollOption1('Playa'));
-      act(() => result.current.setPollOption2('Montaña'));
+      act(() => result.current.setPollOptions(['Playa', 'Montaña']));
       act(() => result.current.addPoll());
 
       expect(parsePollPayload(result.current.elements[0].content)).toEqual({
@@ -164,8 +162,7 @@ describe('useStoryComposerState', () => {
         options: ['Playa', 'Montaña'],
       });
       expect(result.current.pollQuestion).toBe('');
-      expect(result.current.pollOption1).toBe('Sí');
-      expect(result.current.pollOption2).toBe('No');
+      expect(result.current.pollOptions).toEqual(['Sí', 'No']);
       expect(result.current.activeTab).toBe('none');
     });
 

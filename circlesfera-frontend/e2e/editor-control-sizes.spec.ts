@@ -202,17 +202,27 @@ test.describe('Story composer', () => {
     expect(cutNames).toEqual([]);
   });
 
-  for (const tool of [
-    'Fondo',
-    'Texto',
-    'Stickers',
-    'Plantillas',
-    'Dibujar',
-    'Más',
-  ]) {
+  for (const tool of ['Fondo', 'Texto', 'Stickers', 'Plantillas', 'Dibujar']) {
     test(`tool: ${tool}`, async ({ page }) => {
       await openStoryComposer(page);
       await page.getByRole('button', { name: tool, exact: true }).click();
+      await expectControlsAtSize(page);
+    });
+  }
+});
+
+test.describe('Story composer, setting up a sticker', () => {
+  for (const sticker of [
+    'Encuesta',
+    'Preguntas',
+    'Quiz',
+    'Deslizador',
+    'Hashtag',
+  ]) {
+    test(`sticker: ${sticker}`, async ({ page }) => {
+      await openStoryComposer(page);
+      await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+      await page.getByRole('button', { name: sticker, exact: true }).click();
       await expectControlsAtSize(page);
     });
   }
@@ -251,15 +261,6 @@ test.describe('Story composer, editing an element', () => {
     test(`section: ${section}`, async ({ page }) => {
       await withSticker(page);
       await page.getByRole('button', { name: section, exact: true }).click();
-      await expectControlsAtSize(page);
-    });
-  }
-
-  for (const item of ['Encuesta', 'Preguntas']) {
-    test(`more: ${item}`, async ({ page }) => {
-      await openStoryComposer(page);
-      await page.getByRole('button', { name: 'Más', exact: true }).click();
-      await page.getByRole('menuitem', { name: item }).click();
       await expectControlsAtSize(page);
     });
   }

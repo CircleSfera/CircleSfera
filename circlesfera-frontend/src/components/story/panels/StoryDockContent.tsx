@@ -7,8 +7,11 @@ import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
+import StoryHashtagPanel from './StoryHashtagPanel';
 import StoryPollPanel from './StoryPollPanel';
 import StoryQnaPanel from './StoryQnaPanel';
+import StoryQuizPanel from './StoryQuizPanel';
+import StorySliderPanel from './StorySliderPanel';
 import StoryStickersPanel from './StoryStickersPanel';
 import StoryTemplatesPanel from './StoryTemplatesPanel';
 
@@ -27,8 +30,7 @@ export interface StoryDockContentProps {
   bgDarken: number;
   activeStickerCategory: number;
   pollQuestion: string;
-  pollOption1: string;
-  pollOption2: string;
+  pollOptions: string[];
   qnaPrompt: string;
   onPanelTabChange: (tab: PanelTab) => void;
   onDuplicateElement: (id: string) => void;
@@ -46,9 +48,12 @@ export interface StoryDockContentProps {
   onActiveStickerCategoryChange: (index: number) => void;
   onAddSticker: (sticker: string) => void;
   onPollQuestionChange: (value: string) => void;
-  onPollOption1Change: (value: string) => void;
-  onPollOption2Change: (value: string) => void;
+  onPollOptionsChange: (value: string[]) => void;
   onAddPoll: () => void;
+  /** Adds a piece built by a setup panel (quiz, slider, hashtag). */
+  onAddElement: (el: StoryElement) => void;
+  /** Opens the setup of an interactive sticker from the tray. */
+  onOpenTab: (tab: StoryComposerTab) => void;
   onQnaPromptChange: (value: string) => void;
   onAddQna: () => void;
   onApplyTemplate: (template: StoryTemplate) => void;
@@ -69,8 +74,7 @@ export default function StoryDockContent({
   bgDarken,
   activeStickerCategory,
   pollQuestion,
-  pollOption1,
-  pollOption2,
+  pollOptions,
   qnaPrompt,
   onPanelTabChange,
   onDuplicateElement,
@@ -88,9 +92,10 @@ export default function StoryDockContent({
   onActiveStickerCategoryChange,
   onAddSticker,
   onPollQuestionChange,
-  onPollOption1Change,
-  onPollOption2Change,
+  onPollOptionsChange,
   onAddPoll,
+  onAddElement,
+  onOpenTab,
   onQnaPromptChange,
   onAddQna,
   onApplyTemplate,
@@ -143,17 +148,16 @@ export default function StoryDockContent({
           activeStickerCategory={activeStickerCategory}
           onActiveStickerCategoryChange={onActiveStickerCategoryChange}
           onAddSticker={onAddSticker}
+          onOpenSticker={onOpenTab}
         />
       )}
 
       {!selectedElementId && activeTab === 'poll' && (
         <StoryPollPanel
           pollQuestion={pollQuestion}
-          pollOption1={pollOption1}
-          pollOption2={pollOption2}
+          pollOptions={pollOptions}
           onPollQuestionChange={onPollQuestionChange}
-          onPollOption1Change={onPollOption1Change}
-          onPollOption2Change={onPollOption2Change}
+          onPollOptionsChange={onPollOptionsChange}
           onAddPoll={onAddPoll}
         />
       )}
@@ -164,6 +168,18 @@ export default function StoryDockContent({
           onQnaPromptChange={onQnaPromptChange}
           onAddQna={onAddQna}
         />
+      )}
+
+      {!selectedElementId && activeTab === 'quiz' && (
+        <StoryQuizPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'slider' && (
+        <StorySliderPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'hashtag' && (
+        <StoryHashtagPanel onAdd={onAddElement} />
       )}
 
       {!selectedElementId && activeTab === 'templates' && (

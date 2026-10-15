@@ -70,10 +70,13 @@ describe('StoryComposer', () => {
       'Stickers',
       'Plantillas',
       'Dibujar',
-      'Más',
     ]) {
       expect(tool(name)).toBeInTheDocument();
     }
+    // Polls and the rest are in the sticker tray now.
+    expect(
+      screen.queryByRole('button', { name: 'Más' }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Deshacer' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Rehacer' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Listo' })).toBeEnabled();
@@ -103,8 +106,8 @@ describe('StoryComposer', () => {
       await screen.findByRole('button', { name: 'Estilo' }),
     ).toBeInTheDocument();
 
-    fireEvent.click(tool('Más'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Preguntas' }));
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Preguntas' }));
 
     expect(
       screen.getByPlaceholderText('Pregúntame lo que quieras…'),
@@ -190,11 +193,12 @@ describe('StoryComposer', () => {
     expect(lastElements()).toHaveLength(0);
   });
 
-  it('adds a poll from the "Más" menu only once it has a question', async () => {
+  it('adds a poll from the sticker tray only once it has a question', async () => {
     const { lastElements } = renderComposer();
 
-    fireEvent.click(tool('Más'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Encuesta' }));
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Encuesta' }));
+    expect(tool('Stickers')).toHaveAttribute('aria-pressed', 'true');
 
     const add = screen.getByRole('button', { name: 'Añadir encuesta' });
     expect(add).toBeDisabled();
@@ -216,11 +220,11 @@ describe('StoryComposer', () => {
     );
   });
 
-  it('adds a question box from the "Más" menu', async () => {
+  it('adds a question box from the sticker tray', async () => {
     const { lastElements } = renderComposer();
 
-    fireEvent.click(tool('Más'));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Preguntas' }));
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Preguntas' }));
     fireEvent.change(
       screen.getByPlaceholderText('Pregúntame lo que quieras…'),
       { target: { value: '¿Qué queréis saber?' } },
@@ -231,6 +235,118 @@ describe('StoryComposer', () => {
     expect(parseQnaPayload(lastElements()[0].content)).toEqual({
       prompt: '¿Qué queréis saber?',
     });
+  });
+
+  it('adds a poll with up to four answers, and takes one away', async () => {
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Encuesta' }));
+    fireEvent.change(screen.getByPlaceholderText('Escribe tu pregunta…'), {
+      target: { value: '¿Dónde?' },
+    });
+
+    const add = () => screen.getByRole('button', { name: 'Añadir opción' });
+    fireEvent.click(add());
+    fireEvent.click(add());
+    expect(
+      screen.queryByRole('button', { name: 'Añadir opción' }),
+    ).not.toBeInTheDocument();
+    fireEvent.change(screen.getByRole('textbox', { name: 'Opción 3' }), {
+      target: { value: 'Playa' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Opción 4' }), {
+      target: { value: 'Ciudad' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Quitar opción 4' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir encuesta' }));
+
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(parsePollPayload(lastElements()[0].content)?.options).toEqual([
+      'Sí',
+      'No',
+      'Playa',
+    ]);
+  });
+
+  it('adds a quiz with its right answer from the tray', async () => {
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Quiz' }));
+    const add = screen.getByRole('button', { name: 'Añadir quiz' });
+    expect(add).toBeDisabled();
+
+    fireEvent.change(screen.getByPlaceholderText('Haz una pregunta…'), {
+      target: { value: '¿Capital?' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Opción 1' }), {
+      target: { value: 'Roma' },
+    });
+    fireEvent.change(screen.getByRole('textbox', { name: 'Opción 2' }), {
+      target: { value: 'Madrid' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Marcar B como la correcta' }),
+    );
+    fireEvent.click(add);
+
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0].type).toBe('quiz');
+    expect(JSON.parse(lastElements()[0].content)).toEqual({
+      question: '¿Capital?',
+      options: ['Roma', 'Madrid'],
+      correctIndex: 1,
+    });
+  });
+
+  it('adds a slider with the chosen emoji, and a hashtag without its #', async () => {
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Deslizador' }));
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Emoji del deslizador: 🔥' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir deslizador' }));
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(JSON.parse(lastElements()[0].content)).toEqual({
+      question: '',
+      emoji: '🔥',
+    });
+
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Hashtag' }));
+    const field = screen.getByRole('textbox', { name: 'Hashtag' });
+    fireEvent.change(field, { target: { value: 'a-b' } });
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Solo letras, números y _',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Añadir hashtag' }),
+    ).toBeDisabled();
+    fireEvent.change(field, { target: { value: '#verano' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Añadir hashtag' }));
+
+    await waitFor(() => expect(lastElements()).toHaveLength(2));
+    expect(lastElements()[1]).toMatchObject({
+      type: 'hashtag',
+      content: JSON.stringify({ tag: 'verano' }),
+    });
+  });
+
+  it('searches the tray by the name of a sticker or of an emoji category', () => {
+    renderComposer();
+    fireEvent.click(tool('Stickers'));
+    const search = screen.getByRole('searchbox', { name: 'Buscar stickers' });
+
+    fireEvent.change(search, { target: { value: 'quiz' } });
+    expect(screen.getByRole('button', { name: 'Quiz' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Encuesta' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'zzz' } });
+    expect(
+      screen.getByText('No hay stickers con ese nombre'),
+    ).toBeInTheDocument();
   });
 
   it('fills the story from a template', async () => {

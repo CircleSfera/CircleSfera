@@ -9,7 +9,8 @@ import {
   STICKER_CARD,
   STICKER_HEADER,
   STICKER_LABEL,
-  STICKER_ROW,
+  STICKER_ROW_PLAIN,
+  STICKER_ROW_SHAPE,
   STICKER_TITLE,
 } from './stickerStyles';
 
@@ -146,8 +147,10 @@ export const PollWidget: React.FC<
               onClick={() => handleVote(option.index)}
               disabled={votingIndex !== null}
               aria-pressed={isSelected}
-              className={`${STICKER_ROW} relative py-2 text-left overflow-hidden transition-colors ${
-                isSelected ? 'border-brand-primary' : 'hover:bg-white/10'
+              className={`${STICKER_ROW_SHAPE} relative py-2 text-left overflow-hidden transition-colors ${
+                isSelected
+                  ? 'border-brand-primary bg-surface-high'
+                  : `${STICKER_ROW_PLAIN} hover:bg-white/10`
               }`}
             >
               {hasVoted && (

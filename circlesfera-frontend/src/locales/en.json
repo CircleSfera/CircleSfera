@@ -1601,6 +1601,28 @@
       "tool_poll": "Poll",
       "tool_qna": "Q&A",
       "tool_more": "More",
+      "tool_quiz": "Quiz",
+      "tool_slider": "Slider",
+      "tool_hashtag": "Hashtag",
+      "stickers_search": "Search stickers",
+      "stickers_interactive": "Interactive",
+      "stickers_no_results": "No sticker by that name",
+      "poll_option_n": "Option {{n}}",
+      "poll_add_option": "Add option",
+      "poll_remove_option": "Remove option {{n}}",
+      "quiz_create_hint": "Viewers pick an answer and see if it is right",
+      "quiz_question_ph": "Ask a question…",
+      "quiz_correct_hint": "Tap the letter of the right answer",
+      "quiz_mark_correct": "Make {{letter}} the right answer",
+      "add_quiz": "Add quiz",
+      "slider_create_hint": "Viewers slide the emoji to say how much",
+      "slider_question_ph": "How much do you like it?",
+      "slider_emoji": "Slider emoji: {{emoji}}",
+      "add_slider": "Add slider",
+      "hashtag_create_hint": "Viewers open the hashtag from your story",
+      "hashtag_ph": "hashtag",
+      "hashtag_invalid": "Only letters, numbers and _",
+      "add_hashtag": "Add hashtag",
       "drop_to_delete": "Drop here to delete",
       "sticker_categories": {
         "popular": "Popular",
@@ -4966,6 +4988,27 @@
       "loading_answers": "Loading answers…",
       "no_answers": "No answers yet.",
       "answers_heading": "{{count}} answers"
+    },
+    "quiz": {
+      "title": "Quiz",
+      "loading": "Loading quiz…",
+      "right": "✓ Right answer",
+      "wrong": "Not this one: the right answer is marked",
+      "answer_error": "Your answer could not be sent. Try again.",
+      "answers_one": "{{count}} answer",
+      "answers_other": "{{count}} answers",
+      "option": "Answer {{letter}}: {{text}}"
+    },
+    "slider": {
+      "title": "Slider",
+      "loading": "Loading slider…",
+      "label": "Slide to answer",
+      "average": "Average: {{percent}}%",
+      "sent": "✓ Answer recorded",
+      "answer_error": "Your answer could not be sent. Try again."
+    },
+    "hashtag": {
+      "open": "Open #{{tag}}"
     }
   },
   "create_menu": {
