@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import EmailVerificationBanner from '../components/auth/EmailVerificationBanner';
 import BrandAmbientBackground from '../components/common/BrandAmbientBackground';
@@ -93,6 +93,16 @@ export default function LayoutWrapper({
   const latestNotification = liveNotifications[0];
 
   const { isOpen, stories, initialIndex, closeStories } = useStoryStore();
+
+  // A link on a story (a hashtag, a mention, a place) leads to another page:
+  // the story closes so that page shows.
+  const pageKey = `${location.pathname}${location.search}`;
+  const lastPageKey = useRef(pageKey);
+  useEffect(() => {
+    if (lastPageKey.current === pageKey) return;
+    lastPageKey.current = pageKey;
+    if (isOpen) closeStories();
+  }, [pageKey, isOpen, closeStories]);
 
   const showAppSidebar = shouldShowNav;
 

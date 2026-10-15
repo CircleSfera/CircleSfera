@@ -123,6 +123,14 @@ export default function StoryComposerShellChrome(
               onQnaPromptChange={p.setQnaPrompt}
               onAddQna={p.addQna}
               onApplyTemplate={p.applyTemplate}
+              place={
+                p.share
+                  ? {
+                      name: p.share.placeStickerName,
+                      onOpen: p.share.onOpenPlace,
+                    }
+                  : undefined
+              }
             />
           </StoryPanelSheet>
         </div>

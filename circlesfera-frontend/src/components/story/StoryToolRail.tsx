@@ -30,6 +30,8 @@ const STICKER_SETUPS: ReadonlySet<StoryComposerTab> = new Set([
   'quiz',
   'slider',
   'hashtag',
+  'mention',
+  'location',
 ]);
 
 /**

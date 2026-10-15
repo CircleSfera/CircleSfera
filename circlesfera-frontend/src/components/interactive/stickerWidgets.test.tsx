@@ -2,7 +2,11 @@ import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { apiClient } from '../../services/api';
 import { renderWithProviders } from '../../test/test-utils';
-import { HashtagSticker } from './HashtagSticker';
+import {
+  HashtagSticker,
+  LocationSticker,
+  MentionSticker,
+} from './HashtagSticker';
 import { QuizWidget } from './QuizWidget';
 import { SliderWidget } from './SliderWidget';
 
@@ -122,5 +126,23 @@ describe('HashtagSticker', () => {
       'href',
       '/explore/tags/verano',
     );
+  });
+});
+
+describe('MentionSticker and LocationSticker', () => {
+  it('open the profile mentioned and the place on the map', () => {
+    renderWithProviders(
+      <>
+        <MentionSticker username="ana" />
+        <LocationSticker placeId="pl 1" name="Madrid" />
+      </>,
+    );
+
+    expect(
+      screen.getByRole('link', { name: "Open @ana's profile" }),
+    ).toHaveAttribute('href', '/ana');
+    expect(
+      screen.getByRole('link', { name: 'See Madrid on the map' }),
+    ).toHaveAttribute('href', '/explore/map?place=pl%201');
   });
 });

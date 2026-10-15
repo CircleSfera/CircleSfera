@@ -127,8 +127,9 @@ export default function Notifications() {
     ) {
       fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}`;
     } else if (n.type === 'COMMENT' || n.type === 'MENTION') {
-      // Group comments/mentions only if they are identical (content + post + sender)
-      fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}-${n.content}`;
+      // Group comments/mentions only if they are identical (content, post or
+      // story, and sender).
+      fingerprint = `${n.type}-${n.senderId}-${n.postId || 'none'}-${n.targetId || 'none'}-${n.content}`;
     }
 
     if (!fingerprints.has(fingerprint)) {
@@ -372,7 +373,11 @@ export default function Notifications() {
                     {notif.type === 'COMMENT' &&
                       t('notifications.types.comment')}
                     {notif.type === 'MENTION' &&
-                      t('notifications.types.mention')}
+                      t(
+                        notif.targetType === 'story'
+                          ? 'notifications.types.mention_story'
+                          : 'notifications.types.mention',
+                      )}
                     {notif.type === 'FOLLOW_REQUEST' &&
                       t('notifications.types.follow_request')}
                     {notif.type === 'FOLLOW_ACCEPTED' &&

@@ -13,7 +13,12 @@ export interface StoryShareOptions {
   /** The song of the story, if one was chosen. */
   musicTitle: string | null;
   onOpenMusic: () => void;
-  /** The place of the story, if one was chosen. */
+  /** The place of the story, if one was chosen, with its area. */
   placeName: string | null;
+  /**
+   * The place's own name, as the location sticker shows it to viewers; null
+   * when the story has no place to put on it.
+   */
+  placeStickerName: string | null;
   onOpenPlace: () => void;
 }

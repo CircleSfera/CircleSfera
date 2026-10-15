@@ -1,16 +1,21 @@
 import { motion } from 'framer-motion';
 import {
+  AtSign,
   BadgeCheck,
   BarChart2,
   Hash,
   HelpCircle,
   type LucideIcon,
+  MapPin,
   Search,
   SlidersHorizontal,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { STICKER_CATEGORIES } from '../storyComposer.constants';
+import {
+  STICKER_CATEGORIES,
+  STORY_STICKER_MAX,
+} from '../storyComposer.constants';
 import type { StoryComposerTab } from '../storyComposer.types';
 
 /** The interactive stickers, first in the tray, as on Instagram. */
@@ -24,6 +29,8 @@ const INTERACTIVE: {
   { tab: 'quiz', icon: BadgeCheck, labelKey: 'tool_quiz' },
   { tab: 'slider', icon: SlidersHorizontal, labelKey: 'tool_slider' },
   { tab: 'hashtag', icon: Hash, labelKey: 'tool_hashtag' },
+  { tab: 'mention', icon: AtSign, labelKey: 'tool_mention' },
+  { tab: 'location', icon: MapPin, labelKey: 'tool_location' },
 ];
 
 export interface StoryStickersPanelProps {
@@ -32,6 +39,10 @@ export interface StoryStickersPanelProps {
   onAddSticker: (sticker: string) => void;
   /** Opens the setup of an interactive sticker. */
   onOpenSticker: (tab: StoryComposerTab) => void;
+  /** The story can carry a place: the editor shares it itself. */
+  canPlace?: boolean;
+  /** The story already holds as many interactive stickers as it may. */
+  full?: boolean;
 }
 
 const fold = (text: string) =>
@@ -42,20 +53,24 @@ const fold = (text: string) =>
 
 /**
  * The sticker tray: a search field, the interactive stickers (poll,
- * questions, quiz, slider, hashtag), then the emoji by category.
+ * questions, quiz, slider, hashtag, mention and, when the editor shares the
+ * story, location), then the emoji by category.
  */
 export default function StoryStickersPanel({
   activeStickerCategory,
   onActiveStickerCategoryChange,
   onAddSticker,
   onOpenSticker,
+  canPlace = false,
+  full = false,
 }: StoryStickersPanelProps) {
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const q = fold(query.trim());
   const interactive = INTERACTIVE.filter(
-    ({ labelKey }) =>
-      !q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q),
+    ({ tab, labelKey }) =>
+      (canPlace || tab !== 'location') &&
+      (!q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q)),
   );
   const categoryName = (label: string) =>
     t(`createPost.storyComposer.sticker_categories.${label.toLowerCase()}`, {
@@ -93,13 +108,21 @@ export default function StoryStickersPanel({
         <section
           aria-label={t('createPost.storyComposer.stickers_interactive')}
         >
+          {full ? (
+            <p className="text-sm text-white/60 text-center pb-2">
+              {t('createPost.storyComposer.stickers_limit', {
+                max: STORY_STICKER_MAX,
+              })}
+            </p>
+          ) : null}
           <div className="grid grid-cols-3 gap-2">
             {interactive.map(({ tab, icon: Icon, labelKey }) => (
               <button
                 type="button"
                 key={tab}
                 onClick={() => onOpenSticker(tab)}
-                className="min-h-12 px-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white text-black text-sm font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] active:scale-95"
+                disabled={full}
+                className="disabled:opacity-40 min-h-12 px-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-white text-black text-sm font-bold shadow-[0_4px_12px_rgba(0,0,0,0.3)] active:scale-95"
               >
                 <Icon
                   size={16}

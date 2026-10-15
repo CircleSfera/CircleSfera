@@ -13,8 +13,10 @@ function prismaMock() {
     block: { findFirst: vi.fn().mockResolvedValue(null) },
     follow: { findUnique: vi.fn() },
     closeFriend: { findUnique: vi.fn() },
-    profile: { findUnique: vi.fn().mockResolvedValue({ id: 'mentioned' }) },
-    place: { findUnique: vi.fn().mockResolvedValue({ id: 'place-1' }) },
+    profile: {
+      findUnique: vi.fn().mockResolvedValue({ id: 'mentioned' }),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
     story: {
       findUnique: vi.fn().mockResolvedValue({
         profileId: AUTHOR,
@@ -56,13 +58,19 @@ describe('StoryStickersService', () => {
 
   describe('creating the stickers of a new story', () => {
     it('saves each with what it holds, trimmed, and where it sits', async () => {
-      await service.createForStory(prisma as never, 'story-1', AUTHOR, [
-        sticker({
-          kind: 'POLL',
-          settings: { question: ' ¿Playa? ', options: ['Sí', 'No'] },
-        }),
-        sticker({ kind: 'HASHTAG', settings: { tag: '#verano' }, scale: 3 }),
-      ]);
+      await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [
+          sticker({
+            kind: 'POLL',
+            settings: { question: ' ¿Playa? ', options: ['Sí', 'No'] },
+          }),
+          sticker({ kind: 'HASHTAG', settings: { tag: '#verano' }, scale: 3 }),
+        ],
+        null,
+      );
 
       expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
         data: [
@@ -84,45 +92,114 @@ describe('StoryStickersService', () => {
     });
 
     it('does nothing for a story without stickers', async () => {
-      await service.createForStory(prisma as never, 'story-1', AUTHOR, []);
+      await expect(
+        service.createForStory(prisma as never, 'story-1', AUTHOR, [], null),
+      ).resolves.toEqual([]);
       expect(prisma.storySticker.createMany).not.toHaveBeenCalled();
     });
 
     it('keeps a poll, a question, a quiz and a slider within the sizes of the editor', async () => {
       await expect(
-        service.createForStory(prisma as never, 'story-1', AUTHOR, [
-          sticker({
-            kind: 'POLL',
-            settings: { question: 'Q', options: ['a', 'b'] },
-            scale: 2,
-          }),
-        ]),
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [
+            sticker({
+              kind: 'POLL',
+              settings: { question: 'Q', options: ['a', 'b'] },
+              scale: 2,
+            }),
+          ],
+          null,
+        ),
       ).rejects.toThrow('STICKER_SCALE_OUT_OF_RANGE');
     });
 
     it('refuses a mention of a profile that does not exist or is blocked', async () => {
       prisma.profile.findUnique.mockResolvedValueOnce(null);
       await expect(
-        service.createForStory(prisma as never, 'story-1', AUTHOR, [
-          sticker({ kind: 'MENTION', settings: { profileId: 'ghost' } }),
-        ]),
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [sticker({ kind: 'MENTION', settings: { profileId: 'ghost' } })],
+          null,
+        ),
       ).rejects.toThrow('MENTIONED_PROFILE_NOT_FOUND');
 
       prisma.block.findFirst.mockResolvedValueOnce({ id: 'b' });
       await expect(
-        service.createForStory(prisma as never, 'story-1', AUTHOR, [
-          sticker({ kind: 'MENTION', settings: { profileId: 'mentioned' } }),
-        ]),
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [sticker({ kind: 'MENTION', settings: { profileId: 'mentioned' } })],
+          null,
+        ),
       ).rejects.toThrow('MENTIONED_PROFILE_NOT_FOUND');
     });
 
-    it('refuses a place that does not exist', async () => {
-      prisma.place.findUnique.mockResolvedValueOnce(null);
+    it('returns each profile mentioned once, never the author', async () => {
+      prisma.profile.findUnique.mockImplementation(({ where }) =>
+        Promise.resolve({ id: where.id }),
+      );
+      const mentioned = await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [
+          sticker({ kind: 'MENTION', settings: { profileId: 'ana' } }),
+          sticker({ kind: 'MENTION', settings: { profileId: 'ana' } }),
+          sticker({ kind: 'MENTION', settings: { profileId: AUTHOR } }),
+        ],
+        null,
+      );
+      expect(mentioned).toEqual(['ana']);
+    });
+
+    it('gives a location the story’s place, whatever the client sent', async () => {
+      await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [sticker({ kind: 'LOCATION', settings: { placeId: 'elsewhere' } })],
+        'place-1',
+      );
+      expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            storyId: 'story-1',
+            kind: 'LOCATION',
+            settings: { placeId: 'place-1' },
+            ...place,
+          },
+        ],
+      });
+    });
+
+    it('refuses a location on a story with no place, and two on one story', async () => {
       await expect(
-        service.createForStory(prisma as never, 'story-1', AUTHOR, [
-          sticker({ kind: 'LOCATION', settings: { placeId: 'nowhere' } }),
-        ]),
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [sticker({ kind: 'LOCATION', settings: {} })],
+          null,
+        ),
       ).rejects.toThrow('PLACE_NOT_FOUND');
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [
+            sticker({ kind: 'LOCATION', settings: {} }),
+            sticker({ kind: 'LOCATION', settings: {} }),
+          ],
+          'place-1',
+        ),
+      ).rejects.toThrow('ONE_LOCATION_STICKER_PER_STORY');
     });
 
     it('refuses more than ten stickers', async () => {
@@ -134,6 +211,7 @@ describe('StoryStickersService', () => {
           Array.from({ length: 11 }, () =>
             sticker({ kind: 'HASHTAG', settings: { tag: 'a' } }),
           ),
+          null,
         ),
       ).rejects.toThrow('TOO_MANY_STICKERS');
     });
@@ -311,5 +389,76 @@ describe('StoryStickersService', () => {
       'correctIndex',
       0,
     );
+  });
+
+  describe('names in the feed', () => {
+    const row = (kind: string, settings: object) => ({
+      id: `st-${kind}`,
+      kind,
+      settings,
+      ...place,
+    });
+
+    it('writes the username of a mention and the name of the place', () => {
+      const feed = service.forFeed(
+        [
+          row('MENTION', { profileId: 'p-ana' }),
+          row('LOCATION', { placeId: 'place-1' }),
+        ] as never,
+        false,
+        { usernames: new Map([['p-ana', 'ana']]), placeName: 'Madrid' },
+      );
+      expect(feed.map((s) => s.settings)).toEqual([
+        { profileId: 'p-ana', username: 'ana' },
+        { placeId: 'place-1', name: 'Madrid' },
+      ]);
+    });
+
+    it('leaves out a mention it has no username for, and a place with no name', () => {
+      const feed = service.forFeed(
+        [
+          row('MENTION', { profileId: 'p-gone' }),
+          row('LOCATION', { placeId: 'place-1' }),
+          row('HASHTAG', { tag: 'verano' }),
+        ] as never,
+        false,
+      );
+      expect(feed.map((s) => s.kind)).toEqual(['HASHTAG']);
+    });
+
+    it('looks up the profiles mentioned that the viewer may see, once', async () => {
+      prisma.profile.findMany.mockResolvedValueOnce([
+        { id: 'p-ana', username: 'ana' },
+      ]);
+      const names = await service.mentionNames(
+        [
+          { kind: 'MENTION', settings: { profileId: 'p-ana' } },
+          { kind: 'MENTION', settings: { profileId: 'p-ana' } },
+          { kind: 'MENTION', settings: { profileId: 'p-blocked' } },
+          { kind: 'POLL', settings: { question: 'Q' } },
+        ] as never,
+        VIEWER,
+      );
+      expect(names).toEqual(new Map([['p-ana', 'ana']]));
+      expect(prisma.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            id: { in: ['p-ana', 'p-blocked'] },
+            blocking: { none: { blockedId: VIEWER } },
+            blockedBy: { none: { blockerId: VIEWER } },
+          }),
+        }),
+      );
+    });
+
+    it('asks nothing when no sticker mentions anyone', async () => {
+      await expect(
+        service.mentionNames(
+          [{ kind: 'HASHTAG', settings: { tag: 'a' } }] as never,
+          VIEWER,
+        ),
+      ).resolves.toEqual(new Map());
+      expect(prisma.profile.findMany).not.toHaveBeenCalled();
+    });
   });
 });

@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import type { Prisma, StoryStickerKind } from '@prisma/client';
-import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import {
+  isBlockedEitherWay,
+  visibleToViewerWhere,
+} from '../common/policies/block.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
@@ -54,21 +57,27 @@ export class StoryStickersService {
   /**
    * Creates the stickers of a new story inside its transaction, after
    * checking what each holds: a mention names a profile that exists and is
-   * not blocked either way, a location a place that exists.
+   * not blocked either way; a location is the story's place, once per story.
+   * Returns the profiles mentioned, once each, for their notifications.
    */
   async createForStory(
     tx: Tx,
     storyId: string,
     authorProfileId: string,
     stickers: CreateStoryStickerDto[],
-  ): Promise<void> {
-    if (stickers.length === 0) return;
+    storyPlaceId: string | null,
+  ): Promise<string[]> {
+    if (stickers.length === 0) return [];
     if (stickers.length > STICKER_LIMITS.perStory) {
       throw new BadRequestException('TOO_MANY_STICKERS');
     }
+    if (stickers.filter((s) => s.kind === 'LOCATION').length > 1) {
+      throw new BadRequestException('ONE_LOCATION_STICKER_PER_STORY');
+    }
+    const mentioned = new Set<string>();
     const rows: Prisma.StoryStickerCreateManyInput[] = [];
     for (const sticker of stickers) {
-      const settings = parseStickerSettings(sticker.kind, sticker.settings);
+      let settings = parseStickerSettings(sticker.kind, sticker.settings);
       if (
         ANSWERABLE.has(sticker.kind) &&
         (sticker.scale < ANSWERABLE_SCALE.min ||
@@ -78,12 +87,12 @@ export class StoryStickersService {
       }
       if (sticker.kind === 'MENTION') {
         const { profileId } = settings as { profileId: string };
-        const mentioned = await tx.profile.findUnique({
+        const profile = await tx.profile.findUnique({
           where: { id: profileId },
           select: { id: true },
         });
         if (
-          !mentioned ||
+          !profile ||
           (await isBlockedEitherWay(
             tx as unknown as PrismaService,
             authorProfileId,
@@ -92,14 +101,11 @@ export class StoryStickersService {
         ) {
           throw new BadRequestException('MENTIONED_PROFILE_NOT_FOUND');
         }
+        if (profileId !== authorProfileId) mentioned.add(profileId);
       }
       if (sticker.kind === 'LOCATION') {
-        const { placeId } = settings as { placeId: string };
-        const place = await tx.place.findUnique({
-          where: { id: placeId },
-          select: { id: true },
-        });
-        if (!place) throw new BadRequestException('PLACE_NOT_FOUND');
+        if (!storyPlaceId) throw new BadRequestException('PLACE_NOT_FOUND');
+        settings = { placeId: storyPlaceId };
       }
       rows.push({
         storyId,
@@ -112,19 +118,73 @@ export class StoryStickersService {
       });
     }
     await tx.storySticker.createMany({ data: rows });
+    return [...mentioned];
   }
 
-  /** The stickers of a story for the feed; its author sees a quiz's answer. */
-  forFeed(stickers: StickerRow[], viewerIsAuthor: boolean): FeedSticker[] {
-    return stickers.map((s) => ({
-      id: s.id,
-      kind: s.kind,
-      settings: publicSettings(s.kind, s.settings, viewerIsAuthor),
-      x: s.x,
-      y: s.y,
-      scale: s.scale,
-      rotation: s.rotation,
-    }));
+  /**
+   * The usernames of the profiles the given stickers mention, as they are
+   * now, for one viewer: a profile that is gone, or blocked either way with
+   * the viewer, is not in it, so its mention is left out of the feed.
+   */
+  async mentionNames(
+    stickers: { kind: StoryStickerKind; settings: Prisma.JsonValue }[],
+    viewerProfileId: string | undefined,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        stickers
+          .filter((s) => s.kind === 'MENTION')
+          .map((s) => (s.settings as { profileId?: string })?.profileId)
+          .filter((id): id is string => typeof id === 'string'),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    const profiles = await this.prisma.profile.findMany({
+      where: {
+        id: { in: ids },
+        ...(await visibleToViewerWhere(this.prisma, viewerProfileId)),
+      },
+      select: { id: true, username: true },
+    });
+    return new Map(profiles.map((p) => [p.id, p.username]));
+  }
+
+  /**
+   * The stickers of a story for the feed; its author sees a quiz's answer. A
+   * mention carries its profile's username and a location the place's name,
+   * both written here; a mention with no username to show is left out.
+   */
+  forFeed(
+    stickers: StickerRow[],
+    viewerIsAuthor: boolean,
+    names: {
+      usernames: Map<string, string>;
+      placeName: string | null;
+    } = { usernames: new Map(), placeName: null },
+  ): FeedSticker[] {
+    const feed: FeedSticker[] = [];
+    for (const s of stickers) {
+      const settings = publicSettings(s.kind, s.settings, viewerIsAuthor);
+      if (s.kind === 'MENTION') {
+        const username = names.usernames.get(String(settings.profileId));
+        if (!username) continue;
+        settings.username = username;
+      }
+      if (s.kind === 'LOCATION') {
+        if (!names.placeName) continue;
+        settings.name = names.placeName;
+      }
+      feed.push({
+        id: s.id,
+        kind: s.kind,
+        settings,
+        x: s.x,
+        y: s.y,
+        scale: s.scale,
+        rotation: s.rotation,
+      });
+    }
+    return feed;
   }
 
   /**

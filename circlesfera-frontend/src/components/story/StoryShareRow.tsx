@@ -67,7 +67,7 @@ export default function StoryShareRow({
         {spinner('close_friends') ?? (
           <Star
             size={16}
-            className="shrink-0 fill-green-500 text-green-500"
+            className="shrink-0 fill-close-friends text-close-friends"
             aria-hidden
           />
         )}

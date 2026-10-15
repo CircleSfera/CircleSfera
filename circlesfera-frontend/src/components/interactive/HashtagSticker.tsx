@@ -1,5 +1,7 @@
+import { MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { PILL, PILL_TEXT } from '../story/storyInteractive';
 
 /** A hashtag on a story: it opens the page of the hashtag. */
 export function HashtagSticker({ tag }: { tag: string }) {
@@ -8,11 +10,49 @@ export function HashtagSticker({ tag }: { tag: string }) {
     <Link
       to={`/explore/tags/${encodeURIComponent(tag)}`}
       aria-label={t('interactive.hashtag.open', { tag })}
-      className="inline-flex min-h-11 items-center rounded-xl bg-white px-3 py-1.5 shadow-[0_6px_20px_rgba(0,0,0,0.35)]"
+      className={`${PILL} min-h-11`}
     >
-      <span className="text-lg font-black tracking-tight text-transparent bg-clip-text bg-linear-to-r from-brand-primary to-brand-blue">
-        #{tag.toUpperCase()}
-      </span>
+      <span className={PILL_TEXT}>#{tag.toUpperCase()}</span>
+    </Link>
+  );
+}
+
+/** A mention on a story: it opens the profile of the person mentioned. */
+export function MentionSticker({ username }: { username: string }) {
+  const { t } = useTranslation();
+  return (
+    <Link
+      to={`/${encodeURIComponent(username)}`}
+      aria-label={t('interactive.mention.open', { username })}
+      className={`${PILL} min-h-11`}
+    >
+      <span className={PILL_TEXT}>@{username.toUpperCase()}</span>
+    </Link>
+  );
+}
+
+/** The place of a story: it opens the place on the map. */
+export function LocationSticker({
+  placeId,
+  name,
+}: {
+  placeId: string;
+  name: string;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Link
+      to={`/explore/map?place=${encodeURIComponent(placeId)}`}
+      aria-label={t('interactive.location.open', { name })}
+      className={`${PILL} min-h-11 max-w-[260px]`}
+    >
+      <MapPin
+        size={18}
+        strokeWidth={2.6}
+        className="shrink-0 text-brand-primary"
+        aria-hidden
+      />
+      <span className={`${PILL_TEXT} truncate`}>{name.toUpperCase()}</span>
     </Link>
   );
 }

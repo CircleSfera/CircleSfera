@@ -27,7 +27,11 @@ import { placementOf, placementOfSticker } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
-import { HashtagSticker } from './interactive/HashtagSticker';
+import {
+  HashtagSticker,
+  LocationSticker,
+  MentionSticker,
+} from './interactive/HashtagSticker';
 import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
@@ -474,6 +478,30 @@ export default function StoryViewer({
                       >
                         <HashtagSticker
                           tag={String(sticker.settings.tag ?? '')}
+                        />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'MENTION' &&
+                      sticker.settings.username ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                        fitContent
+                      >
+                        <MentionSticker
+                          username={String(sticker.settings.username)}
+                        />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'LOCATION' && sticker.settings.name ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                        fitContent
+                      >
+                        <LocationSticker
+                          placeId={String(sticker.settings.placeId ?? '')}
+                          name={String(sticker.settings.name)}
                         />
                       </PlacedSticker>
                     ) : sticker.kind === 'QUESTION' && !isOwner ? (

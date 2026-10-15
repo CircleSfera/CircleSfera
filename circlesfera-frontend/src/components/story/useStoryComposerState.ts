@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import { type StoryCanvasRef } from './Editor/StoryCanvas';
@@ -9,6 +10,7 @@ import {
 } from './storyComposer.append';
 import {
   DEFAULT_BRUSH_WIDTH,
+  STORY_STICKER_MAX,
   type StoryTemplate,
 } from './storyComposer.constants';
 import {
@@ -22,7 +24,8 @@ import {
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
-import type { StoryAudience } from './storyShare.types';
+import { canDuplicateElement, isLiveElement } from './storyInteractive';
+import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
 import { useStoryTextTakeover } from './useStoryTextTakeover';
@@ -40,6 +43,8 @@ export function useStoryComposerState(props: {
   onElementsChange?: (elements: StoryElement[]) => void;
   onBgStyleChange?: (style: string) => void;
   onBackgroundChange?: (file: File) => void;
+  /** Sharing from the editor; its place is the location sticker's. */
+  share?: StoryShareOptions;
 }) {
   const { t } = useTranslation();
   const {
@@ -128,13 +133,45 @@ export function useStoryComposerState(props: {
     updateElement,
   });
 
+  // The location sticker is the place of the story: it shows the place's
+  // name, and goes when the place is taken off.
+  const sharing = Boolean(props.share);
+  const placeName = props.share?.placeStickerName ?? null;
+  useEffect(() => {
+    if (!sharing) return;
+    changeElements((current) => {
+      if (!current.some((el) => el.type === 'location')) return current;
+      if (!placeName) return current.filter((el) => el.type !== 'location');
+      const content = JSON.stringify({ name: placeName });
+      if (
+        current.every((el) => el.type !== 'location' || el.content === content)
+      ) {
+        return current;
+      }
+      return current.map((el) =>
+        el.type === 'location' ? { ...el, content } : el,
+      );
+    });
+  }, [sharing, placeName, changeElements]);
+
   const removeElement = (id: string) => {
     const wasSelected = selectedElementId === id;
     removeElementBase(id);
     if (wasSelected) setTextInput('');
   };
 
+  /** A story holds as many stickers as the server takes, and no more. */
+  const liveCount = elements.filter(isLiveElement).length;
+  const roomFor = (el: StoryElement | undefined) => {
+    if (!el || !isLiveElement(el) || liveCount < STORY_STICKER_MAX) return true;
+    toast.error(
+      t('createPost.storyComposer.stickers_limit', { max: STORY_STICKER_MAX }),
+    );
+    return false;
+  };
+
   const appendElement = (newElement: StoryElement) => {
+    if (!roomFor(newElement)) return;
     changeElements((current) => [...current, newElement]);
     setSelectedElementId(newElement.id);
   };
@@ -298,7 +335,12 @@ export function useStoryComposerState(props: {
     handleUploadBackground: bg.handleUploadBackground,
     handleSelectGradient: bg.handleSelectGradient,
     handleFileChange: bg.handleFileChange,
-    duplicateElement,
+    duplicateElement: (id: string) => {
+      const el = elements.find((e) => e.id === id);
+      if (el && !canDuplicateElement(el)) return;
+      if (roomFor(el)) duplicateElement(id);
+    },
+    liveCount,
     moveElementLayer,
     removeElement,
     selectedElement,

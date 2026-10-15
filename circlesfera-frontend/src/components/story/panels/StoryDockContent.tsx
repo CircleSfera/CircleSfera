@@ -2,12 +2,18 @@ import { AnimatePresence } from 'framer-motion';
 import type { MouseEvent, RefObject } from 'react';
 import type { StoryElement } from '../../../types';
 import type { StoryCanvasRef } from '../Editor/StoryCanvas';
-import type { StoryTemplate } from '../storyComposer.constants';
+import {
+  STORY_STICKER_MAX,
+  type StoryTemplate,
+} from '../storyComposer.constants';
 import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
+import { isLiveElement } from '../storyInteractive';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
 import StoryHashtagPanel from './StoryHashtagPanel';
+import StoryLocationPanel from './StoryLocationPanel';
+import StoryMentionPanel from './StoryMentionPanel';
 import StoryPollPanel from './StoryPollPanel';
 import StoryQnaPanel from './StoryQnaPanel';
 import StoryQuizPanel from './StoryQuizPanel';
@@ -57,6 +63,8 @@ export interface StoryDockContentProps {
   onQnaPromptChange: (value: string) => void;
   onAddQna: () => void;
   onApplyTemplate: (template: StoryTemplate) => void;
+  /** The place of the story, when the editor shares it itself. */
+  place?: { name: string | null; onOpen: () => void };
 }
 
 export default function StoryDockContent({
@@ -99,6 +107,7 @@ export default function StoryDockContent({
   onQnaPromptChange,
   onAddQna,
   onApplyTemplate,
+  place,
 }: StoryDockContentProps) {
   return (
     <AnimatePresence mode="wait">
@@ -149,6 +158,8 @@ export default function StoryDockContent({
           onActiveStickerCategoryChange={onActiveStickerCategoryChange}
           onAddSticker={onAddSticker}
           onOpenSticker={onOpenTab}
+          canPlace={Boolean(place)}
+          full={elements.filter(isLiveElement).length >= STORY_STICKER_MAX}
         />
       )}
 
@@ -180,6 +191,19 @@ export default function StoryDockContent({
 
       {!selectedElementId && activeTab === 'hashtag' && (
         <StoryHashtagPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'mention' && (
+        <StoryMentionPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'location' && place && (
+        <StoryLocationPanel
+          placeName={place.name}
+          onOpenPlace={place.onOpen}
+          onStory={elements.some((el) => el.type === 'location')}
+          onAdd={onAddElement}
+        />
       )}
 
       {!selectedElementId && activeTab === 'templates' && (

@@ -71,6 +71,9 @@ export function useStoryGestures(o: GestureOptions) {
   const [overBin, setOverBin] = useState(false);
   const optionsRef = useRef(o);
   optionsRef.current = o;
+  // Takes the window listeners of the gesture off. They are put on with the
+  // first finger, so no release can come before them.
+  const detachRef = useRef<(() => void) | null>(null);
   // The scale a Ctrl-wheel burst has reached, ahead of the render.
   const wheelScaleRef = useRef<{ id: string; scale: number } | null>(null);
   useEffect(() => {
@@ -105,6 +108,8 @@ export function useStoryGestures(o: GestureOptions) {
     if (!g) return;
     const opts = optionsRef.current;
     gestureRef.current = null;
+    detachRef.current?.();
+    detachRef.current = null;
     setActiveId(null);
     setOverBin(false);
     opts.setShowVGuide(false);
@@ -200,17 +205,20 @@ export function useStoryGestures(o: GestureOptions) {
     [finish],
   );
 
-  useEffect(() => {
-    if (!activeId) return;
+  /** Listens to the fingers of a gesture that has just started. */
+  const attach = useCallback(() => {
+    if (detachRef.current) return;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', lift);
     window.addEventListener('pointercancel', cancel);
-    return () => {
+    detachRef.current = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', lift);
       window.removeEventListener('pointercancel', cancel);
     };
-  }, [activeId, move, lift, cancel]);
+  }, [move, lift, cancel]);
+
+  useEffect(() => () => detachRef.current?.(), []);
 
   /** A finger comes down on a piece. */
   const onPiecePointerDown = useCallback(
@@ -238,9 +246,10 @@ export function useStoryGestures(o: GestureOptions) {
         moved: false,
         overBin: false,
       };
+      attach();
       setActiveId(el.id);
     },
-    [rebase, toCanvas],
+    [attach, rebase, toCanvas],
   );
 
   /**

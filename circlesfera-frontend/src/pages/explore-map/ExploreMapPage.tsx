@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, LocateFixed, MapPin } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import MapBottomSheet from '../../components/explore-map/MapBottomSheet';
 import PlaceDetailSheet from '../../components/explore-map/PlaceDetailSheet';
 import PlacesPeekList from '../../components/explore-map/PlacesPeekList';
@@ -59,7 +59,11 @@ export default function ExploreMapPage() {
   const [bbox, setBbox] = useState<Bbox | null>(null);
   const [pendingBbox, setPendingBbox] = useState<Bbox | null>(null);
   const [showSearchArea, setShowSearchArea] = useState(false);
-  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
+  // A place opened from elsewhere, such as a story's location sticker.
+  const [searchParams] = useSearchParams();
+  const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(() =>
+    searchParams.get('place'),
+  );
   const [peekOpen, setPeekOpen] = useState(false);
   const [mapReady, setMapReady] = useState(false);
   const [mapError, setMapError] = useState<string | null>(null);

@@ -1604,9 +1604,12 @@
       "tool_quiz": "Quiz",
       "tool_slider": "Slider",
       "tool_hashtag": "Hashtag",
+      "tool_mention": "Mention",
+      "tool_location": "Location",
       "stickers_search": "Search stickers",
       "stickers_interactive": "Interactive",
       "stickers_no_results": "No sticker by that name",
+      "stickers_limit": "A story holds up to {{max}} interactive stickers",
       "poll_option_n": "Option {{n}}",
       "poll_add_option": "Add option",
       "poll_remove_option": "Remove option {{n}}",
@@ -1623,6 +1626,15 @@
       "hashtag_ph": "hashtag",
       "hashtag_invalid": "Only letters, numbers and _",
       "add_hashtag": "Add hashtag",
+      "mention_create_hint": "The person you mention gets a notice",
+      "mention_search": "Search people",
+      "mention_no_results": "No one by that name",
+      "location_create_hint": "The place of your story, on the map",
+      "location_choose": "Choose a place",
+      "location_change": "Change place",
+      "location_placeholder": "Location",
+      "location_on_story": "Your story already shows its place",
+      "add_location_sticker": "Add location sticker",
       "drop_to_delete": "Drop here to delete",
       "sticker_categories": {
         "popular": "Popular",
@@ -1803,6 +1815,7 @@
       "follow": "started following you.",
       "comment": "commented on your post.",
       "mention": "mentioned you in a comment.",
+      "mention_story": "mentioned you in their story.",
       "follow_request": "requested to follow you.",
       "follow_accepted": "accepted your follow request.",
       "moderation": "Moderation update: {{content}}",
@@ -5009,6 +5022,12 @@
     },
     "hashtag": {
       "open": "Open #{{tag}}"
+    },
+    "mention": {
+      "open": "Open @{{username}}'s profile"
+    },
+    "location": {
+      "open": "See {{name}} on the map"
     }
   },
   "create_menu": {

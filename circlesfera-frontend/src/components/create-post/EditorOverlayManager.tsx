@@ -54,6 +54,7 @@ export default function EditorOverlayManager({
     setSubScreen,
     selectedAudio,
     location,
+    selectedPlace,
     handleSubmit,
     isPending,
   } = useComposer();
@@ -139,6 +140,7 @@ export default function EditorOverlayManager({
             musicTitle: selectedAudio?.title ?? null,
             onOpenMusic: () => setSubScreen('music'),
             placeName: location || null,
+            placeStickerName: selectedPlace?.name ?? null,
             onOpenPlace: () => setSubScreen('location'),
           }}
           elements={storyElements}

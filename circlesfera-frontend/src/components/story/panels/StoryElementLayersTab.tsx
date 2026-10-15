@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, Copy, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../../types';
+import { canDuplicateElement } from '../storyInteractive';
 
 export interface StoryElementLayersTabProps {
   selectedElementId: string;
@@ -92,17 +93,19 @@ export default function StoryElementLayersTab({
               >
                 <ChevronDown size={16} aria-hidden />
               </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDuplicateElement(el.id);
-                }}
-                aria-label={t('createPost.storyComposer.duplicate')}
-                className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/30 hover:text-white/60 transition-all"
-              >
-                <Copy size={16} aria-hidden />
-              </button>
+              {canDuplicateElement(el) ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDuplicateElement(el.id);
+                  }}
+                  aria-label={t('createPost.storyComposer.duplicate')}
+                  className="min-w-11 min-h-11 flex items-center justify-center hover:bg-white/10 rounded-full text-white/30 hover:text-white/60 transition-all"
+                >
+                  <Copy size={16} aria-hidden />
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={(e) => {
