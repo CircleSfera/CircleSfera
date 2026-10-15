@@ -225,7 +225,8 @@ export function useStoryGestures(o: GestureOptions) {
         rebase();
         return;
       }
-      opts.onSelect(el.id);
+      // Not selected yet: selecting opens its panel, which would resize the
+      // canvas under the fingers. A tap selects it when it ends.
       const point = toCanvas(e);
       gestureRef.current = {
         id: el.id,

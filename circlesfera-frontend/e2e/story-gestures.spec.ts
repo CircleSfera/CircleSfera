@@ -16,8 +16,12 @@ async function storyWithSticker(page: Page) {
   await page.getByRole('button', { name: 'Stickers', exact: true }).click();
   await page.getByRole('button', { name: '🔥', exact: true }).click();
   await expect(page.getByTestId('story-element')).toHaveCount(1);
-  // Close the stickers panel so the canvas keeps its size.
-  await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+  // Let the sticker go with a tap on an empty part of the canvas, so no
+  // panel is open and the canvas keeps its full size.
+  const sticker = await page.getByTestId('story-element').boundingBox();
+  if (!sticker) throw new Error('Not on screen');
+  await page.mouse.click(sticker.x - 100, sticker.y + 220);
+  await expect(page.getByRole('button', { name: 'Estilo' })).toHaveCount(0);
   await settled(page.getByTestId('story-element'));
 }
 
@@ -152,7 +156,7 @@ test('a piece dropped on the bin goes, and undo brings it back', async ({
   await expect(page.getByTestId('story-element')).toHaveCount(1);
 });
 
-test('a piece dragged elsewhere stays, and the bin only shows while dragging', async ({
+test('a piece dragged elsewhere stays, the bin only shows while dragging, and no panel opens', async ({
   page,
 }) => {
   await storyWithSticker(page);
@@ -167,6 +171,8 @@ test('a piece dragged elsewhere stays, and the bin only shows while dragging', a
     'data-active',
     'false',
   );
+  // Dragging opens no panel: the canvas keeps its size under the finger.
+  await expect(page.getByRole('button', { name: 'Estilo' })).toHaveCount(0);
   await page.mouse.up();
 
   await expect(sticker).toHaveCount(1);
