@@ -1,4 +1,4 @@
-import type { Clip, MediaClip, StudioProject } from '../types/studio';
+import type { Clip, MediaClip, StudioProject, Track } from '../types/studio';
 
 // Strip non-serializable File handles before persisting to the API.
 export function serializeStudioProject(project: StudioProject): StudioProject {
@@ -67,4 +67,22 @@ export function withLengthOfClips(project: StudioProject): StudioProject {
   if (end === 0) return project;
   const duration = Math.max(MIN_TIMELINE_SEC, end);
   return duration === project.duration ? project : { ...project, duration };
+}
+
+/**
+ * Where a new clip of this length starts on a track: at the playhead when
+ * that stretch of the track is free, otherwise right after the last clip of
+ * the track, so a new clip never covers one that is already there.
+ */
+export function freeStartOnTrack(
+  track: Track | undefined,
+  at: number,
+  duration: number,
+): number {
+  if (!track || track.clips.length === 0) return at;
+  const covers = track.clips.some(
+    (clip) => at < clip.startAt + clip.duration && clip.startAt < at + duration,
+  );
+  if (!covers) return at;
+  return Math.max(...track.clips.map((clip) => clip.startAt + clip.duration));
 }

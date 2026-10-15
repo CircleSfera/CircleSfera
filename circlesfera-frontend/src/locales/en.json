@@ -4376,7 +4376,7 @@
     },
     "captions": {
       "title": "Captions",
-      "description": "Add manual cues or generate AI captions from uploaded audio or video.",
+      "description": "Add captions by hand or generate them with AI from uploaded audio or video.",
       "add_manual": "Add caption at playhead",
       "generate": "Generate AI captions",
       "generating": "Transcribing…",

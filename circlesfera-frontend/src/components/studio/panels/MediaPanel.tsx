@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useStudioStore } from '../../../stores/studioStore';
 import type { MediaClip } from '../../../types/studio';
+import { freeStartOnTrack } from '../../../utils/studioProject';
 
 const generateId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
@@ -30,7 +31,11 @@ export default function MediaPanel({ onAddMediaFile }: MediaPanelProps) {
       type: 'image',
       file: null,
       fileUrl,
-      startAt: playhead,
+      startAt: freeStartOnTrack(
+        project.tracks.find((tr) => tr.id === trackId),
+        playhead,
+        4,
+      ),
       duration: 4,
       mediaStart: 0,
       speed: 1,

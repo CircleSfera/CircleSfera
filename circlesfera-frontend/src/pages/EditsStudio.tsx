@@ -31,7 +31,7 @@ import {
   StudioExportError,
 } from '../utils/studioExportHelpers';
 import { loadLocalStudioDraft } from '../utils/studioLocalDraft';
-import { getPrimaryMediaUrl } from '../utils/studioProject';
+import { freeStartOnTrack, getPrimaryMediaUrl } from '../utils/studioProject';
 
 const generateId = () =>
   typeof crypto !== 'undefined' && crypto.randomUUID
@@ -96,7 +96,6 @@ export default function Studio() {
     selectedClipId,
     zoom,
     setZoom,
-    playhead,
     setPlayhead,
     togglePlayback,
     setPlaying,
@@ -244,6 +243,17 @@ export default function Studio() {
     }
   };
 
+  // Read from the store when the clip is made: a file whose length took a
+  // moment to read may arrive after other clips were added.
+  const startOnTrack = (trackId: string, duration: number) => {
+    const latest = useStudioStore.getState();
+    return freeStartOnTrack(
+      latest.project?.tracks.find((tr) => tr.id === trackId),
+      latest.playhead,
+      duration,
+    );
+  };
+
   const handleAddMediaFile = async (file: File) => {
     if (!project) return;
     const isVideo = file.type.startsWith('video');
@@ -269,7 +279,7 @@ export default function Studio() {
           type: 'video',
           file,
           fileUrl: localUrl,
-          startAt: playhead,
+          startAt: startOnTrack(trackId, duration),
           duration,
           mediaStart: 0,
           speed: 1,
@@ -290,7 +300,7 @@ export default function Studio() {
           type: 'image',
           file,
           fileUrl: localUrl,
-          startAt: playhead,
+          startAt: startOnTrack(trackId, 3),
           duration: 3,
           mediaStart: 0,
           speed: 1,
@@ -332,7 +342,7 @@ export default function Studio() {
         type: 'audio',
         file,
         fileUrl: localUrl,
-        startAt: playhead,
+        startAt: startOnTrack(trackId as string, duration),
         duration,
         mediaStart: 0,
         speed: 1,
