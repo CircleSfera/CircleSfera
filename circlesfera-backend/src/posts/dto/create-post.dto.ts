@@ -17,6 +17,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { FRAME_COVER_MAX_TIME_MS } from '../../common/constants/media-duration.constants.js';
+import { POST_MAX_MEDIA_ITEMS } from '../../common/constants/post-media.constants.js';
 
 /** The longest caption of a post or frame; the composer shows the same limit. */
 export const POST_CAPTION_MAX_LENGTH = 2200;
@@ -161,6 +162,7 @@ export class CreatePostDto {
   turnOffComments?: boolean;
 
   @IsArray()
+  @ArrayMaxSize(POST_MAX_MEDIA_ITEMS)
   @ValidateNested({ each: true })
   @Type(() => MediaItemDto)
   @IsOptional()

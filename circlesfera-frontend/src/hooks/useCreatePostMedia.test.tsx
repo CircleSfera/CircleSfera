@@ -165,6 +165,32 @@ describe('useCreatePostMedia', () => {
       expect(media().mediaFiles).toEqual([]);
     });
 
+    it('takes up to twenty items and says how many were left out', async () => {
+      const { pick, media } = setup();
+      await pick(...Array.from({ length: 18 }, (_, i) => photo(`${i}.jpg`)));
+
+      await pick(photo('19.jpg'), photo('20.jpg'), photo('21.jpg'));
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'A post holds up to 20 photos and videos; 1 was left out.',
+      );
+      expect(media().mediaFiles).toHaveLength(20);
+      expect(media().mediaFiles.at(-1)?.file.name).toBe('20.jpg');
+    });
+
+    it('takes nothing more once the post holds twenty items', async () => {
+      const { pick, media } = setup();
+      await pick(...Array.from({ length: 20 }, (_, i) => photo(`${i}.jpg`)));
+
+      const input = await pick(photo('extra.jpg'));
+
+      expect(toast.error).toHaveBeenCalledWith(
+        'A post holds up to 20 photos and videos.',
+      );
+      expect(media().mediaFiles).toHaveLength(20);
+      expect(input.value).toBe('');
+    });
+
     it('does not measure photos', async () => {
       const { pick } = setup();
 

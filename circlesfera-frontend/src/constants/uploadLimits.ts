@@ -8,6 +8,9 @@ export const FRAME_MAX_DURATION_SEC = 90;
 export const STORY_MAX_DURATION_SEC = 60;
 export const POST_MAX_DURATION_SEC = 300;
 
+/** Keep in sync with backend `post-media.constants.ts`. */
+export const POST_MAX_MEDIA_ITEMS = 20;
+
 /** Probe video duration via HTMLVideoElement metadata. */
 export function probeVideoDuration(file: File): Promise<number> {
   return new Promise((resolve, reject) => {
