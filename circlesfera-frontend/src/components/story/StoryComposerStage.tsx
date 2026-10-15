@@ -5,9 +5,11 @@ import type { StoryElement } from '../../types';
 import { logger } from '../../utils/logger';
 import DraggableStoryElement from './DraggableStoryElement';
 import { StoryCanvas, type StoryCanvasRef } from './Editor/StoryCanvas';
+import StoryBin from './StoryBin';
 import StorySafeGuides from './StorySafeGuides';
 import StoryTextTakeoverEditor from './StoryTextTakeoverEditor';
 import type { StoryComposerTab } from './storyComposer.types';
+import { useStoryGestures } from './useStoryGestures';
 
 export interface StoryComposerStageProps {
   stagePadClass: string;
@@ -40,6 +42,7 @@ export interface StoryComposerStageProps {
   setActiveTab: (tab: StoryComposerTab) => void;
   updateElement: (id: string, updates: Partial<StoryElement>) => void;
   commitElements: () => void;
+  removeElement: (id: string) => void;
   setDraggingLayer: (v: boolean) => void;
   setShowVGuide: (v: boolean) => void;
   setShowHGuide: (v: boolean) => void;
@@ -55,6 +58,20 @@ export interface StoryComposerStageProps {
  */
 export default function StoryComposerStage(p: StoryComposerStageProps) {
   const { t } = useTranslation();
+  const gestures = useStoryGestures({
+    containerRef: p.containerRef,
+    elements: p.elements,
+    selectedElementId: p.selectedElementId,
+    enabled: !p.textTakeoverActive && p.activeTab !== 'draw',
+    onSelect: p.setSelectedElementId,
+    onTextEdit: p.openTextEdit,
+    onUpdate: p.updateElement,
+    onCommit: p.commitElements,
+    onRemove: p.removeElement,
+    onDragActiveChange: p.setDraggingLayer,
+    setShowVGuide: p.setShowVGuide,
+    setShowHGuide: p.setShowHGuide,
+  });
 
   return (
     <div
@@ -70,6 +87,8 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
         <div
           ref={p.containerRef}
           onPointerDown={(e) => {
+            // A second finger anywhere on the canvas joins the held piece.
+            if (gestures.onCanvasPointerDown(e)) return;
             if (e.target === e.currentTarget && !p.textTakeoverActive) {
               p.setSelectedElementId(null);
             }
@@ -180,15 +199,14 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
                 p.textTakeover === 'edit' && el.id === p.selectedElementId
               }
               dimmed={p.textTakeoverActive}
-              onUpdate={p.updateElement}
-              onCommit={p.commitElements}
-              onSelect={p.setSelectedElementId}
-              onDragActiveChange={p.setDraggingLayer}
-              setShowVGuide={p.setShowVGuide}
-              setShowHGuide={p.setShowHGuide}
-              onTextEdit={p.openTextEdit}
+              overBin={gestures.overBin && gestures.activeId === el.id}
+              onPointerDown={gestures.onPiecePointerDown}
             />
           ))}
+
+          {p.draggingLayer && gestures.activeId ? (
+            <StoryBin active={gestures.overBin} />
+          ) : null}
 
           {p.textTakeoverActive && p.textTakeover && (
             <StoryTextTakeoverEditor
