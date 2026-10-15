@@ -6,6 +6,11 @@
 	<string>$(CAPACITOR_DEBUG)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>es</string>
+	</array>
 	<key>CFBundleDisplayName</key>
         <string>CircleSfera</string>
 	<key>CFBundleExecutable</key>
@@ -72,14 +77,16 @@
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>Esta aplicación necesita acceso a la cámara para tomar fotos de perfil o publicar contenido.</string>
+	<string>CircleSfera uses the camera so you can take photos and videos for your posts, stories and profile.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Esta aplicación necesita acceso a tus fotos para que puedas seleccionar imágenes para tu perfil o publicaciones.</string>
+	<string>CircleSfera uses your photos so you can choose pictures and videos for your posts, stories and profile.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Esta aplicación necesita acceso para guardar fotos en tu galería.</string>
+	<string>CircleSfera saves to your photos the pictures and videos you choose to download.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Necesitamos acceso a tu micrófono para grabar mensajes de voz y hacer videollamadas.</string>
+	<string>CircleSfera uses the microphone for voice messages, videos with sound and video calls.</string>
 	<key>NSFaceIDUsageDescription</key>
-	<string>Requerimos FaceID / TouchID para proteger tu cuenta y desbloquear la aplicación de forma segura.</string>
+	<string>CircleSfera uses Face ID to keep your account protected and unlock the app.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>CircleSfera uses your location only when you ask for places near you, to tag a post or on the map.</string>
 </dict>
 </plist>
