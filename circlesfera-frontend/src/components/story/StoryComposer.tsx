@@ -1,6 +1,7 @@
 import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import { CREATE_FULL_SCREEN } from '../create-post/createStyles';
+import StoryComposerChrome from './StoryComposerChrome';
 import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
 import StoryComposerTextChrome from './StoryComposerTextChrome';
@@ -23,7 +24,7 @@ export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
 
   return (
-    <div className={`${CREATE_FULL_SCREEN} font-sans`}>
+    <div className={`${CREATE_FULL_SCREEN} font-sans flex flex-col`}>
       <BrandAmbientBackground placement="editor" />
       <StoryComposerStage
         stagePadClass={s.stagePadClass}
@@ -61,16 +62,26 @@ export default function StoryComposer(props: StoryComposerProps) {
         setShowHGuide={s.setShowHGuide}
         openTextEdit={s.openTextEdit}
         setTextInput={s.setTextInput}
+        overlay={
+          s.textTakeoverActive ? null : (
+            <StoryComposerChrome
+              onClose={s.onClose}
+              onUndo={s.undo}
+              onRedo={s.redo}
+              canUndo={s.canUndo}
+              canRedo={s.canRedo}
+              activeTab={s.activeTab}
+              onSelectTab={s.handleSelectTab}
+              hidden={s.draggingLayer}
+              pointerArmed={s.chromePointerArmed}
+            />
+          )
+        }
       />
 
       {!s.textTakeoverActive && (
         <StoryComposerShellChrome
           chromePointerArmed={s.chromePointerArmed}
-          onClose={s.onClose}
-          undo={s.undo}
-          redo={s.redo}
-          canUndo={s.canUndo}
-          canRedo={s.canRedo}
           handlePost={s.handlePost}
           canPost={s.canPost}
           isExporting={s.isExporting}
@@ -114,7 +125,6 @@ export default function StoryComposer(props: StoryComposerProps) {
           setQnaPrompt={s.setQnaPrompt}
           addQna={s.addQna}
           applyTemplate={s.applyTemplate}
-          handleSelectTab={s.handleSelectTab}
         />
       )}
 
