@@ -526,13 +526,25 @@ describe('StoryComposer', () => {
 
       fireEvent.click(tool('Texto'));
       typeStoryText('Hola');
-      fireEvent.click(screen.getByRole('button', { name: 'Neón' }));
+      // Styles and colours take turns with the fonts above the keyboard.
       fireEvent.click(
-        screen.getByRole('button', { name: 'Alinear a la izquierda' }),
+        screen.getByRole('button', { name: 'Estilos del texto' }),
       );
+      fireEvent.click(screen.getByRole('button', { name: 'Neón' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Colores' }));
+      expect(
+        screen.queryByRole('button', { name: 'Neón' }),
+      ).not.toBeInTheDocument();
       fireEvent.click(
         screen.getByRole('button', { name: 'Color de texto: Negro' }),
       );
+      // One button turns the alignment: centred, then left.
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Alinear a la izquierda' }),
+      );
+      expect(
+        screen.getByRole('button', { name: 'Alinear a la derecha' }),
+      ).toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
 
       await waitFor(() => expect(lastElements()).toHaveLength(1));
@@ -544,16 +556,33 @@ describe('StoryComposer', () => {
       expect(lastElements()[0].color).toBe('#000000');
     });
 
-    it('opens the type options with font, gradient, size, spacing and width', async () => {
+    it('offers the fonts above the keyboard from the start', async () => {
       const { lastElements } = renderComposer();
 
       fireEvent.click(tool('Texto'));
       typeStoryText('Hola');
-      fireEvent.click(screen.getByRole('button', { name: 'Opciones de tipo' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Playfair' }));
+      expect(screen.getByRole('button', { name: 'Playfair' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Listo' }));
 
+      await waitFor(() => expect(lastElements()).toHaveLength(1));
+      expect(lastElements()[0].fontFamily).toBe('Playfair Display');
+    });
+
+    it('has the size at the left, and gradient, spacing and width under the type options', async () => {
+      const { lastElements } = renderComposer();
+
+      fireEvent.click(tool('Texto'));
+      typeStoryText('Hola');
+      // The size is always at hand, at the left; the rest under "Opciones de tipo".
       fireEvent.change(screen.getByRole('slider', { name: 'Tamaño' }), {
         target: { value: '40' },
       });
+      fireEvent.click(screen.getByRole('button', { name: 'Opciones de tipo' }));
+
       fireEvent.change(screen.getByRole('slider', { name: 'Espaciado' }), {
         target: { value: '2' },
       });

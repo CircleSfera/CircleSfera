@@ -1629,6 +1629,8 @@
       "text_style_shadow": "Drop shadow",
       "text_style_retro": "Retro",
       "text_type": "Type options",
+      "text_styles": "Text styles",
+      "text_colors": "Colors",
       "text_gradient": "Gradient",
       "text_solid": "Solid color",
       "letter_spacing": "Spacing",
