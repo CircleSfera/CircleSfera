@@ -1,14 +1,16 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
 } from '../../constants/uploadLimits';
+import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import { parseFilter } from '../../utils/styleUtils';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
 import type { StoryCanvasSize } from '../story/storyComposer.export';
+import type { StoryAudience } from '../story/storyShare.types';
 import { useComposer } from './ComposerContext';
 import { CREATE_FULL_SCREEN, createThumbRatio } from './createStyles';
 import FrameTrimOverlay from './FrameTrimOverlay';
@@ -48,7 +50,24 @@ export default function EditorOverlayManager({
     setStoryBgStyle,
     handleFilterSave,
     isProcessingEdit,
+    setIsCloseFriendsOnly,
+    setSubScreen,
+    selectedAudio,
+    location,
+    handleSubmit,
+    isPending,
   } = useComposer();
+  const { closeFriendsCount } = useCloseFriendsList(mode === 'STORY');
+  // The composed picture of a story shared from its editor, until it is the
+  // media of the composer and can be sent.
+  const [pendingShare, setPendingShare] = useState<File | null>(null);
+
+  useEffect(() => {
+    if (pendingShare && mediaFiles[0]?.file === pendingShare) {
+      setPendingShare(null);
+      handleSubmit();
+    }
+  }, [pendingShare, mediaFiles, handleSubmit]);
   // The trim of a frame keeps to the length a frame may have.
   const constrainFrameDuration = mode === 'FRAME';
   const { t } = useTranslation();
@@ -74,12 +93,22 @@ export default function EditorOverlayManager({
     );
   }
 
-  const handleComposerSave = async (blob: Blob, canvas: StoryCanvasSize) => {
+  const handleComposerSave = async (
+    blob: Blob,
+    canvas: StoryCanvasSize,
+    audience?: StoryAudience,
+  ) => {
     setStoryCanvasSize(canvas);
     const file = new File([blob], 'story_composed.png', { type: 'image/png' });
     const url = URL.createObjectURL(file);
     setMediaFiles([{ file, url, type: 'image' }]);
     setIsComposed(true);
+    if (audience) {
+      // Shared from the editor: it stays open, busy, until the story is up.
+      setIsCloseFriendsOnly(audience === 'close_friends');
+      setPendingShare(file);
+      return;
+    }
     setShowStoryComposer(false);
     setStep('edit');
   };
@@ -103,6 +132,15 @@ export default function EditorOverlayManager({
             if (mediaFiles.length > 0) setIsComposed(true);
           }}
           onPost={handleComposerSave}
+          share={{
+            closeFriendsCount,
+            onManageCloseFriends: () => setSubScreen('close_friends'),
+            isSharing: isPending || pendingShare !== null,
+            musicTitle: selectedAudio?.title ?? null,
+            onOpenMusic: () => setSubScreen('music'),
+            placeName: location || null,
+            onOpenPlace: () => setSubScreen('location'),
+          }}
           elements={storyElements}
           bgStyle={storyBgStyle}
           onElementsChange={setStoryElements}

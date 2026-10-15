@@ -218,6 +218,25 @@ test.describe('Story composer', () => {
   }
 });
 
+test.describe('Story composer, sharing from it', () => {
+  test('share row', async ({ page }) => {
+    await openStoryComposer(page);
+    await expect(
+      page.getByRole('button', { name: 'Tu historia', exact: true }),
+    ).toBeVisible();
+    await expectControlsAtSize(page);
+  });
+
+  test('music over the editor', async ({ page }) => {
+    await openStoryComposer(page);
+    await page
+      .getByRole('button', { name: 'Añadir música', exact: true })
+      .click();
+    await expect(page.getByText('Canción 1')).toBeVisible();
+    await expectControlsAtSize(page);
+  });
+});
+
 test.describe('Story composer, editing an element', () => {
   async function withSticker(page: Page) {
     await openStoryComposer(page);

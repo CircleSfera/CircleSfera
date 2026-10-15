@@ -50,7 +50,7 @@ async function share(page: Page) {
     .click();
 }
 
-test('a text story with a poll is shared with the poll where it was placed, not in its picture', async ({
+test('a text story with a poll is shared from its editor, with the poll where it was placed and not in its picture', async ({
   page,
 }) => {
   await prepareComposerSession(page);
@@ -78,13 +78,16 @@ test('a text story with a poll is shared with the poll where it was placed, not 
   await page.mouse.up();
   await page.waitForTimeout(400);
 
-  await page.getByRole('button', { name: /Listo/ }).first().click();
-  await share(page);
+  // Shared from the editor itself, with no step after it.
+  await page.getByRole('button', { name: 'Tu historia', exact: true }).click();
 
   await expect.poll(() => sent.polls.length, { timeout: 15_000 }).toBe(1);
   expect(sent.uploads).toEqual(['image/png']);
   expect(sent.stories).toHaveLength(1);
-  expect(sent.stories[0]).toMatchObject({ mediaType: 'image' });
+  expect(sent.stories[0]).toMatchObject({
+    mediaType: 'image',
+    isCloseFriendsOnly: false,
+  });
   const [created] = sent.polls;
   expect(created).toMatchObject({
     question: '¿Playa o montaña?',
@@ -111,4 +114,42 @@ test('a video story is shared as a video', async ({ page }) => {
   await expect.poll(() => sent.stories.length, { timeout: 15_000 }).toBe(1);
   expect(sent.uploads).toEqual(['video/mp4']);
   expect(sent.stories[0]).toMatchObject({ mediaType: 'video' });
+});
+
+test('choosing music opens over the editor and keeps what is on the story', async ({
+  page,
+}) => {
+  await prepareComposerSession(page);
+  await page.route('**/api/v1/audio/**', (route) =>
+    route.fulfill({
+      status: 200,
+      json: [
+        {
+          id: 'audio-1',
+          title: 'Canción 1',
+          artist: 'Artista 1',
+          url: 'https://cdn.example.com/audio.mp3',
+          duration: 30,
+          thumbnailUrl: null,
+          usageCount: 1,
+        },
+      ],
+    }),
+  );
+  await page.goto('/create?mode=story');
+  await page.getByRole('button', { name: /Crear Historia de Texto/ }).click();
+  await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+  await page.getByRole('button', { name: '🔥', exact: true }).click();
+  await expect(page.getByTestId('story-element')).toHaveCount(1);
+
+  await page
+    .getByRole('button', { name: 'Añadir música', exact: true })
+    .click();
+  await page.getByRole('button', { name: 'Usar' }).first().click();
+  await page.getByRole('button', { name: 'Usar este clip' }).click();
+
+  await expect(page.getByTestId('story-element')).toHaveCount(1);
+  await expect(
+    page.getByRole('button', { name: 'Añadir música: Canción 1' }),
+  ).toBeVisible();
 });

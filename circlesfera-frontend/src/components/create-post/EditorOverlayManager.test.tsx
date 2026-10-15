@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MediaFile } from '../../hooks/useCreatePost';
 import { renderInComposer } from '../../test/composer';
+import { type Composer, ComposerProvider } from './ComposerContext';
 import EditorOverlayManager from './EditorOverlayManager';
 
 type Props = Record<string, any>;
@@ -34,6 +35,9 @@ vi.mock('../story/StoryComposer', () => ({
   },
 }));
 vi.mock('../common/BrandAmbientBackground', () => ({ default: () => null }));
+vi.mock('../../hooks/useCloseFriendsList', () => ({
+  useCloseFriendsList: () => ({ closeFriendsCount: 3 }),
+}));
 
 const media = (
   type: 'image' | 'video',
@@ -72,6 +76,12 @@ function show(more: Props = {}) {
     handleFrameTrimConfirm: vi.fn(),
     handleFrameTrimCancel: vi.fn(),
     isProcessingEdit: false,
+    setIsCloseFriendsOnly: vi.fn(),
+    setSubScreen: vi.fn(),
+    selectedAudio: null,
+    location: '',
+    handleSubmit: vi.fn(),
+    isPending: false,
     ...more,
   };
   const composer = Object.fromEntries(
@@ -144,6 +154,86 @@ describe('EditorOverlayManager', () => {
       show({ showFrameTrim: true, mediaFiles: [media('image')] });
 
       expect(screen.queryByTestId('trim')).toBeNull();
+    });
+  });
+
+  describe('sharing a story from its editor', () => {
+    it('shares it to everyone once the composed picture is the media, and stays open meanwhile', async () => {
+      const { props, rerender } = show({
+        mode: 'STORY',
+        showStoryComposer: true,
+      });
+      await screen.findByTestId('story-composer');
+
+      await act(() =>
+        seen.story.onPost(
+          new Blob(['png']),
+          { width: 360, height: 640 },
+          'everyone',
+        ),
+      );
+
+      expect(props.setIsCloseFriendsOnly).toHaveBeenCalledWith(false);
+      expect(props.setShowStoryComposer).not.toHaveBeenCalled();
+      expect(props.setStep).not.toHaveBeenCalled();
+      expect(props.handleSubmit).not.toHaveBeenCalled();
+      expect(seen.story.share.isSharing).toBe(true);
+
+      // The composer now holds the composed picture.
+      const [[files]] = props.setMediaFiles.mock.calls;
+      const { showStoryComposer, setShowStoryComposer, ...composer } = props;
+      rerender(
+        <ComposerProvider
+          value={{ ...composer, mediaFiles: files } as unknown as Composer}
+        >
+          <EditorOverlayManager
+            showStoryComposer={showStoryComposer}
+            setShowStoryComposer={setShowStoryComposer}
+          />
+        </ComposerProvider>,
+      );
+
+      expect(props.handleSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('shares it to close friends only from their button', async () => {
+      const { props } = show({ mode: 'STORY', showStoryComposer: true });
+      await screen.findByTestId('story-composer');
+
+      await act(() =>
+        seen.story.onPost(
+          new Blob(['png']),
+          { width: 360, height: 640 },
+          'close_friends',
+        ),
+      );
+
+      expect(props.setIsCloseFriendsOnly).toHaveBeenCalledWith(true);
+    });
+
+    it('opens music, place and close friends over the editor', async () => {
+      const { props } = show({
+        mode: 'STORY',
+        showStoryComposer: true,
+        selectedAudio: { title: 'Song' },
+        location: 'Madrid',
+      });
+      await screen.findByTestId('story-composer');
+
+      expect(seen.story.share).toMatchObject({
+        closeFriendsCount: 3,
+        musicTitle: 'Song',
+        placeName: 'Madrid',
+        isSharing: false,
+      });
+      seen.story.share.onOpenMusic();
+      seen.story.share.onOpenPlace();
+      seen.story.share.onManageCloseFriends();
+      expect(props.setSubScreen.mock.calls).toEqual([
+        ['music'],
+        ['location'],
+        ['close_friends'],
+      ]);
     });
   });
 

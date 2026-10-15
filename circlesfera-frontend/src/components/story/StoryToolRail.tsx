@@ -3,6 +3,8 @@ import {
   Ellipsis,
   HelpCircle,
   Image as ImageIcon,
+  MapPin,
+  Music,
   PenTool,
   Smile,
   Sparkles,
@@ -11,6 +13,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryComposerTab } from './storyComposer.types';
+import type { StoryShareOptions } from './storyShare.types';
 
 const PRIMARY: {
   tab: Exclude<StoryComposerTab, 'none' | 'poll' | 'qna'>;
@@ -33,17 +36,22 @@ const MORE_TOOLS: {
   { tab: 'qna', icon: HelpCircle, labelKey: 'qna' },
 ];
 
-/** A round tool button over the story, readable on any picture. */
+/**
+ * A tool over the story: a white icon with a shadow, readable on any
+ * picture, in a 44 px round target; the open tool is a white disc.
+ */
 const toolButton = (active: boolean) =>
-  `relative w-11 h-11 inline-flex items-center justify-center rounded-full border transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40 active:scale-95 ${
+  `relative w-11 h-11 inline-flex items-center justify-center rounded-full transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/60 active:scale-95 ${
     active
-      ? 'bg-white text-black border-white'
-      : 'bg-black/45 text-white border-white/15 hover:bg-black/60'
+      ? 'bg-white text-black'
+      : 'text-white [filter:drop-shadow(0_1px_3px_rgba(0,0,0,0.65))] hover:bg-white/10'
   }`;
 
 interface StoryToolRailProps {
   activeTab: StoryComposerTab;
   onSelectTab: (tab: StoryComposerTab) => void;
+  /** Music and place of the story, when the editor shares it itself. */
+  share?: StoryShareOptions;
 }
 
 /**
@@ -54,6 +62,7 @@ interface StoryToolRailProps {
 export default function StoryToolRail({
   activeTab,
   onSelectTab,
+  share,
 }: StoryToolRailProps) {
   const { t } = useTranslation();
   const [moreOpen, setMoreOpen] = useState(false);
@@ -73,7 +82,7 @@ export default function StoryToolRail({
 
   return (
     <div
-      className="flex flex-col items-center gap-2"
+      className="flex flex-col items-center gap-1"
       role="toolbar"
       aria-orientation="vertical"
       aria-label={t('createPost.storyComposer.tools')}
@@ -98,6 +107,31 @@ export default function StoryToolRail({
           </button>
         );
       })}
+
+      {share ? (
+        <>
+          <button
+            type="button"
+            onClick={share.onOpenMusic}
+            className={toolButton(Boolean(share.musicTitle))}
+            aria-label={t('createPost.story.add_music')}
+            title={share.musicTitle ?? t('createPost.story.add_music')}
+            aria-pressed={Boolean(share.musicTitle)}
+          >
+            <Music size={20} strokeWidth={2} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={share.onOpenPlace}
+            className={toolButton(Boolean(share.placeName))}
+            aria-label={t('createPost.story.add_location')}
+            title={share.placeName ?? t('createPost.story.add_location')}
+            aria-pressed={Boolean(share.placeName)}
+          >
+            <MapPin size={20} strokeWidth={2} aria-hidden />
+          </button>
+        </>
+      ) : null}
 
       <div className="relative" ref={moreRef}>
         <button

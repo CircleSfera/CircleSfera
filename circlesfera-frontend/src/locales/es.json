@@ -1716,10 +1716,10 @@
       "remove_user": "Quitar la etiqueta de {{username}}"
     },
     "story": {
-      "add_music": "Añadir Música",
+      "add_music": "Añadir música",
       "add_location": "Añadir lugar",
-      "close_friends": "Mejores Amigos",
-      "your_story": "Tu Historia",
+      "close_friends": "Mejores amigos",
+      "your_story": "Tu historia",
       "manage_close_friends": "Gestionar mejores amigos",
       "add_close_friends_first": "Añade mejores amigos para compartir historias solo con ellos.",
       "qna_create_error": "Historia publicada, pero no se pudo crear el Q&A.",
