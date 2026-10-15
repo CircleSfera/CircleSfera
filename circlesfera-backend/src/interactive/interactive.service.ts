@@ -5,8 +5,8 @@ import { isBlockedEitherWay } from '../common/policies/block.policy.js';
 import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
-import type { StickerPlacementDto } from './dto/sticker-placement.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
+import type { StickerPlacementDto } from './dto/sticker-placement.dto.js';
 
 // Service for interactive polls and Q&A features.
 /** A placement says where the sticker sits on a story; a post has none. */
