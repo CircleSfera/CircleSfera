@@ -4,6 +4,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../../test/test-utils';
 import ExportModal from './ExportModal';
 
+const constrainedDevice = vi.hoisted(() => ({ value: false }));
+
+vi.mock('../../../utils/studioExportHelpers', async (importOriginal) => ({
+  ...(await importOriginal<
+    typeof import('../../../utils/studioExportHelpers')
+  >()),
+  isConstrainedDevice: () => constrainedDevice.value,
+}));
+
 const exportedBlob = new Blob(['video'], { type: 'video/mp4' });
 
 describe('ExportModal', () => {
@@ -15,6 +24,7 @@ describe('ExportModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    constrainedDevice.value = false;
     URL.createObjectURL = vi.fn(() => 'blob:export-preview');
     URL.revokeObjectURL = vi.fn();
   });
@@ -37,6 +47,15 @@ describe('ExportModal', () => {
       />,
     );
   }
+
+  it('shows the lighter export note on a constrained device as information, not as an error', () => {
+    constrainedDevice.value = true;
+    const { i18n } = renderModal();
+
+    const note = screen.getByText(i18n!.t('studio.export_mobile_hint'));
+    expect(note).toHaveClass('text-white/70');
+    expect(note).not.toHaveClass('text-brand-accent');
+  });
 
   it('renders nothing when closed', () => {
     renderModal({ isOpen: false });
