@@ -97,6 +97,15 @@ export type SafeStoryReaction = StoryReaction & {
 
 // Service for ephemeral stories (24h expiry), story views, and reactions.
 // Supports close-friends-only visibility and tracks unique view counts.
+/** A poll or a question of a story, with where the creator placed it. */
+const STORY_STICKER_SELECT = {
+  id: true,
+  stickerX: true,
+  stickerY: true,
+  stickerScale: true,
+  stickerRotation: true,
+} as const;
+
 @Injectable()
 export class StoriesService {
   private readonly logger = new Logger(StoriesService.name);
@@ -279,8 +288,8 @@ export class StoriesService {
         profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         audio: true,
         place: true,
-        poll: { select: { id: true } },
-        qnaBox: { select: { id: true } },
+        poll: { select: STORY_STICKER_SELECT },
+        qnaBox: { select: STORY_STICKER_SELECT },
         media: true,
         _count: {
           select: { views: true },

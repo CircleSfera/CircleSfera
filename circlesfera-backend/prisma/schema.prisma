@@ -1045,6 +1045,15 @@ model Poll {
   options   String[]
   createdAt DateTime @default(now())
 
+  // Where the creator placed the sticker on a story: the centre as a share of
+  // the story's width and height from its middle, the scale and the angle in
+  // degrees. Empty on a post, and on stories published before the place was
+  // kept; viewers then show it across the bottom.
+  stickerX        Float?
+  stickerY        Float?
+  stickerScale    Float?
+  stickerRotation Float?
+
   post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
   story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
 
@@ -1074,6 +1083,15 @@ model QnaBox {
   storyId   String?  @unique
   prompt    String
   createdAt DateTime @default(now())
+
+  // Where the creator placed the sticker on a story: the centre as a share of
+  // the story's width and height from its middle, the scale and the angle in
+  // degrees. Empty on a post, and on stories published before the place was
+  // kept; viewers then show it across the bottom.
+  stickerX        Float?
+  stickerY        Float?
+  stickerScale    Float?
+  stickerRotation Float?
 
   post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
   story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)

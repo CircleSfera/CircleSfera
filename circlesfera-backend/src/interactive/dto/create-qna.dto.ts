@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsOptional,
@@ -5,7 +6,9 @@ import {
   IsUUID,
   MaxLength,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
+import { StickerPlacementDto } from './sticker-placement.dto.js';
 
 export class CreateQnaBoxDto {
   @IsString()
@@ -21,4 +24,10 @@ export class CreateQnaBoxDto {
   @IsOptional()
   @IsUUID()
   storyId?: string;
+
+  /** Where it sits on the story; only for a story. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => StickerPlacementDto)
+  placement?: StickerPlacementDto;
 }

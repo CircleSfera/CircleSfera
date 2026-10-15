@@ -6,8 +6,32 @@ import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type { CreatePollDto } from './dto/create-poll.dto.js';
 import type { CreateQnaBoxDto } from './dto/create-qna.dto.js';
+import type { StickerPlacementDto } from './dto/sticker-placement.dto.js';
 
 // Service for interactive polls and Q&A features.
+/** A placement says where the sticker sits on a story; a post has none. */
+function assertPlacementOnStory(dto: {
+  postId?: string;
+  placement?: StickerPlacementDto;
+}): void {
+  if (dto.placement && dto.postId) {
+    throw AppException.BadRequest(
+      ErrorCode.INVALID_INPUT,
+      'A placement is only for a story',
+    );
+  }
+}
+
+function stickerColumns(placement?: StickerPlacementDto) {
+  if (!placement) return {};
+  return {
+    stickerX: placement.x,
+    stickerY: placement.y,
+    stickerScale: placement.scale,
+    stickerRotation: placement.rotation,
+  };
+}
+
 @Injectable()
 export class InteractiveService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -26,6 +50,7 @@ export class InteractiveService {
         'Provide either postId or storyId, not both',
       );
     }
+    assertPlacementOnStory(dto);
 
     const options = dto.options.map((o) => o.trim()).filter(Boolean);
     if (options.length < 2) {
@@ -86,6 +111,7 @@ export class InteractiveService {
         options,
         postId: dto.postId,
         storyId: dto.storyId,
+        ...stickerColumns(dto.placement),
       },
     });
   }
@@ -104,6 +130,7 @@ export class InteractiveService {
         'Provide either postId or storyId, not both',
       );
     }
+    assertPlacementOnStory(dto);
 
     if (dto.postId) {
       const post = await this.prisma.post.findUnique({
@@ -155,6 +182,7 @@ export class InteractiveService {
         prompt: dto.prompt.trim(),
         postId: dto.postId,
         storyId: dto.storyId,
+        ...stickerColumns(dto.placement),
       },
     });
   }

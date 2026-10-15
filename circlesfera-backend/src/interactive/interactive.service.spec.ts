@@ -295,6 +295,97 @@ describe('InteractiveService', () => {
     });
   });
 
+  describe('where a sticker sits on a story', () => {
+    const placement = { x: 0.1, y: -0.25, scale: 1.2, rotation: -8 };
+
+    it('keeps the place of a poll on a story', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
+        id: 'story-1',
+        profileId: 'p-1',
+      });
+      mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.poll.create.mockResolvedValueOnce({ id: 'poll-1' });
+
+      await service.createPoll('p-1', {
+        question: 'Q?',
+        options: ['A', 'B'],
+        storyId: 'story-1',
+        placement,
+      });
+
+      expect(mockPrismaService.poll.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({
+          storyId: 'story-1',
+          stickerX: 0.1,
+          stickerY: -0.25,
+          stickerScale: 1.2,
+          stickerRotation: -8,
+        }),
+      });
+    });
+
+    it('keeps the place of a question on a story', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
+        id: 's-1',
+        profileId: 'p-1',
+      });
+      mockPrismaService.qnaBox.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.qnaBox.create.mockResolvedValueOnce({ id: 'qna-1' });
+
+      await service.createQnaBox('p-1', {
+        prompt: 'Ask',
+        storyId: 's-1',
+        placement,
+      });
+
+      expect(mockPrismaService.qnaBox.create).toHaveBeenLastCalledWith({
+        data: expect.objectContaining({
+          stickerX: 0.1,
+          stickerY: -0.25,
+          stickerScale: 1.2,
+          stickerRotation: -8,
+        }),
+      });
+    });
+
+    it('leaves the place empty when none is given, as older apps send it', async () => {
+      mockPrismaService.story.findUnique.mockResolvedValueOnce({
+        id: 'story-1',
+        profileId: 'p-1',
+      });
+      mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
+      mockPrismaService.poll.create.mockResolvedValueOnce({ id: 'poll-2' });
+
+      await service.createPoll('p-1', {
+        question: 'Q?',
+        options: ['A', 'B'],
+        storyId: 'story-1',
+      });
+
+      const { data } = mockPrismaService.poll.create.mock.calls.at(-1)![0];
+      expect(data).not.toHaveProperty('stickerX');
+    });
+
+    it('refuses a place on a post, which has none', async () => {
+      await expect(
+        service.createPoll('p-1', {
+          question: 'Q?',
+          options: ['A', 'B'],
+          postId: 'post-1',
+          placement,
+        }),
+      ).rejects.toThrow('A placement is only for a story');
+      await expect(
+        service.createQnaBox('p-1', {
+          prompt: 'Ask',
+          postId: 'post-1',
+          placement,
+        }),
+      ).rejects.toThrow('A placement is only for a story');
+      expect(mockPrismaService.post.findUnique).not.toHaveBeenCalled();
+    });
+  });
+
   describe('votePoll', () => {
     it('throws NotFound if poll does not exist', async () => {
       mockPrismaService.poll.findUnique.mockResolvedValueOnce(null);
