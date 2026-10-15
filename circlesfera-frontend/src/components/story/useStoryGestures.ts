@@ -35,6 +35,8 @@ interface Gesture {
   limits: ScaleLimits;
   /** The piece and the fingers when the current set of fingers came down. */
   base: PieceTransform;
+  /** The transform last applied, which the next set of fingers starts from. */
+  current: PieceTransform;
   fingersAtBase: Map<number, Point>;
   fingers: Map<number, Point>;
   /** Any finger moved past the tap slop. */
@@ -69,6 +71,14 @@ export function useStoryGestures(o: GestureOptions) {
   const [overBin, setOverBin] = useState(false);
   const optionsRef = useRef(o);
   optionsRef.current = o;
+  // The scale a Ctrl-wheel burst has reached, ahead of the render.
+  const wheelScaleRef = useRef<{ id: string; scale: number } | null>(null);
+  useEffect(() => {
+    const pending = wheelScaleRef.current;
+    if (pending && (!o.enabled || pending.id !== o.selectedElementId)) {
+      wheelScaleRef.current = null;
+    }
+  }, [o.enabled, o.selectedElementId]);
 
   const toCanvas = useCallback((e: { clientX: number; clientY: number }) => {
     const rect =
@@ -78,16 +88,19 @@ export function useStoryGestures(o: GestureOptions) {
       : { x: e.clientX, y: e.clientY };
   }, []);
 
-  /** The fingers changed: carry on from where the piece is now. */
+  /**
+   * The fingers changed: carry on from where the piece is now. That is the
+   * transform last applied, not the last render, which may lag a frame.
+   */
   const rebase = useCallback(() => {
     const g = gestureRef.current;
     if (!g) return;
-    const el = optionsRef.current.elements.find((e) => e.id === g.id);
-    if (el) g.base = pieceOf(el);
+    g.base = g.current;
     g.fingersAtBase = new Map(g.fingers);
   }, []);
 
-  const finish = useCallback(() => {
+  /** Every finger is up, or the system took the touch away (`cancelled`). */
+  const finish = useCallback((cancelled = false) => {
     const g = gestureRef.current;
     if (!g) return;
     const opts = optionsRef.current;
@@ -98,6 +111,12 @@ export function useStoryGestures(o: GestureOptions) {
     opts.setShowHGuide(false);
     opts.onDragActiveChange(false);
     const el = opts.elements.find((e) => e.id === g.id);
+    if (cancelled) {
+      // An interrupted touch removes nothing and opens nothing: the piece
+      // stays where it was moved.
+      if (g.moved) opts.onCommit();
+      return;
+    }
     if (!g.moved) {
       if (el) {
         opts.onSelect(el.id);
@@ -138,6 +157,7 @@ export function useStoryGestures(o: GestureOptions) {
         g.limits,
       );
       const { piece, vertical, horizontal } = snapPiece(raw);
+      g.current = piece;
       opts.setShowVGuide(vertical);
       opts.setShowHGuide(horizontal);
       opts.onUpdate(g.id, piece);
@@ -172,17 +192,25 @@ export function useStoryGestures(o: GestureOptions) {
     [finish, rebase],
   );
 
+  const cancel = useCallback(
+    (e: PointerEvent) => {
+      if (!gestureRef.current?.fingers.has(e.pointerId)) return;
+      finish(true);
+    },
+    [finish],
+  );
+
   useEffect(() => {
     if (!activeId) return;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', lift);
-    window.addEventListener('pointercancel', lift);
+    window.addEventListener('pointercancel', cancel);
     return () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', lift);
-      window.removeEventListener('pointercancel', lift);
+      window.removeEventListener('pointercancel', cancel);
     };
-  }, [activeId, move, lift]);
+  }, [activeId, move, lift, cancel]);
 
   /** A finger comes down on a piece. */
   const onPiecePointerDown = useCallback(
@@ -203,6 +231,7 @@ export function useStoryGestures(o: GestureOptions) {
         id: el.id,
         limits: limitsFor(el),
         base: pieceOf(el),
+        current: pieceOf(el),
         fingersAtBase: new Map([[e.pointerId, point]]),
         fingers: new Map([[e.pointerId, point]]),
         moved: false,
@@ -241,13 +270,22 @@ export function useStoryGestures(o: GestureOptions) {
       if (!el) return;
       e.preventDefault();
       const limits = limitsFor(el);
+      // Each wheel event builds on the last one, not on the last render.
+      const from =
+        wheelScaleRef.current?.id === el.id
+          ? wheelScaleRef.current.scale
+          : el.scale;
       const scale = Math.min(
         limits.max,
-        Math.max(limits.min, el.scale * Math.exp(-e.deltaY * 0.01)),
+        Math.max(limits.min, from * Math.exp(-e.deltaY * 0.01)),
       );
+      wheelScaleRef.current = { id: el.id, scale };
       opts.onUpdate(el.id, { scale });
       clearTimeout(rest);
-      rest = setTimeout(() => optionsRef.current.onCommit(), 250);
+      rest = setTimeout(() => {
+        wheelScaleRef.current = null;
+        optionsRef.current.onCommit();
+      }, 250);
     };
     node.addEventListener('wheel', onWheel, { passive: false });
     return () => {

@@ -18,7 +18,20 @@ async function storyWithSticker(page: Page) {
   await expect(page.getByTestId('story-element')).toHaveCount(1);
   // Close the stickers panel so the canvas keeps its size.
   await page.getByRole('button', { name: 'Stickers', exact: true }).click();
-  await page.waitForTimeout(500);
+  await settled(page.getByTestId('story-element'));
+}
+
+/** Waits until the element stops moving: the layout has settled. */
+async function settled(element: Locator) {
+  let last = '';
+  await expect
+    .poll(async () => {
+      const now = JSON.stringify(await element.boundingBox());
+      const same = now === last;
+      last = now;
+      return same;
+    })
+    .toBe(true);
 }
 
 async function centre(element: Locator) {
@@ -40,7 +53,7 @@ const drawn = (sticker: Locator) =>
 /** Pointer events of a touch screen: `id` tells one finger from another. */
 async function finger(
   page: Page,
-  type: 'pointerdown' | 'pointermove' | 'pointerup',
+  type: 'pointerdown' | 'pointermove' | 'pointerup' | 'pointercancel',
   id: number,
   at: { x: number; y: number },
 ) {
@@ -189,4 +202,39 @@ test('a tap on an empty part of the canvas lets the selected piece go', async ({
   await page.mouse.click(c.x - 120, c.y + 160);
 
   await expect(page.getByRole('button', { name: 'Estilo' })).toHaveCount(0);
+});
+
+test('a touch the system takes away over the bin removes nothing', async ({
+  page,
+}) => {
+  await storyWithSticker(page);
+  const sticker = page.getByTestId('story-element');
+  const from = await centre(sticker);
+  const canvas = await sticker.evaluate(
+    (node) =>
+      (node.parentElement as HTMLElement)
+        .getBoundingClientRect()
+        .toJSON() as DOMRect,
+  );
+  const bin = {
+    x: canvas.x + canvas.width / 2,
+    y: canvas.y + canvas.height - 24 - 28,
+  };
+
+  await finger(page, 'pointerdown', 1, from);
+  for (const part of [0.25, 0.5, 0.75, 1]) {
+    await finger(page, 'pointermove', 1, {
+      x: from.x + (bin.x - from.x) * part,
+      y: from.y + (bin.y - from.y) * part,
+    });
+  }
+  await expect(page.getByTestId('story-bin')).toHaveAttribute(
+    'data-active',
+    'true',
+  );
+  // A call arrives, the system takes the touch.
+  await finger(page, 'pointercancel', 1, bin);
+
+  await expect(page.getByTestId('story-element')).toHaveCount(1);
+  await expect(page.getByTestId('story-bin')).toHaveCount(0);
 });
