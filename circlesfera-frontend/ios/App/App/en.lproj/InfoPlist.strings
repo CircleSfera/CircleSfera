@@ -1,0 +1,7 @@
+/* Texts iOS shows when the app asks for a permission. Keep in line with Info.plist. */
+"NSCameraUsageDescription" = "CircleSfera uses the camera so you can take photos and videos for your posts, stories and profile.";
+"NSPhotoLibraryUsageDescription" = "CircleSfera uses your photos so you can choose pictures and videos for your posts, stories and profile.";
+"NSPhotoLibraryAddUsageDescription" = "CircleSfera saves to your photos the pictures and videos you choose to download.";
+"NSMicrophoneUsageDescription" = "CircleSfera uses the microphone for voice messages, videos with sound and video calls.";
+"NSFaceIDUsageDescription" = "CircleSfera uses Face ID to keep your account protected and unlock the app.";
+"NSLocationWhenInUseUsageDescription" = "CircleSfera uses your location only when you ask for places near you, to tag a post or on the map.";
