@@ -1,7 +1,10 @@
 # Build Stage
 # Base images come from the public mirror of Docker's official images, at
 # the same pinned digest: Docker Hub limits anonymous downloads per address,
-# and the build runners share theirs.
+# and the build runners share theirs. The deploys build from the
+# repository's own copy of these same digests instead
+# (scripts/use-own-base-images.sh): the public mirror also stops serving once
+# its allowance is used up.
 FROM public.ecr.aws/docker/library/node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS build
 
 WORKDIR /app
