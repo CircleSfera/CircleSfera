@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { CropData, VideoData } from '../components/PhotoEditor';
 import type { PhotoEditorSavedState } from '../components/photo-editor/photoEditor.types';
+import type { StoryCanvasSize } from '../components/story/storyComposer.export';
 import type { Audio as AudioTrack, StoryElement } from '../types';
 
 export type CreateMode = 'POST' | 'STORY' | 'FRAME';
@@ -96,6 +97,9 @@ export function useCreatePostState() {
     useState<InteractiveDraft>(null);
 
   const [storyElements, setStoryElements] = useState<StoryElement[]>([]);
+  // The size of the story canvas the elements were placed on.
+  const [storyCanvasSize, setStoryCanvasSize] =
+    useState<StoryCanvasSize | null>(null);
   const [storyBgStyle, setStoryBgStyle] = useState<string>('');
   const [isComposed, setIsComposed] = useState(false);
   const [originalStoryMedia, setOriginalStoryMedia] = useState<{
@@ -147,6 +151,8 @@ export function useCreatePostState() {
     setInteractiveDraft,
     storyElements,
     setStoryElements,
+    storyCanvasSize,
+    setStoryCanvasSize,
     storyBgStyle,
     setStoryBgStyle,
     isComposed,

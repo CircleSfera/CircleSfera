@@ -24,6 +24,7 @@ import type {
   UpdateProfileDto as IUpdateProfileDto,
   User as IUser,
 } from '@circlesfera/shared';
+import type { StoryStickerRef } from '../utils/storySticker';
 import type { StoryElement } from './story-element.types';
 
 export type User = IUser;
@@ -54,8 +55,9 @@ export type Comment = IComment & {
   voiceWaveform?: unknown;
 };
 export type Story = IStory & {
-  poll?: { id: string } | null;
-  qnaBox?: { id: string } | null;
+  /** With where the creator placed it on the story, when it was kept. */
+  poll?: StoryStickerRef | null;
+  qnaBox?: StoryStickerRef | null;
   isLocked?: boolean;
   priceCents?: number | null;
 };

@@ -137,6 +137,9 @@ export default function DraggableStoryElement({
         }
       }}
       data-testid="story-element"
+      // A poll or a question is answered on the story itself, not painted
+      // into its picture.
+      data-export-ignore={isInteractive ? 'true' : undefined}
       className={`absolute cursor-move touch-none border-2 rounded-2xl p-0.5 transition-colors ${
         isSelected ? 'border-white/55' : 'border-transparent'
       }`}

@@ -2,11 +2,21 @@ import { BarChart2, HelpCircle } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
 import type { StoryElement } from '../../types';
+import { STICKER_WIDTH_PCT } from '../../utils/storySticker';
+import {
+  STICKER_BADGE,
+  STICKER_CARD,
+  STICKER_HEADER,
+  STICKER_LABEL,
+  STICKER_ROW,
+  STICKER_TITLE,
+} from '../interactive/stickerStyles';
 
 export type PollPayload = { question: string; options: string[] };
 export type QnaPayload = { prompt: string };
 
-export const INTERACTIVE_WIDTH_PCT = 82; // % of story canvas at scale 1×
+/** Width of a sticker at scale 1, as a share of the story canvas. */
+export const INTERACTIVE_WIDTH_PCT = STICKER_WIDTH_PCT;
 
 export function isPollElement(el: StoryElement): boolean {
   const type = String(el.type);
@@ -83,29 +93,24 @@ export function PollStickerPreview({
   const safeOptions = Array.isArray(options) ? options : [];
   return (
     <div
-      className={`rounded-2xl border-2 border-white/20 bg-[#1c1c20] text-left shadow-[0_10px_32px_rgba(0,0,0,0.65)] pointer-events-none select-none ${
-        variant === 'panel' ? 'w-[200px] p-3' : 'w-full p-3'
+      className={`${STICKER_CARD} pointer-events-none select-none ${
+        variant === 'panel' ? 'w-[200px]' : 'w-full'
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-primary text-white shrink-0">
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
           <BarChart2 size={13} strokeWidth={2.5} />
         </span>
-        <span className="text-xs font-bold uppercase tracking-wider text-white/80">
-          {label}
-        </span>
+        <span className={STICKER_LABEL}>{label}</span>
       </div>
-      <p className="text-sm font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
-        {question}
-      </p>
+      <p className={STICKER_TITLE}>{question}</p>
       <div className="space-y-1.5">
         {safeOptions.map((opt) => (
           <div
             key={`poll-opt-${opt}`}
-            className="w-full rounded-xl border border-white/15 bg-[#2a2a30] px-3 py-2 text-xs font-semibold text-white flex items-center justify-between gap-2"
+            className={`${STICKER_ROW} flex items-center`}
           >
             <span className="break-words whitespace-normal min-w-0">{opt}</span>
-            <span className="text-xs text-white/35 font-bold shrink-0">—</span>
           </div>
         ))}
       </div>
@@ -126,22 +131,20 @@ export function QnaStickerPreview({
 }) {
   return (
     <div
-      className={`rounded-2xl border-2 border-brand-primary/55 bg-[#241538] text-left shadow-[0_10px_32px_rgba(0,0,0,0.65)] pointer-events-none select-none ${
-        variant === 'panel' ? 'w-[200px] p-3' : 'w-full p-3'
+      className={`${STICKER_CARD} pointer-events-none select-none ${
+        variant === 'panel' ? 'w-[200px]' : 'w-full'
       }`}
     >
-      <div className="flex items-center gap-1.5 mb-2">
-        <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-brand-primary text-white shrink-0">
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
           <HelpCircle size={13} strokeWidth={2.5} />
         </span>
-        <span className="text-xs font-bold uppercase tracking-wider text-white/85">
-          {label}
-        </span>
+        <span className={STICKER_LABEL}>{label}</span>
       </div>
-      <p className="text-sm font-bold text-white leading-snug break-words whitespace-normal mb-2.5">
-        {prompt}
-      </p>
-      <div className="rounded-xl border border-white/15 bg-[#1a1028] px-3 py-2.5 text-xs text-white/55 font-medium">
+      <p className={STICKER_TITLE}>{prompt}</p>
+      <div
+        className={`${STICKER_ROW} flex items-center text-white/55 font-medium`}
+      >
         {hint}
       </div>
     </div>

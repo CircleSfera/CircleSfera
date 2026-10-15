@@ -8,6 +8,7 @@ import {
 import { parseFilter } from '../../utils/styleUtils';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
+import type { StoryCanvasSize } from '../story/storyComposer.export';
 import { useComposer } from './ComposerContext';
 import { CREATE_FULL_SCREEN, createThumbRatio } from './createStyles';
 import FrameTrimOverlay from './FrameTrimOverlay';
@@ -43,6 +44,7 @@ export default function EditorOverlayManager({
     storyElements,
     storyBgStyle,
     setStoryElements,
+    setStoryCanvasSize,
     setStoryBgStyle,
     handleFilterSave,
     isProcessingEdit,
@@ -72,7 +74,8 @@ export default function EditorOverlayManager({
     );
   }
 
-  const handleComposerSave = async (blob: Blob) => {
+  const handleComposerSave = async (blob: Blob, canvas: StoryCanvasSize) => {
+    setStoryCanvasSize(canvas);
     const file = new File([blob], 'story_composed.png', { type: 'image/png' });
     const url = URL.createObjectURL(file);
     setMediaFiles([{ file, url, type: 'image' }]);

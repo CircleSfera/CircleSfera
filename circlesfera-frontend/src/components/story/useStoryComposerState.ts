@@ -14,6 +14,7 @@ import {
 import {
   exportStoryCanvas,
   reportStoryExportError,
+  type StoryCanvasSize,
 } from './storyComposer.export';
 import {
   getStoryCardSizeClass,
@@ -26,7 +27,7 @@ import { useStoryTextTakeover } from './useStoryTextTakeover';
 
 export function useStoryComposerState(props: {
   initialMedia?: File | null;
-  onPost: (blob: Blob) => void;
+  onPost: (blob: Blob, canvas: StoryCanvasSize) => void;
   onClose: () => void;
   elements?: StoryElement[];
   bgStyle?: string;

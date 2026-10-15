@@ -4,6 +4,14 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { apiClient } from '../../services/api';
 import { logger } from '../../utils/logger';
+import {
+  STICKER_BADGE,
+  STICKER_CARD,
+  STICKER_HEADER,
+  STICKER_LABEL,
+  STICKER_ROW,
+  STICKER_TITLE,
+} from './stickerStyles';
 
 interface PollOption {
   index: number;
@@ -63,8 +71,10 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
 
   if (loading) {
     return (
-      <div className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-center py-6 text-gray-400">
-        <Loader2 className="w-5 h-5 animate-spin mr-2 text-accent-blue" />
+      <div
+        className={`${STICKER_CARD} flex items-center justify-center py-6 text-white/60`}
+      >
+        <Loader2 className="w-5 h-5 animate-spin mr-2 text-brand-primary-text" />
         <span className="text-xs font-medium">
           {t('interactive.poll.loading')}
         </span>
@@ -77,19 +87,17 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
   const hasVoted = poll.userVoteIndex !== null;
 
   return (
-    <div className="p-4 bg-black/40 border border-white/10 rounded-2xl space-y-3 shadow-lg">
-      <div className="flex items-center space-x-2 text-accent-blue">
-        <Vote className="w-4 h-4" />
-        <h4 className="text-xs font-bold uppercase tracking-wider">
-          {t('interactive.poll.title')}
-        </h4>
+    <div className={STICKER_CARD}>
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
+          <Vote size={13} strokeWidth={2.5} aria-hidden />
+        </span>
+        <h4 className={STICKER_LABEL}>{t('interactive.poll.title')}</h4>
       </div>
 
-      <p className="text-sm font-bold text-white tracking-tight">
-        {poll.question}
-      </p>
+      <p className={STICKER_TITLE}>{poll.question}</p>
 
-      <div className="space-y-2 pt-1">
+      <div className="space-y-1.5">
         {poll.options.map((option) => {
           const isSelected = poll.userVoteIndex === option.index;
           return (
@@ -99,15 +107,13 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
               onClick={() => handleVote(option.index)}
               disabled={votingIndex !== null}
               aria-pressed={isSelected}
-              className={`relative w-full min-h-11 p-3 rounded-xl border text-left overflow-hidden transition-all ${
-                isSelected
-                  ? 'border-accent-blue bg-accent-blue/10 text-white'
-                  : 'border-white/10 bg-white/5 hover:bg-white/10 text-gray-200'
+              className={`${STICKER_ROW} relative py-2 text-left overflow-hidden transition-colors ${
+                isSelected ? 'border-brand-primary' : 'hover:bg-white/10'
               }`}
             >
               {hasVoted && (
                 <div
-                  className="absolute inset-y-0 left-0 bg-accent-blue/20 transition-all duration-500"
+                  className="absolute inset-y-0 left-0 bg-brand-primary/25 transition-all duration-500"
                   style={{ width: `${option.percentage}%` }}
                 />
               )}
@@ -115,13 +121,13 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
               <div className="relative z-10 flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   {isSelected && (
-                    <Check className="w-4 h-4 text-accent-blue shrink-0" />
+                    <Check className="w-4 h-4 text-brand-primary-text shrink-0" />
                   )}
                   <span className="text-xs font-semibold">{option.text}</span>
                 </div>
 
                 {hasVoted && (
-                  <span className="text-xs font-bold text-gray-300">
+                  <span className="text-xs font-bold text-white/80">
                     {option.percentage}%
                   </span>
                 )}
@@ -132,12 +138,12 @@ export const PollWidget: React.FC<{ pollId: string }> = ({ pollId }) => {
       </div>
 
       {voteFailed && (
-        <p role="alert" className="text-xs font-medium text-rose-400">
+        <p role="alert" className="mt-2 text-xs font-medium text-rose-400">
           {t('interactive.poll.vote_error')}
         </p>
       )}
 
-      <div className="flex justify-between items-center text-[11px] text-gray-400 pt-1">
+      <div className="flex justify-between items-center text-xs text-white/60 pt-2">
         <span>{t('interactive.poll.votes', { count: poll.totalVotes })}</span>
         {hasVoted && (
           <span className="text-emerald-400 font-medium">
