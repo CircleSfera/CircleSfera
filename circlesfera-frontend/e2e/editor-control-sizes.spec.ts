@@ -277,9 +277,8 @@ test.describe('Edits studio', () => {
     const fullscreen = await page
       .getByRole('button', { name: 'Pantalla completa' })
       .boundingBox();
-    expect((fullscreen?.x ?? 0) + (fullscreen?.width ?? 0)).toBeLessThanOrEqual(
-      390,
-    );
+    if (!fullscreen) throw new Error('The full-screen button has no box');
+    expect(fullscreen.x + fullscreen.width).toBeLessThanOrEqual(390);
   });
 
   test('with an image on the timeline: the clip is free of the track button, and its properties', async ({
@@ -341,10 +340,9 @@ test.describe('Edits studio', () => {
     const videoBox = await video
       .locator('xpath=ancestor::button[1]')
       .boundingBox();
+    if (!imageBox || !videoBox) throw new Error('A clip has no box');
     // The clips touch; a pixel is left for rounding.
-    expect((videoBox?.x ?? 0) + 1).toBeGreaterThanOrEqual(
-      (imageBox?.x ?? 0) + (imageBox?.width ?? 0),
-    );
+    expect(videoBox.x + 1).toBeGreaterThanOrEqual(imageBox.x + imageBox.width);
 
     await video.click();
     await sheet.getByRole('button', { name: 'Audio y velocidad' }).click();
