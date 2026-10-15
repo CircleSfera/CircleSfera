@@ -35,11 +35,13 @@ export function handleApiError(error: unknown): never {
   throw new Error('An unexpected error occurred');
 }
 // Sanitizes URLs by normalizing localhost:3000 and ensuring relative paths
-// are prepended with the backend base URL.
+// are prepended with the backend base URL. A file still on the device
+// (blob: or data:) is not on the backend and keeps its own address.
 export function sanitizeUrl(
   url: string | null | undefined,
 ): string | undefined {
   if (!url) return undefined;
+  if (/^(blob|data):/i.test(url)) return url;
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
   const baseUrl = API_URL.replace(/\/api\/v1\/?$/, '');

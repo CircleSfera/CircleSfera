@@ -28,6 +28,14 @@ describe('apiUtils', () => {
         'https://res.cloudinary.com/demo/image/upload/v1/sample.jpg';
       expect(sanitizeUrl(input)).toBe(input);
     });
+
+    it('keeps the address of a file still on the device', () => {
+      const blob =
+        'blob:http://localhost:5173/cf64e0fa-1e2a-430b-b2de-a86cfd03fa7d';
+      const data = 'data:image/png;base64,iVBORw0KGgo=';
+      expect(sanitizeUrl(blob)).toBe(blob);
+      expect(sanitizeUrl(data)).toBe(data);
+    });
   });
 });
 
