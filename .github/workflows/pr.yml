@@ -179,6 +179,17 @@ jobs:
           cd circlesfera-frontend
           npx playwright test e2e/editor-control-sizes.spec.ts e2e/live-control-sizes.spec.ts e2e/story-undo.spec.ts e2e/editor-desktop-sidebar.spec.ts e2e/carousel.spec.ts e2e/post-detail.spec.ts e2e/profile-sizes.spec.ts e2e/explore-notifications.spec.ts e2e/messages-sizes.spec.ts e2e/messages.spec.ts e2e/frames-viewer.spec.ts e2e/settings-sizes.spec.ts e2e/entry-screens.spec.ts --project=chromium
 
+      # Walks a post and a frame through the composer and compares four of its
+      # screens with the captures in e2e/composer-visual.spec.ts-snapshots
+      # (the *-linux.png ones are taken in this same Playwright image). Also
+      # the photo editor reopening as it was left, the frames viewer, and the
+      # feed, sign-in, profile, explore and Stripe screens. The API is
+      # replaced inside the browser here too.
+      - name: Check the composer and its captures, and the main screens
+        run: |
+          cd circlesfera-frontend
+          npx playwright test e2e/composer-smoke.spec.ts e2e/composer-visual.spec.ts e2e/photo-editor-reopen.spec.ts e2e/frames-render-loop.spec.ts e2e/feed.spec.ts e2e/login.spec.ts e2e/profile.spec.ts e2e/search.spec.ts e2e/smoke.spec.ts e2e/stripe.spec.ts --project=chromium
+
       - name: Dump server logs on failure
         if: failure()
         run: |
@@ -192,7 +203,12 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report
-          path: playwright-report/
+          # The second report holds the expected, received and difference
+          # images of a capture that no longer matches.
+          path: |
+            playwright-report/
+            circlesfera-frontend/playwright-report/
+            circlesfera-frontend/test-results/
           retention-days: 7
 
   # Lighthouse measures the key public pages of the production build (mobile
