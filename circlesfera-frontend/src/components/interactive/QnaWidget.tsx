@@ -31,11 +31,52 @@ type QnaBoxData = {
   answers: QnaAnswer[];
 };
 
+/** What the sticker routes answer for a question. */
+interface StickerQuestionResults {
+  id: string;
+  settings: { prompt?: string };
+  totalResponses: number;
+  answers: {
+    id: string;
+    text: string | null;
+    createdAt: string;
+    profile: {
+      id: string;
+      username: string;
+      fullName?: string | null;
+      avatar?: string | null;
+    } | null;
+  }[];
+}
+
+const fromSticker = (r: StickerQuestionResults): QnaBoxData => ({
+  id: r.id,
+  prompt: r.settings.prompt ?? '',
+  totalAnswers: r.totalResponses,
+  answers: r.answers.map((a) => ({
+    id: a.id,
+    answerText: a.text ?? '',
+    createdAt: a.createdAt,
+    user: {
+      id: a.profile?.id ?? '',
+      username: a.profile?.username ?? '',
+      fullName: a.profile?.fullName ?? undefined,
+      avatar: a.profile?.avatar ?? null,
+    },
+  })),
+});
+
+/**
+ * A question to answer, or its answers for its creator. A question of a post
+ * is read through its own route; a question of a story is a sticker, read
+ * and answered through the routes of stickers (pass `stickerId`).
+ */
 export const QnaWidget: React.FC<{
-  qnaBoxId: string;
+  qnaBoxId?: string;
+  stickerId?: string;
   prompt?: string;
   isOwner?: boolean;
-}> = ({ qnaBoxId, prompt, isOwner = false }) => {
+}> = ({ qnaBoxId, stickerId, prompt, isOwner = false }) => {
   const { t } = useTranslation();
   const [answerText, setAnswerText] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -54,16 +95,23 @@ export const QnaWidget: React.FC<{
     if (!isOwner && prompt) return;
     try {
       setLoadingAnswers(true);
-      const res = await apiClient.get<QnaBoxData>(
-        `interactive/qna/${qnaBoxId}`,
-      );
-      setBox(res.data);
+      if (stickerId) {
+        const res = await apiClient.get<StickerQuestionResults>(
+          `stories/stickers/${stickerId}`,
+        );
+        setBox(fromSticker(res.data));
+      } else {
+        const res = await apiClient.get<QnaBoxData>(
+          `interactive/qna/${qnaBoxId}`,
+        );
+        setBox(res.data);
+      }
     } catch (err) {
       logger.error('Failed to load Q&A box:', err);
     } finally {
       setLoadingAnswers(false);
     }
-  }, [isOwner, prompt, qnaBoxId]);
+  }, [isOwner, prompt, qnaBoxId, stickerId]);
 
   useEffect(() => {
     void loadBox();
@@ -76,10 +124,16 @@ export const QnaWidget: React.FC<{
     try {
       setSubmitting(true);
       setSendFailed(false);
-      await apiClient.post('interactive/qna/answer', {
-        qnaBoxId,
-        answerText,
-      });
+      if (stickerId) {
+        await apiClient.post(`stories/stickers/${stickerId}/responses`, {
+          text: answerText,
+        });
+      } else {
+        await apiClient.post('interactive/qna/answer', {
+          qnaBoxId,
+          answerText,
+        });
+      }
       setSent(true);
       setAnswerText('');
     } catch (err) {

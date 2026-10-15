@@ -23,7 +23,7 @@ import { useAuthStore } from '../stores/authStore';
 import type { Story, UserWithProfile } from '../types';
 import { reportPaymentError } from '../utils/identityVerification';
 import { logger } from '../utils/logger';
-import { placementOf } from '../utils/storySticker';
+import { placementOf, placementOfSticker } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
@@ -434,23 +434,52 @@ export default function StoryViewer({
             <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20" />
             <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20" />
 
-            {currentStory.poll?.id && !isLocked && (
-              <PlacedSticker
-                placement={placementOf(currentStory.poll)}
-                onPointerDown={() => setIsPaused(true)}
-              >
-                <PollWidget pollId={currentStory.poll.id} />
-              </PlacedSticker>
-            )}
-
-            {currentStory.qnaBox?.id && !isLocked && !isOwner && (
-              <PlacedSticker
-                placement={placementOf(currentStory.qnaBox)}
-                onPointerDown={() => setIsPaused(true)}
-              >
-                <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
-              </PlacedSticker>
-            )}
+            {!isLocked &&
+              (currentStory.stickers?.length
+                ? // The stickers of the story, live where they were placed.
+                  currentStory.stickers.map((sticker) =>
+                    sticker.kind === 'POLL' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <PollWidget stickerId={sticker.id} />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'QUESTION' && !isOwner ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <QnaWidget
+                          stickerId={sticker.id}
+                          prompt={String(sticker.settings.prompt ?? '')}
+                        />
+                      </PlacedSticker>
+                    ) : null,
+                  )
+                : // A story from a server without stickers.
+                  [
+                    currentStory.poll?.id ? (
+                      <PlacedSticker
+                        key="poll"
+                        placement={placementOf(currentStory.poll)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <PollWidget pollId={currentStory.poll.id} />
+                      </PlacedSticker>
+                    ) : null,
+                    currentStory.qnaBox?.id && !isOwner ? (
+                      <PlacedSticker
+                        key="qna"
+                        placement={placementOf(currentStory.qnaBox)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <QnaWidget qnaBoxId={currentStory.qnaBox.id} />
+                      </PlacedSticker>
+                    ) : null,
+                  ])}
 
             {/* Progress Bars */}
             <div className="absolute top-0 left-0 right-0 z-40 flex gap-1 p-3 pt-safe-top">

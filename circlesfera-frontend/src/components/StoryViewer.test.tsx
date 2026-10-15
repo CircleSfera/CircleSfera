@@ -44,13 +44,29 @@ vi.mock('./common/BrandAmbientBackground', () => ({ default: () => null }));
 vi.mock('./UserAvatar', () => ({ default: () => null }));
 vi.mock('./VerificationBadge', () => ({ default: () => null }));
 vi.mock('./interactive/PollWidget', () => ({
-  PollWidget: ({ pollId }: { pollId: string }) => (
-    <div data-testid="poll">{pollId}</div>
+  PollWidget: ({
+    pollId,
+    stickerId,
+  }: {
+    pollId?: string;
+    stickerId?: string;
+  }) => (
+    <div data-testid="poll">{stickerId ? `sticker:${stickerId}` : pollId}</div>
   ),
 }));
 vi.mock('./interactive/QnaWidget', () => ({
-  QnaWidget: ({ qnaBoxId }: { qnaBoxId: string }) => (
-    <div data-testid="qna">{qnaBoxId}</div>
+  QnaWidget: ({
+    qnaBoxId,
+    stickerId,
+    prompt,
+  }: {
+    qnaBoxId?: string;
+    stickerId?: string;
+    prompt?: string;
+  }) => (
+    <div data-testid="qna">
+      {stickerId ? `sticker:${stickerId}:${prompt}` : qnaBoxId}
+    </div>
   ),
 }));
 vi.mock('./monetization/PaywallOverlay', () => ({
@@ -199,6 +215,52 @@ describe('StoryViewer', () => {
 
       expect(screen.getByTestId('poll')).toHaveTextContent('p1');
       expect(screen.getByTestId('qna')).toHaveTextContent('q1');
+    });
+  });
+
+  describe('stickers', () => {
+    const sticker = (id: string, kind: string, settings = {}) => ({
+      id,
+      kind,
+      settings,
+      x: 0.1,
+      y: -0.2,
+      scale: 1,
+      rotation: 0,
+    });
+
+    it('shows each poll and question of a story where it was placed, through the routes of stickers', () => {
+      show([
+        story('s1', {
+          stickers: [
+            sticker('st-1', 'POLL'),
+            sticker('st-2', 'QUESTION', { prompt: 'Ask me' }),
+            sticker('st-3', 'POLL'),
+          ],
+          // What older servers sent; not used when stickers are there.
+          poll: { id: 'st-1' },
+        } as Partial<Story>),
+      ]);
+
+      expect(screen.getAllByTestId('poll').map((n) => n.textContent)).toEqual([
+        'sticker:st-1',
+        'sticker:st-3',
+      ]);
+      expect(screen.getByTestId('qna')).toHaveTextContent(
+        'sticker:st-2:Ask me',
+      );
+      expect(screen.getAllByTestId('placed-sticker')).toHaveLength(3);
+    });
+
+    it('hides a question sticker from the author of the story', () => {
+      show([
+        story('s1', {
+          profileId: 'me',
+          stickers: [sticker('st-2', 'QUESTION', { prompt: 'Ask me' })],
+        } as Partial<Story>),
+      ]);
+
+      expect(screen.queryByTestId('qna')).not.toBeInTheDocument();
     });
   });
 

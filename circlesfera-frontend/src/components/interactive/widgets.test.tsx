@@ -334,3 +334,94 @@ describe('QnaWidget', () => {
     });
   });
 });
+
+describe('the poll and question of a story, as stickers', () => {
+  it('reads a poll sticker and records a vote through the routes of stickers', async () => {
+    const results = (mine: number | null, votes: [number, number]) => ({
+      data: {
+        id: 'st-1',
+        kind: 'POLL',
+        settings: {
+          question: 'Sea or mountain?',
+          options: ['Sea', 'Mountain'],
+        },
+        totalResponses: votes[0] + votes[1],
+        myResponse: mine === null ? null : { optionIndex: mine, value: null },
+        options: ['Sea', 'Mountain'].map((text, index) => ({
+          index,
+          text,
+          votes: votes[index],
+          percentage: Math.round(
+            (votes[index] / (votes[0] + votes[1] || 1)) * 100,
+          ),
+        })),
+      },
+    });
+    vi.mocked(apiClient.get).mockResolvedValue(results(null, [1, 0]));
+    vi.mocked(apiClient.post).mockResolvedValue(results(1, [1, 1]));
+    renderWithProviders(<PollWidget stickerId="st-1" />);
+    await screen.findByText('Sea or mountain?');
+    expect(apiClient.get).toHaveBeenCalledWith('stories/stickers/st-1');
+
+    fireEvent.click(screen.getByRole('button', { name: /Mountain/ }));
+
+    expect(await screen.findByText('✓ Vote recorded')).toBeInTheDocument();
+    expect(apiClient.post).toHaveBeenCalledWith(
+      'stories/stickers/st-1/responses',
+      { optionIndex: 1 },
+    );
+    expect(screen.getByRole('button', { name: /Mountain/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByText('2 votes')).toBeInTheDocument();
+  });
+
+  it('sends an answer to a question sticker through the routes of stickers', async () => {
+    vi.mocked(apiClient.post).mockResolvedValue({ data: {} });
+    renderWithProviders(
+      <QnaWidget stickerId="st-q" prompt="Where should I go next?" />,
+    );
+
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Write your answer…' }),
+      { target: { value: 'Lisbon' } },
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Send answer' }));
+
+    await waitFor(() =>
+      expect(apiClient.post).toHaveBeenCalledWith(
+        'stories/stickers/st-q/responses',
+        { text: 'Lisbon' },
+      ),
+    );
+  });
+
+  it('shows its creator the answers of a question sticker, with who gave them', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue({
+      data: {
+        id: 'st-q',
+        settings: { prompt: 'Ask me' },
+        totalResponses: 1,
+        answers: [
+          {
+            id: 'a1',
+            text: 'Hola',
+            createdAt: '2026-01-01T00:00:00.000Z',
+            profile: {
+              id: 'p2',
+              username: 'bea',
+              fullName: 'Bea',
+              avatar: null,
+            },
+          },
+        ],
+      },
+    });
+    renderWithProviders(<QnaWidget stickerId="st-q" isOwner />);
+
+    expect(await screen.findByText('Hola')).toBeInTheDocument();
+    expect(screen.getByText('@bea')).toBeInTheDocument();
+    expect(apiClient.get).toHaveBeenCalledWith('stories/stickers/st-q');
+  });
+});

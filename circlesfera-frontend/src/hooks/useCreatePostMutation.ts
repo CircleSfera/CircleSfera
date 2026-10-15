@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { StoryCanvasSize } from '../components/story/storyComposer.export';
+import { stickersFromElements } from '../components/story/storyInteractive';
 import {
   FRAME_MAX_DURATION_SEC,
   FRAME_MIN_DURATION_SEC,
@@ -19,7 +20,6 @@ import type {
 } from '../types';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
-import { placementFromElement } from '../utils/storySticker';
 import type {
   CreateMode,
   InteractiveDraft,
@@ -177,7 +177,12 @@ export function useCreatePostMutation(deps: MutationDeps) {
       );
 
       if (deps.mode === 'STORY') {
-        const createdStories = await Promise.all(
+        // The stickers of a composed story go with it; it is one picture.
+        const stickers = stickersFromElements(
+          deps.storyElements,
+          deps.storyCanvasSize,
+        );
+        await Promise.all(
           finalMediaFiles.map((_, idx) =>
             createStoryMutation.mutateAsync({
               url: uploadedMedia[idx].url,
@@ -194,69 +199,10 @@ export function useCreatePostMutation(deps: MutationDeps) {
               scheduledAt: deps.scheduledAt
                 ? new Date(deps.scheduledAt).toISOString()
                 : undefined,
+              ...(idx === 0 && stickers.length > 0 ? { stickers } : {}),
             }),
           ),
         );
-
-        // Where the creator placed a sticker, so viewers answer it there.
-        const stickerPlacement = (el: StoryElement) =>
-          deps.storyCanvasSize
-            ? placementFromElement(el, deps.storyCanvasSize)
-            : undefined;
-        const pollElement = deps.storyElements.find((el) => {
-          const type = el.type as string;
-          return (
-            type === 'poll' ||
-            (typeof el.content === 'string' &&
-              el.content.startsWith('{"question"'))
-          );
-        });
-        if (pollElement && createdStories[0]?.data?.id) {
-          try {
-            const pollPayload =
-              typeof pollElement.content === 'string'
-                ? JSON.parse(pollElement.content)
-                : pollElement.content;
-            if (pollPayload?.question && Array.isArray(pollPayload?.options)) {
-              await interactiveApi.createPoll({
-                question: pollPayload.question,
-                options: pollPayload.options,
-                storyId: createdStories[0].data.id,
-                placement: stickerPlacement(pollElement),
-              });
-            }
-          } catch (pollError) {
-            logger.error('Failed to create story poll:', pollError);
-            toast.error(t('createPost.story.poll_create_error'));
-          }
-        }
-
-        const qnaElement = deps.storyElements.find((el) => {
-          const type = el.type as string;
-          return (
-            type === 'qna' ||
-            (typeof el.content === 'string' &&
-              el.content.startsWith('{"prompt"'))
-          );
-        });
-        if (qnaElement && createdStories[0]?.data?.id) {
-          try {
-            const qnaPayload =
-              typeof qnaElement.content === 'string'
-                ? JSON.parse(qnaElement.content)
-                : qnaElement.content;
-            if (qnaPayload?.prompt) {
-              await interactiveApi.createQna({
-                prompt: qnaPayload.prompt,
-                storyId: createdStories[0].data.id,
-                placement: stickerPlacement(qnaElement),
-              });
-            }
-          } catch (qnaError) {
-            logger.error('Failed to create story QnA:', qnaError);
-            toast.error(t('createPost.story.qna_create_error'));
-          }
-        }
       } else {
         const payload: CreatePostDto = {
           caption: deps.caption,

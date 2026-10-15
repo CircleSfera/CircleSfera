@@ -89,6 +89,32 @@ export interface CreateStoryDto {
   };
   isPremium?: boolean;
   priceCents?: number;
+  /** The stickers of the story, up to ten. */
+  stickers?: StoryStickerInput[];
+}
+
+/** The kinds of sticker a story can carry. */
+export type StoryStickerKind =
+  | 'POLL'
+  | 'QUESTION'
+  | 'QUIZ'
+  | 'SLIDER'
+  | 'MENTION'
+  | 'LOCATION'
+  | 'HASHTAG';
+
+/**
+ * A sticker sent with a new story: what it holds, checked by the server for
+ * its kind, and where it sits (centre as a share of the story's width and
+ * height from its middle, scale, angle in degrees).
+ */
+export interface StoryStickerInput {
+  kind: StoryStickerKind;
+  settings: Record<string, unknown>;
+  x: number;
+  y: number;
+  scale: number;
+  rotation: number;
 }
 
 export interface PlatformPlanDto {

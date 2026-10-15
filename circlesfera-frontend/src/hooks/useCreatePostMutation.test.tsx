@@ -254,38 +254,10 @@ describe('useCreatePostMutation', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
-  it('publishes a story for each file with its poll', async () => {
+  it('publishes a story with its poll and question as stickers, where they sit', async () => {
     const { submit } = setup({
       mode: 'STORY',
       isCloseFriendsOnly: true,
-      storyElements: [
-        {
-          type: 'poll',
-          content: JSON.stringify({ question: 'Q?', options: ['a', 'b'] }),
-        },
-      ],
-    });
-    await submit();
-
-    expect(storiesApi.create).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: 'https://cdn/a.jpg',
-        mediaType: 'image',
-        isCloseFriendsOnly: true,
-        priceCents: 0,
-      }),
-    );
-    expect(interactiveApi.createPoll).toHaveBeenCalledWith({
-      question: 'Q?',
-      options: ['a', 'b'],
-      storyId: 'story-1',
-    });
-    expect(navigate).toHaveBeenCalledWith('/');
-  });
-
-  it('sends where the poll and the question sit on the story', async () => {
-    const { submit } = setup({
-      mode: 'STORY',
       storyCanvasSize: { width: 360, height: 640 },
       storyElements: [
         {
@@ -304,22 +276,50 @@ describe('useCreatePostMutation', () => {
           scale: 3,
           rotation: -10,
         },
+        { type: 'sticker', content: '🔥', x: 0, y: 0, scale: 1, rotation: 0 },
       ],
     });
     await submit();
 
-    expect(interactiveApi.createPoll).toHaveBeenCalledWith(
+    expect(storiesApi.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        storyId: 'story-1',
-        placement: { x: 0.1, y: -0.25, scale: 1.2, rotation: 10 },
+        url: 'https://cdn/a.jpg',
+        mediaType: 'image',
+        isCloseFriendsOnly: true,
+        priceCents: 0,
+        stickers: [
+          {
+            kind: 'POLL',
+            settings: { question: 'Q?', options: ['a', 'b'] },
+            x: 0.1,
+            y: -0.25,
+            scale: 1.2,
+            rotation: 10,
+          },
+          // Kept within the story and the sizes the server accepts.
+          {
+            kind: 'QUESTION',
+            settings: { prompt: 'Ask me' },
+            x: -0.5,
+            y: 0.5,
+            scale: 1.35,
+            rotation: -10,
+          },
+        ],
       }),
     );
-    // Kept within the story and the sizes the server accepts.
-    expect(interactiveApi.createQna).toHaveBeenCalledWith(
-      expect.objectContaining({
-        prompt: 'Ask me',
-        placement: { x: -0.5, y: 0.5, scale: 1.35, rotation: -10 },
-      }),
+    // One request: no separate poll or question afterwards.
+    expect(interactiveApi.createPoll).not.toHaveBeenCalled();
+    expect(interactiveApi.createQna).not.toHaveBeenCalled();
+    expect(navigate).toHaveBeenCalledWith('/');
+  });
+
+  it('publishes a story without stickers when nothing interactive is on it', async () => {
+    const { submit } = setup({ mode: 'STORY' });
+    await submit();
+
+    expect(vi.mocked(storiesApi.create).mock.calls[0][0]).not.toHaveProperty(
+      'stickers',
     );
   });
 

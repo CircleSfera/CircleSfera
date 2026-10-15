@@ -1,3 +1,5 @@
+import type { StoryStickerKind } from '@circlesfera/shared';
+
 /**
  * Where a poll or a question sits on a story, so viewers answer it there.
  * The centre is a share of the story's width and height from its middle; the
@@ -18,6 +20,17 @@ export interface StoryStickerRef {
   stickerY?: number | null;
   stickerScale?: number | null;
   stickerRotation?: number | null;
+}
+
+/** A sticker of a story as the story feed sends it. */
+export interface FeedSticker {
+  id: string;
+  kind: StoryStickerKind;
+  settings: Record<string, unknown>;
+  x: number | null;
+  y: number | null;
+  scale: number | null;
+  rotation: number | null;
 }
 
 /** Width of a sticker at scale 1, as a share of the story's width. */
@@ -117,4 +130,17 @@ export function stickerOnScreen(
     area.width - half - SCREEN_MARGIN,
   );
   return { left, top: area.height / 2 + placement.y * box.height, width };
+}
+
+/** The place of a sticker of the feed, or null when it had none. */
+export function placementOfSticker(
+  sticker: FeedSticker,
+): StickerPlacement | null {
+  return placementOf({
+    id: sticker.id,
+    stickerX: sticker.x,
+    stickerY: sticker.y,
+    stickerScale: sticker.scale,
+    stickerRotation: sticker.rotation,
+  });
 }
