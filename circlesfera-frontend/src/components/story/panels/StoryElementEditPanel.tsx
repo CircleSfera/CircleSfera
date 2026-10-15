@@ -15,7 +15,11 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../../types';
 import type { PanelTab } from '../storyComposer.types';
-import { isPollElement, isQnaElement } from '../storyInteractive';
+import {
+  canDuplicateElement,
+  isPollElement,
+  isQnaElement,
+} from '../storyInteractive';
 import StoryElementLayersTab from './StoryElementLayersTab';
 import StoryElementStyleTab from './StoryElementStyleTab';
 import StoryElementTransformTab from './StoryElementTransformTab';
@@ -96,15 +100,17 @@ export default function StoryElementEditPanel({
           </span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={() => onDuplicateElement(selectedElementId)}
-            title={t('createPost.storyComposer.duplicate')}
-            aria-label={t('createPost.storyComposer.duplicate')}
-            className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-full border border-white/6 transition-all"
-          >
-            <Copy size={16} aria-hidden />
-          </button>
+          {canDuplicateElement(selectedElement) ? (
+            <button
+              type="button"
+              onClick={() => onDuplicateElement(selectedElementId)}
+              title={t('createPost.storyComposer.duplicate')}
+              aria-label={t('createPost.storyComposer.duplicate')}
+              className="min-h-11 min-w-11 flex items-center justify-center bg-white/4 hover:bg-white/8 text-white/50 hover:text-white/80 rounded-full border border-white/6 transition-all"
+            >
+              <Copy size={16} aria-hidden />
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => onMoveElementLayer(selectedElementId, 'up')}

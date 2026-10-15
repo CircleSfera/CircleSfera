@@ -3,7 +3,10 @@ import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import type { StoryElement } from '../../types';
-import { buildHashtagElement } from './storyComposer.append';
+import {
+  buildHashtagElement,
+  buildLocationElement,
+} from './storyComposer.append';
 import { GRADIENTS, TEMPLATES } from './storyComposer.constants';
 import { exportStoryCanvas } from './storyComposer.export';
 import { parsePollPayload, parseQnaPayload } from './storyInteractive';
@@ -68,6 +71,16 @@ describe('useStoryComposerState', () => {
     // A piece of the picture is not a sticker of the story.
     act(() => result.current.addSticker('🔥'));
     expect(result.current.elements).toHaveLength(11);
+  });
+
+  it('never copies the place of the story: a story has one', () => {
+    const place = { ...buildLocationElement('Puerta del Sol'), id: 'place' };
+    const { result } = setup({ elements: [place] });
+
+    act(() => result.current.duplicateElement('place'));
+
+    expect(result.current.elements).toHaveLength(1);
+    expect(toast.error).not.toHaveBeenCalled();
   });
 
   afterEach(async () => {

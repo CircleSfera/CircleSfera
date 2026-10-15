@@ -92,6 +92,11 @@ export function parseLocationPayload(el: StoryElement): LocationPayload | null {
   return d && typeof d.name === 'string' ? { name: d.name } : null;
 }
 
+/** A story has one place, so its location sticker is never copied. */
+export function canDuplicateElement(el: StoryElement): boolean {
+  return el.type !== 'location';
+}
+
 /** Pieces with free sizes that a viewer opens: a hashtag, a mention, a place. */
 const PILL_KINDS: ReadonlySet<string> = new Set([
   'hashtag',

@@ -608,6 +608,11 @@ describe('StoryComposer', () => {
       expect(JSON.parse(lastElements()[0].content)).toEqual({
         name: 'Sevilla',
       });
+      // A story has one place: its sticker offers no copy.
+      fireEvent.click(screen.getByRole('button', { name: 'Capas' }));
+      expect(
+        screen.queryByRole('button', { name: 'Duplicar' }),
+      ).not.toBeInTheDocument();
       // The place shows once: as the sticker, not also as the chip.
       expect(
         screen.queryByRole('button', { name: 'Añadir lugar: Sevilla, España' }),

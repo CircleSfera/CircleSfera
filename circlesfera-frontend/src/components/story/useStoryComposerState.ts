@@ -24,7 +24,7 @@ import {
   getStoryStagePadClass,
 } from './storyComposer.layout';
 import type { PanelTab, StoryComposerTab } from './storyComposer.types';
-import { isLiveElement } from './storyInteractive';
+import { canDuplicateElement, isLiveElement } from './storyInteractive';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
 import { useStoryElements } from './useStoryElements';
@@ -336,7 +336,9 @@ export function useStoryComposerState(props: {
     handleSelectGradient: bg.handleSelectGradient,
     handleFileChange: bg.handleFileChange,
     duplicateElement: (id: string) => {
-      if (roomFor(elements.find((el) => el.id === id))) duplicateElement(id);
+      const el = elements.find((e) => e.id === id);
+      if (el && !canDuplicateElement(el)) return;
+      if (roomFor(el)) duplicateElement(id);
     },
     liveCount,
     moveElementLayer,
