@@ -22,16 +22,6 @@ function assertPlacementOnStory(dto: {
   }
 }
 
-function stickerColumns(placement?: StickerPlacementDto) {
-  if (!placement) return {};
-  return {
-    stickerX: placement.x,
-    stickerY: placement.y,
-    stickerScale: placement.scale,
-    stickerRotation: placement.rotation,
-  };
-}
-
 /** The place of a story sticker, from the place the old routes send. */
 function stickerPlace(placement?: StickerPlacementDto) {
   if (!placement) return {};
@@ -224,7 +214,6 @@ export class InteractiveService {
         options,
         postId: dto.postId,
         storyId: dto.storyId,
-        ...stickerColumns(dto.placement),
       },
     });
   }
@@ -313,7 +302,6 @@ export class InteractiveService {
         prompt: dto.prompt.trim(),
         postId: dto.postId,
         storyId: dto.storyId,
-        ...stickerColumns(dto.placement),
       },
     });
   }

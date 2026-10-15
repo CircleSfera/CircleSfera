@@ -472,6 +472,14 @@ describe('InteractiveService', () => {
       mockPrismaService.storySticker.findFirst.mockResolvedValue(null);
     });
 
+    it('hides the poll of a story from a viewer blocked either way', async () => {
+      mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(storyPoll);
+      mockPrismaService.block.findFirst.mockResolvedValueOnce({ id: 'b' });
+      await expect(service.getPoll('st-poll', 'viewer')).rejects.toThrow(
+        AppException,
+      );
+    });
+
     it('refuses an option the sticker does not have', async () => {
       mockPrismaService.storySticker.findFirst.mockResolvedValueOnce(storyPoll);
       await expect(service.votePoll('viewer', 'st-poll', 5)).rejects.toThrow(

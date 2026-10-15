@@ -106,6 +106,46 @@ describe('StoriesController', () => {
     );
   });
 
+  it('answers a sticker as the session profile', async () => {
+    const res = await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .set(BEARER)
+      .send({ optionIndex: 1 })
+      .expect(201);
+
+    expect(res.body).toEqual({ id: 'sticker-1' });
+    expect(mockStickers.respond).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'sticker-1',
+      { optionIndex: 1 },
+    );
+  });
+
+  it('refuses an answer without a session or with an unknown field', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .send({ optionIndex: 1 })
+      .expect(401);
+    await request(app.getHttpServer())
+      .post('/api/v1/stories/stickers/sticker-1/responses')
+      .set(BEARER)
+      .send({ optionIndex: 1, votes: 99 })
+      .expect(400);
+    expect(mockStickers.respond).not.toHaveBeenCalled();
+  });
+
+  it('reads what a sticker has gathered for the session profile', async () => {
+    await request(app.getHttpServer())
+      .get('/api/v1/stories/stickers/sticker-1')
+      .set(BEARER)
+      .expect(200);
+
+    expect(mockStickers.results).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      'sticker-1',
+    );
+  });
+
   it('lists the feed with the viewer profile when present', async () => {
     mockService.findAll.mockResolvedValue([]);
 
