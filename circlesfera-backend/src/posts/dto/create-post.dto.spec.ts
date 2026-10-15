@@ -19,10 +19,13 @@ const failedFields = async (
   dto: typeof CreatePostDto | typeof CreateStoryDto,
   body: object,
 ) => {
-  const errors = await validate(plainToInstance(dto, body) as object, {
-    whitelist: true,
-    forbidNonWhitelisted: true,
-  });
+  const errors = await validate(
+    plainToInstance(dto as typeof CreatePostDto, body) as object,
+    {
+      whitelist: true,
+      forbidNonWhitelisted: true,
+    },
+  );
   const collect = (list: ValidationError[], path: string): string[] =>
     list.flatMap((error) => {
       const here = path ? `${path}.${error.property}` : error.property;

@@ -19,6 +19,8 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { RespondStoryStickerDto } from '../story-stickers/dto/story-sticker.dto.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
 import { StoriesService } from './stories.service.js';
@@ -26,7 +28,10 @@ import { StoriesService } from './stories.service.js';
 // REST controller for ephemeral stories, views, and reactions.
 @Controller('stories')
 export class StoriesController {
-  constructor(private readonly storiesService: StoriesService) {}
+  constructor(
+    private readonly storiesService: StoriesService,
+    private readonly stickers: StoryStickersService,
+  ) {}
 
   // Create a new 24-hour ephemeral story.
   @Post()
@@ -68,6 +73,29 @@ export class StoriesController {
   @RequireOwnership({ model: 'Story' })
   async remove(@Param('id') id: string): Promise<void> {
     return this.storiesService.delete(id);
+  }
+
+  // Answer a sticker of a story: vote in a poll or a quiz, move a slider or
+  // answer a question. Answers what the sticker has gathered since.
+  @Post('stickers/:id/responses')
+  @UseGuards(JwtAuthGuard, EmailVerifiedGuard)
+  respondToSticker(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id') id: string,
+    @Body() dto: RespondStoryStickerDto,
+  ) {
+    return this.stickers.respond(user.profileId, id, dto);
+  }
+
+  // What a sticker has gathered, for someone who may see its story; the
+  // answers to a question only for the author.
+  @Get('stickers/:id')
+  @UseGuards(JwtAuthGuard)
+  stickerResults(
+    @CurrentUser() user: CurrentUserData,
+    @Param('id') id: string,
+  ) {
+    return this.stickers.results(user.profileId, id);
   }
 
   // Record a view on a story (idempotent).

@@ -14,6 +14,8 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { CreateStoryStickerDto } from '../../story-stickers/dto/story-sticker.dto.js';
+import { STICKER_LIMITS } from '../../story-stickers/story-sticker-settings.js';
 
 class PlaceTranslationDto {
   @IsIn(['en', 'es'])
@@ -140,4 +142,12 @@ export class CreateStoryDto {
   @IsOptional()
   @Type(() => Date)
   scheduledAt?: Date;
+
+  /** The stickers of the story: polls, questions, quizzes and more. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(STICKER_LIMITS.perStory)
+  @ValidateNested({ each: true })
+  @Type(() => CreateStoryStickerDto)
+  stickers?: CreateStoryStickerDto[];
 }

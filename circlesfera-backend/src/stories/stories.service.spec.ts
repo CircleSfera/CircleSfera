@@ -5,6 +5,7 @@ import type { Story } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { encodeKeysetCursor } from '../common/pagination/keyset.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { UserHardDeletedEvent } from '../users/events/user-hard-deleted.event.js';
@@ -76,11 +77,13 @@ describe('StoriesService', () => {
     },
   };
 
+  let module: TestingModule;
+
   beforeEach(async () => {
     mockAiQueue = { add: vi.fn().mockResolvedValue({ id: 'ai-job-1' }) };
     mockUploadsService = { deleteFile: vi.fn().mockResolvedValue(undefined) };
 
-    const module: TestingModule = await Test.createTestingModule({
+    module = await Test.createTestingModule({
       providers: [
         StoriesService,
         { provide: PrismaService, useValue: mockPrismaService },
@@ -90,6 +93,13 @@ describe('StoriesService', () => {
         {
           provide: SystemSettingsService,
           useValue: { isEnabled: vi.fn(async () => true) },
+        },
+        {
+          provide: StoryStickersService,
+          useValue: {
+            createForStory: vi.fn(async () => undefined),
+            forFeed: vi.fn((stickers: unknown[] = []) => stickers),
+          },
         },
       ],
     }).compile();
@@ -199,6 +209,34 @@ describe('StoriesService', () => {
       });
     });
 
+    it('saves the stickers of the story in the same transaction', async () => {
+      const stickers = module.get(StoryStickersService);
+      mockPrismaService.story.create.mockResolvedValue({
+        id: 'story-1',
+        url: 'https://cdn.example.com/story.png',
+      } as unknown as Story);
+      const poll = {
+        kind: 'POLL' as const,
+        settings: { question: 'Q', options: ['a', 'b'] },
+        x: 0,
+        y: -0.2,
+        scale: 1,
+        rotation: 0,
+      };
+
+      await service.create('user-1', {
+        url: 'https://cdn.example.com/story.png',
+        stickers: [poll],
+      });
+
+      expect(stickers.createForStory).toHaveBeenCalledWith(
+        expect.anything(),
+        'story-1',
+        'user-1',
+        [poll],
+      );
+    });
+
     it('creates scheduled story without queuing immediate moderation', async () => {
       const futureDate = new Date(Date.now() + 1000000).toISOString();
       mockPrismaService.story.create.mockResolvedValue({
@@ -267,6 +305,47 @@ describe('StoriesService', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('public-1');
+    });
+
+    it('sends each story with its stickers, and its first poll and question as apps already installed read them', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      const poll = {
+        id: 'st-poll',
+        kind: 'POLL',
+        settings: { question: 'Q', options: ['a', 'b'] },
+        x: 0.1,
+        y: -0.2,
+        scale: 1,
+        rotation: 5,
+      };
+      const tag = {
+        ...poll,
+        id: 'st-tag',
+        kind: 'HASHTAG',
+        settings: { tag: 'a' },
+      };
+      mockPrismaService.story.findMany.mockResolvedValue([
+        {
+          id: 's-1',
+          profileId: 'user-2',
+          isCloseFriendsOnly: false,
+          stickers: [tag, poll],
+        },
+      ]);
+
+      const [story] = (await service.findAll('user-1')) as any[];
+
+      expect(story.stickers).toEqual([tag, poll]);
+      expect(story.poll).toEqual({
+        id: 'st-poll',
+        stickerX: 0.1,
+        stickerY: -0.2,
+        stickerScale: 1,
+        stickerRotation: 5,
+      });
+      expect(story.qnaBox).toBeNull();
     });
 
     it('should allow viewing own close friends story', async () => {

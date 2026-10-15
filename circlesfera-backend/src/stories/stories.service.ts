@@ -27,6 +27,7 @@ import {
   toKeysetPage,
 } from '../common/pagination/keyset.util.js';
 import { isBlockedEitherWay } from '../common/policies/block.policy.js';
+import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
 import { viewerAudienceWhere } from '../common/policies/test-account.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { resolveAudioStartMs } from '../common/utils/audio-clip.util.js';
@@ -37,6 +38,11 @@ import {
 } from '../common/utils/media-lifecycle.util.js';
 import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import {
+  FEED_STICKER_SELECT,
+  type FeedSticker,
+  StoryStickersService,
+} from '../story-stickers/story-stickers.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
@@ -97,14 +103,22 @@ export type SafeStoryReaction = StoryReaction & {
 
 // Service for ephemeral stories (24h expiry), story views, and reactions.
 // Supports close-friends-only visibility and tracks unique view counts.
-/** A poll or a question of a story, with where the creator placed it. */
-const STORY_STICKER_SELECT = {
-  id: true,
-  stickerX: true,
-  stickerY: true,
-  stickerScale: true,
-  stickerRotation: true,
-} as const;
+/** The first poll and question of a story, as apps already installed read them. */
+function legacyStickerFields(stickers: FeedSticker[]) {
+  const legacy = (kind: 'POLL' | 'QUESTION') => {
+    const sticker = stickers.find((s) => s.kind === kind);
+    return sticker
+      ? {
+          id: sticker.id,
+          stickerX: sticker.x,
+          stickerY: sticker.y,
+          stickerScale: sticker.scale,
+          stickerRotation: sticker.rotation,
+        }
+      : null;
+  };
+  return { poll: legacy('POLL'), qnaBox: legacy('QUESTION') };
+}
 
 @Injectable()
 export class StoriesService {
@@ -117,6 +131,8 @@ export class StoriesService {
     private readonly eventEmitter: EventEmitter2,
     @Inject(SystemSettingsService)
     private readonly systemSettings: SystemSettingsService,
+    @Inject(StoryStickersService)
+    private readonly stickers: StoryStickersService,
   ) {}
 
   // Create a new ephemeral story with a 24-hour expiry.
@@ -201,7 +217,7 @@ export class StoriesService {
         }),
       });
 
-      return tx.story.create({
+      const story = await tx.story.create({
         data: {
           profileId,
           url: dto.url,
@@ -227,6 +243,14 @@ export class StoriesService {
           media: true,
         },
       });
+      // Its stickers are saved with it or not at all.
+      await this.stickers.createForStory(
+        tx,
+        story.id,
+        profileId,
+        dto.stickers ?? [],
+      );
+      return story;
     });
     const story = resolveMediaFields(createdStory);
 
@@ -288,8 +312,10 @@ export class StoriesService {
         profile: { include: { user: { select: PUBLIC_USER_SELECT } } },
         audio: true,
         place: true,
-        poll: { select: STORY_STICKER_SELECT },
-        qnaBox: { select: STORY_STICKER_SELECT },
+        stickers: {
+          select: FEED_STICKER_SELECT,
+          orderBy: { createdAt: 'asc' },
+        },
         media: true,
         _count: {
           select: { views: true },
@@ -309,9 +335,17 @@ export class StoriesService {
 
     // Remap to include isViewed boolean and clean up nested views
     const mappedStories = stories.map((s: any) => {
-      const { views, media, ...storyData } = s;
+      const { views, media, stickers, ...storyData } = s;
+      const feedStickers = this.stickers.forFeed(
+        stickers ?? [],
+        storyData.profileId === profileId,
+      );
       return {
         ...storyData,
+        stickers: feedStickers,
+        // The first poll and question, in the shape apps already installed
+        // read; they are answered through the old routes, on the stickers.
+        ...legacyStickerFields(feedStickers),
         url: media?.url ?? storyData.url,
         standardUrl: media?.standardUrl ?? storyData.standardUrl ?? null,
         thumbnailUrl: media?.thumbnailUrl ?? storyData.thumbnailUrl ?? null,
@@ -677,59 +711,18 @@ export class StoriesService {
 
   // Job to physically delete expired stories every hour to free up database space.
   // Executed via BullMQ.
-  // Viewing or reacting to a story requires the same access as seeing it:
-  // no block either way, a follow for private accounts, and close-friend
-  // membership for close-friends-only stories. Every denial answers
-  // NotFound so restrictions are never revealed. Answers the author's id.
+  // Viewing or reacting to a story requires the same access as seeing it
+  // (see story-access.policy). Answers the author's id.
   private async assertCanAccessStory(
     storyId: string,
     viewerProfileId: string,
   ): Promise<string> {
-    const story = await this.prisma.story.findUnique({
-      where: { id: storyId },
-      select: {
-        profileId: true,
-        isCloseFriendsOnly: true,
-        profile: { select: { privacyLevel: true } },
-      },
-    });
-    if (!story) throw new NotFoundException('Story not found');
-    if (story.profileId === viewerProfileId) return story.profileId;
-
-    if (
-      await isBlockedEitherWay(this.prisma, viewerProfileId, story.profileId)
-    ) {
-      throw new NotFoundException('Story not found');
-    }
-
-    if (story.profile.privacyLevel === Visibility.PRIVATE) {
-      const follow = await this.prisma.follow.findUnique({
-        where: {
-          followerId_followingId: {
-            followerId: viewerProfileId,
-            followingId: story.profileId,
-          },
-        },
-        select: { status: true },
-      });
-      if (follow?.status !== 'ACCEPTED') {
-        throw new NotFoundException('Story not found');
-      }
-    }
-
-    if (story.isCloseFriendsOnly) {
-      const closeFriend = await this.prisma.closeFriend.findUnique({
-        where: {
-          profileId_friendId: {
-            profileId: story.profileId,
-            friendId: viewerProfileId,
-          },
-        },
-        select: { id: true },
-      });
-      if (!closeFriend) throw new NotFoundException('Story not found');
-    }
-    return story.profileId;
+    const { profileId } = await assertCanAccessStory(
+      this.prisma,
+      storyId,
+      viewerProfileId,
+    );
+    return profileId;
   }
 
   async cleanupExpiredStories() {

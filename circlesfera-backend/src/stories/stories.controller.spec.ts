@@ -18,8 +18,14 @@ import {
   createControllerApp,
   TEST_USER,
 } from '../common/testing/http-controller.js';
+import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
 import { StoriesController } from './stories.controller.js';
 import { StoriesService } from './stories.service.js';
+
+const mockStickers = {
+  respond: vi.fn(async () => ({ id: 'sticker-1' })),
+  results: vi.fn(async () => ({ id: 'sticker-1' })),
+};
 
 describe('StoriesController', () => {
   let app: INestApplication;
@@ -39,7 +45,10 @@ describe('StoriesController', () => {
   beforeAll(async () => {
     app = await createControllerApp({
       controllers: [StoriesController],
-      providers: [{ provide: StoriesService, useValue: mockService }],
+      providers: [
+        { provide: StoriesService, useValue: mockService },
+        { provide: StoryStickersService, useValue: mockStickers },
+      ],
       guards: [
         { guard: JwtAuthGuard, mode: 'session' },
         { guard: EmailVerifiedGuard, mode: 'allow' },
