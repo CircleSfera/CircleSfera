@@ -1601,6 +1601,7 @@
       "tool_poll": "Poll",
       "tool_qna": "Q&A",
       "tool_more": "More",
+      "drop_to_delete": "Drop here to delete",
       "sticker_categories": {
         "popular": "Popular",
         "faces": "Faces",

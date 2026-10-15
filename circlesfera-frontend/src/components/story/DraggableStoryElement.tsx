@@ -1,6 +1,4 @@
-import { motion, useMotionValue } from 'framer-motion';
 import type React from 'react';
-import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import {
@@ -21,35 +19,27 @@ export interface DraggableStoryElementProps {
   isSelected: boolean;
   hidden?: boolean;
   dimmed?: boolean;
-  onUpdate: (id: string, updates: Partial<StoryElement>) => void;
-  /** The drag has ended: what it changed becomes one undo step. */
-  onCommit: () => void;
-  onSelect: (id: string) => void;
-  onDragActiveChange: (active: boolean) => void;
-  setShowVGuide: (show: boolean) => void;
-  setShowHGuide: (show: boolean) => void;
-  onTextEdit: (el: StoryElement) => void;
+  /** Held over the bin: it shrinks to say it goes if dropped. */
+  overBin?: boolean;
+  /** A finger came down on it; the gestures of the stage take it from here. */
+  onPointerDown: (el: StoryElement, e: React.PointerEvent) => void;
 }
 
+/**
+ * One piece of the story (text, emoji, poll or question), placed by its
+ * position from the centre of the canvas, its scale and its angle. Moving,
+ * scaling and turning it is done by `useStoryGestures`.
+ */
 export default function DraggableStoryElement({
   el,
   containerRef,
   isSelected,
   hidden,
   dimmed,
-  onUpdate,
-  onCommit,
-  onSelect,
-  onDragActiveChange,
-  setShowVGuide,
-  setShowHGuide,
-  onTextEdit,
+  overBin,
+  onPointerDown,
 }: DraggableStoryElementProps) {
   const { t } = useTranslation();
-  const elementRef = useRef<HTMLDivElement>(null);
-  const dragMovedRef = useRef(false);
-  const x = useMotionValue(el.x);
-  const y = useMotionValue(el.y);
   const poll = isPollElement(el) ? parsePollPayload(el.content) : null;
   const qna = isQnaElement(el) ? parseQnaPayload(el.content) : null;
   const isInteractive = Boolean(poll || qna);
@@ -59,88 +49,27 @@ export default function DraggableStoryElement({
       ? Math.round((canvasWidth * INTERACTIVE_WIDTH_PCT) / 100)
       : undefined;
 
-  useEffect(() => {
-    x.set(el.x);
-    y.set(el.y);
-  }, [el.x, el.y, x, y]);
-
   if (hidden) return null;
 
+  const scale = el.scale * (overBin ? 0.45 : 1);
   return (
-    <motion.div
-      ref={elementRef}
-      drag
-      dragMomentum={false}
-      dragElastic={0}
-      transformTemplate={({ x, y, scale, rotate }) =>
-        `translate(${x}, ${y}) translate(-50%, -50%) scale(${scale}) rotate(${rotate})`
-      }
-      onDrag={() => {
-        dragMovedRef.current = true;
-        if (!containerRef.current || !elementRef.current) return;
-        const container = containerRef.current.getBoundingClientRect();
-        const element = elementRef.current.getBoundingClientRect();
-        const containerCenterX = container.left + container.width / 2;
-        const containerCenterY = container.top + container.height / 2;
-        const elementCenterX = element.left + element.width / 2;
-        const elementCenterY = element.top + element.height / 2;
-        const threshold = 10;
-        setShowVGuide(Math.abs(elementCenterX - containerCenterX) < threshold);
-        setShowHGuide(Math.abs(elementCenterY - containerCenterY) < threshold);
-        if (Math.abs(elementCenterX - containerCenterX) < threshold) x.set(0);
-        if (Math.abs(elementCenterY - containerCenterY) < threshold) y.set(0);
-      }}
-      onDragStart={() => {
-        dragMovedRef.current = false;
-        onSelect(el.id);
-        onDragActiveChange(true);
-      }}
-      onDragEnd={(_, info) => {
-        if (Math.hypot(info.offset.x, info.offset.y) > 3) {
-          dragMovedRef.current = true;
-        }
-        onDragActiveChange(false);
-        setShowVGuide(false);
-        setShowHGuide(false);
-        onUpdate(el.id, { x: x.get(), y: y.get() });
-        onCommit();
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            dragMovedRef.current = false;
-          });
-        });
-      }}
-      initial={false}
-      animate={{
-        scale: el.scale,
-        rotate: el.rotation,
-        borderColor: isSelected ? 'rgba(255,255,255,0.55)' : 'transparent',
-        opacity: dimmed ? 0.4 : isInteractive ? 1 : (el.opacity ?? 1),
-      }}
+    <div
+      onPointerDown={(e) => onPointerDown(el, e)}
       style={{
-        x,
-        y,
+        position: 'absolute',
         left: '50%',
         top: '50%',
+        transform: `translate(${el.x}px, ${el.y}px) translate(-50%, -50%) scale(${scale}) rotate(${el.rotation}deg)`,
         zIndex: isSelected ? 200 : (el.zIndex ?? 100),
-        position: 'absolute',
         width: isInteractive ? interactivePx : undefined,
-      }}
-      onPointerDown={(e) => e.stopPropagation()}
-      onTap={(event) => {
-        if (dragMovedRef.current) return;
-        if (event && 'stopPropagation' in event)
-          (event as MouseEvent | TouchEvent).stopPropagation();
-        onSelect(el.id);
-        if (el.type === 'text') {
-          onTextEdit(el);
-        }
+        opacity:
+          dimmed || overBin ? 0.4 : isInteractive ? 1 : (el.opacity ?? 1),
       }}
       data-testid="story-element"
       // A poll or a question is answered on the story itself, not painted
       // into its picture.
       data-export-ignore={isInteractive ? 'true' : undefined}
-      className={`absolute cursor-move touch-none border-2 rounded-2xl p-0.5 transition-colors ${
+      className={`absolute cursor-move touch-none select-none border-2 rounded-2xl p-0.5 transition-[border-color,opacity] ${
         isSelected ? 'border-white/55' : 'border-transparent'
       }`}
     >
@@ -175,6 +104,6 @@ export default function DraggableStoryElement({
           {el.content}
         </div>
       )}
-    </motion.div>
+    </div>
   );
 }

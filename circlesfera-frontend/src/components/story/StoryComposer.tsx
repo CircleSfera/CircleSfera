@@ -57,6 +57,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         setActiveTab={s.setActiveTab}
         updateElement={s.updateElement}
         commitElements={s.commitElements}
+        removeElement={s.removeElement}
         setDraggingLayer={s.setDraggingLayer}
         setShowVGuide={s.setShowVGuide}
         setShowHGuide={s.setShowHGuide}

@@ -1601,6 +1601,7 @@
       "tool_poll": "Encuesta",
       "tool_qna": "Preguntas",
       "tool_more": "Más",
+      "drop_to_delete": "Suelta aquí para borrar",
       "sticker_categories": {
         "popular": "Populares",
         "faces": "Caras",
