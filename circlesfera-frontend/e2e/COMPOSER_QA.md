@@ -65,6 +65,7 @@ Scripts prefix `env -u NO_COLOR FORCE_COLOR=0` so Node does not warn when Cursor
 
 ## Notes
 
+- Smoke and visual run on every pull request (Pull Request CI → Playwright E2E, step "Check the composer and its captures").
 - Frame smoke/visual stop before Share (FFmpeg wasm export is too heavy for CI).
-- Snapshot filenames are OS-suffixed (`*-chromium-darwin.png`). Regenerate on the same OS as CI when enabling in pipeline.
-- Visual `maxDiffPixelRatio` is ~0.04; media must paint before screenshot (`waitEditPreviewReady`).
+- Snapshot filenames are OS-suffixed. CI compares the `*-chromium-linux.png` files; `*-chromium-darwin.png` are for local runs on a Mac. After a visual change, regenerate both: on the Mac with `npm run test:e2e:composer:update`, and the Linux ones inside the same Playwright image CI uses (`mcr.microsoft.com/playwright:v<version>-noble`, version from `package.json`) with the frontend dev server running and `npx playwright test e2e/composer-visual.spec.ts --update-snapshots`.
+- Visual `maxDiffPixelRatio` is 0.06; media must paint before screenshot (`waitEditPreviewReady`), and videos are stopped on their first picture so two runs show the same frame.

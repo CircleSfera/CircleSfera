@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, type Page, test } from '@playwright/test';
 import {
   composerShell,
   confirmFrameTrim,
@@ -24,6 +24,28 @@ const shotOpts = {
   maxDiffPixelRatio: 0.06,
 };
 
+// A playing video shows a different picture at every capture: stop each one
+// on its first picture so the capture can be compared.
+async function stopVideosOnFirstPicture(page: Page): Promise<void> {
+  await page.evaluate(async () => {
+    const videos = Array.from(document.querySelectorAll('video'));
+    await Promise.all(
+      videos.map(
+        (video) =>
+          new Promise<void>((resolve) => {
+            video.pause();
+            if (video.currentTime === 0) {
+              resolve();
+              return;
+            }
+            video.addEventListener('seeked', () => resolve(), { once: true });
+            video.currentTime = 0;
+          }),
+      ),
+    );
+  });
+}
+
 test.describe('Composer visual regression (live app, 390×844)', () => {
   test.beforeEach(async ({ page }) => {
     await prepareComposerSession(page);
@@ -45,6 +67,7 @@ test.describe('Composer visual regression (live app, 390×844)', () => {
     await uploadFixture(page, FIXTURES.frameVideo);
     await confirmFrameTrim(page);
     await waitEditPreviewReady(page, '9:16');
+    await stopVideosOnFirstPicture(page);
     await expect(composerShell(page)).toHaveScreenshot(
       'frame-edit.png',
       shotOpts,
@@ -59,6 +82,7 @@ test.describe('Composer visual regression (live app, 390×844)', () => {
     await goToCaption(page);
     await expect(page.getByText('Añadir Música')).toBeVisible();
     await expect(page.getByText('Etiquetar Personas')).toHaveCount(0);
+    await stopVideosOnFirstPicture(page);
     await expect(composerShell(page)).toHaveScreenshot(
       'frame-caption.png',
       shotOpts,
