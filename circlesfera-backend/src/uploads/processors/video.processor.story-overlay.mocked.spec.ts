@@ -102,7 +102,12 @@ function setup({
       updateMany: vi.fn().mockResolvedValue({ count: written }),
     },
     media: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    // The story and its Media row are written together.
+    $transaction: vi.fn(),
   };
+  prisma.$transaction.mockImplementation((fn: (tx: typeof prisma) => unknown) =>
+    fn(prisma),
+  );
   const store = {
     upload: vi.fn().mockResolvedValue({ url: '/uploads/joined.mp4' }),
     delete: vi.fn().mockResolvedValue(undefined),
@@ -208,6 +213,16 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
 
     await outcome;
     expect(tool.kill).toHaveBeenCalledWith('SIGKILL');
+  });
+
+  it('writes the story and its media together, and leaves the stream to the recovery when it cannot be queued', async () => {
+    const { prisma, uploads, processor } = setup();
+    uploads.enqueueTranscode.mockRejectedValueOnce(new Error('redis down'));
+
+    await expect(processor.process(job('s-1'))).rejects.toThrow('redis down');
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.media.updateMany).toHaveBeenCalled();
   });
 
   it('cannot join without a storage to keep the result', async () => {

@@ -32,7 +32,12 @@ function setup(story: unknown, written = 1) {
       updateMany: vi.fn().mockResolvedValue({ count: written }),
     },
     media: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    // The story and its Media row are written together.
+    $transaction: vi.fn(),
   };
+  prisma.$transaction.mockImplementation((fn: (tx: typeof prisma) => unknown) =>
+    fn(prisma),
+  );
   const storage = new LocalStorageProvider();
   const uploads = {
     ownsUrl: (url: string) => storage.ownsUrl(url),

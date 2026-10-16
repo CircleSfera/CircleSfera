@@ -67,6 +67,7 @@ describe('MaintenanceService', () => {
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
     recoverStoryOverlay: vi.fn().mockResolvedValue('left'),
+    recoverTranscode: vi.fn().mockResolvedValue(false),
   };
 
   beforeEach(async () => {
@@ -656,8 +657,10 @@ describe('MaintenanceService', () => {
 
       await service.recoverStoryOverlays();
 
-      const [[{ where }]] =
-        mockPrismaService.story.findMany.mock.calls.slice(-1);
+      const [[{ where }]] = mockPrismaService.story.findMany.mock.calls.slice(
+        0,
+        1,
+      );
       expect(where.overlayUrl).toEqual({ not: null });
       expect(before - where.createdAt.lt.getTime()).toBeGreaterThanOrEqual(
         10 * 60 * 1000 - 50,
@@ -715,6 +718,33 @@ describe('MaintenanceService', () => {
         'Failed to delete story layer: /uploads/l.png',
         expect.any(Error),
       );
+    });
+  });
+
+  describe('recoverStoryOverlays, for a video with no stream', () => {
+    it('asks again for the stream of a video story that has none after ten minutes', async () => {
+      mockPrismaService.story.findMany
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([{ id: 's-v', url: '/uploads/v.mp4' }]);
+      mockUploadsService.recoverTranscode.mockResolvedValueOnce(true);
+      const log = vi.spyOn(
+        (service as unknown as { logger: Logger }).logger,
+        'log',
+      );
+
+      await service.recoverStoryOverlays();
+
+      const [[{ where }]] =
+        mockPrismaService.story.findMany.mock.calls.slice(-1);
+      expect(where).toMatchObject({
+        mediaType: 'video',
+        overlayUrl: null,
+        standardUrl: null,
+      });
+      expect(mockUploadsService.recoverTranscode).toHaveBeenCalledWith(
+        '/uploads/v.mp4',
+      );
+      expect(log).toHaveBeenCalledWith('Stream of story s-v asked for again');
     });
   });
 });

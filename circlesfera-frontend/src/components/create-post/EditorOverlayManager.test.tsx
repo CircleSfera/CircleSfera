@@ -185,9 +185,10 @@ describe('EditorOverlayManager', () => {
 
       // The video is already the media: it is not replaced by a picture.
       expect(props.setMediaFiles).not.toHaveBeenCalled();
-      const [[layer]] = props.setStoryOverlay.mock.calls;
-      expect(layer).toBeInstanceOf(File);
-      expect(layer.name).toBe('story_layer.png');
+      const [[overlay]] = props.setStoryOverlay.mock.calls;
+      expect(overlay.video).toBe(clip);
+      expect(overlay.layer).toBeInstanceOf(File);
+      expect(overlay.layer.name).toBe('story_layer.png');
       expect(props.setIsComposed).toHaveBeenCalledWith(true);
 
       const { showStoryComposer, setShowStoryComposer, ...composer } = props;

@@ -330,7 +330,8 @@ export class MaintenanceService {
   }
 
   // Video stories whose painted layer is still waiting, ten minutes after
-  // they were made, get their join another chance if it was lost.
+  // they were made, get their join another chance if it was lost, and those
+  // whose stream was never asked for get it asked for.
   @Cron(CronExpression.EVERY_5_MINUTES)
   async recoverStoryOverlays() {
     try {
@@ -348,6 +349,24 @@ export class MaintenanceService {
         const outcome = await this.uploadsService.recoverStoryOverlay(story.id);
         if (outcome !== 'left') {
           this.logger.log(`Join of story ${story.id} ${outcome} again`);
+        }
+      }
+      // A video whose stream was never asked for, as when a join was written
+      // but its stream could not be queued.
+      const streamless = await this.prisma.story.findMany({
+        where: {
+          mediaType: 'video',
+          overlayUrl: null,
+          standardUrl: null,
+          createdAt: { lt: new Date(now - 10 * 60 * 1000) },
+          expiresAt: { gt: new Date(now) },
+        },
+        select: { id: true, url: true },
+        take: 100,
+      });
+      for (const story of streamless) {
+        if (await this.uploadsService.recoverTranscode(story.url)) {
+          this.logger.log(`Stream of story ${story.id} asked for again`);
         }
       }
     } catch (error) {

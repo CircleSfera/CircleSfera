@@ -259,6 +259,20 @@ export class UploadsService {
     return 'left';
   }
 
+  /**
+   * Makes the stream of a stored video when no job for it is kept: lost
+   * before it was queued, or gone from the queue. A job kept, done or failed,
+   * is left as it is.
+   */
+  async recoverTranscode(url: string): Promise<boolean> {
+    const baseName = path.basename(url, path.extname(url));
+    if (await this.videoQueue.getJob(queueJobId('transcode', baseName))) {
+      return false;
+    }
+    await this.enqueueTranscode(url);
+    return true;
+  }
+
   /** Whether an address is of a file this server's storage keeps. */
   ownsUrl(url: string): boolean {
     return this.storageProvider.ownsUrl?.(url) ?? false;

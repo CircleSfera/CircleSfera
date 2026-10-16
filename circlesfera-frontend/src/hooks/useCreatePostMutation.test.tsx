@@ -340,7 +340,7 @@ describe('useCreatePostMutation', () => {
     const { deps, submit } = setup({
       mode: 'STORY',
       mediaFiles: [clip],
-      storyOverlay: layer,
+      storyOverlay: { video: clip.file, layer },
     });
     deps.uploadFiles
       .mockResolvedValueOnce([{ url: '/uploads/v.mp4', type: 'video' }])
@@ -348,13 +348,44 @@ describe('useCreatePostMutation', () => {
     await submit();
 
     expect(deps.uploadFiles.mock.calls[0][0][0].file).toBe(clip.file);
-    expect(deps.uploadFiles.mock.calls[1][0][0].file).toBe(layer);
+    expect(deps.uploadFiles.mock.calls[1][0][0]).toEqual({
+      file: layer,
+      url: '',
+      type: 'image',
+    });
     expect(storiesApi.create).toHaveBeenCalledWith(
       expect.objectContaining({
         url: '/uploads/v.mp4',
         mediaType: 'video',
         overlayUrl: '/uploads/l.avif',
       }),
+    );
+  });
+
+  it('sends no layer painted on another video, as when that one was taken out', async () => {
+    const clip = (name: string): MediaFile => ({
+      file: new File([new Uint8Array(10)], name, { type: 'video/mp4' }),
+      url: `blob:${name}`,
+      type: 'video',
+    });
+    const first = clip('first.mp4');
+    const second = clip('second.mp4');
+    const { deps, submit } = setup({
+      mode: 'STORY',
+      mediaFiles: [second],
+      storyOverlay: {
+        video: first.file,
+        layer: new File(['png'], 'story_layer.png', { type: 'image/png' }),
+      },
+    });
+    deps.uploadFiles.mockResolvedValueOnce([
+      { url: '/uploads/second.mp4', type: 'video' },
+    ]);
+    await submit();
+
+    expect(deps.uploadFiles).toHaveBeenCalledTimes(1);
+    expect(storiesApi.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ overlayUrl: expect.anything() }),
     );
   });
 

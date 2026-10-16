@@ -107,7 +107,9 @@ export default function EditorOverlayManager({
       // A video story stays a video; what is painted over it goes as a layer,
       // and only when something is.
       const layer = new File([blob], 'story_layer.png', { type: 'image/png' });
-      setStoryOverlay((await hasPaint(blob).catch(() => true)) ? layer : null);
+      setStoryOverlay(
+        (await hasPaint(blob).catch(() => true)) ? { video, layer } : null,
+      );
       file = video;
       if (mediaFiles[0]?.file !== video) {
         setMediaFiles([
