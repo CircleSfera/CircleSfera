@@ -822,7 +822,12 @@ describe('AdminAuthService', () => {
       ['a sign-in step token', { purpose: 'admin-mfa' }],
     ])('refuses to renew from %s', async (_label, claims) => {
       const token = jwtService.sign(
-        { sub: 'admin-1', email: 'admin@circlesfera.com', jti: 'jti-1', ...claims },
+        {
+          sub: 'admin-1',
+          email: 'admin@circlesfera.com',
+          jti: 'jti-1',
+          ...claims,
+        },
         { secret: adminSecret, audience: 'circlesfera-admin' },
       );
 
@@ -909,7 +914,10 @@ describe('AdminAuthService', () => {
     });
 
     it.each([
-      ['has no second factor enrolled', { status: 'ACTIVE', totpEnabled: false }],
+      [
+        'has no second factor enrolled',
+        { status: 'ACTIVE', totpEnabled: false },
+      ],
       ['is no longer active', { status: 'SUSPENDED', totpEnabled: true }],
       ['no longer exists', null],
     ])(
@@ -917,12 +925,12 @@ describe('AdminAuthService', () => {
       async (_label, admin) => {
         const token = jwtService.sign(
           {
-          sub: 'admin-1',
-          email: 'admin@circlesfera.com',
-          jti: 'jti-1',
-          typ: 'refresh',
-          mfa: true,
-        },
+            sub: 'admin-1',
+            email: 'admin@circlesfera.com',
+            jti: 'jti-1',
+            typ: 'refresh',
+            mfa: true,
+          },
           { secret: adminSecret, audience: 'circlesfera-admin' },
         );
         mockPrisma.adminRefreshToken.findUnique.mockResolvedValue({
