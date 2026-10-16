@@ -19,6 +19,7 @@ const seen = vi.hoisted(() => ({
   edit: {} as Record<string, any>,
   caption: {} as Record<string, any>,
   storyBar: {} as Record<string, any>,
+  capture: {} as Record<string, any>,
   title: '',
 }));
 
@@ -97,6 +98,16 @@ vi.mock('./create-post/CaptionStep', () => ({
   default: (props: Props) => {
     seen.caption = props;
     return <div data-testid="caption-step" />;
+  },
+}));
+const gallery = vi.hoisted(() => ({ device: false }));
+vi.mock('../utils/photoLibrary', () => ({
+  hasDeviceGallery: () => gallery.device,
+}));
+vi.mock('./story/capture/StoryCapture', () => ({
+  default: (props: Props) => {
+    seen.capture = props;
+    return <div data-testid="story-capture" />;
   },
 }));
 vi.mock('./create-post/StoryControlsBar', () => ({
@@ -194,7 +205,12 @@ describe('ContentComposerPage', () => {
       ['FRAME', 'New Frame', 'CircleSfera — New Frame'],
       ['STORY', 'Add to Story', 'CircleSfera — Add to Story'],
     ])('%s', (mode, heading, tabTitle) => {
-      compose({ mode });
+      // A story is named on its steps after the camera.
+      compose(
+        mode === 'STORY'
+          ? { mode, step: 'edit', mediaFiles: [photo], isComposed: true }
+          : { mode },
+      );
 
       expect(screen.getByText(heading)).toBeInTheDocument();
       expect(seen.title).toBe(tabTitle);
@@ -376,12 +392,53 @@ describe('ContentComposerPage', () => {
       expect(await screen.findByTestId('editor')).toBeInTheDocument();
     });
 
-    it('starts a text story from the first step', async () => {
+    it('starts on the camera, which hands what it takes to the composer', () => {
+      const { hook } = compose({ mode: 'STORY' });
+
+      expect(screen.getByTestId('story-capture')).toBeInTheDocument();
+      expect(screen.queryByTestId('upload-step')).not.toBeInTheDocument();
+
+      const file = new File(['x'], 'story.jpg', { type: 'image/jpeg' });
+      act(() => seen.capture.onCapture(file));
+      const [[event]] = hook.handleFileSelect.mock.calls;
+      expect(Array.from(event.target.files)).toEqual([file]);
+
+      act(() => seen.capture.onClose());
+      expect(hook.reset).toHaveBeenCalled();
+    });
+
+    it('starts a text story from the camera', async () => {
       compose({ mode: 'STORY' });
 
-      act(() => seen.upload.onTextStory());
+      act(() => seen.capture.onCreate());
 
       expect(await screen.findByTestId('editor')).toBeInTheDocument();
+    });
+
+    it('opens the file picker from the camera on the web', () => {
+      gallery.device = false;
+      compose({ mode: 'STORY' });
+      const input =
+        document.querySelector<HTMLInputElement>('input[type="file"]');
+      if (!input) throw new Error('no file input');
+      const click = vi.spyOn(input, 'click').mockImplementation(() => {});
+
+      act(() => seen.capture.onOpenGallery());
+
+      expect(click).toHaveBeenCalled();
+      expect(input.accept).toBe('image/*,video/*');
+    });
+
+    it('opens the gallery of the iOS app over the camera, and goes back to it', () => {
+      gallery.device = true;
+      compose({ mode: 'STORY' });
+
+      act(() => seen.capture.onOpenGallery());
+      expect(screen.getByTestId('upload-step')).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+      expect(screen.getByTestId('story-capture')).toBeInTheDocument();
+      gallery.device = false;
     });
 
     const started = (storyStart: unknown) => ({

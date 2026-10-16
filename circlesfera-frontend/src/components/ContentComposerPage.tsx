@@ -6,6 +6,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { probeVideoDuration } from '../constants/uploadLimits';
 import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
 import { useCreatePost } from '../hooks/useCreatePost';
+import { hasDeviceGallery } from '../utils/photoLibrary';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import SEO from './common/SEO';
 import CaptionStep from './create-post/CaptionStep';
@@ -21,6 +22,7 @@ import SubScreenRouter from './create-post/SubScreenRouter';
 import UploadStep from './create-post/UploadStep';
 import ConfirmModal from './modals/ConfirmModal';
 import type { PhotoEditorTab } from './photo-editor/photoEditor.types';
+import StoryCapture from './story/capture/StoryCapture';
 import { pictureFile, readStoryStart } from './story/storyStart';
 
 const STEP_ORDER = ['upload', 'edit', 'caption'] as const;
@@ -38,6 +40,8 @@ export default function ContentComposerPage() {
 
   const [stepDirection, setStepDirection] = React.useState(1);
   const [showStoryComposer, setShowStoryComposer] = React.useState(false);
+  // A story starts on the camera; the gallery of the iOS app opens over it.
+  const [showPicker, setShowPicker] = React.useState(false);
   // The tab the photo editor opens on, chosen from the tools of the edit step.
   const [editorTab, setEditorTab] = React.useState<PhotoEditorTab | undefined>(
     undefined,
@@ -283,6 +287,34 @@ export default function ContentComposerPage() {
     );
   }
 
+  if (isStoryMode && step === 'upload' && !showPicker) {
+    return (
+      <ComposerProvider value={composer}>
+        <SEO title={documentTitle} noIndex />
+        <StoryCapture
+          onCapture={(file) =>
+            handleFileSelect({
+              target: { files: [file] as unknown as FileList },
+            } as Pick<React.ChangeEvent<HTMLInputElement>, 'target'>)
+          }
+          onOpenGallery={() => {
+            if (hasDeviceGallery()) setShowPicker(true);
+            else fileInputRef.current?.click();
+          }}
+          onCreate={() => setShowStoryComposer(true)}
+          onClose={reset}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*,video/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+      </ComposerProvider>
+    );
+  }
+
   return (
     <ComposerProvider value={composer}>
       <SEO title={documentTitle} noIndex />
@@ -296,6 +328,11 @@ export default function ContentComposerPage() {
             // Composed story: back reopens the immersive editor (don't wipe to upload)
             if (isStoryMode && step === 'edit' && isComposed) {
               setShowStoryComposer(true);
+              return;
+            }
+            // From the gallery, back to the camera.
+            if (isStoryMode && step === 'upload' && showPicker) {
+              setShowPicker(false);
               return;
             }
             reset();

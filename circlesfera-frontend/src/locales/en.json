@@ -1194,6 +1194,20 @@
       "share_answer": "Share",
       "share_answer_label": "Share this answer in a story"
     },
+    "capture": {
+      "close": "Close the camera",
+      "flash_on": "Turn the light on",
+      "flash_off": "Turn the light off",
+      "switch_camera": "Switch camera",
+      "shutter": "Take a photo, or hold to record a video",
+      "recording": "Recording",
+      "gallery": "Choose from the gallery",
+      "mode_story": "Story",
+      "mode_create": "Create",
+      "refused": "The camera is not allowed. You can allow it in the settings of your browser or device.",
+      "none": "There is no camera to use here.",
+      "starting": "Opening the camera…"
+    },
     "add_to_your_story": "Add to your story",
     "start_picture_error": "The picture of the story could not be opened."
   },
