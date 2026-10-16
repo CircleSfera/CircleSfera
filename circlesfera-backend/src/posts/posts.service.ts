@@ -40,6 +40,7 @@ import { resolvePlaceAttachment } from '../common/utils/place.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { captionMentions } from './caption-mentions.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { UpdatePostDto } from './dto/update-post.dto.js';
 import { FrameCoverService } from './services/frame-cover.service.js';
@@ -94,10 +95,7 @@ export class PostsService {
       ? [...new Set(hashtags.map((tag) => tag.trim().slice(1).toLowerCase()))]
       : [];
 
-    const mentions = dto.caption ? dto.caption.match(/(?:^|\s)(@[\w.]+)/g) : [];
-    const uniqueMentions = mentions
-      ? [...new Set(mentions.map((m) => m.trim().slice(1)))]
-      : [];
+    const uniqueMentions = captionMentions(dto.caption);
 
     // Profiles in a block relation with the author cannot be tagged.
     const blockedForAuthor = dto.tags?.length

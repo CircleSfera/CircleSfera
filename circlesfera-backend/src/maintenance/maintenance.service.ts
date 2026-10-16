@@ -9,6 +9,7 @@ import {
   STRIKE_RECORD_RETENTION_DAYS_AFTER_EXPIRY,
 } from '../common/constants/data-retention.constants.js';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
+import { PostDistributionService } from '../posts/services/post-distribution.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
@@ -21,6 +22,7 @@ export class MaintenanceService {
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
     private readonly stories: StoriesService,
+    private readonly postDistribution: PostDistributionService,
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
@@ -409,13 +411,19 @@ export class MaintenanceService {
       );
 
       for (const p of scheduledPosts) {
-        await this.prisma.post.update({
-          where: { id: p.id },
+        // Taken as published first, so two servers never send it out twice.
+        const published = await this.prisma.post.updateMany({
+          where: { id: p.id, scheduledStatus: 'SCHEDULED' },
           data: {
             scheduledStatus: 'PUBLISHED',
             createdAt: now,
           },
         });
+        if (published.count === 0) continue;
+        // Feeds, mentions and moderation, as on sharing at once.
+        await this.postDistribution
+          .dispatchScheduledPostPublished(p.id)
+          .catch((e) => this.logger.warn(`Could not send out post ${p.id}`, e));
       }
 
       for (const s of scheduledStories) {

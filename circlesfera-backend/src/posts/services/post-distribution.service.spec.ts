@@ -9,6 +9,7 @@ describe('PostDistributionService', () => {
   let service: PostDistributionService;
   let mockPrisma: {
     profile: { findMany: ReturnType<typeof vi.fn> };
+    post: { findUnique: ReturnType<typeof vi.fn> };
   };
   let mockEventEmitter: { emit: ReturnType<typeof vi.fn> };
   let mockAiQueue: { add: ReturnType<typeof vi.fn> };
@@ -17,6 +18,7 @@ describe('PostDistributionService', () => {
   beforeEach(() => {
     mockPrisma = {
       profile: { findMany: vi.fn() },
+      post: { findUnique: vi.fn() },
     };
     mockEventEmitter = { emit: vi.fn() };
     mockAiQueue = { add: vi.fn().mockResolvedValue({}) };
@@ -108,6 +110,64 @@ describe('PostDistributionService', () => {
       senderId: 'user-1',
       type: 'MENTION',
       notice: { key: 'mentioned_in_post' },
+    });
+  });
+
+  describe('a scheduled post, once it goes out', () => {
+    it('does what a post shared at once does, read from the saved post', async () => {
+      mockPrisma.post.findUnique.mockResolvedValue({
+        id: 'post-4',
+        profileId: 'author-1',
+        visibility: Visibility.FOLLOWERS,
+        caption: 'Hola @ana y @ana.b',
+        media: [
+          // The processed media wins over the address saved with the post.
+          {
+            url: 'https://cdn/raw.mp4',
+            thumbnailUrl: null,
+            media: {
+              url: 'https://cdn/v.mp4',
+              thumbnailUrl: 'https://cdn/v.jpg',
+            },
+          },
+          { url: 'https://cdn/2.jpg', thumbnailUrl: null, media: null },
+        ],
+      });
+      mockPrisma.profile.findMany.mockResolvedValue([{ id: 'ana-id' }]);
+
+      await service.dispatchScheduledPostPublished('post-4');
+
+      expect(mockAiQueue.add).toHaveBeenCalledWith('moderate-content', {
+        targetId: 'post-4',
+        text: 'Hola @ana y @ana.b',
+        targetType: 'POST',
+        mediaUrls: ['https://cdn/v.jpg', 'https://cdn/2.jpg'],
+      });
+      expect(mockFeedFanoutQueue.add).toHaveBeenCalledWith('distribute', {
+        postId: 'post-4',
+        authorId: 'author-1',
+      });
+      expect(mockPrisma.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            username: { in: ['ana', 'ana.b'] },
+            id: { not: 'author-1' },
+          },
+        }),
+      );
+      expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+        'notification.create',
+        expect.objectContaining({ recipientId: 'ana-id', type: 'MENTION' }),
+      );
+    });
+
+    it('does nothing for a post deleted before it went out', async () => {
+      mockPrisma.post.findUnique.mockResolvedValue(null);
+
+      await service.dispatchScheduledPostPublished('gone');
+
+      expect(mockAiQueue.add).not.toHaveBeenCalled();
+      expect(mockFeedFanoutQueue.add).not.toHaveBeenCalled();
     });
   });
 });

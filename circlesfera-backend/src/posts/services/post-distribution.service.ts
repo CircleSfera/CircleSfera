@@ -5,6 +5,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { $Enums, Visibility } from '@prisma/client';
 import { Queue } from 'bullmq';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { captionMentions } from '../caption-mentions.js';
 
 const NotificationType = $Enums.NotificationType;
 
@@ -33,6 +34,41 @@ export class PostDistributionService {
     @InjectQueue('ai-processing') private readonly aiQueue: Queue,
     @InjectQueue('feed-fanout') private readonly feedFanoutQueue: Queue,
   ) {}
+
+  /**
+   * Does for a scheduled post, once it goes out, what a post shared at once
+   * does: the same workflows, read from the post as it was saved.
+   */
+  async dispatchScheduledPostPublished(postId: string): Promise<void> {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        profileId: true,
+        visibility: true,
+        caption: true,
+        media: {
+          orderBy: { order: 'asc' },
+          select: {
+            url: true,
+            thumbnailUrl: true,
+            media: { select: { url: true, thumbnailUrl: true } },
+          },
+        },
+      },
+    });
+    if (!post) return;
+    await this.dispatchPostPublished(
+      {
+        ...post,
+        media: post.media.map((m) => ({
+          url: m.media?.url ?? m.url,
+          thumbnailUrl: m.media?.thumbnailUrl ?? m.thumbnailUrl,
+        })),
+      },
+      { caption: post.caption, uniqueMentions: captionMentions(post.caption) },
+    );
+  }
 
   /**
    * Dispatches background workflows after a post is published:

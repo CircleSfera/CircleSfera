@@ -2,6 +2,7 @@ import type { Logger } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
+import { PostDistributionService } from '../posts/services/post-distribution.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { StoriesService } from '../stories/stories.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
@@ -11,6 +12,9 @@ describe('MaintenanceService', () => {
   let service: MaintenanceService;
   const mockStories = {
     announcePublished: vi.fn().mockResolvedValue(undefined),
+  };
+  const mockPostDistribution = {
+    dispatchScheduledPostPublished: vi.fn().mockResolvedValue(undefined),
   };
 
   const mockPrismaService = {
@@ -44,6 +48,7 @@ describe('MaintenanceService', () => {
     post: {
       findMany: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     deviceSignal: {
       deleteMany: vi.fn(),
@@ -82,6 +87,7 @@ describe('MaintenanceService', () => {
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: UploadsService, useValue: mockUploadsService },
         { provide: StoriesService, useValue: mockStories },
+        { provide: PostDistributionService, useValue: mockPostDistribution },
         { provide: HelpdeskDataPort, useValue: mockHelpdeskData },
       ],
     }).compile();
@@ -379,24 +385,30 @@ describe('MaintenanceService', () => {
       mockPrismaService.story.findMany.mockResolvedValue([]);
 
       await service.publishScheduledPosts();
-      expect(mockPrismaService.post.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.post.updateMany).not.toHaveBeenCalled();
       expect(mockPrismaService.story.updateMany).not.toHaveBeenCalled();
     });
 
     it('should publish scheduled posts and stories', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([{ id: 'post-1' }]);
       mockPrismaService.story.findMany.mockResolvedValue([{ id: 'story-1' }]);
-      mockPrismaService.post.update.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.post.updateMany.mockResolvedValue({ count: 1 });
       mockPrismaService.story.updateMany.mockResolvedValue({ count: 1 });
 
       await service.publishScheduledPosts();
 
-      expect(mockPrismaService.post.update).toHaveBeenCalledWith({
-        where: { id: 'post-1' },
+      expect(mockPrismaService.post.updateMany).toHaveBeenCalledWith({
+        where: { id: 'post-1', scheduledStatus: 'SCHEDULED' },
         data: expect.objectContaining({
           scheduledStatus: 'PUBLISHED',
+          createdAt: expect.any(Date),
         }),
       });
+      // It reaches feeds, tells its mentions and is moderated, as a post
+      // shared at once.
+      expect(
+        mockPostDistribution.dispatchScheduledPostPublished,
+      ).toHaveBeenCalledWith('post-1');
       expect(mockPrismaService.story.updateMany).toHaveBeenCalledWith({
         where: { id: 'story-1', scheduledStatus: 'SCHEDULED' },
         data: expect.objectContaining({
@@ -423,6 +435,28 @@ describe('MaintenanceService', () => {
 
       expect(mockStories.announcePublished).toHaveBeenCalledTimes(1);
       expect(mockStories.announcePublished).toHaveBeenCalledWith('mine');
+    });
+
+    it('sends a post out only on the server that published it, and goes on when sending fails', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'taken' },
+        { id: 'first' },
+        { id: 'second' },
+      ]);
+      mockPrismaService.story.findMany.mockResolvedValue([]);
+      mockPrismaService.post.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 })
+        .mockResolvedValueOnce({ count: 1 });
+      mockPostDistribution.dispatchScheduledPostPublished.mockRejectedValueOnce(
+        new Error('queue'),
+      );
+
+      await expect(service.publishScheduledPosts()).resolves.toBeUndefined();
+
+      expect(
+        mockPostDistribution.dispatchScheduledPostPublished.mock.calls,
+      ).toEqual([['first'], ['second']]);
     });
 
     it('should catch errors gracefully', async () => {
