@@ -1,9 +1,12 @@
 import { fireEvent, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { act } from 'react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../../test/test-utils';
 import StoryCountdownPanel, { toLocalInput } from './StoryCountdownPanel';
 
 describe('StoryCountdownPanel', () => {
+  afterEach(() => vi.useRealTimers());
+
   it('adds a countdown with its title and when it ends, by default tomorrow', () => {
     const onAdd = vi.fn();
     renderWithProviders(<StoryCountdownPanel onAdd={onAdd} />, { lng: 'es' });
@@ -47,5 +50,47 @@ describe('StoryCountdownPanel', () => {
       ).toBeDisabled();
     }
     expect(onAdd).not.toHaveBeenCalled();
+  });
+
+  it('takes no time the calendar or the clock does not have, and says why', () => {
+    renderWithProviders(<StoryCountdownPanel onAdd={vi.fn()} />, { lng: 'es' });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Título de la cuenta atrás' }),
+      { target: { value: 'Fiesta' } },
+    );
+    fireEvent.change(screen.getByLabelText('Cuándo termina'), {
+      target: { value: `${new Date().getFullYear() + 1}-02-30T10:00` },
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Esa hora no existe');
+    expect(
+      screen.getByRole('button', { name: 'Añadir cuenta atrás' }),
+    ).toBeDisabled();
+  });
+
+  it('stops taking a moment that comes too close while the author waits', () => {
+    vi.useFakeTimers();
+    renderWithProviders(<StoryCountdownPanel onAdd={vi.fn()} />, { lng: 'es' });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Título de la cuenta atrás' }),
+      { target: { value: 'Fiesta' } },
+    );
+    const soon = new Date(Date.now() + 2 * 60_000);
+    soon.setSeconds(0, 0);
+    fireEvent.change(screen.getByLabelText('Cuándo termina'), {
+      target: { value: toLocalInput(soon) },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(2 * 60_000);
+    });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'entre un minuto y 30 días',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Añadir cuenta atrás' }),
+    ).toBeDisabled();
   });
 });

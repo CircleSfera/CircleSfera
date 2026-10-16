@@ -441,7 +441,8 @@ export class StoryStickersService {
   /**
    * Tells the people who asked to be reminded, and the author, that a
    * countdown has ended. Each countdown is marked as told before anyone is,
-   * so two servers never tell it twice.
+   * so two servers never tell it twice; when who to tell cannot be read, the
+   * mark is taken off again for the next run.
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async announceEndedCountdowns(now = new Date()): Promise<number> {
@@ -462,10 +463,25 @@ export class StoryStickersService {
         data: { announcedAt: now },
       });
       if (claimed.count === 0) continue;
-      const asked = await this.prisma.storyStickerResponse.findMany({
-        where: { stickerId: sticker.id, voteKey: sticker.id },
-        select: { profileId: true },
-      });
+      let asked: { profileId: string }[];
+      try {
+        asked = await this.prisma.storyStickerResponse.findMany({
+          where: { stickerId: sticker.id, voteKey: sticker.id },
+          select: { profileId: true },
+        });
+      } catch (err) {
+        // Let it go, so a later run tells it, and go on with the others.
+        this.logger.warn(
+          `Countdown ${sticker.id} not told: ${(err as Error).message}`,
+        );
+        await this.prisma.storySticker
+          .updateMany({
+            where: { id: sticker.id, announcedAt: now },
+            data: { announcedAt: null },
+          })
+          .catch(() => undefined);
+        continue;
+      }
       const author = sticker.story.profileId;
       const title = String(
         (sticker.settings as { title?: string } | null)?.title ?? '',

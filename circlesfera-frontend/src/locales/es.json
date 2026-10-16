@@ -1772,6 +1772,7 @@
       "countdown_title_ph": "Fiesta de lanzamiento",
       "countdown_ends": "Cuándo termina",
       "countdown_range": "Elige un momento entre un minuto y 30 días desde ahora.",
+      "countdown_no_such_time": "Esa hora no existe aquí porque el reloj se adelanta. Elige otra.",
       "add_countdown": "Añadir cuenta atrás"
     },
     "tags": {
@@ -5078,7 +5079,8 @@
       "seconds": "seg",
       "remind": "Recordármelo",
       "reminded": "Te lo recordaremos",
-      "remind_error": "No se pudo guardar el recordatorio."
+      "remind_error": "No se pudo guardar el recordatorio.",
+      "load_error": "No se pudo cargar la cuenta atrás."
     }
   },
   "create_menu": {

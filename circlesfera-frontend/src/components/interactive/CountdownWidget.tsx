@@ -2,7 +2,7 @@ import { Bell, BellRing, Loader2, Timer } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { logger } from '../../utils/logger';
-import { CountdownClock, timeLeft } from './CountdownClock';
+import { CountdownClock, timeLeft, useNow } from './CountdownClock';
 import {
   answerSticker,
   readSticker,
@@ -32,12 +32,35 @@ export function CountdownWidget({
   const [countdown, setCountdown] = useState<StickerResults | null>(null);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const now = useNow();
 
   useEffect(() => {
+    let current = true;
+    setCountdown(null);
+    setLoadFailed(false);
     readSticker(stickerId)
-      .then(setCountdown)
-      .catch((err) => logger.error('Failed to load countdown:', err));
+      .then((results) => {
+        if (current) setCountdown(results);
+      })
+      .catch((err) => {
+        logger.error('Failed to load countdown:', err);
+        if (current) setLoadFailed(true);
+      });
+    return () => {
+      current = false;
+    };
   }, [stickerId]);
+
+  if (loadFailed) {
+    return (
+      <div className={`${STICKER_CARD} py-6 text-center`}>
+        <p role="alert" className="text-xs font-medium text-white/80">
+          {t('interactive.countdown.load_error')}
+        </p>
+      </div>
+    );
+  }
 
   if (!countdown?.settings.endsAt) {
     return (
@@ -54,7 +77,7 @@ export function CountdownWidget({
 
   const { title, endsAt } = countdown.settings;
   const reminded = countdown.myResponse !== null;
-  const ended = timeLeft(endsAt, Date.now()).done;
+  const ended = timeLeft(endsAt, now).done;
 
   const toggle = async () => {
     setBusy(true);

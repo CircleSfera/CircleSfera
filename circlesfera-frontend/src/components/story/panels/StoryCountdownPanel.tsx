@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../../types';
 import { CREATE_PRIMARY } from '../../create-post/createStyles';
+import { useNow } from '../../interactive/CountdownClock';
 import {
   buildCountdownElement,
   COUNTDOWN_TITLE_MAX,
@@ -37,8 +38,12 @@ export default function StoryCountdownPanel({
   const { t } = useTranslation();
   const [title, setTitle] = useState('');
   const [ends, setEnds] = useState(() => toLocalInput(defaultEnd()));
+  const now = useNow();
   const endsAt = new Date(ends);
-  const ahead = endsAt.getTime() - Date.now();
+  // A time the clock skips when it moves forward is not a time.
+  const exists =
+    !Number.isNaN(endsAt.getTime()) && toLocalInput(endsAt) === ends;
+  const ahead = endsAt.getTime() - now;
   const inRange = ahead >= 60_000 && ahead <= MAX_AHEAD_MS;
 
   return (
@@ -60,20 +65,24 @@ export default function StoryCountdownPanel({
       <input
         type="datetime-local"
         value={ends}
-        min={toLocalInput(new Date(Date.now() + 60_000))}
-        max={toLocalInput(new Date(Date.now() + MAX_AHEAD_MS))}
+        min={toLocalInput(new Date(now + 60_000))}
+        max={toLocalInput(new Date(now + MAX_AHEAD_MS))}
         onChange={(e) => setEnds(e.target.value)}
         aria-label={t('createPost.storyComposer.countdown_ends')}
         className={`${SETUP_INPUT} [color-scheme:dark]`}
       />
-      {!inRange ? (
+      {!exists ? (
+        <p role="alert" className="text-xs font-medium text-white/70">
+          {t('createPost.storyComposer.countdown_no_such_time')}
+        </p>
+      ) : !inRange ? (
         <p role="alert" className="text-xs font-medium text-white/70">
           {t('createPost.storyComposer.countdown_range')}
         </p>
       ) : null}
       <button
         type="button"
-        disabled={!title.trim() || !inRange}
+        disabled={!title.trim() || !exists || !inRange}
         onClick={() => {
           const el = buildCountdownElement({ title, endsAt });
           if (el) onAdd(el);

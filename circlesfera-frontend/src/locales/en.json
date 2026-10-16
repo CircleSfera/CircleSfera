@@ -1772,6 +1772,7 @@
       "countdown_title_ph": "Launch party",
       "countdown_ends": "When it ends",
       "countdown_range": "Choose a moment between a minute and 30 days from now.",
+      "countdown_no_such_time": "That time does not exist here, because the clock moves forward. Choose another.",
       "add_countdown": "Add countdown"
     },
     "tags": {
@@ -5078,7 +5079,8 @@
       "seconds": "sec",
       "remind": "Remind me",
       "reminded": "I'll be reminded",
-      "remind_error": "The reminder could not be saved."
+      "remind_error": "The reminder could not be saved.",
+      "load_error": "The countdown could not be loaded."
     }
   },
   "create_menu": {

@@ -111,4 +111,58 @@ describe('CountdownWidget', () => {
       'No se pudo guardar el recordatorio.',
     );
   });
+
+  it('says so when the countdown could not be loaded', async () => {
+    vi.mocked(apiClient.get).mockRejectedValue(new Error('offline'));
+    renderWithProviders(<CountdownWidget stickerId="cd" />, { lng: 'es' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No se pudo cargar la cuenta atrás.',
+    );
+  });
+
+  it('keeps an answer for a countdown no longer shown out of the one shown', async () => {
+    let answerFirst: (v: unknown) => void = () => {};
+    vi.mocked(apiClient.get)
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          answerFirst = resolve;
+        }) as never,
+      )
+      .mockResolvedValueOnce(
+        countdown({
+          settings: { title: 'Concierto', endsAt: inAnHour() },
+        }) as never,
+      );
+    const { rerender } = renderWithProviders(
+      <CountdownWidget stickerId="cd" />,
+      { lng: 'es' },
+    );
+    rerender(<CountdownWidget stickerId="cd-2" />);
+    expect(await screen.findByText('Concierto')).toBeInTheDocument();
+
+    answerFirst(countdown());
+    await new Promise((r) => setTimeout(r, 0));
+    expect(screen.queryByText('Fiesta')).not.toBeInTheDocument();
+  });
+
+  it('takes the reminder away when it ends while open', async () => {
+    vi.mocked(apiClient.get).mockResolvedValue(
+      countdown({
+        settings: {
+          title: 'Fiesta',
+          endsAt: new Date(Date.now() + 1200).toISOString(),
+        },
+      }) as never,
+    );
+    renderWithProviders(<CountdownWidget stickerId="cd" />, { lng: 'es' });
+    expect(
+      await screen.findByRole('button', { name: 'Recordármelo' }),
+    ).toBeInTheDocument();
+
+    expect(
+      await screen.findByText('Ha terminado', {}, { timeout: 3000 }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
 });

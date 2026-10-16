@@ -641,6 +641,29 @@ describe('StoryStickersService', () => {
         expect(emitter.emit.mock.calls[0][1]).not.toHaveProperty('targetType');
       });
 
+      it('lets a countdown go for the next run when who asked cannot be read, and tells the others', async () => {
+        prisma.storySticker.findMany.mockResolvedValue([
+          ended(new Date(now.getTime() + 60_000)),
+          { ...ended(new Date(now.getTime() + 60_000)), id: 'st-2' },
+        ]);
+        prisma.storyStickerResponse.findMany
+          .mockRejectedValueOnce(new Error('db down'))
+          .mockResolvedValueOnce([{ profileId: 'ana' }]);
+        prisma.storySticker.updateMany
+          .mockResolvedValueOnce({ count: 1 })
+          .mockRejectedValueOnce(new Error('db down'))
+          .mockResolvedValueOnce({ count: 1 });
+
+        await expect(service.announceEndedCountdowns(now)).resolves.toBe(2);
+
+        expect(prisma.storySticker.updateMany).toHaveBeenNthCalledWith(2, {
+          where: { id: 'st-1', announcedAt: now },
+          data: { announcedAt: null },
+        });
+        const told = emitter.emit.mock.calls.map(([, p]) => p.recipientId);
+        expect(told).toEqual(['ana', AUTHOR]);
+      });
+
       it('tells nobody when another server has already taken it', async () => {
         prisma.storySticker.findMany.mockResolvedValue([
           ended(new Date(now.getTime() + 60_000)),
