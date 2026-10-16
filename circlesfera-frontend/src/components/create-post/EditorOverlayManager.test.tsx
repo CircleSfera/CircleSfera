@@ -69,6 +69,7 @@ function show(more: Props = {}) {
     setMediaFiles: vi.fn(),
     setIsComposed: vi.fn(),
     setStep: vi.fn(),
+    discardStory: vi.fn(),
     setStoryOverlay: vi.fn(),
     originalStoryMedia: null,
     setOriginalStoryMedia: vi.fn(),
@@ -339,27 +340,23 @@ describe('EditorOverlayManager', () => {
       });
     });
 
-    it('keeps a story as composed when the editor is closed with media in it', async () => {
-      const { props } = show({
-        showStoryComposer: true,
-        mediaFiles: [media('image')],
-      });
-      await screen.findByTestId('story-composer');
+    it.each([
+      ['a photo', [media('image')]],
+      ['nothing', []],
+    ])(
+      'closing it with %s in it lets the story go, back to the camera',
+      async (_what, mediaFiles) => {
+        const { props } = show({ showStoryComposer: true, mediaFiles });
+        await screen.findByTestId('story-composer');
 
-      seen.story.onClose();
+        seen.story.onClose();
 
-      expect(props.setShowStoryComposer).toHaveBeenCalledWith(false);
-      expect(props.setIsComposed).toHaveBeenCalledWith(true);
-    });
-
-    it('does not mark anything as composed when it is closed empty', async () => {
-      const { props } = show({ showStoryComposer: true });
-      await screen.findByTestId('story-composer');
-
-      seen.story.onClose();
-
-      expect(props.setIsComposed).not.toHaveBeenCalled();
-    });
+        expect(props.setShowStoryComposer).toHaveBeenCalledWith(false);
+        expect(props.discardStory).toHaveBeenCalledTimes(1);
+        // Never the old edit step with the picture.
+        expect(props.setIsComposed).not.toHaveBeenCalled();
+      },
+    );
 
     it('keeps a new background as the original, a video as a video', async () => {
       const { props } = show({ showStoryComposer: true });

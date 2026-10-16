@@ -1788,6 +1788,8 @@
       "countdown_range": "Elige un momento entre un minuto y un año desde ahora.",
       "countdown_no_such_time": "Esa hora no existe aquí porque el reloj se adelanta. Elige otra.",
       "add_countdown": "Añadir cuenta atrás",
+      "discard_title": "¿Descartar esta historia?",
+      "discard_message": "Si sales ahora, perderás lo que le has añadido.",
       "tool_link": "Enlace",
       "link_create_hint": "Quien lo vea sabrá que sale de CircleSfera antes de abrirlo.",
       "link_url": "Dirección del enlace",
