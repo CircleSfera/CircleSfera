@@ -13,6 +13,7 @@ import StoryCountdownPanel from './StoryCountdownPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
 import StoryHashtagPanel from './StoryHashtagPanel';
+import StoryLinkPanel from './StoryLinkPanel';
 import StoryLocationPanel from './StoryLocationPanel';
 import StoryMentionPanel from './StoryMentionPanel';
 import StoryPollPanel from './StoryPollPanel';
@@ -195,6 +196,10 @@ export default function StoryDockContent({
 
       {!selectedElementId && activeTab === 'countdown' && (
         <StoryCountdownPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'link' && (
+        <StoryLinkPanel onAdd={onAddElement} />
       )}
 
       {!selectedElementId && activeTab === 'hashtag' && (

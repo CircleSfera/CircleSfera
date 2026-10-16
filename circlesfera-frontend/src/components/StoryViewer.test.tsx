@@ -307,6 +307,31 @@ describe('StoryViewer', () => {
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
     });
 
+    it('says where a link leads before opening it, and leaves out a link the server sent empty', () => {
+      show([
+        story('s1', {
+          stickers: [
+            sticker('st-l', 'LINK', {
+              url: 'https://shop.example/x',
+              domain: 'shop.example',
+            }),
+            sticker('st-x', 'LINK', { domain: 'gone.example' }),
+          ],
+        } as Partial<Story>),
+      ]);
+
+      expect(
+        screen.queryByLabelText('Open the link to gone.example'),
+      ).not.toBeInTheDocument();
+      fireEvent.click(screen.getByLabelText('Open the link to shop.example'));
+
+      expect(
+        screen.getByRole('dialog', { name: 'You are leaving CircleSfera' }),
+      ).toHaveTextContent('shop.example');
+      fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+
     it('shows a countdown where it was placed, for a viewer to be reminded', () => {
       show([
         story('s1', {

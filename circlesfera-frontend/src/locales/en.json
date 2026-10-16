@@ -1213,7 +1213,17 @@
       "starting": "Opening the camera…"
     },
     "add_to_your_story": "Add to your story",
-    "start_picture_error": "The picture of the story could not be opened."
+    "start_picture_error": "The picture of the story could not be opened.",
+    "link": {
+      "open_label": "Open the link to {{domain}}",
+      "leaving_title": "You are leaving CircleSfera",
+      "leaving_body": "This link opens a site that is not CircleSfera:",
+      "open": "Open link",
+      "report": "Report link",
+      "reported": "Reported. Thank you",
+      "report_error": "The report could not be sent.",
+      "cancel": "Cancel"
+    }
   },
   "comments": {
     "send_error": "Your comment could not be posted. Try again.",
@@ -1773,7 +1783,26 @@
       "countdown_ends": "When it ends",
       "countdown_range": "Choose a moment between a minute and 30 days from now.",
       "countdown_no_such_time": "That time does not exist here, because the clock moves forward. Choose another.",
-      "add_countdown": "Add countdown"
+      "add_countdown": "Add countdown",
+      "tool_link": "Link",
+      "link_create_hint": "Viewers are told they are leaving CircleSfera before it opens.",
+      "link_url": "Link address",
+      "link_url_ph": "https://…",
+      "link_label": "Text shown instead of the address",
+      "link_label_ph": "Short text (optional)",
+      "link_invalid": "Write a web address, such as example.com",
+      "link_http": "Only secure addresses (https) can be added",
+      "add_link": "Add link",
+      "link_one_per_story": "A story can carry one link",
+      "link_errors": {
+        "LINK_INVALID": "That link cannot be added.",
+        "LINK_HTTPS_ONLY": "Only secure addresses (https) can be added.",
+        "LINK_IP_NOT_ALLOWED": "Use a web address, not a number address.",
+        "LINK_HOST_NOT_ALLOWED": "That address cannot be reached from the internet.",
+        "LINK_DOMAIN_BLOCKED": "Links to that site are not allowed on CircleSfera.",
+        "LINKS_PER_DAY_REACHED": "You have added as many links as you can today. Try again tomorrow.",
+        "ONE_LINK_STICKER_PER_STORY": "A story can carry one link."
+      }
     },
     "tags": {
       "title": "Tag People",
@@ -2382,7 +2411,8 @@
       "roles": "Roles",
       "operators": "Operators",
       "settings": "Settings",
-      "spam_review": "Spam review"
+      "spam_review": "Spam review",
+      "link_domains": "Blocked link domains"
     },
     "table": {
       "empty_title": "No data available",
@@ -4141,6 +4171,28 @@
       "lift_error": "The suspension could not be lifted",
       "lift_title": "Lift the suspension?",
       "lift_message": "@{{username}} will be able to sign in again now."
+    },
+    "link_domains": {
+      "title": "Blocked link domains",
+      "subtitle": "Links on stories cannot point to these domains or any of their subdomains. Links already on stories under them stop showing.",
+      "label_domain": "Domain",
+      "placeholder_domain": "example.com",
+      "label_reason": "Why (optional)",
+      "placeholder_reason": "Phishing, malware, spam…",
+      "block": "Block domain",
+      "search_placeholder": "Search domains",
+      "empty_title": "No blocked domains",
+      "empty_description": "Domains you block appear here.",
+      "added_by": "Added by {{name}} · {{date}}",
+      "added_on": "Added {{date}}",
+      "unblock": "Unblock",
+      "unblock_title": "Unblock {{domain}}?",
+      "unblock_message": "Links to this domain can be added again, and the ones already on stories show again.",
+      "toast_blocked": "{{domain}} blocked",
+      "toast_unblocked": "{{domain}} unblocked",
+      "toast_exists": "That domain is already blocked",
+      "toast_invalid": "Write a domain name, such as example.com",
+      "toast_error": "The change could not be saved"
     }
   },
   "collections": {

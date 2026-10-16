@@ -19,6 +19,7 @@ import type {
   CreateStoryDto,
   StoryElement,
 } from '../types';
+import { apiErrorBody } from '../utils/apiErrorMessage';
 import { isFrameClipInRange } from '../utils/frameClip';
 import { logger } from '../utils/logger';
 import type {
@@ -62,6 +63,17 @@ interface MutationDeps {
   ) => Promise<UploadResult[]>;
   setShowFrameTrim: (val: boolean) => void;
 }
+
+/** Why the server refused a link of a story, each with its own message. */
+const LINK_REFUSALS: ReadonlySet<string> = new Set([
+  'LINK_INVALID',
+  'LINK_HTTPS_ONLY',
+  'LINK_IP_NOT_ALLOWED',
+  'LINK_HOST_NOT_ALLOWED',
+  'LINK_DOMAIN_BLOCKED',
+  'LINKS_PER_DAY_REACHED',
+  'ONE_LINK_STICKER_PER_STORY',
+]);
 
 // A media edit (filter, crop, trim, overlay) that could not be applied.
 class EditExportError extends Error {}
@@ -296,11 +308,15 @@ export function useCreatePostMutation(deps: MutationDeps) {
       // Upload and server errors carry technical, untranslated text: show
       // the app's own message instead.
       logger.error('Error creating content:', error);
+      // A link the server would not take says why.
+      const refused = apiErrorBody(error)?.message;
       toast.error(
         t(
           error instanceof EditExportError
             ? 'createPost.upload.edit_export_error'
-            : 'createPost.upload.publish_failed',
+            : typeof refused === 'string' && LINK_REFUSALS.has(refused)
+              ? `createPost.storyComposer.link_errors.${refused}`
+              : 'createPost.upload.publish_failed',
         ),
       );
     } finally {

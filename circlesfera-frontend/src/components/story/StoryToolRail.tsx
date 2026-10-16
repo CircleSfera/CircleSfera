@@ -33,6 +33,7 @@ const STICKER_SETUPS: ReadonlySet<StoryComposerTab> = new Set([
   'mention',
   'location',
   'countdown',
+  'link',
 ]);
 
 /**

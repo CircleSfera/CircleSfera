@@ -457,6 +457,36 @@ const cases: Case[] = [
     ],
   ],
   [
+    'getLinkDomains',
+    () => adminApi.getLinkDomains(),
+    'get',
+    ['admin/link-domains', { params: undefined }],
+  ],
+  [
+    'getLinkDomains searched',
+    () => adminApi.getLinkDomains('evil'),
+    'get',
+    ['admin/link-domains', { params: { search: 'evil' } }],
+  ],
+  [
+    'blockLinkDomain',
+    () => adminApi.blockLinkDomain('evil.example', 'phishing'),
+    'post',
+    ['admin/link-domains', { domain: 'evil.example', reason: 'phishing' }],
+  ],
+  [
+    'blockLinkDomain without a reason',
+    () => adminApi.blockLinkDomain('evil.example', ''),
+    'post',
+    ['admin/link-domains', { domain: 'evil.example' }],
+  ],
+  [
+    'unblockLinkDomain',
+    () => adminApi.unblockLinkDomain('d1'),
+    'delete',
+    ['admin/link-domains/d1'],
+  ],
+  [
     'setHashtagHidden',
     () => adminApi.setHashtagHidden('h1', true),
     'patch',

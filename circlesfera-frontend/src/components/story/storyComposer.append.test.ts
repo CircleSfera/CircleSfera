@@ -4,6 +4,7 @@ import {
   buildAnswerElement,
   buildCountdownElement,
   buildHashtagElement,
+  buildLinkElement,
   buildLocationElement,
   buildMentionElement,
   buildPollElement,
@@ -12,6 +13,7 @@ import {
   buildSliderElement,
   buildStickerElement,
   cleanHashtag,
+  cleanLink,
 } from './storyComposer.append';
 import {
   POLL_OPTION_MAX,
@@ -27,6 +29,7 @@ import {
   parseAnswerPayload,
   parseCountdownPayload,
   parseHashtagPayload,
+  parseLinkPayload,
   parseLocationPayload,
   parseMentionPayload,
   parsePollPayload,
@@ -305,5 +308,50 @@ describe('a countdown', () => {
         endsAt: new Date(Date.now() + 3_600_000),
       }),
     ).toBeNull();
+  });
+});
+
+describe('a link', () => {
+  it('takes an address as typed, adding https, and refuses http and names without a dot', () => {
+    expect(cleanLink('example.com/shop')).toEqual({
+      url: 'https://example.com/shop',
+      domain: 'example.com',
+    });
+    expect(cleanLink(' https://www.Example.com ')).toEqual({
+      url: 'https://www.example.com/',
+      domain: 'example.com',
+    });
+    expect(cleanLink('http://example.com')).toBe('http');
+    for (const bad of ['', 'intranet', 'ftp://example.com', 'https://']) {
+      expect(cleanLink(bad)).toBeNull();
+    }
+  });
+
+  it('is a pill live on the story, sent with its address and its short text only', () => {
+    const el = buildLinkElement({
+      url: 'example.com',
+      label: ' Mi tienda ',
+    });
+    if (!el) throw new Error('no link');
+
+    expect(parseLinkPayload(el)).toEqual({
+      url: 'https://example.com/',
+      domain: 'example.com',
+      label: 'Mi tienda',
+    });
+    expect(isLiveElement(el)).toBe(true);
+    expect(isAnswerableElement(el)).toBe(false);
+    expect(stickersFromElements([el], { width: 400, height: 800 })).toEqual([
+      expect.objectContaining({
+        kind: 'LINK',
+        settings: { url: 'https://example.com/', label: 'Mi tienda' },
+      }),
+    ]);
+    expect(buildLinkElement({ url: 'http://example.com' })).toBeNull();
+    const plain = buildLinkElement({ url: 'example.com', label: ' ' });
+    expect(plain && parseLinkPayload(plain)).toEqual({
+      url: 'https://example.com/',
+      domain: 'example.com',
+    });
   });
 });

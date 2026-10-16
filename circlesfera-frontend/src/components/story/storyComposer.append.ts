@@ -145,7 +145,7 @@ export function buildHashtagElement(raw: string): StoryElement | null {
 
 /** A pill with free sizes, as a hashtag, a mention or a place. */
 const pillElement = (
-  type: 'mention' | 'location',
+  type: 'mention' | 'location' | 'link',
   content: object,
 ): StoryElement => ({
   id: crypto.randomUUID(),
@@ -183,6 +183,46 @@ export function buildAnswerElement(card: {
     // Above the middle, where the answer is read before the rest.
     y: -80,
   };
+}
+
+/** The longest text shown instead of a link's domain. */
+export const LINK_LABEL_MAX = 30;
+
+/**
+ * A link as typed, ready for the server's own checks: https added when no
+ * scheme is written; http, other schemes and names without a dot refused.
+ */
+export function cleanLink(
+  raw: string,
+): { url: string; domain: string } | 'http' | null {
+  const text = raw.trim();
+  if (!text) return null;
+  if (/^http:\/\//i.test(text)) return 'http';
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(text)
+    ? text
+    : `https://${text}`;
+  try {
+    const url = new URL(withScheme);
+    if (url.protocol !== 'https:' || !url.hostname.includes('.')) return null;
+    return { url: url.href, domain: url.hostname.replace(/^www\./, '') };
+  } catch {
+    return null;
+  }
+}
+
+/** A link, opened by viewers after saying they are leaving CircleSfera. */
+export function buildLinkElement(link: {
+  url: string;
+  label?: string;
+}): StoryElement | null {
+  const cleaned = cleanLink(link.url);
+  if (!cleaned || cleaned === 'http') return null;
+  const label = link.label?.trim().slice(0, LINK_LABEL_MAX);
+  return pillElement('link', {
+    url: cleaned.url,
+    domain: cleaned.domain,
+    ...(label ? { label } : {}),
+  });
 }
 
 /** The place of the story, by its name; the server gives it the place. */

@@ -210,6 +210,15 @@ export interface RecurringIncomeDay {
   activeSubscriptions: number;
 }
 
+/** A domain no link on a story may point to, nor its subdomains. */
+export interface BlockedLinkDomain {
+  id: string;
+  domain: string;
+  reason: string | null;
+  createdAt: string;
+  createdBy: { id: string; displayName: string } | null;
+}
+
 export interface AdminHashtag {
   id: string;
   tag: string;
@@ -1157,6 +1166,22 @@ export const adminApi = {
     }),
 
   // Hides a hashtag from people, or shows it again.
+  getLinkDomains: (search?: string) =>
+    apiClient.get<BlockedLinkDomain[]>('admin/link-domains', {
+      params: search ? { search } : undefined,
+    }),
+
+  blockLinkDomain: (domain: string, reason?: string) =>
+    apiClient.post<BlockedLinkDomain>('admin/link-domains', {
+      domain,
+      ...(reason ? { reason } : {}),
+    }),
+
+  unblockLinkDomain: (id: string) =>
+    apiClient.delete<{ id: string; domain: string }>(
+      `admin/link-domains/${id}`,
+    ),
+
   setHashtagHidden: (id: string, hidden: boolean) =>
     apiClient.patch<{ id: string; isHidden: boolean }>(`admin/hashtags/${id}`, {
       hidden,

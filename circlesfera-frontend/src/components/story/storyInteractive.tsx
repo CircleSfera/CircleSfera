@@ -3,6 +3,7 @@ import {
   BadgeCheck,
   BarChart2,
   HelpCircle,
+  Link as LinkIcon,
   MapPin,
   SlidersHorizontal,
   Timer,
@@ -41,6 +42,7 @@ export type MentionPayload = { profileId: string; username: string };
 export type LocationPayload = { name: string };
 export type AnswerPayload = { prompt: string; answer: string };
 export type CountdownPayload = { title: string; endsAt: string };
+export type LinkPayload = { url: string; domain: string; label?: string };
 
 const parseJson = (content: string): Record<string, unknown> | null => {
   try {
@@ -106,9 +108,22 @@ export function parseCountdownPayload(
     : null;
 }
 
-/** A story has one place, so its location sticker is never copied. */
+export function parseLinkPayload(el: StoryElement): LinkPayload | null {
+  if (el.type !== 'link') return null;
+  const d = parseJson(el.content);
+  if (!d || typeof d.url !== 'string' || typeof d.domain !== 'string') {
+    return null;
+  }
+  return {
+    url: d.url,
+    domain: d.domain,
+    ...(typeof d.label === 'string' && d.label ? { label: d.label } : {}),
+  };
+}
+
+/** A story has one place and one link: neither is ever copied. */
 export function canDuplicateElement(el: StoryElement): boolean {
-  return el.type !== 'location';
+  return el.type !== 'location' && el.type !== 'link';
 }
 
 /** An answer to a question, shared as a card painted into the story. */
@@ -125,6 +140,7 @@ const PILL_KINDS: ReadonlySet<string> = new Set([
   'hashtag',
   'mention',
   'location',
+  'link',
 ]);
 
 /**
@@ -357,6 +373,16 @@ export function stickersFromElements(
     if (quiz) stickers.push({ kind: 'QUIZ', settings: quiz, ...place });
     const slider = parseSliderPayload(el);
     if (slider) stickers.push({ kind: 'SLIDER', settings: slider, ...place });
+    const link = parseLinkPayload(el);
+    if (link)
+      stickers.push({
+        kind: 'LINK',
+        settings: {
+          url: link.url,
+          ...(link.label ? { label: link.label } : {}),
+        },
+        ...place,
+      });
     const countdown = parseCountdownPayload(el);
     if (countdown)
       stickers.push({ kind: 'COUNTDOWN', settings: countdown, ...place });
@@ -504,6 +530,23 @@ export function MentionStickerPreview({ username }: { username: string }) {
   return (
     <div className={`${PILL} pointer-events-none select-none`}>
       <span className={PILL_TEXT}>@{username.toUpperCase()}</span>
+    </div>
+  );
+}
+
+/** A link: its short text, or its domain, after a link sign. */
+export function LinkStickerPreview({ link }: { link: LinkPayload }) {
+  return (
+    <div className={`${PILL} max-w-[260px] pointer-events-none select-none`}>
+      <LinkIcon
+        size={18}
+        strokeWidth={2.6}
+        className="shrink-0 text-brand-primary"
+        aria-hidden
+      />
+      <span className={`${PILL_TEXT} truncate`}>
+        {(link.label ?? link.domain).toUpperCase()}
+      </span>
     </div>
   );
 }

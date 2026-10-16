@@ -179,6 +179,13 @@ describe('staff panel navigation', () => {
     );
   });
 
+  it('offers the blocked link domains to who moderates content', () => {
+    expect(ADMIN_TAB_PERMISSIONS['link-domains']).toBe('content');
+    expect(navItemsFor('admin').map((item) => item.id)).toContain(
+      'link-domains',
+    );
+  });
+
   it('lists only the sections the person may open, and no empty group', () => {
     show('posts', ['content']);
 
