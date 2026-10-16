@@ -11,20 +11,28 @@ were removed (Sep 2026); do not recreate them or cite them.
 
 ## Documentation lives in Notion
 
-All CircleSfera documentation lives in Notion under **CircleSfera → Documentation**:
-https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30
+All CircleSfera documentation lives in Notion under **CircleSfera** (the home page, with a "Start here" table):
+https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c
+
+It has 7 domains, each a direct child of that page: Product, Engineering (architecture, data,
+technology, delivery, operations), Quality, Design & Brand, Business & Growth, Execution, Governance.
+A domain with no published Notion section is UNKNOWN.
 
 - Governance (source of truth, standards, conflict resolution):
   https://app.notion.com/p/3e9dfa08f2f581e39f54c30945c52d5e
+- Every decision (PD, ADR, AD, TD, QD, DD, BD, ED): Notion → Governance → Decision Register; each domain's
+  "… Decisions" page shows its own view. Whether a change needs an ADR or a TD: Notion → Engineering →
+  Engineering Foundation, section 3 (AD-004)
+- Open defects and findings (QF): Notion → Quality → Defects & Findings (Findings database)
 - Canonical terminology: Notion → Governance → Canonical Terminology
-- Product decisions & boundaries: Notion → Product → Product Decisions / Product Scope & Boundaries
+- Product boundaries: Notion → Product → Product Foundation → Product Scope & Boundaries
 - Cross-domain conflicts: Notion → Governance → Cross-Domain Conflict Resolution
 - Implementation & capabilities: Notion → Execution → CircleSfera Implementation Backlog / Capability Implementation Register
+- Which credentials exist and where each is kept (never the values): Notion → Engineering → Credentials Inventory
 
-The documentation was comprehensively rebuilt (Sep 2026) across 8 authoritative domains (Product, Business,
-Technology, Architecture & Data, Quality, Design, Governance, Execution). A domain with no published
-Notion section is UNKNOWN. The legacy `circlesfera-documentation/` folder was migrated to Notion and
-removed; do not recreate it. The full text of Architecture Decision Records stays in `docs/adr/`.
+The legacy `circlesfera-documentation/` folder was migrated to Notion and removed; do not recreate it.
+The full text of Architecture Decision Records stays in `docs/adr/`. What was replaced in Notion is kept
+in Notion → Governance → Historical & Superseded Information and is never authoritative.
 
 ## Sources of truth in the repository
 
@@ -55,7 +63,7 @@ table or a column that holds data is a deletion and a destructive data operation
 The confirmation list is a gate (propose → wait → execute), not a ban.
 
 **Out of scope without an approved architecture decision** (canonical list: Notion → Product →
-Product Scope & Boundaries, section 8a):
+Product Foundation → Product Scope & Boundaries, section 8a):
 
 - Splitting the modular monolith into microservices
 - GraphQL (the API is REST)
@@ -63,7 +71,7 @@ Product Scope & Boundaries, section 8a):
 - Storing JWTs in `localStorage`
 
 Native iOS and Android apps (Capacitor `android/` and `ios/`) are **in scope**, built from the same
-frontend as the web app (Notion → Product → Product Decisions).
+frontend as the web app (Notion → Governance → Decision Register, PD-009).
 
 ## Before and after changing code
 

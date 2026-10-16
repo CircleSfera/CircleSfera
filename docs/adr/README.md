@@ -32,4 +32,4 @@ ADRs live here and sit at priority tier 4 in `AGENTS.md` (after schema, code, an
 | [0026](./0026-backoffice-second-staff-site.md) | Backoffice — a second staff site on the same app, chosen by host, with the staff identity and sessions per site | Accepted |
 | [0027](./0027-help-desk-module-with-host-contracts.md) | Help Desk — a module of the monolith behind host contracts, no imports from the social modules, every record per organization | Accepted |
 
-When adding a durable architectural choice, create `NNNN-slug.md` and link it from this table and from Notion → Architecture Decisions.
+When adding a durable architectural choice, create `NNNN-slug.md`, link it from this table and add it as a row of Notion → Governance → Decision Register (domain Architecture). A change that is structural and also chooses a tool is one ADR only; a change that only swaps a tool is a technology decision (TD) in Notion, not an ADR (AD-004).

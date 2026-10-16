@@ -18,7 +18,7 @@ CircleSfera/
 
 ## Source of truth
 
-All documentation lives in Notion under [CircleSfera → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30). In the repository:
+All documentation lives in Notion under [CircleSfera](https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c), in seven domains (Product, Engineering, Quality, Design & Brand, Business & Growth, Execution, Governance). In the repository:
 
 1. `circlesfera-backend/prisma/schema.prisma` and its migrations for data and relations
 2. Implemented NestJS / React code on `main` for current behaviour
@@ -26,7 +26,7 @@ All documentation lives in Notion under [CircleSfera → Documentation](https://
 
 Code shows what is implemented, not what is intended; product intent lives in Notion → Product. See [AGENTS.md](./AGENTS.md).
 
-Identity model (**User** = account/billing, **Profile** = social `@username`, **AdminIdentity** = staff panel): Notion → Architecture & Data → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1).
+Identity model (**User** = account/billing, **Profile** = social `@username`, **AdminIdentity** = staff panel): Notion → Engineering → [Data Architecture](https://app.notion.com/p/3e9dfa08f2f58131bd62f1c59d8741e1).
 
 ## Stack (summary)
 
@@ -78,7 +78,7 @@ Per-package scripts: see [backend README](./circlesfera-backend/README.md) and [
 | Doc | Use when |
 | --- | --- |
 | [AGENTS.md](./AGENTS.md) | AI-assisted or human engineering rules |
-| [Notion → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30) | Product, architecture, operations, quality and decisions |
+| [Notion → CircleSfera](https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c) | Product, architecture, operations, quality and decisions (start with its "Start here" table) |
 | `/api/docs` on a running backend | OpenAPI reference generated from the controllers |
 | [docs/adr/](./docs/adr/README.md) | Architecture Decision Records |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) / [SECURITY.md](./SECURITY.md) | Contributions and vulnerability reporting |
