@@ -183,3 +183,22 @@ test('closing the editor with a drawing on it asks first, and Cancel keeps it', 
   await expect(shutter(page)).toBeVisible();
   await expect(page.getByText('Añadir a Historia')).toHaveCount(0);
 });
+
+test('a text story whose background was changed asks before it is discarded', async ({
+  page,
+}) => {
+  await prepareComposerSession(page);
+  await page.goto('/create?mode=story');
+  await expect(shutter(page)).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Crear Historia de Texto' }).click();
+  const close = page.getByRole('button', { name: 'Cerrar', exact: true });
+  await expect(close).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: 'Fondo', exact: true }).click();
+  await page.getByRole('button', { name: 'Fondo 3' }).click();
+  await page.getByRole('button', { name: 'Fondo', exact: true }).click();
+  await close.click();
+  await expect(page.getByRole('dialog')).toContainText(
+    '¿Descartar esta historia?',
+  );
+});

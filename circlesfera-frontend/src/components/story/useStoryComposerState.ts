@@ -324,9 +324,27 @@ export function useStoryComposerState(props: {
   const stageFitClass = getStoryStageFitClass(stageFill);
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 
-  // With something added to the story, closing asks first: it is lost.
+  // With something added or changed, closing asks first: it is lost.
+  const openedWith = useRef({
+    style: bg.bgStyle,
+    background: bg.background,
+    blur: bg.bgBlur,
+    darken: bg.bgDarken,
+    music: props.share?.musicTitle ?? null,
+    place: props.share?.placeName ?? null,
+  });
   const requestClose = () => {
-    if (elements.length > 0 || storyCanvasRef.current?.hasStrokes()) {
+    const opened = openedWith.current;
+    if (
+      elements.length > 0 ||
+      storyCanvasRef.current?.hasStrokes() ||
+      bg.bgStyle !== opened.style ||
+      bg.background !== opened.background ||
+      bg.bgBlur !== opened.blur ||
+      bg.bgDarken !== opened.darken ||
+      (props.share?.musicTitle ?? null) !== opened.music ||
+      (props.share?.placeName ?? null) !== opened.place
+    ) {
       setConfirmingClose(true);
     } else {
       onClose();
