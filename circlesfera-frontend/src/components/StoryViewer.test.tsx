@@ -75,6 +75,19 @@ vi.mock('./interactive/QnaWidget', () => ({
     </div>
   ),
 }));
+vi.mock('./interactive/CountdownWidget', () => ({
+  CountdownWidget: ({
+    stickerId,
+    isAuthor,
+  }: {
+    stickerId: string;
+    isAuthor?: boolean;
+  }) => (
+    <div data-testid="countdown">
+      {stickerId}:{isAuthor ? 'author' : 'viewer'}
+    </div>
+  ),
+}));
 vi.mock('./monetization/PaywallOverlay', () => ({
   default: ({ price, onUnlock }: { price: number; onUnlock: () => void }) => (
     <button type="button" onClick={onUnlock}>
@@ -292,6 +305,18 @@ describe('StoryViewer', () => {
         '/explore/map?place=pl-1',
       );
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
+    });
+
+    it('shows a countdown where it was placed, for a viewer to be reminded', () => {
+      show([
+        story('s1', {
+          stickers: [
+            sticker('st-c', 'COUNTDOWN', { title: 'Fiesta', endsAt: '' }),
+          ],
+        } as Partial<Story>),
+      ]);
+
+      expect(screen.getByTestId('countdown')).toHaveTextContent('st-c:viewer');
     });
 
     const mentionsMe = (over: Partial<Story> = {}) =>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import {
   AnswerCardPreview,
+  CountdownStickerPreview,
   HashtagStickerPreview,
   INTERACTIVE_WIDTH_PCT,
   isLiveElement,
@@ -12,6 +13,7 @@ import {
   MentionStickerPreview,
   PollStickerPreview,
   parseAnswerPayload,
+  parseCountdownPayload,
   parseHashtagPayload,
   parseLocationPayload,
   parseMentionPayload,
@@ -64,10 +66,13 @@ export default function DraggableStoryElement({
   const mention = parseMentionPayload(el);
   const location = parseLocationPayload(el);
   const answer = parseAnswerPayload(el);
+  const countdown = parseCountdownPayload(el);
   // Live on the story, not painted into its picture.
   const isLive = isLiveElement(el);
   // At the width of a sticker; a hashtag, a mention or a place takes its own.
-  const isInteractive = Boolean(poll || qna || quiz || slider || answer);
+  const isInteractive = Boolean(
+    poll || qna || quiz || slider || answer || countdown,
+  );
   const canvasWidth = useStoryCanvasWidth(containerRef);
   const interactivePx =
     canvasWidth > 0
@@ -113,6 +118,11 @@ export default function DraggableStoryElement({
         <SliderStickerPreview
           slider={slider}
           label={t('createPost.storyComposer.tool_slider')}
+        />
+      ) : countdown ? (
+        <CountdownStickerPreview
+          countdown={countdown}
+          label={t('createPost.storyComposer.tool_countdown')}
         />
       ) : hashtag ? (
         <HashtagStickerPreview tag={hashtag.tag} />

@@ -13,6 +13,7 @@ export type StoryComposerTab =
   | 'hashtag'
   | 'mention'
   | 'location'
+  | 'countdown'
   | 'draw';
 
 export type PanelTab = 'style' | 'transform' | 'layers';

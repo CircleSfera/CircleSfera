@@ -112,6 +112,10 @@ describe('MaintenanceService', () => {
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/story_layer.png',
       );
+      // A story whose countdown is still to be told is kept, hidden.
+      expect(
+        mockPrismaService.story.findMany.mock.calls[0][0].where.stickers,
+      ).toEqual({ none: { kind: 'COUNTDOWN', announcedAt: null } });
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/story.jpg',
       );

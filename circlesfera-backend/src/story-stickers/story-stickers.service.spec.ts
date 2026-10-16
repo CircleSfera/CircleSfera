@@ -25,13 +25,19 @@ function prismaMock() {
         profile: { privacyLevel: 'PUBLIC' },
       }),
     },
-    storySticker: { findUnique: vi.fn(), createMany: vi.fn() },
+    storySticker: {
+      findUnique: vi.fn(),
+      createMany: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     storyStickerResponse: {
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn(),
       upsert: vi.fn(),
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
+      deleteMany: vi.fn(),
     },
   };
 }
@@ -43,10 +49,15 @@ const sticker = (over: Partial<CreateStoryStickerDto>) =>
 describe('StoryStickersService', () => {
   let prisma: ReturnType<typeof prismaMock>;
   let service: StoryStickersService;
+  let emitter: { emit: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     prisma = prismaMock();
-    service = new StoryStickersService(prisma as unknown as PrismaService);
+    emitter = { emit: vi.fn() };
+    service = new StoryStickersService(
+      prisma as unknown as PrismaService,
+      emitter as never,
+    );
   });
 
   const holds = (kind: string, settings: object) =>
@@ -510,6 +521,158 @@ describe('StoryStickersService', () => {
         ),
       ).resolves.toEqual(new Map());
       expect(prisma.profile.findMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a countdown', () => {
+    const inAnHour = () => new Date(Date.now() + 3_600_000).toISOString();
+
+    it('is saved with when it ends, to be told then', async () => {
+      const endsAt = inAnHour();
+      await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [
+          sticker({
+            kind: 'COUNTDOWN',
+            settings: { title: ' Fiesta ', endsAt },
+          }),
+        ],
+        null,
+      );
+
+      expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            storyId: 'story-1',
+            kind: 'COUNTDOWN',
+            settings: { title: 'Fiesta', endsAt },
+            endsAt: new Date(endsAt),
+            ...place,
+          },
+        ],
+      });
+    });
+
+    it('takes a reminder from a viewer, and lets it go', async () => {
+      holds('COUNTDOWN', { title: 'Fiesta', endsAt: inAnHour() });
+      const key = { voteKey: 'st-1', profileId: VIEWER };
+
+      await service.respond(VIEWER, 'st-1', { remind: true });
+      expect(prisma.storyStickerResponse.upsert).toHaveBeenCalledWith({
+        where: { voteKey_profileId: key },
+        create: { stickerId: 'st-1', ...key },
+        update: {},
+      });
+
+      await service.respond(VIEWER, 'st-1', { remind: false });
+      expect(prisma.storyStickerResponse.deleteMany).toHaveBeenCalledWith({
+        where: key,
+      });
+    });
+
+    it('takes no reminder once it has ended, nor without saying which', async () => {
+      holds('COUNTDOWN', { title: 'Fiesta', endsAt: inAnHour() });
+      await expect(service.respond(VIEWER, 'st-1', {})).rejects.toThrow(
+        'REMIND_REQUIRED',
+      );
+
+      holds('COUNTDOWN', {
+        title: 'Fiesta',
+        endsAt: new Date(Date.now() - 1000).toISOString(),
+      });
+      await expect(
+        service.respond(VIEWER, 'st-1', { remind: true }),
+      ).rejects.toThrow('COUNTDOWN_ENDED');
+      expect(prisma.storyStickerResponse.upsert).not.toHaveBeenCalled();
+    });
+
+    describe('when it ends', () => {
+      const now = new Date('2026-10-20T20:00:00Z');
+      const ended = (expiresAt: Date) => ({
+        id: 'st-1',
+        settings: { title: 'Fiesta', endsAt: now.toISOString() },
+        story: { id: 'story-1', profileId: AUTHOR, expiresAt },
+      });
+
+      it('tells each person who asked, and the author, once, linking the story while it lasts', async () => {
+        prisma.storySticker.findMany.mockResolvedValue([
+          ended(new Date(now.getTime() + 60_000)),
+        ]);
+        prisma.storyStickerResponse.findMany.mockResolvedValue([
+          { profileId: 'ana' },
+          { profileId: 'luis' },
+        ]);
+
+        await expect(service.announceEndedCountdowns(now)).resolves.toBe(3);
+
+        expect(prisma.storySticker.findMany.mock.calls[0][0].where).toEqual({
+          kind: 'COUNTDOWN',
+          endsAt: { lte: now },
+          announcedAt: null,
+        });
+        expect(prisma.storySticker.updateMany).toHaveBeenCalledWith({
+          where: { id: 'st-1', announcedAt: null },
+          data: { announcedAt: now },
+        });
+        const told = emitter.emit.mock.calls.map(([, p]) => p.recipientId);
+        expect(told).toEqual(['ana', 'luis', AUTHOR]);
+        expect(emitter.emit.mock.calls[0]).toEqual([
+          'notification.create',
+          {
+            recipientId: 'ana',
+            senderId: AUTHOR,
+            type: 'SYSTEM',
+            notice: { key: 'countdown_ended', title: 'Fiesta' },
+            targetType: 'story',
+            targetId: 'story-1',
+          },
+        ]);
+      });
+
+      it('links nothing once the story is gone from view', async () => {
+        prisma.storySticker.findMany.mockResolvedValue([
+          ended(new Date(now.getTime() - 60_000)),
+        ]);
+
+        await service.announceEndedCountdowns(now);
+
+        expect(emitter.emit.mock.calls[0][1]).not.toHaveProperty('targetType');
+      });
+
+      it('lets a countdown go for the next run when who asked cannot be read, and tells the others', async () => {
+        prisma.storySticker.findMany.mockResolvedValue([
+          ended(new Date(now.getTime() + 60_000)),
+          { ...ended(new Date(now.getTime() + 60_000)), id: 'st-2' },
+        ]);
+        prisma.storyStickerResponse.findMany
+          .mockRejectedValueOnce(new Error('db down'))
+          .mockResolvedValueOnce([{ profileId: 'ana' }]);
+        prisma.storySticker.updateMany
+          .mockResolvedValueOnce({ count: 1 })
+          .mockRejectedValueOnce(new Error('db down'))
+          .mockResolvedValueOnce({ count: 1 });
+
+        await expect(service.announceEndedCountdowns(now)).resolves.toBe(2);
+
+        expect(prisma.storySticker.updateMany).toHaveBeenNthCalledWith(2, {
+          where: { id: 'st-1', announcedAt: now },
+          data: { announcedAt: null },
+        });
+        const told = emitter.emit.mock.calls.map(([, p]) => p.recipientId);
+        expect(told).toEqual(['ana', AUTHOR]);
+      });
+
+      it('tells nobody when another server has already taken it', async () => {
+        prisma.storySticker.findMany.mockResolvedValue([
+          ended(new Date(now.getTime() + 60_000)),
+        ]);
+        prisma.storySticker.updateMany.mockResolvedValue({ count: 0 });
+
+        await expect(service.announceEndedCountdowns(now)).resolves.toBe(0);
+        expect(emitter.emit).not.toHaveBeenCalled();
+      });
     });
   });
 });

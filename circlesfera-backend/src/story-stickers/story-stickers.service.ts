@@ -1,10 +1,18 @@
+import type { NotificationCreateEvent } from '@circlesfera/shared';
 import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
-import type { Prisma, StoryStickerKind } from '@prisma/client';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import {
+  NotificationType,
+  type Prisma,
+  type StoryStickerKind,
+} from '@prisma/client';
 import {
   isBlockedEitherWay,
   visibleToViewerWhere,
@@ -59,7 +67,12 @@ export const RESPONDERS_SHOWN = 200;
 
 @Injectable()
 export class StoryStickersService {
-  constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(StoryStickersService.name);
+
+  constructor(
+    @Inject(PrismaService) private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   /**
    * Creates the stickers of a new story inside its transaction, after
@@ -118,6 +131,9 @@ export class StoryStickersService {
         storyId,
         kind: sticker.kind,
         settings: settings as Prisma.InputJsonValue,
+        ...(sticker.kind === 'COUNTDOWN'
+          ? { endsAt: new Date((settings as { endsAt: string }).endsAt) }
+          : {}),
         x: sticker.x,
         y: sticker.y,
         scale: sticker.scale,
@@ -244,6 +260,25 @@ export class StoryStickersService {
     }
 
     const settings = sticker.settings as Record<string, unknown>;
+    if (sticker.kind === 'COUNTDOWN') {
+      if (typeof body.remind !== 'boolean') {
+        throw new BadRequestException('REMIND_REQUIRED');
+      }
+      if (new Date(String(settings.endsAt)).getTime() <= Date.now()) {
+        throw new BadRequestException('COUNTDOWN_ENDED');
+      }
+      const key = { voteKey: stickerId, profileId: viewerProfileId };
+      if (body.remind) {
+        await this.prisma.storyStickerResponse.upsert({
+          where: { voteKey_profileId: key },
+          create: { stickerId, ...key },
+          update: {},
+        });
+      } else {
+        await this.prisma.storyStickerResponse.deleteMany({ where: key });
+      }
+      return this.results(viewerProfileId, stickerId);
+    }
     if (sticker.kind === 'QUESTION') {
       const text = body.text?.trim();
       if (!text) throw new BadRequestException('EMPTY_ANSWER_TEXT');
@@ -401,6 +436,77 @@ export class StoryStickersService {
       ...base,
       settings: publicSettings(sticker.kind, settings, isAuthor),
     };
+  }
+
+  /**
+   * Tells the people who asked to be reminded, and the author, that a
+   * countdown has ended. Each countdown is marked as told before anyone is,
+   * so two servers never tell it twice; when who to tell cannot be read, the
+   * mark is taken off again for the next run.
+   */
+  @Cron(CronExpression.EVERY_MINUTE)
+  async announceEndedCountdowns(now = new Date()): Promise<number> {
+    const ended = await this.prisma.storySticker.findMany({
+      where: { kind: 'COUNTDOWN', endsAt: { lte: now }, announcedAt: null },
+      select: {
+        id: true,
+        settings: true,
+        story: { select: { id: true, profileId: true, expiresAt: true } },
+      },
+      orderBy: { endsAt: 'asc' },
+      take: 50,
+    });
+    let told = 0;
+    for (const sticker of ended) {
+      const claimed = await this.prisma.storySticker.updateMany({
+        where: { id: sticker.id, announcedAt: null },
+        data: { announcedAt: now },
+      });
+      if (claimed.count === 0) continue;
+      let asked: { profileId: string }[];
+      try {
+        asked = await this.prisma.storyStickerResponse.findMany({
+          where: { stickerId: sticker.id, voteKey: sticker.id },
+          select: { profileId: true },
+        });
+      } catch (err) {
+        // Let it go, so a later run tells it, and go on with the others.
+        this.logger.warn(
+          `Countdown ${sticker.id} not told: ${(err as Error).message}`,
+        );
+        await this.prisma.storySticker
+          .updateMany({
+            where: { id: sticker.id, announcedAt: now },
+            data: { announcedAt: null },
+          })
+          .catch(() => undefined);
+        continue;
+      }
+      const author = sticker.story.profileId;
+      const title = String(
+        (sticker.settings as { title?: string } | null)?.title ?? '',
+      );
+      // The story is linked while it lasts.
+      const target =
+        sticker.story.expiresAt > now
+          ? { targetType: 'story', targetId: sticker.story.id }
+          : {};
+      for (const recipientId of new Set([
+        ...asked.map((a) => a.profileId),
+        author,
+      ])) {
+        this.eventEmitter.emit('notification.create', {
+          recipientId,
+          senderId: author,
+          type: NotificationType.SYSTEM,
+          notice: { key: 'countdown_ended', title },
+          ...target,
+        } satisfies NotificationCreateEvent['payload']);
+        told++;
+      }
+    }
+    if (told > 0) this.logger.log(`Countdown notices sent: ${told}`);
+    return told;
   }
 
   private async findSticker(stickerId: string) {

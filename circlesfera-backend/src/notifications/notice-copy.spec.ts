@@ -12,6 +12,7 @@ const EVERY_NOTICE: Notice[] = [
   { key: 'mentioned_in_comment' },
   { key: 'mentioned_in_post' },
   { key: 'mentioned_in_story' },
+  { key: 'countdown_ended', title: 'Fiesta' },
   { key: 'followed' },
   { key: 'follow_requested' },
   { key: 'follow_accepted' },
@@ -202,5 +203,15 @@ describe('aggregated likes', () => {
         target: 'comment',
       }),
     ).toBe('A ana y a otras personas les ha gustado tu comentario');
+  });
+});
+
+describe('a countdown that ended', () => {
+  it('is named in each language', () => {
+    const notice: Notice = { key: 'countdown_ended', title: 'Fiesta' };
+    expect(renderNotice('en', notice)).toBe('countdown “Fiesta” has ended');
+    expect(renderNotice('es', notice)).toBe(
+      'la cuenta atrás «Fiesta» ha terminado',
+    );
   });
 });

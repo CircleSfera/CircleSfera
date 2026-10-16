@@ -103,6 +103,23 @@ export function buildSliderElement(slider: {
   });
 }
 
+/** The longest title of a countdown. */
+export const COUNTDOWN_TITLE_MAX = 40;
+
+/** A countdown: its title and when it ends, at least a minute ahead. */
+export function buildCountdownElement(countdown: {
+  title: string;
+  endsAt: Date;
+}): StoryElement | null {
+  const title = countdown.title.trim().slice(0, COUNTDOWN_TITLE_MAX);
+  const ends = countdown.endsAt.getTime();
+  if (!title || Number.isNaN(ends) || ends < Date.now() + 60_000) return null;
+  return interactiveElement('countdown', {
+    title,
+    endsAt: new Date(ends).toISOString(),
+  });
+}
+
 /** The tag of a hashtag without its #, or null if it has none. */
 export function cleanHashtag(raw: string): string | null {
   const tag = raw.trim().replace(/^#+/, '').replace(/\s+/g, '');

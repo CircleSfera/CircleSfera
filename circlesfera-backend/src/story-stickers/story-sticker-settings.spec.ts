@@ -80,6 +80,36 @@ describe('what each sticker holds', () => {
   });
 });
 
+describe('what a countdown holds', () => {
+  const ahead = (ms: number) => new Date(Date.now() + ms).toISOString();
+
+  it('keeps its title, trimmed, and when it ends', () => {
+    const endsAt = ahead(3_600_000);
+    expect(
+      parseStickerSettings('COUNTDOWN', { title: ' Fiesta ', endsAt }),
+    ).toEqual({ title: 'Fiesta', endsAt });
+  });
+
+  it('ends between a minute and 30 days ahead, with a title of up to 40 characters', () => {
+    for (const endsAt of [
+      ahead(10_000),
+      ahead(31 * 24 * 3_600_000),
+      'mañana',
+      undefined,
+    ]) {
+      expect(() =>
+        parseStickerSettings('COUNTDOWN', { title: 'T', endsAt }),
+      ).toThrow('between a minute and 30 days');
+    }
+    expect(() =>
+      parseStickerSettings('COUNTDOWN', {
+        title: 'x'.repeat(41),
+        endsAt: ahead(3_600_000),
+      }),
+    ).toThrow('title');
+  });
+});
+
 describe('what a viewer sees of a sticker', () => {
   const quiz = { question: 'Q', options: ['a', 'b'], correctIndex: 1 };
 

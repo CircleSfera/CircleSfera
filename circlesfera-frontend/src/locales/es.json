@@ -1192,7 +1192,11 @@
       "kind_slider": "Deslizador",
       "kind_question": "Preguntas",
       "share_answer": "Compartir",
-      "share_answer_label": "Compartir esta respuesta en una historia"
+      "share_answer_label": "Compartir esta respuesta en una historia",
+      "kind_countdown": "Cuenta atrás",
+      "reminders_one": "{{count}} recordatorio",
+      "reminders_other": "{{count}} recordatorios",
+      "no_reminders": "Nadie ha pedido aún que se lo recuerdes"
     },
     "capture": {
       "close": "Cerrar la cámara",
@@ -1761,7 +1765,15 @@
       "rotation": "Rotación",
       "opacity": "Opacidad",
       "interactive_size_hint": "El tamaño que ves aquí es el de la historia. Usa el slider para agrandar o reducir.",
-      "canvas_width": "Ancho"
+      "canvas_width": "Ancho",
+      "tool_countdown": "Cuenta atrás",
+      "countdown_create_hint": "Un título y cuándo termina. Quien la vea puede pedir que se lo recuerdes.",
+      "countdown_title": "Título de la cuenta atrás",
+      "countdown_title_ph": "Fiesta de lanzamiento",
+      "countdown_ends": "Cuándo termina",
+      "countdown_range": "Elige un momento entre un minuto y 30 días desde ahora.",
+      "countdown_no_such_time": "Esa hora no existe aquí porque el reloj se adelanta. Elige otra.",
+      "add_countdown": "Añadir cuenta atrás"
     },
     "tags": {
       "title": "Etiquetar Personas",
@@ -5056,6 +5068,19 @@
     },
     "location": {
       "open": "Ver {{name}} en el mapa"
+    },
+    "countdown": {
+      "title": "Cuenta atrás",
+      "loading": "Cargando la cuenta atrás…",
+      "ended": "Ha terminado",
+      "days": "días",
+      "hours": "horas",
+      "minutes": "min",
+      "seconds": "seg",
+      "remind": "Recordármelo",
+      "reminded": "Te lo recordaremos",
+      "remind_error": "No se pudo guardar el recordatorio.",
+      "load_error": "No se pudo cargar la cuenta atrás."
     }
   },
   "create_menu": {

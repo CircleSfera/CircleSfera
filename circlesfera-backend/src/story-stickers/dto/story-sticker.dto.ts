@@ -1,5 +1,6 @@
 import { StoryStickerKind } from '@prisma/client';
 import {
+  IsBoolean,
   IsEnum,
   IsInt,
   IsNumber,
@@ -65,4 +66,9 @@ export class RespondStoryStickerDto {
   @IsString()
   @MaxLength(STICKER_LIMITS.answerMax)
   text?: string;
+
+  /** A countdown: whether to be told when it ends. */
+  @IsOptional()
+  @IsBoolean()
+  remind?: boolean;
 }

@@ -798,6 +798,8 @@ export class StoriesService {
         where: {
           expiresAt: { lt: new Date() },
           highlightStories: { none: {} },
+          // Kept, hidden, until its countdown has been told.
+          stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
         },
       });
 
@@ -824,6 +826,8 @@ export class StoriesService {
         where: {
           expiresAt: { lt: new Date() },
           highlightStories: { none: {} },
+          // Kept, hidden, until its countdown has been told.
+          stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
         },
       });
       if (deleted.count > 0) {
