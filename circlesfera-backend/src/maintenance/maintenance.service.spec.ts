@@ -675,4 +675,39 @@ describe('MaintenanceService', () => {
       await expect(service.recoverStoryOverlays()).resolves.toBeUndefined();
     });
   });
+
+  describe('recoverStoryOverlays, when a join is given another chance', () => {
+    it('says which joins it gave again', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([{ id: 's-9' }]);
+      mockUploadsService.recoverStoryOverlay.mockResolvedValueOnce('retried');
+      const log = vi.spyOn(service['logger'], 'log');
+
+      await service.recoverStoryOverlays();
+
+      expect(log).toHaveBeenCalledWith('Join of story s-9 retried again');
+    });
+  });
+
+  describe('cleanupExpiredStories, when a layer cannot be deleted', () => {
+    it('warns and goes on', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([
+        {
+          id: 's-l',
+          url: null,
+          thumbnailUrl: null,
+          overlayUrl: '/uploads/l.png',
+        },
+      ]);
+      mockUploadsService.deleteFile.mockRejectedValueOnce(new Error('gone'));
+      mockPrismaService.story.delete.mockResolvedValue({ id: 's-l' });
+      const warn = vi.spyOn(service['logger'], 'warn');
+
+      await service.cleanupExpiredStories();
+
+      expect(warn).toHaveBeenCalledWith(
+        'Failed to delete story layer: /uploads/l.png',
+        expect.any(Error),
+      );
+    });
+  });
 });
