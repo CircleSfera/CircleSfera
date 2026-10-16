@@ -84,6 +84,7 @@ export function useStoryComposerState(props: {
   const [brush, setBrush] = useState<StoryBrush>('pen');
   const [brushWidth, setBrushWidth] = useState(DEFAULT_BRUSH_WIDTH);
   const storyCanvasRef = useRef<StoryCanvasRef>(null);
+  const [confirmingClose, setConfirmingClose] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const bg = useStoryBackground({
@@ -323,8 +324,41 @@ export function useStoryComposerState(props: {
   const stageFitClass = getStoryStageFitClass(stageFill);
   const canPost = Boolean(bg.background || bg.bgStyle) && chromePointerArmed;
 
+  // With something added or changed, closing asks first: it is lost.
+  const openedWith = useRef({
+    style: bg.bgStyle,
+    background: bg.background,
+    blur: bg.bgBlur,
+    darken: bg.bgDarken,
+    music: props.share?.musicTitle ?? null,
+    place: props.share?.placeName ?? null,
+  });
+  const requestClose = () => {
+    const opened = openedWith.current;
+    if (
+      elements.length > 0 ||
+      storyCanvasRef.current?.hasStrokes() ||
+      bg.bgStyle !== opened.style ||
+      bg.background !== opened.background ||
+      bg.bgBlur !== opened.blur ||
+      bg.bgDarken !== opened.darken ||
+      (props.share?.musicTitle ?? null) !== opened.music ||
+      (props.share?.placeName ?? null) !== opened.place
+    ) {
+      setConfirmingClose(true);
+    } else {
+      onClose();
+    }
+  };
+
   return {
-    onClose,
+    onClose: requestClose,
+    confirmingClose,
+    cancelClose: () => setConfirmingClose(false),
+    confirmClose: () => {
+      setConfirmingClose(false);
+      onClose();
+    },
     background: bg.background,
     backgroundUrl: bg.backgroundUrl,
     backgroundIsVideo: backgroundVideo !== null,

@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import { CREATE_FULL_SCREEN } from '../create-post/createStyles';
+import ConfirmModal from '../modals/ConfirmModal';
 import StoryComposerChrome from './StoryComposerChrome';
 import StoryComposerShellChrome from './StoryComposerShellChrome';
 import StoryComposerStage from './StoryComposerStage';
@@ -30,6 +32,7 @@ interface StoryComposerProps {
 /** Immersive Story create path. Layout shell only — state in hooks. */
 export default function StoryComposer(props: StoryComposerProps) {
   const s = useStoryComposerState(props);
+  const { t } = useTranslation();
 
   return (
     <div
@@ -180,6 +183,15 @@ export default function StoryComposer(props: StoryComposerProps) {
         accept="image/*"
         className="hidden"
         onChange={s.handleFileChange}
+      />
+      <ConfirmModal
+        isOpen={s.confirmingClose}
+        onClose={s.cancelClose}
+        onConfirm={s.confirmClose}
+        title={t('createPost.storyComposer.discard_title')}
+        message={t('createPost.storyComposer.discard_message')}
+        confirmText={t('createPost.discard.confirm')}
+        cancelText={t('createPost.discard.cancel')}
       />
     </div>
   );

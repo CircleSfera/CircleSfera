@@ -5,6 +5,8 @@ import type { StoryBrush } from '../storyComposer.types';
 
 export interface StoryCanvasRef {
   clear: () => void;
+  /** Whether anything is drawn. */
+  hasStrokes: () => boolean;
   setBrushColor: (color: string) => void;
   setBrushWidth: (width: number) => void;
   undo: () => void;
@@ -167,6 +169,7 @@ export const StoryCanvas = forwardRef<StoryCanvasRef, StoryCanvasProps>(
           historyRef.current = [];
         }
       },
+      hasStrokes: () => (fabricRef.current?.getObjects().length ?? 0) > 0,
       setBrushColor: (color: string) => {
         if (fabricRef.current?.freeDrawingBrush) {
           fabricRef.current.freeDrawingBrush.color = color;

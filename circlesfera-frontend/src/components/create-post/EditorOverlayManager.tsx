@@ -41,6 +41,7 @@ export default function EditorOverlayManager({
     setMediaFiles,
     setIsComposed,
     setStep,
+    discardStory,
     setStoryOverlay,
     originalStoryMedia,
     setOriginalStoryMedia,
@@ -148,7 +149,7 @@ export default function EditorOverlayManager({
           initialMedia={originalStoryMedia?.file}
           onClose={() => {
             setShowStoryComposer(false);
-            if (mediaFiles.length > 0) setIsComposed(true);
+            discardStory();
           }}
           onPost={handleComposerSave}
           share={{

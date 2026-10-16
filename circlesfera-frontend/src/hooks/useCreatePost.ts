@@ -94,6 +94,23 @@ export function useCreatePost() {
     }
   };
 
+  // Closing the story editor lets the photo or video go, with what was added
+  // to it (its song and place too), and goes back to the camera, as a new
+  // story starts.
+  const discardStory = () => {
+    media.setMediaFiles([]);
+    state.setSelectedAudio(null);
+    state.setAudioStartMs(0);
+    state.setLocation('');
+    state.setSelectedPlace(null);
+    state.setOriginalStoryMedia(null);
+    state.setStoryElements([]);
+    state.setStoryBgStyle('');
+    state.setStoryOverlay(null);
+    state.setIsComposed(false);
+    state.setStep('upload');
+  };
+
   const confirmDiscard = () => {
     state.setShowDiscardConfirm(false);
     navigate(-1);
@@ -105,6 +122,7 @@ export function useCreatePost() {
     ...media,
     handleSubmit: mutation.handleSubmit,
     reset,
+    discardStory,
     confirmDiscard,
     isPending:
       mutation.isPending || media.isUploading || media.isProcessingEdit,
