@@ -284,8 +284,50 @@ export class StoriesService {
     }
 
     await this.notifyMentioned(story.id, profileId, createdStory.mentioned);
+    await this.moderate(story);
 
-    // Moderate content in the background (Visual Moderation)
+    return story;
+  }
+
+  /**
+   * What a scheduled story does once it is published, as a story shared at
+   * once does when it is created: the people it mentions are told, when they
+   * can see it, and it goes to moderation.
+   */
+  async announcePublished(storyId: string): Promise<void> {
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: {
+        id: true,
+        profileId: true,
+        url: true,
+        thumbnailUrl: true,
+        overlayUrl: true,
+        stickers: { where: { kind: 'MENTION' }, select: { settings: true } },
+      },
+    });
+    if (!story) return;
+    const mentioned = [
+      ...new Set(
+        story.stickers
+          .map((s) => (s.settings as { profileId?: string } | null)?.profileId)
+          .filter(
+            (id): id is string =>
+              typeof id === 'string' && id !== story.profileId,
+          ),
+      ),
+    ];
+    await this.notifyMentioned(story.id, story.profileId, mentioned);
+    await this.moderate(story);
+  }
+
+  // Moderate content in the background (Visual Moderation)
+  private async moderate(story: {
+    id: string;
+    url: string;
+    thumbnailUrl?: string | null;
+    overlayUrl?: string | null;
+  }): Promise<void> {
     await this.aiQueue.add('moderate-content', {
       targetId: story.id,
       targetType: 'STORY',
@@ -296,8 +338,6 @@ export class StoriesService {
         ...(story.overlayUrl ? [story.overlayUrl] : []),
       ],
     });
-
-    return story;
   }
 
   /**

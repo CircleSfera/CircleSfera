@@ -3,17 +3,22 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoriesService } from '../stories/stories.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 import { MaintenanceService } from './maintenance.service.js';
 
 describe('MaintenanceService', () => {
   let service: MaintenanceService;
+  const mockStories = {
+    announcePublished: vi.fn().mockResolvedValue(undefined),
+  };
 
   const mockPrismaService = {
     story: {
       findMany: vi.fn(),
       delete: vi.fn(),
       update: vi.fn(),
+      updateMany: vi.fn(),
     },
     promotion: {
       updateMany: vi.fn(),
@@ -76,6 +81,7 @@ describe('MaintenanceService', () => {
         MaintenanceService,
         { provide: PrismaService, useValue: mockPrismaService },
         { provide: UploadsService, useValue: mockUploadsService },
+        { provide: StoriesService, useValue: mockStories },
         { provide: HelpdeskDataPort, useValue: mockHelpdeskData },
       ],
     }).compile();
@@ -374,14 +380,14 @@ describe('MaintenanceService', () => {
 
       await service.publishScheduledPosts();
       expect(mockPrismaService.post.update).not.toHaveBeenCalled();
-      expect(mockPrismaService.story.update).not.toHaveBeenCalled();
+      expect(mockPrismaService.story.updateMany).not.toHaveBeenCalled();
     });
 
     it('should publish scheduled posts and stories', async () => {
       mockPrismaService.post.findMany.mockResolvedValue([{ id: 'post-1' }]);
       mockPrismaService.story.findMany.mockResolvedValue([{ id: 'story-1' }]);
       mockPrismaService.post.update.mockResolvedValue({ id: 'post-1' });
-      mockPrismaService.story.update.mockResolvedValue({ id: 'story-1' });
+      mockPrismaService.story.updateMany.mockResolvedValue({ count: 1 });
 
       await service.publishScheduledPosts();
 
@@ -391,13 +397,32 @@ describe('MaintenanceService', () => {
           scheduledStatus: 'PUBLISHED',
         }),
       });
-      expect(mockPrismaService.story.update).toHaveBeenCalledWith({
-        where: { id: 'story-1' },
+      expect(mockPrismaService.story.updateMany).toHaveBeenCalledWith({
+        where: { id: 'story-1', scheduledStatus: 'SCHEDULED' },
         data: expect.objectContaining({
           scheduledStatus: 'PUBLISHED',
           expiresAt: expect.any(Date),
         }),
       });
+      // Its mentions are told and it is moderated, as on sharing at once.
+      expect(mockStories.announcePublished).toHaveBeenCalledWith('story-1');
+    });
+
+    it('announces a story only on the server that published it, and goes on when announcing fails', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+      mockPrismaService.story.findMany.mockResolvedValue([
+        { id: 'taken' },
+        { id: 'mine' },
+      ]);
+      mockPrismaService.story.updateMany
+        .mockResolvedValueOnce({ count: 0 })
+        .mockResolvedValueOnce({ count: 1 });
+      mockStories.announcePublished.mockRejectedValueOnce(new Error('queue'));
+
+      await expect(service.publishScheduledPosts()).resolves.toBeUndefined();
+
+      expect(mockStories.announcePublished).toHaveBeenCalledTimes(1);
+      expect(mockStories.announcePublished).toHaveBeenCalledWith('mine');
     });
 
     it('should catch errors gracefully', async () => {
