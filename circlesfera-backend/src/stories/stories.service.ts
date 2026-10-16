@@ -215,6 +215,8 @@ export class StoriesService {
     // audioId, placeId) with a nested relation create isn't a valid Prisma
     // input shape — Prisma requires either all-relations or all-raw-FKs in
     // a single create call.
+    await this.stickers.assertLinkHostsPublic(dto.stickers ?? []);
+
     const createdStory = await this.prisma.$transaction(async (tx) => {
       // The place and its names are saved with the story or not at all.
       const placeAttachment = await resolvePlaceAttachment(tx, {
@@ -394,6 +396,10 @@ export class StoriesService {
       stories.flatMap((s) => s.stickers ?? []),
       profileId,
     );
+    const blockedDomains = await this.stickers.blockedLinkDomains(
+      stories.flatMap((s) => s.stickers ?? []),
+    );
+    const now = new Date();
 
     // Remap to include isViewed boolean and clean up nested views
     const mappedStories = stories.map((s: any) => {
@@ -401,7 +407,16 @@ export class StoriesService {
       const feedStickers = this.stickers.forFeed(
         stickers ?? [],
         storyData.profileId === profileId,
-        { usernames, placeName: storyData.place?.name ?? null },
+        {
+          usernames,
+          placeName: storyData.place?.name ?? null,
+          blockedDomains,
+          // A sanction takes the author's links off at once.
+          linksOff:
+            Boolean(storyData.profile?.isAccountBanned) ||
+            (storyData.profile?.suspendedUntil != null &&
+              new Date(storyData.profile.suspendedUntil) > now),
+        },
       );
       return {
         ...storyData,

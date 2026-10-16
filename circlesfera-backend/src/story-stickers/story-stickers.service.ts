@@ -18,11 +18,13 @@ import {
   visibleToViewerWhere,
 } from '../common/policies/block.policy.js';
 import { assertCanAccessStory } from '../common/policies/story-access.policy.js';
+import { validateTargetUrl } from '../common/utils/ssrf.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import type {
   CreateStoryStickerDto,
   RespondStoryStickerDto,
 } from './dto/story-sticker.dto.js';
+import { domainSuffixes, isUnderBlocked, LINK_LIMITS } from './link-safety.js';
 import {
   ANSWERABLE,
   parseStickerSettings,
@@ -94,6 +96,23 @@ export class StoryStickersService {
     if (stickers.filter((s) => s.kind === 'LOCATION').length > 1) {
       throw new BadRequestException('ONE_LOCATION_STICKER_PER_STORY');
     }
+    const links = stickers.filter((s) => s.kind === 'LINK').length;
+    if (links > 1) throw new BadRequestException('ONE_LINK_STICKER_PER_STORY');
+    if (links > 0) {
+      // One story at a time per author counts and adds its link, so two at
+      // once never both fit under the day's limit.
+      await tx.$queryRaw`SELECT id FROM profiles WHERE id = ${authorProfileId} FOR UPDATE`;
+      const today = await tx.storySticker.count({
+        where: {
+          kind: 'LINK',
+          createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+          story: { profileId: authorProfileId },
+        },
+      });
+      if (today >= LINK_LIMITS.perDay) {
+        throw new BadRequestException('LINKS_PER_DAY_REACHED');
+      }
+    }
     const mentioned = new Set<string>();
     const rows: Prisma.StoryStickerCreateManyInput[] = [];
     for (const sticker of stickers) {
@@ -123,6 +142,12 @@ export class StoryStickersService {
         }
         if (profileId !== authorProfileId) mentioned.add(profileId);
       }
+      if (sticker.kind === 'LINK') {
+        await this.assertLinkAllowed(
+          tx,
+          settings as { url: string; domain: string },
+        );
+      }
       if (sticker.kind === 'LOCATION') {
         if (!storyPlaceId) throw new BadRequestException('PLACE_NOT_FOUND');
         settings = { placeId: storyPlaceId };
@@ -142,6 +167,66 @@ export class StoryStickersService {
     }
     await tx.storySticker.createMany({ data: rows });
     return [...mentioned];
+  }
+
+  /**
+   * Checks that each link of a new story resolves only to public addresses.
+   * It asks DNS, so it runs before the story's transaction opens, never
+   * holding one while it waits.
+   */
+  async assertLinkHostsPublic(stickers: CreateStoryStickerDto[]) {
+    for (const sticker of stickers) {
+      if (sticker.kind !== 'LINK') continue;
+      const { url } = parseStickerSettings('LINK', sticker.settings) as {
+        url: string;
+      };
+      try {
+        await validateTargetUrl(url, {
+          requireHttps: true,
+          allowedPorts: [443],
+        });
+      } catch {
+        throw new BadRequestException('LINK_HOST_NOT_ALLOWED');
+      }
+    }
+  }
+
+  /** A link may be added when its domain is not blocked by staff, nor under one that is. */
+  private async assertLinkAllowed(
+    tx: Tx,
+    link: { url: string; domain: string },
+  ): Promise<void> {
+    const blocked = await tx.blockedLinkDomain.findFirst({
+      where: { domain: { in: domainSuffixes(link.domain) } },
+      select: { id: true },
+    });
+    if (blocked) throw new BadRequestException('LINK_DOMAIN_BLOCKED');
+  }
+
+  /**
+   * The blocked domains a set of stickers' links fall under, to leave those
+   * links out of the feed.
+   */
+  async blockedLinkDomains(
+    stickers: { kind: StoryStickerKind; settings: Prisma.JsonValue }[],
+  ): Promise<Set<string>> {
+    const candidates = [
+      ...new Set(
+        stickers
+          .filter((s) => s.kind === 'LINK')
+          .flatMap((s) =>
+            domainSuffixes(
+              String((s.settings as { domain?: string })?.domain ?? ''),
+            ),
+          ),
+      ),
+    ].filter(Boolean);
+    if (candidates.length === 0) return new Set();
+    const rows = await this.prisma.blockedLinkDomain.findMany({
+      where: { domain: { in: candidates } },
+      select: { domain: true },
+    });
+    return new Set(rows.map((r) => r.domain));
   }
 
   /**
@@ -183,6 +268,10 @@ export class StoryStickersService {
     names: {
       usernames: Map<string, string>;
       placeName: string | null;
+      /** Domains blocked by staff: links to them are left out. */
+      blockedDomains?: ReadonlySet<string>;
+      /** The author is banned or suspended: their links are left out. */
+      linksOff?: boolean;
     } = { usernames: new Map(), placeName: null },
   ): FeedSticker[] {
     const feed: FeedSticker[] = [];
@@ -196,6 +285,16 @@ export class StoryStickersService {
       if (s.kind === 'LOCATION') {
         if (!names.placeName) continue;
         settings.name = names.placeName;
+      }
+      if (
+        s.kind === 'LINK' &&
+        (names.linksOff ||
+          isUnderBlocked(
+            String(settings.domain ?? ''),
+            names.blockedDomains ?? new Set(),
+          ))
+      ) {
+        continue;
       }
       feed.push({
         id: s.id,

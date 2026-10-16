@@ -1081,6 +1081,7 @@ enum StoryStickerKind {
   LOCATION
   HASHTAG
   COUNTDOWN
+  LINK
 }
 
 /// A sticker on a story: a poll, a question, a quiz, a slider, a mention, a
@@ -1671,15 +1672,16 @@ model AdminIdentity {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  linkedUser        User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-  roles             AdminIdentityRole[]
-  refreshTokens     AdminRefreshToken[]
-  passkeys          AdminPasskey[]
-  auditLogs         AdminAuditLog[]
-  assignedReports   Report[]            @relation("ReportAssignedAdmin")
-  issuedStrikes     ProfileStrike[]
-  reviewedRiskCases RiskCase[]
-  staffNotes        StaffNote[]
+  linkedUser         User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  roles              AdminIdentityRole[]
+  refreshTokens      AdminRefreshToken[]
+  passkeys           AdminPasskey[]
+  auditLogs          AdminAuditLog[]
+  assignedReports    Report[]            @relation("ReportAssignedAdmin")
+  issuedStrikes      ProfileStrike[]
+  reviewedRiskCases  RiskCase[]
+  staffNotes         StaffNote[]
+  blockedLinkDomains BlockedLinkDomain[]
 
   @@index([linkedUserId])
   @@index([status])
@@ -1778,6 +1780,21 @@ model StaffNote {
 
   @@index([userId, createdAt])
   @@map("staff_notes")
+}
+
+/// A domain no link on a story may point to, nor any of its subdomains;
+/// kept by staff with the content permission.
+model BlockedLinkDomain {
+  id               String   @id @default(uuid())
+  /// Lower case, as the server writes a link's host.
+  domain           String   @unique
+  reason           String?
+  createdByAdminId String?
+  createdAt        DateTime @default(now())
+
+  createdBy AdminIdentity? @relation(fields: [createdByAdminId], references: [id], onDelete: SetNull)
+
+  @@map("blocked_link_domains")
 }
 
 model AdminAuditLog {
@@ -2429,6 +2446,10 @@ enum AdminAction {
   ADMIN_IDENTITY_CREATED
   ADMIN_IDENTITY_DISABLED
   ADMIN_STEP_UP
+
+  // Domains a link on a story cannot point to
+  LINK_DOMAIN_BLOCKED
+  LINK_DOMAIN_UNBLOCKED
 }
 
 enum AdminIdentityStatus {

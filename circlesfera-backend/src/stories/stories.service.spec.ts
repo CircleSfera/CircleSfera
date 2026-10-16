@@ -106,8 +106,10 @@ describe('StoriesService', () => {
           provide: StoryStickersService,
           useValue: {
             createForStory: vi.fn(async (): Promise<string[]> => []),
+            assertLinkHostsPublic: vi.fn(async () => undefined),
             forFeed: vi.fn((stickers: unknown[] = []) => stickers),
             mentionNames: vi.fn(async () => new Map()),
+            blockedLinkDomains: vi.fn(async () => new Set(['evil.example'])),
           },
         },
       ],
@@ -328,6 +330,32 @@ describe('StoriesService', () => {
       );
     });
 
+    it('checks the hosts of its links before the transaction opens', async () => {
+      const stickers = module.get(StoryStickersService);
+      const link = {
+        kind: 'LINK' as const,
+        settings: { url: 'https://shop.example.com' },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      vi.mocked(stickers.assertLinkHostsPublic).mockRejectedValueOnce(
+        new Error('LINK_HOST_NOT_ALLOWED'),
+      );
+      const before = mockPrismaService.$transaction.mock.calls.length;
+
+      await expect(
+        service.create('user-1', {
+          url: 'https://cdn.example.com/story.png',
+          stickers: [link],
+        }),
+      ).rejects.toThrow('LINK_HOST_NOT_ALLOWED');
+
+      expect(stickers.assertLinkHostsPublic).toHaveBeenCalledWith([link]);
+      expect(mockPrismaService.$transaction.mock.calls.length).toBe(before);
+    });
+
     describe('a mention on the story', () => {
       const mentionOf = (profileId: string) => ({
         kind: 'MENTION' as const,
@@ -460,6 +488,35 @@ describe('StoriesService', () => {
   });
 
   describe('findAll', () => {
+    it('takes the links off a story while its author is banned or suspended, and passes the blocked domains', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      const later = new Date(Date.now() + 3_600_000);
+      mockPrismaService.story.findMany.mockResolvedValue([
+        { id: 's-ok', profileId: 'user-2', profile: { suspendedUntil: null } },
+        {
+          id: 's-ban',
+          profileId: 'user-2',
+          profile: { isAccountBanned: true },
+        },
+        {
+          id: 's-sus',
+          profileId: 'user-2',
+          profile: { suspendedUntil: later },
+        },
+      ]);
+      const stickers = module.get(StoryStickersService);
+
+      await service.findAll('user-1');
+
+      const passed = vi
+        .mocked(stickers.forFeed)
+        .mock.calls.map((call) => call[2]);
+      expect(passed.map((n) => n?.linksOff)).toEqual([false, true, true]);
+      expect(passed[0]?.blockedDomains).toEqual(new Set(['evil.example']));
+    });
+
     it('should return stories with visibility filters for authenticated user', async () => {
       const profileId = 'user-1';
       mockPrismaService.follow.findMany.mockResolvedValue([
@@ -543,10 +600,14 @@ describe('StoriesService', () => {
       expect(stickers.forFeed).toHaveBeenCalledWith([mention], false, {
         usernames,
         placeName: 'Madrid',
+        blockedDomains: expect.any(Set),
+        linksOff: false,
       });
       expect(stickers.forFeed).toHaveBeenCalledWith([], false, {
         usernames,
         placeName: null,
+        blockedDomains: expect.any(Set),
+        linksOff: false,
       });
     });
 

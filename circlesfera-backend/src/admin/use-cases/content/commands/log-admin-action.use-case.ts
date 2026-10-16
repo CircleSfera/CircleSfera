@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { AdminAction } from '@prisma/client';
+import { AdminAction, type Prisma } from '@prisma/client';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
 
 export type AdminAuditMeta = {
@@ -19,8 +19,10 @@ export class LogAdminActionUseCase {
     targetId: string,
     details?: string,
     meta?: AdminAuditMeta,
+    /** A transaction to write it in, with the change it records. */
+    db: Pick<Prisma.TransactionClient, 'adminAuditLog'> = this.prisma,
   ) {
-    await this.prisma.adminAuditLog.create({
+    await db.adminAuditLog.create({
       data: {
         adminId,
         action,
