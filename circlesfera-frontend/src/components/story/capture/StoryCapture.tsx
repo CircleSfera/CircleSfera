@@ -81,12 +81,11 @@ export default function StoryCapture({
 
   return (
     <div
-      className={`${CREATE_FULL_SCREEN} flex flex-col bg-black text-white md:bg-transparent`}
+      className={`${CREATE_FULL_SCREEN} flex flex-col text-white`}
       data-testid="story-capture"
     >
-      {/* As behind the editor: the brand's wash around the camera on a
-          computer; a phone keeps the camera on black. */}
-      <BrandAmbientBackground placement="editor" />
+      {/* As behind the story editor: the brand's wash around the camera. */}
+      <BrandAmbientBackground placement="story" />
       <div className="relative flex-1 min-h-0 md:flex md:items-center md:justify-center md:py-6">
         <div
           className={`absolute inset-0 overflow-hidden md:static md:inset-auto md:h-full md:aspect-9/16 ${

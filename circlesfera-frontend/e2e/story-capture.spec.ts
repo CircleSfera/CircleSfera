@@ -202,3 +202,22 @@ test('a text story whose background was changed asks before it is discarded', as
     '¿Descartar esta historia?',
   );
 });
+
+test('on a phone the camera and the story editor show the brand background, not black', async ({
+  page,
+}) => {
+  await prepareComposerSession(page);
+  await page.goto('/create?mode=story');
+  await expect(shutter(page)).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByTestId('story-capture').getByTestId('brand-background'),
+  ).toBeVisible();
+
+  await page
+    .getByRole('button', { name: 'Crear Historia de Texto' })
+    .first()
+    .click();
+  await expect(
+    page.getByTestId('story-composer').getByTestId('brand-background'),
+  ).toBeVisible();
+});

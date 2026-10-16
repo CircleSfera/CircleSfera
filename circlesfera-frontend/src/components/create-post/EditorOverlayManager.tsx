@@ -140,7 +140,7 @@ export default function EditorOverlayManager({
           <div
             className={`${CREATE_FULL_SCREEN} flex items-center justify-center text-white font-medium`}
           >
-            <BrandAmbientBackground placement="editor" />
+            <BrandAmbientBackground placement="story" />
             {t('createPost.edit.loading_story_editor')}
           </div>
         }
