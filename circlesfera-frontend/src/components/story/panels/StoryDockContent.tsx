@@ -9,6 +9,7 @@ import {
 import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
 import { isLiveElement } from '../storyInteractive';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
+import StoryCountdownPanel from './StoryCountdownPanel';
 import StoryDrawPanel from './StoryDrawPanel';
 import StoryElementEditPanel from './StoryElementEditPanel';
 import StoryHashtagPanel from './StoryHashtagPanel';
@@ -190,6 +191,10 @@ export default function StoryDockContent({
 
       {!selectedElementId && activeTab === 'slider' && (
         <StorySliderPanel onAdd={onAddElement} />
+      )}
+
+      {!selectedElementId && activeTab === 'countdown' && (
+        <StoryCountdownPanel onAdd={onAddElement} />
       )}
 
       {!selectedElementId && activeTab === 'hashtag' && (

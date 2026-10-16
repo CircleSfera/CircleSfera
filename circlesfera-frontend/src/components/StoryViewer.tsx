@@ -28,6 +28,7 @@ import { placementOf, placementOfSticker } from '../utils/storySticker';
 import { parseFilter } from '../utils/styleUtils';
 import BrandAmbientBackground from './common/BrandAmbientBackground';
 import HlsVideoPlayer from './common/HlsVideoPlayer';
+import { CountdownWidget } from './interactive/CountdownWidget';
 import {
   HashtagSticker,
   LocationSticker,
@@ -519,6 +520,17 @@ export default function StoryViewer({
                         onPointerDown={() => setIsPaused(true)}
                       >
                         <SliderWidget stickerId={sticker.id} />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'COUNTDOWN' ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                      >
+                        <CountdownWidget
+                          stickerId={sticker.id}
+                          isAuthor={isOwner}
+                        />
                       </PlacedSticker>
                     ) : sticker.kind === 'HASHTAG' ? (
                       <PlacedSticker

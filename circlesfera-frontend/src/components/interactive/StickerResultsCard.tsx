@@ -6,6 +6,7 @@ import {
   HelpCircle,
   Send,
   SlidersHorizontal,
+  Timer,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +25,7 @@ const ICONS = {
   QUIZ: BadgeCheck,
   SLIDER: SlidersHorizontal,
   QUESTION: HelpCircle,
+  COUNTDOWN: Timer,
 } as const;
 
 /** The stickers whose results the author reads in the viewers sheet. */
@@ -80,6 +82,7 @@ export function StickerResultsCard({ sticker }: { sticker: FeedSticker }) {
   const title =
     data?.settings.question ||
     data?.settings.prompt ||
+    data?.settings.title ||
     t(`story.results.kind_${sticker.kind.toLowerCase()}`);
   const responders: StickerResponder[] = data?.responders ?? [];
 
@@ -95,9 +98,12 @@ export function StickerResultsCard({ sticker }: { sticker: FeedSticker }) {
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-bold text-white">{title}</p>
           <p className="text-xs text-white/50">
-            {t('story.results.responses', {
-              count: data?.totalResponses ?? 0,
-            })}
+            {t(
+              sticker.kind === 'COUNTDOWN'
+                ? 'story.results.reminders'
+                : 'story.results.responses',
+              { count: data?.totalResponses ?? 0 },
+            )}
           </p>
         </div>
         {data?.settings.emoji ? (
@@ -177,6 +183,18 @@ export function StickerResultsCard({ sticker }: { sticker: FeedSticker }) {
             </ul>
           ) : null}
         </>
+      ) : sticker.kind === 'COUNTDOWN' ? (
+        responders.length > 0 ? (
+          <ul className="space-y-1">
+            {responders.map((r) => (
+              <Person key={r.profile.id} profile={r.profile} />
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-white/50">
+            {t('story.results.no_reminders')}
+          </p>
+        )
       ) : data.answers && data.answers.length > 0 ? (
         <ul className="space-y-3">
           {data.answers.map((answer) => (

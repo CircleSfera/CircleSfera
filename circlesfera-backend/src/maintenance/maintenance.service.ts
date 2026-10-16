@@ -33,7 +33,11 @@ export class MaintenanceService {
 
       // Find all expired stories
       const expiredStories = await this.prisma.story.findMany({
-        where: { expiresAt: { lt: now } },
+        where: {
+          expiresAt: { lt: now },
+          // Kept, hidden, until its countdown has been told.
+          stickers: { none: { kind: 'COUNTDOWN', announcedAt: null } },
+        },
       });
 
       if (expiredStories.length === 0) {

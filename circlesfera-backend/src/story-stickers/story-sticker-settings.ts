@@ -12,6 +12,10 @@ export const STICKER_LIMITS = {
   tagMax: 50,
   answerMax: 500,
   perStory: 10,
+  countdownTitleMax: 40,
+  /** A countdown ends at least a minute and at most 30 days ahead. */
+  countdownMinAheadMs: 60_000,
+  countdownMaxAheadMs: 30 * 24 * 60 * 60 * 1000,
 } as const;
 
 export type StickerSettings =
@@ -21,7 +25,8 @@ export type StickerSettings =
   | { question: string; emoji: string } // SLIDER
   | { profileId: string } // MENTION
   | { placeId?: string } // LOCATION: the story's place, set by the service
-  | { tag: string }; // HASHTAG
+  | { tag: string } // HASHTAG
+  | { title: string; endsAt: string }; // COUNTDOWN
 
 const fail = (message: string): never => {
   throw new BadRequestException(`STICKER_SETTINGS_INVALID: ${message}`);
@@ -106,6 +111,22 @@ export function parseStickerSettings(
       }
       return { tag };
     }
+    case 'COUNTDOWN': {
+      const ends =
+        typeof s.endsAt === 'string' ? new Date(s.endsAt) : new Date(NaN);
+      const ahead = ends.getTime() - Date.now();
+      if (
+        Number.isNaN(ahead) ||
+        ahead < STICKER_LIMITS.countdownMinAheadMs ||
+        ahead > STICKER_LIMITS.countdownMaxAheadMs
+      ) {
+        fail('a countdown ends between a minute and 30 days ahead');
+      }
+      return {
+        title: text(s.title, 'title', STICKER_LIMITS.countdownTitleMax),
+        endsAt: ends.toISOString(),
+      };
+    }
     default:
       return fail('unknown kind');
   }
@@ -131,9 +152,11 @@ export const ANSWERABLE: ReadonlySet<StoryStickerKind> = new Set([
   'QUIZ',
   'SLIDER',
   'QUESTION',
+  'COUNTDOWN',
 ]);
 export const ONE_ANSWER_PER_PERSON: ReadonlySet<StoryStickerKind> = new Set([
   'POLL',
   'QUIZ',
   'SLIDER',
+  'COUNTDOWN',
 ]);

@@ -1080,30 +1080,35 @@ enum StoryStickerKind {
   MENTION
   LOCATION
   HASHTAG
+  COUNTDOWN
 }
 
 /// A sticker on a story: a poll, a question, a quiz, a slider, a mention, a
 /// place or a hashtag, answered or opened where the creator placed it.
 model StorySticker {
-  id        String           @id @default(uuid())
-  storyId   String
-  kind      StoryStickerKind
+  id          String           @id @default(uuid())
+  storyId     String
+  kind        StoryStickerKind
   /// What the kind needs (question and options, prompt, emoji, profile,
   /// place, tag), validated by the server for each kind.
-  settings  Json
+  settings    Json
   /// The centre as a share of the story's width and height from its middle,
   /// the scale and the angle in degrees. Empty only for stickers copied from
   /// before the place was kept; viewers then show them across the bottom.
-  x         Float?
-  y         Float?
-  scale     Float?
-  rotation  Float?
-  createdAt DateTime         @default(now())
+  x           Float?
+  y           Float?
+  scale       Float?
+  rotation    Float?
+  /// When a countdown ends, and when the people who asked were told.
+  endsAt      DateTime?
+  announcedAt DateTime?
+  createdAt   DateTime         @default(now())
 
   story     Story                  @relation(fields: [storyId], references: [id], onDelete: Cascade)
   responses StoryStickerResponse[]
 
   @@index([storyId])
+  @@index([endsAt, announcedAt])
   @@map("story_stickers")
 }
 

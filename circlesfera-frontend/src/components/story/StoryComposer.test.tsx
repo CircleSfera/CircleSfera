@@ -309,6 +309,27 @@ describe('StoryComposer', () => {
     });
   });
 
+  it('adds a countdown from the tray, live on the story', async () => {
+    const { lastElements } = renderComposer();
+    fireEvent.click(tool('Stickers'));
+    fireEvent.click(screen.getByRole('button', { name: 'Cuenta atrás' }));
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Título de la cuenta atrás' }),
+      { target: { value: 'Fiesta' } },
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Añadir cuenta atrás' }),
+    );
+
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0].type).toBe('countdown');
+    expect(JSON.parse(lastElements()[0].content).title).toBe('Fiesta');
+    expect(screen.getByTestId('story-element')).toHaveAttribute(
+      'data-export-ignore',
+      'true',
+    );
+  });
+
   it('adds a slider with the chosen emoji, and a hashtag without its #', async () => {
     const { lastElements } = renderComposer();
     fireEvent.click(tool('Stickers'));

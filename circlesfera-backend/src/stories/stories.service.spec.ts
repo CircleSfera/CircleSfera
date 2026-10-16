@@ -1099,6 +1099,15 @@ describe('StoriesService', () => {
 
       const result = await service.cleanupExpiredStories();
       expect(result).toEqual({ count: 1 });
+      // A story whose countdown is still to be told is kept, hidden.
+      for (const call of [
+        mockPrismaService.story.findMany.mock.calls.at(-1),
+        mockPrismaService.story.deleteMany.mock.calls.at(-1),
+      ]) {
+        expect(call?.[0].where.stickers).toEqual({
+          none: { kind: 'COUNTDOWN', announcedAt: null },
+        });
+      }
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/exp-layer.png',
       );

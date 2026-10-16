@@ -103,7 +103,8 @@ export type StoryStickerKind =
   | 'SLIDER'
   | 'MENTION'
   | 'LOCATION'
-  | 'HASHTAG';
+  | 'HASHTAG'
+  | 'COUNTDOWN';
 
 /**
  * A sticker sent with a new story: what it holds, checked by the server for

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { StoryElement } from '../../types';
 import {
   buildAnswerElement,
+  buildCountdownElement,
   buildHashtagElement,
   buildLocationElement,
   buildMentionElement,
@@ -24,6 +25,7 @@ import {
   isPollElement,
   isQnaElement,
   parseAnswerPayload,
+  parseCountdownPayload,
   parseHashtagPayload,
   parseLocationPayload,
   parseMentionPayload,
@@ -269,5 +271,39 @@ describe('an answer shared as a story', () => {
       answer: 'A',
     });
     expect(parseAnswerPayload(card)?.prompt).toHaveLength(QNA_PROMPT_MAX);
+  });
+});
+
+describe('a countdown', () => {
+  const canvas = { width: 400, height: 800 };
+
+  it('is a sticker answered on the story, sent with its title and end', () => {
+    const endsAt = new Date(Date.now() + 3_600_000);
+    const el = buildCountdownElement({ title: ' Fiesta ', endsAt });
+    if (!el) throw new Error('no countdown');
+
+    expect(parseCountdownPayload(el)).toEqual({
+      title: 'Fiesta',
+      endsAt: endsAt.toISOString(),
+    });
+    expect(isLiveElement(el)).toBe(true);
+    expect(isAnswerableElement(el)).toBe(true);
+    expect(stickersFromElements([el], canvas)).toEqual([
+      expect.objectContaining({
+        kind: 'COUNTDOWN',
+        settings: { title: 'Fiesta', endsAt: endsAt.toISOString() },
+      }),
+    ]);
+  });
+
+  it('needs a title and an end at least a minute ahead', () => {
+    const soon = new Date(Date.now() + 10_000);
+    expect(buildCountdownElement({ title: 'Fiesta', endsAt: soon })).toBeNull();
+    expect(
+      buildCountdownElement({
+        title: '  ',
+        endsAt: new Date(Date.now() + 3_600_000),
+      }),
+    ).toBeNull();
   });
 });

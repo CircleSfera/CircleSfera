@@ -9,6 +9,7 @@ import {
   MapPin,
   Search,
   SlidersHorizontal,
+  Timer,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +29,7 @@ const INTERACTIVE: {
   { tab: 'qna', icon: HelpCircle, labelKey: 'tool_qna' },
   { tab: 'quiz', icon: BadgeCheck, labelKey: 'tool_quiz' },
   { tab: 'slider', icon: SlidersHorizontal, labelKey: 'tool_slider' },
+  { tab: 'countdown', icon: Timer, labelKey: 'tool_countdown' },
   { tab: 'hashtag', icon: Hash, labelKey: 'tool_hashtag' },
   { tab: 'mention', icon: AtSign, labelKey: 'tool_mention' },
   { tab: 'location', icon: MapPin, labelKey: 'tool_location' },

@@ -14,7 +14,8 @@ export interface StoryElement {
     | 'hashtag'
     | 'mention'
     | 'location'
-    | 'answer';
+    | 'answer'
+    | 'countdown';
   content: string;
   x: number;
   y: number;

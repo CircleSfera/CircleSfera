@@ -167,6 +167,40 @@ describe('StickerResultsCard', () => {
     expect(JSON.stringify(navigate.mock.calls[0])).not.toContain('ana');
   });
 
+  it('shows how many asked to be reminded of a countdown, and who', async () => {
+    answers({
+      id: 'cd',
+      kind: 'COUNTDOWN',
+      settings: { title: 'Fiesta', endsAt: '2026-11-01T20:00:00Z' },
+      totalResponses: 2,
+      myResponse: null,
+      responders: [
+        {
+          optionIndex: null,
+          value: null,
+          createdAt: '',
+          profile: person('ana'),
+        },
+        {
+          optionIndex: null,
+          value: null,
+          createdAt: '',
+          profile: person('eva'),
+        },
+      ],
+    });
+    renderWithProviders(
+      <StickerResultsCard
+        sticker={{ id: 'cd', kind: 'COUNTDOWN', settings: {}, ...at }}
+      />,
+    );
+
+    const card = await screen.findByRole('region', { name: 'Fiesta' });
+    expect(card).toHaveTextContent('2 reminders');
+    expect(screen.getByText('ana')).toBeInTheDocument();
+    expect(screen.getByText('eva')).toBeInTheDocument();
+  });
+
   it('says so when the results cannot be read', async () => {
     vi.mocked(apiClient.get).mockRejectedValue(new Error('offline'));
     renderWithProviders(

@@ -10,6 +10,9 @@ export interface StickerResults {
     options?: string[];
     correctIndex?: number;
     emoji?: string;
+    /** A countdown: its title and when it ends. */
+    title?: string;
+    endsAt?: string;
   };
   totalResponses: number;
   myResponse: { optionIndex: number | null; value: number | null } | null;
@@ -52,7 +55,7 @@ export const readSticker = (stickerId: string) =>
 
 export const answerSticker = (
   stickerId: string,
-  body: { optionIndex?: number; value?: number },
+  body: { optionIndex?: number; value?: number; remind?: boolean },
 ) =>
   apiClient
     .post<StickerResults>(`stories/stickers/${stickerId}/responses`, body)

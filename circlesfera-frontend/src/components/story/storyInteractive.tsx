@@ -5,6 +5,7 @@ import {
   HelpCircle,
   MapPin,
   SlidersHorizontal,
+  Timer,
 } from 'lucide-react';
 import type React from 'react';
 import { useEffect, useState } from 'react';
@@ -15,6 +16,7 @@ import {
   placementFromElement,
   STICKER_WIDTH_PCT,
 } from '../../utils/storySticker';
+import { CountdownClock } from '../interactive/CountdownClock';
 import {
   STICKER_BADGE,
   STICKER_CARD,
@@ -38,6 +40,7 @@ export type HashtagPayload = { tag: string };
 export type MentionPayload = { profileId: string; username: string };
 export type LocationPayload = { name: string };
 export type AnswerPayload = { prompt: string; answer: string };
+export type CountdownPayload = { title: string; endsAt: string };
 
 const parseJson = (content: string): Record<string, unknown> | null => {
   try {
@@ -93,6 +96,16 @@ export function parseLocationPayload(el: StoryElement): LocationPayload | null {
   return d && typeof d.name === 'string' ? { name: d.name } : null;
 }
 
+export function parseCountdownPayload(
+  el: StoryElement,
+): CountdownPayload | null {
+  if (el.type !== 'countdown') return null;
+  const d = parseJson(el.content);
+  return d && typeof d.title === 'string' && typeof d.endsAt === 'string'
+    ? { title: d.title, endsAt: d.endsAt }
+    : null;
+}
+
 /** A story has one place, so its location sticker is never copied. */
 export function canDuplicateElement(el: StoryElement): boolean {
   return el.type !== 'location';
@@ -125,6 +138,7 @@ export function isLiveElement(el: StoryElement): boolean {
     isQnaElement(el) ||
     el.type === 'quiz' ||
     el.type === 'slider' ||
+    el.type === 'countdown' ||
     PILL_KINDS.has(el.type)
   );
 }
@@ -142,6 +156,7 @@ const TYPED_KINDS: ReadonlySet<string> = new Set([
   'quiz',
   'slider',
   'answer',
+  'countdown',
   ...PILL_KINDS,
 ]);
 
@@ -342,6 +357,9 @@ export function stickersFromElements(
     if (quiz) stickers.push({ kind: 'QUIZ', settings: quiz, ...place });
     const slider = parseSliderPayload(el);
     if (slider) stickers.push({ kind: 'SLIDER', settings: slider, ...place });
+    const countdown = parseCountdownPayload(el);
+    if (countdown)
+      stickers.push({ kind: 'COUNTDOWN', settings: countdown, ...place });
     const hashtag = parseHashtagPayload(el);
     if (hashtag)
       stickers.push({ kind: 'HASHTAG', settings: hashtag, ...place });
@@ -435,6 +453,35 @@ export function SliderStickerPreview({
           {slider.emoji}
         </span>
       </div>
+    </div>
+  );
+}
+
+export function CountdownStickerPreview({
+  countdown,
+  label,
+  variant = 'canvas',
+}: {
+  countdown: CountdownPayload;
+  label: string;
+  variant?: 'canvas' | 'panel';
+}) {
+  return (
+    <div
+      className={`${STICKER_CARD} pointer-events-none select-none ${
+        variant === 'panel' ? PANEL_WIDTH : 'w-full'
+      }`}
+    >
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
+          <Timer size={13} strokeWidth={2.5} aria-hidden />
+        </span>
+        <span className={STICKER_LABEL}>{label}</span>
+      </div>
+      {countdown.title ? (
+        <p className={STICKER_TITLE}>{countdown.title}</p>
+      ) : null}
+      <CountdownClock endsAt={countdown.endsAt} />
     </div>
   );
 }
