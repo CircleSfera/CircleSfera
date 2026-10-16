@@ -1166,12 +1166,7 @@
     "no_views": "Sin vistas aún",
     "viewer_list_empty": "La lista de espectadores aparecerá aquí",
     "insights_title": "Actividad de la historia",
-    "questions_tab": "Preguntas",
     "views_tab": "Vistas",
-    "questions_short": "Q&A",
-    "qna_prompt_label": "Pregunta",
-    "no_questions": "Aún no hay preguntas",
-    "no_questions_desc": "Cuando respondan a tu sticker de Q&A, aparecerán aquí.",
     "unlock_success": "Historia desbloqueada",
     "unlock_error": "No se pudo desbloquear la historia",
     "delete_highlight": "Eliminar destacado",
@@ -1181,7 +1176,22 @@
     "highlight_delete_error": "No se pudo eliminar",
     "highlight_deleted": "Destacado eliminado",
     "highlight_update_error": "No se pudo actualizar",
-    "highlight_updated": "Destacado actualizado"
+    "highlight_updated": "Destacado actualizado",
+    "responses_tab": "Respuestas",
+    "results": {
+      "responses_one": "{{count}} respuesta",
+      "responses_other": "{{count}} respuestas",
+      "votes_one": "{{count}} voto · {{percentage}} %",
+      "votes_other": "{{count}} votos · {{percentage}} %",
+      "right_answer": "Correcta",
+      "average": "Media: {{value}}",
+      "no_responses": "Aún no hay respuestas",
+      "error": "No se han podido cargar las respuestas.",
+      "kind_poll": "Encuesta",
+      "kind_quiz": "Quiz",
+      "kind_slider": "Deslizador",
+      "kind_question": "Preguntas"
+    }
   },
   "comments": {
     "send_error": "No se pudo publicar tu comentario. Inténtalo de nuevo.",

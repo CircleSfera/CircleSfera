@@ -28,6 +28,8 @@ export interface DraggableStoryElementProps {
   el: StoryElement;
   containerRef: React.RefObject<HTMLDivElement | null>;
   isSelected: boolean;
+  /** Under the fingers: above every other piece, the selected one too. */
+  isActive?: boolean;
   hidden?: boolean;
   dimmed?: boolean;
   /** Held over the bin: it shrinks to say it goes if dropped. */
@@ -45,6 +47,7 @@ export default function DraggableStoryElement({
   el,
   containerRef,
   isSelected,
+  isActive = false,
   hidden,
   dimmed,
   overBin,
@@ -79,7 +82,7 @@ export default function DraggableStoryElement({
         left: '50%',
         top: '50%',
         transform: `translate(${el.x}px, ${el.y}px) translate(-50%, -50%) scale(${scale}) rotate(${el.rotation}deg)`,
-        zIndex: isSelected ? 200 : (el.zIndex ?? 100),
+        zIndex: isActive ? 210 : isSelected ? 200 : (el.zIndex ?? 100),
         width: isInteractive ? interactivePx : undefined,
         opacity:
           dimmed || overBin ? 0.4 : isInteractive ? 1 : (el.opacity ?? 1),

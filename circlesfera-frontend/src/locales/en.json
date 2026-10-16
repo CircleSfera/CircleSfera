@@ -1166,12 +1166,7 @@
     "no_views": "No views yet",
     "viewer_list_empty": "Viewer list will appear here",
     "insights_title": "Story activity",
-    "questions_tab": "Questions",
     "views_tab": "Views",
-    "questions_short": "Q&A",
-    "qna_prompt_label": "Prompt",
-    "no_questions": "No questions yet",
-    "no_questions_desc": "When people answer your Q&A sticker, they show up here.",
     "unlock_success": "Story unlocked",
     "unlock_error": "Could not unlock story",
     "delete_highlight": "Delete highlight",
@@ -1181,7 +1176,22 @@
     "highlight_delete_error": "Could not delete",
     "highlight_deleted": "Highlight deleted",
     "highlight_update_error": "Could not update",
-    "highlight_updated": "Highlight updated"
+    "highlight_updated": "Highlight updated",
+    "responses_tab": "Responses",
+    "results": {
+      "responses_one": "{{count}} response",
+      "responses_other": "{{count}} responses",
+      "votes_one": "{{count}} vote · {{percentage}} %",
+      "votes_other": "{{count}} votes · {{percentage}} %",
+      "right_answer": "Right",
+      "average": "Average: {{value}}",
+      "no_responses": "No responses yet",
+      "error": "The responses could not be loaded.",
+      "kind_poll": "Poll",
+      "kind_quiz": "Quiz",
+      "kind_slider": "Slider",
+      "kind_question": "Questions"
+    }
   },
   "comments": {
     "send_error": "Your comment could not be posted. Try again.",

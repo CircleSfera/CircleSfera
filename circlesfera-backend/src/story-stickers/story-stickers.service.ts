@@ -50,6 +50,13 @@ export const FEED_STICKER_SELECT = {
 
 type Tx = Prisma.TransactionClient;
 
+/** Who answered a sticker, as its author sees them. */
+const RESPONDER_PROFILE = {
+  select: { id: true, username: true, fullName: true, avatar: true },
+} as const;
+/** People listed per sticker; the count stays the total. */
+export const RESPONDERS_SHOWN = 200;
+
 @Injectable()
 export class StoryStickersService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
@@ -188,6 +195,29 @@ export class StoryStickersService {
   }
 
   /**
+   * The people who answered a vote or a slider, most recent first, as the
+   * author of the story may see them: someone blocked either way, or of the
+   * other audience, is left out of the list (not of the count).
+   */
+  private async responders(stickerId: string, authorProfileId: string) {
+    return this.prisma.storyStickerResponse.findMany({
+      where: {
+        stickerId,
+        voteKey: stickerId,
+        profile: await visibleToViewerWhere(this.prisma, authorProfileId),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: RESPONDERS_SHOWN,
+      select: {
+        optionIndex: true,
+        value: true,
+        createdAt: true,
+        profile: RESPONDER_PROFILE,
+      },
+    });
+  }
+
+  /**
    * A viewer answers a sticker: votes and slider values count once and can
    * be changed (a quiz answer cannot); answers to a question may be several.
    * Only while the story lasts, and not on one's own story.
@@ -266,7 +296,7 @@ export class StoryStickersService {
    * What a sticker has gathered, for someone who may see its story: the
    * counts and share of each option, a slider's average, the viewer's own
    * answer, and a quiz's right option once answered. The author also gets
-   * the answers to a question, and who gave them; nobody else does.
+   * who answered (and a question's answers); nobody else does.
    */
   async results(viewerProfileId: string, stickerId: string) {
     const sticker = await this.findSticker(stickerId);
@@ -279,31 +309,39 @@ export class StoryStickersService {
     const settings = sticker.settings as Record<string, unknown>;
 
     if (sticker.kind === 'QUESTION') {
-      const answers = isAuthor
-        ? await this.prisma.storyStickerResponse.findMany({
-            where: { stickerId },
-            orderBy: { createdAt: 'desc' },
-            select: {
-              id: true,
-              text: true,
-              createdAt: true,
-              profile: {
-                select: {
-                  id: true,
-                  username: true,
-                  fullName: true,
-                  avatar: true,
-                },
-              },
-            },
-          })
-        : [];
+      if (!isAuthor) {
+        return {
+          id: sticker.id,
+          kind: sticker.kind,
+          settings: publicSettings(sticker.kind, settings, false),
+          isAuthor,
+          totalResponses: 0,
+          answers: [],
+        };
+      }
+      const [answers, total] = await Promise.all([
+        this.prisma.storyStickerResponse.findMany({
+          where: {
+            stickerId,
+            profile: await visibleToViewerWhere(this.prisma, viewerProfileId),
+          },
+          orderBy: { createdAt: 'desc' },
+          take: RESPONDERS_SHOWN,
+          select: {
+            id: true,
+            text: true,
+            createdAt: true,
+            profile: RESPONDER_PROFILE,
+          },
+        }),
+        this.prisma.storyStickerResponse.count({ where: { stickerId } }),
+      ]);
       return {
         id: sticker.id,
         kind: sticker.kind,
-        settings: publicSettings(sticker.kind, settings, isAuthor),
+        settings: publicSettings(sticker.kind, settings, true),
         isAuthor,
-        totalResponses: isAuthor ? answers.length : 0,
+        totalResponses: total,
         answers,
       };
     }
@@ -322,6 +360,10 @@ export class StoryStickersService {
       myResponse: mine
         ? { optionIndex: mine.optionIndex, value: mine.value }
         : null,
+      // Who answered, for the author only.
+      ...(isAuthor
+        ? { responders: await this.responders(stickerId, viewerProfileId) }
+        : {}),
     };
 
     if (sticker.kind === 'SLIDER') {

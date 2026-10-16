@@ -194,12 +194,14 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
               key={el.id}
               el={el}
               containerRef={p.containerRef}
-              // The piece under the fingers rises above the others.
               isSelected={
                 (p.selectedElementId === el.id ||
                   gestures.activeId === el.id) &&
                 !p.textTakeoverActive
               }
+              // The piece under the fingers rises above the others, the
+              // selected one too.
+              isActive={gestures.activeId === el.id && !p.textTakeoverActive}
               hidden={
                 p.textTakeover === 'edit' && el.id === p.selectedElementId
               }

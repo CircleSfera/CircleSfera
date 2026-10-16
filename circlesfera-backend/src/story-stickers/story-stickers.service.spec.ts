@@ -27,6 +27,7 @@ function prismaMock() {
     },
     storySticker: { findUnique: vi.fn(), createMany: vi.fn() },
     storyStickerResponse: {
+      count: vi.fn().mockResolvedValue(0),
       create: vi.fn(),
       upsert: vi.fn(),
       findUnique: vi.fn().mockResolvedValue(null),
@@ -367,9 +368,59 @@ describe('StoryStickersService', () => {
       const forViewer = await service.results(VIEWER, 'st-1');
       expect(forViewer).toMatchObject({ answers: [], totalResponses: 0 });
 
+      prisma.storyStickerResponse.count.mockResolvedValueOnce(3);
       const forAuthor = await service.results(AUTHOR, 'st-1');
-      expect(forAuthor).toMatchObject({ totalResponses: 1, isAuthor: true });
+      // Three answers, one the author may still see.
+      expect(forAuthor).toMatchObject({ totalResponses: 3, isAuthor: true });
       expect(forAuthor.answers).toHaveLength(1);
+      expect(prisma.storyStickerResponse.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            stickerId: 'st-1',
+            profile: expect.objectContaining({
+              blocking: { none: { blockedId: AUTHOR } },
+              blockedBy: { none: { blockerId: AUTHOR } },
+            }),
+          }),
+          take: 200,
+        }),
+      );
+    });
+
+    it('tells the author, and only the author, who voted what', async () => {
+      holds('POLL', { question: 'Q', options: ['a', 'b'] });
+      const ana = {
+        optionIndex: 1,
+        value: null,
+        createdAt: new Date(),
+        profile: { id: 'p-ana', username: 'ana', fullName: null, avatar: null },
+      };
+      prisma.storyStickerResponse.findMany
+        .mockResolvedValueOnce([
+          { profileId: 'p-ana', optionIndex: 1, value: null },
+        ])
+        .mockResolvedValueOnce([ana]);
+
+      const forAuthor = await service.results(AUTHOR, 'st-1');
+      expect(forAuthor).toMatchObject({ responders: [ana], totalResponses: 1 });
+      expect(prisma.storyStickerResponse.findMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            voteKey: 'st-1',
+            profile: expect.objectContaining({
+              blocking: { none: { blockedId: AUTHOR } },
+            }),
+          }),
+          orderBy: { createdAt: 'desc' },
+          take: 200,
+        }),
+      );
+
+      prisma.storyStickerResponse.findMany.mockResolvedValueOnce([
+        { profileId: 'p-ana', optionIndex: 1, value: null },
+      ]);
+      const forViewer = await service.results(VIEWER, 'st-1');
+      expect(forViewer).not.toHaveProperty('responders');
     });
   });
 

@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../test/test-utils';
 import { StoryViewersSheet } from './StoryViewersSheet';
 
+vi.mock('./interactive/StickerResultsCard', () => ({
+  StickerResultsCard: ({ sticker }: { sticker: { id: string } }) => (
+    <div data-testid="results-card">{sticker.id}</div>
+  ),
+}));
+
 vi.mock('./UserAvatar', () => ({
   default: () => <div data-testid="user-avatar" />,
 }));
@@ -22,34 +28,44 @@ describe('StoryViewersSheet', () => {
     expect(screen.queryByText('Espectadores')).not.toBeInTheDocument();
   });
 
-  it('shows insights chrome and Q&A empty state from the catalog', () => {
+  it('opens on the responses of each sticker, with the views a tab away', () => {
     const { i18n } = renderWithProviders(
       <StoryViewersSheet
         viewers={[]}
         isLoading={false}
         onClose={vi.fn()}
-        hasQna
-        qnaPrompt="Ask me anything"
-        qnaAnswers={[]}
+        stickers={[
+          {
+            id: 'st-1',
+            kind: 'POLL',
+            settings: {},
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          },
+          {
+            id: 'st-2',
+            kind: 'QUESTION',
+            settings: {},
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          },
+        ]}
       />,
     );
 
-    expect(i18n!.t('story.insights_title')).toBe('Story activity');
     expect(
       screen.getByText(i18n!.t('story.insights_title')),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('tab', {
-        name: new RegExp(i18n!.t('story.questions_tab')),
-      }),
-    ).toBeInTheDocument();
-    expect(screen.getByText(i18n!.t('story.no_questions'))).toBeInTheDocument();
+      screen.getByRole('tab', { name: i18n!.t('story.responses_tab') }),
+    ).toHaveAttribute('aria-selected', 'true');
     expect(
-      screen.getByText(i18n!.t('story.no_questions_desc')),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText('Actividad de la historia'),
-    ).not.toBeInTheDocument();
+      screen.getAllByTestId('results-card').map((n) => n.textContent),
+    ).toEqual(['st-1', 'st-2']);
   });
 
   it('labels viewer more action from common.more', () => {
@@ -78,8 +94,17 @@ describe('StoryViewersSheet', () => {
         viewers={[]}
         isLoading={false}
         onClose={vi.fn()}
-        hasQna
-        qnaAnswers={[]}
+        stickers={[
+          {
+            id: 'st-1',
+            kind: 'POLL',
+            settings: {},
+            x: 0,
+            y: 0,
+            scale: 1,
+            rotation: 0,
+          },
+        ]}
       />,
     );
 
@@ -96,6 +121,5 @@ describe('StoryViewersSheet', () => {
 
     expect(i18n!.t('story.unlock_success')).toBe('Story unlocked');
     expect(i18n!.t('story.unlock_error')).toBe('Could not unlock story');
-    expect(i18n!.t('story.questions_short')).toBe('Q&A');
   });
 });

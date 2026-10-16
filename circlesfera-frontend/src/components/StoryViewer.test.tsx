@@ -307,11 +307,25 @@ describe('StoryViewer', () => {
       expect(screen.queryByPlaceholderText('Reply...')).not.toBeInTheDocument();
     });
 
-    it('hides the question box from its author', () => {
-      show([mine({ qnaBox: { id: 'q1' } })]);
+    it('hides its question sticker from its author, who reads the responses instead', () => {
+      show([
+        mine({
+          stickers: [
+            {
+              id: 'st-2',
+              kind: 'QUESTION',
+              settings: { prompt: 'Ask me' },
+              x: 0,
+              y: 0,
+              scale: 1,
+              rotation: 0,
+            },
+          ],
+        } as Partial<Story>),
+      ]);
 
       expect(screen.queryByTestId('qna')).not.toBeInTheDocument();
-      expect(screen.getByText('Q&A')).toBeInTheDocument();
+      expect(screen.getByText('Responses')).toBeInTheDocument();
     });
 
     it('lists who saw it', async () => {
@@ -330,38 +344,66 @@ describe('StoryViewer', () => {
       expect(await screen.findByText('marta')).toBeInTheDocument();
     });
 
-    it('also loads the answers when the story has a question box', async () => {
+    it('shows the responses of its poll and question, and not of a hashtag', async () => {
       const user = userEvent.setup();
       vi.mocked(storiesApi.getViews).mockResolvedValue({
         data: { data: [] },
       } as never);
-      vi.mocked(apiClient.get).mockResolvedValue({
-        data: {
-          prompt: 'Ask me',
-          answers: [
-            {
-              id: 'a1',
-              answerText: 'Why?',
-              createdAt: new Date().toISOString(),
-              user: { id: 'u1', username: 'marta' },
-            },
-            {
-              id: 'a2',
-              answerText: 'How?',
-              createdAt: new Date().toISOString(),
-              user: { id: 'u2', username: 'luis' },
-            },
+      const marta = {
+        id: 'u1',
+        username: 'marta',
+        fullName: null,
+        avatar: null,
+      };
+      vi.mocked(apiClient.get).mockImplementation(async (url: string) => ({
+        data:
+          url === 'stories/stickers/st-1'
+            ? {
+                id: 'st-1',
+                kind: 'POLL',
+                settings: { question: '¿Playa?', options: ['Sí', 'No'] },
+                totalResponses: 1,
+                myResponse: null,
+                options: [
+                  { index: 0, text: 'Sí', votes: 1, percentage: 100 },
+                  { index: 1, text: 'No', votes: 0, percentage: 0 },
+                ],
+                responders: [
+                  {
+                    optionIndex: 0,
+                    value: null,
+                    createdAt: '',
+                    profile: marta,
+                  },
+                ],
+              }
+            : {
+                id: 'st-2',
+                kind: 'QUESTION',
+                settings: { prompt: 'Ask me' },
+                totalResponses: 1,
+                answers: [
+                  { id: 'a1', text: 'Why?', createdAt: '', profile: marta },
+                ],
+              },
+      }));
+      const at = { x: 0, y: 0, scale: 1, rotation: 0 };
+      show([
+        mine({
+          stickers: [
+            { id: 'st-1', kind: 'POLL', settings: {}, ...at },
+            { id: 'st-2', kind: 'QUESTION', settings: {}, ...at },
+            { id: 'st-3', kind: 'HASHTAG', settings: { tag: 'a' }, ...at },
           ],
-        },
-      } as never);
-      show([mine({ qnaBox: { id: 'q1' } })]);
+        } as Partial<Story>),
+      ]);
 
       await user.click(screen.getByRole('button', { name: /Views/ }));
 
-      expect(apiClient.get).toHaveBeenCalledWith('interactive/qna/q1');
-      expect(await screen.findByText(/Q&A · 2/)).toBeInTheDocument();
-      expect(screen.getByText('Story activity')).toBeInTheDocument();
-      expect(screen.getByText('Why?')).toBeInTheDocument();
+      expect(await screen.findByText('Why?')).toBeInTheDocument();
+      expect(screen.getByText('¿Playa?')).toBeInTheDocument();
+      expect(screen.getByText('1 vote · 100 %')).toBeInTheDocument();
+      expect(apiClient.get).not.toHaveBeenCalledWith('stories/stickers/st-3');
     });
 
     it('deletes it after confirming, and closes', async () => {
