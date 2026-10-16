@@ -28,7 +28,28 @@ describe('StoryCountdownPanel', () => {
     expect(ahead).toBeLessThan(26 * 3_600_000);
   });
 
-  it('takes no moment in the past or more than 30 days ahead, and says why', () => {
+  it('takes a moment months ahead, up to a year', () => {
+    const onAdd = vi.fn();
+    renderWithProviders(<StoryCountdownPanel onAdd={onAdd} />, { lng: 'es' });
+    fireEvent.change(
+      screen.getByRole('textbox', { name: 'Título de la cuenta atrás' }),
+      { target: { value: 'Boda' } },
+    );
+    const moment = new Date(Date.now() + 300 * 24 * 3_600_000);
+    fireEvent.change(screen.getByLabelText('Cuándo termina'), {
+      target: { value: toLocalInput(moment) },
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Añadir cuenta atrás' }),
+    );
+    const { endsAt } = JSON.parse(onAdd.mock.calls[0][0].content);
+    expect(
+      Math.abs(new Date(endsAt).getTime() - moment.getTime()),
+    ).toBeLessThan(60_000);
+  });
+
+  it('takes no moment in the past or more than a year ahead, and says why', () => {
     const onAdd = vi.fn();
     renderWithProviders(<StoryCountdownPanel onAdd={onAdd} />, { lng: 'es' });
     fireEvent.change(
@@ -39,11 +60,11 @@ describe('StoryCountdownPanel', () => {
 
     for (const moment of [
       new Date(Date.now() - 3_600_000),
-      new Date(Date.now() + 40 * 24 * 3_600_000),
+      new Date(Date.now() + 400 * 24 * 3_600_000),
     ]) {
       fireEvent.change(when, { target: { value: toLocalInput(moment) } });
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'entre un minuto y 30 días',
+        'entre un minuto y un año',
       );
       expect(
         screen.getByRole('button', { name: 'Añadir cuenta atrás' }),
@@ -87,7 +108,7 @@ describe('StoryCountdownPanel', () => {
     });
 
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'entre un minuto y 30 días',
+      'entre un minuto y un año',
     );
     expect(
       screen.getByRole('button', { name: 'Añadir cuenta atrás' }),

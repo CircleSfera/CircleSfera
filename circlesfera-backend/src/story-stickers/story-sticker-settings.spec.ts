@@ -90,16 +90,23 @@ describe('what a countdown holds', () => {
     ).toEqual({ title: 'Fiesta', endsAt });
   });
 
-  it('ends between a minute and 30 days ahead, with a title of up to 40 characters', () => {
+  it('takes an end months ahead, up to a year', () => {
+    const endsAt = ahead(300 * 24 * 3_600_000);
+    expect(
+      parseStickerSettings('COUNTDOWN', { title: 'Boda', endsAt }),
+    ).toEqual({ title: 'Boda', endsAt });
+  });
+
+  it('ends between a minute and a year ahead, with a title of up to 40 characters', () => {
     for (const endsAt of [
       ahead(10_000),
-      ahead(31 * 24 * 3_600_000),
+      ahead(366 * 24 * 3_600_000),
       'mañana',
       undefined,
     ]) {
       expect(() =>
         parseStickerSettings('COUNTDOWN', { title: 'T', endsAt }),
-      ).toThrow('between a minute and 30 days');
+      ).toThrow('between a minute and a year');
     }
     expect(() =>
       parseStickerSettings('COUNTDOWN', {
