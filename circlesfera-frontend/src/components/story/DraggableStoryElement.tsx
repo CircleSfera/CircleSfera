@@ -12,6 +12,7 @@ import {
   LinkStickerPreview,
   LocationStickerPreview,
   MentionStickerPreview,
+  MusicStickerPreview,
   PollStickerPreview,
   parseAnswerPayload,
   parseCountdownPayload,
@@ -19,6 +20,7 @@ import {
   parseLinkPayload,
   parseLocationPayload,
   parseMentionPayload,
+  parseMusicPayload,
   parsePollPayload,
   parseQnaPayload,
   parseQuizPayload,
@@ -70,6 +72,7 @@ export default function DraggableStoryElement({
   const answer = parseAnswerPayload(el);
   const countdown = parseCountdownPayload(el);
   const link = parseLinkPayload(el);
+  const music = parseMusicPayload(el);
   // Live on the story, not painted into its picture.
   const isLive = isLiveElement(el);
   // At the width of a sticker; a hashtag, a mention or a place takes its own.
@@ -127,6 +130,8 @@ export default function DraggableStoryElement({
           countdown={countdown}
           label={t('createPost.storyComposer.tool_countdown')}
         />
+      ) : music ? (
+        <MusicStickerPreview track={music} />
       ) : link ? (
         <LinkStickerPreview link={link} />
       ) : hashtag ? (

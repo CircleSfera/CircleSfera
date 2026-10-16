@@ -1082,6 +1082,7 @@ enum StoryStickerKind {
   HASHTAG
   COUNTDOWN
   LINK
+  MUSIC
 }
 
 /// A sticker on a story: a poll, a question, a quiz, a slider, a mention, a

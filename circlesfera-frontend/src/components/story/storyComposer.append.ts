@@ -145,7 +145,7 @@ export function buildHashtagElement(raw: string): StoryElement | null {
 
 /** A pill with free sizes, as a hashtag, a mention or a place. */
 const pillElement = (
-  type: 'mention' | 'location' | 'link',
+  type: 'mention' | 'location' | 'link' | 'music',
   content: object,
 ): StoryElement => ({
   id: crypto.randomUUID(),
@@ -183,6 +183,15 @@ export function buildAnswerElement(card: {
     // Above the middle, where the answer is read before the rest.
     y: -80,
   };
+}
+
+/** The song of the story, as its music sticker shows it. */
+export function buildMusicElement(track: {
+  title: string;
+  artist: string;
+  cover: string | null;
+}): StoryElement {
+  return pillElement('music', track);
 }
 
 /** The longest text shown instead of a link's domain. */

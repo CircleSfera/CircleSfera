@@ -1223,6 +1223,10 @@
       "reported": "Reported. Thank you",
       "report_error": "The report could not be sent.",
       "cancel": "Cancel"
+    },
+    "music": {
+      "sound_on": "Play the sound: {{title}}, {{artist}}",
+      "sound_off": "Mute the sound: {{title}}, {{artist}}"
     }
   },
   "comments": {
@@ -1802,7 +1806,13 @@
         "LINK_DOMAIN_BLOCKED": "Links to that site are not allowed on CircleSfera.",
         "LINKS_PER_DAY_REACHED": "You have added as many links as you can today. Try again tomorrow.",
         "ONE_LINK_STICKER_PER_STORY": "A story can carry one link."
-      }
+      },
+      "tool_music": "Music",
+      "music_create_hint": "The song of your story, shown on it. Viewers tap it to hear it.",
+      "music_on_story": "Your story already shows its song",
+      "add_music_sticker": "Show “{{title}}” on the story",
+      "music_change": "Change song",
+      "music_choose": "Choose a song"
     },
     "tags": {
       "title": "Tag People",

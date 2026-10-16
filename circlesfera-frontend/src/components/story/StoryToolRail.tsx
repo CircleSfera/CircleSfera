@@ -34,6 +34,7 @@ const STICKER_SETUPS: ReadonlySet<StoryComposerTab> = new Set([
   'location',
   'countdown',
   'link',
+  'music',
 ]);
 
 /**

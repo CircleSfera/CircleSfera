@@ -7,6 +7,7 @@ import {
   buildLinkElement,
   buildLocationElement,
   buildMentionElement,
+  buildMusicElement,
   buildPollElement,
   buildQnaElement,
   buildQuizElement,
@@ -21,6 +22,7 @@ import {
   QNA_PROMPT_MAX,
 } from './storyComposer.constants';
 import {
+  canDuplicateElement,
   INTERACTIVE_WIDTH_PCT,
   isAnswerableElement,
   isLiveElement,
@@ -32,6 +34,7 @@ import {
   parseLinkPayload,
   parseLocationPayload,
   parseMentionPayload,
+  parseMusicPayload,
   parsePollPayload,
   parseQnaPayload,
   parseQuizPayload,
@@ -359,5 +362,24 @@ describe('a link', () => {
       url: 'https://example.com/',
       domain: 'example.com',
     });
+  });
+});
+
+describe('the music sticker', () => {
+  it('is the story’s song: sent once, with nothing of its own, and never copied', () => {
+    const track = { title: 'Luz', artist: 'Ana', cover: null };
+    const el = buildMusicElement(track);
+
+    expect(parseMusicPayload(el)).toEqual(track);
+    expect(isLiveElement(el)).toBe(true);
+    expect(isAnswerableElement(el)).toBe(false);
+    expect(canDuplicateElement(el)).toBe(false);
+    expect(
+      stickersFromElements([el, { ...el, id: 'copy' }], {
+        width: 400,
+        height: 800,
+      }),
+    ).toEqual([expect.objectContaining({ kind: 'MUSIC', settings: {} })]);
+    expect(parseMusicPayload({ ...el, content: '{}' })).toBeNull();
   });
 });

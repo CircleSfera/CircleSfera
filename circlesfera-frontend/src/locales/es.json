@@ -1223,6 +1223,10 @@
       "reported": "Denunciado. Gracias",
       "report_error": "No se pudo enviar la denuncia.",
       "cancel": "Cancelar"
+    },
+    "music": {
+      "sound_on": "Activar el sonido: {{title}}, {{artist}}",
+      "sound_off": "Silenciar el sonido: {{title}}, {{artist}}"
     }
   },
   "comments": {
@@ -1802,7 +1806,13 @@
         "LINK_DOMAIN_BLOCKED": "No se permiten enlaces a ese sitio en CircleSfera.",
         "LINKS_PER_DAY_REACHED": "Hoy ya has añadido todos los enlaces que puedes. Inténtalo mañana.",
         "ONE_LINK_STICKER_PER_STORY": "Una historia puede llevar un solo enlace."
-      }
+      },
+      "tool_music": "Música",
+      "music_create_hint": "La canción de tu historia, a la vista. Quien la vea la toca para oírla.",
+      "music_on_story": "Tu historia ya muestra su canción",
+      "add_music_sticker": "Mostrar «{{title}}» en la historia",
+      "music_change": "Cambiar canción",
+      "music_choose": "Elegir canción"
     },
     "tags": {
       "title": "Etiquetar Personas",

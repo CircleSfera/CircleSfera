@@ -5,6 +5,7 @@ import {
   HelpCircle,
   Link as LinkIcon,
   MapPin,
+  Music,
   SlidersHorizontal,
   Timer,
 } from 'lucide-react';
@@ -43,6 +44,11 @@ export type LocationPayload = { name: string };
 export type AnswerPayload = { prompt: string; answer: string };
 export type CountdownPayload = { title: string; endsAt: string };
 export type LinkPayload = { url: string; domain: string; label?: string };
+export type MusicPayload = {
+  title: string;
+  artist: string;
+  cover: string | null;
+};
 
 const parseJson = (content: string): Record<string, unknown> | null => {
   try {
@@ -121,9 +127,22 @@ export function parseLinkPayload(el: StoryElement): LinkPayload | null {
   };
 }
 
-/** A story has one place and one link: neither is ever copied. */
+export function parseMusicPayload(el: StoryElement): MusicPayload | null {
+  if (el.type !== 'music') return null;
+  const d = parseJson(el.content);
+  if (!d || typeof d.title !== 'string' || typeof d.artist !== 'string') {
+    return null;
+  }
+  return {
+    title: d.title,
+    artist: d.artist,
+    cover: typeof d.cover === 'string' ? d.cover : null,
+  };
+}
+
+/** A story has one place, one link and one song: none is ever copied. */
 export function canDuplicateElement(el: StoryElement): boolean {
-  return el.type !== 'location' && el.type !== 'link';
+  return el.type !== 'location' && el.type !== 'link' && el.type !== 'music';
 }
 
 /** An answer to a question, shared as a card painted into the story. */
@@ -141,6 +160,7 @@ const PILL_KINDS: ReadonlySet<string> = new Set([
   'mention',
   'location',
   'link',
+  'music',
 ]);
 
 /**
@@ -345,6 +365,7 @@ export function stickersFromElements(
   if (!canvas) return [];
   const stickers: StoryStickerInput[] = [];
   let hasLocation = false;
+  let hasMusic = false;
   for (const el of elements) {
     const place = placementFromElement(
       el,
@@ -373,6 +394,11 @@ export function stickersFromElements(
     if (quiz) stickers.push({ kind: 'QUIZ', settings: quiz, ...place });
     const slider = parseSliderPayload(el);
     if (slider) stickers.push({ kind: 'SLIDER', settings: slider, ...place });
+    if (parseMusicPayload(el) && !hasMusic) {
+      // The server gives it the story's track; it goes once.
+      hasMusic = true;
+      stickers.push({ kind: 'MUSIC', settings: {}, ...place });
+    }
     const link = parseLinkPayload(el);
     if (link)
       stickers.push({
@@ -531,6 +557,66 @@ export function MentionStickerPreview({ username }: { username: string }) {
     <div className={`${PILL} pointer-events-none select-none`}>
       <span className={PILL_TEXT}>@{username.toUpperCase()}</span>
     </div>
+  );
+}
+
+/** The song of the story: its cover, title and artist, with moving bars. */
+export function MusicStickerPreview({ track }: { track: MusicPayload }) {
+  return (
+    <div
+      className={`${STICKER_CARD} flex w-[240px] items-center gap-2.5 pointer-events-none select-none`}
+    >
+      <MusicCover cover={track.cover} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-bold text-white">
+          {track.title}
+        </span>
+        <span className="block truncate text-xs text-white/60">
+          {track.artist}
+        </span>
+      </span>
+      <MusicBars />
+    </div>
+  );
+}
+
+/** A song's cover, or a note where it has none. */
+export function MusicCover({ cover }: { cover: string | null }) {
+  return cover ? (
+    <img
+      src={cover}
+      alt=""
+      crossOrigin="anonymous"
+      className="h-11 w-11 shrink-0 rounded-lg object-cover"
+    />
+  ) : (
+    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-brand-primary/20 text-brand-primary-text">
+      <Music size={18} aria-hidden />
+    </span>
+  );
+}
+
+/** Three bars that move while a song plays, still when told to. */
+export function MusicBars({ still = false }: { still?: boolean }) {
+  return (
+    <span className="flex h-5 shrink-0 items-end gap-0.5" aria-hidden>
+      {[0, 1, 2].map((i) => (
+        <span
+          key={i}
+          className={`w-1 rounded-full bg-brand-primary ${
+            still ? 'h-1.5' : 'animate-pulse'
+          }`}
+          style={
+            still
+              ? undefined
+              : {
+                  height: `${[60, 100, 75][i]}%`,
+                  animationDelay: `${i * 150}ms`,
+                }
+          }
+        />
+      ))}
+    </span>
   );
 }
 

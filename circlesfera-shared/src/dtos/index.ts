@@ -105,7 +105,8 @@ export type StoryStickerKind =
   | 'LOCATION'
   | 'HASHTAG'
   | 'COUNTDOWN'
-  | 'LINK';
+  | 'LINK'
+  | 'MUSIC';
 
 /**
  * A sticker sent with a new story: what it holds, checked by the server for

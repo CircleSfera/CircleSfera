@@ -16,7 +16,8 @@ export interface StoryElement {
     | 'location'
     | 'answer'
     | 'countdown'
-    | 'link';
+    | 'link'
+    | 'music';
   content: string;
   x: number;
   y: number;

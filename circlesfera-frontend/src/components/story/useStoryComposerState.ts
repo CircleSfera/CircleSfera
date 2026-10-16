@@ -156,6 +156,28 @@ export function useStoryComposerState(props: {
     });
   }, [sharing, placeName, changeElements]);
 
+  // The music sticker is the song of the story: it shows the song chosen,
+  // and goes when the song is taken off.
+  const track = props.share?.musicSticker ?? null;
+  const trackContent = track ? JSON.stringify(track) : null;
+  useEffect(() => {
+    if (!sharing) return;
+    changeElements((current) => {
+      if (!current.some((el) => el.type === 'music')) return current;
+      if (!trackContent) return current.filter((el) => el.type !== 'music');
+      if (
+        current.every(
+          (el) => el.type !== 'music' || el.content === trackContent,
+        )
+      ) {
+        return current;
+      }
+      return current.map((el) =>
+        el.type === 'music' ? { ...el, content: trackContent } : el,
+      );
+    });
+  }, [sharing, trackContent, changeElements]);
+
   const removeElement = (id: string) => {
     const wasSelected = selectedElementId === id;
     removeElementBase(id);

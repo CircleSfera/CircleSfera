@@ -8,6 +8,7 @@ import {
   Link,
   type LucideIcon,
   MapPin,
+  Music,
   Search,
   SlidersHorizontal,
   Timer,
@@ -35,6 +36,7 @@ const INTERACTIVE: {
   { tab: 'mention', icon: AtSign, labelKey: 'tool_mention' },
   { tab: 'location', icon: MapPin, labelKey: 'tool_location' },
   { tab: 'link', icon: Link, labelKey: 'tool_link' },
+  { tab: 'music', icon: Music, labelKey: 'tool_music' },
 ];
 
 export interface StoryStickersPanelProps {
@@ -45,6 +47,8 @@ export interface StoryStickersPanelProps {
   onOpenSticker: (tab: StoryComposerTab) => void;
   /** The story can carry a place: the editor shares it itself. */
   canPlace?: boolean;
+  /** The story can carry a song: the editor shares it itself. */
+  canMusic?: boolean;
   /** The story already holds as many interactive stickers as it may. */
   full?: boolean;
 }
@@ -66,6 +70,7 @@ export default function StoryStickersPanel({
   onAddSticker,
   onOpenSticker,
   canPlace = false,
+  canMusic = false,
   full = false,
 }: StoryStickersPanelProps) {
   const { t } = useTranslation();
@@ -74,6 +79,7 @@ export default function StoryStickersPanel({
   const interactive = INTERACTIVE.filter(
     ({ tab, labelKey }) =>
       (canPlace || tab !== 'location') &&
+      (canMusic || tab !== 'music') &&
       (!q || fold(t(`createPost.storyComposer.${labelKey}`)).includes(q)),
   );
   const categoryName = (label: string) =>

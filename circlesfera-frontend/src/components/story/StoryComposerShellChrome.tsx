@@ -133,6 +133,14 @@ export default function StoryComposerShellChrome(
                     }
                   : undefined
               }
+              music={
+                p.share
+                  ? {
+                      track: p.share.musicSticker ?? null,
+                      onOpen: p.share.onOpenMusic,
+                    }
+                  : undefined
+              }
             />
           </StoryPanelSheet>
         </div>

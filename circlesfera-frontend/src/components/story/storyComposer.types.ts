@@ -15,6 +15,7 @@ export type StoryComposerTab =
   | 'location'
   | 'countdown'
   | 'link'
+  | 'music'
   | 'draw';
 
 export type PanelTab = 'style' | 'transform' | 'layers';

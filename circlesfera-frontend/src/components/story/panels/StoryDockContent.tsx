@@ -8,6 +8,7 @@ import {
 } from '../storyComposer.constants';
 import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
 import { isLiveElement } from '../storyInteractive';
+import type { MusicTrack } from '../storyShare.types';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
 import StoryCountdownPanel from './StoryCountdownPanel';
 import StoryDrawPanel from './StoryDrawPanel';
@@ -16,6 +17,7 @@ import StoryHashtagPanel from './StoryHashtagPanel';
 import StoryLinkPanel from './StoryLinkPanel';
 import StoryLocationPanel from './StoryLocationPanel';
 import StoryMentionPanel from './StoryMentionPanel';
+import StoryMusicPanel from './StoryMusicPanel';
 import StoryPollPanel from './StoryPollPanel';
 import StoryQnaPanel from './StoryQnaPanel';
 import StoryQuizPanel from './StoryQuizPanel';
@@ -68,6 +70,8 @@ export interface StoryDockContentProps {
   onApplyTemplate: (template: StoryTemplate) => void;
   /** The place of the story, when the editor shares it itself. */
   place?: { name: string | null; onOpen: () => void };
+  /** The song of the story, when the editor shares it itself. */
+  music?: { track: MusicTrack | null; onOpen: () => void };
 }
 
 export default function StoryDockContent({
@@ -112,6 +116,7 @@ export default function StoryDockContent({
   onAddQna,
   onApplyTemplate,
   place,
+  music,
 }: StoryDockContentProps) {
   return (
     <AnimatePresence mode="wait">
@@ -164,6 +169,7 @@ export default function StoryDockContent({
           onAddSticker={onAddSticker}
           onOpenSticker={onOpenTab}
           canPlace={Boolean(place)}
+          canMusic={Boolean(music)}
           full={elements.filter(isLiveElement).length >= STORY_STICKER_MAX}
         />
       )}
@@ -215,6 +221,15 @@ export default function StoryDockContent({
           placeName={place.name}
           onOpenPlace={place.onOpen}
           onStory={elements.some((el) => el.type === 'location')}
+          onAdd={onAddElement}
+        />
+      )}
+
+      {!selectedElementId && activeTab === 'music' && music && (
+        <StoryMusicPanel
+          track={music.track}
+          onOpenMusic={music.onOpen}
+          onStory={elements.some((el) => el.type === 'music')}
           onAdd={onAddElement}
         />
       )}
