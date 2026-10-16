@@ -86,12 +86,18 @@ export class MediaReconciliationService {
 
     // 3. Stories
     const stories = await this.prisma.story.findMany({
-      select: { url: true, standardUrl: true, thumbnailUrl: true },
+      select: {
+        url: true,
+        standardUrl: true,
+        thumbnailUrl: true,
+        overlayUrl: true,
+      },
     });
     for (const s of stories) {
       addRef(s.url);
       addRef(s.standardUrl);
       addRef(s.thumbnailUrl);
+      addRef(s.overlayUrl);
     }
 
     // 4. Messages (attachments)

@@ -299,4 +299,21 @@ describe('LocalStorageProvider', () => {
       ).rejects.toThrow('Read failed');
     });
   });
+
+  describe('ownsUrl', () => {
+    it('takes only the files its uploads name', () => {
+      expect(
+        provider.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4'),
+      ).toBe(true);
+      for (const url of [
+        '/uploads/../../etc/passwd',
+        '/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d/master.m3u8',
+        '/uploads/clip.mp4',
+        'https://evil.example/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        '//evil.example/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(false);
+      }
+    });
+  });
 });

@@ -100,6 +100,12 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
+  ownsUrl(url: string): boolean {
+    return /^\/uploads\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$/i.test(
+      url,
+    );
+  }
+
   async delete(url: string): Promise<void> {
     try {
       const filename = path.basename(url);

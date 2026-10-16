@@ -391,4 +391,32 @@ describe('S3Provider', () => {
       expect(bin?.contentType).toBe('application/octet-stream');
     });
   });
+
+  describe('ownsUrl', () => {
+    it('takes only the files its uploads name, behind its CDN or its bucket', () => {
+      expect(
+        provider.ownsUrl(
+          'https://cdn.example.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        ),
+      ).toBe(true);
+      for (const url of [
+        'https://cdn.example.com/other/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        'https://cdn.example.com/circlesfera/../3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        'https://cdn.example.com.evil.example/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        'https://test-bucket.s3.us-east-1.amazonaws.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(false);
+      }
+
+      const bucketOnly = new S3Provider({
+        getOrThrow: vi.fn((k: string) => ({ ...mockConfig, CDN_URL: '' })[k]),
+        get: vi.fn((k: string) => ({ ...mockConfig, CDN_URL: '' })[k]),
+      } as any);
+      expect(
+        bucketOnly.ownsUrl(
+          'https://test-bucket.s3.us-east-1.amazonaws.com/circlesfera/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.mp4',
+        ),
+      ).toBe(true);
+    });
+  });
 });

@@ -72,6 +72,7 @@ describe('MediaReconciliationService', () => {
         url: '/uploads/story.mp4',
         standardUrl: null,
         thumbnailUrl: '/uploads/story_thumb.jpg',
+        overlayUrl: '/uploads/story_layer.png',
       },
     ]);
     mockPrisma.message.findMany.mockResolvedValue([
@@ -88,6 +89,8 @@ describe('MediaReconciliationService', () => {
     expect(keys.has('/uploads/avatar.jpg')).toBe(true);
     expect(keys.has('/uploads/cover.jpg')).toBe(true);
     expect(keys.has('/uploads/story.mp4')).toBe(true);
+    // A layer still waiting to be joined is not an orphan.
+    expect(keys.has('/uploads/story_layer.png')).toBe(true);
     expect(keys.has('/uploads/chat_file.pdf')).toBe(true);
     expect(keys.has('/uploads/song.mp3')).toBe(true);
     expect(keys.has('/uploads/song_thumb.jpg')).toBe(true);

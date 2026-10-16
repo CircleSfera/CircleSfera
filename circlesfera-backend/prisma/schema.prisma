@@ -644,6 +644,9 @@ model Story {
   standardUrl  String? // New: Optimized variant
   thumbnailUrl String? // New: Optimized variant
   mediaType    String   @default("image") // image or video
+  /// The painted layer of a video story (text, emoji, drawing) while it waits
+  /// to be joined to its video; empty once joined.
+  overlayUrl   String?
   expiresAt    DateTime
   createdAt    DateTime @default(now())
 

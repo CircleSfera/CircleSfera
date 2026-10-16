@@ -100,11 +100,15 @@ describe('MaintenanceService', () => {
           id: 's-1',
           url: 'https://cdn.example.com/story.jpg',
           thumbnailUrl: 'https://cdn.example.com/story_thumb.jpg',
+          overlayUrl: 'https://cdn.example.com/story_layer.png',
         },
       ]);
       mockPrismaService.story.delete.mockResolvedValue({ id: 's-1' });
 
       await service.cleanupExpiredStories();
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/story_layer.png',
+      );
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/story.jpg',
       );

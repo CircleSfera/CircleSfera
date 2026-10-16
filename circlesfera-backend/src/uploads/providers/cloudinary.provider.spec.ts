@@ -232,4 +232,23 @@ describe('CloudinaryProvider', () => {
       consoleErrorSpy.mockRestore();
     });
   });
+
+  describe('ownsUrl', () => {
+    it('takes only the files its uploads name, in its own account', () => {
+      for (const url of [
+        'https://res.cloudinary.com/test-cloud/video/upload/v1700000000/circlesfera/abc_12-x.mp4',
+        'https://res.cloudinary.com/test-cloud/image/upload/circlesfera/abc.png',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(true);
+      }
+      for (const url of [
+        'https://res.cloudinary.com/other-cloud/video/upload/circlesfera/abc.mp4',
+        'https://res.cloudinary.com/test-cloud/video/upload/elsewhere/abc.mp4',
+        'https://res.cloudinary.com/test-cloud/video/upload/circlesfera/../abc.mp4',
+        'http://res.cloudinary.com/test-cloud/video/upload/circlesfera/abc.mp4',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(false);
+      }
+    });
+  });
 });

@@ -69,6 +69,16 @@ export class MaintenanceService {
                 ),
               );
           }
+          if (story.overlayUrl) {
+            await this.uploadsService
+              .deleteFile(story.overlayUrl)
+              .catch((e) =>
+                this.logger.warn(
+                  `Failed to delete story layer: ${story.overlayUrl}`,
+                  e,
+                ),
+              );
+          }
 
           // Delete DB record
           // (Cascade delete handles StoryView, StoryReaction via Prisma schema if configured)

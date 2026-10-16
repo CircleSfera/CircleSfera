@@ -34,6 +34,14 @@ export interface TranscodeJobData {
 }
 
 // Service for file upload and deletion. Delegates to a pluggable StorageProvider.
+/** Retries and how long a video job is kept, done or failed. */
+const VIDEO_JOB_RETRIES = {
+  attempts: 3,
+  backoff: { type: 'exponential', delay: 5000 },
+  removeOnComplete: { count: 100, age: 24 * 3600 },
+  removeOnFail: { count: 100, age: 7 * 24 * 3600 },
+} as const;
+
 @Injectable()
 export class UploadsService {
   private readonly logger = new Logger(UploadsService.name);
@@ -181,35 +189,10 @@ export class UploadsService {
       });
 
       if (file.mimetype.startsWith('video/')) {
-        const baseName = path.basename(result.url, path.extname(result.url));
-        const deterministicJobId = queueJobId('transcode', baseName);
-        this.logger.log(
-          `Enqueuing video for HLS transcoding: ${result.url} (user: ${userId ?? 'anonymous'}, jobId: ${deterministicJobId})`,
-        );
-        await this.videoQueue.add(
-          'transcode',
-          {
-            url: result.url,
-            originalname: file.originalname,
-            userId,
-          },
-          {
-            jobId: deterministicJobId,
-            attempts: 3,
-            backoff: {
-              type: 'exponential',
-              delay: 5000,
-            },
-            removeOnComplete: {
-              count: 100,
-              age: 24 * 3600,
-            },
-            removeOnFail: {
-              count: 100,
-              age: 7 * 24 * 3600,
-            },
-          },
-        );
+        await this.enqueueTranscode(result.url, {
+          originalname: file.originalname,
+          userId,
+        });
       }
 
       return result;
@@ -219,6 +202,40 @@ export class UploadsService {
       );
       throw error;
     }
+  }
+
+  /** Makes the stream and the cover of a stored video, once per file. */
+  async enqueueTranscode(
+    url: string,
+    from: { originalname?: string; userId?: string } = {},
+  ): Promise<void> {
+    const baseName = path.basename(url, path.extname(url));
+    const deterministicJobId = queueJobId('transcode', baseName);
+    this.logger.log(
+      `Enqueuing video for HLS transcoding: ${url} (user: ${from.userId ?? 'anonymous'}, jobId: ${deterministicJobId})`,
+    );
+    await this.videoQueue.add(
+      'transcode',
+      { url, originalname: from.originalname, userId: from.userId },
+      {
+        jobId: deterministicJobId,
+        ...VIDEO_JOB_RETRIES,
+      },
+    );
+  }
+
+  /** Joins the painted layer of a video story to its video, once per story. */
+  async enqueueStoryOverlay(storyId: string): Promise<void> {
+    await this.videoQueue.add(
+      'story-overlay',
+      { storyId },
+      { jobId: queueJobId('story-overlay', storyId), ...VIDEO_JOB_RETRIES },
+    );
+  }
+
+  /** Whether an address is of a file this server's storage keeps. */
+  ownsUrl(url: string): boolean {
+    return this.storageProvider.ownsUrl?.(url) ?? false;
   }
 
   // Delete a file from the storage provider by its URL.
