@@ -700,11 +700,7 @@ model Story {
 
   scheduledAt     DateTime?
   scheduledStatus ScheduledPostStatus @default(PUBLISHED)
-  // Polls and questions of stories are stickers since the story editor
-  // redesign; these two stay for stories published before, and are no
-  // longer read for stories.
-  poll            Poll?
-  qnaBox          QnaBox?
+  // Polls and questions of a story are stickers of it.
   stickers        StorySticker[]
 
   @@index([profileId, expiresAt])
@@ -1045,25 +1041,15 @@ model LiveGift {
 // === Interactive
 // =============================================================================
 
+/// The poll of a post. A story's poll is a sticker of the story.
 model Poll {
   id        String   @id @default(uuid())
   postId    String?  @unique
-  storyId   String?  @unique
   question  String
   options   String[]
   createdAt DateTime @default(now())
 
-  // Where the creator placed the sticker on a story: the centre as a share of
-  // the story's width and height from its middle, the scale and the angle in
-  // degrees. Empty on a post, and on stories published before the place was
-  // kept; viewers then show it across the bottom.
-  stickerX        Float?
-  stickerY        Float?
-  stickerScale    Float?
-  stickerRotation Float?
-
-  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   votes PollVote[]
 
@@ -1151,24 +1137,14 @@ model PollVote {
   @@map("poll_votes")
 }
 
+/// The question box of a post. A story's question is a sticker of the story.
 model QnaBox {
   id        String   @id @default(uuid())
   postId    String?  @unique
-  storyId   String?  @unique
   prompt    String
   createdAt DateTime @default(now())
 
-  // Where the creator placed the sticker on a story: the centre as a share of
-  // the story's width and height from its middle, the scale and the angle in
-  // degrees. Empty on a post, and on stories published before the place was
-  // kept; viewers then show it across the bottom.
-  stickerX        Float?
-  stickerY        Float?
-  stickerScale    Float?
-  stickerRotation Float?
-
-  post  Post?  @relation(fields: [postId], references: [id], onDelete: Cascade)
-  story Story? @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  post Post? @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   answers QnaAnswer[]
 
