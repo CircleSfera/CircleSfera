@@ -655,7 +655,8 @@ describe('MaintenanceService', () => {
 
       await service.recoverStoryOverlays();
 
-      const { where } = mockPrismaService.story.findMany.mock.calls.at(-1)?.[0];
+      const [[{ where }]] =
+        mockPrismaService.story.findMany.mock.calls.slice(-1);
       expect(where.overlayUrl).toEqual({ not: null });
       expect(before - where.createdAt.lt.getTime()).toBeGreaterThanOrEqual(
         10 * 60 * 1000 - 50,
