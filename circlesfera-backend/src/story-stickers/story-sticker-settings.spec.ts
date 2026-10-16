@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   parseStickerSettings,
   publicSettings,
@@ -81,7 +81,14 @@ describe('what each sticker holds', () => {
 });
 
 describe('what a countdown holds', () => {
-  const ahead = (ms: number) => new Date(Date.now() + ms).toISOString();
+  // A fixed clock, so the limits are measured from one known moment.
+  const now = new Date('2026-10-16T12:00:00.000Z');
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+  afterEach(() => vi.useRealTimers());
+  const ahead = (ms: number) => new Date(now.getTime() + ms).toISOString();
 
   it('keeps its title, trimmed, and when it ends', () => {
     const endsAt = ahead(3_600_000);
