@@ -670,6 +670,26 @@ describe('StoryViewer', () => {
     });
   });
 
+  it('shows what was painted over a video story until the server joins them', () => {
+    show([
+      story('s1', {
+        mediaType: 'video',
+        url: 'https://media.test/s1.mp4',
+        overlayUrl: 'https://media.test/s1-layer.avif',
+      }),
+    ]);
+
+    const frame = screen.getByTestId('story-layered');
+    expect(frame.querySelector('[data-testid="story-video"]')).toHaveAttribute(
+      'data-src',
+      'https://media.test/s1.mp4',
+    );
+    expect(frame.querySelector('img')).toHaveAttribute(
+      'src',
+      'https://media.test/s1-layer.avif',
+    );
+  });
+
   it('plays a video story in the player', () => {
     show([
       story('s1', { mediaType: 'video', url: 'https://media.test/s1.mp4' }),
@@ -680,6 +700,8 @@ describe('StoryViewer', () => {
       'data-src',
       'https://media.test/s1.mp4',
     );
+    // Joined, or never painted: the video alone.
+    expect(screen.queryByTestId('story-layered')).not.toBeInTheDocument();
   });
 
   it('switches the sound and closes from the header', async () => {

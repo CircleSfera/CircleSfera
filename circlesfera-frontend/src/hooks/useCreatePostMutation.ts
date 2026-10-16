@@ -48,6 +48,8 @@ interface MutationDeps {
   storyElements: StoryElement[];
   /** The canvas the story elements were placed on, once composed. */
   storyCanvasSize: StoryCanvasSize | null;
+  /** What is painted over a video story, joined to it by the server. */
+  storyOverlay?: File | null;
   mediaFiles: MediaFile[];
   altTextMap: Record<number, string>;
   tagsMap: Record<number, PostTagData[]>;
@@ -196,6 +198,22 @@ export function useCreatePostMutation(deps: MutationDeps) {
           deps.storyElements,
           deps.storyCanvasSize,
         );
+        // A video keeps its video: what is painted over it goes as a layer.
+        const overlayUrl =
+          deps.storyOverlay && uploadedMedia[0]?.type === 'video'
+            ? (
+                await deps.uploadFiles(
+                  [
+                    {
+                      file: deps.storyOverlay,
+                      url: URL.createObjectURL(deps.storyOverlay),
+                      type: 'image',
+                    },
+                  ],
+                  {},
+                )
+              )[0].url
+            : undefined;
         await Promise.all(
           finalMediaFiles.map((_, idx) =>
             createStoryMutation.mutateAsync({
@@ -214,6 +232,7 @@ export function useCreatePostMutation(deps: MutationDeps) {
                 ? new Date(deps.scheduledAt).toISOString()
                 : undefined,
               ...(idx === 0 && stickers.length > 0 ? { stickers } : {}),
+              ...(idx === 0 && overlayUrl ? { overlayUrl } : {}),
             }),
           ),
         );

@@ -110,6 +110,8 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
           {p.backgroundUrl &&
             (p.background?.type.startsWith('video/') ? (
               <video
+                // The video is shared as itself, not painted into the layer.
+                data-export-ignore="true"
                 src={p.backgroundUrl}
                 crossOrigin={
                   p.backgroundUrl.startsWith('blob:') ||
@@ -122,12 +124,6 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
                 loop
                 muted
                 playsInline
-                style={{
-                  filter:
-                    p.bgBlur > 0 || p.bgDarken > 0
-                      ? `blur(${p.bgBlur}px) brightness(${100 - p.bgDarken}%)`
-                      : undefined,
-                }}
               />
             ) : (
               <img

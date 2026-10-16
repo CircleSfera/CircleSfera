@@ -425,7 +425,32 @@ export default function StoryViewer({
             {(() => {
               const { className, style } = parseFilter(currentStory.filter);
               const lockClass = isLocked ? 'blur-2xl scale-110' : '';
-              return currentStory.mediaType === 'video' ? (
+              return currentStory.mediaType === 'video' &&
+                currentStory.overlayUrl ? (
+                // Until the server joins them, what was painted shows over the
+                // video, both in the story's 9:16 frame as the editor had them.
+                <div className="absolute inset-0 z-10 overflow-hidden flex items-center justify-center [container-type:size]">
+                  <div
+                    data-testid="story-layered"
+                    className={`relative shrink-0 aspect-9/16 w-[max(100cqw,calc(100cqh*9/16))] ${lockClass}`}
+                  >
+                    <HlsVideoPlayer
+                      src={currentStory.url}
+                      hlsUrl={currentStory.standardUrl || undefined}
+                      className={`absolute inset-0 w-full h-full object-cover pointer-events-auto ${className}`}
+                      style={style}
+                      autoPlay={!isLocked}
+                      muted
+                      playsInline
+                    />
+                    <img
+                      src={currentStory.overlayUrl}
+                      alt=""
+                      className="absolute inset-0 w-full h-full pointer-events-none"
+                    />
+                  </div>
+                </div>
+              ) : currentStory.mediaType === 'video' ? (
                 <HlsVideoPlayer
                   src={currentStory.url}
                   hlsUrl={currentStory.standardUrl || undefined}

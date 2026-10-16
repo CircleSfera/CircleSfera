@@ -102,6 +102,8 @@ export function useCreatePostState() {
     useState<StoryCanvasSize | null>(null);
   const [storyBgStyle, setStoryBgStyle] = useState<string>('');
   const [isComposed, setIsComposed] = useState(false);
+  // What is painted over a video story, joined to the video by the server.
+  const [storyOverlay, setStoryOverlay] = useState<File | null>(null);
   const [originalStoryMedia, setOriginalStoryMedia] = useState<{
     file: File;
     url: string;
@@ -157,6 +159,8 @@ export function useCreatePostState() {
     setStoryBgStyle,
     isComposed,
     setIsComposed,
+    storyOverlay,
+    setStoryOverlay,
     originalStoryMedia,
     setOriginalStoryMedia,
   };

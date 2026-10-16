@@ -27,6 +27,7 @@ interface StoryComposerShellChromeProps {
   brushColor: string;
   bgStyle: string;
   backgroundUrl: string | null;
+  backgroundIsVideo: boolean;
   bgBlur: number;
   bgDarken: number;
   activeStickerCategory: number;
@@ -94,6 +95,7 @@ export default function StoryComposerShellChrome(
               brushColor={p.brushColor}
               bgStyle={p.bgStyle}
               backgroundUrl={p.backgroundUrl}
+              backgroundIsVideo={p.backgroundIsVideo}
               bgBlur={p.bgBlur}
               bgDarken={p.bgDarken}
               activeStickerCategory={p.activeStickerCategory}

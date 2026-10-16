@@ -9,7 +9,7 @@ import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
 import { parseFilter } from '../../utils/styleUtils';
 import BrandAmbientBackground from '../common/BrandAmbientBackground';
 import type { PhotoEditorTab } from '../photo-editor/photoEditor.types';
-import type { StoryCanvasSize } from '../story/storyComposer.export';
+import { hasPaint, type StoryCanvasSize } from '../story/storyComposer.export';
 import type { StoryAudience } from '../story/storyShare.types';
 import { useComposer } from './ComposerContext';
 import { CREATE_FULL_SCREEN, createThumbRatio } from './createStyles';
@@ -41,6 +41,7 @@ export default function EditorOverlayManager({
     setMediaFiles,
     setIsComposed,
     setStep,
+    setStoryOverlay,
     originalStoryMedia,
     setOriginalStoryMedia,
     storyElements,
@@ -98,11 +99,26 @@ export default function EditorOverlayManager({
     blob: Blob,
     canvas: StoryCanvasSize,
     audience?: StoryAudience,
+    video?: File | null,
   ) => {
     setStoryCanvasSize(canvas);
-    const file = new File([blob], 'story_composed.png', { type: 'image/png' });
-    const url = URL.createObjectURL(file);
-    setMediaFiles([{ file, url, type: 'image' }]);
+    let file: File;
+    if (video) {
+      // A video story stays a video; what is painted over it goes as a layer,
+      // and only when something is.
+      const layer = new File([blob], 'story_layer.png', { type: 'image/png' });
+      setStoryOverlay((await hasPaint(blob).catch(() => true)) ? layer : null);
+      file = video;
+      if (mediaFiles[0]?.file !== video) {
+        setMediaFiles([
+          { file: video, url: URL.createObjectURL(video), type: 'video' },
+        ]);
+      }
+    } else {
+      setStoryOverlay(null);
+      file = new File([blob], 'story_composed.png', { type: 'image/png' });
+      setMediaFiles([{ file, url: URL.createObjectURL(file), type: 'image' }]);
+    }
     setIsComposed(true);
     if (audience) {
       // Shared from the editor: it stays open, busy, until the story is up.

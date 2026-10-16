@@ -193,9 +193,9 @@ export default function ContentComposerPage() {
       isStoryMode &&
       step === 'edit' &&
       mediaFiles.length > 0 &&
-      !isComposed &&
-      mediaFiles[0].type === 'image'
+      !isComposed
     ) {
+      // A photo or a video: both open in the story editor.
       setShowStoryComposer(true);
     }
   }, [isStoryMode, step, mediaFiles, isComposed]);

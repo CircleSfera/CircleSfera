@@ -9,6 +9,8 @@ import { GRADIENTS } from '../storyComposer.constants';
 export interface StoryBackgroundPanelProps {
   bgStyle: string;
   backgroundUrl: string | null;
+  /** A video keeps its own look: no blur or darkening on it. */
+  backgroundIsVideo?: boolean;
   bgBlur: number;
   bgDarken: number;
   onUploadBackground: (e: MouseEvent<HTMLButtonElement>) => void;
@@ -20,6 +22,7 @@ export interface StoryBackgroundPanelProps {
 export default function StoryBackgroundPanel({
   bgStyle,
   backgroundUrl,
+  backgroundIsVideo = false,
   bgBlur,
   bgDarken,
   onUploadBackground,
@@ -75,7 +78,7 @@ export default function StoryBackgroundPanel({
           />
         ))}
       </div>
-      {backgroundUrl && (
+      {backgroundUrl && !backgroundIsVideo && (
         <div className="space-y-0 rounded-2xl border border-white/8 bg-white/3 px-3 py-1">
           <SliderControl
             icon={SunDim}
