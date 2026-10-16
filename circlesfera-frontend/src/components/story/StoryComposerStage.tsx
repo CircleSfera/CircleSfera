@@ -8,7 +8,7 @@ import { StoryCanvas, type StoryCanvasRef } from './Editor/StoryCanvas';
 import StoryBin from './StoryBin';
 import StorySafeGuides from './StorySafeGuides';
 import StoryTextTakeoverEditor from './StoryTextTakeoverEditor';
-import type { StoryComposerTab } from './storyComposer.types';
+import type { StoryBrush, StoryComposerTab } from './storyComposer.types';
 import { useStoryGestures } from './useStoryGestures';
 
 export interface StoryComposerStageProps {
@@ -27,6 +27,7 @@ export interface StoryComposerStageProps {
   bgDarken: number;
   brushColor: string;
   brushWidth: number;
+  brush: StoryBrush;
   activeTab: StoryComposerTab;
   elements: StoryElement[];
   selectedElementId: string | null;
@@ -151,6 +152,7 @@ export default function StoryComposerStage(p: StoryComposerStageProps) {
             isDrawingMode={p.activeTab === 'draw'}
             brushColor={p.brushColor}
             brushWidth={p.brushWidth}
+            brush={p.brush}
           />
 
           {p.bgDarken > 0 && !p.backgroundUrl && (

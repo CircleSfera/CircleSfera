@@ -7,7 +7,11 @@ import StoryDockContent from './panels/StoryDockContent';
 import StoryPanelSheet from './StoryPanelSheet';
 import StoryShareRow from './StoryShareRow';
 import type { StoryTemplate } from './storyComposer.constants';
-import type { PanelTab, StoryComposerTab } from './storyComposer.types';
+import type {
+  PanelTab,
+  StoryBrush,
+  StoryComposerTab,
+} from './storyComposer.types';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 
 interface StoryComposerShellChromeProps {
@@ -25,6 +29,7 @@ interface StoryComposerShellChromeProps {
   storyCanvasRef: RefObject<StoryCanvasRef | null>;
   brushWidth: number;
   brushColor: string;
+  brush: StoryBrush;
   bgStyle: string;
   backgroundUrl: string | null;
   backgroundIsVideo: boolean;
@@ -43,6 +48,7 @@ interface StoryComposerShellChromeProps {
   setSelectedElementId: (id: string | null) => void;
   setBrushWidth: (n: number) => void;
   setBrushColor: (c: string) => void;
+  setBrush: (b: StoryBrush) => void;
   handleUploadBackground: (e?: {
     preventDefault?: () => void;
   }) => void | Promise<void>;
@@ -93,6 +99,7 @@ export default function StoryComposerShellChrome(
               storyCanvasRef={p.storyCanvasRef}
               brushWidth={p.brushWidth}
               brushColor={p.brushColor}
+              brush={p.brush}
               bgStyle={p.bgStyle}
               backgroundUrl={p.backgroundUrl}
               backgroundIsVideo={p.backgroundIsVideo}
@@ -111,6 +118,7 @@ export default function StoryComposerShellChrome(
               onSelectedElementIdChange={p.setSelectedElementId}
               onBrushWidthChange={p.setBrushWidth}
               onBrushColorChange={p.setBrushColor}
+              onBrushChange={p.setBrush}
               onUploadBackground={p.handleUploadBackground}
               onSelectGradient={p.handleSelectGradient}
               onBgBlurChange={p.setBgBlur}

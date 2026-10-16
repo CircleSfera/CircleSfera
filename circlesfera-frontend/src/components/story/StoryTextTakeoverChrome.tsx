@@ -12,24 +12,11 @@ import type { StoryElement } from '../../types';
 import StoryTextSizeSlider from './StoryTextSizeSlider';
 import StoryTextTypePanel from './StoryTextTypePanel';
 import { storyColorName } from './storyColorNames';
+import { STORY_COLORS } from './storyComposer.constants';
 import type { StoryFontOption } from './storyComposer.types';
 
 /** The colours of the text, each with a name for screen readers. */
-const TEXT_COLORS = [
-  '#FFFFFF',
-  '#000000',
-  '#ff3b30',
-  '#ff9500',
-  '#ffcc00',
-  '#34c759',
-  '#5ac8fa',
-  '#007aff',
-  '#5856d6',
-  '#af52de',
-  '#ff2d55',
-  '#a2845e',
-  '#884cff',
-] as const;
+const TEXT_COLORS = STORY_COLORS;
 
 type Align = 'left' | 'center' | 'right';
 const NEXT_ALIGN: Record<Align, Align> = {

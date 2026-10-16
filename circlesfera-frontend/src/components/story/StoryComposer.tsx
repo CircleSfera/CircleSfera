@@ -52,6 +52,7 @@ export default function StoryComposer(props: StoryComposerProps) {
         bgDarken={s.bgDarken}
         brushColor={s.brushColor}
         brushWidth={s.brushWidth}
+        brush={s.brush}
         activeTab={s.activeTab}
         elements={s.elements}
         selectedElementId={s.selectedElementId}
@@ -110,6 +111,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           storyCanvasRef={s.storyCanvasRef}
           brushWidth={s.brushWidth}
           brushColor={s.brushColor}
+          brush={s.brush}
           bgStyle={s.bgStyle}
           backgroundUrl={s.backgroundUrl}
           backgroundIsVideo={s.backgroundIsVideo}
@@ -128,6 +130,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           setSelectedElementId={s.setSelectedElementId}
           setBrushWidth={s.setBrushWidth}
           setBrushColor={s.setBrushColor}
+          setBrush={s.setBrush}
           handleUploadBackground={s.handleUploadBackground}
           handleSelectGradient={s.handleSelectGradient}
           setBgBlur={s.setBgBlur}

@@ -1,26 +1,51 @@
 import { motion } from 'framer-motion';
-import { ALargeSmall, RotateCcw, Trash2 } from 'lucide-react';
+import {
+  ALargeSmall,
+  Eraser,
+  Highlighter,
+  type LucideIcon,
+  PenLine,
+  RotateCcw,
+  Sparkles,
+  Trash2,
+} from 'lucide-react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import ColorPicker from '../ColorPicker';
 import type { StoryCanvasRef } from '../Editor/StoryCanvas';
 import SliderControl from '../SliderControl';
-import { DEFAULT_BRUSH_WIDTH } from '../storyComposer.constants';
+import {
+  BRUSH_WIDTH_MAX,
+  BRUSH_WIDTH_MIN,
+  DEFAULT_BRUSH_WIDTH,
+} from '../storyComposer.constants';
+import type { StoryBrush } from '../storyComposer.types';
+
+const BRUSHES: { id: StoryBrush; icon: LucideIcon }[] = [
+  { id: 'pen', icon: PenLine },
+  { id: 'marker', icon: Highlighter },
+  { id: 'neon', icon: Sparkles },
+  { id: 'eraser', icon: Eraser },
+];
 
 export interface StoryDrawPanelProps {
   storyCanvasRef: RefObject<StoryCanvasRef | null>;
   brushWidth: number;
   brushColor: string;
+  brush: StoryBrush;
   onBrushWidthChange: (width: number) => void;
   onBrushColorChange: (color: string) => void;
+  onBrushChange: (brush: StoryBrush) => void;
 }
 
 export default function StoryDrawPanel({
   storyCanvasRef,
   brushWidth,
   brushColor,
+  brush,
   onBrushWidthChange,
   onBrushColorChange,
+  onBrushChange,
 }: StoryDrawPanelProps) {
   const { t } = useTranslation();
 
@@ -56,26 +81,50 @@ export default function StoryDrawPanel({
           </button>
         </div>
       </div>
+      <fieldset className="flex gap-2">
+        <legend className="sr-only">
+          {t('createPost.storyComposer.brushes')}
+        </legend>
+        {BRUSHES.map(({ id, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onBrushChange(id)}
+            aria-pressed={brush === id}
+            className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border px-1 py-1.5 text-[11px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+              brush === id
+                ? 'border-white bg-white text-black'
+                : 'border-white/10 bg-white/6 text-white/80 hover:bg-white/10'
+            }`}
+          >
+            <Icon size={18} aria-hidden />
+            {t(`createPost.storyComposer.brush_${id}`)}
+          </button>
+        ))}
+      </fieldset>
       <SliderControl
         icon={ALargeSmall}
         label={t('createPost.storyComposer.brush_size')}
         value={brushWidth}
-        min={1}
-        max={30}
+        min={BRUSH_WIDTH_MIN}
+        max={BRUSH_WIDTH_MAX}
         step={1}
         unit="px"
         onChange={onBrushWidthChange}
         onDoubleClick={() => onBrushWidthChange(DEFAULT_BRUSH_WIDTH)}
       />
-      <div className="space-y-2">
-        <span className="text-xs font-bold text-white/35 uppercase tracking-[0.14em]">
-          {t('createPost.storyComposer.brush_color')}
-        </span>
-        <ColorPicker
-          selectedColor={brushColor}
-          onColorSelect={onBrushColorChange}
-        />
-      </div>
+      {/* The eraser has no colour. */}
+      {brush !== 'eraser' ? (
+        <div className="space-y-2">
+          <span className="text-xs font-bold text-white/35 uppercase tracking-[0.14em]">
+            {t('createPost.storyComposer.brush_color')}
+          </span>
+          <ColorPicker
+            selectedColor={brushColor}
+            onColorSelect={onBrushColorChange}
+          />
+        </div>
+      ) : null}
     </motion.div>
   );
 }
