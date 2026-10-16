@@ -1,9 +1,9 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FollowsService } from '../../follows/follows.service.js';
-import { MIN_TIP_CENTS } from '../constants/monetization.constants.js';
 import { MonetizationService } from '../../monetization/monetization.service.js';
 import { PaymentsService } from '../../payments/payments.service.js';
+import { MIN_TIP_CENTS } from '../constants/monetization.constants.js';
 
 describe('Transaction Boundaries and Concurrency Invariants', () => {
   describe('Monetization & Financial Ledger Invariants', () => {
