@@ -213,7 +213,6 @@ export class InteractiveService {
         question: dto.question.trim(),
         options,
         postId: dto.postId,
-        storyId: dto.storyId,
       },
     });
   }
@@ -301,7 +300,6 @@ export class InteractiveService {
       data: {
         prompt: dto.prompt.trim(),
         postId: dto.postId,
-        storyId: dto.storyId,
       },
     });
   }
@@ -403,33 +401,19 @@ export class InteractiveService {
 
     const poll = await this.prisma.poll.findUnique({
       where: { id: pollId },
-      include: {
-        votes: true,
-        story: { select: { profileId: true } },
-      },
+      include: { votes: true },
     });
 
-    if (!poll) {
+    // A poll is only as visible as the post it belongs to.
+    if (!poll?.postId) {
       throw AppException.NotFound(
         ErrorCode.INTERACTIVE_NOT_FOUND,
         'Poll not found',
       );
     }
+    await assertCanAccessPost(this.prisma, poll.postId, profileId);
 
-    // A poll is only as visible as the post or story it belongs to.
-    if (poll.postId) {
-      await assertCanAccessPost(this.prisma, poll.postId, profileId);
-    } else if (
-      poll.story &&
-      (await isBlockedEitherWay(this.prisma, profileId, poll.story.profileId))
-    ) {
-      throw AppException.NotFound(
-        ErrorCode.INTERACTIVE_NOT_FOUND,
-        'Poll not found',
-      );
-    }
-
-    return pollShape(poll, poll.votes, profileId);
+    return pollShape({ ...poll, storyId: null }, poll.votes, profileId);
   }
 
   // Submit an answer to a Q&A box ("Hazme una pregunta").
@@ -520,7 +504,6 @@ export class InteractiveService {
         id: true,
         prompt: true,
         post: { select: { profileId: true } },
-        story: { select: { profileId: true } },
       },
     });
 
@@ -531,7 +514,7 @@ export class InteractiveService {
       );
     }
 
-    const ownerProfileId = qnaBox.post?.profileId ?? qnaBox.story?.profileId;
+    const ownerProfileId = qnaBox.post?.profileId;
     const isOwner = !!viewerProfileId && viewerProfileId === ownerProfileId;
     if (!isOwner) {
       return {

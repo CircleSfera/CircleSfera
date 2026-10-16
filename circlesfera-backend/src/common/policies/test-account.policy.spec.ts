@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   assertRealMoneyAllowed,
   assertSameAudience,
+  filterToViewerAudience,
   isSameAudience,
   isTestViewer,
   sameAudienceProfileWhere,
@@ -63,6 +64,18 @@ describe('test-account policy', () => {
     await expect(
       assertSameAudience(db, { isTestAccount: false }, 'p-test'),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+});
+
+describe('filterToViewerAudience', () => {
+  it('gives back an empty list without reading anything', async () => {
+    const findMany = vi.fn();
+    const db = { user: { findMany } } as never;
+
+    await expect(
+      filterToViewerAudience(db, 'viewer', [], (item: string) => item),
+    ).resolves.toEqual([]);
+    expect(findMany).not.toHaveBeenCalled();
   });
 });
 

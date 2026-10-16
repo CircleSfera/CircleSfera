@@ -606,7 +606,14 @@ describe('InteractiveService', () => {
         id: 'poll-empty',
         question: 'Empty?',
         options: ['Yes', 'No'],
+        postId: 'post-1',
         votes: [],
+      });
+      mockPrismaService.post.findUnique.mockResolvedValue({
+        id: 'post-1',
+        profileId: 'user-1',
+        visibility: 'PUBLIC',
+        moderationStatus: 'VISIBLE',
       });
 
       const res = await service.getPoll('poll-empty');
@@ -615,35 +622,19 @@ describe('InteractiveService', () => {
       expect(res.userVoteIndex).toBeNull();
     });
 
-    it('hides a story poll from a viewer of the other audience', async () => {
+    it('finds no poll that belongs to no post: a story poll is a sticker', async () => {
       mockPrismaService.poll.findUnique.mockResolvedValueOnce({
-        id: 'poll-story',
+        id: 'poll-orphan',
         question: 'Q?',
         options: ['Yes'],
+        postId: null,
         votes: [],
-        story: { profileId: 'test-author' },
-      });
-      mockPrismaService.user.findMany.mockResolvedValueOnce([
-        { isTestAccount: true, profiles: [{ id: 'test-author' }] },
-        { isTestAccount: false, profiles: [{ id: 'real-viewer' }] },
-      ]);
-
-      await expect(
-        service.getPoll('poll-story', 'real-viewer'),
-      ).rejects.toThrow('Poll not found');
-    });
-
-    it('shows a story poll to a viewer who may see the story author', async () => {
-      mockPrismaService.poll.findUnique.mockResolvedValueOnce({
-        id: 'poll-story',
-        question: 'Q?',
-        options: ['Yes'],
-        votes: [],
-        story: { profileId: 'author' },
       });
 
-      const res = await service.getPoll('poll-story', 'viewer');
-      expect(res.totalVotes).toBe(0);
+      await expect(service.getPoll('poll-orphan', 'viewer')).rejects.toThrow(
+        'Poll not found',
+      );
+      expect(mockPrismaService.post.findUnique).not.toHaveBeenCalled();
     });
 
     it('throws NotFound when poll is missing', async () => {
@@ -705,11 +696,10 @@ describe('InteractiveService', () => {
         profile: null,
       },
     ];
-    const boxOnStory = {
+    const boxOnPost = {
       id: 'qna-1',
       prompt: 'Ask me anything',
-      post: null,
-      story: { profileId: 'owner-profile' },
+      post: { profileId: 'owner-profile' },
     };
 
     beforeEach(() => {
@@ -728,7 +718,7 @@ describe('InteractiveService', () => {
     ])(
       'gives %s the question and no answer, without reading the answers',
       async (_who, viewer) => {
-        mockPrismaService.qnaBox.findUnique.mockResolvedValue(boxOnStory);
+        mockPrismaService.qnaBox.findUnique.mockResolvedValue(boxOnPost);
 
         const res = await service.getQnaBox('qna-1', viewer);
 
@@ -744,8 +734,8 @@ describe('InteractiveService', () => {
 
     it('gives no answer when the box has no owner to compare with', async () => {
       mockPrismaService.qnaBox.findUnique.mockResolvedValue({
-        ...boxOnStory,
-        story: null,
+        ...boxOnPost,
+        post: null,
       });
 
       const res = await service.getQnaBox('qna-1', 'owner-profile');
@@ -754,44 +744,35 @@ describe('InteractiveService', () => {
       expect(mockPrismaService.qnaAnswer.findMany).not.toHaveBeenCalled();
     });
 
-    it.each([
-      ['a story', { post: null, story: { profileId: 'owner-profile' } }],
-      ['a post', { post: { profileId: 'owner-profile' }, story: null }],
-    ])(
-      'gives the owner of %s every answer, newest first, with who gave it',
-      async (_where, owner) => {
-        mockPrismaService.qnaBox.findUnique.mockResolvedValue({
-          ...boxOnStory,
-          ...owner,
-        });
+    it('gives the owner of the post every answer, newest first, with who gave it', async () => {
+      mockPrismaService.qnaBox.findUnique.mockResolvedValue(boxOnPost);
 
-        const res = await service.getQnaBox('qna-1', 'owner-profile');
+      const res = await service.getQnaBox('qna-1', 'owner-profile');
 
-        expect(mockPrismaService.qnaAnswer.findMany).toHaveBeenCalledWith(
-          expect.objectContaining({
-            where: { qnaBoxId: 'qna-1' },
-            orderBy: { createdAt: 'desc' },
-          }),
-        );
-        expect(res.totalAnswers).toBe(2);
-        expect(res.answers[0]).toMatchObject({
-          id: 'ans-1',
-          answerText: 'Hello',
-          user: {
-            id: 'user-1',
-            username: 'alice',
-            fullName: 'Alice',
-            avatar: 'https://cdn/a.png',
-          },
-        });
-        // An answer whose profile is gone keeps a neutral name.
-        expect(res.answers[1].user).toEqual({
-          id: '',
-          username: 'usuario',
-          fullName: 'usuario',
-          avatar: null,
-        });
-      },
-    );
+      expect(mockPrismaService.qnaAnswer.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { qnaBoxId: 'qna-1' },
+          orderBy: { createdAt: 'desc' },
+        }),
+      );
+      expect(res.totalAnswers).toBe(2);
+      expect(res.answers[0]).toMatchObject({
+        id: 'ans-1',
+        answerText: 'Hello',
+        user: {
+          id: 'user-1',
+          username: 'alice',
+          fullName: 'Alice',
+          avatar: 'https://cdn/a.png',
+        },
+      });
+      // An answer whose profile is gone keeps a neutral name.
+      expect(res.answers[1].user).toEqual({
+        id: '',
+        username: 'usuario',
+        fullName: 'usuario',
+        avatar: null,
+      });
+    });
   });
 });
