@@ -37,8 +37,9 @@ export default function StoryComposer(props: StoryComposerProps) {
   return (
     <div
       className={`${CREATE_FULL_SCREEN} font-sans flex flex-col md:justify-center`}
+      data-testid="story-composer"
     >
-      <BrandAmbientBackground placement="editor" />
+      <BrandAmbientBackground placement="story" />
       <StoryComposerStage
         stagePadClass={s.stagePadClass}
         stageFitClass={s.stageFitClass}

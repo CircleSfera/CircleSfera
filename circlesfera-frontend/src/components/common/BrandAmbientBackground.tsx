@@ -4,10 +4,13 @@
 // `editor`: the same wash behind a full-window editor that starts where the
 // sidebar ends. It is placed as if it started at the window edge, so the
 // colours continue the ones of the page; phones keep the editor in black.
+// `story`: as `editor`, and on phones too, so the story camera and editor
+// show the brand's background around the story instead of black.
 const PLACEMENT = {
   page: 'fixed inset-0 z-[-1]',
   editor:
     'hidden md:block absolute inset-y-0 right-0 -left-17 xl:-left-65 -z-10',
+  story: 'absolute inset-y-0 right-0 left-0 md:-left-17 xl:-left-65 -z-10',
 } as const;
 
 export default function BrandAmbientBackground({
@@ -17,6 +20,7 @@ export default function BrandAmbientBackground({
 }) {
   return (
     <div
+      data-testid="brand-background"
       className={`${PLACEMENT[placement]} overflow-hidden bg-[var(--surface-base)] pointer-events-none`}
     >
       <div

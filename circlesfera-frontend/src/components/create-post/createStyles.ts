@@ -54,7 +54,8 @@ export const createThumbRatio = (mode: 'POST' | 'FRAME' | 'STORY') =>
  * A full-window editor (photo editor, frame trim, story composer). On a phone
  * it takes the whole screen in black. From tablet width it starts where the
  * sidebar ends, so the navigation stays in view, and it shows the app
- * background (see `BrandAmbientBackground` with `placement="editor"`).
+ * background (see `BrandAmbientBackground` with `placement="editor"`). The
+ * story camera and editor show that background on a phone too.
  */
 export const CREATE_FULL_SCREEN =
   'beside-sidebar fixed inset-0 z-50 overflow-hidden bg-black';
