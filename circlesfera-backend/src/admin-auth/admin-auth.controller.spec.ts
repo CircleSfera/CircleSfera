@@ -120,8 +120,11 @@ describe('AdminAuthController', () => {
     expect(mockService.stepUp).not.toHaveBeenCalled();
   });
 
-  it('logs in without admin credentials, sets cookies, and returns OK', async () => {
-    mockService.login.mockResolvedValue({ status: 'OK', tokens });
+  it('never opens a staff session at the password step: the second factor always follows', async () => {
+    mockService.login.mockResolvedValue({
+      status: 'MFA_REQUIRED',
+      mfaToken: 'mfa-token-1',
+    });
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin-auth/login')
@@ -129,21 +132,10 @@ describe('AdminAuthController', () => {
       .send({ email: 'admin@example.com', password: 'password1' })
       .expect(200);
 
-    expect(res.body).toEqual({
-      message: 'Login successful',
-      status: 'OK',
-    });
-    const cookies = setCookies(res);
-    expect(
-      cookies.some((c) =>
-        c.includes(`${ADMIN_ACCESS_TOKEN_COOKIE}=admin-access-test`),
-      ),
-    ).toBe(true);
-    expect(
-      cookies.some((c) =>
-        c.includes(`${ADMIN_REFRESH_TOKEN_COOKIE}=admin-refresh-test`),
-      ),
-    ).toBe(true);
+    expect(res.body.status).toBe('MFA_REQUIRED');
+    const cookies = setCookies(res).join('');
+    expect(cookies).not.toContain(`${ADMIN_ACCESS_TOKEN_COOKIE}=`);
+    expect(cookies).not.toContain(`${ADMIN_REFRESH_TOKEN_COOKIE}=`);
     expect(mockService.login).toHaveBeenCalledWith(
       'admin@example.com',
       'password1',

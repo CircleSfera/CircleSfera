@@ -79,21 +79,12 @@ export class AdminAuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @Throttle({ short: { limit: 20, ttl: 60000 } })
-  async login(
-    @Body() dto: AdminLoginDto,
-    @Req() req: Request,
-    @Res({ passthrough: true }) res: Response,
-  ) {
+  async login(@Body() dto: AdminLoginDto, @Req() req: Request) {
     const result = await this.adminAuthService.login(
       dto.email,
       dto.password,
       this.clientMeta(req),
     );
-
-    if (result.status === 'OK') {
-      this.setSessionCookies(res, result.tokens);
-      return { message: 'Login successful', status: 'OK' };
-    }
 
     if (result.status === 'MFA_SETUP_REQUIRED') {
       return {

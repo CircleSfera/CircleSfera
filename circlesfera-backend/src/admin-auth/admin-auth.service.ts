@@ -140,7 +140,6 @@ export class AdminAuthService {
         secret: string;
         qrCodeDataUrl: string;
       }
-    | { status: 'OK'; tokens: AdminTokenPair }
   > {
     const admin = await this.loadAdminByEmail(email);
 
@@ -190,7 +189,9 @@ export class AdminAuthService {
       data: { failedLoginCount: 0, lockedUntil: null },
     });
 
-    if (admin.mfaRequired && !admin.totpEnabled) {
+    // A second factor is mandatory for every member of staff. `mfaRequired`
+    // is not read: a staff identity with no authenticator is sent to enrol one.
+    if (!admin.totpEnabled) {
       // Keep an existing enrollment secret so re-login does not invalidate the authenticator.
       const secret = admin.totpSecret
         ? this.cryptoService.decrypt(admin.totpSecret)
@@ -228,20 +229,15 @@ export class AdminAuthService {
       };
     }
 
-    if (admin.mfaRequired && admin.totpEnabled) {
-      const mfaToken = this.signAdminToken(
-        {
-          sub: admin.id,
-          email: admin.email,
-          purpose: 'admin-mfa',
-        },
-        MFA_TOKEN_TTL,
-      );
-      return { status: 'MFA_REQUIRED', mfaToken };
-    }
-
-    const tokens = await this.issueSession(admin.id, admin.email, meta);
-    return { status: 'OK', tokens };
+    const mfaToken = this.signAdminToken(
+      {
+        sub: admin.id,
+        email: admin.email,
+        purpose: 'admin-mfa',
+      },
+      MFA_TOKEN_TTL,
+    );
+    return { status: 'MFA_REQUIRED', mfaToken };
   }
 
   async verifyMfa(
@@ -382,6 +378,17 @@ export class AdminAuthService {
     }
 
     await this.prisma.adminRefreshToken.delete({ where: { id: stored.id } });
+
+    // A session started before the second factor became mandatory, or by a
+    // staff member who is no longer active, is not renewed: they sign in again.
+    const admin = await this.prisma.adminIdentity.findUnique({
+      where: { id: payload.sub },
+      select: { status: true, totpEnabled: true },
+    });
+    if (admin?.status !== 'ACTIVE' || !admin.totpEnabled) {
+      throw new UnauthorizedException('Sign in again');
+    }
+
     return this.issueSession(payload.sub, payload.email, meta);
   }
 

@@ -473,8 +473,8 @@ describe('AdminAuthService', () => {
       status: 'ACTIVE',
       failedLoginCount: 0,
       lockedUntil: null,
-      mfaRequired: false,
-      totpEnabled: false,
+      mfaRequired: true,
+      totpEnabled: true,
       roles: [],
     };
 
@@ -489,7 +489,7 @@ describe('AdminAuthService', () => {
         {},
       );
 
-      expect(result.status).toBe('OK');
+      expect(result.status).toBe('MFA_REQUIRED');
       expect(mockPrisma.signIn.findUnique).toHaveBeenCalledWith(
         expect.objectContaining({ where: { email: 'admin@circlesfera.com' } }),
       );
@@ -579,7 +579,7 @@ describe('AdminAuthService', () => {
       }
     });
 
-    it('returns OK and issues tokens directly when MFA is not required', async () => {
+    it('sends a staff member with no authenticator to enrol one, even when mfaRequired is off', async () => {
       const passwordHash = await argon2.hash('admin-password');
       withSignInPassword(passwordHash);
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
@@ -589,6 +589,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         mfaRequired: false,
         totpEnabled: false,
+        totpSecret: null,
         roles: [],
       });
 
@@ -597,10 +598,32 @@ describe('AdminAuthService', () => {
         'admin-password',
         {},
       );
-      expect(result.status).toBe('OK');
-      if (result.status === 'OK') {
-        expect(result.tokens.accessToken).toBeDefined();
-      }
+      expect(result.status).toBe('MFA_SETUP_REQUIRED');
+      expect(result).not.toHaveProperty('tokens');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
+    });
+
+    it('asks for the second factor of an enrolled staff member, even when mfaRequired is off', async () => {
+      const passwordHash = await argon2.hash('admin-password');
+      withSignInPassword(passwordHash);
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        id: 'admin-1',
+        email: 'admin@circlesfera.com',
+        linkedUserId: 'user-1',
+        status: 'ACTIVE',
+        mfaRequired: false,
+        totpEnabled: true,
+        roles: [],
+      });
+
+      const result = await service.login(
+        'admin@circlesfera.com',
+        'admin-password',
+        {},
+      );
+      expect(result.status).toBe('MFA_REQUIRED');
+      expect(result).not.toHaveProperty('tokens');
+      expect(mockPrisma.adminRefreshToken.create).not.toHaveBeenCalled();
     });
   });
 
@@ -833,6 +856,10 @@ describe('AdminAuthService', () => {
         expiresAt: new Date(Date.now() + 100000),
       });
       mockPrisma.adminRefreshToken.delete = vi.fn().mockResolvedValue({});
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        status: 'ACTIVE',
+        totpEnabled: true,
+      });
 
       const result = await service.refresh(token, {
         ip: '127.0.0.1',
@@ -845,6 +872,34 @@ describe('AdminAuthService', () => {
       expect(result.accessToken).toBeDefined();
       expect(result.refreshToken).toBeDefined();
     });
+
+    it.each([
+      ['has no second factor enrolled', { status: 'ACTIVE', totpEnabled: false }],
+      ['is no longer active', { status: 'SUSPENDED', totpEnabled: true }],
+      ['no longer exists', null],
+    ])(
+      'refuses to renew a session when the staff member %s, and spends the token',
+      async (_label, admin) => {
+        const token = jwtService.sign(
+          { sub: 'admin-1', email: 'admin@circlesfera.com', jti: 'jti-1' },
+          { secret: adminSecret, audience: 'circlesfera-admin' },
+        );
+        mockPrisma.adminRefreshToken.findUnique.mockResolvedValue({
+          id: 'db-token-1',
+          adminId: 'admin-1',
+          expiresAt: new Date(Date.now() + 100000),
+        });
+        mockPrisma.adminRefreshToken.delete = vi.fn().mockResolvedValue({});
+        mockPrisma.adminIdentity.findUnique.mockResolvedValue(admin);
+
+        await expect(service.refresh(token, {})).rejects.toThrow(
+          'Sign in again',
+        );
+        expect(mockPrisma.adminRefreshToken.delete).toHaveBeenCalledWith({
+          where: { id: 'db-token-1' },
+        });
+      },
+    );
   });
 
   describe('logout, sessions, and stepUp', () => {
