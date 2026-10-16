@@ -489,7 +489,9 @@
       "push_desc": "Recibe notificaciones en la app",
       "push_notifications": "Notificaciones push",
       "update_error": "No se pudieron actualizar los ajustes",
-      "updated": "Ajustes actualizados"
+      "updated": "Ajustes actualizados",
+      "newsletter": "Newsletter de CircleSfera",
+      "newsletter_desc": "Novedades de CircleSfera por correo, de vez en cuando. Aparte de tus notificaciones."
     },
     "signIns": {
       "title": "Cómo entra cada perfil",
@@ -648,7 +650,9 @@
       "sign_in_link": "Entrar",
       "success": "¡Cuenta creada exitosamente! Por favor, revisa tu email para verificar tu cuenta.",
       "age_error": "Debes tener al menos 16 años para registrarte.",
-      "dob_required": "La fecha de nacimiento es obligatoria"
+      "dob_required": "La fecha de nacimiento es obligatoria",
+      "newsletter_notice": "Te enviaremos novedades de CircleSfera por correo de vez en cuando. Puedes darte de baja cuando quieras, desde Ajustes o desde cualquier newsletter.",
+      "newsletter_no": "No quiero recibir novedades de CircleSfera"
     },
     "verify": {
       "no_token": "Token de verificación no encontrado.",
@@ -5313,6 +5317,17 @@
       "forbidden": "No tienes permiso para hacer esto.",
       "not_found": "No hemos encontrado lo que buscas.",
       "unknown": "Algo ha fallado. Inténtalo de nuevo."
+    }
+  },
+  "newsletter": {
+    "unsubscribe": {
+      "title": "Darse de baja de la newsletter",
+      "body": "Dejarás de recibir la newsletter de CircleSfera. Los avisos sobre tu cuenta no cambian.",
+      "button": "Darme de baja",
+      "done_title": "Te has dado de baja",
+      "done_body": "Ya no recibirás la newsletter de CircleSfera. Puedes volver a activarla en Ajustes, Notificaciones.",
+      "error": "Este enlace no es válido. Puedes desactivar la newsletter en Ajustes, Notificaciones.",
+      "home": "Ir a CircleSfera"
     }
   }
 }

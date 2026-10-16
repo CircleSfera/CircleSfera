@@ -3,6 +3,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 import { EmailService } from '../email/email.service.js';
+import { NewsletterUnsubscribe } from '../email/newsletter-unsubscribe.js';
 import { helpdeskFor } from '../helpdesk/helpdesk.module.js';
 import { HelpdeskStore } from '../helpdesk/helpdesk.store.js';
 import { HelpdeskAgentController } from '../helpdesk/helpdesk-agent.controller.js';
@@ -38,6 +39,8 @@ describe('Help Desk wired to its CircleSfera host', () => {
       .overrideProvider(PrismaService)
       .useValue({})
       .overrideProvider(EmailService)
+      .useValue({})
+      .overrideProvider(NewsletterUnsubscribe)
       .useValue({})
       .compile();
 

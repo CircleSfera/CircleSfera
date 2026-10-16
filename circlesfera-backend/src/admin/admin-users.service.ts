@@ -47,8 +47,8 @@ export interface UserWithVerification {
   isTestAccount: boolean;
 }
 
-// Who a broadcast is sent to: active accounts that have not switched their
-// e-mail notices off.
+// Who a broadcast is sent to: active accounts whose newsletter preference is
+// on (an account with no settings row has the default, on).
 // The count and the send build it here, so the send goes to exactly who the
 // count counted. "With a plan" is a subscription that is active or in trial.
 export function broadcastAudienceWhere(
@@ -61,10 +61,7 @@ export function broadcastAudienceWhere(
   };
   return {
     isActive: true,
-    OR: [
-      { settings: { is: null } },
-      { settings: { emailNotifications: true } },
-    ],
+    OR: [{ settings: { is: null } }, { settings: { newsletter: true } }],
     ...(audience?.locale && { locale: audience.locale }),
     ...(audience?.plan === 'paying' && withPlan),
     ...(audience?.plan === 'free' && { NOT: withPlan }),
@@ -1217,6 +1214,7 @@ export class AdminUsersService {
               dto.content,
               dto.buttonText,
               dto.buttonUrl,
+              user.id,
             ),
           ),
         );

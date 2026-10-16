@@ -80,6 +80,8 @@ describe('Register', () => {
         inviteCode: 'INV1',
         visitorId: 'visitor-1',
         locale: 'en',
+        // Told about the newsletter and did not say no.
+        newsletter: true,
       }),
     );
     expect(useAuthStore.getState()).toMatchObject({
@@ -87,6 +89,30 @@ describe('Register', () => {
       profile: { id: 'p1' },
     });
     expect(toast.success).toHaveBeenCalled();
+  });
+
+  it('tells the person about the newsletter and sends their no', async () => {
+    vi.mocked(authApi.register).mockResolvedValue({} as never);
+    vi.mocked(profileApi.getMyProfile).mockResolvedValue({
+      data: { id: 'p1', username: 'ana' },
+    } as never);
+    const { i18n } = renderWithProviders(<Register />);
+
+    expect(
+      screen.getByText(i18n!.t('auth.register.newsletter_notice')),
+    ).toBeInTheDocument();
+    const no = screen.getByRole('checkbox', {
+      name: i18n!.t('auth.register.newsletter_no'),
+    });
+    expect(no).not.toBeChecked();
+    fireEvent.click(no);
+    fillForm(i18n!, yearsAgo(20));
+
+    await waitFor(() =>
+      expect(authApi.register).toHaveBeenCalledWith(
+        expect.objectContaining({ newsletter: false }),
+      ),
+    );
   });
 
   it('still goes to onboarding when the profile cannot be loaded yet', async () => {

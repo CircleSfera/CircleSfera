@@ -23,6 +23,7 @@ export default function Register() {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [noNewsletter, setNoNewsletter] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const [inviteCode, setInviteCode] = useState(
@@ -47,6 +48,7 @@ export default function Register() {
         captchaToken: captchaToken || undefined,
         visitorId,
         locale: toAppLocale(i18n.resolvedLanguage ?? i18n.language),
+        newsletter: !noNewsletter,
       });
     },
     onSuccess: async () => {
@@ -231,6 +233,23 @@ export default function Register() {
                 placeholder={t('auth.register.invite_placeholder')}
                 autoComplete="off"
               />
+            </div>
+
+            {/* The newsletter is sent under the existing-customer exception:
+                the person is told at sign-up and can say no here. */}
+            <div className="px-1">
+              <p className="text-xs text-gray-400 font-medium">
+                {t('auth.register.newsletter_notice')}
+              </p>
+              <label className="mt-1 flex min-h-11 cursor-pointer items-center gap-3 text-sm text-gray-300">
+                <input
+                  type="checkbox"
+                  checked={noNewsletter}
+                  onChange={(e) => setNoNewsletter(e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-brand-primary"
+                />
+                {t('auth.register.newsletter_no')}
+              </label>
             </div>
 
             <TurnstileWidget onToken={onCaptchaToken} />

@@ -12,6 +12,7 @@ import {
   EmailTemplates,
   type RenderedEmail,
 } from './email-templates.js';
+import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 
 export interface SendMailOptions {
   to: string;
@@ -19,6 +20,8 @@ export interface SendMailOptions {
   html: string;
   // Where an answer to this email goes, when it can be answered.
   replyTo?: string;
+  // Extra message headers (the unsubscribe headers of a newsletter).
+  headers?: Record<string, string>;
 }
 
 // Service for sending transactional emails (verification, password reset, welcome).
@@ -61,6 +64,8 @@ export class EmailService {
     @InjectQueue(QUEUE_NAMES.EMAIL_PROCESSING)
     private readonly emailQueue: Queue<SendMailOptions>,
     @Inject(PrismaService) private readonly prisma: PrismaService,
+    @Inject(NewsletterUnsubscribe)
+    private readonly newsletterUnsubscribe: NewsletterUnsubscribe,
   ) {
     const apiKey = this.configService.get<string>('BREVO_API_KEY');
     if (apiKey) {
@@ -101,12 +106,14 @@ export class EmailService {
     to: string,
     email: RenderedEmail,
     replyTo?: string,
+    headers?: Record<string, string>,
   ): Promise<void> {
     await this.queueMail({
       to,
       subject: email.subject,
       html: email.html,
       ...(replyTo && { replyTo }),
+      ...(headers && { headers }),
     });
   }
 
@@ -140,6 +147,10 @@ export class EmailService {
   }
 
   // Staff-written broadcast; the content may contain basic HTML.
+  // A newsletter. Sent to an account, it carries a link in its footer and
+  // the List-Unsubscribe headers (one click, RFC 8058) that leave the
+  // newsletter without signing in. A staff test copy has no account and
+  // carries neither.
   async sendBroadcastEmail(
     email: string,
     subject: string,
@@ -147,8 +158,12 @@ export class EmailService {
     content: string,
     buttonText?: string,
     buttonUrl?: string,
+    recipientUserId?: string,
   ) {
     const ctx = await this.contextFor(email);
+    const token = recipientUserId
+      ? encodeURIComponent(this.newsletterUnsubscribe.tokenFor(recipientUserId))
+      : undefined;
     await this.send(
       email,
       EmailTemplates.broadcast(
@@ -158,7 +173,15 @@ export class EmailService {
         content,
         buttonText,
         buttonUrl,
+        token && `${ctx.frontendUrl}/newsletter/unsubscribe?token=${token}`,
       ),
+      undefined,
+      token
+        ? {
+            'List-Unsubscribe': `<${ctx.frontendUrl}/api/v1/newsletter/unsubscribe?token=${token}>`,
+            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+          }
+        : undefined,
     );
   }
 
@@ -378,6 +401,7 @@ export class EmailService {
         sender: { email: fromEmail, name: fromName },
         to: [{ email: options.to }],
         ...(options.replyTo && { replyTo: { email: options.replyTo } }),
+        ...(options.headers && { headers: options.headers }),
       });
       this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
     } catch (error: unknown) {

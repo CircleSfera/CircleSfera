@@ -1,6 +1,7 @@
 import type { RegisterDto as IRegisterDto } from '@circlesfera/shared';
 import type { Locale } from '@prisma/client';
 import {
+  IsBoolean,
   IsDateString,
   IsEmail,
   IsIn,
@@ -46,4 +47,9 @@ export class RegisterDto implements IRegisterDto {
   @IsOptional()
   @IsIn(SUPPORTED_LOCALES)
   locale?: Locale;
+
+  // False when the person says no to the newsletter at sign-up.
+  @IsOptional()
+  @IsBoolean()
+  newsletter?: boolean;
 }

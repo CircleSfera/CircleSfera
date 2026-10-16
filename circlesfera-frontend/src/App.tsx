@@ -78,6 +78,9 @@ const Settings = lazy(() => import('./pages/Settings'));
 const TagFeed = lazy(() => import('./pages/TagFeed'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const NewsletterUnsubscribe = lazy(
+  () => import('./pages/NewsletterUnsubscribe'),
+);
 // Helper to redirect /profile to current user's profile
 
 // Component to redirect /profile to current user's profile
@@ -270,6 +273,10 @@ function App() {
           element={<SignupLegacyRedirect />}
         />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route
+          path="/newsletter/unsubscribe"
+          element={<NewsletterUnsubscribe />}
+        />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 

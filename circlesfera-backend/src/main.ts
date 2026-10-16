@@ -209,6 +209,9 @@ async function bootstrap(): Promise<void> {
       // The mail provider posts received email without cookies. The route
       // has no session and asks for its own secret token instead.
       normalizedPath === '/api/v1/helpdesk/inbound/email' ||
+      // A mail client's one-click unsubscribe posts without cookies. The
+      // route has no session and asks for the signed token of its link.
+      normalizedPath === '/api/v1/newsletter/unsubscribe' ||
       normalizedPath.includes('/socket.io');
 
     if (isExcluded) {

@@ -183,6 +183,10 @@ export class AuthService {
             fullName: dto.fullName || null,
           },
         },
+        // The newsletter is on unless the person said no at sign-up.
+        ...(dto.newsletter === false && {
+          settings: { create: { newsletter: false } },
+        }),
       },
       include: {
         profiles: true,

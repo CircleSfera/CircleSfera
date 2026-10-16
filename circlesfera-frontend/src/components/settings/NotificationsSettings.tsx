@@ -21,6 +21,7 @@ export default function NotificationsSettings() {
 
   const [pushNotifications, setPushNotifications] = useState(true);
   const [emailNotifications, setEmailNotifications] = useState(true);
+  const [newsletter, setNewsletter] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
   const togglingNativeRef = useRef(false);
 
@@ -34,6 +35,9 @@ export default function NotificationsSettings() {
         }
         if (settings.emailNotifications !== undefined) {
           setEmailNotifications(settings.emailNotifications);
+        }
+        if (settings.newsletter !== undefined) {
+          setNewsletter(settings.newsletter);
         }
         setSettingsLoaded(true);
       })
@@ -180,6 +184,20 @@ export default function NotificationsSettings() {
                       updateSetting('emailNotifications', e.target.checked);
                     }}
                     aria-label={t('settings.notifications.email_notifications')}
+                  />
+                }
+              />
+              <SettingsRow
+                label={t('settings.notifications.newsletter')}
+                description={t('settings.notifications.newsletter_desc')}
+                control={
+                  <Switch
+                    checked={newsletter}
+                    onChange={(e) => {
+                      setNewsletter(e.target.checked);
+                      updateSetting('newsletter', e.target.checked);
+                    }}
+                    aria-label={t('settings.notifications.newsletter')}
                   />
                 }
               />

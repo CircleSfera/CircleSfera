@@ -487,6 +487,7 @@ export class UsersService {
           contentPreference: dto.contentPreference as ContentRating,
           blurSensitiveContent: dto.blurSensitiveContent,
           emailNotifications: dto.emailNotifications,
+          newsletter: dto.newsletter,
           ...(dto.isOnboarded !== undefined && {
             isOnboarded: dto.isOnboarded,
           }),
@@ -497,6 +498,7 @@ export class UsersService {
             (dto.contentPreference as ContentRating) || ContentRating.GENERAL,
           blurSensitiveContent: dto.blurSensitiveContent ?? true,
           emailNotifications: dto.emailNotifications ?? true,
+          newsletter: dto.newsletter ?? true,
           isOnboarded: dto.isOnboarded ?? false,
         },
       });

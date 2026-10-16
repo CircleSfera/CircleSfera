@@ -12,6 +12,8 @@ export interface EmailCopy {
   replyable: string;
   buttonFallback: string;
   privacy: string;
+  // The footer link of a newsletter that leaves it in one step.
+  unsubscribe: string;
   welcome: { subject: string; title: string; body: string; button: string };
   verification: {
     subject: string;
@@ -72,6 +74,7 @@ const en: EmailCopy = {
   buttonFallback:
     'If the button does not work, copy and paste this link into your browser:',
   privacy: 'Privacy policy',
+  unsubscribe: 'Unsubscribe from the CircleSfera newsletter',
   welcome: {
     subject: 'Welcome to CircleSfera!',
     title: 'Welcome, {name}!',
@@ -166,6 +169,7 @@ const es: EmailCopy = {
   buttonFallback:
     'Si el botón no funciona, copia y pega este enlace en tu navegador:',
   privacy: 'Política de privacidad',
+  unsubscribe: 'Darse de baja de la newsletter de CircleSfera',
   welcome: {
     subject: '¡Bienvenido a CircleSfera!',
     title: '¡Bienvenido, {name}!',
