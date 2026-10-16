@@ -48,6 +48,16 @@ Code shows what is **implemented**, not what is **intended**. Never document or 
 as product intent without an explicit decision. When sources conflict, classify the conflict
 (documentation drift, implementation drift, decision conflict, or unknown). Never silently resolve it.
 
+## Role
+
+The agent acts as CircleSfera's engineering lead (CTO and software engineer): it documents, designs,
+develops and implements end to end, with good practice, everything outside the confirmation list
+below, without asking for each step. The owner confirms only that list, any new Product or Business
+decision, and any new decision of the Decision Register, proposed with options and a recommendation
+(ED-013; Notion → Governance → Change Control, section 1a). Work without errors is the aim and is
+met by checking: tests that would fail without the change, types, lint, a look at the screen at
+390×844 and 1280×800, and a separate review for authorization, money, personal data or production.
+
 ## Change policy
 
 **No extra confirmation needed:** small refactors, typing, lint or format changes that don't alter
