@@ -110,6 +110,30 @@ describe('what a countdown holds', () => {
   });
 });
 
+describe('what a link holds', () => {
+  it('keeps the address as the server writes it, its domain, and a short text', () => {
+    expect(
+      parseStickerSettings('LINK', {
+        url: 'https://Shop.example.com/x',
+        label: ' Mi tienda ',
+      }),
+    ).toEqual({
+      url: 'https://shop.example.com/x',
+      domain: 'shop.example.com',
+      label: 'Mi tienda',
+    });
+    expect(
+      parseStickerSettings('LINK', { url: 'https://example.com', label: '' }),
+    ).toEqual({ url: 'https://example.com/', domain: 'example.com' });
+    expect(() =>
+      parseStickerSettings('LINK', {
+        url: 'https://example.com',
+        label: 'x'.repeat(31),
+      }),
+    ).toThrow('label');
+  });
+});
+
 describe('what a viewer sees of a sticker', () => {
   const quiz = { question: 'Q', options: ['a', 'b'], correctIndex: 1 };
 

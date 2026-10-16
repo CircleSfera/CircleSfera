@@ -108,6 +108,7 @@ describe('StoriesService', () => {
             createForStory: vi.fn(async (): Promise<string[]> => []),
             forFeed: vi.fn((stickers: unknown[] = []) => stickers),
             mentionNames: vi.fn(async () => new Map()),
+            blockedLinkDomains: vi.fn(async () => new Set(['evil.example'])),
           },
         },
       ],
@@ -460,6 +461,35 @@ describe('StoriesService', () => {
   });
 
   describe('findAll', () => {
+    it('takes the links off a story while its author is banned or suspended, and passes the blocked domains', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      const later = new Date(Date.now() + 3_600_000);
+      mockPrismaService.story.findMany.mockResolvedValue([
+        { id: 's-ok', profileId: 'user-2', profile: { suspendedUntil: null } },
+        {
+          id: 's-ban',
+          profileId: 'user-2',
+          profile: { isAccountBanned: true },
+        },
+        {
+          id: 's-sus',
+          profileId: 'user-2',
+          profile: { suspendedUntil: later },
+        },
+      ]);
+      const stickers = module.get(StoryStickersService);
+
+      await service.findAll('user-1');
+
+      const passed = vi
+        .mocked(stickers.forFeed)
+        .mock.calls.map((call) => call[2]);
+      expect(passed.map((n) => n?.linksOff)).toEqual([false, true, true]);
+      expect(passed[0]?.blockedDomains).toEqual(new Set(['evil.example']));
+    });
+
     it('should return stories with visibility filters for authenticated user', async () => {
       const profileId = 'user-1';
       mockPrismaService.follow.findMany.mockResolvedValue([
@@ -543,10 +573,14 @@ describe('StoriesService', () => {
       expect(stickers.forFeed).toHaveBeenCalledWith([mention], false, {
         usernames,
         placeName: 'Madrid',
+        blockedDomains: expect.any(Set),
+        linksOff: false,
       });
       expect(stickers.forFeed).toHaveBeenCalledWith([], false, {
         usernames,
         placeName: null,
+        blockedDomains: expect.any(Set),
+        linksOff: false,
       });
     });
 

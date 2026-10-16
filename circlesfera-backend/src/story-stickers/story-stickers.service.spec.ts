@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { validateTargetUrl } from '../common/utils/ssrf.util.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
 import type { CreateStoryStickerDto } from './dto/story-sticker.dto.js';
 import { StoryStickersService } from './story-stickers.service.js';
+
+vi.mock('../common/utils/ssrf.util.js', () => ({
+  validateTargetUrl: vi.fn(async (url: string) => new URL(url)),
+}));
 
 const AUTHOR = 'author';
 const VIEWER = 'viewer';
@@ -30,6 +35,11 @@ function prismaMock() {
       createMany: vi.fn(),
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      count: vi.fn().mockResolvedValue(0),
+    },
+    blockedLinkDomain: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
     },
     storyStickerResponse: {
       count: vi.fn().mockResolvedValue(0),
@@ -673,6 +683,95 @@ describe('StoryStickersService', () => {
         await expect(service.announceEndedCountdowns(now)).resolves.toBe(0);
         expect(emitter.emit).not.toHaveBeenCalled();
       });
+    });
+  });
+
+  describe('a link', () => {
+    const link = (url = 'https://shop.example.com/x') =>
+      sticker({ kind: 'LINK', settings: { url } });
+    const create = (stickers: CreateStoryStickerDto[]) =>
+      service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        stickers,
+        null,
+      );
+
+    it('is saved when its domain is not blocked and resolves to public addresses', async () => {
+      await create([link()]);
+
+      expect(prisma.blockedLinkDomain.findFirst).toHaveBeenCalledWith({
+        where: { domain: { in: ['shop.example.com', 'example.com'] } },
+        select: { id: true },
+      });
+      expect(validateTargetUrl).toHaveBeenCalledWith(
+        'https://shop.example.com/x',
+        { requireHttps: true, allowedPorts: [443] },
+      );
+      expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            kind: 'LINK',
+            settings: {
+              url: 'https://shop.example.com/x',
+              domain: 'shop.example.com',
+            },
+          }),
+        ],
+      });
+    });
+
+    it('is refused under a blocked domain, or when it resolves to a private address', async () => {
+      prisma.blockedLinkDomain.findFirst.mockResolvedValueOnce({ id: 'b' });
+      await expect(create([link()])).rejects.toThrow('LINK_DOMAIN_BLOCKED');
+
+      vi.mocked(validateTargetUrl).mockRejectedValueOnce(new Error('private'));
+      await expect(create([link()])).rejects.toThrow('LINK_HOST_NOT_ALLOWED');
+      expect(prisma.storySticker.createMany).not.toHaveBeenCalled();
+    });
+
+    it('goes once per story, and up to ten a day per profile', async () => {
+      await expect(create([link(), link()])).rejects.toThrow(
+        'ONE_LINK_STICKER_PER_STORY',
+      );
+
+      prisma.storySticker.count.mockResolvedValueOnce(10);
+      await expect(create([link()])).rejects.toThrow('LINKS_PER_DAY_REACHED');
+      expect(prisma.storySticker.count.mock.calls[0][0].where).toMatchObject({
+        kind: 'LINK',
+        story: { profileId: AUTHOR },
+      });
+    });
+
+    it('is left out of the feed under a blocked domain, or while its author is sanctioned', async () => {
+      const row = {
+        id: 'l',
+        kind: 'LINK' as const,
+        settings: { url: 'https://a.example.com/', domain: 'a.example.com' },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      prisma.blockedLinkDomain.findMany.mockResolvedValueOnce([
+        { domain: 'example.com' },
+      ]);
+      const blockedDomains = await service.blockedLinkDomains([row]);
+      expect(prisma.blockedLinkDomain.findMany).toHaveBeenCalledWith({
+        where: { domain: { in: ['a.example.com', 'example.com'] } },
+        select: { domain: true },
+      });
+      const names = { usernames: new Map(), placeName: null };
+
+      expect(service.forFeed([row], false, names)).toHaveLength(1);
+      expect(
+        service.forFeed([row], false, { ...names, blockedDomains }),
+      ).toEqual([]);
+      expect(
+        service.forFeed([row], false, { ...names, linksOff: true }),
+      ).toEqual([]);
+      await expect(service.blockedLinkDomains([])).resolves.toEqual(new Set());
     });
   });
 });

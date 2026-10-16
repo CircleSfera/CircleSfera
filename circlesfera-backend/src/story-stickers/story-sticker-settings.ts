@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { StoryStickerKind } from '@prisma/client';
+import { LINK_LIMITS, normaliseLink } from './link-safety.js';
 
 /** Limits of what a sticker holds. Keep in line with the story editor. */
 export const STICKER_LIMITS = {
@@ -26,7 +27,8 @@ export type StickerSettings =
   | { profileId: string } // MENTION
   | { placeId?: string } // LOCATION: the story's place, set by the service
   | { tag: string } // HASHTAG
-  | { title: string; endsAt: string }; // COUNTDOWN
+  | { title: string; endsAt: string } // COUNTDOWN
+  | { url: string; domain: string; label?: string }; // LINK
 
 const fail = (message: string): never => {
   throw new BadRequestException(`STICKER_SETTINGS_INVALID: ${message}`);
@@ -126,6 +128,14 @@ export function parseStickerSettings(
         title: text(s.title, 'title', STICKER_LIMITS.countdownTitleMax),
         endsAt: ends.toISOString(),
       };
+    }
+    case 'LINK': {
+      const link = normaliseLink(s.url);
+      const label =
+        s.label === undefined || s.label === ''
+          ? undefined
+          : text(s.label, 'label', LINK_LIMITS.labelMax);
+      return label ? { ...link, label } : link;
     }
     default:
       return fail('unknown kind');
