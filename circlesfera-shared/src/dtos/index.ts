@@ -72,6 +72,8 @@ export interface CreateCommentDto {
 export interface CreateStoryDto {
   url: string;
   mediaType?: string;
+  /** The painted layer of a video story, joined to its video by the server. */
+  overlayUrl?: string;
   isCloseFriendsOnly?: boolean;
   audioId?: string;
   audioStartMs?: number;

@@ -103,6 +103,12 @@ export class CreateStoryDto {
   @IsEnum(['image', 'video'])
   mediaType?: string = 'image';
 
+  /** The painted layer of a video story, joined to its video by the server. */
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  overlayUrl?: string;
+
   @IsOptional()
   @IsBoolean()
   isCloseFriendsOnly?: boolean;

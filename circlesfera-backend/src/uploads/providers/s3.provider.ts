@@ -90,6 +90,16 @@ export class S3Provider implements StorageProvider {
     }
   }
 
+  ownsUrl(url: string): boolean {
+    const base = this.cdnUrl
+      ? this.cdnUrl
+      : `https://${this.bucket}.s3.${this.region}.amazonaws.com`;
+    if (!url.startsWith(`${base}/circlesfera/`)) return false;
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-z0-9]{2,5}$/i.test(
+      url.slice(`${base}/circlesfera/`.length),
+    );
+  }
+
   async delete(url: string): Promise<void> {
     try {
       // Extract key from URL

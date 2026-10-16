@@ -56,6 +56,7 @@ const mockVideoQueue = {
   getWaitingCount: vi.fn().mockResolvedValue(0),
   getActiveCount: vi.fn().mockResolvedValue(0),
   getJobs: vi.fn().mockResolvedValue([]),
+  getJob: vi.fn(),
 };
 
 const mockMediaCleanupQueue = {
@@ -121,6 +122,64 @@ describe('UploadsService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  describe('the painted layer of a video story', () => {
+    it('is joined by one job per story, retried as other video jobs', async () => {
+      await service.enqueueStoryOverlay('story-1');
+
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'story-overlay',
+        { storyId: 'story-1' },
+        expect.objectContaining({
+          jobId: expect.stringContaining('story-1'),
+          attempts: 3,
+        }),
+      );
+    });
+
+    it('gets its join again when the job was lost or turned down as unknown, and only then', async () => {
+      mockVideoQueue.getJob.mockResolvedValueOnce(undefined);
+      await expect(service.recoverStoryOverlay('s-1')).resolves.toBe('added');
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'story-overlay',
+        { storyId: 's-1' },
+        expect.anything(),
+      );
+
+      const turnedDown = {
+        isFailed: vi.fn().mockResolvedValue(true),
+        failedReason:
+          'Unknown job name in video-transcoding queue: story-overlay',
+        retry: vi.fn(),
+      };
+      mockVideoQueue.getJob.mockResolvedValueOnce(turnedDown);
+      await expect(service.recoverStoryOverlay('s-1')).resolves.toBe('retried');
+      expect(turnedDown.retry).toHaveBeenCalledWith('failed');
+
+      // A join that failed on its own, or one still on its way, is left.
+      for (const job of [
+        { ...turnedDown, failedReason: 'ffmpeg exited with code 1' },
+        { ...turnedDown, isFailed: vi.fn().mockResolvedValue(false) },
+      ]) {
+        job.retry = vi.fn();
+        mockVideoQueue.getJob.mockResolvedValueOnce(job);
+        await expect(service.recoverStoryOverlay('s-1')).resolves.toBe('left');
+        expect(job.retry).not.toHaveBeenCalled();
+      }
+    });
+
+    it('is read only from the files of its storage, and from none without a way to tell', () => {
+      expect(
+        service.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),
+      ).toBe(true);
+      expect(service.ownsUrl('https://evil.example/a.png')).toBe(false);
+
+      Object.defineProperty(provider, 'ownsUrl', { value: undefined });
+      expect(
+        service.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),
+      ).toBe(false);
+    });
   });
 
   describe('LocalStorageProvider', () => {

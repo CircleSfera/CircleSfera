@@ -6,6 +6,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { type Job, UnrecoverableError } from 'bullmq';
 import ffmpeg from 'fluent-ffmpeg';
+import sharp from 'sharp';
 import {
   getWorkerOptions,
   QUEUE_NAMES,
@@ -14,11 +15,19 @@ import {
   probeMediaDurationSec,
   resolveMediaInputPath,
 } from '../../common/utils/media-duration.util.js';
+import { safeFetchMedia } from '../../common/utils/safe-media-fetcher.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   STORAGE_PROVIDER,
   type StorageProvider,
 } from '../interfaces/storage-provider.interface.js';
+import { UploadsService } from '../uploads.service.js';
+
+/** A story's video once its painted layer is on it: 9:16, as on screen. */
+const STORY_WIDTH = 720;
+const STORY_HEIGHT = 1280;
+/** The largest painted layer read. */
+const LAYER_MAX_BYTES = 20 * 1024 * 1024;
 
 const VIDEO_CONCURRENCY = Math.max(
   1,
@@ -40,6 +49,9 @@ export class VideoProcessor extends WorkerHost {
     @Optional()
     @Inject(STORAGE_PROVIDER)
     private readonly storageProvider?: StorageProvider,
+    @Optional()
+    @Inject(UploadsService)
+    private readonly uploads?: UploadsService,
   ) {
     super();
   }
@@ -50,10 +62,15 @@ export class VideoProcessor extends WorkerHost {
       originalname?: string;
       userId?: string;
       postMediaId?: string;
+      storyId?: string;
     }>,
   ): Promise<void> {
     if (job.name === 'cover') {
       await this.makeCover(job.data?.postMediaId);
+      return;
+    }
+    if (job.name === 'story-overlay') {
+      await this.joinStoryOverlay(job.data?.storyId);
       return;
     }
     if (job.name && job.name !== 'transcode' && job.name !== '__default__') {
@@ -498,6 +515,150 @@ export class VideoProcessor extends WorkerHost {
         .rm(workDir, { recursive: true, force: true })
         .catch(() => {});
     }
+  }
+
+  // Joins the painted layer of a video story to its video: the video cropped
+  // to 9:16 from the centre, as the editor and the viewer show it, with the
+  // layer over its whole length and its sound kept. The joined video becomes
+  // the story's, and its stream and cover are made as for any upload.
+  private async joinStoryOverlay(storyId: string | undefined): Promise<void> {
+    if (!storyId) {
+      throw new UnrecoverableError('Missing story for its painted layer');
+    }
+    if (!this.storageProvider || !this.uploads) {
+      throw new UnrecoverableError('No storage to keep a joined story');
+    }
+    const story = await this.prisma.story.findUnique({
+      where: { id: storyId },
+      select: { id: true, url: true, overlayUrl: true, mediaId: true },
+    });
+    // Deleted meanwhile, or already joined: nothing to do.
+    if (!story?.overlayUrl) return;
+    if (
+      !this.uploads.ownsUrl(story.url) ||
+      !this.uploads.ownsUrl(story.overlayUrl)
+    ) {
+      throw new UnrecoverableError(
+        `The video or the layer of story ${story.id} is not of this storage`,
+      );
+    }
+
+    const workDir = await fs.promises.mkdtemp(
+      path.join(os.tmpdir(), 'story-overlay-'),
+    );
+    try {
+      const layer = await safeFetchMedia(story.overlayUrl, {
+        maxBytes: LAYER_MAX_BYTES,
+        allowedMimeTypes: ['image/png', 'image/avif', 'image/webp'],
+      });
+      // Read here, not by FFmpeg: a stored layer may be AVIF, whose
+      // transparency FFmpeg does not always keep.
+      const layerPath = path.join(workDir, 'layer.png');
+      await sharp(layer.buffer, { limitInputPixels: 8192 ** 2 })
+        .resize(STORY_WIDTH, STORY_HEIGHT, { fit: 'fill' })
+        .png()
+        .toFile(layerPath);
+
+      const joinedPath = path.join(workDir, 'story.mp4');
+      await this.joinLayer(
+        resolveMediaInputPath(story.url),
+        layerPath,
+        joinedPath,
+      );
+      const stored = await this.storageProvider.upload({
+        originalname: `${randomUUID()}.mp4`,
+        buffer: await fs.promises.readFile(joinedPath),
+        mimetype: 'video/mp4',
+      });
+
+      // Written only if the story still waits for this very layer.
+      const written = await this.prisma.story.updateMany({
+        where: { id: story.id, url: story.url, overlayUrl: story.overlayUrl },
+        data: {
+          url: stored.url,
+          overlayUrl: null,
+          standardUrl: null,
+          thumbnailUrl: null,
+        },
+      });
+      if (written.count === 0) {
+        await this.storageProvider.delete(stored.url).catch(() => {});
+        return;
+      }
+      if (story.mediaId) {
+        await this.prisma.media.updateMany({
+          where: { id: story.mediaId },
+          data: { url: stored.url, standardUrl: null, thumbnailUrl: null },
+        });
+      }
+      await this.uploads.enqueueTranscode(stored.url);
+      await this.storageProvider.delete(story.overlayUrl).catch(() => {});
+      await this.storageProvider.delete(story.url).catch(() => {});
+      this.logger.log(`Painted layer joined to the video of story ${story.id}`);
+    } finally {
+      await fs.promises
+        .rm(workDir, { recursive: true, force: true })
+        .catch(() => {});
+    }
+  }
+
+  // The video cropped to the story's frame with the layer over it, as MP4.
+  private joinLayer(
+    video: string,
+    layer: string,
+    output: string,
+  ): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      let finished = false;
+      const command = ffmpeg({ timeout: 300 })
+        .input(video)
+        .input(layer)
+        .inputOptions(['-loop 1']);
+      const done = (error?: Error) => {
+        if (finished) return;
+        finished = true;
+        clearTimeout(timer);
+        if (error) reject(error);
+        else resolve();
+      };
+      const timer = setTimeout(() => {
+        try {
+          command.kill('SIGKILL');
+        } catch {
+          // Already gone.
+        }
+        done(new Error('Joining the layer of a story timed out'));
+      }, 300_000);
+      command
+        .complexFilter([
+          `[0:v]scale=${STORY_WIDTH}:${STORY_HEIGHT}:force_original_aspect_ratio=increase,crop=${STORY_WIDTH}:${STORY_HEIGHT},setsar=1[video]`,
+          '[video][1:v]overlay=0:0:shortest=1:format=auto[out]',
+        ])
+        .outputOptions([
+          '-map',
+          '[out]',
+          '-map',
+          '0:a?',
+          '-c:v',
+          'h264',
+          '-preset',
+          'veryfast',
+          '-crf',
+          '23',
+          '-pix_fmt',
+          'yuv420p',
+          '-c:a',
+          'aac',
+          '-b:a',
+          '128k',
+          '-movflags',
+          '+faststart',
+        ])
+        .output(output)
+        .on('end', () => done())
+        .on('error', (err: Error) => done(err))
+        .run();
+    });
   }
 
   // One image of a video at a moment, written as cover.jpg in a folder.

@@ -1,3 +1,4 @@
+import type { Logger } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
@@ -65,6 +66,7 @@ describe('MaintenanceService', () => {
 
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
+    recoverStoryOverlay: vi.fn().mockResolvedValue('left'),
   };
 
   beforeEach(async () => {
@@ -100,11 +102,15 @@ describe('MaintenanceService', () => {
           id: 's-1',
           url: 'https://cdn.example.com/story.jpg',
           thumbnailUrl: 'https://cdn.example.com/story_thumb.jpg',
+          overlayUrl: 'https://cdn.example.com/story_layer.png',
         },
       ]);
       mockPrismaService.story.delete.mockResolvedValue({ id: 's-1' });
 
       await service.cleanupExpiredStories();
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/story_layer.png',
+      );
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/story.jpg',
       );
@@ -637,6 +643,78 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.purgeOldPostViews()).resolves.not.toThrow();
+    });
+  });
+
+  describe('recoverStoryOverlays', () => {
+    it('gives the joins still waiting after ten minutes another chance, for stories not expired', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([
+        { id: 's-1' },
+        { id: 's-2' },
+      ]);
+      const before = Date.now();
+
+      await service.recoverStoryOverlays();
+
+      const [[{ where }]] =
+        mockPrismaService.story.findMany.mock.calls.slice(-1);
+      expect(where.overlayUrl).toEqual({ not: null });
+      expect(before - where.createdAt.lt.getTime()).toBeGreaterThanOrEqual(
+        10 * 60 * 1000 - 50,
+      );
+      expect(where.expiresAt.gt.getTime()).toBeGreaterThanOrEqual(before - 50);
+      expect(mockUploadsService.recoverStoryOverlay).toHaveBeenCalledWith(
+        's-1',
+      );
+      expect(mockUploadsService.recoverStoryOverlay).toHaveBeenCalledWith(
+        's-2',
+      );
+    });
+
+    it('keeps going when the queue cannot be read', async () => {
+      mockPrismaService.story.findMany.mockRejectedValueOnce(new Error('db'));
+      await expect(service.recoverStoryOverlays()).resolves.toBeUndefined();
+    });
+  });
+
+  describe('recoverStoryOverlays, when a join is given another chance', () => {
+    it('says which joins it gave again', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([{ id: 's-9' }]);
+      mockUploadsService.recoverStoryOverlay.mockResolvedValueOnce('retried');
+      const log = vi.spyOn(
+        (service as unknown as { logger: Logger }).logger,
+        'log',
+      );
+
+      await service.recoverStoryOverlays();
+
+      expect(log).toHaveBeenCalledWith('Join of story s-9 retried again');
+    });
+  });
+
+  describe('cleanupExpiredStories, when a layer cannot be deleted', () => {
+    it('warns and goes on', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([
+        {
+          id: 's-l',
+          url: null,
+          thumbnailUrl: null,
+          overlayUrl: '/uploads/l.png',
+        },
+      ]);
+      mockUploadsService.deleteFile.mockRejectedValueOnce(new Error('gone'));
+      mockPrismaService.story.delete.mockResolvedValue({ id: 's-l' });
+      const warn = vi.spyOn(
+        (service as unknown as { logger: Logger }).logger,
+        'warn',
+      );
+
+      await service.cleanupExpiredStories();
+
+      expect(warn).toHaveBeenCalledWith(
+        'Failed to delete story layer: /uploads/l.png',
+        expect.any(Error),
+      );
     });
   });
 });

@@ -186,6 +186,19 @@ export class StoriesService {
     }
 
     const mediaType = (dto.mediaType || 'image').toLowerCase();
+    // The server reads a story's video, and joins a painted layer to it, only
+    // from its own storage.
+    if (mediaType === 'video' && !this.uploadsService.ownsUrl(dto.url)) {
+      throw new BadRequestException('STORY_MEDIA_NOT_OURS');
+    }
+    if (dto.overlayUrl) {
+      if (mediaType !== 'video') {
+        throw new BadRequestException('STORY_OVERLAY_ONLY_ON_VIDEO');
+      }
+      if (!this.uploadsService.ownsUrl(dto.overlayUrl)) {
+        throw new BadRequestException('STORY_MEDIA_NOT_OURS');
+      }
+    }
     if (mediaType === 'video') {
       await assertVideoUrlDuration('STORY', dto.url);
     }
@@ -226,6 +239,7 @@ export class StoriesService {
           standardUrl: dto.standardUrl,
           thumbnailUrl: dto.thumbnailUrl,
           mediaType: dto.mediaType || 'image',
+          overlayUrl: dto.overlayUrl ?? null,
           isCloseFriendsOnly: dto.isCloseFriendsOnly || false,
           isPremium: dto.isPremium || false,
           priceCents: dto.isPremium ? dto.priceCents || 0 : 0,
@@ -257,6 +271,10 @@ export class StoriesService {
     });
     const story = resolveMediaFields(createdStory.story);
 
+    if (story.overlayUrl) {
+      await this.uploadsService.enqueueStoryOverlay(story.id);
+    }
+
     // Skip fan-out moderation side effects for still-scheduled stories
     if (scheduledAt) {
       return story;
@@ -269,7 +287,11 @@ export class StoriesService {
       targetId: story.id,
       targetType: 'STORY',
       text: '', // Stories usually don't have text captions in this schema yet
-      mediaUrls: [story.thumbnailUrl || story.url],
+      // The layer of a video story is read too: it is part of what is seen.
+      mediaUrls: [
+        story.thumbnailUrl || story.url,
+        ...(story.overlayUrl ? [story.overlayUrl] : []),
+      ],
     });
 
     return story;
@@ -599,6 +621,10 @@ export class StoriesService {
       await this.uploadsService
         .deleteFile(story.thumbnailUrl)
         .catch((e) => console.error(e));
+    if (story.overlayUrl)
+      await this.uploadsService
+        .deleteFile(story.overlayUrl)
+        .catch((e) => console.error(e));
 
     await this.prisma.story.delete({
       where: { id: story.id },
@@ -787,6 +813,10 @@ export class StoriesService {
         if (story.thumbnailUrl)
           await this.uploadsService
             .deleteFile(story.thumbnailUrl)
+            .catch((e) => console.error(e));
+        if (story.overlayUrl)
+          await this.uploadsService
+            .deleteFile(story.overlayUrl)
             .catch((e) => console.error(e));
       }
 

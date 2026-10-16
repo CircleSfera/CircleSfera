@@ -232,4 +232,35 @@ describe('CloudinaryProvider', () => {
       consoleErrorSpy.mockRestore();
     });
   });
+
+  describe('ownsUrl', () => {
+    it('takes only the files its uploads name, in its own account', () => {
+      for (const url of [
+        'https://res.cloudinary.com/test-cloud/video/upload/v1700000000/circlesfera/abc_12-x.mp4',
+        'https://res.cloudinary.com/test-cloud/image/upload/circlesfera/abc.png',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(true);
+      }
+      for (const url of [
+        'https://res.cloudinary.com/other-cloud/video/upload/circlesfera/abc.mp4',
+        'https://res.cloudinary.com/test-cloud/video/upload/elsewhere/abc.mp4',
+        'https://res.cloudinary.com/test-cloud/video/upload/circlesfera/../abc.mp4',
+        'http://res.cloudinary.com/test-cloud/video/upload/circlesfera/abc.mp4',
+      ]) {
+        expect(provider.ownsUrl(url)).toBe(false);
+      }
+    });
+  });
+
+  it('owns nothing without an account name it can trust', () => {
+    for (const name of [null, 'bad/name']) {
+      mockConfigService.get.mockImplementation(((key: string) =>
+        key === 'CLOUDINARY_NAME' ? name : null) as never);
+      expect(
+        provider.ownsUrl(
+          'https://res.cloudinary.com/test-cloud/video/upload/circlesfera/a.mp4',
+        ),
+      ).toBe(false);
+    }
+  });
 });

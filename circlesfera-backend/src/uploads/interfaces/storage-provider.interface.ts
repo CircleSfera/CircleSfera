@@ -23,6 +23,10 @@ export interface StorageProvider {
   // Deletes a file from storage.
   delete(url: string): Promise<void>;
 
+  // (Optional) Whether an address is of a file this storage keeps, as its
+  // uploads name them. The server reads only such files; without it, none.
+  ownsUrl?(url: string): boolean;
+
   // (Optional) Generates a signed URL for secure access.
   getSignedUrl?(key: string): Promise<string>;
 

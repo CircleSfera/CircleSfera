@@ -188,6 +188,8 @@ export interface Story {
   standardUrl?: string | null;
   thumbnailUrl?: string | null;
   mediaType: string;
+  /** The painted layer of a video story while it waits to be joined. */
+  overlayUrl?: string | null;
   filter?: string;
   expiresAt: Date | string;
   createdAt: Date | string;

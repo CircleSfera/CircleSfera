@@ -69,6 +69,16 @@ export class MaintenanceService {
                 ),
               );
           }
+          if (story.overlayUrl) {
+            await this.uploadsService
+              .deleteFile(story.overlayUrl)
+              .catch((e) =>
+                this.logger.warn(
+                  `Failed to delete story layer: ${story.overlayUrl}`,
+                  e,
+                ),
+              );
+          }
 
           // Delete DB record
           // (Cascade delete handles StoryView, StoryReaction via Prisma schema if configured)
@@ -316,6 +326,32 @@ export class MaintenanceService {
         'Error during GDPR hard delete worker execution:',
         error,
       );
+    }
+  }
+
+  // Video stories whose painted layer is still waiting, ten minutes after
+  // they were made, get their join another chance if it was lost.
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async recoverStoryOverlays() {
+    try {
+      const now = Date.now();
+      const waiting = await this.prisma.story.findMany({
+        where: {
+          overlayUrl: { not: null },
+          createdAt: { lt: new Date(now - 10 * 60 * 1000) },
+          expiresAt: { gt: new Date(now) },
+        },
+        select: { id: true },
+        take: 100,
+      });
+      for (const story of waiting) {
+        const outcome = await this.uploadsService.recoverStoryOverlay(story.id);
+        if (outcome !== 'left') {
+          this.logger.log(`Join of story ${story.id} ${outcome} again`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error while recovering story joins:', error);
     }
   }
 

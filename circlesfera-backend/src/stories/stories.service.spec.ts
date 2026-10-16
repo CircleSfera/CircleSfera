@@ -21,7 +21,11 @@ describe('StoriesService', () => {
   let eventEmitter: EventEmitter2;
   let systemSettingsService: SystemSettingsService;
   let mockAiQueue: { add: ReturnType<typeof vi.fn> };
-  let mockUploadsService: { deleteFile: ReturnType<typeof vi.fn> };
+  let mockUploadsService: {
+    deleteFile: ReturnType<typeof vi.fn>;
+    ownsUrl: ReturnType<typeof vi.fn>;
+    enqueueStoryOverlay: ReturnType<typeof vi.fn>;
+  };
 
   const mockPrismaService = {
     user: { findMany: vi.fn().mockResolvedValue([]) },
@@ -81,7 +85,11 @@ describe('StoriesService', () => {
 
   beforeEach(async () => {
     mockAiQueue = { add: vi.fn().mockResolvedValue({ id: 'ai-job-1' }) };
-    mockUploadsService = { deleteFile: vi.fn().mockResolvedValue(undefined) };
+    mockUploadsService = {
+      deleteFile: vi.fn().mockResolvedValue(undefined),
+      ownsUrl: vi.fn(() => true),
+      enqueueStoryOverlay: vi.fn().mockResolvedValue(undefined),
+    };
 
     module = await Test.createTestingModule({
       providers: [
@@ -118,6 +126,87 @@ describe('StoriesService', () => {
   });
 
   describe('create', () => {
+    describe('a video story and its painted layer', () => {
+      const video = 'https://cdn.example.com/circlesfera/v.mp4';
+      const layer = 'https://cdn.example.com/circlesfera/l.png';
+
+      it('takes a video only from its own storage', async () => {
+        mockUploadsService.ownsUrl.mockImplementation(
+          (url: string) => url !== video,
+        );
+
+        await expect(
+          service.create('user-1', { url: video, mediaType: 'video' }),
+        ).rejects.toThrow('STORY_MEDIA_NOT_OURS');
+        expect(mockPrismaService.story.create).not.toHaveBeenCalled();
+      });
+
+      it('takes a layer only on a video, and only from its own storage', async () => {
+        await expect(
+          service.create('user-1', { url: 'p.jpg', overlayUrl: layer }),
+        ).rejects.toThrow('STORY_OVERLAY_ONLY_ON_VIDEO');
+
+        mockUploadsService.ownsUrl.mockImplementation(
+          (url: string) => url !== layer,
+        );
+        await expect(
+          service.create('user-1', {
+            url: video,
+            mediaType: 'video',
+            overlayUrl: layer,
+          }),
+        ).rejects.toThrow('STORY_MEDIA_NOT_OURS');
+        expect(mockPrismaService.story.create).not.toHaveBeenCalled();
+      });
+
+      it('keeps the layer, has it joined to the video, and has it moderated too', async () => {
+        mockPrismaService.story.create.mockResolvedValueOnce({
+          id: 'story-vid',
+          url: video,
+          mediaType: 'video',
+          overlayUrl: layer,
+          thumbnailUrl: null,
+        } as unknown as Story);
+
+        await service.create('user-1', {
+          url: video,
+          mediaType: 'video',
+          overlayUrl: layer,
+        });
+
+        expect(mockPrismaService.story.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ url: video, overlayUrl: layer }),
+          }),
+        );
+        expect(mockUploadsService.enqueueStoryOverlay).toHaveBeenCalledWith(
+          'story-vid',
+        );
+        expect(mockAiQueue.add).toHaveBeenCalledWith(
+          'moderate-content',
+          expect.objectContaining({ mediaUrls: [video, layer] }),
+        );
+      });
+
+      it('joins nothing for a story without a layer', async () => {
+        mockPrismaService.story.create.mockResolvedValueOnce({
+          id: 'story-vid',
+          url: video,
+          mediaType: 'video',
+          overlayUrl: null,
+        } as unknown as Story);
+
+        await service.create('user-1', { url: video, mediaType: 'video' });
+
+        expect(mockPrismaService.story.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ overlayUrl: null }),
+          }),
+        );
+        expect(mockUploadsService.enqueueStoryOverlay).not.toHaveBeenCalled();
+      });
+    });
+
     it('throws ForbiddenException when content posting is disabled', async () => {
       vi.spyOn(systemSettingsService, 'isEnabled').mockResolvedValueOnce(false);
 
@@ -685,11 +774,17 @@ describe('StoriesService', () => {
         url: 'https://cdn.example.com/s.jpg',
         standardUrl: 'https://cdn.example.com/s-std.jpg',
         thumbnailUrl: 'https://cdn.example.com/s-th.jpg',
+        overlayUrl: 'https://cdn.example.com/s-layer.png',
       });
       mockUploadsService.deleteFile.mockRejectedValue(new Error('S3 error'));
       mockPrismaService.story.delete.mockResolvedValue({});
 
       await service.delete('story-1');
+
+      // A layer not yet joined goes with the story.
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/s-layer.png',
+      );
 
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/s.jpg',
@@ -996,6 +1091,7 @@ describe('StoriesService', () => {
           url: 'https://cdn.example.com/exp.jpg',
           standardUrl: 'https://cdn.example.com/exp-std.jpg',
           thumbnailUrl: 'https://cdn.example.com/exp-th.jpg',
+          overlayUrl: 'https://cdn.example.com/exp-layer.png',
         },
       ]);
       mockUploadsService.deleteFile.mockRejectedValue(new Error('fail'));
@@ -1003,6 +1099,9 @@ describe('StoriesService', () => {
 
       const result = await service.cleanupExpiredStories();
       expect(result).toEqual({ count: 1 });
+      expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
+        'https://cdn.example.com/exp-layer.png',
+      );
       expect(mockUploadsService.deleteFile).toHaveBeenCalledWith(
         'https://cdn.example.com/exp.jpg',
       );

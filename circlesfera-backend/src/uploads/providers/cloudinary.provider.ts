@@ -46,6 +46,16 @@ export class CloudinaryProvider implements StorageProvider {
     });
   }
 
+  ownsUrl(url: string): boolean {
+    const cloud = this.configService.get<string>('CLOUDINARY_NAME');
+    if (!cloud || !/^[a-z0-9_-]+$/i.test(cloud)) return false;
+    // As uploads name them: the account, the kind, an optional version and
+    // the folder of CircleSfera.
+    return new RegExp(
+      `^https://res\\.cloudinary\\.com/${cloud}/(image|video|raw)/upload/(v\\d+/)?circlesfera/[A-Za-z0-9_-]+\\.[a-z0-9]{2,5}$`,
+    ).test(url);
+  }
+
   async delete(url: string): Promise<void> {
     try {
       const parts = url.split('/');
