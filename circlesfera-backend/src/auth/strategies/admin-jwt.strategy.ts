@@ -16,6 +16,9 @@ export interface AdminJwtPayload {
   email: string;
   jti: string;
   aud: string;
+  typ?: 'access' | 'refresh';
+  mfa?: boolean;
+  purpose?: string;
   stepUp?: boolean;
   stepUpExp?: number;
 }
@@ -51,6 +54,16 @@ export class AdminJwtStrategy extends PassportStrategy(
     if (payload.aud !== ADMIN_JWT_AUDIENCE) {
       throw new UnauthorizedException('Invalid admin token audience');
     }
+    // Only an access token issued after a verified second factor opens a staff
+    // session. The sign-in step token (purpose) and the refresh token are signed
+    // with the same key and must never be accepted here.
+    if (
+      payload.typ !== 'access' ||
+      payload.mfa !== true ||
+      payload.purpose !== undefined
+    ) {
+      throw new UnauthorizedException('Invalid admin token');
+    }
 
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: payload.sub },
@@ -67,7 +80,7 @@ export class AdminJwtStrategy extends PassportStrategy(
       },
     });
 
-    if (admin?.status !== 'ACTIVE') {
+    if (admin?.status !== 'ACTIVE' || !admin.totpEnabled) {
       throw new UnauthorizedException('Admin identity not found or disabled');
     }
 

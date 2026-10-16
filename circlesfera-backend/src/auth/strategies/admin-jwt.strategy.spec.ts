@@ -34,6 +34,7 @@ describe('AdminJwtStrategy', () => {
     email: 'ops@circlesfera.com',
     displayName: 'Ops Admin',
     status: 'ACTIVE',
+    totpEnabled: true,
     roles: [
       {
         role: {
@@ -130,6 +131,8 @@ describe('AdminJwtStrategy', () => {
         email: 'ops@circlesfera.com',
         jti: 'jwt-1',
         aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
         stepUp: true,
         stepUpExp: Math.floor(Date.now() / 1000) + 300,
       };
@@ -172,6 +175,8 @@ describe('AdminJwtStrategy', () => {
         email: 'ghost@circlesfera.com',
         jti: 'jwt-2',
         aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
       };
 
       await expect(strategy.validate(payload)).rejects.toThrow(
@@ -190,6 +195,8 @@ describe('AdminJwtStrategy', () => {
         email: 'ops@circlesfera.com',
         jti: 'jwt-3',
         aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
       };
 
       await expect(strategy.validate(payload)).rejects.toThrow(
@@ -208,12 +215,59 @@ describe('AdminJwtStrategy', () => {
         email: 'ops@circlesfera.com',
         jti: 'jwt-4',
         aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
         stepUp: false,
       };
 
       const result = await strategy.validate(payload);
       expect(result.adminId).toBe('admin-1');
       expect(result.stepUpVerified).toBe(false);
+    });
+
+    // The sign-in step token and the refresh token are signed with the same
+    // key; neither may open a staff session.
+    it.each([
+      ['a sign-in step token', { purpose: 'admin-mfa' }],
+      ['a second-factor enrolment token', { purpose: 'admin-mfa-setup' }],
+      ['a refresh token', { typ: 'refresh', mfa: true }],
+      ['an access token without the second factor mark', { typ: 'access' }],
+      ['a token with no type', {}],
+    ])('refuses %s', async (_label, claims) => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue(activeAdmin);
+
+      const payload = {
+        sub: 'admin-1',
+        email: 'ops@circlesfera.com',
+        jti: 'jwt-5',
+        aud: ADMIN_JWT_AUDIENCE,
+        ...claims,
+      } as AdminJwtPayload;
+
+      await expect(strategy.validate(payload)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(mockPrisma.adminIdentity.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('refuses a staff member whose second factor is not enrolled', async () => {
+      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
+        ...activeAdmin,
+        totpEnabled: false,
+      });
+
+      const payload: AdminJwtPayload = {
+        sub: 'admin-1',
+        email: 'ops@circlesfera.com',
+        jti: 'jwt-6',
+        aud: ADMIN_JWT_AUDIENCE,
+        typ: 'access',
+        mfa: true,
+      };
+
+      await expect(strategy.validate(payload)).rejects.toThrow(
+        UnauthorizedException,
+      );
     });
   });
 
