@@ -37,6 +37,7 @@ export type SliderPayload = { question: string; emoji: string };
 export type HashtagPayload = { tag: string };
 export type MentionPayload = { profileId: string; username: string };
 export type LocationPayload = { name: string };
+export type AnswerPayload = { prompt: string; answer: string };
 
 const parseJson = (content: string): Record<string, unknown> | null => {
   try {
@@ -97,6 +98,15 @@ export function canDuplicateElement(el: StoryElement): boolean {
   return el.type !== 'location';
 }
 
+/** An answer to a question, shared as a card painted into the story. */
+export function parseAnswerPayload(el: StoryElement): AnswerPayload | null {
+  if (el.type !== 'answer') return null;
+  const d = parseJson(el.content);
+  return d && typeof d.prompt === 'string' && typeof d.answer === 'string'
+    ? { prompt: d.prompt, answer: d.answer }
+    : null;
+}
+
 /** Pieces with free sizes that a viewer opens: a hashtag, a mention, a place. */
 const PILL_KINDS: ReadonlySet<string> = new Set([
   'hashtag',
@@ -131,6 +141,7 @@ export const INTERACTIVE_WIDTH_PCT = STICKER_WIDTH_PCT;
 const TYPED_KINDS: ReadonlySet<string> = new Set([
   'quiz',
   'slider',
+  'answer',
   ...PILL_KINDS,
 ]);
 
@@ -265,6 +276,28 @@ export function QnaStickerPreview({
       >
         {hint}
       </div>
+    </div>
+  );
+}
+
+/**
+ * A question and one of its answers, as the author shares it: part of the
+ * picture of the new story, not a sticker anyone answers.
+ */
+export function AnswerCardPreview({ prompt, answer }: AnswerPayload) {
+  return (
+    <div className={`${STICKER_CARD} w-full pointer-events-none select-none`}>
+      <div className={STICKER_HEADER}>
+        <span className={STICKER_BADGE}>
+          <HelpCircle size={13} strokeWidth={2.5} />
+        </span>
+        <p className="min-w-0 flex-1 text-sm font-bold text-white leading-snug break-words">
+          {prompt}
+        </p>
+      </div>
+      <p className="rounded-xl border border-white/15 bg-surface-high px-3 py-2.5 text-sm font-semibold text-white leading-snug break-words whitespace-pre-wrap">
+        {answer}
+      </p>
     </div>
   );
 }

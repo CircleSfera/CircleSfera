@@ -1,9 +1,11 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { toast } from 'react-hot-toast';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { probeVideoDuration } from '../constants/uploadLimits';
 import { useCloseFriendsList } from '../hooks/useCloseFriendsList';
 import { renderWithProviders } from '../test/test-utils';
 import ContentComposerPage from './ContentComposerPage';
+import { pictureFile } from './story/storyStart';
 
 type Props = Record<string, any>;
 
@@ -26,6 +28,11 @@ vi.mock('../hooks/useCreatePost', () => ({
 vi.mock('../hooks/useCloseFriendsList', () => ({
   useCloseFriendsList: vi.fn(() => ({ closeFriendsCount: 4 })),
 }));
+vi.mock('./story/storyStart', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./story/storyStart')>()),
+  pictureFile: vi.fn(),
+}));
+vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
 vi.mock('../constants/uploadLimits', () => ({
   probeVideoDuration: vi.fn(),
 }));
@@ -106,7 +113,12 @@ const clip = (videoData?: { startTime: number; endTime: number }) => ({
   videoData,
 });
 
-function compose(state: Record<string, unknown> = {}, address = '/create') {
+function compose(
+  state: Record<string, unknown> = {},
+  address:
+    | string
+    | { pathname: string; search: string; state: unknown } = '/create',
+) {
   const actions = [
     'setMode',
     'setStep',
@@ -362,6 +374,75 @@ describe('ContentComposerPage', () => {
       act(() => seen.upload.onTextStory());
 
       expect(await screen.findByTestId('editor')).toBeInTheDocument();
+    });
+
+    const started = (storyStart: unknown) => ({
+      pathname: '/create',
+      search: '?mode=story',
+      state: { storyStart },
+    });
+    const card = {
+      id: 'c1',
+      type: 'answer',
+      content: JSON.stringify({ prompt: 'P', answer: 'A' }),
+      x: 0,
+      y: 0,
+      scale: 1,
+      rotation: 0,
+    };
+
+    it('opens the editor with what a story started elsewhere brings', async () => {
+      const { hook } = compose(
+        { mode: 'STORY' },
+        started({ elements: [card] }),
+      );
+
+      expect(await screen.findByTestId('editor')).toBeInTheDocument();
+      expect(hook.setStoryElements).toHaveBeenCalledWith([card]);
+      expect(hook.setOriginalStoryMedia).not.toHaveBeenCalled();
+      expect(pictureFile).not.toHaveBeenCalled();
+    });
+
+    it('puts the picture it brings as the background, once it is read', async () => {
+      const file = new File(['x'], 'story_background.jpg', {
+        type: 'image/jpeg',
+      });
+      vi.mocked(pictureFile).mockResolvedValue(file);
+      const { hook } = compose(
+        { mode: 'STORY' },
+        started({
+          elements: [card],
+          backgroundUrl: 'https://res.cloudinary.com/x/s1.jpg',
+        }),
+      );
+      // The editor waits for its background.
+      expect(screen.queryByTestId('editor')).not.toBeInTheDocument();
+
+      expect(await screen.findByTestId('editor')).toBeInTheDocument();
+      expect(pictureFile).toHaveBeenCalledWith(
+        'https://res.cloudinary.com/x/s1.jpg',
+      );
+      expect(hook.setOriginalStoryMedia).toHaveBeenCalledWith(
+        expect.objectContaining({ file, type: 'image' }),
+      );
+      expect(hook.setStoryBgStyle).toHaveBeenCalledWith('');
+    });
+
+    it('opens the editor without the picture when it cannot be read, and says so', async () => {
+      vi.mocked(pictureFile).mockRejectedValue(new Error('cors'));
+      const { hook } = compose(
+        { mode: 'STORY' },
+        started({
+          elements: [card],
+          backgroundUrl: 'https://res.cloudinary.com/x/s1.jpg',
+        }),
+      );
+
+      expect(await screen.findByTestId('editor')).toBeInTheDocument();
+      expect(hook.setOriginalStoryMedia).not.toHaveBeenCalled();
+      expect(toast.error).toHaveBeenCalledWith(
+        'The picture of the story could not be opened.',
+      );
     });
 
     it('opens music, place and close friends from the story bar', () => {

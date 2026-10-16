@@ -2,6 +2,7 @@ import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { StoryElement } from '../../types';
 import {
+  AnswerCardPreview,
   HashtagStickerPreview,
   INTERACTIVE_WIDTH_PCT,
   isLiveElement,
@@ -10,6 +11,7 @@ import {
   LocationStickerPreview,
   MentionStickerPreview,
   PollStickerPreview,
+  parseAnswerPayload,
   parseHashtagPayload,
   parseLocationPayload,
   parseMentionPayload,
@@ -61,10 +63,11 @@ export default function DraggableStoryElement({
   const hashtag = parseHashtagPayload(el);
   const mention = parseMentionPayload(el);
   const location = parseLocationPayload(el);
+  const answer = parseAnswerPayload(el);
   // Live on the story, not painted into its picture.
   const isLive = isLiveElement(el);
   // At the width of a sticker; a hashtag, a mention or a place takes its own.
-  const isInteractive = Boolean(poll || qna || quiz || slider);
+  const isInteractive = Boolean(poll || qna || quiz || slider || answer);
   const canvasWidth = useStoryCanvasWidth(containerRef);
   const interactivePx =
     canvasWidth > 0
@@ -117,6 +120,8 @@ export default function DraggableStoryElement({
         <MentionStickerPreview username={mention.username} />
       ) : location ? (
         <LocationStickerPreview name={location.name} />
+      ) : answer ? (
+        <AnswerCardPreview prompt={answer.prompt} answer={answer.answer} />
       ) : qna ? (
         <QnaStickerPreview
           prompt={qna.prompt}

@@ -1190,8 +1190,12 @@
       "kind_poll": "Poll",
       "kind_quiz": "Quiz",
       "kind_slider": "Slider",
-      "kind_question": "Questions"
-    }
+      "kind_question": "Questions",
+      "share_answer": "Share",
+      "share_answer_label": "Share this answer in a story"
+    },
+    "add_to_your_story": "Add to your story",
+    "start_picture_error": "The picture of the story could not be opened."
   },
   "comments": {
     "send_error": "Your comment could not be posted. Try again.",

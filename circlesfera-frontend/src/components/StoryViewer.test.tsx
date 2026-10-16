@@ -27,6 +27,12 @@ vi.mock('../services', () => ({
 
 vi.mock('../services/api', () => ({ apiClient: { get: vi.fn() } }));
 
+const navigate = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('react-router-dom')>()),
+  useNavigate: () => navigate,
+}));
+
 vi.mock('../services/monetization.service', () => ({
   monetizationApi: { unlockStory: vi.fn() },
 }));
@@ -286,6 +292,86 @@ describe('StoryViewer', () => {
         '/explore/map?place=pl-1',
       );
       expect(screen.getAllByTestId('placed-sticker')).toHaveLength(2);
+    });
+
+    const mentionsMe = (over: Partial<Story> = {}) =>
+      story('s1', {
+        standardUrl: 'https://media.test/s1-1080.jpg',
+        stickers: [
+          sticker('st-m', 'MENTION', { profileId: 'me', username: 'yo' }),
+        ],
+        ...over,
+      } as Partial<Story>);
+
+    it('lets the person mentioned add it to their story, with its picture and a mention of its author', () => {
+      show([mentionsMe()]);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Add to your story' }),
+      );
+
+      expect(navigate).toHaveBeenCalledWith('/create?mode=story', {
+        state: {
+          storyStart: {
+            backgroundUrl: 'https://media.test/s1-1080.jpg',
+            elements: [
+              expect.objectContaining({
+                type: 'mention',
+                content: JSON.stringify({
+                  profileId: 'author',
+                  username: 'ana',
+                }),
+              }),
+            ],
+          },
+        },
+      });
+    });
+
+    it('starts from the cover of a video story', () => {
+      show([
+        mentionsMe({
+          mediaType: 'video',
+          thumbnailUrl: 'https://media.test/s1-cover.jpg',
+        }),
+      ]);
+
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Add to your story' }),
+      );
+
+      expect(navigate.mock.calls[0][1].state.storyStart.backgroundUrl).toBe(
+        'https://media.test/s1-cover.jpg',
+      );
+    });
+
+    it('offers it to nobody else, and not for a story for close friends or a paid one', () => {
+      const offered = (s: Story) => {
+        const view = show([s]);
+        const found = screen.queryByRole('button', {
+          name: 'Add to your story',
+        });
+        view.unmount();
+        return found !== null;
+      };
+
+      expect(
+        offered(
+          story('s1', {
+            stickers: [
+              sticker('st-m', 'MENTION', {
+                profileId: 'p-eva',
+                username: 'eva',
+              }),
+            ],
+          } as Partial<Story>),
+        ),
+      ).toBe(false);
+      expect(offered(mentionsMe({ isCloseFriendsOnly: true }))).toBe(false);
+      expect(offered(mentionsMe({ isPremium: true, priceCents: 300 }))).toBe(
+        false,
+      );
+      expect(offered(mentionsMe())).toBe(true);
     });
   });
 

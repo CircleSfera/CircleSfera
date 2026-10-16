@@ -4,6 +4,7 @@ import {
   Check,
   Eye,
   Heart,
+  PlusCircle,
   Send,
   Trash2,
   Volume2,
@@ -14,6 +15,7 @@ import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { STORY_MAX_DURATION_SEC } from '../constants/uploadLimits';
 import { useStoryPlayback } from '../hooks/useStoryPlayback';
 import { chatApi, storiesApi } from '../services';
@@ -40,6 +42,8 @@ import { RESULT_KINDS } from './interactive/StickerResultsCard';
 import PaywallOverlay from './monetization/PaywallOverlay';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
+import { buildMentionElement } from './story/storyComposer.append';
+import { storyStartRoute } from './story/storyStart';
 import UserAvatar from './UserAvatar';
 import VerificationBadge, { type VerificationLevel } from './VerificationBadge';
 
@@ -308,6 +312,44 @@ export default function StoryViewer({
   const resultStickers = (currentStory?.stickers ?? []).filter((s) =>
     RESULT_KINDS.has(s.kind),
   );
+
+  // Someone mentioned in a story may add it to their own: its picture as the
+  // background and a mention of its author. Not a paid story, nor one for
+  // close friends, whose picture is not for everyone.
+  const navigate = useNavigate();
+  const isMentioned =
+    !isOwner &&
+    !!profile?.id &&
+    (currentStory?.stickers ?? []).some(
+      (s) => s.kind === 'MENTION' && s.settings.profileId === profile.id,
+    );
+  const canAddToStory =
+    isMentioned &&
+    !isLocked &&
+    !currentStory?.isPremium &&
+    !currentStory?.priceCents &&
+    !currentStory?.isCloseFriendsOnly;
+  const handleAddToStory = () => {
+    if (!currentStory) return;
+    const picture =
+      currentStory.mediaType === 'video'
+        ? currentStory.thumbnailUrl
+        : currentStory.standardUrl || currentStory.url;
+    const route = storyStartRoute({
+      elements: [
+        {
+          ...buildMentionElement({
+            id: currentStory.profileId,
+            username: currentStory.profile.username,
+          }),
+          // Under the middle, where the picture says the least.
+          y: 220,
+        },
+      ],
+      backgroundUrl: picture || undefined,
+    });
+    navigate(route.to, route.options);
+  };
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressRef = useRef(false);
@@ -596,6 +638,18 @@ export default function StoryViewer({
             {/* Footer */}
             <div className="absolute bottom-6 left-0 right-0 z-40 px-4 pointer-events-none mb-safe-bottom">
               <div className="pointer-events-auto w-full">
+                {canAddToStory ? (
+                  <div className="mb-3 flex justify-center">
+                    <button
+                      type="button"
+                      onClick={handleAddToStory}
+                      className="inline-flex min-h-11 items-center gap-2 rounded-full border border-white/20 bg-black/40 px-5 text-sm font-semibold text-white shadow-2xl backdrop-blur-xl hover:bg-black/60"
+                    >
+                      <PlusCircle size={18} aria-hidden />
+                      {t('story.add_to_your_story')}
+                    </button>
+                  </div>
+                ) : null}
                 {!isOwner ? (
                   <div className="flex items-center gap-3">
                     <form
