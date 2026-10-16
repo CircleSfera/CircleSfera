@@ -138,7 +138,6 @@ describe('AuthService', () => {
   const mockSystemSettings = {
     isEnabled: vi.fn(async (key: string) => {
       if (key === 'registration_open') return true;
-      if (key === 'require_invite_code') return false;
       return false;
     }),
   };
@@ -193,7 +192,6 @@ describe('AuthService', () => {
     vi.clearAllMocks();
     mockSystemSettings.isEnabled.mockImplementation(async (key: string) => {
       if (key === 'registration_open') return true;
-      if (key === 'require_invite_code') return false;
       return false;
     });
   });
@@ -287,13 +285,25 @@ describe('AuthService', () => {
       await expect(service.register(dto)).rejects.toThrow(BadRequestException);
     });
 
-    it('should require invite code when setting is enabled', async () => {
-      mockSystemSettings.isEnabled.mockImplementation(async (key: string) => {
-        if (key === 'registration_open') return true;
-        if (key === 'require_invite_code') return true;
-        return false;
+    it('never asks for an invite code: there are none', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue({
+        id: '1',
+        email: dto.email,
       });
-      await expect(service.register(dto)).rejects.toThrow(BadRequestException);
+
+      await service.register(dto);
+
+      const asked = mockSystemSettings.isEnabled.mock.calls.map((c) => c[0]);
+      expect(asked).not.toContain('require_invite_code');
+      const data = (
+        mockPrismaService.user.create.mock.calls[0][0] as {
+          data: Record<string, unknown>;
+        }
+      ).data;
+      expect(data).not.toHaveProperty('inviteCode');
+      expect(data).not.toHaveProperty('referredById');
     });
 
     it('should throw ConflictException if email exists', async () => {
@@ -1488,82 +1498,6 @@ describe('AuthService', () => {
           dateOfBirth: validDob.toISOString(),
         }),
       ).rejects.toThrow(new ConflictException('Username already taken'));
-    });
-
-    it('validates invite code when provided: rejects invalid invite code', async () => {
-      const validDob = new Date();
-      validDob.setFullYear(validDob.getFullYear() - 20);
-
-      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.profile.findFirst.mockResolvedValue(null);
-      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-
-      await expect(
-        service.register({
-          email: 'invited@example.com',
-          username: 'inviteduser',
-          password: 'Password123!',
-          dateOfBirth: validDob.toISOString(),
-          inviteCode: 'INVALID-CODE',
-        }),
-      ).rejects.toThrow(new BadRequestException('Invalid invite code'));
-    });
-
-    it('validates invite code: rejects when limit of 3 referrals reached', async () => {
-      const validDob = new Date();
-      validDob.setFullYear(validDob.getFullYear() - 20);
-
-      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.profile.findFirst.mockResolvedValue(null);
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 'referring-user-id',
-        _count: { referrals: 3 },
-      });
-
-      await expect(
-        service.register({
-          email: 'invited@example.com',
-          username: 'inviteduser',
-          password: 'Password123!',
-          dateOfBirth: validDob.toISOString(),
-          inviteCode: 'MAXED-CODE',
-        }),
-      ).rejects.toThrow(
-        new BadRequestException(
-          'This invite code has reached its maximum usage limit',
-        ),
-      );
-    });
-
-    it('accepts valid invite code and sets referredById', async () => {
-      const validDob = new Date();
-      validDob.setFullYear(validDob.getFullYear() - 20);
-
-      mockPrismaService.user.findUnique.mockResolvedValueOnce(null);
-      mockPrismaService.profile.findFirst.mockResolvedValue(null);
-      mockPrismaService.user.findUnique.mockResolvedValueOnce({
-        id: 'referrer-1',
-        _count: { referrals: 1 },
-      });
-      mockPrismaService.user.create.mockResolvedValue({
-        id: 'new-user',
-        email: 'invited@example.com',
-      });
-
-      const result = await service.register({
-        email: 'invited@example.com',
-        username: 'inviteduser',
-        password: 'Password123!',
-        dateOfBirth: validDob.toISOString(),
-        inviteCode: 'VALID-CODE',
-      });
-
-      expect(mockPrismaService.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({ referredById: 'referrer-1' }),
-        }),
-      );
-      expect(result).toHaveProperty('accessToken');
     });
   });
 

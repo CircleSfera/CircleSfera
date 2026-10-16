@@ -76,10 +76,6 @@
         "label": "Monetización",
         "desc": "Stripe Connect y pagos"
       },
-      "referrals": {
-        "label": "Invitaciones",
-        "desc": "Invita amigos y beta"
-      },
       "requests": {
         "label": "Solicitudes",
         "desc": "Seguidores"
@@ -621,7 +617,7 @@
     },
     "register": {
       "title": "CircleSfera",
-      "subtitle": "Únete al círculo íntimo.",
+      "subtitle": "Tu mundo, conectado.",
       "email_label": "Email",
       "email_placeholder": "tu@ejemplo.com",
       "username_label": "Nombre de usuario",
@@ -632,13 +628,9 @@
       "password_placeholder": "••••••••",
       "dob_label": "Fecha de nacimiento",
       "dob_hint": "Debes tener al menos 16 años.",
-      "invite_label": "Código de Invitación",
-      "optional": "(opcional)",
-      "invite_placeholder": "XXXX-XXXX",
       "default_error": "El registro falló. Por favor, inténtalo de nuevo.",
       "errors": {
         "REGISTRATION_CLOSED": "El registro está temporalmente cerrado.",
-        "INVITE_CODE_REQUIRED": "Se requiere un código de invitación para registrarse.",
         "MAINTENANCE_MODE": "CircleSfera está en mantenimiento. Inténtalo más tarde.",
         "EMAIL_NOT_VERIFIED": "Debes verificar tu email.",
         "CAPTCHA_FAILED": "La verificación de seguridad falló.",
@@ -1299,10 +1291,6 @@
     "blocked": {
       "title": "Has bloqueado a este usuario.",
       "subtitle": "Desbloquéalo en Configuración para ver su perfil."
-    },
-    "invite": {
-      "title": "Tu Código de Invitación",
-      "copied": "¡Enlace de invitación copiado!"
     },
     "private": {
       "title": "Esta cuenta es privada",
@@ -4017,7 +4005,6 @@
       "keys": {
         "maintenance_mode": "Modo mantenimiento",
         "registration_open": "Registro abierto",
-        "require_invite_code": "Requiere código de invitación",
         "content_posting_enabled": "Publicación de contenido habilitada",
         "live_streams_enabled": "Directos habilitados",
         "turnstile_required": "Comprobación anti-bots obligatoria",
@@ -4026,7 +4013,6 @@
       "descriptions": {
         "maintenance_mode": "Si está activo, la API de consumidores responde 503 salvo health, CSRF, webhooks y Admin Panel.",
         "registration_open": "Permite que nuevos usuarios creen cuentas.",
-        "require_invite_code": "Las cuentas nuevas deben aportar un código de invitación válido.",
         "content_posting_enabled": "Permite crear publicaciones e historias.",
         "live_streams_enabled": "Permite iniciar transmisiones en vivo.",
         "turnstile_required": "Pide la comprobación anti-bots al registrarse y al iniciar sesión.",
@@ -4573,19 +4559,6 @@
       "frame_back": "Fotograma anterior",
       "frame_forward": "Fotograma siguiente"
     }
-  },
-  "referralsSettings": {
-    "title": "Invitaciones",
-    "subtitle": "Invita a tus amigos a CircleSfera.",
-    "your_invite_link": "Tu enlace de invitación",
-    "used_count": "{{count}} / {{max}} usados",
-    "copy": "Copiar",
-    "copied": "Enlace de invitación copiado",
-    "copy_error": "No se pudo copiar el enlace. Selecciónalo y cópialo a mano.",
-    "max_reached": "Has usado todas las invitaciones de esta fase beta.",
-    "users_invited": "Personas que invitaste",
-    "no_invites": "Todavía no has invitado a nadie.",
-    "joined_on": "Se unió el {{date}}"
   },
   "live": {
     "connecting": "Conectando al directo...",
@@ -5288,7 +5261,6 @@
       "LIVE_STREAMS_DISABLED": "Los directos están desactivados ahora mismo.",
       "MAINTENANCE_MODE": "CircleSfera está en mantenimiento. Inténtalo en un rato.",
       "REGISTRATION_CLOSED": "El registro está cerrado ahora mismo.",
-      "INVITE_CODE_REQUIRED": "Necesitas un código de invitación para registrarte.",
       "CONTENT_POSTING_DISABLED": "Publicar está desactivado ahora mismo.",
       "EMAIL_NOT_VERIFIED": "Verifica tu email para hacer esto.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verifica tu identidad para poder comprar o cobrar.",

@@ -2,7 +2,6 @@
 export const SYSTEM_SETTING_KEYS = {
   MAINTENANCE_MODE: 'maintenance_mode',
   REGISTRATION_OPEN: 'registration_open',
-  REQUIRE_INVITE_CODE: 'require_invite_code',
   CONTENT_POSTING_ENABLED: 'content_posting_enabled',
   LIVE_STREAMS_ENABLED: 'live_streams_enabled',
   TURNSTILE_REQUIRED: 'turnstile_required',
@@ -29,11 +28,6 @@ export const SYSTEM_SETTING_DEFAULTS: readonly SystemSettingDefault[] = [
     key: SYSTEM_SETTING_KEYS.REGISTRATION_OPEN,
     value: 'true',
     description: 'Allow new user registration on the platform.',
-  },
-  {
-    key: SYSTEM_SETTING_KEYS.REQUIRE_INVITE_CODE,
-    value: 'false',
-    description: 'Require a valid invite code to register.',
   },
   {
     key: SYSTEM_SETTING_KEYS.CONTENT_POSTING_ENABLED,

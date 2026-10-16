@@ -66,7 +66,7 @@ describe('Register', () => {
     } as never);
     const { i18n } = renderWithProviders(<Register />, {
       routerProps: {
-        initialEntries: ['/accounts/emailsignup?inviteCode=INV1'],
+        initialEntries: ['/accounts/emailsignup'],
       },
     });
 
@@ -77,7 +77,6 @@ describe('Register', () => {
       expect.objectContaining({
         email: 'ana@example.com',
         username: 'ana',
-        inviteCode: 'INV1',
         visitorId: 'visitor-1',
         locale: 'en',
         // Told about the newsletter and did not say no.
@@ -164,7 +163,7 @@ describe('Register', () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it('sends the invitation of the link, or the one the person types', async () => {
+  it('has no invite code: no field, and a code in an old link is not sent', async () => {
     vi.mocked(authApi.register).mockResolvedValue({} as never);
     vi.mocked(profileApi.getMyProfile).mockResolvedValue({
       data: { id: 'p-1' },
@@ -175,19 +174,14 @@ describe('Register', () => {
         useTransitions: false,
       },
     });
-    const invite = screen.getByLabelText(
-      i18n!.t('auth.register.invite_label'),
-      { exact: false },
-    );
-    expect(invite).toHaveValue('FROM-LINK');
 
-    fireEvent.change(invite, { target: { value: 'TYPED' } });
+    expect(screen.queryByLabelText(/invit/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Your world, connected.')).toBeInTheDocument();
     fillForm(i18n!, yearsAgo(25));
 
-    await waitFor(() =>
-      expect(authApi.register).toHaveBeenCalledWith(
-        expect.objectContaining({ inviteCode: 'TYPED' }),
-      ),
+    await waitFor(() => expect(authApi.register).toHaveBeenCalled());
+    expect(vi.mocked(authApi.register).mock.calls[0][0]).not.toHaveProperty(
+      'inviteCode',
     );
   });
 

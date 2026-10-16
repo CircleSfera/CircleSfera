@@ -118,8 +118,6 @@ export interface ProfileWithUser extends IProfile {
   isVerified?: boolean;
   isPrivate?: boolean;
   banner?: string | null;
-  inviteCode?: string;
-  referredById?: string | null;
   identityVerifiedAt?: Date | string | null;
   emailConfirmed?: boolean;
 }

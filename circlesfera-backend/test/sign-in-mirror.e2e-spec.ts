@@ -246,7 +246,6 @@ describe('Sign-in copy of the account credentials (e2e)', () => {
         email: `signin_stranger_${id}@example.com`,
         password: 'hash-of-the-stranger',
         dateOfBirth: new Date('1990-01-15'),
-        inviteCode: `S${id}`.slice(0, 12).toUpperCase(),
       },
       select: { id: true, signIns: { select: { id: true } } },
     });

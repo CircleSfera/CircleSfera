@@ -98,13 +98,6 @@ export class AuthService {
       throw new BadRequestException(ApiErrorCode.REGISTRATION_CLOSED);
     }
 
-    const requireInvite = await this.systemSettings.isEnabled(
-      SYSTEM_SETTING_KEYS.REQUIRE_INVITE_CODE,
-    );
-    if (requireInvite && !dto.inviteCode?.trim()) {
-      throw new BadRequestException(ApiErrorCode.INVITE_CODE_REQUIRED);
-    }
-
     const dateOfBirth = new Date(dto.dateOfBirth);
     if (Number.isNaN(dateOfBirth.getTime())) {
       throw new BadRequestException('Invalid date of birth');
@@ -142,23 +135,6 @@ export class AuthService {
       throw new ConflictException('Username already taken');
     }
 
-    let referredById: string | undefined;
-    if (dto.inviteCode) {
-      const referringUser = await this.prisma.user.findUnique({
-        where: { inviteCode: dto.inviteCode },
-        include: { _count: { select: { referrals: true } } },
-      });
-      if (!referringUser) {
-        throw new BadRequestException('Invalid invite code');
-      }
-      if (referringUser._count.referrals >= 3) {
-        throw new BadRequestException(
-          'This invite code has reached its maximum usage limit',
-        );
-      }
-      referredById = referringUser.id;
-    }
-
     // Hash password
     const hashedPassword = await argon2.hash(dto.password);
 
@@ -173,10 +149,6 @@ export class AuthService {
         verificationToken,
         dateOfBirth,
         locale: toSupportedLocale(dto.locale),
-        inviteCode:
-          randomUUID().split('-')[0].toUpperCase() +
-          Math.random().toString(36).substring(2, 6).toUpperCase(),
-        referredById,
         profiles: {
           create: {
             username: dto.username,

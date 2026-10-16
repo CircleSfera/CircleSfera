@@ -646,35 +646,6 @@ describe('ProfilesService', () => {
     });
   });
 
-  describe('getMyReferrals', () => {
-    it('throws NotFound if user not found', async () => {
-      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue(null);
-      await expect(service.getMyReferrals('u-missing')).rejects.toThrow(
-        AppException,
-      );
-    });
-
-    it('returns user referrals when found', async () => {
-      mockPrismaService.user.findUnique = vi.fn().mockResolvedValue({
-        inviteCode: 'INVITE123',
-        referrals: [
-          {
-            id: 'ref-1',
-            createdAt: new Date(),
-            profiles: [
-              { username: 'refUser', fullName: 'Ref User', avatar: null },
-            ],
-          },
-        ],
-      });
-
-      const res = await service.getMyReferrals('u-1');
-      expect(res.inviteCode).toBe('INVITE123');
-      expect(res.referralCount).toBe(1);
-      expect(res.referrals[0].profile.username).toBe('refUser');
-    });
-  });
-
   describe('getMyProfile', () => {
     it('throws NotFound if profile not found', async () => {
       mockPrismaService.profile.findUnique.mockResolvedValue(null);
@@ -701,8 +672,6 @@ describe('ProfilesService', () => {
           isActive: true,
           strikeCount: 0,
           emailVerified: new Date(),
-          inviteCode: 'MYINVITE',
-          referredById: null,
           identityVerifiedAt: null,
           signupCountry: 'US',
           botLabeledAt: null,

@@ -3,7 +3,6 @@ export interface RegisterDto {
   password: string;
   username: string;
   fullName?: string;
-  inviteCode?: string;
   // ISO date string (YYYY-MM-DD). Required; must be 16+.
   dateOfBirth: string;
   captchaToken?: string;

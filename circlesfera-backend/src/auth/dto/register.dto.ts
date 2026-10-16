@@ -27,10 +27,6 @@ export class RegisterDto implements IRegisterDto {
   @IsOptional()
   fullName?: string;
 
-  @IsString()
-  @IsOptional()
-  inviteCode?: string;
-
   // ISO date (YYYY-MM-DD). Must be 16+ (enforced in AuthService).
   @IsDateString()
   dateOfBirth!: string;
