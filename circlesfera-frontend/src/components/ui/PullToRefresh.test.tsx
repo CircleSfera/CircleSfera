@@ -89,7 +89,7 @@ describe('PullToRefresh', () => {
 
     await act(async () => finish());
     expect(container.querySelector('.animate-spin')).toBeNull();
-    expect(pulled(content)).toBe(0);
+    await vi.waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('goes back up without refreshing when let go before the mark', async () => {
@@ -101,7 +101,7 @@ describe('PullToRefresh', () => {
     });
 
     expect(onRefresh).not.toHaveBeenCalled();
-    expect(pulled(content)).toBe(0);
+    await vi.waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('goes back up without refreshing when the system takes the touch away', async () => {
@@ -112,7 +112,7 @@ describe('PullToRefresh', () => {
       fireEvent.touchCancel(area);
     });
 
-    expect(pulled(content)).toBe(0);
+    await vi.waitFor(() => expect(pulled(content)).toBe(0));
     await act(async () => {
       fireEvent.touchEnd(area);
     });
@@ -199,7 +199,7 @@ describe('PullToRefresh', () => {
     });
 
     expect(container.querySelector('.animate-spin')).toBeNull();
-    expect(pulled(content)).toBe(0);
+    await vi.waitFor(() => expect(pulled(content)).toBe(0));
   });
 
   it('stops listening when it goes away', () => {
