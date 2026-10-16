@@ -1194,6 +1194,20 @@
       "share_answer": "Compartir",
       "share_answer_label": "Compartir esta respuesta en una historia"
     },
+    "capture": {
+      "close": "Cerrar la cámara",
+      "flash_on": "Encender la luz",
+      "flash_off": "Apagar la luz",
+      "switch_camera": "Cambiar de cámara",
+      "shutter": "Hacer una foto, o mantener para grabar un vídeo",
+      "recording": "Grabando",
+      "gallery": "Elegir de la galería",
+      "mode_story": "Historia",
+      "mode_create": "Crear",
+      "refused": "La cámara no está permitida. Puedes permitirla en los ajustes del navegador o del dispositivo.",
+      "none": "Aquí no hay una cámara que usar.",
+      "starting": "Abriendo la cámara…"
+    },
     "add_to_your_story": "Añadir a tu historia",
     "start_picture_error": "No se pudo abrir la imagen de la historia."
   },
