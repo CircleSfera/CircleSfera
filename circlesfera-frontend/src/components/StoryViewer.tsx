@@ -541,10 +541,10 @@ export default function StoryViewer({
                         />
                       </PlacedSticker>
                     ) : sticker.kind === 'MUSIC' && sticker.settings.title ? (
+                      // Its sound is turned on and off with the story going on.
                       <PlacedSticker
                         key={sticker.id}
                         placement={placementOfSticker(sticker)}
-                        onPointerDown={() => setIsPaused(true)}
                         fitContent
                       >
                         <MusicSticker
