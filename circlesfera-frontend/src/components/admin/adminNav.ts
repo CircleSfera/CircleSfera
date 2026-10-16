@@ -14,6 +14,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   LifeBuoy,
+  Link2Off,
   type LucideIcon,
   Mail,
   Megaphone,
@@ -43,6 +44,7 @@ export type AdminTab =
   | 'posts'
   | 'comments'
   | 'hashtags'
+  | 'link-domains'
   | 'audit'
   | 'stories'
   | 'audio'
@@ -102,6 +104,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   live: 'live',
   comments: 'content',
   hashtags: 'content',
+  'link-domains': 'content',
   audio: 'content',
   'system-health': 'system',
   settings: 'system',
@@ -231,6 +234,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'hashtags',
         labelKey: 'admin.nav.hashtags',
         icon: Hash,
+      },
+      {
+        id: 'link-domains',
+        labelKey: 'admin.nav.link_domains',
+        icon: Link2Off,
       },
       {
         id: 'audio',

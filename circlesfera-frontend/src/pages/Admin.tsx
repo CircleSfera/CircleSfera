@@ -15,6 +15,7 @@ import {
   FirewallTab,
   HashtagsTab,
   HelpCentreTab,
+  LinkDomainsTab,
   LiveStreamsTab,
   ModerationTab,
   MonetizationTab,
@@ -121,6 +122,7 @@ export default function Admin() {
         {activeTab === 'posts' && <PostsTab onToast={addToast} />}
         {activeTab === 'comments' && <CommentsTab onToast={addToast} />}
         {activeTab === 'hashtags' && <HashtagsTab />}
+        {activeTab === 'link-domains' && <LinkDomainsTab />}
         {activeTab === 'stories' && <StoriesTab onToast={addToast} />}
         {activeTab === 'live' && <LiveStreamsTab />}
         {activeTab === 'audio' && <AudioTab onToast={addToast} />}

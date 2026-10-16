@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { searchApi } from '../../services';
 import { renderWithProviders } from '../../test/test-utils';
@@ -307,6 +308,35 @@ describe('StoryComposer', () => {
       options: ['Roma', 'Madrid'],
       correctIndex: 1,
     });
+  });
+
+  it('adds one link from the tray, refuses a second, and offers it no copy', async () => {
+    const refused = vi.spyOn(toast, 'error').mockImplementation(() => '');
+    const { lastElements } = renderComposer();
+    const addLink = () => {
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Enlace' }));
+      fireEvent.change(
+        screen.getByRole('textbox', { name: 'Dirección del enlace' }),
+        { target: { value: 'shop.example' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Añadir enlace' }));
+    };
+
+    addLink();
+    await waitFor(() => expect(lastElements()).toHaveLength(1));
+    expect(lastElements()[0].type).toBe('link');
+    fireEvent.click(screen.getByRole('button', { name: 'Capas' }));
+    expect(
+      screen.queryByRole('button', { name: 'Duplicar' }),
+    ).not.toBeInTheDocument();
+
+    addLink();
+    expect(refused).toHaveBeenCalledWith(
+      'Una historia puede llevar un solo enlace',
+    );
+    expect(lastElements()).toHaveLength(1);
+    refused.mockRestore();
   });
 
   it('adds a countdown from the tray, live on the story', async () => {

@@ -1213,7 +1213,17 @@
       "starting": "Abriendo la cámara…"
     },
     "add_to_your_story": "Añadir a tu historia",
-    "start_picture_error": "No se pudo abrir la imagen de la historia."
+    "start_picture_error": "No se pudo abrir la imagen de la historia.",
+    "link": {
+      "open_label": "Abrir el enlace a {{domain}}",
+      "leaving_title": "Vas a salir de CircleSfera",
+      "leaving_body": "Este enlace abre un sitio que no es CircleSfera:",
+      "open": "Abrir enlace",
+      "report": "Denunciar enlace",
+      "reported": "Denunciado. Gracias",
+      "report_error": "No se pudo enviar la denuncia.",
+      "cancel": "Cancelar"
+    }
   },
   "comments": {
     "send_error": "No se pudo publicar tu comentario. Inténtalo de nuevo.",
@@ -1773,7 +1783,26 @@
       "countdown_ends": "Cuándo termina",
       "countdown_range": "Elige un momento entre un minuto y 30 días desde ahora.",
       "countdown_no_such_time": "Esa hora no existe aquí porque el reloj se adelanta. Elige otra.",
-      "add_countdown": "Añadir cuenta atrás"
+      "add_countdown": "Añadir cuenta atrás",
+      "tool_link": "Enlace",
+      "link_create_hint": "Quien lo vea sabrá que sale de CircleSfera antes de abrirlo.",
+      "link_url": "Dirección del enlace",
+      "link_url_ph": "https://…",
+      "link_label": "Texto que se muestra en lugar de la dirección",
+      "link_label_ph": "Texto corto (opcional)",
+      "link_invalid": "Escribe una dirección web, como ejemplo.com",
+      "link_http": "Solo se pueden añadir direcciones seguras (https)",
+      "add_link": "Añadir enlace",
+      "link_one_per_story": "Una historia puede llevar un solo enlace",
+      "link_errors": {
+        "LINK_INVALID": "Ese enlace no se puede añadir.",
+        "LINK_HTTPS_ONLY": "Solo se pueden añadir direcciones seguras (https).",
+        "LINK_IP_NOT_ALLOWED": "Usa una dirección web, no una dirección numérica.",
+        "LINK_HOST_NOT_ALLOWED": "Esa dirección no se puede abrir desde internet.",
+        "LINK_DOMAIN_BLOCKED": "No se permiten enlaces a ese sitio en CircleSfera.",
+        "LINKS_PER_DAY_REACHED": "Hoy ya has añadido todos los enlaces que puedes. Inténtalo mañana.",
+        "ONE_LINK_STICKER_PER_STORY": "Una historia puede llevar un solo enlace."
+      }
     },
     "tags": {
       "title": "Etiquetar Personas",
@@ -2382,7 +2411,8 @@
       "roles": "Roles",
       "operators": "Operadores",
       "settings": "Configuración",
-      "spam_review": "Revisión de spam"
+      "spam_review": "Revisión de spam",
+      "link_domains": "Dominios bloqueados"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4141,6 +4171,30 @@
       "lift_error": "No se ha podido levantar la suspensión",
       "lift_title": "¿Levantar la suspensión?",
       "lift_message": "@{{username}} podrá volver a iniciar sesión ahora."
+    },
+    "link_domains": {
+      "load_failed": "No se pudieron cargar los dominios bloqueados.",
+      "retry": "Reintentar",
+      "title": "Dominios bloqueados",
+      "subtitle": "Los enlaces de las historias no pueden apuntar a estos dominios ni a sus subdominios. Los enlaces que ya estén en historias dejan de mostrarse.",
+      "label_domain": "Dominio",
+      "placeholder_domain": "ejemplo.com",
+      "label_reason": "Motivo (opcional)",
+      "placeholder_reason": "Phishing, malware, spam…",
+      "block": "Bloquear dominio",
+      "search_placeholder": "Buscar dominios",
+      "empty_title": "No hay dominios bloqueados",
+      "empty_description": "Los dominios que bloquees aparecerán aquí.",
+      "added_by": "Añadido por {{name}} · {{date}}",
+      "added_on": "Añadido el {{date}}",
+      "unblock": "Desbloquear",
+      "unblock_title": "¿Desbloquear {{domain}}?",
+      "unblock_message": "Se podrán volver a añadir enlaces a este dominio, y los que ya estén en historias se mostrarán otra vez.",
+      "toast_blocked": "{{domain}} bloqueado",
+      "toast_unblocked": "{{domain}} desbloqueado",
+      "toast_exists": "Ese dominio ya está bloqueado",
+      "toast_invalid": "Escribe un nombre de dominio, como ejemplo.com",
+      "toast_error": "No se pudo guardar el cambio"
     }
   },
   "collections": {

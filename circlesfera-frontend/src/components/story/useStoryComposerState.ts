@@ -174,6 +174,14 @@ export function useStoryComposerState(props: {
 
   const appendElement = (newElement: StoryElement) => {
     if (!roomFor(newElement)) return;
+    // A story carries one link.
+    if (
+      newElement.type === 'link' &&
+      elements.some((el) => el.type === 'link')
+    ) {
+      toast.error(t('createPost.storyComposer.link_one_per_story'));
+      return;
+    }
     changeElements((current) => [...current, newElement]);
     setSelectedElementId(newElement.id);
   };

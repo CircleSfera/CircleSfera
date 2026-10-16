@@ -495,6 +495,19 @@ describe('useCreatePostMutation', () => {
     expect(deps.setIsProcessingEdit).toHaveBeenLastCalledWith(false);
   });
 
+  it('says why the server refused the link of a story', async () => {
+    vi.mocked(storiesApi.create).mockRejectedValue({
+      status: 400,
+      data: { message: 'LINK_DOMAIN_BLOCKED', errorCode: 'HTTP_EXCEPTION' },
+    });
+    const { submit } = setup({ mode: 'STORY' });
+    await submit();
+
+    expect(toast.error).toHaveBeenCalledWith(
+      i18n.t('createPost.storyComposer.link_errors.LINK_DOMAIN_BLOCKED'),
+    );
+  });
+
   it('shows its own message, never the server text, when publishing fails', async () => {
     vi.mocked(postsApi.create).mockRejectedValue(
       new Error('Internal: column "x" does not exist'),

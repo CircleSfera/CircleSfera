@@ -5,6 +5,7 @@ import {
   BarChart2,
   Hash,
   HelpCircle,
+  Link,
   type LucideIcon,
   MapPin,
   Search,
@@ -33,6 +34,7 @@ const INTERACTIVE: {
   { tab: 'hashtag', icon: Hash, labelKey: 'tool_hashtag' },
   { tab: 'mention', icon: AtSign, labelKey: 'tool_mention' },
   { tab: 'location', icon: MapPin, labelKey: 'tool_location' },
+  { tab: 'link', icon: Link, labelKey: 'tool_link' },
 ];
 
 export interface StoryStickersPanelProps {

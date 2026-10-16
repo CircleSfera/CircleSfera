@@ -34,6 +34,11 @@ import {
   LocationSticker,
   MentionSticker,
 } from './interactive/HashtagSticker';
+import {
+  LinkLeaveSheet,
+  LinkSticker,
+  type StoryLink,
+} from './interactive/LinkLeaveSheet';
 import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
@@ -91,7 +96,9 @@ export default function StoryViewer({
   >([]);
   const particleIdCounter = useRef(0);
 
-  const isModalOpen = showDeleteConfirm || showViewers;
+  // A link of the story being opened: the story waits meanwhile.
+  const [leaving, setLeaving] = useState<StoryLink | null>(null);
+  const isModalOpen = showDeleteConfirm || showViewers || leaving !== null;
   const [lockedPause, setLockedPause] = useState(false);
 
   const resolveStoryDurationMs = (story: Story | undefined): number => {
@@ -532,6 +539,20 @@ export default function StoryViewer({
                           isAuthor={isOwner}
                         />
                       </PlacedSticker>
+                    ) : sticker.kind === 'LINK' && sticker.settings.url ? (
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        onPointerDown={() => setIsPaused(true)}
+                        fitContent
+                      >
+                        <LinkSticker
+                          link={sticker.settings as unknown as StoryLink}
+                          onOpen={() =>
+                            setLeaving(sticker.settings as unknown as StoryLink)
+                          }
+                        />
+                      </PlacedSticker>
                     ) : sticker.kind === 'HASHTAG' ? (
                       <PlacedSticker
                         key={sticker.id}
@@ -843,6 +864,13 @@ export default function StoryViewer({
           }}
         />
       )}
+      {leaving && currentStory ? (
+        <LinkLeaveSheet
+          link={leaving}
+          storyId={currentStory.id}
+          onClose={() => setLeaving(null)}
+        />
+      ) : null}
       {showViewers && (
         <StoryViewersSheet
           viewers={viewers}
