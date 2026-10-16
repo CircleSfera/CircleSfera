@@ -225,6 +225,17 @@ describe('VideoProcessor: joining the layer of a story, step by step', () => {
     expect(prisma.media.updateMany).toHaveBeenCalled();
   });
 
+  it('keeps no joined video when the story and its media cannot be written', async () => {
+    const { prisma, store, uploads, processor } = setup();
+    prisma.media.updateMany.mockRejectedValueOnce(new Error('db down'));
+
+    await expect(processor.process(job('s-1'))).rejects.toThrow('db down');
+
+    expect(store.delete).toHaveBeenCalledWith('/uploads/joined.mp4');
+    expect(store.delete).not.toHaveBeenCalledWith(STORY.url);
+    expect(uploads.enqueueTranscode).not.toHaveBeenCalled();
+  });
+
   it('cannot join without a storage to keep the result', async () => {
     const { processor } = setup({ storage: false });
 
