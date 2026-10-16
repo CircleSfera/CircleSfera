@@ -16,10 +16,36 @@ interface StoryCanvasProps {
   brush?: StoryBrush;
 }
 
+/** A stroke the eraser took off, and where it was in the stack. */
+interface Taken {
+  stroke: fabric.FabricObject;
+  index: number;
+}
+
 /** A stroke drawn, or strokes the eraser took off, to undo in order. */
 type Step =
   | { kind: 'drawn'; stroke: fabric.FabricObject }
-  | { kind: 'erased'; strokes: fabric.FabricObject[] };
+  | { kind: 'erased'; taken: Taken[] };
+
+/**
+ * The points an eraser passes over between two pointer positions, close
+ * enough that a fast move does not jump over a thin stroke.
+ */
+export function pointsAlong(
+  from: { x: number; y: number } | null,
+  to: { x: number; y: number },
+  spacing: number,
+): { x: number; y: number }[] {
+  if (!from) return [to];
+  const steps = Math.max(
+    1,
+    Math.ceil(Math.hypot(to.x - from.x, to.y - from.y) / spacing),
+  );
+  return Array.from({ length: steps }, (_, i) => {
+    const k = (i + 1) / steps;
+    return { x: from.x + (to.x - from.x) * k, y: from.y + (to.y - from.y) * k };
+  });
+}
 
 /** A colour at half strength, for the marker. */
 export function translucent(hex: string, alpha = 0.5): string {
@@ -65,9 +91,14 @@ export const StoryCanvas = forwardRef<StoryCanvasRef, StoryCanvasProps>(
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricRef = useRef<fabric.Canvas | null>(null);
     const historyRef = useRef<Step[]>([]);
-    const erasingRef = useRef<fabric.FabricObject[] | null>(null);
+    const erasingRef = useRef<{
+      taken: Taken[];
+      last: { x: number; y: number } | null;
+    } | null>(null);
     const brushRef = useRef(brush);
     brushRef.current = brush;
+    const widthRef = useRef(brushWidth);
+    widthRef.current = brushWidth;
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: Initialize canvas only once on mount
     useEffect(() => {
@@ -99,33 +130,50 @@ export const StoryCanvas = forwardRef<StoryCanvasRef, StoryCanvasProps>(
         historyRef.current.push({ kind: 'drawn', stroke: e.path });
       });
 
-      // The eraser takes off each stroke it passes over, whole.
+      // The eraser takes off each stroke it passes over, whole: anywhere
+      // within its width, along the whole way the pointer went.
       const eraseAt = (event: fabric.TPointerEventInfo) => {
-        const taken = erasingRef.current;
-        if (!taken) return;
+        const erasing = erasingRef.current;
+        if (!erasing) return;
+        const radius = canvas.targetFindTolerance;
         const point = canvas.getScenePoint(event.e);
-        for (const stroke of [...canvas.getObjects()].reverse()) {
-          if (
-            stroke.containsPoint(point) &&
-            !canvas.isTargetTransparent(stroke, point.x, point.y)
-          ) {
+        for (const at of pointsAlong(erasing.last, point, radius)) {
+          const strokes = canvas.getObjects();
+          for (let index = strokes.length - 1; index >= 0; index--) {
+            const stroke = strokes[index];
+            const box = stroke.getBoundingRect();
+            if (
+              at.x < box.left - radius ||
+              at.x > box.left + box.width + radius ||
+              at.y < box.top - radius ||
+              at.y > box.top + box.height + radius ||
+              canvas.isTargetTransparent(stroke, at.x, at.y)
+            ) {
+              continue;
+            }
             canvas.remove(stroke);
-            taken.push(stroke);
+            erasing.taken.push({ stroke, index });
           }
         }
+        erasing.last = { x: point.x, y: point.y };
         canvas.requestRenderAll();
       };
       canvas.on('mouse:down', (event) => {
         if (brushRef.current !== 'eraser') return;
-        erasingRef.current = [];
+        // The pixels the eraser looks at around the pointer: its width.
+        canvas.setTargetFindTolerance(
+          Math.max(1, Math.round(widthRef.current / 2)),
+        );
+        erasingRef.current = { taken: [], last: null };
         eraseAt(event);
       });
       canvas.on('mouse:move', eraseAt);
       canvas.on('mouse:up', () => {
-        const taken = erasingRef.current;
+        const taken = erasingRef.current?.taken;
+        if (erasingRef.current) canvas.setTargetFindTolerance(0);
         erasingRef.current = null;
         if (taken?.length) {
-          historyRef.current.push({ kind: 'erased', strokes: taken });
+          historyRef.current.push({ kind: 'erased', taken });
         }
       });
 
@@ -184,7 +232,13 @@ export const StoryCanvas = forwardRef<StoryCanvasRef, StoryCanvasProps>(
         const step = historyRef.current.pop();
         if (!canvas || !step) return;
         if (step.kind === 'drawn') canvas.remove(step.stroke);
-        else canvas.add(...step.strokes);
+        else {
+          // Back where each was, the last taken first, so what lay on top
+          // lies on top again.
+          for (const { stroke, index } of [...step.taken].reverse()) {
+            canvas.insertAt(index, stroke);
+          }
+        }
         canvas.requestRenderAll();
       },
     }));

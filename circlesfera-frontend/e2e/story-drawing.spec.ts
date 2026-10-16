@@ -35,13 +35,22 @@ async function stroke(page: Page, y: number) {
   await page.mouse.down();
   await page.mouse.move(box.x + 260, box.y + y, { steps: 12 });
   await page.mouse.up();
-  await page.waitForTimeout(150);
   return { x: 160, y };
 }
 
-test('each brush leaves its mark, the eraser takes a stroke off whole, and undo brings it back', async ({
-  page,
-}) => {
+/** Waits until the drawing at a point, as rendered, meets a condition. */
+async function until(
+  page: Page,
+  at: { x: number; y: number },
+  check: (px: { r: number; g: number; b: number; a: number }) => boolean,
+) {
+  await expect
+    .poll(async () => check(await pixel(page, at.x, at.y)))
+    .toBe(true);
+}
+
+/** Opens a text story and its drawing tools. */
+async function openDrawing(page: Page) {
   await prepareComposerSession(page);
   await page.goto('/create?mode=story');
   await page
@@ -49,9 +58,19 @@ test('each brush leaves its mark, the eraser takes a stroke off whole, and undo 
     .first()
     .click();
   await page.getByRole('button', { name: 'Dibujar', exact: true }).click();
+  const box = await page.getByTestId('story-drawing').boundingBox();
+  if (!box) throw new Error('no drawing area');
+  return box;
+}
+
+test('each brush leaves its mark, the eraser takes a stroke off whole, and undo brings it back', async ({
+  page,
+}) => {
+  const box = await openDrawing(page);
 
   await page.getByRole('button', { name: 'Rojo' }).click();
   const pen = await stroke(page, 120);
+  await until(page, pen, (px) => px.a === 255);
   const red = await pixel(page, pen.x, pen.y);
   expect(red.r).toBeGreaterThan(200);
   expect(red.g).toBeLessThan(90);
@@ -59,6 +78,7 @@ test('each brush leaves its mark, the eraser takes a stroke off whole, and undo 
 
   await page.getByRole('button', { name: 'Rotulador' }).click();
   const marker = await stroke(page, 220);
+  await until(page, marker, (px) => px.a > 0);
   const half = await pixel(page, marker.x, marker.y);
   expect(half.a).toBeGreaterThan(90);
   expect(half.a).toBeLessThan(170);
@@ -66,6 +86,7 @@ test('each brush leaves its mark, the eraser takes a stroke off whole, and undo 
   await page.getByRole('button', { name: 'Neón' }).click();
   await page.getByRole('button', { name: 'Verde' }).click();
   const neon = await stroke(page, 320);
+  await until(page, neon, (px) => px.a > 0);
   const core = await pixel(page, neon.x, neon.y);
   expect(core.r).toBeGreaterThan(200);
   expect(core.b).toBeGreaterThan(200);
@@ -76,18 +97,63 @@ test('each brush leaves its mark, the eraser takes a stroke off whole, and undo 
 
   await page.getByRole('button', { name: 'Goma' }).click();
   await expect(page.getByText('Color', { exact: true })).toHaveCount(0);
-  const box = await page.getByTestId('story-drawing').boundingBox();
-  if (!box) throw new Error('no drawing area');
   // Across the pen's stroke only, at one end of it.
   await page.mouse.move(box.x + 70, box.y + 100);
   await page.mouse.down();
   await page.mouse.move(box.x + 70, box.y + 140, { steps: 8 });
   await page.mouse.up();
-  await page.waitForTimeout(150);
-  expect((await pixel(page, pen.x, pen.y)).a).toBe(0);
+  await until(page, pen, (px) => px.a === 0);
   expect((await pixel(page, marker.x, marker.y)).a).toBeGreaterThan(90);
 
   await page.getByRole('button', { name: 'Deshacer' }).last().click();
-  await page.waitForTimeout(150);
-  expect((await pixel(page, pen.x, pen.y)).r).toBeGreaterThan(200);
+  await until(page, pen, (px) => px.r > 200 && px.a === 255);
+});
+
+test('the eraser takes a stroke it jumps over, or passes within its width of', async ({
+  page,
+}) => {
+  const box = await openDrawing(page);
+  await page.getByRole('button', { name: 'Rojo' }).click();
+  const first = await stroke(page, 120);
+  const second = await stroke(page, 300);
+  await until(page, second, (px) => px.a === 255);
+
+  await page.getByRole('button', { name: 'Goma' }).click();
+  // One move from well above the first stroke to well below it: no pointer
+  // position the browser reports lies on the stroke.
+  await page.mouse.move(box.x + 100, box.y + 60);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 100, box.y + 180, { steps: 1 });
+  await page.mouse.up();
+  await until(page, first, (px) => px.a === 0);
+
+  // A wide eraser drawn beside the second stroke, never on it.
+  await page.getByRole('slider').fill('40');
+  await page.mouse.move(box.x + 100, box.y + 285);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 140, box.y + 285, { steps: 4 });
+  await page.mouse.up();
+  await until(page, second, (px) => px.a === 0);
+});
+
+test('undo puts erased strokes back in the order they were drawn', async ({
+  page,
+}) => {
+  const box = await openDrawing(page);
+  // Red, then green across it at the same height: green lies on top.
+  await page.getByRole('button', { name: 'Rojo' }).click();
+  const under = await stroke(page, 200);
+  await page.getByRole('button', { name: 'Verde' }).click();
+  await stroke(page, 200);
+  await until(page, under, (px) => px.g > px.r);
+
+  await page.getByRole('button', { name: 'Goma' }).click();
+  await page.mouse.move(box.x + 160, box.y + 180);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 160, box.y + 220, { steps: 6 });
+  await page.mouse.up();
+  await until(page, under, (px) => px.a === 0);
+
+  await page.getByRole('button', { name: 'Deshacer' }).last().click();
+  await until(page, under, (px) => px.a === 255 && px.g > px.r);
 });

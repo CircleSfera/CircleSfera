@@ -91,7 +91,7 @@ export default function StoryDrawPanel({
             type="button"
             onClick={() => onBrushChange(id)}
             aria-pressed={brush === id}
-            className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border px-1 py-1.5 text-[11px] font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+            className={`flex min-h-11 flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl border px-1 py-1.5 text-xs font-semibold transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               brush === id
                 ? 'border-white bg-white text-black'
                 : 'border-white/10 bg-white/6 text-white/80 hover:bg-white/10'
