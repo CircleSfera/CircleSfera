@@ -254,9 +254,8 @@ describe('CloudinaryProvider', () => {
 
   it('owns nothing without an account name it can trust', () => {
     for (const name of [null, 'bad/name']) {
-      mockConfigService.get.mockImplementation((key: string) =>
-        key === 'CLOUDINARY_NAME' ? name : null,
-      );
+      mockConfigService.get.mockImplementation(((key: string) =>
+        key === 'CLOUDINARY_NAME' ? name : null) as never);
       expect(
         provider.ownsUrl(
           'https://res.cloudinary.com/test-cloud/video/upload/circlesfera/a.mp4',

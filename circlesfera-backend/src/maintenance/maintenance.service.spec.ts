@@ -1,3 +1,4 @@
+import type { Logger } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
@@ -680,7 +681,10 @@ describe('MaintenanceService', () => {
     it('says which joins it gave again', async () => {
       mockPrismaService.story.findMany.mockResolvedValueOnce([{ id: 's-9' }]);
       mockUploadsService.recoverStoryOverlay.mockResolvedValueOnce('retried');
-      const log = vi.spyOn(service['logger'], 'log');
+      const log = vi.spyOn(
+        (service as unknown as { logger: Logger }).logger,
+        'log',
+      );
 
       await service.recoverStoryOverlays();
 
@@ -700,7 +704,10 @@ describe('MaintenanceService', () => {
       ]);
       mockUploadsService.deleteFile.mockRejectedValueOnce(new Error('gone'));
       mockPrismaService.story.delete.mockResolvedValue({ id: 's-l' });
-      const warn = vi.spyOn(service['logger'], 'warn');
+      const warn = vi.spyOn(
+        (service as unknown as { logger: Logger }).logger,
+        'warn',
+      );
 
       await service.cleanupExpiredStories();
 
