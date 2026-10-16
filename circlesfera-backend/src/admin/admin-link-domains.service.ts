@@ -61,21 +61,34 @@ export class AdminLinkDomainsService {
       select: { id: true },
     });
     if (exists) throw new ConflictException('DOMAIN_ALREADY_BLOCKED');
-    const row = await this.prisma.blockedLinkDomain.create({
-      data: {
-        domain,
-        reason: reason?.trim() || null,
-        createdByAdminId: adminId,
-      },
-    });
-    await this.logAdminAction.execute(
-      adminId,
-      AdminAction.LINK_DOMAIN_BLOCKED,
-      'link_domain',
-      row.id,
-      reason?.trim() ? `${domain}: ${reason.trim()}` : domain,
-    );
-    return row;
+    try {
+      // The block and its audit entry are saved together or not at all.
+      return await this.prisma.$transaction(async (tx) => {
+        const row = await tx.blockedLinkDomain.create({
+          data: {
+            domain,
+            reason: reason?.trim() || null,
+            createdByAdminId: adminId,
+          },
+        });
+        await this.logAdminAction.execute(
+          adminId,
+          AdminAction.LINK_DOMAIN_BLOCKED,
+          'link_domain',
+          row.id,
+          reason?.trim() ? `${domain}: ${reason.trim()}` : domain,
+          undefined,
+          tx,
+        );
+        return row;
+      });
+    } catch (err) {
+      // Another staff member blocked it a moment before.
+      if ((err as { code?: string }).code === 'P2002') {
+        throw new ConflictException('DOMAIN_ALREADY_BLOCKED');
+      }
+      throw err;
+    }
   }
 
   async unblock(adminId: string, id: string) {
@@ -84,14 +97,18 @@ export class AdminLinkDomainsService {
       select: { id: true, domain: true },
     });
     if (!row) throw new NotFoundException('Blocked domain not found');
-    await this.prisma.blockedLinkDomain.delete({ where: { id } });
-    await this.logAdminAction.execute(
-      adminId,
-      AdminAction.LINK_DOMAIN_UNBLOCKED,
-      'link_domain',
-      id,
-      row.domain,
-    );
+    await this.prisma.$transaction(async (tx) => {
+      await tx.blockedLinkDomain.delete({ where: { id } });
+      await this.logAdminAction.execute(
+        adminId,
+        AdminAction.LINK_DOMAIN_UNBLOCKED,
+        'link_domain',
+        id,
+        row.domain,
+        undefined,
+        tx,
+      );
+    });
     return { id, domain: row.domain };
   }
 }

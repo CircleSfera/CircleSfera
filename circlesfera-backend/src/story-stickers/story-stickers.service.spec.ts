@@ -37,6 +37,7 @@ function prismaMock() {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       count: vi.fn().mockResolvedValue(0),
     },
+    $queryRaw: vi.fn().mockResolvedValue([]),
     blockedLinkDomain: {
       findFirst: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -698,17 +699,15 @@ describe('StoryStickersService', () => {
         null,
       );
 
-    it('is saved when its domain is not blocked and resolves to public addresses', async () => {
+    it('is saved when its domain is not blocked', async () => {
       await create([link()]);
 
       expect(prisma.blockedLinkDomain.findFirst).toHaveBeenCalledWith({
         where: { domain: { in: ['shop.example.com', 'example.com'] } },
         select: { id: true },
       });
-      expect(validateTargetUrl).toHaveBeenCalledWith(
-        'https://shop.example.com/x',
-        { requireHttps: true, allowedPorts: [443] },
-      );
+      // DNS is asked before the transaction, never inside it.
+      expect(validateTargetUrl).not.toHaveBeenCalled();
       expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
         data: [
           expect.objectContaining({
@@ -722,13 +721,27 @@ describe('StoryStickersService', () => {
       });
     });
 
-    it('is refused under a blocked domain, or when it resolves to a private address', async () => {
+    it('is refused under a blocked domain', async () => {
       prisma.blockedLinkDomain.findFirst.mockResolvedValueOnce({ id: 'b' });
       await expect(create([link()])).rejects.toThrow('LINK_DOMAIN_BLOCKED');
+      expect(prisma.storySticker.createMany).not.toHaveBeenCalled();
+    });
+
+    it('is checked to resolve only to public addresses, and refused when it does not', async () => {
+      await service.assertLinkHostsPublic([
+        sticker({ kind: 'POLL', settings: {} }),
+        link(),
+      ]);
+      expect(validateTargetUrl).toHaveBeenCalledTimes(1);
+      expect(validateTargetUrl).toHaveBeenCalledWith(
+        'https://shop.example.com/x',
+        { requireHttps: true, allowedPorts: [443] },
+      );
 
       vi.mocked(validateTargetUrl).mockRejectedValueOnce(new Error('private'));
-      await expect(create([link()])).rejects.toThrow('LINK_HOST_NOT_ALLOWED');
-      expect(prisma.storySticker.createMany).not.toHaveBeenCalled();
+      await expect(service.assertLinkHostsPublic([link()])).rejects.toThrow(
+        'LINK_HOST_NOT_ALLOWED',
+      );
     });
 
     it('goes once per story, and up to ten a day per profile', async () => {
@@ -738,6 +751,14 @@ describe('StoryStickersService', () => {
 
       prisma.storySticker.count.mockResolvedValueOnce(10);
       await expect(create([link()])).rejects.toThrow('LINKS_PER_DAY_REACHED');
+      // The author is locked before the count, so two stories at once wait
+      // for each other.
+      const [sql, id] = prisma.$queryRaw.mock.calls[0];
+      expect(sql.join('?')).toMatch(/FROM profiles WHERE id = \? FOR UPDATE/);
+      expect(id).toBe(AUTHOR);
+      expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+        prisma.storySticker.count.mock.invocationCallOrder[0],
+      );
       expect(prisma.storySticker.count.mock.calls[0][0].where).toMatchObject({
         kind: 'LINK',
         story: { profileId: AUTHOR },

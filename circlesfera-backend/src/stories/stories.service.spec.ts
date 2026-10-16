@@ -106,6 +106,7 @@ describe('StoriesService', () => {
           provide: StoryStickersService,
           useValue: {
             createForStory: vi.fn(async (): Promise<string[]> => []),
+            assertLinkHostsPublic: vi.fn(async () => undefined),
             forFeed: vi.fn((stickers: unknown[] = []) => stickers),
             mentionNames: vi.fn(async () => new Map()),
             blockedLinkDomains: vi.fn(async () => new Set(['evil.example'])),
@@ -327,6 +328,32 @@ describe('StoriesService', () => {
         [poll],
         null,
       );
+    });
+
+    it('checks the hosts of its links before the transaction opens', async () => {
+      const stickers = module.get(StoryStickersService);
+      const link = {
+        kind: 'LINK' as const,
+        settings: { url: 'https://shop.example.com' },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      vi.mocked(stickers.assertLinkHostsPublic).mockRejectedValueOnce(
+        new Error('LINK_HOST_NOT_ALLOWED'),
+      );
+      const before = mockPrismaService.$transaction.mock.calls.length;
+
+      await expect(
+        service.create('user-1', {
+          url: 'https://cdn.example.com/story.png',
+          stickers: [link],
+        }),
+      ).rejects.toThrow('LINK_HOST_NOT_ALLOWED');
+
+      expect(stickers.assertLinkHostsPublic).toHaveBeenCalledWith([link]);
+      expect(mockPrismaService.$transaction.mock.calls.length).toBe(before);
     });
 
     describe('a mention on the story', () => {

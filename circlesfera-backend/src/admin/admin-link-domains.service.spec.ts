@@ -8,20 +8,24 @@ import {
 import type { LogAdminActionUseCase } from './use-cases/content/commands/log-admin-action.use-case.js';
 
 function setup() {
+  const blockedLinkDomain = {
+    findMany: vi.fn().mockResolvedValue([]),
+    findUnique: vi.fn().mockResolvedValue(null),
+    create: vi.fn(async ({ data }) => ({ id: 'd-1', ...data })),
+    delete: vi.fn(),
+  };
+  // The transaction the change and its audit entry are written in.
+  const tx = { blockedLinkDomain };
   const prisma = {
-    blockedLinkDomain: {
-      findMany: vi.fn().mockResolvedValue([]),
-      findUnique: vi.fn().mockResolvedValue(null),
-      create: vi.fn(async ({ data }) => ({ id: 'd-1', ...data })),
-      delete: vi.fn(),
-    },
+    blockedLinkDomain,
+    $transaction: vi.fn(async (fn: (t: typeof tx) => unknown) => fn(tx)),
   };
   const log = { execute: vi.fn() };
   const service = new AdminLinkDomainsService(
     prisma as unknown as PrismaService,
     log as unknown as LogAdminActionUseCase,
   );
-  return { prisma, log, service };
+  return { prisma, tx, log, service };
 }
 
 describe('the domains staff block for links', () => {
@@ -55,12 +59,38 @@ describe('the domains staff block for links', () => {
       'link_domain',
       'd-1',
       'evil.example: phishing',
+      undefined,
+      s.tx,
     );
 
     s.prisma.blockedLinkDomain.findUnique.mockResolvedValueOnce({ id: 'd-1' });
     await expect(s.service.block('admin-1', 'evil.example')).rejects.toThrow(
       'DOMAIN_ALREADY_BLOCKED',
     );
+  });
+
+  it('say it is already blocked when another staff member blocked it a moment before', async () => {
+    s.prisma.blockedLinkDomain.create.mockRejectedValueOnce(
+      Object.assign(new Error('unique'), { code: 'P2002' }),
+    );
+    await expect(s.service.block('admin-1', 'evil.example')).rejects.toThrow(
+      'DOMAIN_ALREADY_BLOCKED',
+    );
+
+    s.prisma.blockedLinkDomain.create.mockRejectedValueOnce(
+      new Error('db down'),
+    );
+    await expect(s.service.block('admin-1', 'evil.example')).rejects.toThrow(
+      'db down',
+    );
+  });
+
+  it('keep no block without its audit entry', async () => {
+    s.log.execute.mockRejectedValueOnce(new Error('audit down'));
+    await expect(s.service.block('admin-1', 'evil.example')).rejects.toThrow(
+      'audit down',
+    );
+    expect(s.prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
   it('keep no empty reason', async () => {
@@ -90,6 +120,8 @@ describe('the domains staff block for links', () => {
       'link_domain',
       'd-1',
       'evil.example',
+      undefined,
+      s.tx,
     );
 
     await expect(s.service.unblock('admin-1', 'nope')).rejects.toThrow(

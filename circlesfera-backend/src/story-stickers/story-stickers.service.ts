@@ -99,6 +99,9 @@ export class StoryStickersService {
     const links = stickers.filter((s) => s.kind === 'LINK').length;
     if (links > 1) throw new BadRequestException('ONE_LINK_STICKER_PER_STORY');
     if (links > 0) {
+      // One story at a time per author counts and adds its link, so two at
+      // once never both fit under the day's limit.
+      await tx.$queryRaw`SELECT id FROM profiles WHERE id = ${authorProfileId} FOR UPDATE`;
       const today = await tx.storySticker.count({
         where: {
           kind: 'LINK',
@@ -167,9 +170,28 @@ export class StoryStickersService {
   }
 
   /**
-   * A link may be added when its domain is not blocked by staff, nor under
-   * one that is, and resolves only to public addresses.
+   * Checks that each link of a new story resolves only to public addresses.
+   * It asks DNS, so it runs before the story's transaction opens, never
+   * holding one while it waits.
    */
+  async assertLinkHostsPublic(stickers: CreateStoryStickerDto[]) {
+    for (const sticker of stickers) {
+      if (sticker.kind !== 'LINK') continue;
+      const { url } = parseStickerSettings('LINK', sticker.settings) as {
+        url: string;
+      };
+      try {
+        await validateTargetUrl(url, {
+          requireHttps: true,
+          allowedPorts: [443],
+        });
+      } catch {
+        throw new BadRequestException('LINK_HOST_NOT_ALLOWED');
+      }
+    }
+  }
+
+  /** A link may be added when its domain is not blocked by staff, nor under one that is. */
   private async assertLinkAllowed(
     tx: Tx,
     link: { url: string; domain: string },
@@ -179,14 +201,6 @@ export class StoryStickersService {
       select: { id: true },
     });
     if (blocked) throw new BadRequestException('LINK_DOMAIN_BLOCKED');
-    try {
-      await validateTargetUrl(link.url, {
-        requireHttps: true,
-        allowedPorts: [443],
-      });
-    } catch {
-      throw new BadRequestException('LINK_HOST_NOT_ALLOWED');
-    }
   }
 
   /**

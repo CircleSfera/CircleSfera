@@ -215,6 +215,8 @@ export class StoriesService {
     // audioId, placeId) with a nested relation create isn't a valid Prisma
     // input shape — Prisma requires either all-relations or all-raw-FKs in
     // a single create call.
+    await this.stickers.assertLinkHostsPublic(dto.stickers ?? []);
+
     const createdStory = await this.prisma.$transaction(async (tx) => {
       // The place and its names are saved with the story or not at all.
       const placeAttachment = await resolvePlaceAttachment(tx, {
