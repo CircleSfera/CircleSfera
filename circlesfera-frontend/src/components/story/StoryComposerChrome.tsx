@@ -20,6 +20,8 @@ interface StoryComposerChromeProps {
   share?: StoryShareOptions;
   /** The place is on the story as a sticker, so it is not shown twice. */
   placeOnStory?: boolean;
+  /** The song shows as its sticker, so its chip is not needed. */
+  musicOnStory?: boolean;
 }
 
 const roundButton =
@@ -45,6 +47,7 @@ export default function StoryComposerChrome({
   pointerArmed,
   share,
   placeOnStory = false,
+  musicOnStory = false,
 }: StoryComposerChromeProps) {
   const { t } = useTranslation();
 
@@ -101,10 +104,12 @@ export default function StoryComposerChrome({
         />
       </div>
 
-      {share && (share.musicTitle || (share.placeName && !placeOnStory)) ? (
+      {share &&
+      ((share.musicTitle && !musicOnStory) ||
+        (share.placeName && !placeOnStory)) ? (
         // What was chosen for the story, at the bottom left; a tap changes it.
         <div className="absolute bottom-3 left-3 right-16 flex flex-col items-start gap-2 pointer-events-auto">
-          {share.musicTitle ? (
+          {share.musicTitle && !musicOnStory ? (
             <button
               type="button"
               onClick={share.onOpenMusic}

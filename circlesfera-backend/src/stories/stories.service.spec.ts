@@ -327,6 +327,7 @@ describe('StoriesService', () => {
         'user-1',
         [poll],
         null,
+        null,
       );
     });
 
@@ -488,6 +489,28 @@ describe('StoriesService', () => {
   });
 
   describe('findAll', () => {
+    it('passes each story’s track to its music sticker', async () => {
+      mockPrismaService.follow.findMany.mockResolvedValue([
+        { followingId: 'user-2' },
+      ]);
+      mockPrismaService.story.findMany.mockResolvedValue([
+        {
+          id: 's-m',
+          profileId: 'user-2',
+          audio: { title: 'Luz', artist: 'Ana', thumbnailUrl: null },
+        },
+      ]);
+      const stickers = module.get(StoryStickersService);
+
+      await service.findAll('user-1');
+
+      expect(vi.mocked(stickers.forFeed).mock.calls[0][2]?.track).toEqual({
+        title: 'Luz',
+        artist: 'Ana',
+        cover: null,
+      });
+    });
+
     it('takes the links off a story while its author is banned or suspended, and passes the blocked domains', async () => {
       mockPrismaService.follow.findMany.mockResolvedValue([
         { followingId: 'user-2' },
@@ -600,12 +623,14 @@ describe('StoriesService', () => {
       expect(stickers.forFeed).toHaveBeenCalledWith([mention], false, {
         usernames,
         placeName: 'Madrid',
+        track: null,
         blockedDomains: expect.any(Set),
         linksOff: false,
       });
       expect(stickers.forFeed).toHaveBeenCalledWith([], false, {
         usernames,
         placeName: null,
+        track: null,
         blockedDomains: expect.any(Set),
         linksOff: false,
       });

@@ -332,6 +332,44 @@ describe('StoryViewer', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
+    it('shows the song of the story, which turns its sound on and off', () => {
+      show([
+        story('s1', {
+          stickers: [
+            sticker('st-m', 'MUSIC', { title: 'Luz', artist: 'Ana' }),
+            sticker('st-x', 'MUSIC', {}),
+          ],
+        } as Partial<Story>),
+      ]);
+
+      fireEvent.click(screen.getByLabelText('Mute the sound: Luz, Ana'));
+      fireEvent.click(screen.getByLabelText('Play the sound: Luz, Ana'));
+      expect(
+        screen.getByLabelText('Mute the sound: Luz, Ana'),
+      ).toBeInTheDocument();
+      expect(screen.getAllByTestId('placed-sticker')).toHaveLength(1);
+    });
+
+    it('keeps the story going when its song is turned on or off', () => {
+      vi.useFakeTimers();
+      show([
+        story('s1', {
+          stickers: [sticker('st-m', 'MUSIC', { title: 'Luz', artist: 'Ana' })],
+        } as Partial<Story>),
+        story('s2'),
+      ]);
+      const song = screen.getByLabelText('Mute the sound: Luz, Ana');
+
+      fireEvent.pointerDown(song);
+      fireEvent.pointerUp(song);
+      fireEvent.click(song);
+      act(() => {
+        vi.advanceTimersByTime(8000);
+      });
+
+      expect(position()).toMatch(/^Story 2 of 2/);
+    });
+
     it('shows a countdown where it was placed, for a viewer to be reminded', () => {
       show([
         story('s1', {

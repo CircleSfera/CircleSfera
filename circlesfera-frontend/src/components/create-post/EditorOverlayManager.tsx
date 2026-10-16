@@ -156,6 +156,13 @@ export default function EditorOverlayManager({
             onManageCloseFriends: () => setSubScreen('close_friends'),
             isSharing: isPending || pendingShare !== null,
             musicTitle: selectedAudio?.title ?? null,
+            musicSticker: selectedAudio
+              ? {
+                  title: selectedAudio.title,
+                  artist: selectedAudio.artist,
+                  cover: selectedAudio.thumbnailUrl ?? null,
+                }
+              : null,
             onOpenMusic: () => setSubScreen('music'),
             placeName: location || null,
             placeStickerName: selectedPlace?.name ?? null,

@@ -268,6 +268,7 @@ export class StoriesService {
         profileId,
         dto.stickers ?? [],
         placeAttachment.placeId,
+        dto.audioId ?? null,
       );
       return { story, mentioned };
     });
@@ -410,6 +411,13 @@ export class StoriesService {
         {
           usernames,
           placeName: storyData.place?.name ?? null,
+          track: storyData.audio
+            ? {
+                title: storyData.audio.title,
+                artist: storyData.audio.artist,
+                cover: storyData.audio.thumbnailUrl ?? null,
+              }
+            : null,
           blockedDomains,
           // A sanction takes the author's links off at once.
           linksOff:

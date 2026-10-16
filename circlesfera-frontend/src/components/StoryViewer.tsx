@@ -39,6 +39,7 @@ import {
   LinkSticker,
   type StoryLink,
 } from './interactive/LinkLeaveSheet';
+import { MusicSticker } from './interactive/MusicSticker';
 import { PlacedSticker } from './interactive/PlacedSticker';
 import { PollWidget } from './interactive/PollWidget';
 import { QnaWidget } from './interactive/QnaWidget';
@@ -537,6 +538,26 @@ export default function StoryViewer({
                         <CountdownWidget
                           stickerId={sticker.id}
                           isAuthor={isOwner}
+                        />
+                      </PlacedSticker>
+                    ) : sticker.kind === 'MUSIC' && sticker.settings.title ? (
+                      // Its sound is turned on and off with the story going on.
+                      <PlacedSticker
+                        key={sticker.id}
+                        placement={placementOfSticker(sticker)}
+                        fitContent
+                      >
+                        <MusicSticker
+                          track={{
+                            title: String(sticker.settings.title),
+                            artist: String(sticker.settings.artist ?? ''),
+                            cover:
+                              typeof sticker.settings.cover === 'string'
+                                ? sticker.settings.cover
+                                : null,
+                          }}
+                          muted={isMuted}
+                          onToggleSound={() => setIsMuted(!isMuted)}
                         />
                       </PlacedSticker>
                     ) : sticker.kind === 'LINK' && sticker.settings.url ? (

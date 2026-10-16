@@ -795,4 +795,76 @@ describe('StoryStickersService', () => {
       await expect(service.blockedLinkDomains([])).resolves.toEqual(new Set());
     });
   });
+
+  describe('music', () => {
+    const music = () => sticker({ kind: 'MUSIC', settings: { audioId: 'x' } });
+
+    it('is the story’s own track, whatever the app sends, once per story', async () => {
+      await service.createForStory(
+        prisma as never,
+        'story-1',
+        AUTHOR,
+        [music()],
+        null,
+        'track-1',
+      );
+      expect(prisma.storySticker.createMany).toHaveBeenCalledWith({
+        data: [
+          expect.objectContaining({
+            kind: 'MUSIC',
+            settings: { audioId: 'track-1' },
+          }),
+        ],
+      });
+
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [music(), music()],
+          null,
+          'track-1',
+        ),
+      ).rejects.toThrow('ONE_MUSIC_STICKER_PER_STORY');
+    });
+
+    it('is refused on a story with no track', async () => {
+      await expect(
+        service.createForStory(
+          prisma as never,
+          'story-1',
+          AUTHOR,
+          [music()],
+          null,
+        ),
+      ).rejects.toThrow('AUDIO_NOT_FOUND');
+    });
+
+    it('goes to the feed with the track’s title, artist and cover, and not without a track', () => {
+      const row = {
+        id: 'm',
+        kind: 'MUSIC' as const,
+        settings: { audioId: 'track-1' },
+        x: 0,
+        y: 0,
+        scale: 1,
+        rotation: 0,
+      };
+      const names = { usernames: new Map(), placeName: null };
+
+      expect(
+        service.forFeed([row], false, {
+          ...names,
+          track: { title: 'Luz', artist: 'Ana', cover: 'https://c/1.jpg' },
+        })[0].settings,
+      ).toEqual({
+        audioId: 'track-1',
+        title: 'Luz',
+        artist: 'Ana',
+        cover: 'https://c/1.jpg',
+      });
+      expect(service.forFeed([row], false, names)).toEqual([]);
+    });
+  });
 });

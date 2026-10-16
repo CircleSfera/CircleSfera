@@ -692,6 +692,104 @@ describe('StoryComposer', () => {
     });
   });
 
+  describe('the music sticker', () => {
+    const LUZ = { title: 'Luz', artist: 'Ana', cover: null };
+    const MAR = { title: 'Mar', artist: 'Leo', cover: null };
+
+    /** The editor in its screen, whose song picker chooses Luz. */
+    function Sharing({
+      initialTrack = null,
+      onElementsChange,
+    }: {
+      initialTrack?: typeof LUZ | null;
+      onElementsChange: (elements: StoryElement[]) => void;
+    }) {
+      const [track, setTrack] = useState(initialTrack);
+      return (
+        <>
+          <button type="button" onClick={() => setTrack(null)}>
+            quitar canción
+          </button>
+          <button type="button" onClick={() => setTrack(MAR)}>
+            otra canción
+          </button>
+          <StoryComposer
+            onPost={vi.fn()}
+            onClose={vi.fn()}
+            onElementsChange={onElementsChange}
+            share={{
+              closeFriendsCount: 0,
+              onManageCloseFriends: vi.fn(),
+              isSharing: false,
+              musicTitle: track?.title ?? null,
+              musicSticker: track,
+              onOpenMusic: () => setTrack(LUZ),
+              placeName: null,
+              placeStickerName: null,
+              onOpenPlace: vi.fn(),
+            }}
+          />
+        </>
+      );
+    }
+
+    const renderSharing = (initialTrack: typeof LUZ | null = null) => {
+      const onElementsChange = vi.fn();
+      renderWithProviders(
+        <Sharing
+          initialTrack={initialTrack}
+          onElementsChange={onElementsChange}
+        />,
+        { lng: 'es' },
+      );
+      return (): StoryElement[] =>
+        onElementsChange.mock.calls.at(-1)?.[0] ?? [];
+    };
+
+    it('with no song yet, asks for one and is added once it is chosen', async () => {
+      const lastElements = renderSharing();
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Música' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Elegir canción' }));
+
+      await waitFor(() => expect(lastElements()).toHaveLength(1));
+      expect(lastElements()[0]).toMatchObject({
+        type: 'music',
+        content: JSON.stringify(LUZ),
+      });
+    });
+
+    it('with a song, is added at once, hides the song chip, follows the song and goes with it', async () => {
+      const lastElements = renderSharing(LUZ);
+      expect(screen.getByRole('button', { name: /Luz/ })).toBeInTheDocument();
+      fireEvent.click(tool('Stickers'));
+      fireEvent.click(screen.getByRole('button', { name: 'Música' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Mostrar «Luz» en la historia' }),
+      );
+      await waitFor(() => expect(lastElements()).toHaveLength(1));
+      expect(screen.getByText('Luz')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /: Luz$/ }),
+      ).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'otra canción' }));
+      await waitFor(() =>
+        expect(JSON.parse(lastElements()[0].content).title).toBe('Mar'),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'quitar canción' }));
+      await waitFor(() => expect(lastElements()).toHaveLength(0));
+    });
+
+    it('is not offered when the editor does not share the story', () => {
+      renderComposer();
+      fireEvent.click(tool('Stickers'));
+      expect(
+        screen.queryByRole('button', { name: 'Música' }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('background panel', () => {
     it('names each background and marks the chosen one', () => {
       const onBgStyleChange = vi.fn();

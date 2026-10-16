@@ -28,7 +28,8 @@ export type StickerSettings =
   | { placeId?: string } // LOCATION: the story's place, set by the service
   | { tag: string } // HASHTAG
   | { title: string; endsAt: string } // COUNTDOWN
-  | { url: string; domain: string; label?: string }; // LINK
+  | { url: string; domain: string; label?: string } // LINK
+  | { audioId?: string }; // MUSIC: the story's track, set by the service
 
 const fail = (message: string): never => {
   throw new BadRequestException(`STICKER_SETTINGS_INVALID: ${message}`);
@@ -129,6 +130,8 @@ export function parseStickerSettings(
         endsAt: ends.toISOString(),
       };
     }
+    case 'MUSIC':
+      return {};
     case 'LINK': {
       const link = normaliseLink(s.url);
       const label =

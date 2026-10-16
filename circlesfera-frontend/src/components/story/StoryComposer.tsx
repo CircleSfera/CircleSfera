@@ -88,6 +88,7 @@ export default function StoryComposer(props: StoryComposerProps) {
               pointerArmed={s.chromePointerArmed}
               share={props.share}
               placeOnStory={s.elements.some((el) => el.type === 'location')}
+              musicOnStory={s.elements.some((el) => el.type === 'music')}
             />
           )
         }

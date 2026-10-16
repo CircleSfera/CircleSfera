@@ -88,6 +88,7 @@ export class StoryStickersService {
     authorProfileId: string,
     stickers: CreateStoryStickerDto[],
     storyPlaceId: string | null,
+    storyAudioId: string | null = null,
   ): Promise<string[]> {
     if (stickers.length === 0) return [];
     if (stickers.length > STICKER_LIMITS.perStory) {
@@ -95,6 +96,9 @@ export class StoryStickersService {
     }
     if (stickers.filter((s) => s.kind === 'LOCATION').length > 1) {
       throw new BadRequestException('ONE_LOCATION_STICKER_PER_STORY');
+    }
+    if (stickers.filter((s) => s.kind === 'MUSIC').length > 1) {
+      throw new BadRequestException('ONE_MUSIC_STICKER_PER_STORY');
     }
     const links = stickers.filter((s) => s.kind === 'LINK').length;
     if (links > 1) throw new BadRequestException('ONE_LINK_STICKER_PER_STORY');
@@ -147,6 +151,10 @@ export class StoryStickersService {
           tx,
           settings as { url: string; domain: string },
         );
+      }
+      if (sticker.kind === 'MUSIC') {
+        if (!storyAudioId) throw new BadRequestException('AUDIO_NOT_FOUND');
+        settings = { audioId: storyAudioId };
       }
       if (sticker.kind === 'LOCATION') {
         if (!storyPlaceId) throw new BadRequestException('PLACE_NOT_FOUND');
@@ -272,6 +280,8 @@ export class StoryStickersService {
       blockedDomains?: ReadonlySet<string>;
       /** The author is banned or suspended: their links are left out. */
       linksOff?: boolean;
+      /** The story's track, which its music sticker shows. */
+      track?: { title: string; artist: string; cover: string | null } | null;
     } = { usernames: new Map(), placeName: null },
   ): FeedSticker[] {
     const feed: FeedSticker[] = [];
@@ -285,6 +295,12 @@ export class StoryStickersService {
       if (s.kind === 'LOCATION') {
         if (!names.placeName) continue;
         settings.name = names.placeName;
+      }
+      if (s.kind === 'MUSIC') {
+        if (!names.track) continue;
+        settings.title = names.track.title;
+        settings.artist = names.track.artist;
+        settings.cover = names.track.cover;
       }
       if (
         s.kind === 'LINK' &&

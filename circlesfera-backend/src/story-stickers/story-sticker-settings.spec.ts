@@ -134,6 +134,12 @@ describe('what a link holds', () => {
   });
 });
 
+describe('what a music sticker holds', () => {
+  it('holds nothing from the app: the server gives it the story’s track', () => {
+    expect(parseStickerSettings('MUSIC', { audioId: 'any' })).toEqual({});
+  });
+});
+
 describe('what a viewer sees of a sticker', () => {
   const quiz = { question: 'Q', options: ['a', 'b'], correctIndex: 1 };
 
