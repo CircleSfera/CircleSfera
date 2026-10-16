@@ -174,6 +174,74 @@ describe('StoryCapture', () => {
     expect(sound.stop).toHaveBeenCalled();
   });
 
+  const hide = () => {
+    Object.defineProperty(document, 'hidden', {
+      value: true,
+      configurable: true,
+    });
+    act(() => {
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    Object.defineProperty(document, 'hidden', {
+      value: false,
+      configurable: true,
+    });
+  };
+
+  it('drops a video being recorded, and the microphone, when the screen is hidden', async () => {
+    const sound = { ...cameraTrack(), kind: 'audio' };
+    getUserMedia
+      .mockResolvedValueOnce(stream([cameraTrack()]))
+      .mockResolvedValueOnce(stream([sound]));
+    const { onCapture } = show();
+    await waitFor(() => expect(shutter()).toBeInTheDocument());
+    vi.useFakeTimers();
+    fireEvent.pointerDown(shutter(), { pointerId: 1 });
+    await act(async () => {
+      vi.advanceTimersByTime(350);
+    });
+    await act(async () => {});
+    expect(recorders[0].state).toBe('recording');
+
+    hide();
+
+    expect(recorders[0].state).toBe('inactive');
+    expect(sound.stop).toHaveBeenCalled();
+    await act(async () => {
+      vi.advanceTimersByTime(60_000);
+    });
+    expect(onCapture).not.toHaveBeenCalled();
+  });
+
+  it('records nothing when the screen is hidden while the microphone is asked for', async () => {
+    const sound = { ...cameraTrack(), kind: 'audio' };
+    let answer: (s: unknown) => void = () => {};
+    getUserMedia
+      .mockResolvedValueOnce(stream([cameraTrack()]))
+      .mockReturnValueOnce(
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      )
+      .mockResolvedValue(stream([cameraTrack()]));
+    const { onCapture } = show();
+    await waitFor(() => expect(shutter()).toBeInTheDocument());
+    vi.useFakeTimers();
+    fireEvent.pointerDown(shutter(), { pointerId: 1 });
+    await act(async () => {
+      vi.advanceTimersByTime(350);
+    });
+
+    hide();
+    await act(async () => {
+      answer(stream([sound]));
+    });
+
+    expect(recorders).toHaveLength(0);
+    expect(sound.stop).toHaveBeenCalled();
+    expect(onCapture).not.toHaveBeenCalled();
+  });
+
   it('stops a video at the longest a story takes', async () => {
     getUserMedia
       .mockResolvedValueOnce(stream([cameraTrack()]))

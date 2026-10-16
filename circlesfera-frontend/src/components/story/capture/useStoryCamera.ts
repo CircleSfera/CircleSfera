@@ -33,6 +33,11 @@ export function useStoryCamera() {
   const recorderRef = useRef<MediaRecorder | null>(null);
   // Let go of while the microphone was still being asked for.
   const stopAskedRef = useRef(false);
+  // The microphone and the time limit of the video being recorded.
+  const soundRef = useRef<MediaStream | null>(null);
+  const limitRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Grows each time the camera stops: a recording started before is dropped.
+  const sessionRef = useRef(0);
   const [facing, setFacing] = useState<CameraFacing>('environment');
   const [state, setState] = useState<CameraState>('starting');
   const [hasTorch, setHasTorch] = useState(false);
@@ -42,11 +47,32 @@ export function useStoryCamera() {
     typeof document === 'undefined' || !document.hidden,
   );
 
+  /**
+   * Drops a video being recorded, or about to be: nothing is handed over,
+   * and the microphone and its time limit stop with it.
+   */
+  const abortRecording = useCallback(() => {
+    sessionRef.current += 1;
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    if (recorder) {
+      recorder.ondataavailable = null;
+      recorder.onstop = null;
+      if (recorder.state !== 'inactive') recorder.stop();
+    }
+    for (const track of soundRef.current?.getTracks() ?? []) track.stop();
+    soundRef.current = null;
+    if (limitRef.current) clearTimeout(limitRef.current);
+    limitRef.current = null;
+    setRecording(false);
+  }, []);
+
   const stopStream = useCallback(() => {
+    abortRecording();
     for (const track of streamRef.current?.getTracks() ?? []) track.stop();
     streamRef.current = null;
     if (videoRef.current) videoRef.current.srcObject = null;
-  }, []);
+  }, [abortRecording]);
 
   useEffect(() => {
     const onVisibility = () => setVisible(!document.hidden);
@@ -169,12 +195,20 @@ export function useStoryCamera() {
       return;
     }
     stopAskedRef.current = false;
+    const session = sessionRef.current;
     let sound: MediaStream | null = null;
     try {
       sound = await navigator.mediaDevices.getUserMedia({ audio: true });
     } catch {
       // Without the microphone the video goes without sound.
     }
+    // The camera stopped while the microphone was being asked for.
+    if (session !== sessionRef.current || !streamRef.current) {
+      for (const track of sound?.getTracks() ?? []) track.stop();
+      onDone(null);
+      return;
+    }
+    soundRef.current = sound;
     const stream = new MediaStream([
       ...video.getVideoTracks(),
       ...(sound?.getAudioTracks() ?? []),
@@ -184,13 +218,15 @@ export function useStoryCamera() {
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) parts.push(e.data);
     };
-    const limit = setTimeout(
+    limitRef.current = setTimeout(
       () => recorder.state === 'recording' && recorder.stop(),
       STORY_RECORD_MAX_SEC * 1000,
     );
     recorder.onstop = () => {
-      clearTimeout(limit);
+      if (limitRef.current) clearTimeout(limitRef.current);
+      limitRef.current = null;
       for (const track of sound?.getTracks() ?? []) track.stop();
+      soundRef.current = null;
       recorderRef.current = null;
       setRecording(false);
       const base = type.split(';')[0];

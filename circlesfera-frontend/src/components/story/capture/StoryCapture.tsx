@@ -235,7 +235,7 @@ export default function StoryCapture({
                 <span
                   className={`rounded-full bg-white transition-all ${
                     camera.recording
-                      ? 'h-8 w-8 rounded-lg bg-red-500'
+                      ? 'h-8 w-8 rounded-lg bg-brand-secondary'
                       : 'h-16 w-16'
                   }`}
                 />
