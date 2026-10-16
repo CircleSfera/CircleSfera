@@ -1071,6 +1071,7 @@ describe('AdminAuthService', () => {
         status: 'ACTIVE',
         linkedUserId: 'user-1',
         totpSecret: 'enc:base32-admin-secret',
+        totpEnabled: true,
       });
       await expect(
         service.stepUp('admin-1', {
