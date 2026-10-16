@@ -15,10 +15,16 @@ export async function exportStoryCanvas(options: {
   backgroundUrl: string | null;
   bgStyle: string;
   elementCount: number;
+  /**
+   * Only what is painted, on a see-through picture: the background is a
+   * video, which keeps playing as itself.
+   */
+  layerOnly?: boolean;
   /** The picture, and the size of the canvas it was taken from. */
   onPost: (blob: Blob, canvas: StoryCanvasSize) => void | Promise<void>;
 }): Promise<void> {
-  const { container, backgroundUrl, bgStyle, elementCount, onPost } = options;
+  const { container, backgroundUrl, bgStyle, elementCount, layerOnly, onPost } =
+    options;
 
   logger.log('Starting story export...', {
     hasBackground: !!backgroundUrl,
@@ -29,10 +35,17 @@ export async function exportStoryCanvas(options: {
   const blob = await toBlob(container, {
     quality: 0.95,
     backgroundColor:
-      bgStyle.includes('gradient') || bgStyle.startsWith('#')
+      layerOnly || bgStyle.includes('gradient') || bgStyle.startsWith('#')
         ? undefined
         : '#000000',
-    style: { borderRadius: '0', border: 'none', boxShadow: 'none' },
+    style: {
+      borderRadius: '0',
+      border: 'none',
+      boxShadow: 'none',
+      ...(layerOnly
+        ? { backgroundColor: 'transparent', backgroundImage: 'none' }
+        : {}),
+    },
     filter: (node) => {
       if (!(node instanceof HTMLElement)) return true;
       return node.dataset.exportIgnore !== 'true';
@@ -57,4 +70,22 @@ export function reportStoryExportError(err: unknown): void {
   // person gets the app's own message.
   logger.error('Story export failed:', err);
   toast.error(i18n.t('createPost.storyComposer.export_error'));
+}
+
+/** Whether a see-through picture has anything painted on it. */
+export async function hasPaint(blob: Blob): Promise<boolean> {
+  const bitmap = await createImageBitmap(blob);
+  // Small enough to read at once; a stroke still leaves a mark at this size.
+  const canvas = document.createElement('canvas');
+  canvas.width = 180;
+  canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return true;
+  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+  const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] > 0) return true;
+  }
+  return false;
 }

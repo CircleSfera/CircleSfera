@@ -169,6 +169,24 @@ describe('UploadsService', () => {
       }
     });
 
+    it('has its stream asked for again only when no job for it is kept', async () => {
+      mockVideoQueue.getJob.mockResolvedValueOnce({ id: 'kept' });
+      await expect(service.recoverTranscode('/uploads/v.mp4')).resolves.toBe(
+        false,
+      );
+      expect(mockVideoQueue.add).not.toHaveBeenCalled();
+
+      mockVideoQueue.getJob.mockResolvedValueOnce(undefined);
+      await expect(service.recoverTranscode('/uploads/v.mp4')).resolves.toBe(
+        true,
+      );
+      expect(mockVideoQueue.add).toHaveBeenCalledWith(
+        'transcode',
+        expect.objectContaining({ url: '/uploads/v.mp4' }),
+        expect.objectContaining({ jobId: expect.stringContaining('v') }),
+      );
+    });
+
     it('is read only from the files of its storage, and from none without a way to tell', () => {
       expect(
         service.ownsUrl('/uploads/3f2b8c1e-9a4d-4c7b-8e21-5d6f7a8b9c0d.png'),

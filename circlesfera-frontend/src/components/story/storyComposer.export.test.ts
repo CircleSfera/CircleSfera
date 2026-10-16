@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import {
   exportStoryCanvas,
+  hasPaint,
   reportStoryExportError,
 } from './storyComposer.export';
 
@@ -59,6 +60,61 @@ describe('story export', () => {
       .mocked(toBlob)
       .mock.calls.map(([, options]) => options?.backgroundColor);
     expect(fills).toEqual([undefined, undefined, '#000000']);
+  });
+
+  it('over a video, makes a see-through picture of only what is painted', async () => {
+    vi.mocked(toBlob).mockResolvedValue(new Blob(['png']));
+
+    await exportStoryCanvas({
+      container: canvas(),
+      backgroundUrl: 'blob:clip',
+      bgStyle: '',
+      elementCount: 1,
+      layerOnly: true,
+      onPost: vi.fn(),
+    });
+
+    const [, options] = vi.mocked(toBlob).mock.calls[0];
+    expect(options?.backgroundColor).toBeUndefined();
+    expect(options?.style).toMatchObject({
+      backgroundColor: 'transparent',
+      backgroundImage: 'none',
+    });
+  });
+
+  describe('whether a layer has anything painted', () => {
+    function withPixels(alpha: number[]) {
+      const data = new Uint8ClampedArray(alpha.length * 4);
+      alpha.forEach((a, i) => {
+        data[i * 4 + 3] = a;
+      });
+      vi.stubGlobal(
+        'createImageBitmap',
+        vi.fn(async () => ({ close: vi.fn() })),
+      );
+      const real = document.createElement.bind(document);
+      vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+        const el = real(tag);
+        if (tag === 'canvas') {
+          (el as HTMLCanvasElement).getContext = vi.fn(() => ({
+            drawImage: vi.fn(),
+            getImageData: () => ({ data }),
+          })) as never;
+        }
+        return el;
+      });
+    }
+
+    it('says yes for a single mark, and no for a see-through picture', async () => {
+      withPixels([0, 0, 12, 0]);
+      expect(await hasPaint(new Blob(['png']))).toBe(true);
+      vi.restoreAllMocks();
+
+      withPixels([0, 0, 0, 0]);
+      expect(await hasPaint(new Blob(['png']))).toBe(false);
+      vi.restoreAllMocks();
+      vi.unstubAllGlobals();
+    });
   });
 
   it('leaves out of the image whatever is marked as editor-only', async () => {

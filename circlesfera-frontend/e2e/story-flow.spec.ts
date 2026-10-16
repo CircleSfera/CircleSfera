@@ -42,14 +42,6 @@ async function recordPublishing(page: Page): Promise<Sent> {
   return sent;
 }
 
-/** The share button of the last step of a story. */
-async function share(page: Page) {
-  await page
-    .locator('header')
-    .getByRole('button', { name: 'Compartir', exact: true })
-    .click();
-}
-
 test('a text story with a poll is shared from its editor, with the poll where it was placed and not in its picture', async ({
   page,
 }) => {
@@ -103,22 +95,50 @@ test('a text story with a poll is shared from its editor, with the poll where it
   expect(sent.polls).toEqual([]);
 });
 
-test('a video story is shared as a video', async ({ page }) => {
-  // A video does not open the story editor today: the edit step offers it
-  // only for pictures, so text, stickers and polls cannot go on a video yet.
+test('a video story opens in the editor and is shared as its video, with what is painted on it as a layer', async ({
+  page,
+}) => {
   await prepareComposerSession(page);
   const sent = await recordPublishing(page);
   await page.goto('/create?mode=story');
   await page.locator('input[type="file"]').setInputFiles(FIXTURES.frameVideo);
-  await expect(
-    page.getByRole('button', { name: /Editar Historia/ }),
-  ).toHaveCount(0);
 
-  await share(page);
+  // The editor plays the video as the background, out of the picture.
+  const video = page.locator('video[data-export-ignore="true"]');
+  await expect(video).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('button', { name: 'Stickers', exact: true }).click();
+  await page.getByRole('button', { name: '🔥', exact: true }).first().click();
+  await expect(page.getByTestId('story-element')).toHaveCount(1);
+
+  await page.getByRole('button', { name: 'Tu historia', exact: true }).click();
+
+  await expect.poll(() => sent.stories.length, { timeout: 15_000 }).toBe(1);
+  // The video as it is, then the painted layer.
+  expect(sent.uploads).toEqual(['video/mp4', 'image/png']);
+  expect(sent.stories[0]).toMatchObject({
+    mediaType: 'video',
+    url: 'https://cdn.example.com/uploads/story.mp4',
+    overlayUrl: 'https://cdn.example.com/uploads/story.png',
+  });
+});
+
+test('a video story with nothing painted on it is shared as its video alone', async ({
+  page,
+}) => {
+  await prepareComposerSession(page);
+  const sent = await recordPublishing(page);
+  await page.goto('/create?mode=story');
+  await page.locator('input[type="file"]').setInputFiles(FIXTURES.frameVideo);
+  await expect(page.locator('video[data-export-ignore="true"]')).toBeVisible({
+    timeout: 15_000,
+  });
+
+  await page.getByRole('button', { name: 'Tu historia', exact: true }).click();
 
   await expect.poll(() => sent.stories.length, { timeout: 15_000 }).toBe(1);
   expect(sent.uploads).toEqual(['video/mp4']);
   expect(sent.stories[0]).toMatchObject({ mediaType: 'video' });
+  expect(sent.stories[0]).not.toHaveProperty('overlayUrl');
 });
 
 test('choosing music opens over the editor and keeps what is on the story', async ({

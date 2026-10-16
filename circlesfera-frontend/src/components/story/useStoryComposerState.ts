@@ -36,6 +36,8 @@ export function useStoryComposerState(props: {
     blob: Blob,
     canvas: StoryCanvasSize,
     audience?: StoryAudience,
+    /** The video under the picture, which then holds only what is painted. */
+    video?: File | null,
   ) => void;
   onClose: () => void;
   elements?: StoryElement[];
@@ -242,6 +244,11 @@ export function useStoryComposerState(props: {
     setActiveTab('none');
   };
 
+  // A video stays a video: the editor exports only what is painted over it.
+  const backgroundVideo = bg.background?.type.startsWith('video/')
+    ? bg.background
+    : null;
+
   /** Exports the story; with an audience, it is shared to it right away. */
   const handlePost = async (audience?: StoryAudience) => {
     if (!containerRef.current) return;
@@ -253,7 +260,9 @@ export function useStoryComposerState(props: {
         backgroundUrl: bg.backgroundUrl,
         bgStyle: bg.bgStyle,
         elementCount: elements.length,
-        onPost: (blob, canvas) => onPost(blob, canvas, audience),
+        layerOnly: backgroundVideo !== null,
+        onPost: (blob, canvas) =>
+          onPost(blob, canvas, audience, backgroundVideo),
       });
     } catch (err: unknown) {
       reportStoryExportError(err);
@@ -283,6 +292,7 @@ export function useStoryComposerState(props: {
     onClose,
     background: bg.background,
     backgroundUrl: bg.backgroundUrl,
+    backgroundIsVideo: backgroundVideo !== null,
     bgStyle: bg.bgStyle,
     bgBlur: bg.bgBlur,
     setBgBlur: bg.setBgBlur,

@@ -65,6 +65,7 @@ export function useCreatePost() {
     interactiveDraft: state.interactiveDraft,
     storyElements: state.storyElements,
     storyCanvasSize: state.storyCanvasSize,
+    storyOverlay: state.storyOverlay,
     mediaFiles: media.mediaFiles,
     altTextMap: media.altTextMap,
     tagsMap: media.tagsMap,

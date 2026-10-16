@@ -35,6 +35,10 @@ vi.mock('../story/StoryComposer', () => ({
   },
 }));
 vi.mock('../common/BrandAmbientBackground', () => ({ default: () => null }));
+const paint = vi.hoisted(() => ({ painted: true }));
+vi.mock('../story/storyComposer.export', () => ({
+  hasPaint: vi.fn(async () => paint.painted),
+}));
 vi.mock('../../hooks/useCloseFriendsList', () => ({
   useCloseFriendsList: () => ({ closeFriendsCount: 3 }),
 }));
@@ -65,6 +69,7 @@ function show(more: Props = {}) {
     setMediaFiles: vi.fn(),
     setIsComposed: vi.fn(),
     setStep: vi.fn(),
+    setStoryOverlay: vi.fn(),
     originalStoryMedia: null,
     setOriginalStoryMedia: vi.fn(),
     storyElements: [],
@@ -154,6 +159,68 @@ describe('EditorOverlayManager', () => {
       show({ showFrameTrim: true, mediaFiles: [media('image')] });
 
       expect(screen.queryByTestId('trim')).toBeNull();
+    });
+  });
+
+  describe('sharing a video story from its editor', () => {
+    const clip = new File(['v'], 'clip.mp4', { type: 'video/mp4' });
+
+    it('keeps the video as the media and what is painted over it as its layer', async () => {
+      paint.painted = true;
+      const { props, rerender } = show({
+        mode: 'STORY',
+        showStoryComposer: true,
+        mediaFiles: [{ file: clip, url: 'blob:clip', type: 'video' }],
+      });
+      await screen.findByTestId('story-composer');
+
+      await act(() =>
+        seen.story.onPost(
+          new Blob(['png']),
+          { width: 360, height: 640 },
+          'everyone',
+          clip,
+        ),
+      );
+
+      // The video is already the media: it is not replaced by a picture.
+      expect(props.setMediaFiles).not.toHaveBeenCalled();
+      const [[overlay]] = props.setStoryOverlay.mock.calls;
+      expect(overlay.video).toBe(clip);
+      expect(overlay.layer).toBeInstanceOf(File);
+      expect(overlay.layer.name).toBe('story_layer.png');
+      expect(props.setIsComposed).toHaveBeenCalledWith(true);
+
+      const { showStoryComposer, setShowStoryComposer, ...composer } = props;
+      rerender(
+        <ComposerProvider value={composer as unknown as Composer}>
+          <EditorOverlayManager
+            showStoryComposer={showStoryComposer}
+            setShowStoryComposer={setShowStoryComposer}
+          />
+        </ComposerProvider>,
+      );
+      expect(props.handleSubmit).toHaveBeenCalledTimes(1);
+    });
+
+    it('sends no layer when nothing is painted, and takes a video chosen in the editor as the media', async () => {
+      paint.painted = false;
+      const { props } = show({ mode: 'STORY', showStoryComposer: true });
+      await screen.findByTestId('story-composer');
+
+      await act(() =>
+        seen.story.onPost(
+          new Blob(['png']),
+          { width: 360, height: 640 },
+          undefined,
+          clip,
+        ),
+      );
+
+      expect(props.setStoryOverlay).toHaveBeenCalledWith(null);
+      expect(props.setMediaFiles).toHaveBeenCalledWith([
+        { file: clip, url: 'blob:made', type: 'video' },
+      ]);
     });
   });
 

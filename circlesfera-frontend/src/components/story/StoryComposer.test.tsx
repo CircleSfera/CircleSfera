@@ -481,6 +481,7 @@ describe('StoryComposer', () => {
           expect.any(Blob),
           { width: 360, height: 640 },
           'everyone',
+          null,
         ),
       );
 
@@ -490,6 +491,7 @@ describe('StoryComposer', () => {
           expect.any(Blob),
           { width: 360, height: 640 },
           'close_friends',
+          null,
         ),
       );
     });
@@ -657,6 +659,21 @@ describe('StoryComposer', () => {
         'true',
       );
       expect(onBgStyleChange).toHaveBeenLastCalledWith(GRADIENTS[2]);
+    });
+
+    it('plays a video background as itself: no blur or darken, and never in the picture', () => {
+      const clip = new File(['v'], 'clip.mp4', { type: 'video/mp4' });
+      renderComposer({ initialMedia: clip, bgStyle: '' });
+
+      fireEvent.click(tool('Fondo'));
+
+      expect(
+        screen.queryByRole('slider', { name: 'Desenfoque' }),
+      ).not.toBeInTheDocument();
+      expect(document.querySelector('video')).toHaveAttribute(
+        'data-export-ignore',
+        'true',
+      );
     });
 
     it('offers blur and darken only when the background is a photo', () => {

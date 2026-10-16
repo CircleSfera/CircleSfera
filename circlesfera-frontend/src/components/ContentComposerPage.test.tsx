@@ -276,6 +276,7 @@ describe('ContentComposerPage', () => {
         mode: 'STORY',
         step: 'edit',
         mediaFiles: [clip()],
+        isComposed: true,
       });
 
       fireEvent.click(screen.getByRole('button', { name: 'Share' }));
@@ -326,6 +327,13 @@ describe('ContentComposerPage', () => {
       expect(await screen.findByTestId('editor')).toBeInTheDocument();
       expect(seen.overlay.showStoryComposer).toBe(true);
       expect(screen.queryByTestId('content-composer')).not.toBeInTheDocument();
+    });
+
+    it('opens the story editor on a video too', async () => {
+      compose({ mode: 'STORY', step: 'edit', mediaFiles: [clip()] });
+
+      expect(await screen.findByTestId('editor')).toBeInTheDocument();
+      expect(seen.overlay.showStoryComposer).toBe(true);
     });
 
     it('does not open it again once the story is composed', () => {

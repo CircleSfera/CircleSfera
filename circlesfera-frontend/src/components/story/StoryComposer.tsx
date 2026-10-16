@@ -15,6 +15,7 @@ interface StoryComposerProps {
     blob: Blob,
     canvas: StoryCanvasSize,
     audience?: StoryAudience,
+    video?: File | null,
   ) => void;
   /** Share from the editor; without it the editor ends with "Listo". */
   share?: StoryShareOptions;
@@ -110,6 +111,7 @@ export default function StoryComposer(props: StoryComposerProps) {
           brushColor={s.brushColor}
           bgStyle={s.bgStyle}
           backgroundUrl={s.backgroundUrl}
+          backgroundIsVideo={s.backgroundIsVideo}
           bgBlur={s.bgBlur}
           bgDarken={s.bgDarken}
           activeStickerCategory={s.activeStickerCategory}

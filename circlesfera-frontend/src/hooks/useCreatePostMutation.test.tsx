@@ -330,6 +330,74 @@ describe('useCreatePostMutation', () => {
     expect(navigate).toHaveBeenCalledWith('/');
   });
 
+  it('sends a video story as its video, with what is painted over it as a layer', async () => {
+    const clip: MediaFile = {
+      file: new File([new Uint8Array(10)], 'clip.mp4', { type: 'video/mp4' }),
+      url: 'blob:clip',
+      type: 'video',
+    };
+    const layer = new File(['png'], 'story_layer.png', { type: 'image/png' });
+    const { deps, submit } = setup({
+      mode: 'STORY',
+      mediaFiles: [clip],
+      storyOverlay: { video: clip.file, layer },
+    });
+    deps.uploadFiles
+      .mockResolvedValueOnce([{ url: '/uploads/v.mp4', type: 'video' }])
+      .mockResolvedValueOnce([{ url: '/uploads/l.avif', type: 'image' }]);
+    await submit();
+
+    expect(deps.uploadFiles.mock.calls[0][0][0].file).toBe(clip.file);
+    expect(deps.uploadFiles.mock.calls[1][0][0]).toEqual({
+      file: layer,
+      url: '',
+      type: 'image',
+    });
+    expect(storiesApi.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        url: '/uploads/v.mp4',
+        mediaType: 'video',
+        overlayUrl: '/uploads/l.avif',
+      }),
+    );
+  });
+
+  it('sends no layer painted on another video, as when that one was taken out', async () => {
+    const clip = (name: string): MediaFile => ({
+      file: new File([new Uint8Array(10)], name, { type: 'video/mp4' }),
+      url: `blob:${name}`,
+      type: 'video',
+    });
+    const first = clip('first.mp4');
+    const second = clip('second.mp4');
+    const { deps, submit } = setup({
+      mode: 'STORY',
+      mediaFiles: [second],
+      storyOverlay: {
+        video: first.file,
+        layer: new File(['png'], 'story_layer.png', { type: 'image/png' }),
+      },
+    });
+    deps.uploadFiles.mockResolvedValueOnce([
+      { url: '/uploads/second.mp4', type: 'video' },
+    ]);
+    await submit();
+
+    expect(deps.uploadFiles).toHaveBeenCalledTimes(1);
+    expect(storiesApi.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ overlayUrl: expect.anything() }),
+    );
+  });
+
+  it('sends no layer with a picture, nor with a video with nothing painted', async () => {
+    const { submit } = setup({ mode: 'STORY', storyOverlay: null });
+    await submit();
+
+    expect(storiesApi.create).toHaveBeenCalledWith(
+      expect.not.objectContaining({ overlayUrl: expect.anything() }),
+    );
+  });
+
   it('sends a quiz, a slider and a hashtag as stickers too', async () => {
     const at = { x: 0, y: 0, scale: 1, rotation: 0 };
     const { submit } = setup({

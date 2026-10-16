@@ -571,26 +571,41 @@ export class VideoProcessor extends WorkerHost {
         mimetype: 'video/mp4',
       });
 
-      // Written only if the story still waits for this very layer.
-      const written = await this.prisma.story.updateMany({
-        where: { id: story.id, url: story.url, overlayUrl: story.overlayUrl },
-        data: {
-          url: stored.url,
-          overlayUrl: null,
-          standardUrl: null,
-          thumbnailUrl: null,
-        },
-      });
-      if (written.count === 0) {
+      // Written only if the story still waits for this very layer, the story
+      // and its Media row together or neither.
+      const written = await this.prisma
+        .$transaction(async (tx) => {
+          const changed = await tx.story.updateMany({
+            where: {
+              id: story.id,
+              url: story.url,
+              overlayUrl: story.overlayUrl,
+            },
+            data: {
+              url: stored.url,
+              overlayUrl: null,
+              standardUrl: null,
+              thumbnailUrl: null,
+            },
+          });
+          if (changed.count > 0 && story.mediaId) {
+            await tx.media.updateMany({
+              where: { id: story.mediaId },
+              data: { url: stored.url, standardUrl: null, thumbnailUrl: null },
+            });
+          }
+          return changed.count;
+        })
+        .catch(async (error: unknown) => {
+          // Nothing was written: the joined video is not kept for a retry.
+          await this.storageProvider?.delete(stored.url).catch(() => {});
+          throw error;
+        });
+      if (written === 0) {
         await this.storageProvider.delete(stored.url).catch(() => {});
         return;
       }
-      if (story.mediaId) {
-        await this.prisma.media.updateMany({
-          where: { id: story.mediaId },
-          data: { url: stored.url, standardUrl: null, thumbnailUrl: null },
-        });
-      }
+      // Should this fail, the five-minute recovery asks for the stream again.
       await this.uploads.enqueueTranscode(stored.url);
       await this.storageProvider.delete(story.overlayUrl).catch(() => {});
       await this.storageProvider.delete(story.url).catch(() => {});

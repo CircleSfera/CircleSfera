@@ -32,6 +32,7 @@ export interface StoryDockContentProps {
   brushColor: string;
   bgStyle: string;
   backgroundUrl: string | null;
+  backgroundIsVideo: boolean;
   bgBlur: number;
   bgDarken: number;
   activeStickerCategory: number;
@@ -78,6 +79,7 @@ export default function StoryDockContent({
   brushColor,
   bgStyle,
   backgroundUrl,
+  backgroundIsVideo,
   bgBlur,
   bgDarken,
   activeStickerCategory,
@@ -143,6 +145,7 @@ export default function StoryDockContent({
         <StoryBackgroundPanel
           bgStyle={bgStyle}
           backgroundUrl={backgroundUrl}
+          backgroundIsVideo={backgroundIsVideo}
           bgBlur={bgBlur}
           bgDarken={bgDarken}
           onUploadBackground={onUploadBackground}

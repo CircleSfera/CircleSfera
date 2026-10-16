@@ -444,6 +444,27 @@ describe('useStoryComposerState', () => {
       expect(exportStoryCanvas).not.toHaveBeenCalled();
     });
 
+    it('exports only what is painted over a video, and hands the video too', async () => {
+      const clip = new File(['v'], 'clip.mp4', { type: 'video/mp4' });
+      const { result, onPost } = setup({ initialMedia: clip, bgStyle: '' });
+      withCanvas(result);
+      vi.mocked(exportStoryCanvas).mockResolvedValue();
+
+      await act(() => result.current.handlePost('everyone'));
+
+      const options = vi.mocked(exportStoryCanvas).mock.calls[0][0];
+      expect(options.layerOnly).toBe(true);
+      expect(result.current.backgroundIsVideo).toBe(true);
+      const blob = new Blob(['png']);
+      await options.onPost(blob, { width: 360, height: 640 });
+      expect(onPost).toHaveBeenCalledWith(
+        blob,
+        { width: 360, height: 640 },
+        'everyone',
+        clip,
+      );
+    });
+
     it('exports the canvas with the current background and hands the image to the owner', async () => {
       const { result, onPost } = setup();
       const node = withCanvas(result);
@@ -457,6 +478,7 @@ describe('useStoryComposerState', () => {
         backgroundUrl: null,
         bgStyle: GRADIENTS[0],
         elementCount: 1,
+        layerOnly: false,
         onPost: expect.any(Function),
       });
       // The picture reaches the owner with the audience it is shared to.
@@ -467,6 +489,7 @@ describe('useStoryComposerState', () => {
         blob,
         { width: 360, height: 640 },
         undefined,
+        null,
       );
       await act(() => result.current.handlePost('close_friends'));
       await vi.mocked(exportStoryCanvas).mock.calls[1][0].onPost(blob, {
@@ -477,6 +500,7 @@ describe('useStoryComposerState', () => {
         blob,
         { width: 360, height: 640 },
         'close_friends',
+        null,
       );
       // Nothing stays selected, so no selection frame ends up in the image.
       expect(result.current.selectedElementId).toBeNull();
