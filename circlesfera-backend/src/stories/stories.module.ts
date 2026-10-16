@@ -23,6 +23,7 @@ import { StoriesService } from './stories.service.js';
   ],
   controllers: [StoriesController],
   providers: [StoriesService, StoriesProcessor],
+  exports: [StoriesService],
 })
 export class StoriesModule implements OnApplicationBootstrap {
   private readonly logger = new Logger(StoriesModule.name);

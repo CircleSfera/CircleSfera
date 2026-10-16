@@ -422,6 +422,56 @@ describe('StoriesService', () => {
         );
       });
 
+      it('once a scheduled story is published, tells the people it mentions, once each and not its author, and moderates it', async () => {
+        mockPrismaService.story.findUnique
+          .mockResolvedValueOnce({
+            id: 'story-9',
+            profileId: 'user-1',
+            url: 'https://cdn.example.com/s.png',
+            thumbnailUrl: null,
+            overlayUrl: null,
+            stickers: [
+              { settings: { profileId: 'p-ana' } },
+              { settings: { profileId: 'p-ana' } },
+              { settings: { profileId: 'user-1' } },
+            ],
+          })
+          // Whether Ana can see it.
+          .mockResolvedValueOnce({
+            profileId: 'user-1',
+            expiresAt: new Date(Date.now() + 3_600_000),
+            isCloseFriendsOnly: false,
+            profile: { privacyLevel: 'PUBLIC' },
+          });
+
+        await service.announcePublished('story-9');
+
+        expect(eventEmitter.emit).toHaveBeenCalledTimes(1);
+        expect(eventEmitter.emit).toHaveBeenCalledWith(
+          'notification.create',
+          expect.objectContaining({
+            recipientId: 'p-ana',
+            targetId: 'story-9',
+          }),
+        );
+        expect(mockAiQueue.add).toHaveBeenCalledWith(
+          'moderate-content',
+          expect.objectContaining({
+            targetId: 'story-9',
+            mediaUrls: ['https://cdn.example.com/s.png'],
+          }),
+        );
+      });
+
+      it('announces nothing for a story gone before it was published', async () => {
+        mockPrismaService.story.findUnique.mockResolvedValueOnce(null);
+
+        await service.announcePublished('gone');
+
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+        expect(mockAiQueue.add).not.toHaveBeenCalled();
+      });
+
       it('tells no one while the story is scheduled', async () => {
         const stickers = module.get(StoryStickersService);
         vi.mocked(stickers.createForStory).mockResolvedValueOnce(['p-ana']);

@@ -10,6 +10,7 @@ import {
 } from '../common/constants/data-retention.constants.js';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { StoriesService } from '../stories/stories.service.js';
 import { UploadsService } from '../uploads/uploads.service.js';
 
 @Injectable()
@@ -19,6 +20,7 @@ export class MaintenanceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly uploadsService: UploadsService,
+    private readonly stories: StoriesService,
     private readonly helpdeskData: HelpdeskDataPort,
   ) {}
 
@@ -417,14 +419,21 @@ export class MaintenanceService {
       }
 
       for (const s of scheduledStories) {
-        await this.prisma.story.update({
-          where: { id: s.id },
+        // Taken as published first, so two servers never announce it twice.
+        const published = await this.prisma.story.updateMany({
+          where: { id: s.id, scheduledStatus: 'SCHEDULED' },
           data: {
             scheduledStatus: 'PUBLISHED',
             createdAt: now,
             expiresAt: new Date(now.getTime() + 24 * 60 * 60 * 1000),
           },
         });
+        if (published.count === 0) continue;
+        await this.stories
+          .announcePublished(s.id)
+          .catch((e) =>
+            this.logger.warn(`Could not announce story ${s.id}`, e),
+          );
       }
     } catch (error) {
       this.logger.error(
