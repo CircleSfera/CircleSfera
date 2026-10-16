@@ -190,7 +190,8 @@ export const LINK_LABEL_MAX = 30;
 
 /**
  * A link as typed, ready for the server's own checks: https added when no
- * scheme is written; http, other schemes and names without a dot refused.
+ * scheme is written; http, other schemes, other ports than 443 and names
+ * without a dot refused.
  */
 export function cleanLink(
   raw: string,
@@ -198,12 +199,17 @@ export function cleanLink(
   const text = raw.trim();
   if (!text) return null;
   if (/^http:\/\//i.test(text)) return 'http';
-  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(text)
-    ? text
-    : `https://${text}`;
+  // example.com:443/x is a domain and a port, not a scheme.
+  const hostAndPort = /^[^/:]+\.[^/:]+:\d+(?:[/?#]|$)/.test(text);
+  const withScheme =
+    !hostAndPort && /^[a-z][a-z0-9+.-]*:/i.test(text)
+      ? text
+      : `https://${text}`;
   try {
     const url = new URL(withScheme);
     if (url.protocol !== 'https:' || !url.hostname.includes('.')) return null;
+    // Links open on the usual port only, as the server keeps them.
+    if (url.port && url.port !== '443') return null;
     return { url: url.href, domain: url.hostname.replace(/^www\./, '') };
   } catch {
     return null;

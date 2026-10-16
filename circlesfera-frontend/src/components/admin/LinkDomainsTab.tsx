@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
-import { Link2Off, Unlock } from 'lucide-react';
+import { Link2Off, RefreshCw, Unlock } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDebouncedValue } from '../../hooks/useDebouncedValue';
@@ -8,6 +8,7 @@ import { adminApi, type BlockedLinkDomain } from '../../services/admin.service';
 import { formatDay } from '../../utils/format';
 import ConfirmModal from '../modals/ConfirmModal';
 import { Button, Input } from '../ui';
+import { ADMIN_PAGE_LIST_STATE, AdminEmptyState } from './AdminEmptyState';
 import { AdminFilterBar } from './AdminFilterBar';
 import { AdminList, AdminListRow } from './AdminList';
 import { AdminPageHeader } from './AdminPageHeader';
@@ -30,7 +31,7 @@ export default function LinkDomainsTab() {
   const debouncedSearch = useDebouncedValue(search, 400);
   const [toUnblock, setToUnblock] = useState<BlockedLinkDomain | null>(null);
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'link-domains', debouncedSearch],
     queryFn: () =>
       adminApi
@@ -185,14 +186,37 @@ export default function LinkDomainsTab() {
         </div>
       </AdminFilterBar>
 
-      <AdminList
-        loading={isLoading}
-        isEmpty={!data?.length}
-        emptyTitle={t('admin.link_domains.empty_title')}
-        emptyDescription={t('admin.link_domains.empty_description')}
-        mobile={rows}
-        desktop={rows}
-      />
+      {isError ? (
+        // A list that could not be read is not an empty one.
+        <div className={ADMIN_PAGE_LIST_STATE}>
+          <AdminEmptyState
+            icon={Link2Off}
+            title={t('admin.link_domains.load_failed')}
+            action={
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="min-h-11"
+                isLoading={isFetching}
+                onClick={() => void refetch()}
+              >
+                <RefreshCw size={14} aria-hidden />
+                {t('admin.link_domains.retry')}
+              </Button>
+            }
+          />
+        </div>
+      ) : (
+        <AdminList
+          loading={isLoading}
+          isEmpty={!data?.length}
+          emptyTitle={t('admin.link_domains.empty_title')}
+          emptyDescription={t('admin.link_domains.empty_description')}
+          mobile={rows}
+          desktop={rows}
+        />
+      )}
 
       <ConfirmModal
         isOpen={toUnblock !== null}

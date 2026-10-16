@@ -1,6 +1,7 @@
 import { ExternalLink, Flag, Link as LinkIcon } from 'lucide-react';
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useFocusTrap } from '../../hooks/useFocusTrap';
 import { reportsApi } from '../../services/reports.service';
 import { logger } from '../../utils/logger';
 import { PILL, PILL_TEXT } from '../story/storyInteractive';
@@ -60,13 +61,11 @@ export function LinkLeaveSheet({
     'idle',
   );
 
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // Focus moves into the sheet, stays there, and goes back to the link
+  // when it closes; Escape closes it.
+  const sheetRef = useFocusTrap<HTMLDivElement>(true, undefined, {
+    onEscape: onClose,
+  });
 
   const open = () => {
     window.open(link.url, '_blank', 'noopener,noreferrer');
@@ -102,6 +101,7 @@ export function LinkLeaveSheet({
         className="absolute inset-0 cursor-default"
       />
       <div
+        ref={sheetRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

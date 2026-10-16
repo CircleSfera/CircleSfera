@@ -4173,6 +4173,8 @@
       "lift_message": "@{{username}} will be able to sign in again now."
     },
     "link_domains": {
+      "load_failed": "Could not load the blocked domains.",
+      "retry": "Try again",
       "title": "Blocked link domains",
       "subtitle": "Links on stories cannot point to these domains or any of their subdomains. Links already on stories under them stop showing.",
       "label_domain": "Domain",

@@ -321,7 +321,13 @@ describe('a link', () => {
       url: 'https://www.example.com/',
       domain: 'example.com',
     });
+    expect(cleanLink('example.com:443/shop')).toEqual({
+      url: 'https://example.com/shop',
+      domain: 'example.com',
+    });
     expect(cleanLink('http://example.com')).toBe('http');
+    expect(cleanLink('example.com:8443/shop')).toBeNull();
+    expect(cleanLink('https://example.com:8443')).toBeNull();
     for (const bad of ['', 'intranet', 'ftp://example.com', 'https://']) {
       expect(cleanLink(bad)).toBeNull();
     }

@@ -123,4 +123,20 @@ describe('LinkDomainsTab', () => {
       ),
     );
   });
+
+  it('says the list could not be loaded, rather than that it is empty, and tries again', async () => {
+    vi.mocked(adminApi.getLinkDomains)
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce({ data: [evil] } as never);
+    renderWithProviders(<LinkDomainsTab />, { lng: 'es' });
+
+    expect(
+      await screen.findByText('No se pudieron cargar los dominios bloqueados.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
+
+    expect((await screen.findAllByText('evil.example')).length).toBeGreaterThan(
+      0,
+    );
+  });
 });

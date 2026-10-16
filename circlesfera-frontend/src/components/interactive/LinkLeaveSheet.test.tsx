@@ -96,9 +96,34 @@ describe('a link on a story', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
     fireEvent.click(screen.getByTestId('link-sheet-backdrop'));
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement as Element, { key: 'Escape' });
 
     await waitFor(() => expect(onClose).toHaveBeenCalledTimes(3));
     expect(open).not.toHaveBeenCalled();
+  });
+
+  it('takes the focus while open and gives it back to the link after', () => {
+    const { rerender } = renderWithProviders(
+      <button type="button">enlace</button>,
+      { lng: 'es' },
+    );
+    const trigger = screen.getByRole('button', { name: 'enlace' });
+    trigger.focus();
+
+    const sheet = (shown: boolean) => (
+      <>
+        <button type="button">enlace</button>
+        {shown ? (
+          <LinkLeaveSheet link={link} storyId="s-1" onClose={vi.fn()} />
+        ) : null}
+      </>
+    );
+    rerender(sheet(true));
+    expect(screen.getByRole('dialog')).toContainElement(
+      document.activeElement as HTMLElement,
+    );
+
+    rerender(sheet(false));
+    expect(document.activeElement).toBe(trigger);
   });
 });

@@ -4173,6 +4173,8 @@
       "lift_message": "@{{username}} podrá volver a iniciar sesión ahora."
     },
     "link_domains": {
+      "load_failed": "No se pudieron cargar los dominios bloqueados.",
+      "retry": "Reintentar",
       "title": "Dominios bloqueados",
       "subtitle": "Los enlaces de las historias no pueden apuntar a estos dominios ni a sus subdominios. Los enlaces que ya estén en historias dejan de mostrarse.",
       "label_domain": "Dominio",
