@@ -1,5 +1,9 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  MAX_PPV_PRICE_CENTS,
+  MIN_PPV_PRICE_CENTS,
+} from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
@@ -486,7 +490,7 @@ describe('SendMessageUseCase', () => {
       expect(mockTx.conversation.findUnique).not.toHaveBeenCalled();
     });
 
-    it('rejects a locked message priced below the €5.00 floor', async () => {
+    it('rejects a locked message priced one cent below the €3.00 floor', async () => {
       mockPrisma.profile.findUnique.mockResolvedValue({
         accountType: 'CREATOR',
       });
@@ -507,12 +511,12 @@ describe('SendMessageUseCase', () => {
           undefined,
           undefined,
           true,
-          100,
+          MIN_PPV_PRICE_CENTS - 1,
         ),
       ).rejects.toThrow(AppException);
     });
 
-    it('rejects a locked message priced above the €500.00 ceiling', async () => {
+    it('rejects a locked message priced one cent above the €500.00 ceiling', async () => {
       mockPrisma.profile.findUnique.mockResolvedValue({
         accountType: 'BUSINESS',
       });
@@ -533,7 +537,7 @@ describe('SendMessageUseCase', () => {
           undefined,
           undefined,
           true,
-          100_000,
+          MAX_PPV_PRICE_CENTS + 1,
         ),
       ).rejects.toThrow(AppException);
     });

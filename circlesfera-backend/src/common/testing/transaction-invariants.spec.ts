@@ -1,6 +1,7 @@
 import { ErrorCode } from '@circlesfera/shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FollowsService } from '../../follows/follows.service.js';
+import { MIN_TIP_CENTS } from '../constants/monetization.constants.js';
 import { MonetizationService } from '../../monetization/monetization.service.js';
 import { PaymentsService } from '../../payments/payments.service.js';
 
@@ -73,12 +74,12 @@ describe('Transaction Boundaries and Concurrency Invariants', () => {
       expect(mockStripeService.createCheckoutSession).not.toHaveBeenCalled();
     });
 
-    it('rejects tip below minimum €1.00 threshold', async () => {
+    it('rejects a tip one cent below the €2.00 minimum', async () => {
       await expect(
         monetizationService.createTipSession(
           'user-1',
           'user-2',
-          50,
+          MIN_TIP_CENTS - 1,
           'https://return',
         ),
       ).rejects.toThrow(
