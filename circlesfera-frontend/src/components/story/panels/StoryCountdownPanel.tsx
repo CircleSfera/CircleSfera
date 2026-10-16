@@ -10,8 +10,8 @@ import {
 } from '../storyComposer.append';
 import { SETUP_INPUT, StoryStickerSetup } from './StoryStickerSetup';
 
-/** A countdown ends at most 30 days ahead. */
-const MAX_AHEAD_MS = 30 * 24 * 60 * 60 * 1000;
+/** A countdown ends at most a year (365 days) ahead. */
+const MAX_AHEAD_MS = 365 * 24 * 60 * 60 * 1000;
 
 /** A moment as a date-and-time field takes it, in local time. */
 export function toLocalInput(date: Date): string {

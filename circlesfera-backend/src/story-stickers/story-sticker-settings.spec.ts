@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   parseStickerSettings,
   publicSettings,
@@ -81,7 +81,14 @@ describe('what each sticker holds', () => {
 });
 
 describe('what a countdown holds', () => {
-  const ahead = (ms: number) => new Date(Date.now() + ms).toISOString();
+  // A fixed clock, so the limits are measured from one known moment.
+  const now = new Date('2026-10-16T12:00:00.000Z');
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(now);
+  });
+  afterEach(() => vi.useRealTimers());
+  const ahead = (ms: number) => new Date(now.getTime() + ms).toISOString();
 
   it('keeps its title, trimmed, and when it ends', () => {
     const endsAt = ahead(3_600_000);
@@ -90,16 +97,23 @@ describe('what a countdown holds', () => {
     ).toEqual({ title: 'Fiesta', endsAt });
   });
 
-  it('ends between a minute and 30 days ahead, with a title of up to 40 characters', () => {
+  it('takes an end months ahead, up to a year', () => {
+    const endsAt = ahead(300 * 24 * 3_600_000);
+    expect(
+      parseStickerSettings('COUNTDOWN', { title: 'Boda', endsAt }),
+    ).toEqual({ title: 'Boda', endsAt });
+  });
+
+  it('ends between a minute and a year ahead, with a title of up to 40 characters', () => {
     for (const endsAt of [
       ahead(10_000),
-      ahead(31 * 24 * 3_600_000),
+      ahead(366 * 24 * 3_600_000),
       'mañana',
       undefined,
     ]) {
       expect(() =>
         parseStickerSettings('COUNTDOWN', { title: 'T', endsAt }),
-      ).toThrow('between a minute and 30 days');
+      ).toThrow('between a minute and a year');
     }
     expect(() =>
       parseStickerSettings('COUNTDOWN', {

@@ -14,9 +14,9 @@ export const STICKER_LIMITS = {
   answerMax: 500,
   perStory: 10,
   countdownTitleMax: 40,
-  /** A countdown ends at least a minute and at most 30 days ahead. */
+  /** A countdown ends at least a minute and at most a year (365 days) ahead. */
   countdownMinAheadMs: 60_000,
-  countdownMaxAheadMs: 30 * 24 * 60 * 60 * 1000,
+  countdownMaxAheadMs: 365 * 24 * 60 * 60 * 1000,
 } as const;
 
 export type StickerSettings =
@@ -123,7 +123,7 @@ export function parseStickerSettings(
         ahead < STICKER_LIMITS.countdownMinAheadMs ||
         ahead > STICKER_LIMITS.countdownMaxAheadMs
       ) {
-        fail('a countdown ends between a minute and 30 days ahead');
+        fail('a countdown ends between a minute and a year ahead');
       }
       return {
         title: text(s.title, 'title', STICKER_LIMITS.countdownTitleMax),
