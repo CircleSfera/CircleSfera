@@ -37,6 +37,26 @@ export const GRADIENT_PRESETS: [string, string][] = [
 
 /** The brush size the draw tool starts at and returns to on a double tap. */
 export const DEFAULT_BRUSH_WIDTH = 5;
+/** The sizes a brush takes, in pixels. */
+export const BRUSH_WIDTH_MIN = 2;
+export const BRUSH_WIDTH_MAX = 40;
+
+/** The colours of the story editor, the same for text and drawing. */
+export const STORY_COLORS = [
+  '#ffffff',
+  '#000000',
+  '#ff3b30',
+  '#ff9500',
+  '#ffcc00',
+  '#34c759',
+  '#5ac8fa',
+  '#007aff',
+  '#5856d6',
+  '#af52de',
+  '#ff2d55',
+  '#a2845e',
+  '#884cff',
+] as const;
 
 export const POLL_QUESTION_MAX = 120;
 export const POLL_OPTION_MAX = 32;

@@ -1,27 +1,15 @@
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { storyColorName } from './storyColorNames';
+import { STORY_COLORS } from './storyComposer.constants';
 
 interface ColorPickerProps {
   selectedColor: string;
   onColorSelect: (color: string) => void;
-  colors?: string[];
+  colors?: readonly string[];
 }
 
-const DEFAULT_COLORS = [
-  '#FFFFFF', // White
-  '#000000', // Black
-  '#FF3B30', // Red
-  '#FF9500', // Orange
-  '#FFCC00', // Yellow
-  '#34C759', // Green
-  '#5AC8FA', // Light Blue
-  '#007AFF', // Blue
-  '#5856D6', // Indigo
-  '#AF52DE', // Purple
-  '#FF2D55', // Pink
-  '#A2845E', // Brown
-];
+const DEFAULT_COLORS: readonly string[] = STORY_COLORS;
 
 export default function ColorPicker({
   selectedColor,
@@ -32,8 +20,8 @@ export default function ColorPicker({
   return (
     <div className="flex gap-2 overflow-x-auto py-1 no-scrollbar px-0.5">
       {colors.map((color) => {
-        const isSelected = selectedColor === color;
-        const isBlack = color === '#000000';
+        const isSelected = selectedColor.toLowerCase() === color.toLowerCase();
+        const isBlack = color.toLowerCase() === '#000000';
         const name = storyColorName(t, color);
         return (
           <motion.button

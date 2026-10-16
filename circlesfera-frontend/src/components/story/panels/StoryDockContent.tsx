@@ -6,7 +6,11 @@ import {
   STORY_STICKER_MAX,
   type StoryTemplate,
 } from '../storyComposer.constants';
-import type { PanelTab, StoryComposerTab } from '../storyComposer.types';
+import type {
+  PanelTab,
+  StoryBrush,
+  StoryComposerTab,
+} from '../storyComposer.types';
 import { isLiveElement } from '../storyInteractive';
 import type { MusicTrack } from '../storyShare.types';
 import StoryBackgroundPanel from './StoryBackgroundPanel';
@@ -34,6 +38,7 @@ export interface StoryDockContentProps {
   storyCanvasRef: RefObject<StoryCanvasRef | null>;
   brushWidth: number;
   brushColor: string;
+  brush: StoryBrush;
   bgStyle: string;
   backgroundUrl: string | null;
   backgroundIsVideo: boolean;
@@ -52,6 +57,7 @@ export interface StoryDockContentProps {
   onSelectedElementIdChange: (id: string | null) => void;
   onBrushWidthChange: (width: number) => void;
   onBrushColorChange: (color: string) => void;
+  onBrushChange: (brush: StoryBrush) => void;
   onUploadBackground: (e: MouseEvent<HTMLButtonElement>) => void;
   onSelectGradient: (grad: string) => void;
   onBgBlurChange: (blur: number) => void;
@@ -83,6 +89,7 @@ export default function StoryDockContent({
   storyCanvasRef,
   brushWidth,
   brushColor,
+  brush,
   bgStyle,
   backgroundUrl,
   backgroundIsVideo,
@@ -101,6 +108,7 @@ export default function StoryDockContent({
   onSelectedElementIdChange,
   onBrushWidthChange,
   onBrushColorChange,
+  onBrushChange,
   onUploadBackground,
   onSelectGradient,
   onBgBlurChange,
@@ -143,8 +151,10 @@ export default function StoryDockContent({
           storyCanvasRef={storyCanvasRef}
           brushWidth={brushWidth}
           brushColor={brushColor}
+          brush={brush}
           onBrushWidthChange={onBrushWidthChange}
           onBrushColorChange={onBrushColorChange}
+          onBrushChange={onBrushChange}
         />
       )}
 

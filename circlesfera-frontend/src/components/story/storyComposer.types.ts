@@ -20,6 +20,9 @@ export type StoryComposerTab =
 
 export type PanelTab = 'style' | 'transform' | 'layers';
 
+/** The brushes of the drawing tool. */
+export type StoryBrush = 'pen' | 'marker' | 'neon' | 'eraser';
+
 export type StoryFontOption = {
   name: string;
   label: string;

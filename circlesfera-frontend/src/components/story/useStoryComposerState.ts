@@ -23,7 +23,11 @@ import {
   getStoryStageFitClass,
   getStoryStagePadClass,
 } from './storyComposer.layout';
-import type { PanelTab, StoryComposerTab } from './storyComposer.types';
+import type {
+  PanelTab,
+  StoryBrush,
+  StoryComposerTab,
+} from './storyComposer.types';
 import { canDuplicateElement, isLiveElement } from './storyInteractive';
 import type { StoryAudience, StoryShareOptions } from './storyShare.types';
 import { useStoryBackground } from './useStoryBackground';
@@ -76,7 +80,8 @@ export function useStoryComposerState(props: {
   const [chromePointerArmed, setChromePointerArmed] = useState(true);
   const chromeArmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeStickerCategory, setActiveStickerCategory] = useState(0);
-  const [brushColor, setBrushColor] = useState('#FFFFFF');
+  const [brushColor, setBrushColor] = useState('#ffffff');
+  const [brush, setBrush] = useState<StoryBrush>('pen');
   const [brushWidth, setBrushWidth] = useState(DEFAULT_BRUSH_WIDTH);
   const storyCanvasRef = useRef<StoryCanvasRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -356,6 +361,8 @@ export function useStoryComposerState(props: {
     setActiveStickerCategory,
     brushColor,
     setBrushColor,
+    brush,
+    setBrush,
     brushWidth,
     setBrushWidth,
     storyCanvasRef,
