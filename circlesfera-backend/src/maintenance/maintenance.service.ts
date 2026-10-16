@@ -329,6 +329,32 @@ export class MaintenanceService {
     }
   }
 
+  // Video stories whose painted layer is still waiting, ten minutes after
+  // they were made, get their join another chance if it was lost.
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async recoverStoryOverlays() {
+    try {
+      const now = Date.now();
+      const waiting = await this.prisma.story.findMany({
+        where: {
+          overlayUrl: { not: null },
+          createdAt: { lt: new Date(now - 10 * 60 * 1000) },
+          expiresAt: { gt: new Date(now) },
+        },
+        select: { id: true },
+        take: 100,
+      });
+      for (const story of waiting) {
+        const outcome = await this.uploadsService.recoverStoryOverlay(story.id);
+        if (outcome !== 'left') {
+          this.logger.log(`Join of story ${story.id} ${outcome} again`);
+        }
+      }
+    } catch (error) {
+      this.logger.error('Error while recovering story joins:', error);
+    }
+  }
+
   // Worker to publish scheduled posts whose scheduledAt <= now.
   // Runs every minute.
   @Cron(CronExpression.EVERY_MINUTE)

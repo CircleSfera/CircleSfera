@@ -233,6 +233,32 @@ export class UploadsService {
     );
   }
 
+  /**
+   * Gives a story's join another chance when it was lost: its job is gone,
+   * or a server that did not know the job turned it down (as one still on
+   * the code before it can during a deploy). A join that failed on its own
+   * is left as it is.
+   */
+  async recoverStoryOverlay(
+    storyId: string,
+  ): Promise<'added' | 'retried' | 'left'> {
+    const job = await this.videoQueue.getJob(
+      queueJobId('story-overlay', storyId),
+    );
+    if (!job) {
+      await this.enqueueStoryOverlay(storyId);
+      return 'added';
+    }
+    if (
+      (await job.isFailed()) &&
+      job.failedReason?.startsWith('Unknown job name')
+    ) {
+      await job.retry('failed');
+      return 'retried';
+    }
+    return 'left';
+  }
+
   /** Whether an address is of a file this server's storage keeps. */
   ownsUrl(url: string): boolean {
     return this.storageProvider.ownsUrl?.(url) ?? false;

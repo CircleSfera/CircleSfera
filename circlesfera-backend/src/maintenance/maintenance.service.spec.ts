@@ -65,6 +65,7 @@ describe('MaintenanceService', () => {
 
   const mockUploadsService = {
     deleteFile: vi.fn().mockResolvedValue(true),
+    recoverStoryOverlay: vi.fn().mockResolvedValue('left'),
   };
 
   beforeEach(async () => {
@@ -641,6 +642,36 @@ describe('MaintenanceService', () => {
         new Error('DB error'),
       );
       await expect(service.purgeOldPostViews()).resolves.not.toThrow();
+    });
+  });
+
+  describe('recoverStoryOverlays', () => {
+    it('gives the joins still waiting after ten minutes another chance, for stories not expired', async () => {
+      mockPrismaService.story.findMany.mockResolvedValueOnce([
+        { id: 's-1' },
+        { id: 's-2' },
+      ]);
+      const before = Date.now();
+
+      await service.recoverStoryOverlays();
+
+      const { where } = mockPrismaService.story.findMany.mock.calls.at(-1)?.[0];
+      expect(where.overlayUrl).toEqual({ not: null });
+      expect(before - where.createdAt.lt.getTime()).toBeGreaterThanOrEqual(
+        10 * 60 * 1000 - 50,
+      );
+      expect(where.expiresAt.gt.getTime()).toBeGreaterThanOrEqual(before - 50);
+      expect(mockUploadsService.recoverStoryOverlay).toHaveBeenCalledWith(
+        's-1',
+      );
+      expect(mockUploadsService.recoverStoryOverlay).toHaveBeenCalledWith(
+        's-2',
+      );
+    });
+
+    it('keeps going when the queue cannot be read', async () => {
+      mockPrismaService.story.findMany.mockRejectedValueOnce(new Error('db'));
+      await expect(service.recoverStoryOverlays()).resolves.toBeUndefined();
     });
   });
 });
