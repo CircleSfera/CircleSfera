@@ -1,13 +1,15 @@
 import { type ChatMessageSentEvent, ErrorCode } from '@circlesfera/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import type { Message } from '@prisma/client';
+import type { Message, Prisma } from '@prisma/client';
 import {
   canMonetize,
   MAX_PPV_PRICE_CENTS,
   MIN_PPV_PRICE_CENTS,
 } from '../../../common/constants/monetization.constants.js';
 import { AppException } from '../../../common/errors/app.exception.js';
+import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
+import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
 import { PUBLIC_USER_SELECT } from '../../../common/selects/public-user.select.js';
 import { CryptoService } from '../../../common/services/crypto.service.js';
 import {
@@ -31,6 +33,33 @@ export class SendMessageUseCase {
     @Inject(ActionLimitsService)
     private readonly actionLimits: ActionLimitsService,
   ) {}
+
+  private async assertShareable(
+    tx: Prisma.TransactionClient,
+    senderId: string,
+    otherIds: string[],
+    shared: { postId?: string; storyId?: string },
+  ) {
+    const canSee = (viewerId: string) =>
+      shared.postId
+        ? assertCanAccessPost(tx, shared.postId, viewerId)
+        : assertCanAccessStory(
+            tx as unknown as Parameters<typeof assertCanAccessStory>[0],
+            shared.storyId as string,
+            viewerId,
+          );
+    await canSee(senderId);
+    for (const id of otherIds) {
+      try {
+        await canSee(id);
+      } catch {
+        throw AppException.Forbidden(
+          ErrorCode.FORBIDDEN_ACCESS,
+          'Someone in this conversation cannot see what you are sharing',
+        );
+      }
+    }
+  }
 
   async execute(
     senderId: string,
@@ -180,6 +209,18 @@ export class SendMessageUseCase {
             ErrorCode.FORBIDDEN_ACCESS,
             'Cannot send message: Blocked by a participant or you blocked them',
           );
+        }
+
+        // A shared post or story follows the rules of seeing it: the sender
+        // and every other participant must be able to see it (no block, no
+        // moderation removal, the privacy and audience of the author). The
+        // sender learns only that it is not found; that someone in the
+        // conversation cannot see it is said without naming who.
+        if (postId || storyId) {
+          await this.assertShareable(tx, senderId, participantIds, {
+            postId,
+            storyId,
+          });
         }
 
         // A first message to someone who does not follow the sender is a
