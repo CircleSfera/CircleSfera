@@ -35,7 +35,6 @@ const SUPER_ADMIN = {
   email: 'staff@example.com',
   displayName: 'Staff',
   totpEnabled: true,
-  mfaRequired: true,
   roles: ['SUPER_ADMIN'],
   permissions: [],
 };

@@ -49,7 +49,6 @@ export class AdminOperatorsService {
     displayName: string;
     status: AdminIdentityStatus;
     totpEnabled: boolean;
-    mfaRequired: boolean;
     lastLoginAt: Date | null;
     lastActivityAt: Date | null;
     linkedUserId: string | null;
@@ -65,7 +64,6 @@ export class AdminOperatorsService {
       displayName: admin.displayName,
       status: admin.status,
       totpEnabled: admin.totpEnabled,
-      mfaRequired: admin.mfaRequired,
       lastLoginAt: admin.lastLoginAt,
       lastActivityAt: admin.lastActivityAt,
       linkedUserId: admin.linkedUserId,
@@ -193,7 +191,6 @@ export class AdminOperatorsService {
         passwordHash: UNUSED_STAFF_PASSWORD_HASH,
         displayName: dto.displayName.trim() || email.split('@')[0],
         status: 'ACTIVE',
-        mfaRequired: true,
         totpEnabled: false,
         linkedUserId: signIn.userId,
         roles: {
@@ -292,7 +289,6 @@ export class AdminOperatorsService {
       data: {
         totpSecret: null,
         totpEnabled: false,
-        mfaRequired: true,
       },
       include: { roles: { include: { role: true } } },
     });

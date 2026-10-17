@@ -75,7 +75,6 @@ async function main() {
         passwordHash,
         displayName,
         status: 'ACTIVE',
-        mfaRequired: true,
         totpEnabled: false,
         linkedUserId: linkedUser?.id ?? null,
         roles: { create: [{ roleId }] },

@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsEmail, IsString, MinLength } from 'class-validator';
 
 export class AdminLoginDto {
   @ApiProperty()
@@ -30,14 +30,10 @@ export class AdminMfaSetupVerifyDto {
   code!: string;
 }
 
+// A sensitive action is confirmed with the code of the authenticator only.
 export class AdminStepUpDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+  @ApiProperty()
   @IsString()
-  password?: string;
-
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  totpCode?: string;
+  @MinLength(6)
+  totpCode!: string;
 }

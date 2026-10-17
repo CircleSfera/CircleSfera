@@ -31,6 +31,9 @@ export const SIGN_IN_SECRET_OMIT = {
 const clientOmit = {
   user: USER_SECRET_OMIT,
   signIn: SIGN_IN_SECRET_OMIT,
+  // No read names this unused column, so it can be dropped while this
+  // version still works if a deploy rolls back to it.
+  adminIdentity: { mfaRequired: true },
 } as const;
 
 @Injectable()
