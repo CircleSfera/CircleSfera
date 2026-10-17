@@ -100,6 +100,8 @@ export class ReportsService {
         targetId: dto.targetId,
         reason: dto.reason,
         details: finalDetails,
+        // Someone may hurt themselves: staff see it first.
+        urgent: dto.reason === 'SELF_HARM',
       },
     })) as Report;
 

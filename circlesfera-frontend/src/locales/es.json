@@ -397,6 +397,8 @@
         "IMPERSONATION": "Suplantación de identidad",
         "CSAM": "Abuso sexual infantil",
         "SCAM": "Estafa",
+        "SELF_HARM": "Autolesión",
+        "INTELLECTUAL_PROPERTY": "Propiedad intelectual",
         "OTHER": "Incumplimiento de las normas de la comunidad"
       },
       "type_restriction": "Restricción temporal de actividad",
@@ -1887,6 +1889,8 @@
       "impersonation": "Suplantación de identidad",
       "scam": "Estafa o fraude",
       "csam": "Explotación sexual infantil (CSAM)",
+      "self_harm": "Autolesión o suicidio",
+      "intellectual_property": "Propiedad intelectual (derechos de autor, marca)",
       "other": "Otra cosa"
     }
   },
@@ -2714,6 +2718,8 @@
         "IMPERSONATION": "Suplantación de identidad",
         "CSAM": "Material de abuso sexual infantil",
         "SCAM": "Estafa",
+        "SELF_HARM": "Autolesión",
+        "INTELLECTUAL_PROPERTY": "Propiedad intelectual",
         "OTHER": "Otro"
       },
       "badge": {

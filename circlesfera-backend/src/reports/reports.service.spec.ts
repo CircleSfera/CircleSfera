@@ -101,6 +101,28 @@ describe('ReportsService', () => {
       );
     });
 
+    it('a report of self-harm is marked urgent, and no other reason is', async () => {
+      mockPrismaService.post.findUnique.mockResolvedValue({ id: 'post-1' });
+      mockPrismaService.report.create.mockResolvedValue({ id: '1' });
+
+      for (const [reason, urgent] of [
+        ['SELF_HARM', true],
+        ['INTELLECTUAL_PROPERTY', false],
+        ['SPAM', false],
+      ] as const) {
+        await service.create('user-1', {
+          targetType: ReportTargetType.POST,
+          targetId: 'post-1',
+          reason,
+        } as any);
+        expect(mockPrismaService.report.create).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            data: expect.objectContaining({ reason, urgent }),
+          }),
+        );
+      }
+    });
+
     it('should handle STORY target type existence check', async () => {
       mockPrismaService.story.findUnique.mockResolvedValue(null);
       await expect(

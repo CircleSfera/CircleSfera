@@ -59,7 +59,8 @@ export class GetReportsQuery {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        // A report of self-harm comes first, then the newest.
+        orderBy: [{ urgent: 'desc' }, { createdAt: 'desc' }],
         include: {
           reporter: {
             select: { username: true, avatar: true },

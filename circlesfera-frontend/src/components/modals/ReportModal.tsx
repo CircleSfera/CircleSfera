@@ -25,8 +25,13 @@ export const REPORT_REASONS = [
   { id: 'HARASSMENT', labelKey: 'report.reasons.harassment' },
   { id: 'HATE_SPEECH', labelKey: 'report.reasons.hate_speech' },
   { id: 'VIOLENCE', labelKey: 'report.reasons.violence' },
+  { id: 'SELF_HARM', labelKey: 'report.reasons.self_harm' },
   { id: 'ILLEGAL_CONTENT', labelKey: 'report.reasons.illegal_content' },
   { id: 'IMPERSONATION', labelKey: 'report.reasons.impersonation' },
+  {
+    id: 'INTELLECTUAL_PROPERTY',
+    labelKey: 'report.reasons.intellectual_property',
+  },
   { id: 'SCAM', labelKey: 'report.reasons.scam' },
   { id: 'CSAM', labelKey: 'report.reasons.csam' },
   { id: 'OTHER', labelKey: 'report.reasons.other' },

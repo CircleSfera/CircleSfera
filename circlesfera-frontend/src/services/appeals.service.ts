@@ -88,6 +88,8 @@ export type ProfileStrikeReason =
   | 'IMPERSONATION'
   | 'CSAM'
   | 'SCAM'
+  | 'SELF_HARM'
+  | 'INTELLECTUAL_PROPERTY'
   | 'OTHER';
 
 // A warning or strike on the Profile the session acts as.
