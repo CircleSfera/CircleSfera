@@ -55,10 +55,11 @@ model User {
 
   // Old copy of the credentials of the first sign-in, kept equal by the
   // database while it is being retired: nothing in the app reads or writes
-  // it. The credentials live on SignIn.
+  // it, and no column has a default the client would write, so the columns
+  // can be dropped. The credentials live on SignIn.
   emailVerified           DateTime?
   verificationToken       String?   @unique
-  isTwoFactorEnabled      Boolean   @default(false)
+  isTwoFactorEnabled      Boolean?
   twoFactorSecret         String?
   resetToken              String?   @unique
   resetTokenExpires       DateTime?

@@ -94,16 +94,26 @@ Each step is one change, deployable and reversible on its own.
    and verifying with a phone number is not offered for now. Nothing in the product or the schema
    refers to a phone number, so there is nothing to hide or remove. It is not started until the
    owner asks for it; it then needs its own confirmation (a new provider and a schema change).
-8. **Removal** of the credential columns from `User`, in two changes so that a version of the app
-   still running during a deploy keeps working:
+8. **Removal** of the credential columns from `User`, in three changes. A deploy stops the old
+   version before it migrates, but if the new version fails its health check, the deploy rolls
+   back to the previous one. So each change must still work with the database the next one
+   leaves.
    - **8a.** The app stops reading and writing them: sign-up, the staff scripts and the seed write
      the credentials on the `SignIn`; staff views, the data export and the Profile read whether an
      email is confirmed, and whether the second step is on, from the `SignIn`. `users.password`
      becomes optional, and the database still copies credentials written on an account, as an
      older app does, to its sign-in. The `currentChallenge` column stays: it is the account's
      passkey challenge, not a copy of a credential.
-   - **8b.** Once 8a is in production, the copy triggers and the columns are dropped. The migration
-     first stops, changing nothing, if any account has no sign-in.
+   - **8b.** The app stops naming the columns at all. 8a no longer used them, but the client
+     still asked for them in every read of an account, and wrote the default of
+     `isTwoFactorEnabled` on every new account. Now every read of an account leaves the eight
+     columns out by default (`USER_SECRET_OMIT`), and `users.isTwoFactorEnabled` loses its
+     default and becomes optional.
+     - **Checked:** with these columns dropped from a local database, this version creates,
+       reads, updates, upserts and deletes accounts, together with their sign-ins and Profiles.
+   - **8c.** Once 8b is in production, the copy triggers and the columns are dropped. The migration
+     first stops, changing nothing, if any account has no sign-in, or if an account that still
+     holds a password differs from its first sign-in.
 
 Steps 1 to 4 change nothing a person can see: every account keeps one sign-in that serves all of
 its Profiles.

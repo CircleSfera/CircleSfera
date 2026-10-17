@@ -81,10 +81,16 @@ describe('Sign-in credentials (e2e)', () => {
     // The account itself holds no credentials.
     const own = await prisma.user.findUniqueOrThrow({
       where: { id: user.id },
-      omit: { password: false, verificationToken: false },
+      omit: {
+        password: false,
+        verificationToken: false,
+        isTwoFactorEnabled: false,
+      },
     });
     expect(own.password).toBeNull();
     expect(own.verificationToken).toBeNull();
+    // Not even a default is written there, so the column can be dropped.
+    expect(own.isTwoFactorEnabled).toBeNull();
 
     // A later write on the sign-in gives the account no copy either.
     await prisma.signIn.update({
@@ -120,7 +126,13 @@ describe('Sign-in credentials (e2e)', () => {
     const email = `signin_old_${id}@example.com`;
     try {
       const old = await prisma.user.create({
-        data: { email, password: 'hash-from-an-older-app' },
+        // An older app also writes the two-step flag: its schema still
+        // has a default for it, and the client sends defaults itself.
+        data: {
+          email,
+          password: 'hash-from-an-older-app',
+          isTwoFactorEnabled: false,
+        },
         select: { id: true },
       });
 
