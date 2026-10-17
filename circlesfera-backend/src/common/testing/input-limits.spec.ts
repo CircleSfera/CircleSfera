@@ -1,10 +1,10 @@
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import { describe, expect, it } from 'vitest';
-import { RegisterDto } from '../auth/dto/register.dto.js';
-import { SendMessageDto } from '../chat/dto/send-message.dto.js';
-import { CreateCommentDto } from '../comments/dto/create-comment.dto.js';
-import { UpdateProfileDto } from '../profiles/dto/update-profile.dto.js';
+import { RegisterDto } from '../../auth/dto/register.dto.js';
+import { SendMessageDto } from '../../chat/dto/send-message.dto.js';
+import { CreateCommentDto } from '../../comments/dto/create-comment.dto.js';
+import { UpdateProfileDto } from '../../profiles/dto/update-profile.dto.js';
 
 // One limit per field, the same when writing and when editing.
 async function refused(
