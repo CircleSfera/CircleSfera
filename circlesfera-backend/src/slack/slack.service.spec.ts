@@ -275,7 +275,7 @@ describe('SlackService', () => {
       expect(sent).not.toContain('Offensive advertising');
       expect(sent).toContain('https://admin.circlesfera.com/reports');
       const actions = (
-        vi.mocked(axios.post).mock.calls.at(-1)?.[1] as {
+        (vi.mocked(axios.post).mock.calls.at(-1) ?? [])[1] as {
           blocks: Array<{
             type: string;
             elements?: Array<{ action_id: string }>;
