@@ -61,6 +61,10 @@ export type Notice =
   | { key: 'tip_received'; amountCents: number; currency: string }
   // The app shows it as coming from Support, like a sender.
   | { key: 'support_answered'; subject: string }
+  // Sent by the Business Profile to the person invited to its team.
+  | { key: 'team_invited'; role: 'ADMINISTRATOR' | 'EDITOR' }
+  // Sent by the person to the Business Profile they joined.
+  | { key: 'team_accepted'; role: 'ADMINISTRATOR' | 'EDITOR' }
   | { key: 'live_started' }
   // Someone who saw what the Profile shared is worried about it.
   | { key: 'support_resources' };
@@ -163,6 +167,12 @@ const RULES: Record<Locale, Record<ReportReason, string>> = {
 };
 
 const rule = (locale: Locale, value: ReportReason) => RULES[locale][value];
+
+// The roles of a team member, as a notice says them.
+const TEAM_ROLE: Record<Locale, Record<'ADMINISTRATOR' | 'EDITOR', string>> = {
+  en: { ADMINISTRATOR: 'administrator', EDITOR: 'editor' },
+  es: { ADMINISTRATOR: 'administrador', EDITOR: 'editor' },
+};
 
 // The serious causes of a direct suspension, as the Profile reads them after
 // "for" / "por". A compromised Profile has its own sentence.
@@ -344,6 +354,10 @@ function renderEn(n: Notice): string {
       return `sent you a ${money('en', n.amountCents, n.currency)} tip`;
     case 'support_answered':
       return `answered your request "${n.subject}"`;
+    case 'team_invited':
+      return `invited you to work on this profile as ${TEAM_ROLE.en[n.role]}. Accept from Settings → Teams.`;
+    case 'team_accepted':
+      return `joined this profile's team as ${TEAM_ROLE.en[n.role]}`;
     case 'live_started':
       return 'started a live';
     case 'support_resources':
@@ -475,6 +489,10 @@ function renderEs(n: Notice): string {
       return `te ha enviado una propina de ${money('es', n.amountCents, n.currency)}`;
     case 'support_answered':
       return `ha respondido a tu solicitud «${n.subject}»`;
+    case 'team_invited':
+      return `te ha invitado a trabajar en este perfil como ${TEAM_ROLE.es[n.role]}. Acepta desde Ajustes → Equipos.`;
+    case 'team_accepted':
+      return `se ha unido al equipo de este perfil como ${TEAM_ROLE.es[n.role]}`;
     case 'live_started':
       return 'ha empezado un directo';
     case 'support_resources':

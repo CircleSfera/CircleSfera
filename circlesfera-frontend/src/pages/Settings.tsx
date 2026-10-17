@@ -19,6 +19,7 @@ import {
   isSettingsSectionId,
   type SettingsSectionId,
 } from '../components/settings/settingsNav';
+import TeamSettings from '../components/settings/TeamSettings';
 
 function SectionPanel({ section }: { section: SettingsSectionId }) {
   switch (section) {
@@ -26,6 +27,8 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <ProfileSettings />;
     case 'profiles':
       return <ProfilesSettings />;
+    case 'team':
+      return <TeamSettings />;
     case 'privacy':
       return <PrivacySettings />;
     case 'notifications':
