@@ -17,7 +17,8 @@ describe('SeoController', () => {
   let app: INestApplication;
 
   const mockService = {
-    generateSitemap: vi.fn(),
+    generateSitemapIndex: vi.fn(),
+    generateSitemapPart: vi.fn(),
     generateRobotsTxt: vi.fn(),
     generateOpenGraphHtml: vi.fn(),
     generatePostOgImage: vi.fn(),
@@ -40,21 +41,45 @@ describe('SeoController', () => {
   });
 
   it('delegates sitemap and robots.txt', async () => {
-    mockService.generateSitemap.mockResolvedValue('<urlset/>');
+    mockService.generateSitemapIndex.mockResolvedValue('<sitemapindex/>');
     mockService.generateRobotsTxt.mockReturnValue('User-agent: *');
 
     const sitemap = await request(app.getHttpServer())
       .get('/api/v1/sitemap.xml')
       .expect(200);
-    expect(sitemap.text).toBe('<urlset/>');
+    expect(sitemap.text).toBe('<sitemapindex/>');
+    expect(sitemap.headers['cache-control']).toBe('public, max-age=3600');
 
     const robots = await request(app.getHttpServer())
       .get('/api/v1/robots.txt')
       .expect(200);
     expect(robots.text).toBe('User-agent: *');
 
-    expect(mockService.generateSitemap).toHaveBeenCalledWith();
+    expect(mockService.generateSitemapIndex).toHaveBeenCalledWith();
     expect(mockService.generateRobotsTxt).toHaveBeenCalledWith();
+  });
+
+  it('serves a part of the site map, and nothing for a part that is not there', async () => {
+    mockService.generateSitemapPart.mockResolvedValueOnce('<urlset/>');
+    const part = await request(app.getHttpServer())
+      .get('/api/v1/sitemap/profiles/2')
+      .expect(200);
+    expect(part.text).toBe('<urlset/>');
+    expect(part.headers['content-type']).toContain('application/xml');
+    expect(mockService.generateSitemapPart).toHaveBeenCalledWith('profiles', 2);
+
+    mockService.generateSitemapPart.mockResolvedValueOnce(null);
+    await request(app.getHttpServer())
+      .get('/api/v1/sitemap/posts/99')
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/api/v1/sitemap/messages/1')
+      .expect(404);
+    await request(app.getHttpServer())
+      .get('/api/v1/sitemap/posts/one')
+      .expect(400);
+    // An unknown kind never reaches the database.
+    expect(mockService.generateSitemapPart).toHaveBeenCalledTimes(2);
   });
 
   it('generates Open Graph HTML with a path or the root fallback', async () => {
