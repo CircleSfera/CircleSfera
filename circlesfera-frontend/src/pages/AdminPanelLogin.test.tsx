@@ -64,6 +64,18 @@ async function reachCodeStep(i18n: I18nInstance) {
   return screen.findByLabelText(i18n.t('adminPanel.login.mfa_code'));
 }
 
+// The only way in: the password, then the code of the authenticator.
+async function signInWithCode(i18n: I18nInstance) {
+  vi.mocked(adminAuthApi.verifyMfa).mockResolvedValue({
+    data: { status: 'OK' },
+  } as never);
+  const codeInput = await reachCodeStep(i18n);
+  fireEvent.change(codeInput, { target: { value: '123456' } });
+  fireEvent.click(
+    screen.getByRole('button', { name: i18n.t('adminPanel.login.verify') }),
+  );
+}
+
 describe('Admin Panel sign-in', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -92,12 +104,9 @@ describe('Admin Panel sign-in', () => {
   });
 
   it('signs a super admin in and opens the first tab of the panel', async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'OK' },
-    } as never);
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
-    submitCredentials(i18n!);
+    await signInWithCode(i18n!);
 
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -114,15 +123,12 @@ describe('Admin Panel sign-in', () => {
   });
 
   it('opens the first tab the staff member is allowed to see', async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'OK' },
-    } as never);
     vi.mocked(adminAuthApi.me).mockResolvedValue({
       data: { ...SUPER_ADMIN, roles: ['AUDITOR'], permissions: ['audit'] },
     } as never);
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
-    submitCredentials(i18n!);
+    await signInWithCode(i18n!);
 
     const expectedTab = getAdminHomeTab((key) => key === 'audit');
     await waitFor(() =>
@@ -135,9 +141,6 @@ describe('Admin Panel sign-in', () => {
   });
 
   it('gives a staff manager the same first tab as a super admin', async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'OK' },
-    } as never);
     vi.mocked(adminAuthApi.me).mockResolvedValue({
       data: {
         ...SUPER_ADMIN,
@@ -147,7 +150,7 @@ describe('Admin Panel sign-in', () => {
     } as never);
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
-    submitCredentials(i18n!);
+    await signInWithCode(i18n!);
 
     await waitFor(() =>
       expect(mockNavigate).toHaveBeenCalledWith(
@@ -203,15 +206,12 @@ describe('Admin Panel sign-in', () => {
   });
 
   it('does not count as signed in when the staff profile cannot be loaded', async () => {
-    vi.mocked(adminAuthApi.login).mockResolvedValue({
-      data: { status: 'OK' },
-    } as never);
     vi.mocked(adminAuthApi.me).mockRejectedValue(
       Object.assign(new Error('boom'), { status: 500 }),
     );
     const { i18n } = renderWithProviders(<AdminPanelLogin />);
 
-    submitCredentials(i18n!);
+    await signInWithCode(i18n!);
 
     expect(
       await screen.findByText(i18n!.t('errors.generic.server')),
