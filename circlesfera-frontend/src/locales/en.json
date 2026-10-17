@@ -646,7 +646,36 @@
         "PAUSED": "Paused: the Business plan ended"
       },
       "switcher_title": "Teams you work on",
-      "editor_no_profile": "Your role as editor publishes and answers comments; the owner or an administrator edits this profile."
+      "editor_no_profile": "Your role as editor publishes and answers comments; the owner or an administrator edits this profile.",
+      "activity": {
+        "title": "Team activity",
+        "desc": "What each person did on this profile, newest first.",
+        "you": "You",
+        "former": "A former member",
+        "empty": "Nothing has been done on this profile yet.",
+        "error": "The activity could not be loaded.",
+        "more": "Show more",
+        "action": {
+          "POST_PUBLISHED": "published a post",
+          "POST_EDITED": "edited a post",
+          "POST_DELETED": "deleted a post",
+          "STORY_PUBLISHED": "published a story",
+          "STORY_DELETED": "deleted a story",
+          "COMMENT_WRITTEN": "wrote a comment",
+          "COMMENT_EDITED": "edited a comment",
+          "COMMENT_DELETED": "deleted a comment",
+          "PROFILE_EDITED": "edited the profile",
+          "POST_PUBLISHED_you": "published a post",
+          "POST_EDITED_you": "edited a post",
+          "POST_DELETED_you": "deleted a post",
+          "STORY_PUBLISHED_you": "published a story",
+          "STORY_DELETED_you": "deleted a story",
+          "COMMENT_WRITTEN_you": "wrote a comment",
+          "COMMENT_EDITED_you": "edited a comment",
+          "COMMENT_DELETED_you": "deleted a comment",
+          "PROFILE_EDITED_you": "edited the profile"
+        }
+      }
     }
   },
   "auth": {

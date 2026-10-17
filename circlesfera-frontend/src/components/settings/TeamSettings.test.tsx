@@ -8,6 +8,7 @@ import TeamSettings from './TeamSettings';
 
 vi.mock('../../services/team.service', () => ({
   teamApi: {
+    activity: vi.fn(),
     get: vi.fn(),
     invite: vi.fn(),
     remove: vi.fn(),
@@ -46,6 +47,10 @@ describe('TeamSettings', () => {
     vi.clearAllMocks();
     vi.mocked(teamApi.invitations).mockResolvedValue([]);
     vi.mocked(teamApi.get).mockResolvedValue(team() as never);
+    vi.mocked(teamApi.activity).mockResolvedValue({
+      data: [],
+      meta: { total: 0, page: 1, limit: 20, totalPages: 0 },
+    });
   });
 
   it('a Business owner sees the team, the seats, and invites a person with a role', async () => {

@@ -9,11 +9,13 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import type { CurrentUserData } from '../auth/decorators/current-user.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { InviteMemberDto } from './dto/invite-member.dto.js';
 import { MemberAllowed } from './member-allowed.decorator.js';
 import { TeamService } from './team.service.js';
@@ -44,6 +46,18 @@ export class TeamController {
     @Param('id', ParseUUIDPipe) id: string,
   ) {
     return this.team.remove(user.userId, user.profileId, id);
+  }
+
+  // What was done on the Profile and by whom, for its owner.
+  @Get('activity')
+  @MemberAllowed('team.manage')
+  activity(@CurrentUser() user: CurrentUserData, @Query() page: PaginationDto) {
+    return this.team.activity(
+      user.userId,
+      user.profileId,
+      page.page ?? 1,
+      page.limit ?? 10,
+    );
   }
 
   // The Profiles the person works on as a team member.

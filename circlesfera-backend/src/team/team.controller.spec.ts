@@ -27,6 +27,7 @@ describe('TeamController', () => {
     remove: vi.fn(),
     invitations: vi.fn(),
     memberProfiles: vi.fn(),
+    activity: vi.fn(),
     accept: vi.fn(),
     decline: vi.fn(),
   };
@@ -51,6 +52,33 @@ describe('TeamController', () => {
 
   it('needs a session', async () => {
     await http().get('/api/v1/team').expect(401);
+  });
+
+  it('lists the activity of the Profile of the session by pages', async () => {
+    service.activity.mockResolvedValue({ data: [], meta: {} });
+    await http().get('/api/v1/team/activity').set(BEARER).expect(200);
+    await http()
+      .get('/api/v1/team/activity?page=3&limit=10')
+      .set(BEARER)
+      .expect(200);
+    await http().get('/api/v1/team/activity?limit=500').set(BEARER).expect(400);
+
+    const { userId, profileId } = TEST_USER;
+    expect(service.activity).toHaveBeenNthCalledWith(
+      1,
+      userId,
+      profileId,
+      1,
+      10,
+    );
+    expect(service.activity).toHaveBeenNthCalledWith(
+      2,
+      userId,
+      profileId,
+      3,
+      10,
+    );
+    expect(service.activity).toHaveBeenCalledTimes(2);
   });
 
   it('works on the Profile of the session for its owner', async () => {

@@ -44,7 +44,37 @@ export interface TeamProfile {
   memberRole: TeamRole;
 }
 
+export type TeamActivityAction =
+  | 'POST_PUBLISHED'
+  | 'POST_EDITED'
+  | 'POST_DELETED'
+  | 'STORY_PUBLISHED'
+  | 'STORY_DELETED'
+  | 'COMMENT_WRITTEN'
+  | 'COMMENT_EDITED'
+  | 'COMMENT_DELETED'
+  | 'PROFILE_EDITED';
+
+// One thing done on the Profile, for its owner.
+export interface TeamActivityEntry {
+  id: string;
+  action: TeamActivityAction;
+  targetId: string | null;
+  createdAt: string;
+  byOwner: boolean;
+  person: TeamPerson | null;
+}
+
+export interface TeamActivityPage {
+  data: TeamActivityEntry[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
+
 export const teamApi = {
+  activity: (page = 1) =>
+    apiClient
+      .get<TeamActivityPage>('team/activity', { params: { page, limit: 20 } })
+      .then((r) => r.data),
   profiles: () =>
     apiClient.get<TeamProfile[]>('team/profiles').then((r) => r.data),
   get: () => apiClient.get<Team>('team').then((r) => r.data),
