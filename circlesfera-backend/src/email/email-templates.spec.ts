@@ -140,6 +140,8 @@ describe('EmailTemplates', () => {
       'Unsubscribe',
     );
     expect(EmailTemplates.welcome(en, 'Ana').html).not.toContain('Unsubscribe');
+  });
+
   it('a notice receipt and decision carry the address, the reference and the reasons, escaped', () => {
     const receipt = EmailTemplates.noticeReceived(
       en,

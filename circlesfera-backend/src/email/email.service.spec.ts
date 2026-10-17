@@ -251,7 +251,8 @@ describe('EmailService', () => {
       const mail = mockEmailQueue.add.mock.calls[0][1];
       expect(mail.html).not.toContain('/newsletter/unsubscribe');
       expect(mail.headers).toBeUndefined();
-    it('sends the receipt and the decision of a notice in the notifier\'s language', async () => {
+    });
+
     it("sends the receipt and the decision of a notice in the notifier's language", async () => {
       await service.sendNoticeReceivedEmail(
         'ana@example.com',
