@@ -39,6 +39,8 @@ export interface EmailCopy {
     noAction: string;
     reasons: string;
   };
+  // Closed automatically: the identity check showed an age under 16.
+  underMinimumAge: { subject: string; title: string; body: string };
   postRemoved: { subject: string; title: string; body: string; button: string };
   postsRemoved: { subject: string; title: string; body: string };
   appealApproved: { subject: string; title: string; body: string };
@@ -118,6 +120,11 @@ const en: EmailCopy = {
     noAction:
       'We reviewed your notice about {url} and did not act on the content.',
     reasons: 'Reasons:',
+  },
+  underMinimumAge: {
+    subject: 'Your CircleSfera account has been deactivated',
+    title: 'Account deactivated',
+    body: 'Hello {name},<br><br>The identity check you completed shows a date of birth under 16. CircleSfera is for people aged 16 and over, so your account has been deactivated.<br><br>This decision was taken automatically, from the date of birth in your identity document. If you think it is a mistake, write to support@circlesfera.com and a person will review it.',
   },
   accountBanned: {
     subject: 'Your CircleSfera account was suspended',
@@ -227,6 +234,11 @@ const es: EmailCopy = {
     noAction:
       'Hemos revisado tu aviso sobre {url} y no hemos actuado sobre el contenido.',
     reasons: 'Motivos:',
+  },
+  underMinimumAge: {
+    subject: 'Tu cuenta de CircleSfera se ha desactivado',
+    title: 'Cuenta desactivada',
+    body: 'Hola {name},<br><br>La verificación de identidad que has hecho muestra una fecha de nacimiento de menos de 16 años. CircleSfera es para personas de 16 años o más, así que tu cuenta se ha desactivado.<br><br>Esta decisión se ha tomado de forma automática, a partir de la fecha de nacimiento de tu documento de identidad. Si crees que es un error, escribe a support@circlesfera.com y una persona la revisará.',
   },
   accountBanned: {
     subject: 'Tu cuenta de CircleSfera ha sido suspendida',

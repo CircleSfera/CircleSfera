@@ -142,6 +142,16 @@ describe('EmailTemplates', () => {
     expect(EmailTemplates.welcome(en, 'Ana').html).not.toContain('Unsubscribe');
   });
 
+  it('the under-16 notice says the decision was automated and how to ask a person to review it', () => {
+    const { subject, html } = EmailTemplates.underMinimumAge(en, 'Kid');
+
+    expect(subject).toBe('Your CircleSfera account has been deactivated');
+    expect(html).toContain('under 16');
+    expect(html).toContain('taken automatically');
+    expect(html).toContain('a person will review it');
+    expect(html).toContain('mailto:support@circlesfera.com');
+  });
+
   it('a notice receipt and decision carry the address, the reference and the reasons, escaped', () => {
     const receipt = EmailTemplates.noticeReceived(
       en,

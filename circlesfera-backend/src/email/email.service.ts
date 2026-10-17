@@ -14,6 +14,13 @@ import {
 } from './email-templates.js';
 import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 
+// An address as the logs may show it: the first letter and the domain.
+export function maskEmail(address: string): string {
+  const at = address.indexOf('@');
+  if (at < 1) return '***';
+  return `${address[0]}***${address.slice(at)}`;
+}
+
 export interface SendMailOptions {
   to: string;
   subject: string;
@@ -221,6 +228,21 @@ export class EmailService {
     );
   }
 
+  // The account was closed automatically: the identity check showed an age
+  // under 16. Says so, and how to ask a person to review it. Answered, not
+  // sent: the caller keeps it with the deactivation, so that it is not lost.
+  async underMinimumAgeMail(
+    email: string,
+    name?: string | null,
+  ): Promise<SendMailOptions> {
+    const ctx = await this.contextFor(email);
+    const rendered = EmailTemplates.underMinimumAge(
+      ctx,
+      this.nameOr(ctx, name),
+    );
+    return { to: email, subject: rendered.subject, html: rendered.html };
+  }
+
   // The account was suspended by staff.
   async sendAccountBannedEmail(email: string, name?: string | null) {
     const ctx = await this.contextFor(email);
@@ -380,7 +402,10 @@ export class EmailService {
       // the old inline design. Logged, not retried: retrying the enqueue
       // itself (as opposed to the send, which BullMQ already retries once
       // queued) is not implemented here.
-      this.logger.error(`Failed to queue email to ${options.to}`, error);
+      this.logger.error(
+        `Failed to queue email to ${maskEmail(options.to)}`,
+        error,
+      );
     }
   }
 
@@ -439,10 +464,10 @@ export class EmailService {
         ...(options.replyTo && { replyTo: { email: options.replyTo } }),
         ...(options.headers && { headers: options.headers }),
       });
-      this.logger.log(`Email sent to ${options.to}: ${options.subject}`);
+      this.logger.log(`Email sent to ${maskEmail(options.to)}`);
     } catch (error: unknown) {
       this.logger.error(
-        `Failed to send email to ${options.to} (subject: "${options.subject}").`,
+        `Failed to send email to ${maskEmail(options.to)}.`,
         error,
       );
       throw error;

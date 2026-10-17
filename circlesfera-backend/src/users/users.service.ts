@@ -4,6 +4,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  AdminAction,
   ContentRating,
   type Locale,
   type Prisma,
@@ -14,9 +15,11 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
+import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -34,6 +37,7 @@ export class UsersService {
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject(CryptoService) private readonly crypto: CryptoService,
+    @Inject(EmailService) private readonly emailService: EmailService,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -734,13 +738,18 @@ export class UsersService {
   }
 
   // Persist KYC success from a verified Stripe Identity session.
+  // A verified identity sets the date of birth from the document. Under 16,
+  // the minimum age, the account is deactivated automatically: the person is
+  // told why and how to ask a person to review it, and the staff audit log
+  // records it. Verifying never reactivates an account that staff or a
+  // deletion request had deactivated.
   private async applyVerifiedIdentity(
     userId: string,
     session: Stripe.Identity.VerificationSession,
   ) {
     const dob = session.verified_outputs?.dob;
     let dateOfBirth: Date | null = null;
-    let isActive = true;
+    let underMinimumAge = false;
 
     if (dob?.year && dob?.month && dob?.day) {
       dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
@@ -751,15 +760,7 @@ export class UsersService {
       if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
         age--;
       }
-
-      if (age < 16) {
-        isActive = false;
-        console.log(
-          `User ${userId} suspended due to being under 16 (Age: ${age})`,
-        );
-      } else if (age < 18) {
-        console.log(`User ${userId} verified but under 18 (Age: ${age})`);
-      }
+      underMinimumAge = age < 16;
     }
 
     // KYC sets identityVerifiedAt only — plan badges stay on verificationLevel.
@@ -768,10 +769,75 @@ export class UsersService {
       data: {
         identityVerifiedAt: new Date(),
         ...(dateOfBirth && { dateOfBirth }),
-        isActive: isActive,
       },
     });
-    console.log(`Successfully verified identity for user ${userId}`);
+
+    if (underMinimumAge) {
+      await this.deactivateUnderMinimumAge(userId);
+    }
+  }
+
+  // Closes an account whose identity check showed an age under 16. The
+  // state, the audit entry and the email go together in one transaction,
+  // the email through the outbox, so a failure after it never leaves the
+  // person without notice; only the delivery that deactivates does it.
+  private async deactivateUnderMinimumAge(userId: string) {
+    const account = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        profiles: {
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          select: { fullName: true },
+        },
+      },
+    });
+    const mail = account?.email
+      ? await this.emailService.underMinimumAgeMail(
+          account.email,
+          account.profiles[0]?.fullName,
+        )
+      : null;
+
+    const closed = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({
+        where: { id: userId, isActive: true },
+        data: { isActive: false },
+      });
+      if (result.count === 0) return false;
+      await tx.adminAuditLog.create({
+        data: {
+          action: AdminAction.BAN_USER,
+          targetType: 'user',
+          targetId: userId,
+          details:
+            'Deactivated automatically: the identity check showed an age under 16',
+        },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      if (mail) {
+        await this.outboxService.enqueue(tx, {
+          queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+          eventName: 'send-transactional-email',
+          payload: { ...mail },
+          options: { jobId: `under-minimum-age-${userId}` },
+        });
+      }
+      return true;
+    });
+    if (!closed) return;
+
+    // Sockets opened before keep their session until told.
+    const event: UserSessionTerminateEvent['payload'] = {
+      userId,
+      reason: 'Account deactivated: under the minimum age',
+    };
+    this.eventEmitter.emit('user.session.terminate', event);
+    this.outboxService.triggerImmediatePublish();
+    this.logger.log(
+      'An account was deactivated: identity check under the minimum age',
+    );
   }
 
   async handleIdentityWebhook(session: Stripe.Identity.VerificationSession) {

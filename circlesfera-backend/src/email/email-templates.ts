@@ -263,6 +263,21 @@ export const EmailTemplates = {
     };
   },
 
+  underMinimumAge: (ctx: EmailContext, name: string): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.underMinimumAge.subject,
+      html: layout(ctx, copy, {
+        title: copy.underMinimumAge.title,
+        content: fill(copy.underMinimumAge.body, { name: escapeHtml(name) }),
+        button: {
+          text: copy.contactSupport,
+          url: 'mailto:support@circlesfera.com',
+        },
+      }),
+    };
+  },
+
   accountBanned: (ctx: EmailContext, name: string): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {
