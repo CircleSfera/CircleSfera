@@ -52,6 +52,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         { emit: vi.fn() } as any,
         { del: vi.fn() } as any,
         { decrypt: (text: string) => text } as any,
+        {} as any,
       );
     });
 

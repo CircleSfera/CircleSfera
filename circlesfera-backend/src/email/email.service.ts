@@ -221,6 +221,16 @@ export class EmailService {
     );
   }
 
+  // The account was closed automatically: the identity check showed an age
+  // under 16. Says so, and how to ask a person to review it.
+  async sendUnderMinimumAgeEmail(email: string, name?: string | null) {
+    const ctx = await this.contextFor(email);
+    await this.send(
+      email,
+      EmailTemplates.underMinimumAge(ctx, this.nameOr(ctx, name)),
+    );
+  }
+
   // The account was suspended by staff.
   async sendAccountBannedEmail(email: string, name?: string | null) {
     const ctx = await this.contextFor(email);

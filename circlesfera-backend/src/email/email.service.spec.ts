@@ -253,6 +253,20 @@ describe('EmailService', () => {
       expect(mail.headers).toBeUndefined();
     });
 
+    it('enqueues the under-16 notice in the language of the account', async () => {
+      mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'es' });
+
+      await service.sendUnderMinimumAgeEmail('kid@example.com', 'Kid');
+
+      expect(mockEmailQueue.add).toHaveBeenCalledWith(
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'kid@example.com',
+          subject: 'Tu cuenta de CircleSfera se ha desactivado',
+        }),
+      );
+    });
+
     it("sends the receipt and the decision of a notice in the notifier's language", async () => {
       await service.sendNoticeReceivedEmail(
         'ana@example.com',

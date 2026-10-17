@@ -4,6 +4,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  AdminAction,
   ContentRating,
   type Locale,
   type Prisma,
@@ -17,6 +18,7 @@ import type Stripe from 'stripe';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
@@ -34,6 +36,7 @@ export class UsersService {
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
     @Inject(CryptoService) private readonly crypto: CryptoService,
+    @Inject(EmailService) private readonly emailService: EmailService,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -734,13 +737,18 @@ export class UsersService {
   }
 
   // Persist KYC success from a verified Stripe Identity session.
+  // A verified identity sets the date of birth from the document. Under 16,
+  // the minimum age, the account is deactivated automatically: the person is
+  // told why and how to ask a person to review it, and the staff audit log
+  // records it. Verifying never reactivates an account that staff or a
+  // deletion request had deactivated.
   private async applyVerifiedIdentity(
     userId: string,
     session: Stripe.Identity.VerificationSession,
   ) {
     const dob = session.verified_outputs?.dob;
     let dateOfBirth: Date | null = null;
-    let isActive = true;
+    let underMinimumAge = false;
 
     if (dob?.year && dob?.month && dob?.day) {
       dateOfBirth = new Date(dob.year, dob.month - 1, dob.day);
@@ -751,15 +759,7 @@ export class UsersService {
       if (m < 0 || (m === 0 && today.getDate() < dateOfBirth.getDate())) {
         age--;
       }
-
-      if (age < 16) {
-        isActive = false;
-        console.log(
-          `User ${userId} suspended due to being under 16 (Age: ${age})`,
-        );
-      } else if (age < 18) {
-        console.log(`User ${userId} verified but under 18 (Age: ${age})`);
-      }
+      underMinimumAge = age < 16;
     }
 
     // KYC sets identityVerifiedAt only — plan badges stay on verificationLevel.
@@ -768,10 +768,48 @@ export class UsersService {
       data: {
         identityVerifiedAt: new Date(),
         ...(dateOfBirth && { dateOfBirth }),
-        isActive: isActive,
       },
     });
-    console.log(`Successfully verified identity for user ${userId}`);
+
+    if (underMinimumAge) {
+      // Only the delivery that deactivates tells the person; a repeated
+      // event finds the account already inactive.
+      const closed = await this.prisma.user.updateMany({
+        where: { id: userId, isActive: true },
+        data: { isActive: false },
+      });
+      if (closed.count > 0) {
+        await this.prisma.adminAuditLog.create({
+          data: {
+            action: AdminAction.BAN_USER,
+            targetType: 'user',
+            targetId: userId,
+            details:
+              'Deactivated automatically: the identity check showed an age under 16',
+          },
+        });
+        const account = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            email: true,
+            profiles: {
+              take: 1,
+              orderBy: { createdAt: 'asc' },
+              select: { fullName: true },
+            },
+          },
+        });
+        if (account?.email) {
+          await this.emailService.sendUnderMinimumAgeEmail(
+            account.email,
+            account.profiles[0]?.fullName,
+          );
+        }
+        this.logger.log(
+          `Account ${userId} deactivated: identity check under the minimum age`,
+        );
+      }
+    }
   }
 
   async handleIdentityWebhook(session: Stripe.Identity.VerificationSession) {

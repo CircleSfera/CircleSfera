@@ -12,6 +12,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
+import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import {
@@ -22,6 +23,7 @@ import { UsersService } from './users.service.js';
 
 describe('UsersService', () => {
   const mockCacheManager = { del: vi.fn() };
+  const mockEmailService = { sendUnderMinimumAgeEmail: vi.fn() };
   let service: UsersService;
 
   // What else the export reads about the person, empty unless a test fills it.
@@ -58,7 +60,9 @@ describe('UsersService', () => {
       update: vi.fn(),
       delete: vi.fn(),
       deleteMany: vi.fn(),
+      updateMany: vi.fn(),
     },
+    adminAuditLog: { create: vi.fn() },
     profile: {
       findFirst: vi.fn(),
       findMany: vi.fn(),
@@ -118,6 +122,7 @@ describe('UsersService', () => {
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
         { provide: CryptoService, useValue: mockCrypto },
+        { provide: EmailService, useValue: mockEmailService },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -796,7 +801,9 @@ describe('UsersService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'u_later' },
-          data: expect.objectContaining({ isActive: true }),
+          data: expect.objectContaining({
+            identityVerifiedAt: expect.any(Date),
+          }),
         }),
       );
     });
@@ -814,33 +821,66 @@ describe('UsersService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'u_db_resolved' },
-          data: expect.objectContaining({ isActive: true }),
+          data: expect.objectContaining({
+            identityVerifiedAt: expect.any(Date),
+          }),
         }),
       );
     });
 
-    it('handles verified status and sets isActive false if user is under 16', async () => {
-      const birthYear = new Date().getFullYear() - 14;
-      await service.handleIdentityWebhook({
-        id: 'vs_under16',
-        status: 'verified',
-        metadata: { userId: 'u_child' },
-        verified_outputs: {
-          dob: { year: birthYear, month: 1, day: 1 },
-        },
-      } as any);
+    describe('an identity check that shows an age under 16', () => {
+      const under16 = () =>
+        service.handleIdentityWebhook({
+          id: 'vs_under16',
+          status: 'verified',
+          metadata: { userId: 'u_child' },
+          verified_outputs: {
+            dob: { year: new Date().getFullYear() - 14, month: 1, day: 1 },
+          },
+        } as any);
 
-      expect(mockPrismaService.user.update).toHaveBeenCalledWith({
-        where: { id: 'u_child' },
-        data: {
-          identityVerifiedAt: expect.any(Date),
-          dateOfBirth: expect.any(Date),
-          isActive: false,
-        },
+      beforeEach(() => {
+        mockPrismaService.user.findUnique.mockResolvedValue({
+          email: 'child@example.com',
+          profiles: [{ fullName: 'Kid' }],
+        });
+      });
+
+      it('deactivates the account, records it for staff and tells the person how to ask for a review', async () => {
+        mockPrismaService.user.updateMany.mockResolvedValue({ count: 1 });
+
+        await under16();
+
+        expect(mockPrismaService.user.updateMany).toHaveBeenCalledWith({
+          where: { id: 'u_child', isActive: true },
+          data: { isActive: false },
+        });
+        expect(mockPrismaService.adminAuditLog.create).toHaveBeenCalledWith({
+          data: expect.objectContaining({
+            targetType: 'user',
+            targetId: 'u_child',
+            details: expect.stringContaining('automatically'),
+          }),
+        });
+        expect(mockEmailService.sendUnderMinimumAgeEmail).toHaveBeenCalledWith(
+          'child@example.com',
+          'Kid',
+        );
+      });
+
+      it('a repeated event finds the account already inactive and sends nothing again', async () => {
+        mockPrismaService.user.updateMany.mockResolvedValue({ count: 0 });
+
+        await under16();
+
+        expect(mockPrismaService.adminAuditLog.create).not.toHaveBeenCalled();
+        expect(
+          mockEmailService.sendUnderMinimumAgeEmail,
+        ).not.toHaveBeenCalled();
       });
     });
 
-    it('handles verified status for user aged 17 (between 16 and 18)', async () => {
+    it('16 and over: verifies and never touches whether the account is active', async () => {
       const birthYear = new Date().getFullYear() - 17;
       await service.handleIdentityWebhook({
         id: 'vs_teen',
@@ -851,14 +891,16 @@ describe('UsersService', () => {
         },
       } as any);
 
+      // A suspended or banned account stays as it was.
       expect(mockPrismaService.user.update).toHaveBeenCalledWith({
         where: { id: 'u_teen' },
         data: {
           identityVerifiedAt: expect.any(Date),
           dateOfBirth: expect.any(Date),
-          isActive: true,
         },
       });
+      expect(mockPrismaService.user.updateMany).not.toHaveBeenCalled();
+      expect(mockEmailService.sendUnderMinimumAgeEmail).not.toHaveBeenCalled();
     });
 
     it('clears stripeIdentitySessionId on canceled or requires_input status', async () => {
@@ -910,7 +952,9 @@ describe('UsersService', () => {
       expect(mockPrismaService.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'u_sync_ver' },
-          data: expect.objectContaining({ isActive: true }),
+          data: expect.objectContaining({
+            identityVerifiedAt: expect.any(Date),
+          }),
         }),
       );
     });
