@@ -191,7 +191,8 @@ describe('renderNotice', () => {
         automated: true,
       }),
     ).toBe(
-      'La moderación automática ha ocultado tu comentario. Puedes apelar esta decisión una vez, en los seis meses siguientes. También puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
+      // A comment cannot be appealed yet: only the other ways are named.
+      'La moderación automática ha ocultado tu comentario. Puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
     );
     expect(
       renderNotice('es', {

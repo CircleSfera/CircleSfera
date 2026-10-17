@@ -203,6 +203,26 @@ const APPEAL: Record<Locale, string> = {
   es: `Puedes apelar esta decisión una vez, en los seis meses siguientes. ${REDRESS.es}`,
 };
 
+// The ways to seek redress when the decision itself cannot be appealed.
+const REDRESS_ONLY: Record<Locale, string> = {
+  en: 'You can turn to a certified out-of-court dispute settlement body or to the courts.',
+  es: 'Puedes acudir a un órgano certificado de resolución extrajudicial de litigios o a los tribunales.',
+};
+
+// What a moderated item's notice says about redress. Only a post can be
+// appealed today; a hidden or removed comment or story names the other
+// ways to seek redress, and nothing is said when content is restored.
+function noticeAppeal(
+  locale: Locale,
+  status: 'restored' | 'hidden' | 'removed' | 'flagged',
+  type: string,
+): string {
+  if (status !== 'hidden' && status !== 'removed') return '';
+  return contentType(type) === 'post'
+    ? ` ${APPEAL[locale]}`
+    : ` ${REDRESS_ONLY[locale]}`;
+}
+
 function renderEn(n: Notice): string {
   switch (n.key) {
     case 'post_liked':
@@ -244,9 +264,7 @@ function renderEn(n: Notice): string {
         `${who} ${verb} your ${CONTENT.en[contentType(n.contentType)]}.`,
         'Note',
         n.note,
-      ).concat(
-        n.status === 'hidden' || n.status === 'removed' ? ` ${APPEAL.en}` : '',
-      );
+      ).concat(noticeAppeal('en', n.status, n.contentType));
     }
     case 'report_updated':
       return `Your report about a ${CONTENT.en[contentType(n.reportType)]} is now ${REPORT_STATUS.en[n.status] ?? n.status.toLowerCase()}.`;
@@ -367,9 +385,7 @@ function renderEs(n: Notice): string {
         `${who} ${verb} tu ${CONTENT.es[contentType(n.contentType)]}.`,
         'Nota',
         n.note,
-      ).concat(
-        n.status === 'hidden' || n.status === 'removed' ? ` ${APPEAL.es}` : '',
-      );
+      ).concat(noticeAppeal('es', n.status, n.contentType));
     }
     case 'report_updated': {
       const type = contentType(n.reportType);
