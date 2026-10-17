@@ -23,7 +23,7 @@ self.addEventListener('push', (event) => {
       self.registration.showNotification(title || 'CircleSfera', {
         body: body || '',
         icon: '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
+        badge: '/icons/badge-96.png',
         data: data || {},
         vibrate: [200, 100, 200],
         tag: data?.type || 'general',
