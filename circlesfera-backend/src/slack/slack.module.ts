@@ -12,6 +12,7 @@ import { PrismaModule } from '../prisma/prisma.module.js';
 import { SlackProcessor } from './processors/slack.processor.js';
 import { SlackController } from './slack.controller.js';
 import { SlackService } from './slack.service.js';
+import { SlackStaff } from './slack-staff.js';
 
 @Global()
 @Module({
@@ -24,7 +25,7 @@ import { SlackService } from './slack.service.js';
     ),
   ],
   controllers: [SlackController],
-  providers: [SlackService, SlackProcessor],
+  providers: [SlackService, SlackProcessor, SlackStaff],
   exports: [SlackService],
 })
 export class SlackModule implements OnApplicationBootstrap {

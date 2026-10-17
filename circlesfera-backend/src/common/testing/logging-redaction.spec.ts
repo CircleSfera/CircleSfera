@@ -399,6 +399,8 @@ describe('Logging & Telemetry Sensitive Data Redaction', () => {
         mockEmail,
         mockAi,
         mockConfig,
+        {} as any,
+        {} as any,
       );
       const sendMessageSpy = vi
         .spyOn(service as any, 'sendMessage')

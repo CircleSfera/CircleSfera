@@ -5,24 +5,31 @@ import type {
 } from '@circlesfera/shared';
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { ModuleRef } from '@nestjs/core';
 import { OnEvent } from '@nestjs/event-emitter';
+import { type Report, ReportStatus } from '@prisma/client';
 import axios from 'axios';
+import { ReviewReportUseCase } from '../admin/use-cases/content/commands/review-report.use-case.js';
 import { AIService } from '../ai/ai.service.js';
 import { redactSensitiveText } from '../common/observability/redaction.util.js';
 import { sanitizeUrl } from '../common/utils/url-sanitizer.util.js';
 import { EmailService } from '../email/email.service.js';
 import { HelpdeskDataPort } from '../helpdesk/helpdesk-data.port.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { SlackStaff } from './slack-staff.js';
 
-// What a requester wrote, made safe for a Slack text: the three characters
-// Slack reads as the start of a link, a mention or an entity are escaped, so
-// the words show as written and cannot build a link or call a channel.
-export function slackPlainText(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+// What each report button decides, as in the Admin Panel: dismiss the report,
+// an upheld violation (the strike ladder turns it into a warning, a strike, a
+// suspension or a ban), or a ban of the Profile for a severe case. The
+// buttons of older alerts (ignore, ban) keep working the same way; their
+// delete button now only points to the panel.
+type SlackDecision = 'DISMISS' | 'STRIKE' | 'BAN';
+const SLACK_DECISIONS: Record<string, SlackDecision> = {
+  moderate_dismiss: 'DISMISS',
+  moderate_ignore: 'DISMISS',
+  moderate_strike: 'STRIKE',
+  moderate_ban: 'BAN',
+};
 
 @Injectable()
 export class SlackService {
@@ -49,6 +56,8 @@ export class SlackService {
     _emailService: EmailService,
     private aiService: AIService,
     private configService: ConfigService,
+    private slackStaff: SlackStaff,
+    private moduleRef: ModuleRef,
   ) {
     this.slackBotToken = this.configService.get<string>('SLACK_BOT_TOKEN');
     this.defaultWebhookUrl =
@@ -199,27 +208,28 @@ export class SlackService {
         },
         {
           type: 'section',
+          // Identifiers and the reason only: who reported and what they wrote
+          // are read in the Admin Panel, not posted to Slack.
           fields: [
-            { type: 'mrkdwn', text: `*Reporter:*\n${reportInfo.reporterId}` },
             {
               type: 'mrkdwn',
               text: `*Target Type:*\n${reportInfo.targetType}`,
             },
             { type: 'mrkdwn', text: `*Target ID:*\n${reportInfo.targetId}` },
             { type: 'mrkdwn', text: `*Reason:*\n${reportInfo.reason}` },
+            {
+              type: 'mrkdwn',
+              text: `*Report ID:*\n\`${reportInfo.reportId}\``,
+            },
           ],
         },
-        ...(reportInfo.details
-          ? [
-              {
-                type: 'section',
-                text: {
-                  type: 'mrkdwn',
-                  text: `*Details:*\n${reportInfo.details}`,
-                },
-              },
-            ]
-          : []),
+        {
+          type: 'section',
+          text: {
+            type: 'mrkdwn',
+            text: `<${this.reportsPanelUrl()}|Abrir en el panel de staff>`,
+          },
+        },
         {
           type: 'actions',
           elements: [
@@ -227,29 +237,29 @@ export class SlackService {
               type: 'button',
               text: {
                 type: 'plain_text',
-                text: '✅ Ignorar',
+                text: '✅ Desestimar',
                 emoji: true,
               },
               style: 'primary',
-              value: `ignore_${reportInfo.reportId}`,
-              action_id: 'moderate_ignore',
+              value: `dismiss_${reportInfo.reportId}`,
+              action_id: 'moderate_dismiss',
             },
             {
               type: 'button',
               text: {
                 type: 'plain_text',
-                text: '🗑️ Borrar',
+                text: '⚠️ Infracción',
                 emoji: true,
               },
               style: 'danger',
-              value: `delete_${reportInfo.reportId}`,
-              action_id: 'moderate_delete',
+              value: `strike_${reportInfo.reportId}`,
+              action_id: 'moderate_strike',
             },
             {
               type: 'button',
               text: {
                 type: 'plain_text',
-                text: '☠️ Banear Usuario',
+                text: '⛔ Banear perfil',
                 emoji: true,
               },
               style: 'danger',
@@ -325,24 +335,9 @@ export class SlackService {
         },
         {
           type: 'section',
-          fields: [
-            {
-              type: 'mrkdwn',
-              text: `*Email:*\n${slackPlainText(ticket.email)}`,
-            },
-            {
-              type: 'mrkdwn',
-              text: `*Asunto:*\n${slackPlainText(ticket.subject)}`,
-            },
-            { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
-          ],
-        },
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: `*Mensaje:*\n${slackPlainText(ticket.message)}`,
-          },
+          // The number only: who wrote and what they wrote are read in the
+          // Help Desk, not posted to Slack.
+          fields: [{ type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` }],
         },
         {
           type: 'actions',
@@ -362,7 +357,7 @@ export class SlackService {
   }
 
   // A requester answered in their ticket: the team hears of it. Only the
-  // number and the subject; the conversation is read in the Help Desk.
+  // number; the conversation is read in the Help Desk.
   async sendSupportReplyAlert(ticket: {
     id: string;
     reference: number;
@@ -378,10 +373,6 @@ export class SlackService {
           type: 'section',
           fields: [
             { type: 'mrkdwn', text: `*Ticket:*\n#${ticket.reference}` },
-            {
-              type: 'mrkdwn',
-              text: `*Asunto:*\n${slackPlainText(ticket.subject)}`,
-            },
             { type: 'mrkdwn', text: `*ID:*\n\`${ticket.id}\`` },
           ],
         },
@@ -490,16 +481,7 @@ export class SlackService {
             { profiles: { some: { username: searchTerm } } },
           ],
         },
-        include: {
-          profiles: {
-            include: {
-              posts: {
-                take: 1,
-                orderBy: { createdAt: 'desc' },
-              },
-            },
-          },
-        },
+        include: { profiles: true },
       });
 
       if (!user) {
@@ -508,8 +490,10 @@ export class SlackService {
         };
       }
 
+      // Only to whoever asked, and no email, bio or post: the details of a
+      // person are read in the Admin Panel.
       return {
-        response_type: 'in_channel',
+        response_type: 'ephemeral',
         blocks: [
           {
             type: 'header',
@@ -522,7 +506,6 @@ export class SlackService {
             type: 'section',
             fields: [
               { type: 'mrkdwn', text: `*ID:*\n\`${user.id}\`` },
-              { type: 'mrkdwn', text: `*Email:*\n${user.email}` },
               {
                 type: 'mrkdwn',
                 text: `*Estado:*\n${user.isActive ? '✅ Activo' : '🚫 Baneado/Inactivo'}`,
@@ -538,28 +521,6 @@ export class SlackService {
               { type: 'mrkdwn', text: `*Role:*\n${user.role}` },
             ],
           },
-          ...(user.profiles[0]?.bio
-            ? [
-                {
-                  type: 'section',
-                  text: {
-                    type: 'mrkdwn',
-                    text: `*Bio:*\n_${user.profiles[0].bio}_`,
-                  },
-                },
-              ]
-            : []),
-          ...(user.profiles[0]?.posts && user.profiles[0]?.posts.length > 0
-            ? [
-                {
-                  type: 'section',
-                  text: {
-                    type: 'mrkdwn',
-                    text: `*Último Post:*\n${user.profiles[0]?.posts[0].caption || '(Sin texto)'}`,
-                  },
-                },
-              ]
-            : []),
         ],
       };
     } catch (error) {
@@ -613,6 +574,47 @@ export class SlackService {
     }
   }
 
+  private reportsPanelUrl(): string {
+    const base =
+      this.configService.get<string>('ADMIN_BASE_URL') ||
+      'https://admin.circlesfera.com';
+    return `${base.replace(/\/$/, '')}/reports`;
+  }
+
+  private notAllowedText(): string {
+    return `⚠️ No se ha hecho nada: tu cuenta de Slack no corresponde a ningún miembro del staff con permiso de denuncias. Decide en el panel: ${this.reportsPanelUrl()}`;
+  }
+
+  // Decides a report as the member of staff who pressed the button, through
+  // the same use case as the Admin Panel: the person gets the notice, the
+  // statement of reasons and the appeal, and the audit log names who acted.
+  // Nothing is done, and null is answered, when the Slack account is no
+  // member of staff who may decide reports.
+  private async decideReport(
+    slackUserId: unknown,
+    report: Report,
+    decision: SlackDecision,
+    who: string,
+  ): Promise<string | null> {
+    const adminId = await this.slackStaff.moderatorFor(slackUserId);
+    if (!adminId) return null;
+    if (
+      report.status === ReportStatus.RESOLVED ||
+      report.status === ReportStatus.REJECTED
+    ) {
+      return `ℹ️ Esta denuncia ya estaba decidida (${report.status}).`;
+    }
+    const reviews = this.moduleRef.get(ReviewReportUseCase, { strict: false });
+    if (decision === 'DISMISS') {
+      await reviews.updateStatus(adminId, report.id, ReportStatus.REJECTED);
+      return `✅ Denuncia desestimada por @${who}`;
+    }
+    await reviews.resolveWithPenalty(adminId, report.id, decision);
+    return decision === 'BAN'
+      ? `⛔ Perfil baneado por @${who}`
+      : `⚠️ Infracción aplicada por @${who}`;
+  }
+
   // Phase 2: Interactive Moderation
   async handleModerationInteraction(payload: any): Promise<any> {
     const action = payload.actions?.[0];
@@ -637,64 +639,27 @@ export class SlackService {
         return { text: 'Report not found' };
       }
 
-      let resultText = '';
+      let resultText: string | null = '';
 
-      if (actionId === 'moderate_ignore') {
-        await this.prisma.report.update({
-          where: { id: reportId },
-          data: { status: 'RESOLVED' },
-        });
-        resultText = `✅ Report ignored by @${userWhoClicked}`;
-      } else if (actionId === 'moderate_delete') {
-        if (report.targetType === 'POST') {
-          await this.prisma.post.update({
-            where: { id: report.targetId },
-            data: { moderationStatus: 'REMOVED' },
-          });
-          resultText = `🗑️ Post deleted by @${userWhoClicked}`;
-        } else if (report.targetType === 'COMMENT') {
-          await this.prisma.comment.update({
-            where: { id: report.targetId },
-            data: { moderationStatus: 'REMOVED' },
-          });
-          resultText = `🗑️ Comment deleted by @${userWhoClicked}`;
-        } else {
-          resultText = `⚠️ Cannot delete target type: ${report.targetType}`;
-        }
+      if (actionId === 'moderate_delete') {
+        // The delete button of older alerts removed content with no notice
+        // or reasons. Content is removed in the panel.
+        return {
+          text: `⚠️ El contenido se retira desde el panel de staff: ${this.reportsPanelUrl()}`,
+        };
+      }
 
-        await this.prisma.report.update({
-          where: { id: reportId },
-          data: { status: 'RESOLVED' },
-        });
-      } else if (actionId === 'moderate_ban') {
-        let reportedUserId = '';
-        if (report.targetType === 'USER') {
-          reportedUserId = report.targetId;
-        } else if (report.targetType === 'POST') {
-          const post = await this.prisma.post.findUnique({
-            where: { id: report.targetId },
-          });
-          if (post) reportedUserId = post.profileId;
-        } else if (report.targetType === 'COMMENT') {
-          const comment = await this.prisma.comment.findUnique({
-            where: { id: report.targetId },
-          });
-          if (comment) reportedUserId = comment.profileId;
-        }
-
-        if (reportedUserId) {
-          await this.prisma.user.update({
-            where: { id: reportedUserId },
-            data: { isActive: false },
-          });
-          resultText = `☠️ User banned by @${userWhoClicked}`;
-
-          await this.prisma.report.update({
-            where: { id: reportId },
-            data: { status: 'RESOLVED' },
-          });
-        } else {
-          resultText = `⚠️ Could not find user to ban`;
+      const decision = SLACK_DECISIONS[actionId];
+      if (decision !== undefined) {
+        resultText = await this.decideReport(
+          payload.user?.id,
+          report,
+          decision,
+          userWhoClicked,
+        );
+        if (resultText === null) {
+          // Nothing was done: the message keeps its buttons.
+          return { text: this.notAllowedText() };
         }
       } else if (actionId === 'moderate_ai') {
         let contentToAnalyze = '';
