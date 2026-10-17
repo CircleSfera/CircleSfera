@@ -20,7 +20,10 @@ import { type CurrentUserData } from '../auth/decorators/current-user.decorator.
 import { CreatorAccountGuard } from '../auth/guards/creator-account.guard.js';
 import { ElitePlanGuard } from '../auth/guards/elite-plan.guard.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { CreatePromotionDto } from './dto/create-promotion.dto.js';
+import {
+  CreatePromotionDto,
+  UpdatePromotionDto,
+} from './dto/create-promotion.dto.js';
 
 // Analytics
 import { ExportAnalyticsCsvUseCase } from './use-cases/analytics/commands/export-analytics-csv.use-case.js';
@@ -151,8 +154,6 @@ export class CreatorController {
       body.durationDays,
       body.budget,
       body.currency,
-      body.objective,
-      body.interests,
       body.countries,
       body.dailyBudget,
     ) as Promise<unknown>;
@@ -200,14 +201,7 @@ export class CreatorController {
   async updatePromotion(
     @Req() req: AuthRequest,
     @Param('id') id: string,
-    @Body()
-    body: {
-      objective?: string;
-      interests?: string;
-      countries?: string;
-      endDate?: string;
-      dailyBudget?: number;
-    },
+    @Body() body: UpdatePromotionDto,
   ) {
     return this.managePromotionUC.updatePromotion(
       req.user.userId,

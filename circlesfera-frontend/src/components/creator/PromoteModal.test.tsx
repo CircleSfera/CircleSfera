@@ -106,16 +106,22 @@ describe('PromoteModal', () => {
     );
   });
 
-  it('sends the chosen budget and days, and the places without spaces around', async () => {
+  it('sends the chosen budget and days, and the countries chosen from the list', async () => {
     const user = userEvent.setup();
     open(frame);
 
     await user.click(screen.getByRole('button', { name: '€25' }));
     await user.click(screen.getByRole('button', { name: '14 days' }));
-    await user.type(
-      screen.getByLabelText('Places (optional)'),
-      '  Madrid, Lisbon ',
-    );
+    expect(screen.getByText('Everywhere')).toBeInTheDocument();
+    const picker = screen.getByLabelText('Countries (optional)');
+    await user.selectOptions(picker, 'ES');
+    await user.selectOptions(picker, 'PT');
+    await user.selectOptions(picker, 'FR');
+    // A country chosen is taken off the list, and can be removed again.
+    expect(
+      screen.queryByRole('option', { name: 'Spain' }),
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remove France' }));
     await user.click(
       screen.getByRole('button', { name: 'Pay €350 and promote' }),
     );
@@ -127,7 +133,7 @@ describe('PromoteModal', () => {
         dailyBudget: 25,
         durationDays: 14,
         currency: 'EUR',
-        countries: 'Madrid, Lisbon',
+        countries: ['ES', 'PT'],
       }),
     );
   });

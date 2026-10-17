@@ -28,6 +28,8 @@ vi.mock('../../services/users.service', () => ({
     createIdentitySession: vi.fn(),
     scheduleDeletion: vi.fn(),
     cancelScheduledDeletion: vi.fn(),
+    getSettings: vi.fn().mockResolvedValue({ data: {} }),
+    updateSettings: vi.fn().mockResolvedValue({ data: {} }),
   },
 }));
 vi.mock('../../stores/authStore', () => ({

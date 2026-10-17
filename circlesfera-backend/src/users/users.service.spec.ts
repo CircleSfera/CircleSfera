@@ -522,6 +522,7 @@ describe('UsersService', () => {
         newsletter: false,
         pushNotifications: true,
         isOnboarded: true,
+        country: 'ES',
       });
 
       expect(tx.userSettings.upsert).toHaveBeenCalledWith({
@@ -531,6 +532,7 @@ describe('UsersService', () => {
           blurSensitiveContent: false,
           emailNotifications: false,
           newsletter: false,
+          country: 'ES',
           isOnboarded: true,
         },
         create: {
@@ -539,6 +541,7 @@ describe('UsersService', () => {
           blurSensitiveContent: false,
           emailNotifications: false,
           newsletter: false,
+          country: 'ES',
           isOnboarded: true,
         },
       });

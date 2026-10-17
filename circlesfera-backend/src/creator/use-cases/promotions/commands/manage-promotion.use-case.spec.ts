@@ -1,6 +1,6 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { PromotionRefundPolicy, PromotionStatus } from '@prisma/client';
+import { PromotionStatus } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { StripeService } from '../../../../common/stripe/stripe.service.js';
 import { PrismaService } from '../../../../prisma/prisma.service.js';
@@ -13,7 +13,6 @@ function basePromo(overrides: Record<string, unknown> = {}) {
     userId: 'user-1',
     status: PromotionStatus.ACTIVE,
     endDate: new Date(Date.now() + 86_400_000),
-    refundPolicy: PromotionRefundPolicy.PROPORTIONAL,
     refundedAt: null,
     chargedAt: new Date(),
     stripePaymentIntentId: 'cs_test_123',
@@ -97,20 +96,6 @@ describe('ManagePromotionUseCase.cancelPromotion', () => {
         }),
       }),
     );
-  });
-
-  it('skips the refund without calling Stripe when refundPolicy is NONE', async () => {
-    mockPrismaService.promotion.findFirst.mockResolvedValue(
-      basePromo({ refundPolicy: PromotionRefundPolicy.NONE }),
-    );
-    mockPrismaService.promotion.update.mockResolvedValue(
-      basePromo({ status: PromotionStatus.CANCELLED }),
-    );
-
-    const result = await useCase.cancelPromotion('user-1', 'promo-1');
-
-    expect(mockRefundPromotionUseCase.execute).not.toHaveBeenCalled();
-    expect(result.refund.status).toBe('skipped_policy');
   });
 
   it('reports skipped_unpaid when the checkout session had nothing to refund', async () => {

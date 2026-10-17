@@ -1,4 +1,12 @@
-import { IsBoolean, IsEnum, IsOptional } from 'class-validator';
+import { COUNTRY_CODES } from '@circlesfera/shared';
+import { Transform } from 'class-transformer';
+import {
+  IsBoolean,
+  IsEnum,
+  IsIn,
+  IsOptional,
+  ValidateIf,
+} from 'class-validator';
 
 export enum VisibilityDto {
   PUBLIC = 'PUBLIC',
@@ -40,4 +48,14 @@ export class UpdateSettingsDto {
   @IsBoolean()
   @IsOptional()
   isOnboarded?: boolean;
+
+  // The country the person says they are in, from the closed list; null goes
+  // back to the country of the network at sign-up.
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.toUpperCase() : value,
+  )
+  @ValidateIf((o: UpdateSettingsDto) => o.country !== null)
+  @IsIn(COUNTRY_CODES)
+  country?: string | null;
 }

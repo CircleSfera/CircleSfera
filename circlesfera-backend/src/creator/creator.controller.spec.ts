@@ -218,8 +218,6 @@ describe('CreatorController', () => {
       undefined,
       undefined,
       undefined,
-      undefined,
-      undefined,
     );
   });
 
@@ -241,6 +239,11 @@ describe('CreatorController', () => {
     ['a part of a day', { durationDays: 1.5 }],
     ['a currency other than the euro', { currency: 'USD' }],
     ['a field the route does not know', { unitAmount: 1 }],
+    ['an objective, which is no longer asked', { objective: 'REACH' }],
+    ['interests, which are no longer asked', { interests: 'music' }],
+    ['countries as free text', { countries: 'Spain, France' }],
+    ['a country off the closed list', { countries: ['ES', 'XY'] }],
+    ['a country twice', { countries: ['ES', 'es'] }],
   ])('refuses a promotion with %s', async (_what, change) => {
     mockCreatePromotionUC.execute.mockClear();
 
@@ -283,10 +286,54 @@ describe('CreatorController', () => {
       undefined,
       'EUR',
       undefined,
-      undefined,
-      undefined,
       50,
     );
+  });
+
+  it('takes the countries of the closed list, whatever their case', async () => {
+    mockCreatePromotionUC.execute.mockClear();
+    mockCreatePromotionUC.execute.mockResolvedValue({ id: 'promo-3' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
+        targetType: 'post',
+        targetId: 'post-1',
+        dailyBudget: 5,
+        durationDays: 3,
+        countries: ['es', 'FR'],
+      })
+      .expect(201);
+
+    expect(mockCreatePromotionUC.execute).toHaveBeenCalledWith(
+      TEST_USER.userId,
+      'post',
+      'post-1',
+      3,
+      undefined,
+      undefined,
+      ['ES', 'FR'],
+      5,
+    );
+  });
+
+  it.each([
+    ['countries as free text', { countries: 'Spain' }],
+    ['a country off the closed list', { countries: ['ZZ'] }],
+    ['an end date that is not a date', { endDate: 'tomorrow' }],
+    ['a budget per day above the range', { dailyBudget: 51 }],
+    ['an objective', { objective: 'REACH' }],
+  ])('refuses an edit with %s', async (_what, body) => {
+    mockManagePromotionUC.updatePromotion.mockClear();
+
+    await request(app.getHttpServer())
+      .patch('/api/v1/creator/promotions/promo-1')
+      .set(BEARER)
+      .send(body)
+      .expect(400);
+
+    expect(mockManagePromotionUC.updatePromotion).not.toHaveBeenCalled();
   });
 
   it('records a promotion view as the session userId', async () => {
