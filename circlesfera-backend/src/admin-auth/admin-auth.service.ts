@@ -341,7 +341,6 @@ export class AdminAuthService {
       email: admin.email,
       displayName: admin.displayName,
       totpEnabled: admin.totpEnabled,
-      mfaRequired: admin.mfaRequired,
       roles,
       permissions,
       lastLoginAt: admin.lastLoginAt,
@@ -451,7 +450,7 @@ export class AdminAuthService {
 
   async stepUp(
     adminId: string,
-    dto: { password?: string; totpCode?: string },
+    dto: { totpCode: string },
   ): Promise<{ accessToken: string }> {
     const admin = await this.prisma.adminIdentity.findUnique({
       where: { id: adminId },

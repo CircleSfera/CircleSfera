@@ -110,12 +110,19 @@ describe('AdminAuthController', () => {
     expect(mockService.verifyMfa).not.toHaveBeenCalled();
   });
 
-  it('rejects step-up with a non-whitelisted body field', async () => {
-    await request(app.getHttpServer())
-      .post('/api/v1/admin-auth/step-up')
-      .set(ADMIN_BEARER)
-      .send({ password: 'password1', extra: 'nope' })
-      .expect(400);
+  it('step-up takes the code alone: a password, no code or a short code is refused', async () => {
+    for (const body of [
+      { password: 'password1', totpCode: '123456' },
+      { password: 'password1' },
+      {},
+      { totpCode: '123' },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/admin-auth/step-up')
+        .set(ADMIN_BEARER)
+        .send(body)
+        .expect(400);
+    }
 
     expect(mockService.stepUp).not.toHaveBeenCalled();
   });
@@ -290,7 +297,7 @@ describe('AdminAuthController', () => {
     mockService.stepUp.mockResolvedValue({
       accessToken: 'admin-access-step',
     });
-    const dto = { password: 'password1' };
+    const dto = { totpCode: '123456' };
 
     const res = await request(app.getHttpServer())
       .post('/api/v1/admin-auth/step-up')

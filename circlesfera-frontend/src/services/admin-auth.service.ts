@@ -5,7 +5,6 @@ export type AdminMe = {
   email: string;
   displayName: string;
   totpEnabled: boolean;
-  mfaRequired: boolean;
   roles: string[];
   permissions: string[];
   lastLoginAt?: string | null;

@@ -57,7 +57,6 @@ async function main() {
         email: true,
         linkedUserId: true,
         totpEnabled: true,
-        mfaRequired: true,
         roles: { select: { role: { select: { name: true } } } },
         _count: { select: { passkeys: true } },
       },
@@ -150,9 +149,7 @@ async function main() {
       console.log(`  Record last changed: ${daysAgo(account.updatedAt)}`);
       console.log(`  Password comes from the user sign-in: ${signInState}`);
       console.log(
-        `  Second factor: ${account.totpEnabled ? 'set up' : 'not set up'}${
-          account.mfaRequired ? ', required' : ''
-        }`,
+        `  Second factor: ${account.totpEnabled ? 'set up' : 'not set up'} (always required)`,
       );
       console.log(`  Passkeys: ${account._count.passkeys}`);
       console.log(`  Recorded on this account, last ${RECENT_DAYS} days:`);

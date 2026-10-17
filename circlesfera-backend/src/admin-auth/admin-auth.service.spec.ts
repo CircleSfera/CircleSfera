@@ -1012,40 +1012,6 @@ describe('AdminAuthService', () => {
       });
     });
 
-    it("stepUp refuses the staff account's own old password and a missing sign-in", async () => {
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        status: 'ACTIVE',
-        linkedUserId: 'user-1',
-      });
-      mockPrisma.signIn.findUnique.mockResolvedValue(null);
-
-      await expect(
-        service.stepUp('admin-1', { password: 'stepup-pass' }),
-      ).rejects.toThrow('Step-up verification failed');
-    });
-
-    it('stepUp refuses a password alone, even the right one', async () => {
-      const passwordHash = await argon2.hash('stepup-pass');
-      withSignInPassword(passwordHash);
-      mockPrisma.adminIdentity.findUnique.mockResolvedValue({
-        id: 'admin-1',
-        email: 'admin@circlesfera.com',
-        status: 'ACTIVE',
-        linkedUserId: 'user-1',
-        totpEnabled: true,
-        totpSecret: 'enc:base32-admin-secret',
-      });
-
-      await expect(
-        service.stepUp('admin-1', { password: 'stepup-pass' }),
-      ).rejects.toThrow('Step-up verification failed');
-      expect(mockPrisma.adminAuditLog.create).not.toHaveBeenCalledWith({
-        data: expect.objectContaining({ action: 'ADMIN_STEP_UP' }),
-      });
-    });
-
     it('stepUp refuses a staff member with no second factor enrolled', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
@@ -1059,12 +1025,14 @@ describe('AdminAuthService', () => {
       ).rejects.toThrow('Step-up verification failed');
     });
 
-    it('stepUp throws if admin is not active or both password and TOTP fail', async () => {
+    it('stepUp throws if the admin is not active or the code is wrong', async () => {
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
         status: 'INACTIVE',
       });
-      await expect(service.stepUp('admin-1', {})).rejects.toThrow();
+      await expect(
+        service.stepUp('admin-1', { totpCode: '123456' }),
+      ).rejects.toThrow();
 
       mockPrisma.adminIdentity.findUnique.mockResolvedValue({
         id: 'admin-1',
@@ -1074,10 +1042,7 @@ describe('AdminAuthService', () => {
         totpEnabled: true,
       });
       await expect(
-        service.stepUp('admin-1', {
-          password: 'wrong',
-          totpCode: '000000',
-        }),
+        service.stepUp('admin-1', { totpCode: '000000' }),
       ).rejects.toThrow('Step-up verification failed');
     });
   });

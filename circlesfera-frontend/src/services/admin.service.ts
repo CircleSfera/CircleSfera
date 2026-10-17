@@ -86,7 +86,6 @@ export interface AdminOperator {
   displayName: string;
   status: 'ACTIVE' | 'DISABLED';
   totpEnabled: boolean;
-  mfaRequired: boolean;
   lastLoginAt: string | null;
   lastActivityAt: string | null;
   linkedUserId: string | null;
