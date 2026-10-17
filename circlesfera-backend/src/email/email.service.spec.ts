@@ -12,7 +12,11 @@ import {
 } from 'vitest';
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { EmailService, isTransientBrevoFailure } from './email.service.js';
+import {
+  EmailService,
+  isTransientBrevoFailure,
+  maskEmail,
+} from './email.service.js';
 import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 
 // No account owns these addresses, so emails use the default language.
@@ -253,18 +257,22 @@ describe('EmailService', () => {
       expect(mail.headers).toBeUndefined();
     });
 
-    it('enqueues the under-16 notice in the language of the account', async () => {
+    it('writes the under-16 notice in the language of the account, for the caller to keep', async () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'es' });
 
-      await service.sendUnderMinimumAgeEmail('kid@example.com', 'Kid');
+      const mail = await service.underMinimumAgeMail('kid@example.com', 'Kid');
 
-      expect(mockEmailQueue.add).toHaveBeenCalledWith(
-        'send-transactional-email',
-        expect.objectContaining({
-          to: 'kid@example.com',
-          subject: 'Tu cuenta de CircleSfera se ha desactivado',
-        }),
-      );
+      expect(mail).toMatchObject({
+        to: 'kid@example.com',
+        subject: 'Tu cuenta de CircleSfera se ha desactivado',
+      });
+      // Not sent here: the outbox sends it with the deactivation.
+      expect(mockEmailQueue.add).not.toHaveBeenCalled();
+    });
+
+    it('never writes a whole address in the logs', () => {
+      expect(maskEmail('ana.lopez@example.com')).toBe('a***@example.com');
+      expect(maskEmail('no-at-sign')).toBe('***');
     });
 
     it("sends the receipt and the decision of a notice in the notifier's language", async () => {

@@ -15,6 +15,7 @@ import {
 import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
+import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
 import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
@@ -772,44 +773,71 @@ export class UsersService {
     });
 
     if (underMinimumAge) {
-      // Only the delivery that deactivates tells the person; a repeated
-      // event finds the account already inactive.
-      const closed = await this.prisma.user.updateMany({
+      await this.deactivateUnderMinimumAge(userId);
+    }
+  }
+
+  // Closes an account whose identity check showed an age under 16. The
+  // state, the audit entry and the email go together in one transaction,
+  // the email through the outbox, so a failure after it never leaves the
+  // person without notice; only the delivery that deactivates does it.
+  private async deactivateUnderMinimumAge(userId: string) {
+    const account = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        profiles: {
+          take: 1,
+          orderBy: { createdAt: 'asc' },
+          select: { fullName: true },
+        },
+      },
+    });
+    const mail = account?.email
+      ? await this.emailService.underMinimumAgeMail(
+          account.email,
+          account.profiles[0]?.fullName,
+        )
+      : null;
+
+    const closed = await this.prisma.$transaction(async (tx) => {
+      const result = await tx.user.updateMany({
         where: { id: userId, isActive: true },
         data: { isActive: false },
       });
-      if (closed.count > 0) {
-        await this.prisma.adminAuditLog.create({
-          data: {
-            action: AdminAction.BAN_USER,
-            targetType: 'user',
-            targetId: userId,
-            details:
-              'Deactivated automatically: the identity check showed an age under 16',
-          },
+      if (result.count === 0) return false;
+      await tx.adminAuditLog.create({
+        data: {
+          action: AdminAction.BAN_USER,
+          targetType: 'user',
+          targetId: userId,
+          details:
+            'Deactivated automatically: the identity check showed an age under 16',
+        },
+      });
+      await tx.refreshToken.deleteMany({ where: { userId } });
+      if (mail) {
+        await this.outboxService.enqueue(tx, {
+          queueName: QUEUE_NAMES.EMAIL_PROCESSING,
+          eventName: 'send-transactional-email',
+          payload: { ...mail },
+          options: { jobId: `under-minimum-age-${userId}` },
         });
-        const account = await this.prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            email: true,
-            profiles: {
-              take: 1,
-              orderBy: { createdAt: 'asc' },
-              select: { fullName: true },
-            },
-          },
-        });
-        if (account?.email) {
-          await this.emailService.sendUnderMinimumAgeEmail(
-            account.email,
-            account.profiles[0]?.fullName,
-          );
-        }
-        this.logger.log(
-          `Account ${userId} deactivated: identity check under the minimum age`,
-        );
       }
-    }
+      return true;
+    });
+    if (!closed) return;
+
+    // Sockets opened before keep their session until told.
+    const event: UserSessionTerminateEvent['payload'] = {
+      userId,
+      reason: 'Account deactivated: under the minimum age',
+    };
+    this.eventEmitter.emit('user.session.terminate', event);
+    this.outboxService.triggerImmediatePublish();
+    this.logger.log(
+      'An account was deactivated: identity check under the minimum age',
+    );
   }
 
   async handleIdentityWebhook(session: Stripe.Identity.VerificationSession) {

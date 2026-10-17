@@ -23,7 +23,13 @@ import { UsersService } from './users.service.js';
 
 describe('UsersService', () => {
   const mockCacheManager = { del: vi.fn() };
-  const mockEmailService = { sendUnderMinimumAgeEmail: vi.fn() };
+  const mockEmailService = {
+    underMinimumAgeMail: vi.fn().mockResolvedValue({
+      to: 'child@example.com',
+      subject: 'Deactivated',
+      html: '<p>x</p>',
+    }),
+  };
   let service: UsersService;
 
   // What else the export reads about the person, empty unless a test fills it.
@@ -862,10 +868,29 @@ describe('UsersService', () => {
             details: expect.stringContaining('automatically'),
           }),
         });
-        expect(mockEmailService.sendUnderMinimumAgeEmail).toHaveBeenCalledWith(
+        expect(mockEmailService.underMinimumAgeMail).toHaveBeenCalledWith(
           'child@example.com',
           'Kid',
         );
+        // The email is kept with the deactivation, sent from the outbox.
+        expect(mockOutboxService.enqueue).toHaveBeenCalledWith(
+          mockPrismaService,
+          expect.objectContaining({
+            queueName: 'email-processing',
+            eventName: 'send-transactional-email',
+            payload: expect.objectContaining({ to: 'child@example.com' }),
+            options: { jobId: 'under-minimum-age-u_child' },
+          }),
+        );
+        expect(mockPrismaService.refreshToken.deleteMany).toHaveBeenCalledWith({
+          where: { userId: 'u_child' },
+        });
+        // Sockets opened before are closed too.
+        expect(mockEventEmitter.emit).toHaveBeenCalledWith(
+          'user.session.terminate',
+          expect.objectContaining({ userId: 'u_child' }),
+        );
+        expect(mockOutboxService.triggerImmediatePublish).toHaveBeenCalled();
       });
 
       it('a repeated event finds the account already inactive and sends nothing again', async () => {
@@ -874,9 +899,11 @@ describe('UsersService', () => {
         await under16();
 
         expect(mockPrismaService.adminAuditLog.create).not.toHaveBeenCalled();
-        expect(
-          mockEmailService.sendUnderMinimumAgeEmail,
-        ).not.toHaveBeenCalled();
+        expect(mockOutboxService.enqueue).not.toHaveBeenCalled();
+        expect(mockEventEmitter.emit).not.toHaveBeenCalledWith(
+          'user.session.terminate',
+          expect.anything(),
+        );
       });
     });
 
@@ -900,7 +927,7 @@ describe('UsersService', () => {
         },
       });
       expect(mockPrismaService.user.updateMany).not.toHaveBeenCalled();
-      expect(mockEmailService.sendUnderMinimumAgeEmail).not.toHaveBeenCalled();
+      expect(mockEmailService.underMinimumAgeMail).not.toHaveBeenCalled();
     });
 
     it('clears stripeIdentitySessionId on canceled or requires_input status', async () => {
