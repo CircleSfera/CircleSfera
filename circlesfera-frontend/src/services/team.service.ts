@@ -34,7 +34,19 @@ export interface TeamInvitation {
   profile: TeamPerson;
 }
 
+// A Business Profile the person works on as a member, for the switcher.
+export interface TeamProfile {
+  id: string;
+  username: string;
+  fullName: string | null;
+  avatar: string | null;
+  accountType: string;
+  memberRole: TeamRole;
+}
+
 export const teamApi = {
+  profiles: () =>
+    apiClient.get<TeamProfile[]>('team/profiles').then((r) => r.data),
   get: () => apiClient.get<Team>('team').then((r) => r.data),
   invite: (username: string, role: TeamRole) =>
     apiClient.post('team/members', { username, role }).then((r) => r.data),

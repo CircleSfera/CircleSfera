@@ -26,6 +26,7 @@ describe('TeamController', () => {
     invite: vi.fn(),
     remove: vi.fn(),
     invitations: vi.fn(),
+    memberProfiles: vi.fn(),
     accept: vi.fn(),
     decline: vi.fn(),
   };
@@ -114,6 +115,16 @@ describe('TeamController', () => {
       TEST_USER.signInId,
     );
     expect(service.decline).toHaveBeenCalledWith(TEST_USER.userId, TEST_UUID);
+  });
+
+  it('lists the Profiles the person works on as a member', async () => {
+    service.memberProfiles.mockResolvedValue([{ id: 'p-shop' }]);
+    const res = await http()
+      .get('/api/v1/team/profiles')
+      .set(BEARER)
+      .expect(200);
+    expect(res.body).toEqual([{ id: 'p-shop' }]);
+    expect(service.memberProfiles).toHaveBeenCalledWith(TEST_USER.userId);
   });
 
   it('refuses an id that is not one', async () => {

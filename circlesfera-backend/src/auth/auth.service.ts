@@ -32,6 +32,7 @@ import { EmailService } from '../email/email.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SYSTEM_SETTING_KEYS } from '../system-settings/system-settings.constants.js';
 import { SystemSettingsService } from '../system-settings/system-settings.service.js';
+import { resolveSessionProfile } from '../team/member-session.js';
 import type {
   LoginDto,
   RefreshTokenDto,
@@ -755,18 +756,14 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token expired');
     }
 
-    // Assert user and profile operational standing before issuing new tokens
+    // Assert user and profile operational standing before issuing new tokens.
+    // The session may act as a Profile the person works on as a team member.
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      include: {
-        profiles: {
-          orderBy: SESSION_PROFILE_ORDER,
-          select: SESSION_PROFILE_SELECT,
-        },
-      },
     });
-
-    const profile = pickSessionProfile(user?.profiles ?? [], payload.profileId);
+    const { profile } = user
+      ? await resolveSessionProfile(this.prisma, user.id, payload.profileId)
+      : { profile: undefined };
     try {
       this.accountStateService.assertOperational(user, profile);
     } catch (error) {

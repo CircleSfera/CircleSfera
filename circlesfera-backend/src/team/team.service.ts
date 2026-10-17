@@ -178,6 +178,28 @@ export class TeamService {
     return { success: true };
   }
 
+  // The Business Profiles the person works on as an active member, for the
+  // Profile switcher.
+  async memberProfiles(userId: string) {
+    const rows = await this.prisma.profileMember.findMany({
+      where: { userId, status: 'ACTIVE' },
+      orderBy: { acceptedAt: 'asc' },
+      select: {
+        role: true,
+        profile: {
+          select: {
+            id: true,
+            username: true,
+            fullName: true,
+            avatar: true,
+            accountType: true,
+          },
+        },
+      },
+    });
+    return rows.map(({ role, profile }) => ({ ...profile, memberRole: role }));
+  }
+
   // The invitations waiting for the person.
   async invitations(userId: string) {
     const rows = await this.prisma.profileMember.findMany({

@@ -23,6 +23,7 @@ import {
   REFRESH_TOKEN_COOKIE,
   refreshTokenCookieOptions,
 } from '../common/config/cookie.config.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { AuthService } from './auth.service.js';
 import {
   CurrentUser,
@@ -150,6 +151,7 @@ export class AuthController {
 
   // Revoke a refresh token and clear auth cookies (requires authentication).
   @Post('logout')
+  @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
@@ -219,6 +221,7 @@ export class AuthController {
 
   // Get all active sessions for the current user.
   @Get('sessions')
+  @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
   async getSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.getUserSessions(user.userId, user.sessionId);
@@ -226,6 +229,7 @@ export class AuthController {
 
   // Close every session of the account but the one that asks.
   @Delete('sessions/other')
+  @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
   async revokeOtherSessions(@CurrentUser() user: CurrentUserData) {
     return this.authService.revokeOtherSessions(user.userId, user.sessionId);
@@ -233,6 +237,7 @@ export class AuthController {
 
   // Revoke a specific active session by ID.
   @Delete('sessions/:id')
+  @MemberAllowed('session')
   @UseGuards(JwtAuthGuard)
   async revokeSession(
     @Param('id') sessionId: string,

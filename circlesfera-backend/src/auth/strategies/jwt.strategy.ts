@@ -5,12 +5,8 @@ import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ACCESS_TOKEN_COOKIE } from '../../common/config/cookie.config.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { resolveSessionProfile } from '../../team/member-session.js';
 import { AccountStateService } from '../services/account-state.service.js';
-import {
-  pickSessionProfile,
-  SESSION_PROFILE_ORDER,
-  SESSION_PROFILE_SELECT,
-} from '../services/session-profile.util.js';
 
 export interface JwtPayload {
   sub: string;
@@ -61,23 +57,18 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     signInId: string;
     sessionId?: string;
     isTestAccount: boolean;
+    memberRole?: 'ADMINISTRATOR' | 'EDITOR';
   }> {
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
     });
 
     // The session's Profile (rejected below if it is banned or suspended);
-    // tokens without a Profile fall back to the oldest usable one.
-    const profile = user
-      ? pickSessionProfile(
-          await this.prisma.profile.findMany({
-            where: { userId: user.id },
-            orderBy: SESSION_PROFILE_ORDER,
-            select: SESSION_PROFILE_SELECT,
-          }),
-          payload.profileId,
-        )
-      : undefined;
+    // tokens without a Profile fall back to the oldest usable one. It may be
+    // a Profile the person works on as an active team member.
+    const { profile, memberRole } = user
+      ? await resolveSessionProfile(this.prisma, user.id, payload.profileId)
+      : { profile: undefined, memberRole: undefined };
 
     this.accountStateService.assertOperational(user, profile);
 
@@ -107,6 +98,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       signInId: signIn.id,
       sessionId: payload.sessionId,
       isTestAccount: user!.isTestAccount === true,
+      ...(memberRole ? { memberRole } : {}),
     };
   }
 }
