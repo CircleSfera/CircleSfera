@@ -353,6 +353,8 @@ export class UsersService {
       storyUnlocks,
       experiments,
       staffNotes,
+      webPushDevices,
+      appPushDevices,
     ] = await Promise.all([
       this.prisma.profileStrike.findMany({
         where: byProfile,
@@ -466,6 +468,16 @@ export class UsersService {
         orderBy: { createdAt: 'asc' },
         select: { body: true, createdAt: true },
       }),
+      // Devices that receive push: when each was added, never the keys or
+      // tokens, which would let anyone send to them.
+      this.prisma.pushSubscription.findMany({
+        where: { userId },
+        select: { createdAt: true },
+      }),
+      this.prisma.nativePushToken.findMany({
+        where: { userId },
+        select: { platform: true, createdAt: true, lastSeenAt: true },
+      }),
     ]);
     return {
       warningsAndStrikes: strikes,
@@ -481,6 +493,7 @@ export class UsersService {
       },
       experiments,
       staffNotes,
+      pushDevices: { browsers: webPushDevices, apps: appPushDevices },
     };
   }
 

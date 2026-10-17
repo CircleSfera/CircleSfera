@@ -87,6 +87,7 @@ model User {
   passkeyChallenges     PasskeyChallenge[]
   deviceSignals         DeviceSignal[]
   settings              UserSettings?
+  nativePushTokens      NativePushToken[]
   linkedAdminIdentities AdminIdentity[] // Correlation only, never auth
   staffNotes            StaffNote[]
   dataExportRequests    DataExportRequest[]
@@ -285,6 +286,23 @@ model PushSubscription {
 
   @@index([userId])
   @@map("push_subscriptions")
+}
+
+// A phone or tablet of the person that receives push through the native
+// app: its Firebase Cloud Messaging token. A token Firebase reports as no
+// longer registered is deleted.
+model NativePushToken {
+  id         String   @id @default(uuid())
+  userId     String
+  token      String   @unique
+  platform   String // "ios" or "android"
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("native_push_tokens")
 }
 
 // =============================================================================
