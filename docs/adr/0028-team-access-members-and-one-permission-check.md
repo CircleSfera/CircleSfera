@@ -128,6 +128,24 @@ The steps follow PD-014:
   without a name.
 - The log stays readable after the Business plan ends, under Settings → Teams.
 
+### Pause and resume with the Business plan (step 7)
+
+- `followTeamPlan` (team/team-plan.ts) is the one place that moves members with the plan.
+  - A Profile that leaves the Business plan, or stops being a Business Profile, has its `ACTIVE`
+    members set to `PAUSED`.
+  - When both return, its `PAUSED` members are `ACTIVE` again.
+  - Nobody is removed, and the seats stay taken.
+- It runs wherever the plan or the kind of a Profile changes:
+  - the plan sync after each payment event;
+  - the owner changing the kind of the Profile;
+  - staff setting the level or the kind.
+- A paused member's session falls back to their own Profiles on the next request, because the
+  session only counts active members.
+- A person who accepts an invitation while the plan is off starts paused.
+- The owner still sees the team, paused, and can remove people.
+- The Business plan can show `team_access` on the pricing page. That key is only shown: the team
+  comes from the Business plan itself.
+
 ## Consequences
 
 - Authorization moves, step by step, from "the account owns the Profile" to "this person can do

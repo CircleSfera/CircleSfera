@@ -161,6 +161,38 @@ describe('TeamSettings', () => {
     ).toHaveAttribute('href', '/pricing');
   });
 
+  it('without the Business plan, the owner still sees the paused team and can remove people', async () => {
+    asProfile('BUSINESS');
+    vi.mocked(teamApi.get).mockResolvedValue(
+      team({
+        available: false,
+        members: [
+          {
+            id: 'm-1',
+            role: 'EDITOR',
+            status: 'PAUSED',
+            createdAt: '2026-10-01T00:00:00.000Z',
+            acceptedAt: '2026-10-02T00:00:00.000Z',
+            person: {
+              id: 'p-ana',
+              username: 'ana',
+              fullName: null,
+              avatar: null,
+            },
+          },
+        ],
+      }) as never,
+    );
+    vi.mocked(teamApi.remove).mockResolvedValue({ success: true });
+    const { i18n } = renderWithProviders(<TeamSettings />);
+    const t = (k: string) => i18n!.t(`settings.team.${k}`);
+
+    expect(await screen.findByText(t('paused_note'))).toBeInTheDocument();
+    expect(screen.getByText('@ana')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: t('remove') }));
+    await waitFor(() => expect(teamApi.remove).toHaveBeenCalledWith('m-1'));
+  });
+
   it('a profile that is not Business sees no team, and asks for none', async () => {
     asProfile('PERSONAL');
     const { i18n } = renderWithProviders(<TeamSettings />);
@@ -212,5 +244,37 @@ describe('TeamSettings', () => {
 
     fireEvent.click(screen.getByRole('button', { name: t('decline') }));
     await waitFor(() => expect(teamApi.decline).toHaveBeenCalledWith('inv-1'));
+  });
+
+  it('accepting while the Business plan is off says the access starts with the plan', async () => {
+    asProfile('PERSONAL');
+    vi.mocked(teamApi.invitations).mockResolvedValue([
+      {
+        id: 'inv-1',
+        role: 'EDITOR',
+        createdAt: '2026-10-01T00:00:00.000Z',
+        profile: {
+          id: 'p-shop',
+          username: 'shop',
+          fullName: null,
+          avatar: null,
+        },
+      },
+    ]);
+    vi.mocked(teamApi.accept)
+      .mockResolvedValueOnce({ success: true, paused: true })
+      .mockResolvedValueOnce({ success: true, paused: false });
+    const { i18n } = renderWithProviders(<TeamSettings />);
+    const t = (k: string) => i18n!.t(`settings.team.${k}`);
+
+    expect(await screen.findByText('@shop')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: t('accept') }));
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith(t('accepted_paused')),
+    );
+    fireEvent.click(await screen.findByRole('button', { name: t('accept') }));
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenLastCalledWith(t('accepted')),
+    );
   });
 });

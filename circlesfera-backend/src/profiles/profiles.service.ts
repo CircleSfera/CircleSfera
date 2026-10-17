@@ -27,6 +27,7 @@ import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js'
 import { buildMediaCreateInput } from '../common/utils/media-lifecycle.util.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
+import { followTeamPlan } from '../team/team-plan.js';
 import { UsersService } from '../users/users.service.js';
 import { CreateProfileDto } from './dto/create-profile.dto.js';
 import { UpdateProfileDto } from './dto/update-profile.dto.js';
@@ -346,6 +347,11 @@ export class ProfilesService {
         },
       });
     });
+
+    // A Profile that stops being a Business Profile pauses its team.
+    if (profileData.accountType !== undefined) {
+      await followTeamPlan(this.prisma, profileId);
+    }
 
     // Flatten for UI convenience
     const flattened = {

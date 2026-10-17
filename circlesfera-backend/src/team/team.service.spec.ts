@@ -355,6 +355,30 @@ describe('TeamService', () => {
       expect(prisma.profileMember.updateMany).not.toHaveBeenCalled();
     });
 
+    it('accepting while the Business plan is off starts the member paused', async () => {
+      prisma.profileMember.findFirst.mockResolvedValue({
+        id: 'm-1',
+        profileId: 'p-shop',
+        role: 'EDITOR',
+      });
+      prisma.signIn.findFirst.mockResolvedValue({ isTwoFactorEnabled: true });
+      prisma.profileMember.updateMany.mockResolvedValue({ count: 1 });
+      prisma.profile.findFirst.mockResolvedValue({ id: 'p-ana' });
+      prisma.profile.findUnique.mockResolvedValue({
+        accountType: 'BUSINESS',
+        verificationLevel: 'BASIC',
+      });
+
+      await expect(team.accept('u-ana', 'm-1')).resolves.toEqual({
+        success: true,
+        paused: true,
+      });
+      expect(prisma.profileMember.updateMany).toHaveBeenCalledWith({
+        where: { id: 'm-1', status: 'INVITED' },
+        data: { status: 'PAUSED', acceptedAt: expect.any(Date) },
+      });
+    });
+
     it('accepting makes the member active and tells the Profile', async () => {
       prisma.profileMember.findFirst.mockResolvedValue({
         id: 'm-1',
@@ -364,8 +388,12 @@ describe('TeamService', () => {
       prisma.signIn.findFirst.mockResolvedValue({ isTwoFactorEnabled: true });
       prisma.profileMember.updateMany.mockResolvedValue({ count: 1 });
       prisma.profile.findFirst.mockResolvedValue({ id: 'p-ana' });
+      prisma.profile.findUnique.mockResolvedValue(business);
 
-      await team.accept('u-ana', 'm-1');
+      await expect(team.accept('u-ana', 'm-1')).resolves.toEqual({
+        success: true,
+        paused: false,
+      });
 
       expect(prisma.signIn.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: { userId: 'u-ana' } }),

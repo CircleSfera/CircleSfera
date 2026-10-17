@@ -65,8 +65,14 @@ export default function TeamSettings() {
 
   const accept = useMutation({
     mutationFn: (id: string) => teamApi.accept(id),
-    onSuccess: () => {
-      toast.success(t('settings.team.accepted'));
+    onSuccess: (res) => {
+      toast.success(
+        t(
+          res?.paused
+            ? 'settings.team.accepted_paused'
+            : 'settings.team.accepted',
+        ),
+      );
       refresh();
     },
     onError: (err) =>
@@ -197,6 +203,14 @@ export default function TeamSettings() {
             <p className="text-sm text-white/60">
               {t('settings.team.plan_required')}
             </p>
+            {data.members.length > 0 && (
+              <>
+                <p className="text-sm text-white/60">
+                  {t('settings.team.paused_note')}
+                </p>
+                <ul className="space-y-2">{data.members.map(renderMember)}</ul>
+              </>
+            )}
             <Link
               to="/pricing"
               className="inline-flex min-h-11 items-center text-sm font-semibold text-brand-primary-text"

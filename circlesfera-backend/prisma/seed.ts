@@ -234,6 +234,7 @@ async function main() {
           'priority_support',
           'no_promoted_content',
           'advanced_analytics',
+          'team_access',
         ],
       },
     });
