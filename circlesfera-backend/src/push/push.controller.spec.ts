@@ -101,7 +101,7 @@ describe('PushController', () => {
     );
   });
 
-  it('unsubscribes by endpoint without a userId', async () => {
+  it('takes off a device of the person signed in only', async () => {
     mockService.unsubscribe.mockResolvedValue({ ok: true });
 
     const res = await request(app.getHttpServer())
@@ -112,6 +112,7 @@ describe('PushController', () => {
 
     expect(res.body).toEqual({ ok: true });
     expect(mockService.unsubscribe).toHaveBeenCalledWith(
+      TEST_USER.userId,
       'https://push.example/sub-1',
     );
   });

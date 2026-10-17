@@ -21,6 +21,7 @@ describe('PushService', () => {
       deleteMany: vi.fn(),
       findMany: vi.fn(),
     },
+    profile: { findUnique: vi.fn() },
   };
 
   const mockConfigService = {
@@ -89,50 +90,57 @@ describe('PushService', () => {
   });
 
   describe('unsubscribe', () => {
-    it('should delete push subscription by endpoint', async () => {
+    it('takes off only a device of the person who asks', async () => {
       mockPrismaService.pushSubscription.deleteMany.mockResolvedValue({
         count: 1,
       });
 
       const result = await service.unsubscribe(
+        'user-1',
         'https://push.example.com/sub-1',
       );
       expect(
         mockPrismaService.pushSubscription.deleteMany,
       ).toHaveBeenCalledWith({
-        where: { endpoint: 'https://push.example.com/sub-1' },
+        where: { endpoint: 'https://push.example.com/sub-1', userId: 'user-1' },
       });
       expect(result).toEqual({ count: 1 });
     });
   });
 
   describe('sendNotification', () => {
-    it('should return early if no subscriptions found for user', async () => {
-      mockPrismaService.pushSubscription.findMany.mockResolvedValue([]);
-
-      const result = await service.sendNotification('user-1', {
-        title: 'Test Notification',
-        body: 'Hello World',
-      });
-
-      expect(result).toBeUndefined();
+    const device = (endpoint: string) => ({
+      endpoint,
+      p256dh: 'p256',
+      auth: 'auth_secret',
     });
 
-    it('should send notification to active subscriptions', async () => {
+    beforeEach(() => {
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        userId: 'user-1',
+        pushNotifications: true,
+      });
+    });
+
+    it('reaches the devices of the person who owns the Profile', async () => {
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([
-        {
-          endpoint: 'https://push.example.com/sub-1',
-          p256dh: 'p256',
-          auth: 'auth_secret',
-        },
+        device('https://push.example.com/sub-1'),
       ]);
       vi.mocked(webpush.sendNotification).mockResolvedValueOnce({} as any);
 
-      const result = await service.sendNotification('user-1', {
+      const result = await service.sendNotification('profile-1', {
         title: 'New Post',
         body: 'User posted a new story',
       });
 
+      // The Profile names the person; devices are kept by person.
+      expect(mockPrismaService.profile.findUnique).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        select: { userId: true, pushNotifications: true },
+      });
+      expect(mockPrismaService.pushSubscription.findMany).toHaveBeenCalledWith({
+        where: { userId: 'user-1' },
+      });
       expect(webpush.sendNotification).toHaveBeenCalledWith(
         {
           endpoint: 'https://push.example.com/sub-1',
@@ -146,18 +154,40 @@ describe('PushService', () => {
       expect(result).toHaveLength(1);
     });
 
-    it('should remove expired subscription when webpush returns 404 or 410', async () => {
+    it('sends nothing when the Profile has push off, or does not exist', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'user-1',
+        pushNotifications: false,
+      });
+      await service.sendNotification('profile-1', { title: 't', body: 'b' });
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce(null);
+      await service.sendNotification('missing', { title: 't', body: 'b' });
+
+      expect(
+        mockPrismaService.pushSubscription.findMany,
+      ).not.toHaveBeenCalled();
+      expect(webpush.sendNotification).not.toHaveBeenCalled();
+    });
+
+    it('returns early when the person has no device', async () => {
+      mockPrismaService.pushSubscription.findMany.mockResolvedValue([]);
+
+      const result = await service.sendNotification('profile-1', {
+        title: 'Test Notification',
+        body: 'Hello World',
+      });
+
+      expect(result).toBeUndefined();
+    });
+
+    it('removes a device the push service says is gone', async () => {
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([
-        {
-          endpoint: 'https://push.example.com/expired-sub',
-          p256dh: 'p256',
-          auth: 'auth_secret',
-        },
+        device('https://push.example.com/expired-sub'),
       ]);
       const error410 = Object.assign(new Error('Gone'), { statusCode: 410 });
       vi.mocked(webpush.sendNotification).mockRejectedValueOnce(error410);
 
-      await service.sendNotification('user-1', {
+      await service.sendNotification('profile-1', {
         title: 'Expired Sub',
         body: 'Ping',
       });
@@ -169,19 +199,15 @@ describe('PushService', () => {
       });
     });
 
-    it('should log error on non-404/410 push failures', async () => {
+    it('keeps a device after any other failure', async () => {
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([
-        {
-          endpoint: 'https://push.example.com/error-sub',
-          p256dh: 'p256',
-          auth: 'auth_secret',
-        },
+        device('https://push.example.com/error-sub'),
       ]);
       vi.mocked(webpush.sendNotification).mockRejectedValueOnce(
         new Error('Network failure'),
       );
 
-      await service.sendNotification('user-1', {
+      await service.sendNotification('profile-1', {
         title: 'Failing Sub',
         body: 'Ping',
       });
