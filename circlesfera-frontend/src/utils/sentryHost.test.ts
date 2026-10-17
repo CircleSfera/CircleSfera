@@ -19,6 +19,8 @@ describe('isOwnHost', () => {
       'codeqlick.com',
       'circlesfera.com.evil.example',
       'notcirclesfera.com',
+      'mirror.localhost',
+      'copy.127.0.0.1',
     ]) {
       expect(isOwnHost(host)).toBe(false);
     }

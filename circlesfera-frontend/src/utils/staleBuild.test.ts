@@ -14,12 +14,18 @@ describe('reloadOnceForStaleBuild', () => {
     const storage = memory();
     const reload = vi.fn();
 
-    expect(reloadOnceForStaleBuild(storage, reload, 1_000_000)).toBe(true);
-    expect(reloadOnceForStaleBuild(storage, reload, 1_030_000)).toBe(false);
+    expect(reloadOnceForStaleBuild(() => storage, reload, 1_000_000)).toBe(
+      true,
+    );
+    expect(reloadOnceForStaleBuild(() => storage, reload, 1_030_000)).toBe(
+      false,
+    );
     expect(reload).toHaveBeenCalledTimes(1);
 
     // A later deploy, a minute after, may reload again.
-    expect(reloadOnceForStaleBuild(storage, reload, 1_061_000)).toBe(true);
+    expect(reloadOnceForStaleBuild(() => storage, reload, 1_061_000)).toBe(
+      true,
+    );
     expect(reload).toHaveBeenCalledTimes(2);
   });
 
@@ -32,7 +38,17 @@ describe('reloadOnceForStaleBuild', () => {
       setItem: () => undefined,
     };
 
-    expect(reloadOnceForStaleBuild(broken, reload)).toBe(false);
+    expect(reloadOnceForStaleBuild(() => broken, reload)).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not reload when the browser refuses access to storage at all', () => {
+    const reload = vi.fn();
+    const refused = () => {
+      throw new DOMException('blocked', 'SecurityError');
+    };
+
+    expect(reloadOnceForStaleBuild(refused, reload)).toBe(false);
     expect(reload).not.toHaveBeenCalled();
   });
 });

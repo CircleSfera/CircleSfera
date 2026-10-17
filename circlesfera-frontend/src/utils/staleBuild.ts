@@ -5,11 +5,14 @@ const RELOAD_KEY = 'cs_stale_build_reload';
 const RELOAD_WINDOW_MS = 60_000;
 
 export function reloadOnceForStaleBuild(
-  storage: Pick<Storage, 'getItem' | 'setItem'> = window.sessionStorage,
+  // Read inside the try: a browser that blocks storage throws on access.
+  getStorage: () => Pick<Storage, 'getItem' | 'setItem'> = () =>
+    window.sessionStorage,
   reload: () => void = () => window.location.reload(),
   now: number = Date.now(),
 ): boolean {
   try {
+    const storage = getStorage();
     const last = Number(storage.getItem(RELOAD_KEY) ?? 0);
     if (now - last < RELOAD_WINDOW_MS) return false;
     storage.setItem(RELOAD_KEY, String(now));

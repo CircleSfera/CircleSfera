@@ -3,7 +3,10 @@
 const OWN_HOSTS = ['circlesfera.com', 'localhost', '127.0.0.1'];
 
 export function isOwnHost(hostname: string): boolean {
+  // Subdomains count only for circlesfera.com; local hosts match exactly.
   return OWN_HOSTS.some(
-    (host) => hostname === host || hostname.endsWith(`.${host}`),
+    (host) =>
+      hostname === host ||
+      (host === 'circlesfera.com' && hostname.endsWith(`.${host}`)),
   );
 }
