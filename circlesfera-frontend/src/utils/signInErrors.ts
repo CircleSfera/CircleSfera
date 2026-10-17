@@ -17,6 +17,7 @@ const KNOWN = new Set([
   'SIGN_IN_ALREADY_OWN',
   'SIGN_IN_NOT_FOUND',
   'SIGN_IN_LIMIT_REACHED',
+  'PASSWORD_LEAKED',
 ]);
 
 /**

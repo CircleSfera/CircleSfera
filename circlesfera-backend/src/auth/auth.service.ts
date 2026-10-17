@@ -40,6 +40,7 @@ import type {
   ResetPasswordDto,
   VerifyEmailDto,
 } from './dto/index.js';
+import { assertNotLeakedPassword } from './leaked-passwords/leaked-password.js';
 import { AccountStateService } from './services/account-state.service.js';
 import {
   pickSessionProfile,
@@ -136,6 +137,7 @@ export class AuthService {
     }
 
     // Hash password
+    assertNotLeakedPassword(dto.password);
     const hashedPassword = await argon2.hash(dto.password);
 
     // Generate high-entropy token
@@ -302,6 +304,7 @@ export class AuthService {
     }
     const user = { id: signIn.userId };
 
+    assertNotLeakedPassword(dto.newPassword);
     const hashedPassword = await argon2.hash(dto.newPassword);
 
     await this.prisma.signIn.update({

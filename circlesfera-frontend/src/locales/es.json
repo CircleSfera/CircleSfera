@@ -538,6 +538,7 @@
         "SIGN_IN_ALREADY_OWN": "Este perfil ya tiene su propio inicio de sesión.",
         "SIGN_IN_NOT_FOUND": "No hemos encontrado ese perfil o ese inicio de sesión.",
         "SIGN_IN_LIMIT_REACHED": "Acabas de crear un inicio de sesión. Espera un rato antes de crear otro.",
+        "PASSWORD_LEAKED": "Esa contraseña aparece en listas de contraseñas filtradas. Elige otra.",
         "generic": "No se ha podido guardar el cambio. Inténtalo de nuevo."
       }
     },
@@ -5197,6 +5198,7 @@
       "other": "Has alcanzado un límite de actividad. Vuelve a intentarlo más tarde."
     },
     "codes": {
+      "PASSWORD_LEAKED": "Esa contraseña aparece en listas de contraseñas filtradas. Elige otra.",
       "PLAN_NOT_FOR_PROFILE_TYPE": "Este plan es para otro tipo de perfil.",
       "INTERNAL_SERVER_ERROR": "Algo ha fallado por nuestra parte. Inténtalo de nuevo.",
       "NOT_FOUND": "No hemos encontrado lo que buscas.",

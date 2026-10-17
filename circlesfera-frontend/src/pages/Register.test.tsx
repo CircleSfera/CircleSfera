@@ -147,6 +147,25 @@ describe('Register', () => {
     expect(authApi.register).not.toHaveBeenCalled();
   });
 
+  it('says the password is a leaked one when that is why it was refused', async () => {
+    vi.mocked(authApi.register).mockRejectedValue(
+      Object.assign(new Error('leaked'), {
+        status: 400,
+        data: { errorCode: 'PASSWORD_LEAKED' },
+      }),
+    );
+    const { i18n } = renderWithProviders(<Register />);
+
+    fillForm(i18n!, yearsAgo(25));
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        i18n!.t('errors.codes.PASSWORD_LEAKED'),
+      ),
+    );
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
   it('says so when the sign-up is refused instead of staying silent', async () => {
     vi.mocked(authApi.register).mockRejectedValue(
       Object.assign(new Error('Email already registered'), { status: 409 }),

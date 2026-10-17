@@ -203,7 +203,7 @@ describe('AuthService', () => {
   describe('register', () => {
     const dto = {
       email: 'test@example.com',
-      password: 'password123',
+      password: 'violet-harbour-lantern-42',
       username: 'testuser',
       fullName: 'Test User',
       dateOfBirth: '1990-01-15',
@@ -225,6 +225,17 @@ describe('AuthService', () => {
       };
       expect(createArgs.data.password).toContain('$argon2');
       expect(result).toHaveProperty('accessToken');
+    });
+
+    it('refuses a leaked password before creating anything', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.create.mockClear();
+
+      await expect(
+        service.register({ ...dto, password: 'Password123' }),
+      ).rejects.toMatchObject({ errorCode: 'PASSWORD_LEAKED' });
+      expect(mockPrismaService.user.create).not.toHaveBeenCalled();
     });
 
     it('stores the app language of the new account', async () => {
@@ -331,7 +342,7 @@ describe('AuthService', () => {
   describe('login', () => {
     const dto = {
       identifier: 'test@example.com',
-      password: 'password123',
+      password: 'violet-harbour-lantern-42',
     };
 
     it('should login successfully with argon2 hash', async () => {
@@ -832,6 +843,14 @@ describe('AuthService', () => {
   });
 
   describe('resetPassword', () => {
+    it('refuses a leaked password as the new one', async () => {
+      mockPrismaService.signIn.update.mockClear();
+      await expect(
+        service.resetPassword({ token: 'token', newPassword: 'qwertyuiop' }),
+      ).rejects.toMatchObject({ errorCode: 'PASSWORD_LEAKED' });
+      expect(mockPrismaService.signIn.update).not.toHaveBeenCalled();
+    });
+
     it('should reset password with argon2 hash', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: '1',

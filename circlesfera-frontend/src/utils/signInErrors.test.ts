@@ -12,6 +12,7 @@ describe('signInError', () => {
     ['SIGN_IN_ALREADY_OWN', 'form'],
     ['SIGN_IN_NOT_FOUND', 'form'],
     ['SIGN_IN_LIMIT_REACHED', 'form'],
+    ['PASSWORD_LEAKED', 'form'],
   ])('puts %s next to the %s', (code, field) => {
     expect(signInError(refused(code), t)).toEqual({
       field,

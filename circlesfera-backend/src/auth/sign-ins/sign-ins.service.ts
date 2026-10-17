@@ -8,6 +8,7 @@ import { FIRST_SIGN_IN_ORDER } from '../../common/auth/sign-in-lookup.js';
 import { AppException } from '../../common/errors/app.exception.js';
 import { EmailService } from '../../email/email.service.js';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { assertNotLeakedPassword } from '../leaked-passwords/leaked-password.js';
 import { PasskeyService } from '../passkey/passkey.service.js';
 import { passwordMatches } from '../password.util.js';
 
@@ -104,6 +105,7 @@ export class SignInsService {
     await this.assertEmailFree(email);
     await this.assertWithinLimit(session.userId);
 
+    assertNotLeakedPassword(input.password);
     const password = await argon2.hash(input.password);
     const verificationToken = crypto.randomBytes(32).toString('hex');
 
