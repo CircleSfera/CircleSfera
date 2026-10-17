@@ -248,13 +248,20 @@ jobs:
           SMOKE_TEST_API_URL: ${{ secrets.VITE_API_URL }}
           SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
           SMOKE_TEST_PASSWORD: ${{ secrets.SMOKE_TEST_PASSWORD }}
+          # Read by the script as plain variables: a script with no ${{ }} in
+          # it is not held to GitHub's 21,000-character limit on expressions.
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_SHA: ${{ github.sha }}
+          # "on" once the smoke fixtures exist in production.
+          SMOKE_FIXTURES: ${{ vars.SMOKE_FIXTURES }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           # Verifies the server identity (SHA256 host key fingerprint).
           fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
-          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD
+          envs: ENV_PRODUCTION_B64,ABUSE_HASH_PEPPER,TURNSTILE_SECRET_KEY,STRIPE_PAYMENT_METHOD_CONFIGURATION,VITE_TURNSTILE_SITE_KEY,SMOKE_TEST_API_URL,SMOKE_TEST_EMAIL,SMOKE_TEST_PASSWORD,GHCR_USER,GHCR_TOKEN,DEPLOY_SHA,SMOKE_FIXTURES
           script: |
             set -e
             echo "Starting deployment on OVH VPS..."
@@ -263,7 +270,7 @@ jobs:
             cd /srv/circlesfera
 
             # Login to GHCR on the VPS
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
 
             # Pull latest code (for docker-compose.prod.yml and nginx config)
             git fetch origin
@@ -358,7 +365,7 @@ jobs:
             DEPLOY_WEBHOOK=$(grep '^SLACK_WEBHOOK_DEPLOYMENTS=' .env.production | cut -d '=' -f2- || echo "")
 
             export REGISTRY=ghcr.io/circlesfera/circlesfera
-            export IMAGE_SHA="${{ github.sha }}"
+            export IMAGE_SHA="$DEPLOY_SHA"
             PREV_SHA=""
             if [ -f .deploy-sha ]; then
               PREV_SHA="$(cat .deploy-sha)"
@@ -515,7 +522,7 @@ jobs:
               for attempt in 1 2 3 4 5; do
                 code=$(curl -sS -o "$SMOKE_TMP"/cs-smoke-body -w "%{http_code}" \
                   --max-time 15 \
-                  "http://127.0.0.1:8082/api/v1${path}" || echo "000")
+                  "http://127.0.0.1:8082/api/v1${path}") || code="000"
                 case "$code" in
                   2*|3*|401|403|404)
                     echo "  OK  $code  $path"
@@ -680,6 +687,92 @@ jobs:
                   csrf_body=$(curl -sS -b "$SMOKE_JAR" -c "$SMOKE_JAR" "${SMOKE_TEST_API_URL}/csrf-token")
                   SMOKE_CSRF_TOKEN=$(echo "$csrf_body" | grep -o '"csrfToken":"[^"]*"' | cut -d'"' -f4)
 
+                  # What a signed-in person must not see or reach, proved against the
+                  # Test Accounts that scripts/create-smoke-fixtures.ts keeps in place
+                  # (run "Ops — smoke fixtures"). Enforced once the repository variable
+                  # SMOKE_FIXTURES is "on".
+                  if [ "${SMOKE_FIXTURES:-}" = "on" ]; then
+                    FX_PRIVATE_POST=5e0c5e0c-0000-4000-8000-0000000000c1
+                    FX_MATURE_POST=5e0c5e0c-0000-4000-8000-0000000000c2
+                    FX_GENERAL_POST=5e0c5e0c-0000-4000-8000-0000000000c3
+                    FX_PUBLIC_PROFILE=5e0c5e0c-0000-4000-8000-0000000000b3
+                    fx_request() {
+                      fx_code=$(curl -sS -o "$SMOKE_TMP"/cs-fx -w "%{http_code}" \
+                        -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                        "$@") || fx_code="000"
+                    }
+                    fx_fail() {
+                      echo "  FAIL  $1"
+                      head -c 300 "$SMOKE_TMP"/cs-fx 2>/dev/null; echo
+                      auth_smoke_ok=0
+                    }
+
+                    # People search finds the public fixture, and never the banned one.
+                    fx_request "${SMOKE_TEST_API_URL}/search/users?q=cs_smoke_"
+                    if [ "$fx_code" != "200" ] || ! grep -q '"cs_smoke_public"' "$SMOKE_TMP"/cs-fx; then
+                      fx_fail "people search did not find the public fixture ($fx_code)"
+                    elif grep -q '"cs_smoke_banned"' "$SMOKE_TMP"/cs-fx; then
+                      fx_fail "people search found a banned Profile"
+                    else
+                      echo "  OK    people search leaves out a banned Profile"
+                    fi
+
+                    # A post the account cannot see cannot be saved.
+                    fx_request -X POST "${SMOKE_TEST_API_URL}/bookmarks/${FX_PRIVATE_POST}"
+                    case "$fx_code" in
+                      403|404) echo "  OK    saving a post it cannot see is refused ($fx_code)" ;;
+                      2*)
+                        fx_fail "a post it cannot see was saved ($fx_code)"
+                        # Saving toggles: once more takes it off again.
+                        fx_request -X POST "${SMOKE_TEST_API_URL}/bookmarks/${FX_PRIVATE_POST}"
+                        ;;
+                      *) fx_fail "saving a post it cannot see answered $fx_code" ;;
+                    esac
+
+                    # Nor shared into a conversation. The recipient is a Test Account.
+                    fx_request -X POST \
+                      -d "{\"recipientId\":\"${FX_PUBLIC_PROFILE}\",\"postId\":\"${FX_PRIVATE_POST}\",\"content\":\"smoke check\"}" \
+                      "${SMOKE_TEST_API_URL}/chat/messages"
+                    case "$fx_code" in
+                      400|403|404) echo "  OK    sharing a post it cannot see is refused ($fx_code)" ;;
+                      *) fx_fail "sharing a post it cannot see answered $fx_code" ;;
+                    esac
+
+                    # With the General preference, a Mature post is left out of post search;
+                    # a General one of the same Profile is found.
+                    fx_request "${SMOKE_TEST_API_URL}/search/posts?q=cssmokegeneralfixture"
+                    if [ "$fx_code" != "200" ] || ! grep -q "$FX_GENERAL_POST" "$SMOKE_TMP"/cs-fx; then
+                      fx_fail "post search did not find the General fixture ($fx_code)"
+                    else
+                      fx_request "${SMOKE_TEST_API_URL}/search/posts?q=cssmokematurefixture"
+                      if [ "$fx_code" != "200" ]; then
+                        fx_fail "post search answered $fx_code"
+                      elif grep -q "$FX_MATURE_POST" "$SMOKE_TMP"/cs-fx; then
+                        fx_fail "a Mature post was shown to a General preference"
+                      else
+                        echo "  OK    a Mature post is left out for a General preference"
+                      fi
+                    fi
+                  else
+                    echo "  SKIP  fixture checks: the SMOKE_FIXTURES variable is not on"
+                  fi
+
+                  # The caption limit holds when writing: one character over it is
+                  # refused before anything is stored.
+                  SMOKE_LONG_CAPTION=$(printf 'a%.0s' $(seq 1 2201))
+                  long_create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
+                    -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                    -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                    -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\",\"visibility\":\"PRIVATE\"}" \
+                    "${SMOKE_TEST_API_URL}/posts") || long_create_code="000"
+                  if [ "$long_create_code" != "400" ]; then
+                    echo "  FAIL  a caption over the limit was not refused when writing ($long_create_code)"
+                    auth_smoke_ok=0
+                  else
+                    echo "  OK    a caption over the limit is refused when writing"
+                  fi
+
                   create_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-create -w "%{http_code}" \
                     -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
                     -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
@@ -698,6 +791,18 @@ jobs:
                       echo "  FAIL  could not parse created post id"
                       auth_smoke_ok=0
                     else
+                      # The same limit holds when editing.
+                      long_edit_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-long -w "%{http_code}" \
+                        -b "$SMOKE_JAR" -c "$SMOKE_JAR" \
+                        -H "x-csrf-token: $SMOKE_CSRF_TOKEN" -H "Content-Type: application/json" \
+                        -X PUT -d "{\"caption\":\"${SMOKE_LONG_CAPTION}\"}" \
+                        "${SMOKE_TEST_API_URL}/posts/${SMOKE_POST_ID}") || long_edit_code="000"
+                      if [ "$long_edit_code" != "400" ]; then
+                        echo "  FAIL  a caption over the limit was not refused when editing ($long_edit_code)"
+                        auth_smoke_ok=0
+                      else
+                        echo "  OK    a caption over the limit is refused when editing"
+                      fi
                       delete_code=$(curl -sS -o "$SMOKE_TMP"/cs-auth-delete -w "%{http_code}" \
                         -b "$SMOKE_JAR" \
                         -H "x-csrf-token: $SMOKE_CSRF_TOKEN" \

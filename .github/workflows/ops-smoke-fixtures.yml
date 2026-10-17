@@ -1,0 +1,61 @@
+name: Ops — smoke fixtures
+
+# Puts in place, in production, the Test Accounts the post-deploy smoke check
+# proves its refusals against (scripts/create-smoke-fixtures.ts), and marks
+# the smoke account as a Test Account so that it sees them. Safe to run again:
+# it only puts them back as they should be. Run it once, then set the
+# repository variable SMOKE_FIXTURES to "on" so that every deploy checks them.
+on:
+  workflow_dispatch: {}
+
+# Shares the deploy-production queue so it never runs during a deploy. GitHub
+# keeps only one *pending* run per queue: if a deploy is triggered (merge to
+# main) while this run waits for approval or for a running deploy, the newer
+# deploy replaces it and this run is cancelled. Do not merge while it is
+# pending; re-run it if it was cancelled.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  fixtures:
+    name: Put the smoke fixtures in place
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: production-ops
+    steps:
+      - name: Require the pinned VPS host key
+        # Fail closed: without the fingerprint, the SSH step would not verify
+        # that it is talking to the real VPS.
+        env:
+          VPS_SSH_FINGERPRINT: ${{ secrets.VPS_SSH_FINGERPRINT }}
+        run: |
+          if [ -z "$VPS_SSH_FINGERPRINT" ]; then
+            echo "The VPS_SSH_FINGERPRINT secret is not set; refusing to connect."
+            exit 1
+          fi
+      - name: Run the script on the VPS
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
+        env:
+          SMOKE_TEST_EMAIL: ${{ secrets.SMOKE_TEST_EMAIL }}
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          # Verifies the server identity (SHA256 host key fingerprint).
+          fingerprint: ${{ secrets.VPS_SSH_FINGERPRINT }}
+          envs: SMOKE_TEST_EMAIL
+          script: |
+            set -euo pipefail
+            cd /srv/circlesfera
+            if [ -z "${SMOKE_TEST_EMAIL:-}" ]; then
+              echo "The SMOKE_TEST_EMAIL secret must be set."
+              exit 1
+            fi
+            # -e NAME without a value passes the variable from this shell.
+            docker compose -f docker-compose.prod.yml --env-file .env.production exec -T \
+              -e SMOKE_TEST_EMAIL \
+              backend node scripts/create-smoke-fixtures.ts
