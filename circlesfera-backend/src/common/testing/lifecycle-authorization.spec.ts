@@ -51,6 +51,7 @@ describe('Lifecycle, Deletion Races & Authorization Invariants', () => {
         mockOutbox as any,
         { emit: vi.fn() } as any,
         { del: vi.fn() } as any,
+        { decrypt: (text: string) => text } as any,
       );
     });
 

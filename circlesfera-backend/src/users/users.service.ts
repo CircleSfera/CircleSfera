@@ -15,6 +15,7 @@ import type { Queue } from 'bullmq';
 import type { Cache } from 'cache-manager';
 import type Stripe from 'stripe';
 import { setProfilePrivacy } from '../common/policies/profile-privacy.policy.js';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -32,6 +33,7 @@ export class UsersService {
     @Inject(OutboxService) private readonly outboxService: OutboxService,
     @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
     @Inject(CACHE_MANAGER) private readonly cacheManager: Cache,
+    @Inject(CryptoService) private readonly crypto: CryptoService,
   ) {}
 
   // Get follow suggestions for a user. Excludes already-followed, pending,
@@ -128,7 +130,7 @@ export class UsersService {
   // GDPR: Gathers all user-related data for export.
   // Param userId: The user ID to export
   async exportUserData(userId: string) {
-    const [account, relations] = await Promise.all([
+    const [account, relations, held] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
         select: {
@@ -271,12 +273,13 @@ export class UsersService {
           },
         },
       }),
+      this.heldAboutTheAccount(userId),
     ]);
 
     if (!account || !relations) throw new Error('User not found');
 
     // Explicit allowlist — scalars from `account` select; never dump secrets/hashes.
-    // Message.content may be ciphertext; exported as stored (not decrypted).
+    // Messages are decrypted: the person receives what they wrote.
     const safeData = {
       id: account.id,
       email: account.email,
@@ -299,7 +302,7 @@ export class UsersService {
       lastIp: account.lastIp,
       botLabeledAt: account.botLabeledAt,
       network: {
-        note: 'IP addresses are retained for the life of the account for security and abuse prevention, and are included here for transparency.',
+        note: 'IP addresses are kept for 90 days for security and abuse prevention; after that only a keyed hash is kept. They are included here for transparency.',
         signupIp: account.signupIp,
         lastIp: account.lastIp,
         signupCountry: account.signupCountry,
@@ -314,19 +317,171 @@ export class UsersService {
       },
       profiles: relations.profiles.map((p) => ({
         ...p,
-        messages: {
-          note: 'Message content may be encrypted at rest; values are exported as stored ciphertext.',
-          items: p.messages,
-        },
+        messages: p.messages.map((m) => ({
+          ...m,
+          content: m.content ? this.crypto.decrypt(m.content) : m.content,
+        })),
       })),
       settings: relations.settings,
       appeals: relations.appeals,
       reportsFiled: undefined, // removed because reports are on profiles
       sentTransactions: relations.sentTransactions,
       receivedTransactions: relations.receivedTransactions,
+      ...held,
     };
 
     return safeData as Record<string, unknown>;
+  }
+
+  // The rest of what is kept about the person, for the export: warnings and
+  // strikes, spam review cases, searches, what they viewed and did, support
+  // requests, plans, unlocks, experiments and the notes staff wrote about
+  // them. Who on the staff wrote or decided is not included.
+  private async heldAboutTheAccount(userId: string) {
+    const byProfile = { profile: { userId } };
+    const [
+      strikes,
+      riskCases,
+      searches,
+      interactions,
+      postViews,
+      storyViews,
+      supportRequests,
+      plans,
+      postUnlocks,
+      messageUnlocks,
+      storyUnlocks,
+      experiments,
+      staffNotes,
+    ] = await Promise.all([
+      this.prisma.profileStrike.findMany({
+        where: byProfile,
+        orderBy: { createdAt: 'asc' },
+        select: {
+          profileId: true,
+          kind: true,
+          reason: true,
+          consequence: true,
+          reportId: true,
+          createdAt: true,
+          expiresAt: true,
+          revokedAt: true,
+        },
+      }),
+      this.prisma.riskCase.findMany({
+        where: byProfile,
+        orderBy: { createdAt: 'asc' },
+        select: {
+          profileId: true,
+          score: true,
+          status: true,
+          restrictedAt: true,
+          restrictedUntil: true,
+          decision: true,
+          reviewedAt: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.searchHistory.findMany({
+        where: byProfile,
+        orderBy: { createdAt: 'asc' },
+        select: { profileId: true, query: true, createdAt: true },
+      }),
+      this.prisma.interactionEvent.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          eventType: true,
+          targetType: true,
+          targetId: true,
+          dwellTime: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.postView.findMany({
+        where: { viewer: { userId } },
+        orderBy: { createdAt: 'asc' },
+        select: { viewerId: true, postId: true, createdAt: true },
+      }),
+      this.prisma.storyView.findMany({
+        where: { viewer: { userId } },
+        orderBy: { createdAt: 'asc' },
+        select: { viewerId: true, storyId: true, createdAt: true },
+      }),
+      this.prisma.supportTicket.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          reference: true,
+          email: true,
+          subject: true,
+          message: true,
+          category: true,
+          status: true,
+          createdAt: true,
+          resolvedAt: true,
+          messages: {
+            orderBy: { createdAt: 'asc' },
+            select: {
+              authorKind: true,
+              visibility: true,
+              body: true,
+              createdAt: true,
+            },
+          },
+          rating: { select: { score: true, comment: true, createdAt: true } },
+        },
+      }),
+      this.prisma.platformSubscription.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: {
+          profileId: true,
+          status: true,
+          currentPeriodStart: true,
+          currentPeriodEnd: true,
+          cancelAtPeriodEnd: true,
+          createdAt: true,
+          plan: { select: { name: true } },
+        },
+      }),
+      this.prisma.postUnlock.findMany({
+        where: { userId },
+        select: { postId: true, pricePaid: true, createdAt: true },
+      }),
+      this.prisma.messageUnlock.findMany({
+        where: { userId },
+        select: { messageId: true, pricePaid: true, createdAt: true },
+      }),
+      this.prisma.storyUnlock.findMany({
+        where: { userId },
+        select: { storyId: true, pricePaid: true, createdAt: true },
+      }),
+      this.prisma.userExperiment.findMany({
+        where: { userId },
+        select: { experimentKey: true, variant: true, createdAt: true },
+      }),
+      this.prisma.staffNote.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'asc' },
+        select: { body: true, createdAt: true },
+      }),
+    ]);
+    return {
+      warningsAndStrikes: strikes,
+      spamReviewCases: riskCases,
+      searchHistory: searches,
+      activity: { interactions, postViews, storyViews },
+      supportRequests,
+      platformPlans: plans,
+      unlocks: {
+        posts: postUnlocks,
+        messages: messageUnlocks,
+        stories: storyUnlocks,
+      },
+      experiments,
+      staffNotes,
+    };
   }
 
   // Atomically deletes a user scheduled for deletion, guarding against concurrent restoration.

@@ -10,6 +10,7 @@ import {
   Visibility,
 } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CryptoService } from '../common/services/crypto.service.js';
 import { StripeService } from '../common/stripe/stripe.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -23,7 +24,28 @@ describe('UsersService', () => {
   const mockCacheManager = { del: vi.fn() };
   let service: UsersService;
 
+  // What else the export reads about the person, empty unless a test fills it.
+  const heldModels = {
+    profileStrike: { findMany: vi.fn() },
+    riskCase: { findMany: vi.fn() },
+    searchHistory: { findMany: vi.fn() },
+    interactionEvent: { findMany: vi.fn() },
+    postView: { findMany: vi.fn() },
+    storyView: { findMany: vi.fn() },
+    supportTicket: { findMany: vi.fn() },
+    platformSubscription: { findMany: vi.fn() },
+    postUnlock: { findMany: vi.fn() },
+    messageUnlock: { findMany: vi.fn() },
+    storyUnlock: { findMany: vi.fn() },
+    userExperiment: { findMany: vi.fn() },
+    staffNote: { findMany: vi.fn() },
+  };
+  const mockCrypto = {
+    decrypt: vi.fn((text: string) => text.replace(/^cipher_/, '')),
+  };
+
   const mockPrismaService = {
+    ...heldModels,
     $transaction: vi
       .fn()
       .mockImplementation((cb: any) => cb(mockPrismaService)),
@@ -81,6 +103,9 @@ describe('UsersService', () => {
     mockPrismaService.$transaction.mockImplementation((cb: any) =>
       cb(mockPrismaService),
     );
+    for (const model of Object.values(heldModels)) {
+      model.findMany.mockResolvedValue([]);
+    }
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -90,6 +115,7 @@ describe('UsersService', () => {
         { provide: OutboxService, useValue: mockOutboxService },
         { provide: EventEmitter2, useValue: mockEventEmitter },
         { provide: CACHE_MANAGER, useValue: mockCacheManager },
+        { provide: CryptoService, useValue: mockCrypto },
         {
           provide: getQueueToken('users-processing'),
           useValue: mockUsersQueue,
@@ -318,9 +344,96 @@ describe('UsersService', () => {
         expect.objectContaining({ signupIp: '1.2.3.4', signupCountry: 'ES' }),
       );
       expect((res.devices as any).count).toBe(1);
-      expect((res.profiles as any[])[0].messages.items).toHaveLength(1);
+      // The person receives what they wrote, not the stored ciphertext.
+      expect((res.profiles as any[])[0].messages).toEqual([
+        { id: 'msg_1', content: 'hello', conversationId: 'c1' },
+      ]);
+      // The IP retention in force.
+      expect((res.network as any).note).toContain('90 days');
+      expect(JSON.stringify(res)).not.toContain('life of the account');
       expect(res.sentTransactions).toHaveLength(1);
       expect(res.receivedTransactions).toHaveLength(1);
+    });
+
+    it('holds everything else kept about the person, staff notes included, and never who on the staff acted', async () => {
+      mockPrismaService.user.findUnique
+        .mockResolvedValueOnce({
+          id: 'u_exp',
+          deviceSignals: [],
+          signIns: [],
+        })
+        .mockResolvedValueOnce({
+          profiles: [],
+          settings: null,
+          appeals: [],
+          sentTransactions: [],
+          receivedTransactions: [],
+        });
+      heldModels.profileStrike.findMany.mockResolvedValue([
+        { kind: 'STRIKE', reason: 'SPAM' },
+      ]);
+      heldModels.riskCase.findMany.mockResolvedValue([{ score: 80 }]);
+      heldModels.searchHistory.findMany.mockResolvedValue([{ query: 'cats' }]);
+      heldModels.interactionEvent.findMany.mockResolvedValue([
+        { eventType: 'VIEW' },
+      ]);
+      heldModels.postView.findMany.mockResolvedValue([{ postId: 'p1' }]);
+      heldModels.storyView.findMany.mockResolvedValue([{ storyId: 's1' }]);
+      heldModels.supportTicket.findMany.mockResolvedValue([
+        { reference: 7, messages: [{ visibility: 'INTERNAL', body: 'n' }] },
+      ]);
+      heldModels.platformSubscription.findMany.mockResolvedValue([
+        { status: 'ACTIVE', plan: { name: 'Pro' } },
+      ]);
+      heldModels.postUnlock.findMany.mockResolvedValue([{ postId: 'p2' }]);
+      heldModels.messageUnlock.findMany.mockResolvedValue([
+        { messageId: 'm1' },
+      ]);
+      heldModels.storyUnlock.findMany.mockResolvedValue([{ storyId: 's2' }]);
+      heldModels.userExperiment.findMany.mockResolvedValue([
+        { experimentKey: 'feed', variant: 'b' },
+      ]);
+      heldModels.staffNote.findMany.mockResolvedValue([
+        { body: 'Asked twice about a refund', createdAt: new Date() },
+      ]);
+
+      const res = (await service.exportUserData('u_exp')) as any;
+
+      expect(res.warningsAndStrikes).toHaveLength(1);
+      expect(res.spamReviewCases[0].score).toBe(80);
+      expect(res.searchHistory[0].query).toBe('cats');
+      expect(res.activity.interactions).toHaveLength(1);
+      expect(res.activity.postViews).toHaveLength(1);
+      expect(res.activity.storyViews).toHaveLength(1);
+      expect(res.supportRequests[0].reference).toBe(7);
+      expect(res.platformPlans[0].plan.name).toBe('Pro');
+      expect(res.unlocks.posts).toHaveLength(1);
+      expect(res.unlocks.messages).toHaveLength(1);
+      expect(res.unlocks.stories).toHaveLength(1);
+      expect(res.experiments[0].variant).toBe('b');
+      expect(res.staffNotes[0].body).toBe('Asked twice about a refund');
+
+      // Read by the account's id or its Profiles; staff who acted are not
+      // selected.
+      expect(heldModels.staffNote.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'u_exp' },
+          select: { body: true, createdAt: true },
+        }),
+      );
+      expect(heldModels.profileStrike.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { profile: { userId: 'u_exp' } } }),
+      );
+      for (const model of [
+        heldModels.profileStrike,
+        heldModels.riskCase,
+        heldModels.staffNote,
+      ]) {
+        const { select } = model.findMany.mock.calls[0][0];
+        expect(select).not.toHaveProperty('adminId');
+        expect(select).not.toHaveProperty('reviewedById');
+        expect(select).not.toHaveProperty('authorId');
+      }
     });
   });
 
