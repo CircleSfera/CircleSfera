@@ -1,7 +1,7 @@
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { SeoService } from './seo.service.js';
+import { SeoService, SITEMAP_PART_SIZE } from './seo.service.js';
 
 describe('SeoService', () => {
   let service: SeoService;
@@ -11,10 +11,12 @@ describe('SeoService', () => {
     profile: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      count: vi.fn(),
     },
     post: {
       findMany: vi.fn(),
       findFirst: vi.fn(),
+      count: vi.fn(),
     },
   };
 
@@ -34,28 +36,42 @@ describe('SeoService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('generateSitemap', () => {
-    it('should generate valid XML sitemap with profiles and posts', async () => {
-      mockPrismaService.profile.findMany.mockResolvedValue([
-        { username: 'testuser', updatedAt: new Date('2026-01-01') },
-      ]);
-      mockPrismaService.post.findMany.mockResolvedValue([
-        { id: 'post-1', createdAt: new Date('2026-01-02') },
-      ]);
+  describe('the site map', () => {
+    it('the index lists the fixed pages, then as many parts of Profiles and posts as they fill', async () => {
+      mockPrismaService.profile.count.mockResolvedValue(
+        SITEMAP_PART_SIZE * 2 + 1,
+      );
+      mockPrismaService.post.count.mockResolvedValue(SITEMAP_PART_SIZE);
 
-      const xml = await service.generateSitemap();
-      expect(xml).toContain('<?xml version="1.0" encoding="UTF-8"?>');
-      expect(xml).toContain('<loc>https://circlesfera.com/testuser</loc>');
-      expect(xml).toContain('<loc>https://circlesfera.com/p/post-1</loc>');
+      const xml = await service.generateSitemapIndex();
+
+      expect(xml).toContain('<sitemapindex');
+      const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+      expect(locs).toEqual([
+        'https://circlesfera.com/sitemap-pages-1.xml',
+        'https://circlesfera.com/sitemap-profiles-1.xml',
+        'https://circlesfera.com/sitemap-profiles-2.xml',
+        'https://circlesfera.com/sitemap-profiles-3.xml',
+        'https://circlesfera.com/sitemap-posts-1.xml',
+      ]);
     });
 
-    it('only queries eligible public profiles and posts', async () => {
-      mockPrismaService.profile.findMany.mockResolvedValue([]);
-      mockPrismaService.post.findMany.mockResolvedValue([]);
+    it('with nothing public, the index lists only the fixed pages', async () => {
+      mockPrismaService.profile.count.mockResolvedValue(0);
+      mockPrismaService.post.count.mockResolvedValue(0);
 
-      await service.generateSitemap();
+      const xml = await service.generateSitemapIndex();
 
-      const profileWhere = mockPrismaService.profile.findMany.mock.calls[0][0]
+      expect(xml.match(/<sitemap>/g)).toHaveLength(1);
+    });
+
+    it('counts only eligible public profiles and posts', async () => {
+      mockPrismaService.profile.count.mockResolvedValue(0);
+      mockPrismaService.post.count.mockResolvedValue(0);
+
+      await service.generateSitemapIndex();
+
+      const profileWhere = mockPrismaService.profile.count.mock.calls[0][0]
         .where as Record<string, unknown>;
       expect(profileWhere).toEqual({
         privacyLevel: { not: 'PRIVATE' },
@@ -66,16 +82,77 @@ describe('SeoService', () => {
           isTestAccount: false,
         },
       });
+      expect(mockPrismaService.post.count.mock.calls[0][0].where).toMatchObject(
+        {
+          visibility: 'PUBLIC',
+          isPremium: false,
+          moderationStatus: 'VISIBLE',
+          scheduledStatus: 'PUBLISHED',
+          profile: profileWhere,
+        },
+      );
+    });
 
-      const postWhere = mockPrismaService.post.findMany.mock.calls[0][0]
-        .where as Record<string, unknown>;
-      expect(postWhere).toMatchObject({
-        visibility: 'PUBLIC',
-        isPremium: false,
-        moderationStatus: 'VISIBLE',
-        scheduledStatus: 'PUBLISHED',
-        profile: profileWhere,
-      });
+    it('the pages part lists the fixed pages, and has no second page', async () => {
+      const xml = await service.generateSitemapPart('pages', 1);
+      expect(xml).toContain('<loc>https://circlesfera.com/</loc>');
+      expect(xml).toContain('<loc>https://circlesfera.com/pricing</loc>');
+      await expect(service.generateSitemapPart('pages', 2)).resolves.toBeNull();
+    });
+
+    it('a Profiles part reads its own window, oldest first, of eligible Profiles', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        { username: 'testuser', updatedAt: new Date('2026-01-01') },
+      ]);
+
+      const xml = await service.generateSitemapPart('profiles', 3);
+
+      expect(xml).toContain('<loc>https://circlesfera.com/testuser</loc>');
+      expect(xml).toContain('<lastmod>2026-01-01</lastmod>');
+      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          skip: SITEMAP_PART_SIZE * 2,
+          take: SITEMAP_PART_SIZE,
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+          where: expect.objectContaining({ privacyLevel: { not: 'PRIVATE' } }),
+        }),
+      );
+    });
+
+    it('a posts part lists post addresses', async () => {
+      mockPrismaService.post.findMany.mockResolvedValue([
+        { id: 'post-1', createdAt: new Date('2026-01-02') },
+      ]);
+
+      const xml = await service.generateSitemapPart('posts', 1);
+
+      expect(xml).toContain('<loc>https://circlesfera.com/p/post-1</loc>');
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ visibility: 'PUBLIC' }),
+          skip: 0,
+        }),
+      );
+    });
+
+    it('a part past the end, or with no page number, is not there', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([]);
+      mockPrismaService.post.findMany.mockResolvedValue([]);
+
+      await expect(
+        service.generateSitemapPart('profiles', 9),
+      ).resolves.toBeNull();
+      await expect(service.generateSitemapPart('posts', 9)).resolves.toBeNull();
+      await expect(service.generateSitemapPart('posts', 0)).resolves.toBeNull();
+      expect(mockPrismaService.post.findMany).toHaveBeenCalledTimes(1);
+    });
+
+    it('escapes what it writes into an address', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([
+        { username: 'a&b', updatedAt: new Date('2026-01-01') },
+      ]);
+      const xml = await service.generateSitemapPart('profiles', 1);
+      expect(xml).toContain('<loc>https://circlesfera.com/a&amp;b</loc>');
     });
   });
 
@@ -83,9 +160,7 @@ describe('SeoService', () => {
     it('should generate valid robots.txt string', () => {
       const robots = service.generateRobotsTxt();
       expect(robots).toContain('User-agent: *');
-      expect(robots).toContain(
-        'Sitemap: https://circlesfera.com/api/v1/sitemap.xml',
-      );
+      expect(robots).toContain('Sitemap: https://circlesfera.com/sitemap.xml');
     });
   });
 
@@ -425,32 +500,26 @@ describe('SeoService', () => {
       expect(reads()).toBeLessThanOrEqual(most);
     });
 
-    it('reads the sitemap in two bounded queries, whatever it holds', async () => {
-      mockPrismaService.profile.findMany.mockResolvedValue(
-        Array.from({ length: 300 }, (_, i) => ({
-          username: `user${i}`,
-          updatedAt: new Date('2026-01-01'),
-        })),
-      );
-      mockPrismaService.post.findMany.mockResolvedValue(
-        Array.from({ length: 300 }, (_, i) => ({
-          id: `post-${i}`,
-          createdAt: new Date('2026-01-01'),
-        })),
-      );
+    it('reads the site map index in two counts, whatever it holds', async () => {
+      mockPrismaService.profile.count.mockResolvedValue(10 ** 7);
+      mockPrismaService.post.count.mockResolvedValue(10 ** 7);
 
-      await service.generateSitemap();
+      await service.generateSitemapIndex();
 
-      expect(reads()).toBe(2);
-      expect(mockPrismaService.profile.findMany.mock.calls[0][0]).toMatchObject(
-        {
-          take: 45_000,
-          orderBy: { updatedAt: 'desc' },
-        },
-      );
-      expect(mockPrismaService.post.findMany.mock.calls[0][0]).toMatchObject({
-        take: 1000,
-      });
+      expect(reads()).toBe(0);
+      expect(mockPrismaService.profile.count).toHaveBeenCalledTimes(1);
+      expect(mockPrismaService.post.count).toHaveBeenCalledTimes(1);
+    });
+
+    it('reads one bounded window for a part of the site map', async () => {
+      mockPrismaService.profile.findMany.mockResolvedValue([]);
+
+      await service.generateSitemapPart('profiles', 1);
+
+      expect(reads()).toBe(1);
+      expect(
+        mockPrismaService.profile.findMany.mock.calls[0][0].take,
+      ).toBeLessThanOrEqual(50_000);
     });
   });
 });

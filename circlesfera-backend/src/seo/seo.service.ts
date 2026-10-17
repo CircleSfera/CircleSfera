@@ -24,11 +24,50 @@ const PUBLIC_POST_WHERE = {
   profile: PUBLIC_PROFILE_WHERE,
 } satisfies Prisma.PostWhereInput;
 
-// A sitemap may hold 50,000 addresses. With its fixed pages and its posts,
-// this keeps it under that, and keeps a public route from reading every
-// Profile there is.
-const SITEMAP_MAX_PROFILES = 45_000;
-const SITEMAP_MAX_POSTS = 1000;
+// A sitemap file may hold 50,000 addresses; each part here holds fewer, so
+// that one request to this public route reads a bounded number of rows.
+export const SITEMAP_PART_SIZE = 10_000;
+
+export const SITEMAP_KINDS = ['pages', 'profiles', 'posts'] as const;
+export type SitemapKind = (typeof SITEMAP_KINDS)[number];
+
+const SITE = 'https://circlesfera.com';
+
+// The pages of the site that anyone can open, with how often they change.
+const STATIC_PAGES = [
+  { path: '/', changefreq: 'daily', priority: '1.0' },
+  { path: '/explore', changefreq: 'hourly', priority: '0.9' },
+  { path: '/pricing', changefreq: 'weekly', priority: '0.8' },
+  { path: '/accounts/login', changefreq: 'monthly', priority: '0.5' },
+  { path: '/register', changefreq: 'monthly', priority: '0.5' },
+];
+
+// Where each part is published: at the root of the site, so that it may list
+// any address of the site (a sitemap lists only addresses under its own
+// folder) and is not under /api/, which robots.txt closes.
+export const sitemapPartUrl = (kind: SitemapKind, page: number) =>
+  `${SITE}/sitemap-${kind}-${page}.xml`;
+
+const day = (date: Date) => date.toISOString().split('T')[0];
+
+function urlEntry(
+  loc: string,
+  changefreq: string,
+  priority: string,
+  lastmod?: Date,
+) {
+  return `  <url>
+    <loc>${escapeMarkup(loc)}</loc>
+${lastmod ? `    <lastmod>${day(lastmod)}</lastmod>\n` : ''}    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>
+`;
+}
+
+const urlset = (entries: string[]) =>
+  `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.join('')}</urlset>`;
 
 function escapeMarkup(value: string): string {
   return value
@@ -54,80 +93,76 @@ function sanitizeSitePath(path: string): string {
 export class SeoService {
   constructor(@Inject(PrismaService) private readonly prisma: PrismaService) {}
 
-  async generateSitemap(): Promise<string> {
-    const baseUrl = 'https://circlesfera.com';
+  // The site map index: the fixed pages, then the public Profiles and the
+  // public posts in parts of SITEMAP_PART_SIZE, however many there are.
+  async generateSitemapIndex(): Promise<string> {
+    const [profiles, posts] = await Promise.all([
+      this.prisma.profile.count({ where: PUBLIC_PROFILE_WHERE }),
+      this.prisma.post.count({ where: PUBLIC_POST_WHERE }),
+    ]);
+    const parts = [
+      sitemapPartUrl('pages', 1),
+      ...this.partUrls('profiles', profiles),
+      ...this.partUrls('posts', posts),
+    ];
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${parts.map((loc) => `  <sitemap>\n    <loc>${loc}</loc>\n  </sitemap>\n`).join('')}</sitemapindex>`;
+  }
 
-    // Fetch public user profiles
-    const publicProfiles = await this.prisma.profile.findMany({
-      where: PUBLIC_PROFILE_WHERE,
-      select: { username: true, updatedAt: true },
-      take: SITEMAP_MAX_PROFILES,
-      orderBy: { updatedAt: 'desc' },
-    });
+  // One part of the site map, or null when there is no such part. Parts are
+  // read in a fixed order (oldest first), so a new Profile or post goes to
+  // the last part and the earlier ones keep their addresses.
+  async generateSitemapPart(
+    kind: SitemapKind,
+    page: number,
+  ): Promise<string | null> {
+    if (!Number.isInteger(page) || page < 1) return null;
+    if (kind === 'pages') {
+      if (page !== 1) return null;
+      return urlset(
+        STATIC_PAGES.map((p) =>
+          urlEntry(`${SITE}${p.path}`, p.changefreq, p.priority),
+        ),
+      );
+    }
 
-    // Fetch public posts (not locked/premium)
-    const publicPosts = await this.prisma.post.findMany({
+    const window = {
+      skip: (page - 1) * SITEMAP_PART_SIZE,
+      take: SITEMAP_PART_SIZE,
+    };
+    if (kind === 'profiles') {
+      const rows = await this.prisma.profile.findMany({
+        where: PUBLIC_PROFILE_WHERE,
+        select: { username: true, updatedAt: true },
+        orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        ...window,
+      });
+      if (rows.length === 0) return null;
+      return urlset(
+        rows.map((r) =>
+          urlEntry(`${SITE}/${r.username}`, 'daily', '0.7', r.updatedAt),
+        ),
+      );
+    }
+
+    const rows = await this.prisma.post.findMany({
       where: PUBLIC_POST_WHERE,
       select: { id: true, createdAt: true },
-      take: SITEMAP_MAX_POSTS,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      ...window,
     });
+    if (rows.length === 0) return null;
+    return urlset(
+      rows.map((r) =>
+        urlEntry(`${SITE}/p/${r.id}`, 'weekly', '0.6', r.createdAt),
+      ),
+    );
+  }
 
-    let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <!-- Static Pages -->
-  <url>
-    <loc>${baseUrl}/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/explore</loc>
-    <changefreq>hourly</changefreq>
-    <priority>0.9</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/pricing</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/accounts/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>${baseUrl}/register</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- Profiles -->
-`;
-
-    for (const profile of publicProfiles) {
-      xml += `  <url>
-    <loc>${baseUrl}/${profile.username}</loc>
-    <lastmod>${profile.updatedAt.toISOString().split('T')[0]}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>\n`;
-    }
-
-    xml += `\n  <!-- Posts -->\n`;
-
-    for (const post of publicPosts) {
-      xml += `  <url>
-    <loc>${baseUrl}/p/${post.id}</loc>
-    <lastmod>${post.createdAt.toISOString().split('T')[0]}</lastmod>
-    <changefreq>weekly</changefreq>
-    <priority>0.6</priority>
-  </url>\n`;
-    }
-
-    xml += `</urlset>`;
-
-    return xml;
+  private partUrls(kind: SitemapKind, total: number): string[] {
+    const parts = Math.ceil(total / SITEMAP_PART_SIZE);
+    return Array.from({ length: parts }, (_, i) => sitemapPartUrl(kind, i + 1));
   }
 
   generateRobotsTxt(): string {
@@ -142,7 +177,7 @@ Disallow: /admin
 Disallow: /messages
 Disallow: /api/
 
-Sitemap: ${baseUrl}/api/v1/sitemap.xml
+Sitemap: ${baseUrl}/sitemap.xml
 `;
   }
 

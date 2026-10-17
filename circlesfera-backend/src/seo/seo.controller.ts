@@ -1,14 +1,40 @@
-import { Controller, Get, Header, Inject, Param, Query } from '@nestjs/common';
-import { SeoService } from './seo.service.js';
+import {
+  Controller,
+  Get,
+  Header,
+  Inject,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Query,
+} from '@nestjs/common';
+import { SeoService, SITEMAP_KINDS, type SitemapKind } from './seo.service.js';
 
 @Controller()
 export class SeoController {
   constructor(@Inject(SeoService) private readonly seoService: SeoService) {}
 
+  // The site map index, served at /sitemap.xml by the proxy.
   @Get('sitemap.xml')
   @Header('Content-Type', 'application/xml')
+  @Header('Cache-Control', 'public, max-age=3600')
   async getSitemap() {
-    return this.seoService.generateSitemap();
+    return this.seoService.generateSitemapIndex();
+  }
+
+  // One part of the site map, served at /sitemap-<kind>-<page>.xml.
+  @Get('sitemap/:kind/:page')
+  @Header('Content-Type', 'application/xml')
+  @Header('Cache-Control', 'public, max-age=3600')
+  async getSitemapPart(
+    @Param('kind') kind: string,
+    @Param('page', ParseIntPipe) page: number,
+  ) {
+    const part = (SITEMAP_KINDS as readonly string[]).includes(kind)
+      ? await this.seoService.generateSitemapPart(kind as SitemapKind, page)
+      : null;
+    if (!part) throw new NotFoundException();
+    return part;
   }
 
   @Get('robots.txt')
