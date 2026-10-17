@@ -7,6 +7,7 @@ export class ResetPasswordDto {
 
   @IsString()
   @IsNotEmpty()
-  @MinLength(6)
+  // The same minimum as registration and every other password.
+  @MinLength(8)
   newPassword!: string;
 }

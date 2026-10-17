@@ -237,6 +237,15 @@ describe('AuthController', () => {
     expect(mockService.resetPassword).toHaveBeenCalledWith(resetDto);
   });
 
+  it('refuses a new password under 8 characters, as at registration', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/reset-password')
+      .send({ token: 'reset-token-1', newPassword: 'short12' })
+      .expect(400);
+
+    expect(mockService.resetPassword).not.toHaveBeenCalled();
+  });
+
   it('resends verification and lists sessions as the caller userId', async () => {
     mockService.resendVerification.mockResolvedValue({ ok: true });
     mockService.getUserSessions.mockResolvedValue([]);
