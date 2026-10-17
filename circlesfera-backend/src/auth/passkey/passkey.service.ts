@@ -108,6 +108,20 @@ export class PasskeyService {
     });
   }
 
+  // The sign-in of the session, looked for inside its account: the passkeys
+  // a person registers, lists and removes are those of the sign-in they are
+  // signed in with. A session that names none uses the account's first.
+  private async sessionSignInOf(
+    userId: string,
+    signInId?: string,
+  ): Promise<{ id: string; email: string } | null> {
+    if (!signInId) return this.firstSignInOf(userId);
+    return this.prisma.signIn.findFirst({
+      where: { id: signInId, userId },
+      select: { id: true, email: true },
+    });
+  }
+
   // The sign-in an identifier names, by its email or through the Profile
   // with that username, with its own passkeys and the account behind it.
   // Nothing when there is no such sign-in or its account is missing.
@@ -238,12 +252,17 @@ export class PasskeyService {
   async generateRegistrationOptions(
     userId: string,
     sensitivity: PasskeySensitivity = 'sensitive',
+    signInId?: string,
   ) {
-    const signIn = await this.firstSignInOf(userId);
+    const signIn = await this.sessionSignInOf(userId, signInId);
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       include: {
-        profiles: true,
+        // The Profile that enters with this sign-in names the passkey.
+        profiles: {
+          where: { signInId: signIn?.id ?? null },
+          orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+        },
         // Those of the sign-in: what it may not register twice, and its limit.
         passkeys: { where: { signInId: signIn?.id ?? null } },
       },
@@ -320,7 +339,7 @@ export class PasskeyService {
   // Param body: The registration response from the client
   // Returns `{ verified: boolean, userVerified: boolean }`
   // Throws BadRequestException if challenge missing or verification fails
-  async verifyRegistration(userId: string, body: unknown) {
+  async verifyRegistration(userId: string, body: unknown, signInId?: string) {
     const user = (await this.prisma.user.findUnique({
       where: { id: userId },
       omit: { currentChallenge: false },
@@ -367,7 +386,7 @@ export class PasskeyService {
           );
         }
 
-        const signIn = await this.firstSignInOf(userId);
+        const signIn = await this.sessionSignInOf(userId, signInId);
         if (!signIn) {
           throw new BadRequestException('Sign-in not found');
         }
@@ -619,9 +638,9 @@ export class PasskeyService {
   }
 
   // List all registered passkeys for a user (returns safe fields only).
-  async getUserPasskeys(userId: string) {
-    // Those of the sign-in the person uses: the first of the account.
-    const signIn = await this.firstSignInOf(userId);
+  async getUserPasskeys(userId: string, signInId?: string) {
+    // Those of the sign-in the person is signed in with.
+    const signIn = await this.sessionSignInOf(userId, signInId);
     if (!signIn) return [];
     return this.prisma.passkey.findMany({
       where: { userId, signInId: signIn.id },
@@ -669,25 +688,36 @@ export class PasskeyService {
     userId: string,
     passkeyId: string,
     authenticationResponse: unknown,
+    signInId?: string,
   ) {
     const owned = await (
       this.prisma as unknown as {
         passkey: {
-          findUnique: (args: {
-            where: { id: string };
-          }) => Promise<{ id: string; userId: string } | null>;
+          findUnique: (args: { where: { id: string } }) => Promise<{
+            id: string;
+            userId: string;
+            signInId: string | null;
+          } | null>;
         };
       }
     ).passkey.findUnique({
       where: { id: passkeyId },
     });
 
-    if (!owned || owned.userId !== userId) {
+    // Only a passkey of the sign-in of the session, confirmed with that
+    // same sign-in.
+    const signIn = await this.sessionSignInOf(userId, signInId);
+    if (
+      !owned ||
+      owned.userId !== userId ||
+      !signIn ||
+      owned.signInId !== signIn.id
+    ) {
       throw new NotFoundException('Passkey not found');
     }
 
     const stepUp = await this.verifyAuthentication(
-      await this.getEmailForStepUp(userId),
+      signIn.email,
       authenticationResponse,
     );
     if (

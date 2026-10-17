@@ -147,6 +147,64 @@ describe('PasskeyService', () => {
       });
     });
 
+    it("works on the sign-in of the session: its passkeys, its Profile's name, its challenge", async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+        id: 'sign-in-2',
+        email: 'shop@example.com',
+      });
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        email: 'me@example.com',
+        profiles: [{ username: 'shop', fullName: 'The Shop' }],
+        passkeys: [],
+      });
+      mockGenerateRegistrationOptions.mockResolvedValue({
+        challenge: 'mock-challenge',
+      } as PublicKeyCredentialCreationOptionsJSON);
+
+      await service.generateRegistrationOptions(
+        'user-1',
+        'sensitive',
+        'sign-in-2',
+      );
+
+      // The sign-in is looked for inside the account of the session.
+      expect(mockPrismaService.signIn.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'sign-in-2', userId: 'user-1' },
+        }),
+      );
+      expect(mockPrismaService.user.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            passkeys: { where: { signInId: 'sign-in-2' } },
+            profiles: expect.objectContaining({
+              where: { signInId: 'sign-in-2' },
+            }),
+          }),
+        }),
+      );
+      expect(mockGenerateRegistrationOptions).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userName: 'shop',
+          userDisplayName: 'The Shop',
+        }),
+      );
+    });
+
+    it('refuses a sign-in that is not of the account of the session', async () => {
+      mockPrismaService.signIn.findFirst.mockResolvedValueOnce(null);
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'user-1',
+        passkeys: [],
+      });
+
+      await expect(
+        service.generateRegistrationOptions('user-1', 'sensitive', 'sign-in-x'),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockGenerateRegistrationOptions).not.toHaveBeenCalled();
+    });
+
     it('refuses a new passkey once the account has the most it may register', async () => {
       mockPrismaService.user.findUnique.mockResolvedValue({
         id: 'user-1',
@@ -1243,12 +1301,33 @@ describe('PasskeyService', () => {
       expect(mockPrismaService.passkey.deleteMany).not.toHaveBeenCalled();
     });
 
+    it('refuses to delete a passkey of another sign-in of the account', async () => {
+      mockPrismaService.passkey.findUnique.mockResolvedValue({
+        id: 'pk-1',
+        userId: 'user-1',
+        signInId: 'sign-in-other',
+      });
+      mockPrismaService.signIn.findFirst.mockResolvedValue({
+        id: 'sign-in-1',
+        email: 'me@example.com',
+      });
+      const verify = vi.spyOn(service, 'verifyAuthentication');
+
+      await expect(
+        service.deletePasskey('user-1', 'pk-1', assertion, 'sign-in-1'),
+      ).rejects.toThrow(NotFoundException);
+      expect(verify).not.toHaveBeenCalled();
+      expect(mockPrismaService.passkey.deleteMany).not.toHaveBeenCalled();
+      verify.mockRestore();
+    });
+
     it('refuses to delete without a verified step-up from the same user', async () => {
       mockPrismaService.passkey.findUnique.mockResolvedValue({
         id: 'pk-1',
         userId: 'user-1',
+        signInId: 'sign-in-1',
       });
-      mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
+      mockPrismaService.signIn.findFirst.mockResolvedValue({
         id: 'sign-in-1',
         email: 'me@example.com',
       });
@@ -1272,6 +1351,7 @@ describe('PasskeyService', () => {
       mockPrismaService.passkey.findUnique.mockResolvedValue({
         id: 'pk-1',
         userId: 'user-1',
+        signInId: 'sign-in-1',
       });
       mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
         id: 'sign-in-1',
@@ -1302,6 +1382,7 @@ describe('PasskeyService', () => {
       mockPrismaService.passkey.findUnique.mockResolvedValue({
         id: 'pk-1',
         userId: 'user-1',
+        signInId: 'sign-in-1',
       });
       mockPrismaService.signIn.findFirst.mockResolvedValueOnce({
         id: 'sign-in-1',
@@ -1319,6 +1400,8 @@ describe('PasskeyService', () => {
       await expect(
         service.deletePasskey('user-1', 'pk-1', { id: 'cred-1' }),
       ).rejects.toThrow(NotFoundException);
+      // It got as far as the removal, which found nothing.
+      expect(mockPrismaService.passkey.deleteMany).toHaveBeenCalled();
       verify.mockRestore();
     });
   });
