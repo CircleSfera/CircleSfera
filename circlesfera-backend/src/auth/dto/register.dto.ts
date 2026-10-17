@@ -7,6 +7,8 @@ import {
   IsIn,
   IsOptional,
   IsString,
+  Matches,
+  MaxLength,
   MinLength,
 } from 'class-validator';
 import { SUPPORTED_LOCALES } from '../../common/constants/locale.constants.js';
@@ -19,12 +21,18 @@ export class RegisterDto implements IRegisterDto {
   @MinLength(8)
   password!: string;
 
+  // The same rule as creating or renaming a Profile.
   @IsString()
   @MinLength(3)
+  @MaxLength(30)
+  @Matches(/^[a-zA-Z0-9._]+$/, {
+    message: 'Username can only contain letters, numbers, dots and underscores',
+  })
   username!: string;
 
   @IsString()
   @IsOptional()
+  @MaxLength(50)
   fullName?: string;
 
   // ISO date (YYYY-MM-DD). Must be 16+ (enforced in AuthService).

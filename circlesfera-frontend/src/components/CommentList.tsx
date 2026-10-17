@@ -409,6 +409,7 @@ export default function CommentList({
           ref={inputRef}
           type="text"
           value={newComment}
+          maxLength={1000}
           onChange={(e) => setNewComment(e.target.value)}
           placeholder={
             replyingTo

@@ -143,6 +143,10 @@ export default function Register() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
+                  minLength={3}
+                  maxLength={30}
+                  pattern="[a-zA-Z0-9._]+"
+                  title={t('settings.profiles.form.username_invalid')}
                   className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
                   style={{ height: 'var(--input-height-standard, 48px)' }}
                   placeholder={t('auth.register.username_placeholder')}
@@ -161,6 +165,7 @@ export default function Register() {
                   id="fullName"
                   type="text"
                   value={fullName}
+                  maxLength={50}
                   onChange={(e) => setFullName(e.target.value)}
                   className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
                   style={{ height: 'var(--input-height-standard, 48px)' }}
