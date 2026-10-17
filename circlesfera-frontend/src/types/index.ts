@@ -33,6 +33,8 @@ export type Profile = IProfile & { isVerified?: boolean };
 export type Post = IPost & {
   isPromoted?: boolean;
   promotionId?: string;
+  // The countries a promoted post is aimed at; empty for everywhere.
+  promotionCountries?: string[];
   isPremium?: boolean;
   price?: number | null;
   priceCents?: number | null;

@@ -103,6 +103,25 @@ export class AppealsService {
         }
         return targetId;
       }
+      case 'PROMOTION_REJECTION': {
+        if (!targetId) throw new BadRequestException('targetId is required');
+        const promotion = await this.prisma.promotion.findFirst({
+          where: { id: targetId, userId, status: 'REJECTED' },
+          select: { id: true },
+        });
+        if (!promotion) throw new NotFoundException('Promotion not found');
+        // A rejected promotion may be appealed once, whatever the outcome.
+        const earlier = await this.prisma.appeal.findFirst({
+          where: { userId, targetType: 'PROMOTION_REJECTION', targetId },
+          select: { id: true },
+        });
+        if (earlier) {
+          throw new ConflictException(
+            'This promotion has already been appealed',
+          );
+        }
+        return targetId;
+      }
       default:
         return undefined;
     }
@@ -285,6 +304,25 @@ export class AppealsService {
             moderationStatus: 'LABELED',
             type: 'ACCOUNT',
           };
+        } else if (
+          appeal.targetType === 'PROMOTION_REJECTION' &&
+          appeal.targetId
+        ) {
+          const promotion = await this.prisma.promotion.findUnique({
+            where: { id: appeal.targetId },
+            select: { status: true, targetId: true },
+          });
+          if (promotion) {
+            const post = await this.prisma.post.findUnique({
+              where: { id: promotion.targetId },
+              select: { caption: true },
+            });
+            targetPreview = {
+              text: post?.caption?.slice(0, 160) ?? null,
+              moderationStatus: promotion.status,
+              type: 'PROMOTION',
+            };
+          }
         }
 
         return {
@@ -513,6 +551,19 @@ export class AppealsService {
         select: { profileId: true },
       });
       if (riskCase) return { id: riskCase.profileId };
+    }
+    if (appeal.targetType === 'PROMOTION_REJECTION' && appeal.targetId) {
+      const promotion = await this.prisma.promotion.findUnique({
+        where: { id: appeal.targetId },
+        select: { targetId: true },
+      });
+      const post = promotion
+        ? await this.prisma.post.findUnique({
+            where: { id: promotion.targetId },
+            select: { profileId: true },
+          })
+        : null;
+      if (post) return { id: post.profileId };
     }
     return this.prisma.profile.findFirst({
       where: { userId: appeal.userId },

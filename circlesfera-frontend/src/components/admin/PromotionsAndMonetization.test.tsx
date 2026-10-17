@@ -338,7 +338,7 @@ describe('PromotionsTab', () => {
     );
   });
 
-  it('rejects without a reason, and rejects nothing on cancel', async () => {
+  it('rejects only with a reason, and rejects nothing on cancel', async () => {
     api.getPromotions.mockResolvedValue(list([promo('a')]) as never);
     show();
     await screen.findByText('@brand_a');
@@ -356,13 +356,21 @@ describe('PromotionsTab', () => {
     expect(api.updatePromotion).not.toHaveBeenCalled();
 
     fireEvent.click(within(detail()).getByRole('button', { name: 'Reject' }));
-    fireEvent.click(
-      within(await screen.findByRole('dialog')).getByRole('button', {
-        name: 'Reject',
-      }),
-    );
+    const dialog = await screen.findByRole('dialog');
+    // The advertiser is told why and may appeal: no reason, no rejection.
+    expect(
+      within(dialog).getByRole('button', { name: 'Reject' }),
+    ).toBeDisabled();
+    fireEvent.change(within(dialog).getByRole('textbox'), {
+      target: { value: 'Misleading claims' },
+    });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Reject' }));
     await waitFor(() =>
-      expect(api.updatePromotion).toHaveBeenCalledWith('a', 'REJECTED', ''),
+      expect(api.updatePromotion).toHaveBeenCalledWith(
+        'a',
+        'REJECTED',
+        'Misleading claims',
+      ),
     );
   });
 

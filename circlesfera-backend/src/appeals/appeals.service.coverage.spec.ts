@@ -27,6 +27,7 @@ function makePrisma() {
     profile: { findFirst: vi.fn(), findMany: vi.fn() },
     profileStrike: { findFirst: vi.fn(), findUnique: vi.fn() },
     riskCase: { findFirst: vi.fn(), findUnique: vi.fn() },
+    promotion: { findFirst: vi.fn(), findUnique: vi.fn() },
     user: { update: vi.fn(), findUnique: vi.fn().mockResolvedValue(null) },
     adminIdentity: { findUnique: vi.fn().mockResolvedValue(null) },
     adminAuditLog: { create: vi.fn().mockResolvedValue({}) },
@@ -390,6 +391,32 @@ describe('AppealsService.findAll — staff listing', () => {
     ]);
   });
 
+  it('previews a rejected promotion by the caption of its post', async () => {
+    t.prisma.appeal.findMany.mockResolvedValue(
+      ['kept', 'no-post', 'gone'].map((id) =>
+        appeal({ targetType: 'PROMOTION_REJECTION', targetId: id }),
+      ),
+    );
+    t.prisma.promotion.findUnique.mockImplementation(
+      async ({ where }: { where: { id: string } }) =>
+        where.id === 'gone'
+          ? null
+          : { status: 'REJECTED', targetId: `post-${where.id}` },
+    );
+    t.prisma.post.findUnique.mockImplementation(
+      async ({ where }: { where: { id: string } }) =>
+        where.id === 'post-kept' ? { caption: 'Summer sale' } : null,
+    );
+
+    const { data } = await t.service.findAll();
+
+    expect(data.map((d) => d.targetPreview)).toEqual([
+      { text: 'Summer sale', moderationStatus: 'REJECTED', type: 'PROMOTION' },
+      { text: null, moderationStatus: 'REJECTED', type: 'PROMOTION' },
+      null,
+    ]);
+  });
+
   it('previews a bot label and tolerates an appeal without user', async () => {
     t.prisma.appeal.findMany.mockResolvedValue([
       appeal({ targetType: 'BOT_LABEL', user: null }),
@@ -501,6 +528,58 @@ describe('AppealsService.update — effects and notices', () => {
     expect(t.notifications.create).toHaveBeenCalledWith(
       expect.objectContaining({ recipientId: 'p-first', postId: 'post-1' }),
     );
+  });
+
+  it('tells the decision on a promotion to the Profile of its post', async () => {
+    t.prisma.appeal.findUnique.mockResolvedValue(
+      stored({ targetType: 'PROMOTION_REJECTION', targetId: 'promo-1' }),
+    );
+    t.prisma.promotion.findUnique.mockResolvedValue({ targetId: 'post-9' });
+    t.prisma.post.findUnique.mockResolvedValue({ profileId: 'p-shop' });
+
+    await t.service.update(
+      'appeal-1',
+      { status: 'APPROVED' } as never,
+      'admin-1',
+    );
+
+    expect(t.notifications.create).toHaveBeenCalledWith(
+      expect.objectContaining({ recipientId: 'p-shop' }),
+    );
+  });
+
+  it('falls back to the first Profile when the promotion or its post is gone', async () => {
+    t.prisma.profile.findFirst.mockResolvedValue({ id: 'p-first' });
+    for (const [promotion, post] of [
+      [null, null],
+      [{ targetId: 'post-9' }, null],
+    ]) {
+      t.notifications.create.mockClear();
+      t.prisma.appeal.findUnique.mockResolvedValue(
+        stored({ targetType: 'PROMOTION_REJECTION', targetId: 'promo-1' }),
+      );
+      t.prisma.promotion.findUnique.mockResolvedValue(promotion);
+      t.prisma.post.findUnique.mockResolvedValue(post);
+
+      await t.service.update(
+        'appeal-1',
+        { status: 'REJECTED' } as never,
+        'admin-1',
+      );
+
+      expect(t.notifications.create).toHaveBeenCalledWith(
+        expect.objectContaining({ recipientId: 'p-first' }),
+      );
+    }
+  });
+
+  it('refuses a promotion appeal with no promotion named', async () => {
+    await expect(
+      t.service.create('user-1', {
+        targetType: 'PROMOTION_REJECTION',
+        reason: 'Please look at it again',
+      } as never),
+    ).rejects.toThrow('targetId is required');
   });
 
   it('a restriction that was already lifted does not clear any caps', async () => {

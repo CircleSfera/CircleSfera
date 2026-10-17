@@ -29,6 +29,7 @@ describe('AppealsService', () => {
     profile: { findFirst: vi.fn(), findMany: vi.fn() },
     profileStrike: { findFirst: vi.fn(), findUnique: vi.fn() },
     riskCase: { findFirst: vi.fn(), findUnique: vi.fn() },
+    promotion: { findFirst: vi.fn(), findUnique: vi.fn() },
     user: { update: vi.fn(), findUnique: vi.fn() },
     adminIdentity: { findUnique: vi.fn() },
     adminAuditLog: { create: vi.fn() },
@@ -143,6 +144,64 @@ describe('AppealsService', () => {
         }),
       );
       expect(result).toHaveProperty('id', 'appeal-1');
+    });
+
+    it('takes the appeal of one of the person own rejected promotions', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+      });
+      mockPrismaService.appeal.create.mockResolvedValue({ id: 'appeal-9' });
+
+      await service.create('user-1', {
+        targetType: 'PROMOTION_REJECTION' as any,
+        targetId: 'promo-1',
+        reason: 'The post follows every rule',
+      });
+
+      expect(mockPrismaService.promotion.findFirst).toHaveBeenCalledWith({
+        where: { id: 'promo-1', userId: 'user-1', status: 'REJECTED' },
+        select: { id: true },
+      });
+      expect(mockPrismaService.appeal.create).toHaveBeenCalled();
+    });
+
+    it('refuses an appeal about a promotion not rejected or of someone else', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue(null);
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'PROMOTION_REJECTION' as any,
+          targetId: 'promo-x',
+          reason: 'The post follows every rule',
+        }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
+    });
+
+    it('takes one appeal per rejected promotion, whatever became of it', async () => {
+      mockPrismaService.promotion.findFirst.mockResolvedValue({
+        id: 'promo-1',
+      });
+      mockPrismaService.appeal.findFirst.mockResolvedValueOnce({
+        id: 'appeal-old',
+      });
+
+      await expect(
+        service.create('user-1', {
+          targetType: 'PROMOTION_REJECTION' as any,
+          targetId: 'promo-1',
+          reason: 'The post follows every rule',
+        }),
+      ).rejects.toThrow(ConflictException);
+      expect(mockPrismaService.appeal.findFirst).toHaveBeenCalledWith({
+        where: {
+          userId: 'user-1',
+          targetType: 'PROMOTION_REJECTION',
+          targetId: 'promo-1',
+        },
+        select: { id: true },
+      });
+      expect(mockPrismaService.appeal.create).not.toHaveBeenCalled();
     });
 
     it('refuses an appeal about a post of another account', async () => {

@@ -56,7 +56,12 @@ export class ReviewPromotionUseCase {
 
     const updated = await this.prisma.promotion.update({
       where: { id: promotionId },
-      data: { status: status as PromotionStatus },
+      data: {
+        status: status as PromotionStatus,
+        // The reason stays with the promotion, for the appeal.
+        rejectionReason:
+          status === PromotionStatus.REJECTED ? (note ?? null) : null,
+      },
     });
 
     await this.logAdminAction.execute(
@@ -87,7 +92,13 @@ export class ReviewPromotionUseCase {
           status === PromotionStatus.ACTIVE
             ? { key: 'promotion_approved' }
             : { key: 'promotion_rejected', note },
-        postId: promo.targetType === 'POST' ? promo.targetId : undefined,
+        // About the promotion, not the post: a rejection is appealed as
+        // the promotion's, never as a post removed.
+        targetType:
+          status === PromotionStatus.ACTIVE
+            ? 'promotion_approved'
+            : 'promotion_rejected',
+        targetId: promotionId,
       });
     }
 

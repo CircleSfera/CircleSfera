@@ -1,4 +1,5 @@
 import { screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { renderWithProviders } from '../../test/test-utils';
@@ -102,5 +103,62 @@ describe('PostHeader', () => {
     expect(
       screen.getByRole('button', { name: i18n!.t('common.back') }),
     ).toBeInTheDocument();
+  });
+  it('says why a promoted post is shown: who paid and the countries', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <PostHeader
+        post={{ ...post, isPromoted: true, promotionCountries: ['ES', 'PT'] }}
+        menuButtonRef={createRef<HTMLButtonElement>()}
+        onMenuToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Promoted. Why am I seeing this?' }),
+    );
+
+    expect(
+      screen.getByText('@alice paid to promote this post.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('It is shown to people in Spain and Portugal.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Change it' })).toHaveAttribute(
+      'href',
+      '/accounts/account',
+    );
+  });
+
+  it('says a promotion with no countries is shown everywhere', async () => {
+    const user = userEvent.setup();
+    renderWithProviders(
+      <PostHeader
+        post={{ ...post, isPromoted: true }}
+        menuButtonRef={createRef<HTMLButtonElement>()}
+        onMenuToggle={vi.fn()}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: 'Promoted. Why am I seeing this?' }),
+    );
+
+    expect(
+      screen.getByText('It is shown to people everywhere.'),
+    ).toBeInTheDocument();
+  });
+
+  it('has no promoted label on an ordinary post', () => {
+    renderWithProviders(
+      <PostHeader
+        post={post}
+        menuButtonRef={createRef<HTMLButtonElement>()}
+        onMenuToggle={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: /Why am I seeing this/ }),
+    ).not.toBeInTheDocument();
   });
 });

@@ -182,6 +182,11 @@ const SUSPENSION_CAUSES: Record<
   },
 };
 
+// A note written by staff may end without a full stop; the next sentence
+// needs one before it.
+const endSentence = (text: string) =>
+  /[.!?…]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`;
+
 const withNote = (text: string, label: string, note?: string) =>
   note?.trim() ? `${text} ${label}: ${note.trim()}` : text;
 
@@ -261,9 +266,9 @@ function renderEn(n: Notice): string {
     case 'bot_labeled':
       return 'After a staff review, your account was labeled as possibly automated. You can appeal from Settings → Appeals.';
     case 'promotion_approved':
-      return 'Your promotion was approved. Your content will now reach more people.';
+      return 'Your promotion was approved and is now running.';
     case 'promotion_rejected':
-      return withNote('Your promotion request was rejected.', 'Reason', n.note);
+      return `${endSentence(withNote('Your promotion request was rejected.', 'Reason', n.note))} What was not spent is refunded. You can appeal this decision once.`;
     case 'profile_warning':
       return `Warning: this profile broke the community guidelines (${rule('en', n.rule)}). There is no penalty this time. It expires on ${day('en', n.expires)}. You can appeal it.`;
     case 'profile_strike': {
@@ -378,13 +383,15 @@ function renderEs(n: Notice): string {
     case 'bot_labeled':
       return 'Tras una revisión del equipo, tu cuenta se ha marcado como posiblemente automatizada. Puedes apelar desde Ajustes → Apelaciones.';
     case 'promotion_approved':
-      return 'Tu promoción ha sido aprobada. Tu contenido llegará ahora a más personas.';
+      return 'Tu promoción ha sido aprobada y ya está en marcha.';
     case 'promotion_rejected':
-      return withNote(
-        'Tu solicitud de promoción ha sido rechazada.',
-        'Motivo',
-        n.note,
-      );
+      return `${endSentence(
+        withNote(
+          'Tu solicitud de promoción ha sido rechazada.',
+          'Motivo',
+          n.note,
+        ),
+      )} Te devolvemos lo que no se haya gastado. Puedes apelar esta decisión una vez.`;
     case 'profile_warning':
       return `Advertencia: este perfil ha incumplido las normas de la comunidad (${rule('es', n.rule)}). Esta vez no hay sanción. Caduca el ${day('es', n.expires)}. Puedes apelarla.`;
     case 'profile_strike': {

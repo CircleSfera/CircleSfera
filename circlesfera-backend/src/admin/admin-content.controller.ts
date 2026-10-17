@@ -26,6 +26,7 @@ import { AdminJwtAuthGuard } from '../auth/guards/admin-jwt-auth.guard.js';
 import { AdminQueryDto } from './dto/admin-query.dto.js';
 import { BulkDeleteDto } from './dto/bulk-delete.dto.js';
 import { ReassignReportDto } from './dto/reassign-report.dto.js';
+import { ReviewPromotionDto } from './dto/review-promotion.dto.js';
 import { SetHashtagHiddenDto } from './dto/set-hashtag-hidden.dto.js';
 import { WarnLiveHostDto } from './dto/warn-live-host.dto.js';
 import { BulkDeleteContentUseCase } from './use-cases/content/commands/bulk-delete-content.use-case.js';
@@ -297,11 +298,15 @@ export class AdminContentController {
   @Patch('promotions/:id')
   async updatePromotionStatus(
     @Param('id') id: string,
-    @Body('status') status: PromotionStatus,
-    @Body('note') note: string,
+    @Body() body: ReviewPromotionDto,
     @CurrentAdmin() admin: CurrentAdminData,
   ) {
-    return this.reviewPromotionUseCase.execute(admin.adminId, id, status, note);
+    return this.reviewPromotionUseCase.execute(
+      admin.adminId,
+      id,
+      body.status as PromotionStatus,
+      body.note?.trim(),
+    );
   }
 
   @RequireStaffPermissions('moderation')
