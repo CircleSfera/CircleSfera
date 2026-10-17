@@ -171,6 +171,21 @@ describe('SearchService', () => {
       expect(result).toEqual([{ id: 'cached-prof' }]);
     });
 
+    it('leaves out banned, suspended and closed accounts when searching by meaning, signed in or not', async () => {
+      for (const viewer of ['viewer-1', undefined]) {
+        mockCacheManager.get.mockResolvedValueOnce(null);
+        mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
+        await service.semanticSearchProfiles('musician', 10, viewer);
+        const [strings] = mockPrismaService.$queryRaw.mock.calls.at(-1) ?? [[]];
+        const sql = (strings as string[]).join('?');
+        expect(sql).toContain('pr."isAccountBanned" = false');
+        expect(sql).toContain(
+          '(pr."suspendedUntil" IS NULL OR pr."suspendedUntil" < NOW())',
+        );
+        expect(sql).toContain('u."isActive" = true');
+      }
+    });
+
     it('returns empty array when vector search returns no matches', async () => {
       mockCacheManager.get.mockResolvedValueOnce(null);
       mockPrismaService.$queryRaw.mockResolvedValueOnce([]);
@@ -518,18 +533,28 @@ describe('SearchService', () => {
       expect(results[0].followedByFriends).toEqual([]);
     });
 
-    it('filters out deactivated users when searching by username or full name', async () => {
+    it('finds no deactivated or closed account, and no banned or suspended Profile', async () => {
       mockPrismaService.profile.findMany.mockResolvedValueOnce([]);
 
       await service.searchUsers('alice', 'viewer-1');
 
-      expect(mockPrismaService.profile.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: expect.objectContaining({
-            user: { deactivatedAt: null },
-          }),
-        }),
-      );
+      const where = mockPrismaService.profile.findMany.mock.calls[0][0].where;
+      expect(where.user).toEqual({ deactivatedAt: null, isActive: true });
+      expect(where.isAccountBanned).toBe(false);
+      // A suspension in force hides the Profile; an ended one does not.
+      expect(where.AND).toContainEqual({
+        OR: [
+          { suspendedUntil: null },
+          { suspendedUntil: { lt: expect.any(Date) } },
+        ],
+      });
+      // Still searched by name.
+      expect(where.OR).toEqual([
+        { username: { contains: 'alice', mode: 'insensitive' } },
+        { fullName: { contains: 'alice', mode: 'insensitive' } },
+      ]);
+      // Private Profiles are not filtered out: their name and photo show.
+      expect(JSON.stringify(where)).not.toContain('privacyLevel');
     });
   });
 
