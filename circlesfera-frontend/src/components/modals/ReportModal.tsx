@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { reportsApi } from '../../services';
 import { logger } from '../../utils/logger';
-import { Button, Textarea } from '../ui';
+import { Button, Input, Textarea } from '../ui';
 import { Dialog } from '../ui/Dialog';
 
 export type ReportTargetType =
@@ -46,6 +46,8 @@ export default function ReportModal({
   const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
+  const [rightsHolder, setRightsHolder] = useState('');
+  const [workConcerned, setWorkConcerned] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
@@ -53,12 +55,20 @@ export default function ReportModal({
     if (!isOpen) {
       setReason('');
       setDetails('');
+      setRightsHolder('');
+      setWorkConcerned('');
       setIsSuccess(false);
     }
   }, [isOpen]);
 
+  // An intellectual-property report names who holds the right and the work.
+  const isIp = reason === 'INTELLECTUAL_PROPERTY';
+  const ready =
+    !!reason &&
+    (!isIp || (rightsHolder.trim() !== '' && workConcerned.trim() !== ''));
+
   const handleSubmit = async () => {
-    if (!reason) return;
+    if (!ready) return;
     setIsSubmitting(true);
     try {
       await reportsApi.create({
@@ -66,6 +76,12 @@ export default function ReportModal({
         targetId,
         reason,
         details: details.trim() || undefined,
+        ...(isIp
+          ? {
+              rightsHolder: rightsHolder.trim(),
+              workConcerned: workConcerned.trim(),
+            }
+          : {}),
       });
       setIsSuccess(true);
       setTimeout(() => {
@@ -120,6 +136,26 @@ export default function ReportModal({
               </button>
             ))}
           </div>
+          {isIp && (
+            <div className="space-y-3 mb-4">
+              <Input
+                label={t('report.ip.rights_holder')}
+                value={rightsHolder}
+                onChange={(e) => setRightsHolder(e.target.value)}
+                placeholder={t('report.ip.rights_holder_placeholder')}
+                maxLength={200}
+                required
+              />
+              <Input
+                label={t('report.ip.work')}
+                value={workConcerned}
+                onChange={(e) => setWorkConcerned(e.target.value)}
+                placeholder={t('report.ip.work_placeholder')}
+                maxLength={500}
+                required
+              />
+            </div>
+          )}
           <Textarea
             value={details}
             onChange={(e) => setDetails(e.target.value)}
@@ -128,7 +164,7 @@ export default function ReportModal({
           />
           <Button
             onClick={handleSubmit}
-            disabled={!reason || isSubmitting}
+            disabled={!ready || isSubmitting}
             isLoading={isSubmitting}
             className="button-alone"
           >

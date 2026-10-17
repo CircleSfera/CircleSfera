@@ -874,6 +874,26 @@ export default function ReportsTab({ onToast }: Props) {
                           </dd>
                         </div>
                       )}
+                      {selectedReport.rightsHolder && (
+                        <div className="py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-white/50 mb-1.5">
+                            {t('admin.reports.ip.rights_holder')}
+                          </dt>
+                          <dd className="text-sm text-white/70 whitespace-pre-wrap">
+                            {selectedReport.rightsHolder}
+                          </dd>
+                        </div>
+                      )}
+                      {selectedReport.workConcerned && (
+                        <div className="py-2.5 border-b border-white/5">
+                          <dt className="text-xs font-medium text-white/50 mb-1.5">
+                            {t('admin.reports.ip.work')}
+                          </dt>
+                          <dd className="text-sm text-white/70 whitespace-pre-wrap">
+                            {selectedReport.workConcerned}
+                          </dd>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between gap-3 py-2.5 border-b border-white/5">
                         <dt className="text-xs font-medium text-white/50">
                           {t('admin.reports.status_label')}

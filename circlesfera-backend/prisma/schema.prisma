@@ -2234,6 +2234,9 @@ model Report {
   internalNotes   String?
   // Seen first in the staff queue: a report of self-harm.
   urgent          Boolean        @default(false)
+  // An intellectual-property report: who holds the right, and the work.
+  rightsHolder    String?
+  workConcerned   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

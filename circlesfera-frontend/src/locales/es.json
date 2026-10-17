@@ -1892,6 +1892,12 @@
       "self_harm": "Autolesión o suicidio",
       "intellectual_property": "Propiedad intelectual (derechos de autor, marca)",
       "other": "Otra cosa"
+    },
+    "ip": {
+      "rights_holder": "Quién tiene el derecho",
+      "rights_holder_placeholder": "Tu nombre, o la persona o empresa a la que representas",
+      "work": "La obra afectada",
+      "work_placeholder": "Por ejemplo: mi foto publicada en mi perfil, o el título de la canción"
     }
   },
   "notifications": {
@@ -2727,6 +2733,10 @@
         "REVIEWING": "En revisión",
         "RESOLVED": "Resuelto",
         "REJECTED": "Descartado"
+      },
+      "ip": {
+        "rights_holder": "Titular del derecho",
+        "work": "Obra afectada"
       }
     },
     "monetization": {

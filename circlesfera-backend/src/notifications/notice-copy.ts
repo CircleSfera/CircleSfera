@@ -61,7 +61,9 @@ export type Notice =
   | { key: 'tip_received'; amountCents: number; currency: string }
   // The app shows it as coming from Support, like a sender.
   | { key: 'support_answered'; subject: string }
-  | { key: 'live_started' };
+  | { key: 'live_started' }
+  // Someone who saw what the Profile shared is worried about it.
+  | { key: 'support_resources' };
 
 export type NoticeKey = Notice['key'];
 
@@ -344,6 +346,8 @@ function renderEn(n: Notice): string {
       return `answered your request "${n.subject}"`;
     case 'live_started':
       return 'started a live';
+    case 'support_resources':
+      return 'Someone who saw what you shared is worried about you. If you are going through something hard, you are not alone. In immediate danger, call 112 or your local emergency number. To talk to someone for free, find a helpline in your country at findahelpline.com.';
   }
 }
 
@@ -473,6 +477,8 @@ function renderEs(n: Notice): string {
       return `ha respondido a tu solicitud «${n.subject}»`;
     case 'live_started':
       return 'ha empezado un directo';
+    case 'support_resources':
+      return 'Alguien que ha visto lo que compartiste se preocupa por ti. Si estás pasando por algo difícil, no estás solo ni sola. Si estás en peligro inmediato, llama al 112. Para hablar con alguien, llama al 024: es gratis, confidencial y atiende a cualquier hora.';
   }
 }
 

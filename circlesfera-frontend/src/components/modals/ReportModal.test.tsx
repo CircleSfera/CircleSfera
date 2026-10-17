@@ -97,8 +97,8 @@ describe('ReportModal', () => {
     });
   });
 
-  it('offers self-harm and intellectual property, and sends each by its own reason', async () => {
-    for (const reason of ['SELF_HARM', 'INTELLECTUAL_PROPERTY']) {
+  it('offers self-harm and sends it by its own reason', async () => {
+    for (const reason of ['SELF_HARM']) {
       vi.mocked(reportsApi.create).mockClear();
       const view = renderWithProviders(
         <ReportModal
@@ -120,6 +120,44 @@ describe('ReportModal', () => {
       );
       view.unmount();
     }
+  });
+
+  it('an intellectual-property report asks who holds the right and the work, and sends both', async () => {
+    const { i18n } = renderWithProviders(
+      <ReportModal isOpen onClose={onClose} targetType="POST" targetId="p-1" />,
+    );
+    const t = (k: string) => i18n!.t(k);
+    const submit = () =>
+      screen.getByRole('button', { name: t('report.submit') });
+
+    expect(
+      screen.queryByLabelText(t('report.ip.rights_holder')),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByText(t('report.reasons.intellectual_property')),
+    );
+    expect(submit()).toBeDisabled();
+
+    fireEvent.change(screen.getByLabelText(t('report.ip.rights_holder')), {
+      target: { value: '  Ana Ruiz ' },
+    });
+    expect(submit()).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(t('report.ip.work')), {
+      target: { value: 'My photo' },
+    });
+    expect(submit()).toBeEnabled();
+    fireEvent.click(submit());
+
+    await waitFor(() =>
+      expect(reportsApi.create).toHaveBeenCalledWith({
+        targetType: 'POST',
+        targetId: 'p-1',
+        reason: 'INTELLECTUAL_PROPERTY',
+        details: undefined,
+        rightsHolder: 'Ana Ruiz',
+        workConcerned: 'My photo',
+      }),
+    );
   });
 
   it('shows success after a report without details', async () => {

@@ -21,6 +21,9 @@ import {
   ReportTargetType,
 } from './dto/create-report.dto.js';
 
+// Marks the notice with where to find help, to send it once a day at most.
+const SUPPORT_RESOURCES = 'support_resources';
+
 // Service for content/user reports: creation, listing, and status updates.
 @Injectable()
 export class ReportsService {
@@ -33,6 +36,8 @@ export class ReportsService {
   // Param reporterId: The reporting user's ID
   // Param dto: Report details (targetType, targetId, reason, details)
   async create(reporterId: string, dto: CreateReportDto): Promise<Report> {
+    // The Profile behind what is reported, to offer it help on self-harm.
+    let authorProfileId: string | null = null;
     switch (dto.targetType) {
       case ReportTargetType.USER: {
         const user = await this.prisma.user.findUnique({
@@ -43,6 +48,14 @@ export class ReportsService {
             ErrorCode.USER_NOT_FOUND,
             'Target user not found',
           );
+        authorProfileId =
+          (
+            await this.prisma.profile.findFirst({
+              where: { userId: user.id },
+              orderBy: { createdAt: 'asc' },
+              select: { id: true },
+            })
+          )?.id ?? null;
         break;
       }
       case ReportTargetType.POST: {
@@ -54,6 +67,7 @@ export class ReportsService {
             ErrorCode.POST_NOT_FOUND,
             'Target post not found',
           );
+        authorProfileId = post.profileId;
         break;
       }
       case ReportTargetType.STORY: {
@@ -65,6 +79,7 @@ export class ReportsService {
             ErrorCode.STORY_NOT_FOUND,
             'Target story not found',
           );
+        authorProfileId = story.profileId;
         break;
       }
       case ReportTargetType.COMMENT: {
@@ -76,6 +91,7 @@ export class ReportsService {
             ErrorCode.COMMENT_NOT_FOUND,
             'Target comment not found',
           );
+        authorProfileId = comment.profileId;
         break;
       }
       case ReportTargetType.MESSAGE: {
@@ -87,6 +103,7 @@ export class ReportsService {
             ErrorCode.MESSAGE_NOT_FOUND,
             'Target message not found',
           );
+        authorProfileId = message.senderId;
         break;
       }
     }
@@ -102,8 +119,18 @@ export class ReportsService {
         details: finalDetails,
         // Someone may hurt themselves: staff see it first.
         urgent: dto.reason === 'SELF_HARM',
+        ...(dto.reason === 'INTELLECTUAL_PROPERTY'
+          ? {
+              rightsHolder: dto.rightsHolder,
+              workConcerned: dto.workConcerned,
+            }
+          : {}),
       },
     })) as Report;
+
+    if (dto.reason === 'SELF_HARM' && authorProfileId) {
+      await this.offerHelp(authorProfileId, reporterId);
+    }
 
     const event: ModerationReportFiledEvent['payload'] = {
       reportId: report.id,
@@ -116,6 +143,32 @@ export class ReportsService {
     this.eventEmitter.emit('moderation.report_filed', event);
 
     return report;
+  }
+
+  // Someone is worried the author may hurt themselves: the author is told
+  // privately where to find help, in their language. Never who reported,
+  // never more than once a day, and not for a report about oneself.
+  private async offerHelp(authorProfileId: string, reporterId: string) {
+    if (authorProfileId === reporterId) return;
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = await this.prisma.notification.findFirst({
+      where: {
+        recipientId: authorProfileId,
+        targetType: SUPPORT_RESOURCES,
+        createdAt: { gte: since },
+      },
+      select: { id: true },
+    });
+    if (recent) return;
+    const sender = await resolveSystemModeratorActor(this.prisma);
+    if (!sender) return;
+    this.eventEmitter.emit('notification.create', {
+      recipientId: authorProfileId,
+      senderId: sender.profileId,
+      type: NotificationType.SYSTEM,
+      notice: { key: 'support_resources' },
+      targetType: SUPPORT_RESOURCES,
+    } satisfies NotificationCreateEvent['payload']);
   }
 
   // List reports filed by the authenticated user.
