@@ -12,7 +12,10 @@ describe('ProfilesService', () => {
 
   const mockPrismaService: any = {
     $transaction: vi.fn((cb: any) => cb(mockPrismaService)),
-    profileMember: { findUnique: vi.fn().mockResolvedValue(null) },
+    profileMember: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      updateMany: vi.fn(),
+    },
     profile: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -293,12 +296,22 @@ describe('ProfilesService', () => {
         _count: { followers: 0, following: 0 },
       });
 
+      mockPrismaService.profileMember.updateMany.mockResolvedValue({
+        count: 0,
+      });
+
       const result = await service.updateProfile('p-1', {
         accountType: 'CREATOR',
         bio: 'New bio',
       });
 
       expect(mockPrismaService.user.update).not.toHaveBeenCalled();
+      // A change of kind moves the team with it.
+      expect(mockPrismaService.profileMember.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { profileId: 'p-1', status: 'ACTIVE' },
+        }),
+      );
       expect(mockPrismaService.profile.update).toHaveBeenCalledWith(
         expect.objectContaining({
           where: { id: 'p-1' },

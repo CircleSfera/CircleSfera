@@ -47,6 +47,7 @@ describe('AdminPlansService', () => {
       'verified_badge',
       'no_promoted_content',
       'advanced_analytics',
+      'team_access',
     ]);
   });
 

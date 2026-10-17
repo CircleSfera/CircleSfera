@@ -84,8 +84,13 @@ export const teamApi = {
     apiClient.delete(`team/members/${memberId}`).then((r) => r.data),
   invitations: () =>
     apiClient.get<TeamInvitation[]>('team/invitations').then((r) => r.data),
+  // A member accepted while the Business plan is off starts paused.
   accept: (id: string) =>
-    apiClient.post(`team/invitations/${id}/accept`).then((r) => r.data),
+    apiClient
+      .post<{ success: boolean; paused?: boolean }>(
+        `team/invitations/${id}/accept`,
+      )
+      .then((r) => r.data),
   decline: (id: string) =>
     apiClient.post(`team/invitations/${id}/decline`).then((r) => r.data),
 };

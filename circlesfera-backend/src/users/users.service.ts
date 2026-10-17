@@ -22,6 +22,7 @@ import { StripeService } from '../common/stripe/stripe.service.js';
 import { EmailService } from '../email/email.service.js';
 import { OutboxService } from '../outbox/outbox.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { followTeamPlan } from '../team/team-plan.js';
 import { UpdateSettingsDto } from './dto/update-settings.dto.js';
 
 // The push switches of a Profile: the pause and the five groups.
@@ -992,6 +993,8 @@ export class UsersService {
           `Profile ${profile.id} verification synced: ${targetVerificationLevel}`,
         );
       }
+      // The team pauses when the Business plan ends and returns with it.
+      await followTeamPlan(this.prisma, profile.id);
     }
   }
 }

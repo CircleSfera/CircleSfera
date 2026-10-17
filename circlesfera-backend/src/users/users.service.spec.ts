@@ -69,7 +69,9 @@ describe('UsersService', () => {
       updateMany: vi.fn(),
     },
     adminAuditLog: { create: vi.fn() },
+    profileMember: { updateMany: vi.fn() },
     profile: {
+      findUnique: vi.fn(),
       findFirst: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn(),
@@ -1082,6 +1084,34 @@ describe('UsersService', () => {
       });
       await service.syncUserTier('u_down');
       expect(mockCacheManager.del).not.toHaveBeenCalled();
+    });
+
+    it('pauses the team of each Profile that leaves the Business plan', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue({
+        id: 'u_shop',
+        profiles: [
+          {
+            id: 'p_shop',
+            username: 'shop',
+            verificationLevel: VerificationLevel.BUSINESS,
+            platformSubscriptions: [],
+          },
+        ],
+      });
+      mockPrismaService.profile.findUnique.mockResolvedValue({
+        accountType: 'BUSINESS',
+        verificationLevel: VerificationLevel.BASIC,
+      });
+      mockPrismaService.profileMember.updateMany.mockResolvedValue({
+        count: 2,
+      });
+
+      await service.syncUserTier('u_shop');
+
+      expect(mockPrismaService.profileMember.updateMany).toHaveBeenCalledWith({
+        where: { profileId: 'p_shop', status: 'ACTIVE' },
+        data: { status: 'PAUSED' },
+      });
     });
 
     it('returns early when user is not found', async () => {

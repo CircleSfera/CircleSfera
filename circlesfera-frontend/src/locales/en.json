@@ -675,7 +675,9 @@
           "COMMENT_DELETED_you": "deleted a comment",
           "PROFILE_EDITED_you": "edited the profile"
         }
-      }
+      },
+      "accepted_paused": "You joined the team. Your access starts when the profile is back on the Business plan.",
+      "paused_note": "The team is paused, not removed: each person gets their access back when the Business plan returns."
     }
   },
   "auth": {
@@ -4475,7 +4477,8 @@
       "personalization": "Profile personalization",
       "elite_badge": "Elite badge",
       "business_badge": "Business badge",
-      "advanced_analytics": "Advanced analytics"
+      "advanced_analytics": "Advanced analytics",
+      "team_access": "Team access: up to 5 people"
     },
     "desc_premium": "Your profile with the verified badge.",
     "desc_elite": "For creator profiles.",

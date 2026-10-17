@@ -675,7 +675,9 @@
           "COMMENT_DELETED_you": "has eliminado un comentario",
           "PROFILE_EDITED_you": "has editado el perfil"
         }
-      }
+      },
+      "accepted_paused": "Te has unido al equipo. Tu acceso empezará cuando el perfil vuelva al plan Business.",
+      "paused_note": "El equipo está en pausa, no eliminado: cada persona recupera su acceso cuando vuelve el plan Business."
     }
   },
   "auth": {
@@ -4475,7 +4477,8 @@
       "personalization": "Personalización del perfil",
       "elite_badge": "Insignia élite",
       "business_badge": "Insignia de empresa",
-      "advanced_analytics": "Analíticas avanzadas"
+      "advanced_analytics": "Analíticas avanzadas",
+      "team_access": "Acceso de equipo: hasta 5 personas"
     },
     "desc_premium": "Tu perfil con la insignia de verificado.",
     "desc_elite": "Para perfiles de creador.",

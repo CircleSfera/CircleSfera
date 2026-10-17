@@ -18,6 +18,7 @@ import { EmailService } from '../email/email.service.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { activeStrikeWhere } from '../strikes/profile-strikes.constants.js';
+import { followTeamPlan } from '../team/team-plan.js';
 import { UsersService } from '../users/users.service.js';
 import type {
   BroadcastAudienceDto,
@@ -416,6 +417,8 @@ export class AdminUsersService {
           where: { id: user.profiles[0].id },
           data: updateData,
         });
+        // A level or kind set by staff moves the team like a plan change.
+        await followTeamPlan(this.prisma, user.profiles[0].id);
       }
     }
 

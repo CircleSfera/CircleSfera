@@ -10,6 +10,7 @@ import { createPaginatedResult } from '../common/dto/pagination.dto.js';
 import { AppException } from '../common/errors/app.exception.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ProfileAccessService } from './profile-access.service.js';
+import { hasTeamPlan } from './team-plan.js';
 
 // At most this many members per Business Profile, besides its owner,
 // counting those invited and those paused (PD-014).
@@ -61,9 +62,7 @@ export class TeamService {
     ]);
     return {
       // A team needs a Business Profile on the Business plan.
-      available:
-        profile?.accountType === 'BUSINESS' &&
-        profile.verificationLevel === 'BUSINESS',
+      available: hasTeamPlan(profile),
       seats: { used: members.length, max: TEAM_SEATS },
       members: members.map(({ user, ...member }) => ({
         ...member,
@@ -105,10 +104,7 @@ export class TeamService {
         where: { id: profileId },
         select: { accountType: true, verificationLevel: true },
       });
-      if (
-        profile?.accountType !== 'BUSINESS' ||
-        profile.verificationLevel !== 'BUSINESS'
-      ) {
+      if (!hasTeamPlan(profile)) {
         throw AppException.Forbidden(
           ErrorCode.PLAN_REQUIRED,
           'A team is part of the Business plan.',
@@ -268,9 +264,18 @@ export class TeamService {
         'Turn on two-step verification to join a team',
       );
     }
+    // Accepted while the Business plan is off, the member starts paused and
+    // becomes active when the plan returns.
+    const profile = await this.prisma.profile.findUnique({
+      where: { id: invitation.profileId },
+      select: { accountType: true, verificationLevel: true },
+    });
     const accepted = await this.prisma.profileMember.updateMany({
       where: { id: invitation.id, status: 'INVITED' },
-      data: { status: 'ACTIVE', acceptedAt: new Date() },
+      data: {
+        status: hasTeamPlan(profile) ? 'ACTIVE' : 'PAUSED',
+        acceptedAt: new Date(),
+      },
     });
     if (accepted.count === 0) throw this.notFound();
 
@@ -278,7 +283,7 @@ export class TeamService {
       key: 'team_accepted',
       role: invitation.role,
     });
-    return { success: true };
+    return { success: true, paused: !hasTeamPlan(profile) };
   }
 
   async decline(userId: string, memberId: string) {
