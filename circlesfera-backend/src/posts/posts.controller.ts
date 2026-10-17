@@ -28,6 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { JwtOptionalGuard } from '../auth/guards/jwt-optional.guard.js';
 import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { FindPostsQueryDto } from './dto/find-posts-query.dto.js';
 import { GetPostsDto } from './dto/get-posts.dto.js';
@@ -54,6 +55,7 @@ export class PostsController {
 
   // List all posts with optional sort (latest/trending). Supports guest access.
   @Get()
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async findAll(
     @CurrentUser() user: CurrentUserData | null,
@@ -65,6 +67,7 @@ export class PostsController {
 
   // Get video-only feed (Frames/Reels).
   @Get('frames')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async getFrames(
     @CurrentUser() user: CurrentUserData | null,
@@ -75,6 +78,7 @@ export class PostsController {
 
   // Get posts by a specific user's username.
   @Get('user/:username')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async findByUser(
     @CurrentUser() user: CurrentUserData | null,
@@ -92,6 +96,7 @@ export class PostsController {
 
   // Get posts where a user has been tagged/mentioned.
   @Get('user/:username/tagged')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async getTaggedPosts(
     @CurrentUser() user: CurrentUserData | null,
@@ -107,6 +112,7 @@ export class PostsController {
 
   // Get posts filtered by hashtag.
   @Get('tags/:tag')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async getByTag(
     @CurrentUser() user: CurrentUserData | null,
@@ -118,6 +124,7 @@ export class PostsController {
 
   // Get a single post by ID. Supports guest access.
   @Get(':id')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   async findOne(
     @CurrentUser() user: CurrentUserData | null,

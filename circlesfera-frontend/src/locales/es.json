@@ -111,6 +111,10 @@
       "profiles": {
         "label": "Perfiles",
         "desc": "Cambiar y crear"
+      },
+      "team": {
+        "label": "Equipos",
+        "desc": "Personas que trabajan en un perfil Business"
       }
     },
     "profile": {
@@ -598,6 +602,50 @@
         "cancel": "Cancelar",
         "failed": "No se pudo crear el perfil. Inténtalo de nuevo."
       }
+    },
+    "team": {
+      "title": "Equipo de este perfil",
+      "subtitle": "Personas que trabajan en este perfil Business con su propia cuenta. Nadie comparte contraseña.",
+      "invitations_title": "Invitaciones",
+      "invitations_desc": "Perfiles Business que te han invitado a trabajar en ellos.",
+      "invited_as": "Te invita como {{role}}",
+      "accept": "Aceptar",
+      "decline": "Rechazar",
+      "accepted": "Te has unido al equipo.",
+      "answer_error": "No se ha podido responder a la invitación.",
+      "business_only": "Los equipos son para perfiles Business. Cambia a un perfil Business tuyo para ver su equipo.",
+      "owner_only": "Solo el dueño de este perfil gestiona su equipo.",
+      "plan_required": "El equipo forma parte del plan Business.",
+      "see_plans": "Ver planes",
+      "seats": "{{used}} de {{max}} personas, además de ti",
+      "empty": "Todavía no trabaja nadie más en este perfil.",
+      "invite_title": "Invitar a una persona",
+      "username": "Nombre de usuario",
+      "username_placeholder": "@usuario de uno de sus perfiles",
+      "role_label": "Rol",
+      "invite": "Enviar invitación",
+      "full": "El equipo está completo",
+      "invited": "Invitación enviada.",
+      "invite_error": "No se ha podido enviar la invitación.",
+      "remove": "Quitar",
+      "withdraw": "Retirar",
+      "remove_error": "No se ha podido quitar a la persona.",
+      "two_factor_note": "Para aceptar, la persona necesita tener activada la verificación en dos pasos.",
+      "unknown": "desconocido",
+      "role": {
+        "ADMINISTRATOR": "Administrador",
+        "EDITOR": "Editor"
+      },
+      "role_desc": {
+        "EDITOR": "Publica, edita y borra contenido, responde comentarios y ve las estadísticas.",
+        "ADMINISTRATOR": "Todo lo de un editor, y además edita el perfil y sus ajustes."
+      },
+      "status": {
+        "INVITED": "Invitado",
+        "ACTIVE": "Activo",
+        "PAUSED": "En pausa: terminó el plan Business"
+      },
+      "switcher_title": "Equipos en los que trabajas"
     }
   },
   "auth": {
@@ -5351,7 +5399,13 @@
       "EBADCSRFTOKEN": "Tu sesión necesita actualizarse. Recarga la página e inténtalo de nuevo.",
       "ADMIN_STEP_UP_REQUIRED": "Confirma tu identidad para continuar.",
       "APPEAL_WINDOW_CLOSED": "Han pasado más de seis meses desde esta decisión, así que ya no se puede apelar.",
-      "APPEAL_ALREADY_MADE": "Esta decisión ya se ha apelado. Cada decisión se puede apelar una vez."
+      "APPEAL_ALREADY_MADE": "Esta decisión ya se ha apelado. Cada decisión se puede apelar una vez.",
+      "TEAM_FULL": "El equipo está completo: 5 personas además del dueño.",
+      "TEAM_ALREADY_MEMBER": "Esta persona ya está invitada o en el equipo.",
+      "TEAM_INVITE_SELF": "Ya eres el dueño de este perfil.",
+      "TEAM_TWO_FACTOR_REQUIRED": "Activa la verificación en dos pasos en Seguridad para unirte a un equipo.",
+      "TEAM_MEMBER_NOT_FOUND": "Esa invitación o persona ya no está.",
+      "TEAM_MEMBER_NOT_ALLOWED": "Tu rol en este perfil de equipo no incluye esto."
     },
     "generic": {
       "network": "No hay conexión o ha fallado. Compruébala e inténtalo de nuevo.",

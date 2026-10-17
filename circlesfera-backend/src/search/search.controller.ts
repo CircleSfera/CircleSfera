@@ -12,6 +12,7 @@ import {
   type CurrentUserData,
 } from '../auth/decorators/current-user.decorator.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { SearchService } from './search.service.js';
 
 // REST controller for combined search, trending, user search, and search history.
@@ -23,6 +24,7 @@ export class SearchController {
 
   // Search for users and hashtags by text query.
   @Get()
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async search(
     @Query('q') query: string,
@@ -39,6 +41,7 @@ export class SearchController {
 
   // Get trending posts based on interaction velocity.
   @Get('trending')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async getTrending(
     @CurrentUser() user: CurrentUserData,
@@ -52,6 +55,7 @@ export class SearchController {
 
   // Search posts with velocity ranking.
   @Get('posts')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async searchPosts(
     @CurrentUser() user: CurrentUserData,
@@ -62,6 +66,7 @@ export class SearchController {
 
   // AI Semantic search for posts.
   @Get('ai')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async searchSemantic(
     @CurrentUser() user: CurrentUserData,
@@ -72,6 +77,7 @@ export class SearchController {
 
   // AI Semantic search for profiles.
   @Get('ai/profiles')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async searchSemanticProfiles(
     @Query('q') query: string,
@@ -82,6 +88,7 @@ export class SearchController {
 
   // Search for users by username or full name with Social Discovery ranking.
   @Get('users')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   async searchUsers(
     @Query('q') query: string,

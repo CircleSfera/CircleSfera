@@ -1,9 +1,19 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { MemberSessionInterceptor } from './member-session.interceptor.js';
 import { ProfileAccessService } from './profile-access.service.js';
+import { TeamController } from './team.controller.js';
+import { TeamService } from './team.service.js';
 
 // Team access to a Business Profile (ADR-0028).
 @Module({
-  providers: [ProfileAccessService],
+  controllers: [TeamController],
+  providers: [
+    ProfileAccessService,
+    TeamService,
+    // Member sessions are closed everywhere but the routes marked for them.
+    { provide: APP_INTERCEPTOR, useClass: MemberSessionInterceptor },
+  ],
   exports: [ProfileAccessService],
 })
 export class TeamModule {}

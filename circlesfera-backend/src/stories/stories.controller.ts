@@ -21,6 +21,7 @@ import { OwnershipGuard } from '../auth/guards/ownership.guard.js';
 import { PaginationDto } from '../common/dto/pagination.dto.js';
 import { RespondStoryStickerDto } from '../story-stickers/dto/story-sticker.dto.js';
 import { StoryStickersService } from '../story-stickers/story-stickers.service.js';
+import { MemberAllowed } from '../team/member-allowed.decorator.js';
 import { CreateStoryDto } from './dto/create-story.dto.js';
 import { StoryReactionDto } from './dto/story-reaction.dto.js';
 import { StoriesService } from './stories.service.js';
@@ -45,6 +46,7 @@ export class StoriesController {
 
   // List all active stories (filtered by followed users).
   @Get()
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   findAll(@CurrentUser() user: CurrentUserData | null) {
     return this.storiesService.findAll(user?.profileId);
@@ -52,6 +54,7 @@ export class StoriesController {
 
   // Get active stories by a specific user.
   @Get('user/:username')
+  @MemberAllowed('browse')
   @UseGuards(JwtOptionalGuard)
   findByUser(
     @CurrentUser() user: CurrentUserData | null,
@@ -90,6 +93,7 @@ export class StoriesController {
   // What a sticker has gathered, for someone who may see its story; the
   // answers to a question only for the author.
   @Get('stickers/:id')
+  @MemberAllowed('browse')
   @UseGuards(JwtAuthGuard)
   stickerResults(
     @CurrentUser() user: CurrentUserData,

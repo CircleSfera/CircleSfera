@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Dialog } from '../ui';
 import OwnedProfileList from './OwnedProfileList';
+import TeamProfileList from './TeamProfileList';
 
 // The own @username on the profile page: opens the list of the account's
 // Profiles to switch between them.
@@ -38,6 +39,7 @@ export default function ProfileSwitcher({
         noPadding
       >
         <OwnedProfileList />
+        <TeamProfileList />
         <div className="border-t border-white/5">
           <Link
             to="/accounts/profiles"

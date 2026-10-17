@@ -14,6 +14,9 @@ export interface CurrentUserData {
   // Test Account. Read from the database on every request, never
   // from the token, so it cannot be forged or go stale.
   isTestAccount: boolean;
+  // Set when the session acts as a Profile the person works on as a team
+  // member, with their role (ADR-0028).
+  memberRole?: 'ADMINISTRATOR' | 'EDITOR';
 }
 
 interface RequestWithUser extends Request {
