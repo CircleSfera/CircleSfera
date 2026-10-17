@@ -8,6 +8,25 @@ import { Switch } from '../ui';
 import SettingsRow from './SettingsRow';
 import SettingsSection from './SettingsSection';
 
+// The groups a Profile switches push by, in the order shown.
+const PUSH_GROUPS = [
+  'pushLikes',
+  'pushComments',
+  'pushFollows',
+  'pushMessages',
+  'pushLive',
+] as const;
+
+type PushGroupKey = (typeof PUSH_GROUPS)[number];
+
+const PUSH_GROUP_LABEL: Record<PushGroupKey, string> = {
+  pushLikes: 'likes',
+  pushComments: 'comments',
+  pushFollows: 'follows',
+  pushMessages: 'messages',
+  pushLive: 'live',
+};
+
 export default function NotificationsSettings() {
   const {
     isSupported,
@@ -20,6 +39,13 @@ export default function NotificationsSettings() {
   const { t } = useTranslation();
 
   const [pushNotifications, setPushNotifications] = useState(true);
+  const [pushGroups, setPushGroups] = useState<Record<PushGroupKey, boolean>>({
+    pushLikes: true,
+    pushComments: true,
+    pushFollows: true,
+    pushMessages: true,
+    pushLive: true,
+  });
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [newsletter, setNewsletter] = useState(true);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -33,6 +59,13 @@ export default function NotificationsSettings() {
         if (settings.pushNotifications !== undefined) {
           setPushNotifications(settings.pushNotifications);
         }
+        setPushGroups((current) => {
+          const next = { ...current };
+          for (const key of PUSH_GROUPS) {
+            if (typeof settings[key] === 'boolean') next[key] = settings[key];
+          }
+          return next;
+        });
         if (settings.emailNotifications !== undefined) {
           setEmailNotifications(settings.emailNotifications);
         }
@@ -159,20 +192,55 @@ export default function NotificationsSettings() {
 
           {settingsLoaded && (
             <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
+              {/* On means paused: every push of this profile stops. */}
               <SettingsRow
-                label={t('settings.notifications.push_notifications')}
-                description={t('settings.notifications.push_desc')}
+                label={t('settings.notifications.pause_all')}
+                description={t('settings.notifications.pause_all_desc')}
                 control={
                   <Switch
-                    checked={pushNotifications}
+                    checked={!pushNotifications}
                     onChange={(e) => {
-                      setPushNotifications(e.target.checked);
-                      updateSetting('pushNotifications', e.target.checked);
+                      setPushNotifications(!e.target.checked);
+                      updateSetting('pushNotifications', !e.target.checked);
                     }}
-                    aria-label={t('settings.notifications.push_notifications')}
+                    aria-label={t('settings.notifications.pause_all')}
                   />
                 }
               />
+              {PUSH_GROUPS.map((key) => {
+                const label = t(
+                  `settings.notifications.push_group.${PUSH_GROUP_LABEL[key]}`,
+                );
+                return (
+                  <SettingsRow
+                    key={key}
+                    label={label}
+                    control={
+                      <Switch
+                        checked={pushGroups[key]}
+                        disabled={!pushNotifications}
+                        onChange={(e) => {
+                          const on = e.target.checked;
+                          setPushGroups((current) => ({
+                            ...current,
+                            [key]: on,
+                          }));
+                          updateSetting(key, on);
+                        }}
+                        aria-label={label}
+                      />
+                    }
+                  />
+                );
+              })}
+              <p className="px-4 py-3 text-xs text-white/50 leading-relaxed">
+                {t('settings.notifications.push_always')}
+              </p>
+            </div>
+          )}
+
+          {settingsLoaded && (
+            <div className="rounded-xl border border-white/5 bg-white/[0.02] divide-y divide-white/5">
               <SettingsRow
                 label={t('settings.notifications.email_notifications')}
                 description={t('settings.notifications.email_desc')}

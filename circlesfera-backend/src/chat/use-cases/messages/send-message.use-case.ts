@@ -354,11 +354,15 @@ export class SendMessageUseCase {
       conversation.participants.forEach((p: any) => {
         if (p.profileId !== senderId && p.hasAccepted !== false) {
           this.pushService
-            .sendNotification(p.profileId, {
-              title: `Nuevo mensaje cifrado`,
-              body: `Has recibido un mensaje de @${message.sender.username || 'Alguien'}`,
-              data: { url: `/chat/${conversation.id}`, type: 'chat' },
-            })
+            .sendNotification(
+              p.profileId,
+              {
+                title: `Nuevo mensaje cifrado`,
+                body: `Has recibido un mensaje de @${message.sender.username || 'Alguien'}`,
+                data: { url: `/chat/${conversation.id}`, type: 'chat' },
+              },
+              'messages',
+            )
             .catch((err) =>
               this.logger.error(
                 'Failed sending push notification for chat message',

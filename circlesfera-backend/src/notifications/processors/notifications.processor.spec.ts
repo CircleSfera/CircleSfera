@@ -97,6 +97,8 @@ describe('NotificationsProcessor', () => {
           title: 'Nueva actividad',
           body: 'Tienes 1 interacción nueva en tus publicaciones.',
         }),
+        // The digest gathers likes: their switch decides.
+        'likes',
       );
       expect(mockPushService.sendNotification).toHaveBeenCalledWith(
         'user-multi',
@@ -104,6 +106,7 @@ describe('NotificationsProcessor', () => {
           title: 'New activity',
           body: 'You have 2 new interactions on your posts.',
         }),
+        'likes',
       );
     });
   });

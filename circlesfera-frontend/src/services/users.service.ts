@@ -34,7 +34,13 @@ export const usersApi = {
     apiClient.put<{ locale: 'en' | 'es' }>('/users/me/locale', { locale }),
 
   updateSettings: (data: {
+    // Off pauses every push of the Profile.
     pushNotifications?: boolean;
+    pushLikes?: boolean;
+    pushComments?: boolean;
+    pushFollows?: boolean;
+    pushMessages?: boolean;
+    pushLive?: boolean;
     emailNotifications?: boolean;
     newsletter?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';

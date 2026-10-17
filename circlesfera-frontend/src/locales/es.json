@@ -488,12 +488,20 @@
     "notifications": {
       "email_desc": "Recibe actualizaciones y alertas por correo",
       "email_notifications": "Notificaciones por correo",
-      "push_desc": "Recibe notificaciones en la app",
-      "push_notifications": "Notificaciones push",
       "update_error": "No se pudieron actualizar los ajustes",
       "updated": "Ajustes actualizados",
       "newsletter": "Newsletter de CircleSfera",
-      "newsletter_desc": "Novedades de CircleSfera por correo, de vez en cuando. Aparte de tus notificaciones."
+      "newsletter_desc": "Novedades de CircleSfera por correo, de vez en cuando. Aparte de tus notificaciones.",
+      "pause_all": "Pausar todas las push",
+      "pause_all_desc": "Detiene todas las notificaciones push de este perfil. Tus notificaciones siguen llegando a la app.",
+      "push_group": {
+        "likes": "Me gusta",
+        "comments": "Comentarios y menciones",
+        "follows": "Nuevos seguidores y solicitudes",
+        "messages": "Mensajes",
+        "live": "Directos"
+      },
+      "push_always": "Los avisos de moderación, de tu plan y de pagos no tienen interruptor propio: solo los detiene pausar todas las push."
     },
     "signIns": {
       "title": "Cómo entra cada perfil",

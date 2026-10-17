@@ -392,8 +392,15 @@ model Profile {
   // itself. PRIVATE asks for an accepted follow.
   privacyLevel       Visibility @default(PUBLIC)
   // Push notifications of this Profile; the person's other Profiles keep
-  // their own choice.
+  // their own choice. Off pauses every push of the Profile.
   pushNotifications  Boolean    @default(true)
+  // Push by group, each on its own. Moderation, plan and payment notices
+  // have no group: only the pause stops their push.
+  pushLikes          Boolean    @default(true)
+  pushComments       Boolean    @default(true) // comments and mentions
+  pushFollows        Boolean    @default(true) // new followers and requests
+  pushMessages       Boolean    @default(true)
+  pushLive           Boolean    @default(true) // live broadcasts
 
   // Why staff suspended this Profile directly; empty for a suspension that
   // comes from strikes or from the review of unusual activity.

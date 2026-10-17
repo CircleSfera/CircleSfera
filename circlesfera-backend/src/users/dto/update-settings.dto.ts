@@ -36,9 +36,34 @@ export class UpdateSettingsDto {
   @IsOptional()
   emailNotifications?: boolean;
 
+  // Off pauses every push of the Profile.
   @IsBoolean()
   @IsOptional()
   pushNotifications?: boolean;
+
+  // Push by group, for the Profile the session acts as.
+  @IsBoolean()
+  @IsOptional()
+  pushLikes?: boolean;
+
+  // Comments and mentions.
+  @IsBoolean()
+  @IsOptional()
+  pushComments?: boolean;
+
+  // New followers and follow requests.
+  @IsBoolean()
+  @IsOptional()
+  pushFollows?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  pushMessages?: boolean;
+
+  // Live broadcasts of Profiles the person follows.
+  @IsBoolean()
+  @IsOptional()
+  pushLive?: boolean;
 
   // The newsletter about CircleSfera, apart from the email notices.
   @IsBoolean()

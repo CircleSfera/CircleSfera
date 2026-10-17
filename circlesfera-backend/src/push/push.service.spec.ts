@@ -138,10 +138,14 @@ describe('PushService', () => {
       ]);
       vi.mocked(webpush.sendNotification).mockResolvedValueOnce({} as any);
 
-      const result = await service.sendNotification('profile-1', {
-        title: 'New Post',
-        body: 'User posted a new story',
-      });
+      const result = await service.sendNotification(
+        'profile-1',
+        {
+          title: 'New Post',
+          body: 'User posted a new story',
+        },
+        null,
+      );
 
       // The Profile names the person; devices are kept by person.
       expect(mockPrismaService.profile.findUnique).toHaveBeenCalledWith({
@@ -169,9 +173,17 @@ describe('PushService', () => {
         userId: 'user-1',
         pushNotifications: false,
       });
-      await service.sendNotification('profile-1', { title: 't', body: 'b' });
+      await service.sendNotification(
+        'profile-1',
+        { title: 't', body: 'b' },
+        null,
+      );
       mockPrismaService.profile.findUnique.mockResolvedValueOnce(null);
-      await service.sendNotification('missing', { title: 't', body: 'b' });
+      await service.sendNotification(
+        'missing',
+        { title: 't', body: 'b' },
+        null,
+      );
 
       expect(
         mockPrismaService.pushSubscription.findMany,
@@ -179,13 +191,76 @@ describe('PushService', () => {
       expect(webpush.sendNotification).not.toHaveBeenCalled();
     });
 
+    it('sends nothing for a group the Profile switched off, and reads only that group', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'user-1',
+        pushNotifications: true,
+        pushLikes: false,
+      });
+
+      await service.sendNotification(
+        'profile-1',
+        { title: 't', body: 'b' },
+        'likes',
+      );
+
+      expect(mockPrismaService.profile.findUnique).toHaveBeenCalledWith({
+        where: { id: 'profile-1' },
+        select: { userId: true, pushNotifications: true, pushLikes: true },
+      });
+      expect(
+        mockPrismaService.pushSubscription.findMany,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('sends a push of a group that is on', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'user-1',
+        pushNotifications: true,
+        pushMessages: true,
+      });
+      mockPrismaService.pushSubscription.findMany.mockResolvedValue([
+        device('https://push.example.com/sub-1'),
+      ]);
+      vi.mocked(webpush.sendNotification).mockResolvedValueOnce({} as any);
+
+      await service.sendNotification(
+        'profile-1',
+        { title: 't', body: 'b' },
+        'messages',
+      );
+
+      expect(webpush.sendNotification).toHaveBeenCalledTimes(1);
+    });
+
+    it('a pause stops every push, also one with no group', async () => {
+      mockPrismaService.profile.findUnique.mockResolvedValueOnce({
+        userId: 'user-1',
+        pushNotifications: false,
+      });
+
+      await service.sendNotification(
+        'profile-1',
+        { title: 'Moderation', body: 'b' },
+        null,
+      );
+
+      expect(
+        mockPrismaService.pushSubscription.findMany,
+      ).not.toHaveBeenCalled();
+    });
+
     it('returns early when the person has no device', async () => {
       mockPrismaService.pushSubscription.findMany.mockResolvedValue([]);
 
-      const result = await service.sendNotification('profile-1', {
-        title: 'Test Notification',
-        body: 'Hello World',
-      });
+      const result = await service.sendNotification(
+        'profile-1',
+        {
+          title: 'Test Notification',
+          body: 'Hello World',
+        },
+        null,
+      );
 
       expect(result).toBeUndefined();
     });
@@ -197,10 +272,14 @@ describe('PushService', () => {
       const error410 = Object.assign(new Error('Gone'), { statusCode: 410 });
       vi.mocked(webpush.sendNotification).mockRejectedValueOnce(error410);
 
-      await service.sendNotification('profile-1', {
-        title: 'Expired Sub',
-        body: 'Ping',
-      });
+      await service.sendNotification(
+        'profile-1',
+        {
+          title: 'Expired Sub',
+          body: 'Ping',
+        },
+        null,
+      );
 
       expect(
         mockPrismaService.pushSubscription.deleteMany,
@@ -217,10 +296,14 @@ describe('PushService', () => {
         new Error('Network failure'),
       );
 
-      await service.sendNotification('profile-1', {
-        title: 'Failing Sub',
-        body: 'Ping',
-      });
+      await service.sendNotification(
+        'profile-1',
+        {
+          title: 'Failing Sub',
+          body: 'Ping',
+        },
+        null,
+      );
 
       expect(
         mockPrismaService.pushSubscription.deleteMany,
@@ -293,11 +376,15 @@ describe('PushService', () => {
       ]);
       mockFcm.send.mockResolvedValue(['fcm-2']);
 
-      await service.sendNotification('profile-1', {
-        title: 'Hi',
-        body: 'New like',
-        data: { url: '/p/1', count: 3, none: null },
-      });
+      await service.sendNotification(
+        'profile-1',
+        {
+          title: 'Hi',
+          body: 'New like',
+          data: { url: '/p/1', count: 3, none: null },
+        },
+        null,
+      );
 
       expect(mockFcm.send).toHaveBeenCalledWith(['fcm-1', 'fcm-2'], {
         title: 'Hi',
@@ -314,7 +401,11 @@ describe('PushService', () => {
         userId: 'user-1',
         pushNotifications: false,
       });
-      await service.sendNotification('profile-1', { title: 'a', body: 'b' });
+      await service.sendNotification(
+        'profile-1',
+        { title: 'a', body: 'b' },
+        null,
+      );
       expect(mockFcm.send).not.toHaveBeenCalled();
     });
 
@@ -331,7 +422,11 @@ describe('PushService', () => {
         { endpoint: 'https://push.example/1', p256dh: 'k', auth: 'a' },
       ]);
 
-      await service.sendNotification('profile-1', { title: 'a', body: 'b' });
+      await service.sendNotification(
+        'profile-1',
+        { title: 'a', body: 'b' },
+        null,
+      );
 
       expect(webpush.sendNotification).toHaveBeenCalled();
     });

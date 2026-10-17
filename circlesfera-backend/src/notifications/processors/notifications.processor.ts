@@ -102,14 +102,19 @@ export class NotificationsProcessor extends WorkerHost {
         );
 
         await this.pushService
-          .sendNotification(recipientId, {
-            title: digest.title,
-            body: digest.body,
-            data: {
-              type: 'DIGEST',
-              url: '/notifications',
+          .sendNotification(
+            recipientId,
+            {
+              title: digest.title,
+              body: digest.body,
+              data: {
+                type: 'DIGEST',
+                url: '/notifications',
+              },
+              // The digest gathers likes.
             },
-          })
+            'likes',
+          )
           .catch((err) =>
             this.logger.error(
               `Failed to send digest push to ${recipientId}`,
