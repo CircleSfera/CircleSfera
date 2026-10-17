@@ -150,7 +150,8 @@ export class ProfilesService {
     const companyVerified = await this.isVerifiedCompany(profile);
 
     // Never expose email, role, or abuse hashes on the public profile.
-    const { user, ...profileRest } = profile;
+    // The sign-in is read only to say whether the email is confirmed.
+    const { user, signIn, ...profileRest } = profile;
     const profileWithFields = {
       ...profileRest,
       user: user
@@ -171,7 +172,7 @@ export class ProfilesService {
         ? profile.accentColor
         : null,
       identityVerified: !!user?.identityVerifiedAt,
-      emailConfirmed: !!profile.signIn?.emailVerified,
+      emailConfirmed: !!signIn?.emailVerified,
       joinedAt: user?.createdAt?.toISOString?.() ?? user?.createdAt,
       signupCountry: user?.signupCountry ?? null,
       // Active strikes of this Profile; warnings are not shown.

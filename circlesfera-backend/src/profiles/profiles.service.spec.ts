@@ -149,6 +149,8 @@ describe('ProfilesService', () => {
       };
 
       expect(result.emailConfirmed).toBe(true);
+      // Only the answer is public, not the sign-in or when it was verified.
+      expect(result).not.toHaveProperty('signIn');
       expect(mockPrismaService.profile.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
           include: expect.objectContaining({

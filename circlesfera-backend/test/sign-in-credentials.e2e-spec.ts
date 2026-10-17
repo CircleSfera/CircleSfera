@@ -85,6 +85,17 @@ describe('Sign-in credentials (e2e)', () => {
     });
     expect(own.password).toBeNull();
     expect(own.verificationToken).toBeNull();
+
+    // A later write on the sign-in gives the account no copy either.
+    await prisma.signIn.update({
+      where: { id: signIns[0].id },
+      data: { emailVerified: new Date(), verificationToken: null },
+    });
+    const after = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
+      omit: { password: false },
+    });
+    expect(after.password).toBeNull();
   });
 
   it('a second Profile of the account enters with the same sign-in', async () => {
