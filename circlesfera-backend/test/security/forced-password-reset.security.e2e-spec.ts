@@ -53,12 +53,13 @@ describe('Forced password reset (e2e)', () => {
       dateOfBirth: '1990-01-01',
     }).expect(201);
 
-    const user = await prisma.user.update({
+    // The credentials are on the sign-in with that email.
+    const signIn = await prisma.signIn.update({
       where: { email },
       data: { emailVerified: new Date(), passwordResetRequiredAt: new Date() },
-      select: { id: true },
+      select: { userId: true },
     });
-    userId = user.id;
+    userId = signIn.userId;
   });
 
   afterAll(async () => {
@@ -88,8 +89,8 @@ describe('Forced password reset (e2e)', () => {
 
   it('lets the user in again after an email password reset', async () => {
     await post('/auth/request-reset', { email });
-    const { resetToken } = await prisma.user.findUniqueOrThrow({
-      where: { id: userId },
+    const { resetToken } = await prisma.signIn.findUniqueOrThrow({
+      where: { email },
       omit: { resetToken: false },
     });
     expect(resetToken).toBeTruthy();
@@ -100,8 +101,8 @@ describe('Forced password reset (e2e)', () => {
     });
     expect(reset.status).toBeLessThan(300);
 
-    const after = await prisma.user.findUniqueOrThrow({
-      where: { id: userId },
+    const after = await prisma.signIn.findUniqueOrThrow({
+      where: { email },
     });
     expect(after.passwordResetRequiredAt).toBeNull();
 

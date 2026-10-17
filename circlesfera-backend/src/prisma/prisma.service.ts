@@ -23,7 +23,7 @@ export const USER_SECRET_OMIT = {
   currentChallenge: true,
 } as const;
 
-// The same rule for the sign-in, which holds a copy of the credentials.
+// The same rule for the sign-in, which holds the credentials.
 export const SIGN_IN_SECRET_OMIT = {
   password: true,
   twoFactorSecret: true,

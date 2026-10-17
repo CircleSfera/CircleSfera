@@ -14,8 +14,9 @@ export class UserEntity implements User {
   isRootBanned!: boolean;
   rootBanReason!: string | null;
 
+  // Old copy of the credentials, retired: the app does not read it.
   @Exclude()
-  password!: string;
+  password!: string | null;
 
   createdAt!: Date;
   updatedAt!: Date;
@@ -33,11 +34,13 @@ export class UserEntity implements User {
   @Exclude()
   stripeIdentitySessionId!: string | null;
 
+  @Exclude()
   emailVerified!: Date | null;
 
   @Exclude()
   verificationToken!: string | null;
 
+  @Exclude()
   isTwoFactorEnabled!: boolean;
 
   @Exclude()

@@ -52,11 +52,12 @@ export async function markEmailVerified(email: string): Promise<void> {
   const pool = new PoolCtor({ connectionString: databaseUrl() });
   try {
     const result = (await pool.query(
-      `UPDATE "users" SET "emailVerified" = NOW(), "verificationToken" = NULL WHERE lower(email) = lower($1)`,
+      // The email is verified on the sign-in with that email: where it is read.
+      `UPDATE "sign_ins" SET "emailVerified" = NOW(), "verificationToken" = NULL WHERE lower(email) = lower($1)`,
       [email],
     )) as { rowCount?: number | null };
     if (!result.rowCount) {
-      throw new Error(`No users row updated for ${email}`);
+      throw new Error(`No sign_ins row updated for ${email}`);
     }
   } finally {
     await pool.end();

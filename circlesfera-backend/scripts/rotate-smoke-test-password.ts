@@ -27,14 +27,15 @@ async function main() {
   const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
   try {
-    const account = await prisma.user.findUnique({
+    // The password belongs to the sign-in with that email.
+    const account = await prisma.signIn.findUnique({
       where: { email },
-      select: { id: true },
+      select: { id: true, userId: true },
     });
     if (!account) throw new Error('No account with SMOKE_TEST_EMAIL');
 
     const [, sessions] = await prisma.$transaction([
-      prisma.user.update({
+      prisma.signIn.update({
         where: { id: account.id },
         data: {
           password: await argon2.hash(password),
@@ -43,7 +44,7 @@ async function main() {
           resetTokenExpires: null,
         },
       }),
-      prisma.refreshToken.deleteMany({ where: { userId: account.id } }),
+      prisma.refreshToken.deleteMany({ where: { userId: account.userId } }),
     ]);
     console.log(
       `Smoke-test account password rotated. Revoked ${sessions.count} sessions.`,

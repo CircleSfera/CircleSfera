@@ -160,6 +160,25 @@ async function main() {
     const defaultPassword = 'password123';
     const hashedPassword = await argon2.hash(defaultPassword);
 
+    // The credentials live on the sign-in: each seed account gets one, with
+    // its email verified, and its Profiles sign in with it.
+    const ensureSignIn = async (userId: string, email: string) => {
+      const signIn = await prisma.signIn.upsert({
+        where: { email },
+        create: {
+          userId,
+          email,
+          password: hashedPassword,
+          emailVerified: new Date(),
+        },
+        update: { emailVerified: new Date() },
+      });
+      await prisma.profile.updateMany({
+        where: { userId, signInId: null },
+        data: { signInId: signIn.id },
+      });
+    };
+
     // 1. Crear Planes Base de Plataforma (Stripe IDs mantenidos intactos)
     console.log('📦 Creando Planes de Suscripción...');
     await prisma.platformPlan.upsert({
@@ -223,12 +242,10 @@ async function main() {
     console.log('👤 Creando Cuentas Administradoras...');
     const adminUser = await prisma.user.upsert({
       where: { email: 'admin@circlesfera.com' },
-      update: { role: 'USER', emailVerified: new Date() },
+      update: { role: 'USER' },
       create: {
         email: 'admin@circlesfera.com',
-        password: hashedPassword,
         role: 'USER',
-        emailVerified: new Date(),
         profiles: {
           create: {
             username: 'CircleSfera',
@@ -248,12 +265,10 @@ async function main() {
 
     const feliuUser = await prisma.user.upsert({
       where: { email: 'easyfeliu@gmail.com' },
-      update: { role: 'USER', emailVerified: new Date() },
+      update: { role: 'USER' },
       create: {
         email: 'easyfeliu@gmail.com',
-        password: hashedPassword,
         role: 'USER',
-        emailVerified: new Date(),
         profiles: {
           create: {
             username: 'EasyFeliu',
@@ -270,6 +285,8 @@ async function main() {
       },
       include: { profiles: true },
     });
+    await ensureSignIn(adminUser.id, adminUser.email);
+    await ensureSignIn(feliuUser.id, feliuUser.email);
 
     // Admin Panel operators (separate from platform User.role).
     // Do NOT overwrite totpSecret/totpEnabled on existing rows — that invalidates Authenticator apps.
@@ -342,12 +359,10 @@ async function main() {
     for (const u of SEED_USERS) {
       const user = await prisma.user.upsert({
         where: { email: u.email },
-        update: { emailVerified: new Date() },
+        update: {},
         create: {
           email: u.email,
-          password: hashedPassword,
           role: 'USER',
-          emailVerified: new Date(),
           profiles: {
             create: {
               username: u.username,
@@ -366,6 +381,7 @@ async function main() {
         },
         include: { profiles: true },
       });
+      await ensureSignIn(user.id, user.email);
       createdUsers.push(user);
     }
 

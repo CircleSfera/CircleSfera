@@ -66,7 +66,8 @@ describe('Authentication Flows (e2e)', () => {
       .send(testUser)
       .expect(201);
 
-    const user = await prisma.user.findUnique({
+    // The credentials are on the sign-in with that email.
+    const user = await prisma.signIn.findUnique({
       where: { email: testUser.email },
       omit: { verificationToken: false, resetToken: false },
     });
@@ -82,7 +83,7 @@ describe('Authentication Flows (e2e)', () => {
       .send({ token: verificationToken })
       .expect(200);
 
-    const verifiedUser = await prisma.user.findUnique({
+    const verifiedUser = await prisma.signIn.findUnique({
       where: { email: testUser.email },
     });
     expect(verifiedUser?.emailVerified).not.toBeNull();
@@ -111,7 +112,7 @@ describe('Authentication Flows (e2e)', () => {
       .send({ email: testUser.email })
       .expect(200);
 
-    const user = await prisma.user.findUnique({
+    const user = await prisma.signIn.findUnique({
       where: { email: testUser.email },
       omit: { verificationToken: false, resetToken: false },
     });
