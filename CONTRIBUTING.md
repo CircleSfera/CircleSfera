@@ -7,7 +7,7 @@ Thanks for helping improve CircleSfera. This project is a production social plat
 1. Read [AGENTS.md](./AGENTS.md) for operational rules (source-of-truth order, security, change policy).
 2. Treat [`circlesfera-backend/prisma/schema.prisma`](./circlesfera-backend/prisma/schema.prisma) as the data model source of truth.
 3. Check [ADRs](./docs/adr/README.md) for durable architectural decisions.
-4. Read the relevant pages in [Notion → CircleSfera → Documentation](https://app.notion.com/p/3e9dfa08f2f580d2b0f7fe13c58f9f30) (product intent, architecture, quality gates, known conflicts).
+4. Read the relevant pages in [Notion → CircleSfera](https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c) (product intent, architecture, quality gates, known conflicts).
 
 ## Development setup
 
@@ -36,7 +36,7 @@ Open a PR for any meaningful change, even as a single developer. The PR should s
 - Run relevant lint/tests (`npm run check` at root; backend/frontend test scripts as applicable).
 - Do not commit secrets (`.env`, keys, tokens).
 - Update the Notion documentation when behavior or contracts change in a user-visible or operator-visible way.
-- Before requesting review, walk the relevant gate in Notion → Execution → [Implementation Checklists](https://app.notion.com/p/3eadfa08f2f581a68accde43268a2a61).
+- Before requesting review, walk the relevant gate in Notion → Execution → [The Change Checklist](https://app.notion.com/p/3eadfa08f2f581a68accde43268a2a61).
 
 ## AI-assisted contributions
 
