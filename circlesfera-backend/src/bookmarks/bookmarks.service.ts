@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { assertCanAccessPost } from '../common/policies/post-access.policy.js';
 import { PUBLIC_USER_SELECT } from '../common/selects/public-user.select.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 
@@ -38,16 +39,9 @@ export class BookmarksService {
   // Param collectionId: Optional collection to add the bookmark to
   // Returns `{ bookmarked: boolean }`
   // Throws NotFoundException if post not found
+  // Saving a post needs the access of seeing it (privacy, audience, blocks,
+  // moderation); taking a saved post off never does.
   async toggle(profileId: string, postId: string, collectionId?: string) {
-    // Verify post exists
-    const post = await this.prisma.post.findUnique({
-      where: { id: postId },
-    });
-
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
     if (collectionId) {
       await this.verifyCollectionOwnership(profileId, collectionId);
     }
@@ -86,6 +80,8 @@ export class BookmarksService {
       return { bookmarked: false };
     }
 
+    await assertCanAccessPost(this.prisma, postId, profileId);
+
     const data: Prisma.BookmarkUncheckedCreateInput = {
       profileId,
       postId,
@@ -121,7 +117,9 @@ export class BookmarksService {
     });
 
     if (!bookmark) {
-      // If not bookmarked, create it in the collection
+      // If not bookmarked, create it in the collection: a new save, so the
+      // post must be one the person can see.
+      await assertCanAccessPost(this.prisma, postId, profileId);
       return this.prisma.bookmark.create({
         data: {
           profileId,

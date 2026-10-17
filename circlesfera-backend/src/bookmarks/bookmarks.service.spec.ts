@@ -22,6 +22,10 @@ describe('BookmarksService', () => {
     collection: {
       findUnique: vi.fn(),
     },
+    // Read by the post access rule: no Test Account, no block.
+    user: { findMany: vi.fn().mockResolvedValue([]) },
+    block: { findFirst: vi.fn().mockResolvedValue(null) },
+    follow: { findUnique: vi.fn().mockResolvedValue(null) },
   };
 
   beforeEach(async () => {
@@ -323,6 +327,58 @@ describe('BookmarksService', () => {
       expect(res.data).toEqual([mockPost]);
       expect(res.total).toBe(1);
       expect(res.collectionName).toBe('Favorites');
+    });
+  });
+
+  describe('saving needs the access of seeing the post', () => {
+    const hidden = (over = {}) => ({
+      id: 'post-1',
+      profileId: 'author',
+      visibility: 'PUBLIC',
+      moderationStatus: 'VISIBLE',
+      turnOffComments: false,
+      profile: { privacyLevel: 'PUBLIC' },
+      ...over,
+    });
+
+    it('refuses to save a post removed by moderation, as not found', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.findUnique.mockResolvedValue(
+        hidden({ moderationStatus: 'REMOVED' }),
+      );
+
+      await expect(service.toggle('viewer', 'post-1')).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPrismaService.bookmark.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses to save a private post', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue(null);
+      mockPrismaService.post.findUnique.mockResolvedValue(
+        hidden({ visibility: 'PRIVATE' }),
+      );
+
+      await expect(service.toggle('viewer', 'post-1')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(
+        service.updateCollection('viewer', 'post-1', null),
+      ).rejects.toThrow(ForbiddenException);
+      expect(mockPrismaService.bookmark.create).not.toHaveBeenCalled();
+    });
+
+    it('always lets a saved post be taken off, even one no longer visible', async () => {
+      mockPrismaService.bookmark.findUnique.mockResolvedValue({
+        id: 'b1',
+        collectionId: null,
+      });
+      mockPrismaService.bookmark.delete.mockResolvedValue({});
+
+      await expect(service.toggle('viewer', 'post-1')).resolves.toEqual({
+        bookmarked: false,
+      });
+      expect(mockPrismaService.post.findUnique).not.toHaveBeenCalled();
     });
   });
 });
