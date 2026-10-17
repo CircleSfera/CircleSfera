@@ -39,16 +39,16 @@ export function againstAverage(score: number | undefined, t: TFunction) {
     : t('creator.post.below_average', { value: -distance });
 }
 
-// The server names the day with a Spanish word. It is written here in the
-// reader's language; a word it does not know is shown as it came.
+// The server names the day with a code. It is written here in the reader's
+// language; a code it does not know is shown as it came.
 const SERVER_DAYS = [
-  'Domingos',
-  'Lunes',
-  'Martes',
-  'Miércoles',
-  'Jueves',
-  'Viernes',
-  'Sábados',
+  'SUNDAY',
+  'MONDAY',
+  'TUESDAY',
+  'WEDNESDAY',
+  'THURSDAY',
+  'FRIDAY',
+  'SATURDAY',
 ];
 
 export function weekdayName(serverDay: string, language: string): string {

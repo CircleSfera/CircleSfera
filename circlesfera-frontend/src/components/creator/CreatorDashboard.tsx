@@ -161,11 +161,13 @@ export default function CreatorDashboard({
           />
           {hasLikes && stats?.insights ? (
             <>
-              <CreatorFigure
-                label={t('creator.overview.best_day')}
-                value={weekdayName(stats.insights.bestDayToPost, language)}
-                hint={t('creator.overview.best_day_hint')}
-              />
+              {stats.insights.bestDayToPost ? (
+                <CreatorFigure
+                  label={t('creator.overview.best_day')}
+                  value={weekdayName(stats.insights.bestDayToPost, language)}
+                  hint={t('creator.overview.best_day_hint')}
+                />
+              ) : null}
               <CreatorFigure
                 label={t('creator.overview.peak_hour')}
                 value={localHour(stats.insights.bestHourToPost, language)}

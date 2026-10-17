@@ -20,6 +20,7 @@ export class ExportAnalyticsCsvUseCase {
     // Profile.id — these are distinct UUID spaces, so both ids are required.
     const revenue = await this.getRevenueAnalytics.execute(
       userId,
+      profileId,
       period as '7d' | '30d' | '90d' | '1y',
     );
     const retention = await this.getAudienceRetention.execute(profileId);
@@ -28,21 +29,19 @@ export class ExportAnalyticsCsvUseCase {
       ['Metric', 'Value', 'Unit/Currency'],
       ['Period', revenue.period, ''],
       ['Gross Revenue', revenue.grossRevenue.toFixed(2), revenue.currency],
-      [
-        'Subscriptions Revenue',
-        revenue.subscriptionsTotal.toFixed(2),
-        revenue.currency,
-      ],
       ['Tips Revenue', revenue.tipsTotal.toFixed(2), revenue.currency],
       [
         'Post Unlocks Revenue',
         revenue.postUnlocksTotal.toFixed(2),
         revenue.currency,
       ],
+      [
+        'Message Unlocks Revenue',
+        revenue.messageUnlocksTotal.toFixed(2),
+        revenue.currency,
+      ],
       ['Gifts Revenue', revenue.giftsTotal.toFixed(2), revenue.currency],
-      ['Active Subscribers', revenue.activeSubscribersCount, 'users'],
       ['Total Followers', revenue.totalFollowersCount, 'users'],
-      ['Subscriber Conversion Rate', `${revenue.conversionRate}%`, 'percent'],
       ['Average Dwell Time', retention.avgDwellSeconds, 'seconds'],
       ['Peak Activity Hour', `${retention.peakActivityHourUTC}:00 UTC`, 'hour'],
     ];

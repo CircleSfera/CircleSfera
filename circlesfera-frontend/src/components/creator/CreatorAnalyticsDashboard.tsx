@@ -17,9 +17,9 @@ import {
 
 interface RevenueData {
   grossRevenue: number;
-  subscriptionsTotal: number;
   tipsTotal: number;
   postUnlocksTotal: number;
+  messageUnlocksTotal?: number;
   giftsTotal: number;
 }
 
@@ -131,7 +131,12 @@ export const CreatorAnalyticsDashboard = () => {
       minute: '2-digit',
     });
   };
-  const subscriptions = revenue?.subscriptionsTotal ?? 0;
+  // Paid content: posts, stories and messages unlocked.
+  const paidContent =
+    Math.round(
+      ((revenue?.postUnlocksTotal ?? 0) + (revenue?.messageUnlocksTotal ?? 0)) *
+        100,
+    ) / 100;
 
   return (
     <div className="space-y-8">
@@ -178,7 +183,7 @@ export const CreatorAnalyticsDashboard = () => {
               data-testid="advanced-loading"
             />
           ) : (
-            <CreatorFigures five={subscriptions > 0}>
+            <CreatorFigures>
               <CreatorFigure
                 label={t('creator.advanced.gross')}
                 value={amount(revenue?.grossRevenue)}
@@ -190,18 +195,12 @@ export const CreatorAnalyticsDashboard = () => {
               />
               <CreatorFigure
                 label={t('creator.advanced.unlocks')}
-                value={amount(revenue?.postUnlocksTotal)}
+                value={amount(paidContent)}
               />
               <CreatorFigure
                 label={t('creator.advanced.gifts')}
                 value={amount(revenue?.giftsTotal)}
               />
-              {subscriptions > 0 ? (
-                <CreatorFigure
-                  label={t('creator.advanced.subscriptions')}
-                  value={amount(subscriptions)}
-                />
-              ) : null}
             </CreatorFigures>
           )}
         </div>

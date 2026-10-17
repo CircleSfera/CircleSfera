@@ -320,6 +320,7 @@ describe('CreatorController', () => {
     expect(res.body).toEqual(revenue);
     expect(mockGetRevenueAnalyticsQ.execute).toHaveBeenCalledWith(
       TEST_USER.userId,
+      TEST_USER.profileId,
       undefined,
     );
   });

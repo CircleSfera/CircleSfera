@@ -17,11 +17,9 @@ vi.mock('../../services/creator.service', () => ({
 const revenue = {
   period: '30d',
   grossRevenue: 1000,
-  subscriptionsTotal: 0,
   tipsTotal: 600.5,
   postUnlocksTotal: 300,
   giftsTotal: 99.5,
-  activeSubscribersCount: 0,
   totalFollowersCount: 40,
   conversionRate: 0,
   currency: 'EUR',
@@ -70,14 +68,13 @@ describe('CreatorAnalyticsDashboard', () => {
     expect(screen.queryByText(/dwell/i)).not.toBeInTheDocument();
   });
 
-  it('shows subscriptions only when some income came from them', async () => {
+  it('counts messages unlocked as paid content, with posts and stories', async () => {
     vi.mocked(creatorApi.getRevenueAnalytics).mockResolvedValue({
-      data: { ...revenue, subscriptionsTotal: 25 },
+      data: { ...revenue, messageUnlocksTotal: 25.5 },
     } as never);
     renderWithProviders(<CreatorAnalyticsDashboard />);
 
-    expect(await screen.findByText('Subscriptions')).toBeInTheDocument();
-    expect(screen.getByText('€25.00')).toBeInTheDocument();
+    expect(await screen.findByText('€325.50')).toBeInTheDocument();
   });
 
   it('asks again when another period is chosen, named in words', async () => {

@@ -39,13 +39,10 @@ const stats: CreatorStats = {
   engagementRate: 4.2,
   followerGrowth: 3,
   totalReach: 1200,
-  mrr: 0,
-  subscriberCount: 0,
   geoDistribution: [],
   activityHours: [],
-  retentionStatus: { active: 1, churning: 0, churned: 0 },
   insights: {
-    bestDayToPost: 'Martes',
+    bestDayToPost: 'TUESDAY',
     bestHourToPost: 18,
     retentionRate: 72,
   },
@@ -132,7 +129,7 @@ describe('CreatorDashboard', () => {
 
     expect(screen.getByText('Best day')).toBeInTheDocument();
     expect(screen.getByText('Tuesday')).toBeInTheDocument();
-    expect(screen.queryByText('Martes')).not.toBeInTheDocument();
+    expect(screen.queryByText('TUESDAY')).not.toBeInTheDocument();
   });
 
   it('lists the latest posts in words and promotes one from its row', async () => {
