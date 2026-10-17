@@ -1,10 +1,19 @@
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppException } from '../../../common/errors/app.exception.js';
+import { assertCanAccessPost } from '../../../common/policies/post-access.policy.js';
+import { assertCanAccessStory } from '../../../common/policies/story-access.policy.js';
 import type { CryptoService } from '../../../common/services/crypto.service.js';
 import type { PrismaService } from '../../../prisma/prisma.service.js';
 import type { PushService } from '../../../push/push.service.js';
 import { SendMessageUseCase } from './send-message.use-case.js';
+
+vi.mock('../../../common/policies/post-access.policy.js', () => ({
+  assertCanAccessPost: vi.fn(),
+}));
+vi.mock('../../../common/policies/story-access.policy.js', () => ({
+  assertCanAccessStory: vi.fn(),
+}));
 
 describe('SendMessageUseCase', () => {
   let useCase: SendMessageUseCase;
@@ -611,6 +620,81 @@ describe('SendMessageUseCase', () => {
       const createCall = mockTx.message.create.mock.calls[0][0];
       expect(createCall.data).not.toHaveProperty('isLocked');
       expect(createCall.data).not.toHaveProperty('priceCents');
+    });
+  });
+
+  describe('sharing a post or story', () => {
+    const conversation = {
+      id: 'conv-1',
+      participants: [
+        { profileId: 'sender-1', profile: { id: 'sender-1' } },
+        { profileId: 'friend-1', profile: { id: 'friend-1' } },
+        { profileId: 'friend-2', profile: { id: 'friend-2' } },
+      ],
+    };
+    const share = (shared: { postId?: string; storyId?: string }) =>
+      useCase.execute(
+        'sender-1',
+        undefined,
+        'Look',
+        undefined,
+        undefined,
+        'conv-1',
+        undefined,
+        shared.postId,
+        shared.storyId,
+      );
+
+    beforeEach(() => {
+      vi.mocked(assertCanAccessPost)
+        .mockReset()
+        .mockResolvedValue({} as never);
+      vi.mocked(assertCanAccessStory)
+        .mockReset()
+        .mockResolvedValue({} as never);
+      mockTx.conversation.findUnique.mockResolvedValue(conversation);
+    });
+
+    it('checks that the sender and every other participant can see the post', async () => {
+      mockTx.message.create.mockResolvedValue({ id: 'm1' });
+      await share({ postId: 'post-1' }).catch(() => undefined);
+
+      expect(
+        vi.mocked(assertCanAccessPost).mock.calls.map((c) => c[2]),
+      ).toEqual(['sender-1', 'friend-1', 'friend-2']);
+      expect(assertCanAccessStory).not.toHaveBeenCalled();
+    });
+
+    it('refuses, as not found, a post the sender cannot see', async () => {
+      vi.mocked(assertCanAccessPost).mockRejectedValueOnce(
+        new Error('Post not found'),
+      );
+
+      await expect(share({ postId: 'post-1' })).rejects.toThrow(
+        'Post not found',
+      );
+      expect(mockTx.message.create).not.toHaveBeenCalled();
+    });
+
+    it('refuses a story someone in the conversation cannot see, without saying who', async () => {
+      vi.mocked(assertCanAccessStory)
+        .mockResolvedValueOnce({} as never)
+        .mockRejectedValueOnce(new Error('Story not found'));
+
+      const error = await share({ storyId: 'story-1' }).catch((e) => e);
+
+      expect(error).toBeInstanceOf(AppException);
+      expect(String(error.message)).toContain('Someone in this conversation');
+      expect(String(error.message)).not.toContain('friend-1');
+      expect(mockTx.message.create).not.toHaveBeenCalled();
+    });
+
+    it('checks nothing for a message that shares nothing', async () => {
+      mockTx.message.create.mockResolvedValue({ id: 'm1' });
+      await share({}).catch(() => undefined);
+
+      expect(assertCanAccessPost).not.toHaveBeenCalled();
+      expect(assertCanAccessStory).not.toHaveBeenCalled();
     });
   });
 });

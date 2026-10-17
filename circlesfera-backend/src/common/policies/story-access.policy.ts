@@ -9,11 +9,11 @@ type PrismaReader = Pick<
 >;
 
 /**
- * Viewing, reacting to or answering a story requires the same access as
- * seeing it: no block either way, a follow for private accounts, and
- * close-friend membership for close-friends-only stories. Every denial
- * answers NotFound so restrictions are never revealed. Answers the author
- * and when the story ends.
+ * Viewing, reacting to, answering or sharing a story requires the same access
+ * as seeing it: not hidden or removed by moderation, no block either way, a
+ * follow for private accounts, and close-friend membership for
+ * close-friends-only stories. Every denial answers NotFound so restrictions
+ * are never revealed. Answers the author and when the story ends.
  */
 export async function assertCanAccessStory(
   prisma: PrismaReader,
@@ -26,12 +26,20 @@ export async function assertCanAccessStory(
       profileId: true,
       expiresAt: true,
       isCloseFriendsOnly: true,
+      moderationStatus: true,
       profile: { select: { privacyLevel: true } },
     },
   });
   if (!story) throw new NotFoundException('Story not found');
   const result = { profileId: story.profileId, expiresAt: story.expiresAt };
   if (story.profileId === viewerProfileId) return result;
+
+  if (
+    story.moderationStatus === 'HIDDEN' ||
+    story.moderationStatus === 'REMOVED'
+  ) {
+    throw new NotFoundException('Story not found');
+  }
 
   if (
     await isBlockedEitherWay(
