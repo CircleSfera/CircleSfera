@@ -121,6 +121,22 @@ describe('EmailTemplates', () => {
     );
   });
 
+  it('a cancelled plan says until when it lasts, in each language, and links to the plan', () => {
+    const endsAt = new Date('2026-11-01T00:00:00.000Z');
+    const mail = EmailTemplates.planCancelled(en, '<b>Pro</b>', 'ana', endsAt);
+
+    expect(mail.subject).toBe('Your <b>Pro</b> plan is cancelled');
+    expect(mail.html).toContain('1 November 2026');
+    expect(mail.html).toContain('&lt;b&gt;Pro&lt;/b&gt;');
+    expect(mail.html).toContain('@ana');
+    expect(mail.html).toContain(
+      'href="https://circlesfera.com/accounts/billing"',
+    );
+    expect(
+      EmailTemplates.planCancelled(es, 'Pro', 'ana', endsAt).html,
+    ).toContain('1 de noviembre de 2026');
+  });
+
   it('links the receipt and the removed post to live app pages', () => {
     expect(
       EmailTemplates.subscriptionReceipt(en, 'Premium', '€9.99').html,

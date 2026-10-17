@@ -297,7 +297,13 @@
       "status_past_due": "Payment overdue",
       "status_incomplete": "Payment pending",
       "status_cancelled": "Cancelled",
-      "status_expired": "Expired"
+      "status_expired": "Expired",
+      "cancel": "Cancel plan",
+      "cancel_confirm": "You keep every feature of {{plan}} until {{date}}, the end of the period you already paid, and the plan will not renew. Cancel the plan?",
+      "cancel_confirm_button": "Yes, cancel the plan",
+      "cancel_keep": "Keep my plan",
+      "cancel_done": "Plan cancelled. It stays until the end of the period you paid.",
+      "cancel_error": "The plan could not be cancelled. Try again."
     },
     "security": {
       "title": "Security",

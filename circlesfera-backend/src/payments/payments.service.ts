@@ -395,6 +395,67 @@ export class PaymentsService {
     };
   }
 
+  // Cancels the plan of the Profile in use at the end of the period paid:
+  // its features stay until then and nothing more is charged. Only the
+  // person who pays it can cancel it. Cancelling again changes nothing.
+  async cancelPlan(userId: string, profileId: string) {
+    const subscription = await this.prisma.platformSubscription.findFirst({
+      where: {
+        userId,
+        profileId: profileId || '__no_profile__',
+        status: {
+          in: [
+            SubscriptionStatus.ACTIVE,
+            SubscriptionStatus.TRIALING,
+            SubscriptionStatus.PAST_DUE,
+          ],
+        },
+      },
+      include: {
+        plan: { select: { name: true } },
+        profile: { select: { username: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+    if (!subscription) {
+      throw AppException.NotFound(
+        ErrorCode.SUBSCRIPTION_NOT_FOUND,
+        'This profile has no plan to cancel',
+      );
+    }
+
+    if (!subscription.cancelAtPeriodEnd) {
+      await this.stripeService.cancelSubscription(
+        subscription.stripeSubscriptionId,
+        true,
+      );
+      await this.prisma.platformSubscription.update({
+        where: { id: subscription.id },
+        data: { cancelAtPeriodEnd: true },
+      });
+
+      // Telling the payer is best effort: the cancellation already stands.
+      try {
+        const payer = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { email: true },
+        });
+        if (payer?.email) {
+          await this.emailService.sendPlanCancelledEmail(
+            payer.email,
+            subscription.plan.name,
+            subscription.profile?.username ?? '',
+            subscription.currentPeriodEnd,
+          );
+        }
+      } catch (err) {
+        this.logger.error('Failed to send the plan cancelled email', err);
+      }
+    }
+
+    return this.getBillingStatus(userId, profileId);
+  }
+
   private async plansOfOtherProfiles(userId: string, profileId: string) {
     const others = await this.prisma.platformSubscription.findMany({
       where: {

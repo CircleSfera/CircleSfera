@@ -28,6 +28,13 @@ export const paymentsApi = {
     return response.data; // { url: string }
   },
 
+  // Cancels the plan of the profile in use at the end of the period paid;
+  // answers the billing status after it.
+  cancelPlan: async () => {
+    const response = await api.post('/payments/plan/cancel');
+    return response.data;
+  },
+
   // Get billing status for the current user
   getBillingStatus: async () => {
     const response = await api.get('/payments/status');

@@ -704,6 +704,135 @@ describe('PaymentsService', () => {
     });
   });
 
+  describe('cancelPlan', () => {
+    const plan = (over: Record<string, unknown> = {}) => ({
+      id: 'sub_1',
+      planId: 'plan_pro',
+      stripeSubscriptionId: 'stripe_sub_1',
+      status: SubscriptionStatus.ACTIVE,
+      currentPeriodStart: new Date('2026-10-01T00:00:00.000Z'),
+      currentPeriodEnd: new Date('2026-11-01T00:00:00.000Z'),
+      cancelAtPeriodEnd: false,
+      plan: { id: 'plan_pro', name: 'Pro', priceCents: 2000, currency: 'EUR' },
+      profile: { username: 'ana' },
+      ...over,
+    });
+
+    it('cancels at the end of the period paid, marks it, and emails the payer', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.user.findUnique = vi
+        .fn()
+        .mockResolvedValue({ email: 'ana@example.com' });
+      const stripe = stripeService;
+      const email = emailService;
+      email.sendPlanCancelledEmail = vi.fn().mockResolvedValue(undefined);
+
+      await service.cancelPlan('u_1', 'prof_1');
+
+      // Only the person who pays, for the Profile in use.
+      expect(prisma.platformSubscription.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'u_1',
+            profileId: 'prof_1',
+          }),
+        }),
+      );
+      expect(stripe.cancelSubscription).toHaveBeenCalledWith(
+        'stripe_sub_1',
+        true,
+      );
+      expect(prisma.platformSubscription.update).toHaveBeenCalledWith({
+        where: { id: 'sub_1' },
+        data: { cancelAtPeriodEnd: true },
+      });
+      expect(email.sendPlanCancelledEmail).toHaveBeenCalledWith(
+        'ana@example.com',
+        'Pro',
+        'ana',
+        new Date('2026-11-01T00:00:00.000Z'),
+      );
+    });
+
+    it('a failed email does not undo the cancellation, and a payer with no email gets none', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.user.findUnique = vi
+        .fn()
+        .mockResolvedValueOnce({ email: 'ana@example.com' })
+        .mockResolvedValueOnce({ email: null });
+      emailService.sendPlanCancelledEmail = vi
+        .fn()
+        .mockRejectedValueOnce(new Error('mail down'));
+
+      await service.cancelPlan('u_1', 'prof_1');
+      expect(prisma.platformSubscription.update).toHaveBeenCalledTimes(1);
+
+      prisma.platformSubscription.findFirst = vi
+        .fn()
+        .mockResolvedValue(plan({ profile: null }));
+      await service.cancelPlan('u_1', 'prof_1');
+      expect(emailService.sendPlanCancelledEmail).toHaveBeenCalledTimes(1);
+    });
+
+    it('a failure finding the payer does not turn the cancellation into an error', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      prisma.user.findUnique = vi.fn().mockRejectedValue(new Error('db'));
+
+      await expect(service.cancelPlan('u_1', 'prof_1')).resolves.toBeDefined();
+      expect(stripeService.cancelSubscription).toHaveBeenCalled();
+      expect(prisma.platformSubscription.update).toHaveBeenCalled();
+    });
+
+    it('without a Profile in use there is no plan to cancel', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await expect(service.cancelPlan('u_1', '')).rejects.toMatchObject({
+        errorCode: 'SUBSCRIPTION_NOT_FOUND',
+      });
+      expect(prisma.platformSubscription.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ profileId: '__no_profile__' }),
+        }),
+      );
+    });
+
+    it('a plan already cancelled is not cancelled or emailed again', async () => {
+      prisma.platformSubscription.findFirst = vi
+        .fn()
+        .mockResolvedValue(plan({ cancelAtPeriodEnd: true }));
+      const stripe = stripeService;
+      const email = emailService;
+      email.sendPlanCancelledEmail = vi.fn();
+
+      const res = await service.cancelPlan('u_1', 'prof_1');
+
+      expect(stripe.cancelSubscription).not.toHaveBeenCalled();
+      expect(email.sendPlanCancelledEmail).not.toHaveBeenCalled();
+      expect(res.subscription?.cancelAtPeriodEnd).toBe(true);
+    });
+
+    it('refuses when the Profile in use has no plan the person pays', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(null);
+
+      await expect(service.cancelPlan('u_1', 'prof_1')).rejects.toMatchObject({
+        errorCode: 'SUBSCRIPTION_NOT_FOUND',
+      });
+    });
+
+    it('nothing is marked when the payment provider refuses', async () => {
+      prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue(plan());
+      const stripe = stripeService;
+      vi.mocked(stripe.cancelSubscription).mockRejectedValueOnce(
+        new Error('stripe down'),
+      );
+
+      await expect(service.cancelPlan('u_1', 'prof_1')).rejects.toThrow(
+        'stripe down',
+      );
+      expect(prisma.platformSubscription.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getBillingStatus', () => {
     it('returns hasActiveSubscription: true for ACTIVE subscription', async () => {
       prisma.platformSubscription.findFirst = vi.fn().mockResolvedValue({

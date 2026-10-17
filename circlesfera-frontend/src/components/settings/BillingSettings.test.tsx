@@ -7,9 +7,15 @@ import { renderWithProviders } from '../../test/test-utils';
 import BillingSettings from './BillingSettings';
 
 vi.mock('../../services/payments.service', () => ({
-  paymentsApi: { getBillingStatus: vi.fn(), getBillingPortalUrl: vi.fn() },
+  paymentsApi: {
+    getBillingStatus: vi.fn(),
+    getBillingPortalUrl: vi.fn(),
+    cancelPlan: vi.fn(),
+  },
 }));
-vi.mock('react-hot-toast', () => ({ toast: { error: vi.fn() } }));
+vi.mock('react-hot-toast', () => ({
+  toast: { error: vi.fn(), success: vi.fn() },
+}));
 const navigate = vi.hoisted(() => vi.fn());
 vi.mock('react-router-dom', async (importOriginal) => ({
   ...(await importOriginal<typeof import('react-router-dom')>()),
@@ -123,6 +129,131 @@ describe('BillingSettings', () => {
 
     await waitFor(() =>
       expect(location.href).toBe('https://billing.stripe.com/session/x'),
+    );
+  });
+
+  it('cancels in two steps, and then says when the plan ends', async () => {
+    const active = {
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-06T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    };
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue(active);
+    vi.mocked(paymentsApi.cancelPlan).mockResolvedValue({
+      ...active,
+      subscription: { ...active.subscription, cancelAtPeriodEnd: true },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const t = (k: string) => i18n!.t(`settings.billing.${k}`);
+
+    fireEvent.click(await screen.findByRole('button', { name: t('cancel') }));
+    // The first step only asks.
+    expect(paymentsApi.cancelPlan).not.toHaveBeenCalled();
+    expect(screen.getByText(/Premium/, { selector: 'p' })).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: t('cancel_confirm_button') }),
+    );
+
+    await waitFor(() =>
+      expect(paymentsApi.cancelPlan).toHaveBeenCalledTimes(1),
+    );
+    expect(
+      await screen.findByText(t('cancels_on'), { exact: false }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: t('cancel') }),
+    ).not.toBeInTheDocument();
+    expect(toast.success).toHaveBeenCalledWith(t('cancel_done'));
+  });
+
+  it('a plan with a payment overdue can be cancelled too', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: false,
+      subscription: {
+        planName: 'Premium',
+        status: 'PAST_DUE',
+        currentPeriodEnd: '2026-11-06T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+
+    expect(
+      await screen.findByRole('button', {
+        name: i18n!.t('settings.billing.cancel'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows the end date in UTC, as the email does', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-01T00:00:00.000Z',
+        cancelAtPeriodEnd: true,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const expected = new Date('2026-11-01T00:00:00.000Z').toLocaleDateString(
+      i18n!.language,
+      { dateStyle: 'long', timeZone: 'UTC' },
+    );
+
+    expect(
+      await screen.findByText(expected, { exact: false }),
+    ).toBeInTheDocument();
+  });
+
+  it('keeping the plan at the second step cancels nothing', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-06T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    });
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const t = (k: string) => i18n!.t(`settings.billing.${k}`);
+
+    fireEvent.click(await screen.findByRole('button', { name: t('cancel') }));
+    fireEvent.click(screen.getByRole('button', { name: t('cancel_keep') }));
+
+    expect(paymentsApi.cancelPlan).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: t('cancel') }),
+    ).toBeInTheDocument();
+  });
+
+  it('says so when the plan cannot be cancelled', async () => {
+    vi.mocked(paymentsApi.getBillingStatus).mockResolvedValue({
+      hasActiveSubscription: true,
+      subscription: {
+        planName: 'Premium',
+        status: 'ACTIVE',
+        currentPeriodEnd: '2026-11-06T00:00:00.000Z',
+        cancelAtPeriodEnd: false,
+      },
+    });
+    vi.mocked(paymentsApi.cancelPlan).mockRejectedValue(new Error('no'));
+    const { i18n } = renderWithProviders(<BillingSettings />);
+    const t = (k: string) => i18n!.t(`settings.billing.${k}`);
+
+    fireEvent.click(await screen.findByRole('button', { name: t('cancel') }));
+    fireEvent.click(
+      screen.getByRole('button', { name: t('cancel_confirm_button') }),
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(t('cancel_error')),
     );
   });
 

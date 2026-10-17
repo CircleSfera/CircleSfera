@@ -66,6 +66,14 @@ export class PaymentsController {
     return this.paymentsService.getPortalUrl(req.user.userId);
   }
 
+  // Cancels the plan of the Profile in use at the end of the period paid.
+  @Post('plan/cancel')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard)
+  async cancelPlan(@Req() req: RequestWithUser) {
+    return this.paymentsService.cancelPlan(req.user.userId, req.user.profileId);
+  }
+
   @Get('status')
   @UseGuards(JwtAuthGuard)
   async getBillingStatus(@Req() req: RequestWithUser) {

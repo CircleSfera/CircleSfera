@@ -73,6 +73,12 @@ export interface EmailCopy {
     body: string;
     button: string;
   };
+  planCancelled: {
+    subject: string;
+    title: string;
+    body: string;
+    button: string;
+  };
   greeting: string;
   fallbackName: string;
 }
@@ -183,6 +189,12 @@ const en: EmailCopy = {
     title: 'Subscription receipt',
     body: 'Thank you for subscribing to CircleSfera.<br><br>You now have the <strong>{plan}</strong> plan.<br>The charge of <strong>{amount}</strong> was processed and your plan features are active.',
     button: 'Manage my plan',
+  },
+  planCancelled: {
+    subject: 'Your {plan} plan is cancelled',
+    title: 'Plan cancelled',
+    body: 'You cancelled the <strong>{plan}</strong> plan of @{username}.<br><br>You keep every feature of the plan until <strong>{date}</strong>, the end of the period you already paid. The plan will not renew.<br><br>If you did not cancel it, write to support@circlesfera.com.',
+    button: 'See my plan',
   },
   greeting: 'Hello',
   fallbackName: 'there',
@@ -299,6 +311,12 @@ const es: EmailCopy = {
     title: 'Recibo de suscripción',
     body: 'Gracias por suscribirte a CircleSfera.<br><br>Ya tienes el plan <strong>{plan}</strong>.<br>El cargo de <strong>{amount}</strong> se ha procesado y las funciones de tu plan ya están activas.',
     button: 'Gestionar mi plan',
+  },
+  planCancelled: {
+    subject: 'Has cancelado tu plan {plan}',
+    title: 'Plan cancelado',
+    body: 'Has cancelado el plan <strong>{plan}</strong> de @{username}.<br><br>Mantienes todas las funciones del plan hasta el <strong>{date}</strong>, el final del periodo que ya pagaste. El plan no se renovará.<br><br>Si no lo has cancelado tú, escribe a support@circlesfera.com.',
+    button: 'Ver mi plan',
   },
   greeting: 'Hola',
   fallbackName: 'Usuario',
