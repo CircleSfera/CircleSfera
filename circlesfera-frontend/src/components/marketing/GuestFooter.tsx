@@ -30,6 +30,10 @@ export function GuestFooter() {
         { to: '/privacy', label: t('common.footer.privacy') },
         { to: '/terms', label: t('common.footer.terms') },
         { to: '/guidelines', label: t('common.footer.guidelines') },
+        {
+          to: '/report-illegal-content',
+          label: t('common.footer.report_illegal'),
+        },
       ],
     },
     {

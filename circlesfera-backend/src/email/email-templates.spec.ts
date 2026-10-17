@@ -140,6 +140,26 @@ describe('EmailTemplates', () => {
       'Unsubscribe',
     );
     expect(EmailTemplates.welcome(en, 'Ana').html).not.toContain('Unsubscribe');
+  it('a notice receipt and decision carry the address, the reference and the reasons, escaped', () => {
+    const receipt = EmailTemplates.noticeReceived(
+      en,
+      'https://circlesfera.com/p/<1>',
+      'ABCD1234',
+    );
+    expect(receipt.html).toContain('https://circlesfera.com/p/&lt;1&gt;');
+    expect(receipt.html).toContain('ABCD1234');
+
+    const acted = EmailTemplates.noticeDecided(
+      en,
+      'https://circlesfera.com/p/1',
+      true,
+      'Removed.\n<b>Illegal</b> sale.',
+    );
+    expect(acted.html).toContain('acted on the content');
+    expect(acted.html).toContain('Removed.<br>&lt;b&gt;Illegal&lt;/b&gt; sale.');
+    expect(
+      EmailTemplates.noticeDecided(en, 'https://x', false, 'No.').html,
+    ).toContain('did not act on the content');
   });
 
   it('both languages define every text', () => {

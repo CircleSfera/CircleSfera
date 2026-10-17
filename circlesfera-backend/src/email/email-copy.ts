@@ -30,6 +30,15 @@ export interface EmailCopy {
     footer: string;
   };
   accountBanned: { subject: string; title: string; body: string };
+  // A notice of illegal content: its receipt, and the decision on it.
+  noticeReceived: { subject: string; title: string; body: string };
+  noticeDecided: {
+    subject: string;
+    title: string;
+    actioned: string;
+    noAction: string;
+    reasons: string;
+  };
   postRemoved: { subject: string; title: string; body: string; button: string };
   postsRemoved: { subject: string; title: string; body: string };
   appealApproved: { subject: string; title: string; body: string };
@@ -96,6 +105,19 @@ const en: EmailCopy = {
     button: 'Reset password',
     footer:
       'This link expires in 1 hour for security reasons. If you did not ask for this change, ignore this email.',
+  },
+  noticeReceived: {
+    subject: 'We received your notice of illegal content',
+    title: 'Notice received',
+    body: 'We received your notice about {url}. Our team will review it and email you the decision. Reference: {ref}.',
+  },
+  noticeDecided: {
+    subject: 'Decision on your notice of illegal content',
+    title: 'Decision on your notice',
+    actioned: 'We reviewed your notice about {url} and acted on the content.',
+    noAction:
+      'We reviewed your notice about {url} and did not act on the content.',
+    reasons: 'Reasons:',
   },
   accountBanned: {
     subject: 'Your CircleSfera account was suspended',
@@ -191,6 +213,20 @@ const es: EmailCopy = {
     button: 'Restablecer contraseña',
     footer:
       'Este enlace caduca en 1 hora por motivos de seguridad. Si no has solicitado este cambio, ignora este mensaje.',
+  },
+  noticeReceived: {
+    subject: 'Hemos recibido tu aviso de contenido ilegal',
+    title: 'Aviso recibido',
+    body: 'Hemos recibido tu aviso sobre {url}. Nuestro equipo lo revisará y te enviará la decisión por correo. Referencia: {ref}.',
+  },
+  noticeDecided: {
+    subject: 'Decisión sobre tu aviso de contenido ilegal',
+    title: 'Decisión sobre tu aviso',
+    actioned:
+      'Hemos revisado tu aviso sobre {url} y hemos actuado sobre el contenido.',
+    noAction:
+      'Hemos revisado tu aviso sobre {url} y no hemos actuado sobre el contenido.',
+    reasons: 'Motivos:',
   },
   accountBanned: {
     subject: 'Tu cuenta de CircleSfera ha sido suspendida',

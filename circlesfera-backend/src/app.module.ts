@@ -60,6 +60,7 @@ import { HealthModule } from './health/health.module.js';
 import { helpdeskFor } from './helpdesk/helpdesk.module.js';
 import { CircleSferaHelpdeskHostModule } from './helpdesk-host/circlesfera-helpdesk-host.module.js';
 import { HighlightsModule } from './highlights/highlights.module.js';
+import { IllegalNoticesModule } from './illegal-notices/illegal-notices.module.js';
 import { InteractiveModule } from './interactive/interactive.module.js';
 import { LikesModule } from './likes/likes.module.js';
 import { LiveModule } from './live/live.module.js';
@@ -220,6 +221,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     OutboxModule,
     SecurityReportsModule,
     NewsletterModule,
+    IllegalNoticesModule,
     WellKnownModule,
   ],
   controllers: [AppController, CsrfController],

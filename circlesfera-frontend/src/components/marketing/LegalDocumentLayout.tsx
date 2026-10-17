@@ -28,6 +28,7 @@ const DOCUMENTS = [
   { to: '/privacy', label: 'common.footer.privacy' },
   { to: '/terms', label: 'common.footer.terms' },
   { to: '/guidelines', label: 'common.footer.guidelines' },
+  { to: '/report-illegal-content', label: 'common.footer.report_illegal' },
 ] as const;
 
 // Section titles carry their own number ("1. Acceptable use"); the page

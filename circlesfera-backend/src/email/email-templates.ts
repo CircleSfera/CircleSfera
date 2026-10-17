@@ -225,6 +225,44 @@ export const EmailTemplates = {
     }),
   }),
 
+  noticeReceived: (
+    ctx: EmailContext,
+    url: string,
+    ref: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    return {
+      subject: copy.noticeReceived.subject,
+      html: layout(ctx, copy, {
+        title: copy.noticeReceived.title,
+        content: fill(copy.noticeReceived.body, {
+          url: escapeHtml(url),
+          ref: escapeHtml(ref),
+        }),
+      }),
+    };
+  },
+
+  noticeDecided: (
+    ctx: EmailContext,
+    url: string,
+    actioned: boolean,
+    reasons: string,
+  ): RenderedEmail => {
+    const copy = EMAIL_COPY[ctx.locale];
+    const outcome = fill(
+      actioned ? copy.noticeDecided.actioned : copy.noticeDecided.noAction,
+      { url: escapeHtml(url) },
+    );
+    return {
+      subject: copy.noticeDecided.subject,
+      html: layout(ctx, copy, {
+        title: copy.noticeDecided.title,
+        content: `${outcome}<br><br><strong>${copy.noticeDecided.reasons}</strong><br>${escapeHtml(reasons).replace(/\n/g, '<br>')}`,
+      }),
+    };
+  },
+
   accountBanned: (ctx: EmailContext, name: string): RenderedEmail => {
     const copy = EMAIL_COPY[ctx.locale];
     return {

@@ -55,9 +55,11 @@ describe('the two staff sites', () => {
         .find((group) => group.labelKey === labelKey)
         ?.items.map((item) => item.id) ?? [];
 
-    expect(idsOf('admin.nav.moderation').slice(0, 4)).toEqual([
+    // Notices of illegal content from the public sit with the reports.
+    expect(idsOf('admin.nav.moderation').slice(0, 5)).toEqual([
       'users',
       'reports',
+      'illegal-notices',
       'appeals',
       'spam-review',
     ]);

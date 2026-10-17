@@ -2433,7 +2433,8 @@
       "operators": "Operators",
       "settings": "Settings",
       "spam_review": "Spam review",
-      "link_domains": "Blocked link domains"
+      "link_domains": "Blocked link domains",
+      "illegal_notices": "Illegal content notices"
     },
     "table": {
       "empty_title": "No data available",
@@ -4216,6 +4217,25 @@
       "toast_exists": "That domain is already blocked",
       "toast_invalid": "Write a domain name, such as example.com",
       "toast_error": "The change could not be saved"
+    },
+    "illegal_notices": {
+      "title": "Illegal content notices",
+      "subtitle": "Notices from anyone, with or without an account. Child sexual abuse material comes first. The reasons you write are emailed to the notifier.",
+      "status_RECEIVED": "To decide",
+      "status_ACTIONED": "Acted on",
+      "status_NO_ACTION": "No action",
+      "child_abuse": "Child sexual abuse material",
+      "from": "From {{name}} ({{email}}) · {{date}}",
+      "anonymous": "No name or email · {{date}}",
+      "reasons_label": "Reasons for the notifier",
+      "actioned": "Acted on the content",
+      "no_action": "No action",
+      "toast_decided": "Decision recorded and sent",
+      "toast_error": "The decision could not be recorded",
+      "load_failed": "The notices could not be loaded",
+      "retry": "Try again",
+      "empty_title": "No notices here",
+      "empty_description": "Notices sent from the public form appear here."
     }
   },
   "collections": {
@@ -4741,7 +4761,8 @@
       "terms": "Terms",
       "guidelines": "Guidelines",
       "copyright": "© 2026 CircleSfera Social. All rights reserved.",
-      "designed_for": "Designed for the next generation of creators."
+      "designed_for": "Designed for the next generation of creators.",
+      "report_illegal": "Report illegal content"
     },
     "collapse": "Collapse",
     "expand": "Expand",
@@ -5329,5 +5350,23 @@
       "error": "This link is not valid. You can turn the newsletter off in Settings, Notifications.",
       "home": "Go to CircleSfera"
     }
+  },
+  "illegalNotice": {
+    "seo_title": "Report illegal content",
+    "title": "Report illegal content",
+    "intro": "Anyone can tell us about illegal content on CircleSfera, with or without an account. We review every notice and tell you the decision by email.",
+    "url_label": "Address of the content",
+    "explanation_label": "Why it is illegal",
+    "explanation_placeholder": "Explain which law it breaks and why, as precisely as you can.",
+    "child_abuse": "It is child sexual abuse material (you may leave your name and email blank)",
+    "name_label": "Your name",
+    "email_label": "Your email",
+    "optional": "(optional)",
+    "good_faith": "I believe in good faith that the information in this notice is accurate and complete.",
+    "send": "Send notice",
+    "sent": "Notice sent. Reference: {{reference}}.",
+    "sent_email": "We have sent you a receipt by email and will email you the decision.",
+    "sent_no_email": "As you left no email, we cannot tell you the decision.",
+    "error": "The notice could not be sent. Check the address is of CircleSfera and try again."
   }
 }

@@ -47,6 +47,7 @@ const AdminPanelLogin = lazy(() => import('./pages/AdminPanelLogin'));
 const BackofficeApp = lazy(() => import('./pages/backoffice/BackofficeApp'));
 const ChatWindow = lazy(() => import('./components/chat/ChatWindow'));
 const CommunityGuidelines = lazy(() => import('./pages/CommunityGuidelines'));
+const ReportIllegalContent = lazy(() => import('./pages/ReportIllegalContent'));
 const ContentComposerPage = lazy(
   () => import('./components/ContentComposerPage'),
 );
@@ -516,6 +517,10 @@ function App() {
         <Route path="/terms" element={<TermsOfService />} />
         <Route path="/privacy" element={<PrivacyPolicy />} />
         <Route path="/guidelines" element={<CommunityGuidelines />} />
+        <Route
+          path="/report-illegal-content"
+          element={<ReportIllegalContent />}
+        />
         <Route path="/support" element={<Support />} />
         <Route
           path="/support/requests/:id"

@@ -2433,7 +2433,8 @@
       "operators": "Operadores",
       "settings": "Configuración",
       "spam_review": "Revisión de spam",
-      "link_domains": "Dominios bloqueados"
+      "link_domains": "Dominios bloqueados",
+      "illegal_notices": "Avisos de contenido ilegal"
     },
     "table": {
       "empty_title": "No hay datos disponibles",
@@ -4216,6 +4217,25 @@
       "toast_exists": "Ese dominio ya está bloqueado",
       "toast_invalid": "Escribe un nombre de dominio, como ejemplo.com",
       "toast_error": "No se pudo guardar el cambio"
+    },
+    "illegal_notices": {
+      "title": "Avisos de contenido ilegal",
+      "subtitle": "Avisos de cualquier persona, con cuenta o sin ella. El material de abuso sexual infantil va primero. Los motivos que escribas se envían por correo a quien avisó.",
+      "status_RECEIVED": "Por decidir",
+      "status_ACTIONED": "Con actuación",
+      "status_NO_ACTION": "Sin actuación",
+      "child_abuse": "Material de abuso sexual infantil",
+      "from": "De {{name}} ({{email}}) · {{date}}",
+      "anonymous": "Sin nombre ni correo · {{date}}",
+      "reasons_label": "Motivos para quien avisó",
+      "actioned": "Actuar sobre el contenido",
+      "no_action": "Sin actuación",
+      "toast_decided": "Decisión registrada y enviada",
+      "toast_error": "No se pudo registrar la decisión",
+      "load_failed": "No se pudieron cargar los avisos",
+      "retry": "Reintentar",
+      "empty_title": "No hay avisos aquí",
+      "empty_description": "Aquí aparecen los avisos enviados desde el formulario público."
     }
   },
   "collections": {
@@ -4741,7 +4761,8 @@
       "terms": "Términos",
       "guidelines": "Normas",
       "copyright": "© 2026 CircleSfera Social. Todos los derechos reservados.",
-      "designed_for": "Diseñado para la próxima generación de creadores."
+      "designed_for": "Diseñado para la próxima generación de creadores.",
+      "report_illegal": "Denunciar contenido ilegal"
     },
     "collapse": "Contraer",
     "expand": "Expandir",
@@ -5329,5 +5350,23 @@
       "error": "Este enlace no es válido. Puedes desactivar la newsletter en Ajustes, Notificaciones.",
       "home": "Ir a CircleSfera"
     }
+  },
+  "illegalNotice": {
+    "seo_title": "Denunciar contenido ilegal",
+    "title": "Denunciar contenido ilegal",
+    "intro": "Cualquier persona puede avisarnos de contenido ilegal en CircleSfera, con cuenta o sin ella. Revisamos cada aviso y te comunicamos la decisión por correo.",
+    "url_label": "Dirección del contenido",
+    "explanation_label": "Por qué es ilegal",
+    "explanation_placeholder": "Explica qué ley incumple y por qué, con la mayor precisión posible.",
+    "child_abuse": "Es material de abuso sexual infantil (puedes dejar en blanco tu nombre y tu correo)",
+    "name_label": "Tu nombre",
+    "email_label": "Tu correo",
+    "optional": "(opcional)",
+    "good_faith": "Declaro de buena fe que la información de este aviso es exacta y completa.",
+    "send": "Enviar aviso",
+    "sent": "Aviso enviado. Referencia: {{reference}}.",
+    "sent_email": "Te hemos enviado un acuse de recibo por correo y te enviaremos la decisión.",
+    "sent_no_email": "Como no has dejado correo, no podremos comunicarte la decisión.",
+    "error": "No se pudo enviar el aviso. Comprueba que la dirección es de CircleSfera e inténtalo de nuevo."
   }
 }

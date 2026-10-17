@@ -10,6 +10,7 @@ import {
   Flag,
   FlaskConical,
   FolderTree,
+  Gavel,
   Hash,
   ImageIcon,
   LayoutDashboard,
@@ -40,6 +41,7 @@ export type AdminTab =
   | 'overview'
   | 'analytics'
   | 'reports'
+  | 'illegal-notices'
   | 'users'
   | 'posts'
   | 'comments'
@@ -111,6 +113,7 @@ export const ADMIN_TAB_PERMISSIONS: Record<
   trust: 'reports',
   experiments: 'experiments',
   reports: 'reports',
+  'illegal-notices': 'reports',
   audit: 'audit',
   roles: 'admins.manage',
   appeals: 'appeals',
@@ -183,6 +186,11 @@ export const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
         id: 'reports',
         labelKey: 'admin.nav.reports',
         icon: Flag,
+      },
+      {
+        id: 'illegal-notices',
+        labelKey: 'admin.nav.illegal_notices',
+        icon: Gavel,
       },
       {
         id: 'appeals',
