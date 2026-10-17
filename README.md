@@ -18,7 +18,7 @@ CircleSfera/
 
 ## Source of truth
 
-All documentation lives in Notion under [CircleSfera](https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c), in seven domains (Product, Engineering, Quality, Design & Brand, Business & Growth, Execution, Governance). In the repository:
+Documentation lives in Notion under [CircleSfera](https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c), in seven domains (Product, Engineering, Quality, Design & Brand, Business & Growth, Execution, Governance); the full text of Architecture Decision Records stays in `docs/adr/`. In the repository:
 
 1. `circlesfera-backend/prisma/schema.prisma` and its migrations for data and relations
 2. Implemented NestJS / React code on `main` for current behaviour

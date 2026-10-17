@@ -11,7 +11,7 @@ were removed (Sep 2026); do not recreate them or cite them.
 
 ## Documentation lives in Notion
 
-All CircleSfera documentation lives in Notion under **CircleSfera** (the home page, with a "Start here" table):
+CircleSfera documentation lives in Notion, except the full text of Architecture Decision Records, under **CircleSfera** (the home page, with a "Start here" table):
 https://app.notion.com/p/3b2dfa08f2f580a5a11ac45a2621a31c
 
 It has 7 domains, each a direct child of that page: Product, Engineering (architecture, data,
