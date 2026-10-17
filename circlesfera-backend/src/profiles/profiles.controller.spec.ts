@@ -30,7 +30,6 @@ describe('ProfilesController', () => {
 
   const mockService = {
     searchProfiles: vi.fn(),
-    getMyReferrals: vi.fn(),
     getMyProfile: vi.fn(),
     getMyProfiles: vi.fn(),
     createProfile: vi.fn(),
@@ -100,20 +99,19 @@ describe('ProfilesController', () => {
     );
   });
 
-  it('loads referrals by the caller account and own profile by the caller profile', async () => {
-    mockService.getMyReferrals.mockResolvedValue([]);
+  it('loads the own profile by the caller profile, and has no referrals', async () => {
     mockService.getMyProfile.mockResolvedValue({ id: 'profile-1' });
 
+    // There are no invite codes or referrals.
     await request(app.getHttpServer())
       .get('/api/v1/profiles/me/referrals')
       .set(BEARER)
-      .expect(200);
+      .expect(404);
     await request(app.getHttpServer())
       .get('/api/v1/profiles/me')
       .set(BEARER)
       .expect(200);
 
-    expect(mockService.getMyReferrals).toHaveBeenCalledWith(TEST_USER.userId);
     expect(mockService.getMyProfile).toHaveBeenCalledWith(
       TEST_USER.profileId,
       TEST_USER.signInId,

@@ -515,11 +515,6 @@ async function main() {
         description: 'Allow new user registration on the platform.',
       },
       {
-        key: 'require_invite_code',
-        value: 'false',
-        description: 'Require a valid invite code to register.',
-      },
-      {
         key: 'content_posting_enabled',
         value: 'true',
         description: 'Allow creating posts and stories.',

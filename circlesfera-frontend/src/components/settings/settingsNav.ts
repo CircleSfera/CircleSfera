@@ -12,7 +12,6 @@ import {
   User,
   UserCog,
   UserPlus,
-  Users,
   UsersRound,
   UserX,
 } from 'lucide-react';
@@ -27,7 +26,6 @@ export type SettingsSectionId =
   | 'billing'
   | 'monetization'
   | 'requests'
-  | 'referrals'
   | 'close_friends'
   | 'mutes'
   | 'feed_prefs'
@@ -63,7 +61,6 @@ export const SETTINGS_SECTION_IDS: SettingsSectionId[] = [
   'billing',
   'monetization',
   'requests',
-  'referrals',
   'close_friends',
   'mutes',
   'feed_prefs',
@@ -164,11 +161,6 @@ export const SETTINGS_NAV_GROUPS: SettingsNavGroup[] = [
         id: 'monetization',
         labelKey: 'settings.tabs.monetization.label',
         icon: DollarSign,
-      },
-      {
-        id: 'referrals',
-        labelKey: 'settings.tabs.referrals.label',
-        icon: Users,
       },
     ],
   },

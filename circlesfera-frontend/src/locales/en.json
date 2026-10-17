@@ -76,10 +76,6 @@
         "label": "Monetization",
         "desc": "Manage Stripe Connect and payouts"
       },
-      "referrals": {
-        "label": "Referrals",
-        "desc": "Invite friends and track referrals"
-      },
       "requests": {
         "label": "Requests",
         "desc": "Followers"
@@ -621,7 +617,7 @@
     },
     "register": {
       "title": "CircleSfera",
-      "subtitle": "Join the inner circle.",
+      "subtitle": "Your world, connected.",
       "email_label": "Email",
       "email_placeholder": "you@example.com",
       "username_label": "Username",
@@ -632,13 +628,9 @@
       "password_placeholder": "••••••••",
       "dob_label": "Date of birth",
       "dob_hint": "You must be at least 16 years old.",
-      "invite_label": "Invite Code",
-      "optional": "(optional)",
-      "invite_placeholder": "XXXX-XXXX",
       "default_error": "Registration failed. Please try again.",
       "errors": {
         "REGISTRATION_CLOSED": "Registration is temporarily closed.",
-        "INVITE_CODE_REQUIRED": "An invite code is required to register.",
         "MAINTENANCE_MODE": "CircleSfera is under maintenance. Please try again later.",
         "EMAIL_NOT_VERIFIED": "You must verify your email.",
         "CAPTCHA_FAILED": "Security check failed.",
@@ -1299,10 +1291,6 @@
     "blocked": {
       "title": "You have blocked this user.",
       "subtitle": "Unblock them in Settings to see their profile."
-    },
-    "invite": {
-      "title": "Your Invite Code",
-      "copied": "Invite link copied!"
     },
     "private": {
       "title": "This Account is Private",
@@ -4017,7 +4005,6 @@
       "keys": {
         "maintenance_mode": "Maintenance mode",
         "registration_open": "Registration open",
-        "require_invite_code": "Require invite code",
         "content_posting_enabled": "Content posting enabled",
         "live_streams_enabled": "Live streams enabled",
         "turnstile_required": "Bot check required",
@@ -4026,7 +4013,6 @@
       "descriptions": {
         "maintenance_mode": "When on, the consumer API returns 503 except health, CSRF, webhooks and Admin Panel.",
         "registration_open": "Allow new users to create accounts.",
-        "require_invite_code": "New accounts must provide a valid invite code.",
         "content_posting_enabled": "Allow creating posts and stories.",
         "live_streams_enabled": "Allow starting live streams.",
         "turnstile_required": "Asks for the bot check when signing up and signing in.",
@@ -4573,19 +4559,6 @@
       "frame_back": "Previous frame",
       "frame_forward": "Next frame"
     }
-  },
-  "referralsSettings": {
-    "title": "Invitations",
-    "subtitle": "Invite friends to CircleSfera.",
-    "your_invite_link": "Your invite link",
-    "used_count": "{{count}} / {{max}} used",
-    "copy": "Copy",
-    "copied": "Invite link copied",
-    "copy_error": "The link could not be copied. Select it and copy it by hand.",
-    "max_reached": "You have used all invites for this beta.",
-    "users_invited": "People you invited",
-    "no_invites": "You have not invited anyone yet.",
-    "joined_on": "Joined {{date}}"
   },
   "live": {
     "connecting": "Connecting to live stream...",
@@ -5288,7 +5261,6 @@
       "LIVE_STREAMS_DISABLED": "Live streams are turned off right now.",
       "MAINTENANCE_MODE": "CircleSfera is under maintenance. Try again shortly.",
       "REGISTRATION_CLOSED": "Sign-ups are closed right now.",
-      "INVITE_CODE_REQUIRED": "You need an invite code to sign up.",
       "CONTENT_POSTING_DISABLED": "Posting is turned off right now.",
       "EMAIL_NOT_VERIFIED": "Verify your email to do this.",
       "IDENTITY_VERIFICATION_REQUIRED": "Verify your identity to buy or get paid.",

@@ -369,46 +369,6 @@ export class ProfilesService {
     return flattened;
   }
 
-  // Referrals belong to the account (invite code lives on User), so this takes a User.id.
-  async getMyReferrals(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        inviteCode: true,
-        referrals: {
-          select: {
-            id: true,
-            createdAt: true,
-            profiles: {
-              take: 1,
-              select: {
-                username: true,
-                fullName: true,
-                avatar: true,
-              },
-            },
-          },
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-    });
-
-    if (!user) {
-      throw AppException.NotFound(ErrorCode.USER_NOT_FOUND, 'User not found');
-    }
-
-    return {
-      inviteCode: user.inviteCode,
-      maxReferrals: 3,
-      referralCount: user.referrals.length,
-      referrals: user.referrals.map((r) => ({
-        ...r,
-        profile: r.profiles[0],
-        profiles: undefined,
-      })),
-    };
-  }
-
   // Param signInId: the sign-in of the session; its email and whether it is
   // verified are what the person reads about how they are signed in
   async getMyProfile(profileId: string, signInId?: string) {
@@ -425,8 +385,6 @@ export class ProfilesService {
             isActive: true,
             emailVerified: true,
 
-            inviteCode: true,
-            referredById: true,
             identityVerifiedAt: true,
             signupCountry: true,
             botLabeledAt: true,
@@ -486,8 +444,6 @@ export class ProfilesService {
       companyVerified,
       accountType: profile.accountType,
       verificationLevel: profile.verificationLevel,
-      inviteCode: profile.user?.inviteCode,
-      referredById: profile.user?.referredById,
       identityVerifiedAt: profile.user?.identityVerifiedAt,
       identityVerified: !!profile.user?.identityVerifiedAt,
       emailConfirmed: !!signedInWith?.emailVerified,

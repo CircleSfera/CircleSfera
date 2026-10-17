@@ -2,7 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useCallback, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import TurnstileWidget from '../components/auth/TurnstileWidget';
 import { Button } from '../components/ui';
 import { BUTTON_FIT, BUTTON_ROW } from '../components/ui/buttonWidth';
@@ -25,10 +25,6 @@ export default function Register() {
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [noNewsletter, setNoNewsletter] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
-  const [searchParams] = useSearchParams();
-  const [inviteCode, setInviteCode] = useState(
-    searchParams.get('inviteCode') || '',
-  );
   const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
   const onCaptchaToken = useCallback((token: string | null) => {
@@ -44,7 +40,6 @@ export default function Register() {
         username,
         fullName,
         dateOfBirth,
-        inviteCode: inviteCode || undefined,
         captchaToken: captchaToken || undefined,
         visitorId,
         locale: toAppLocale(i18n.resolvedLanguage ?? i18n.language),
@@ -211,28 +206,6 @@ export default function Register() {
               <p className="mt-1 px-1 text-xs text-gray-400 font-medium">
                 {t('auth.register.dob_hint')}
               </p>
-            </div>
-
-            <div>
-              <label
-                htmlFor="inviteCode"
-                className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-1 px-1"
-              >
-                {t('auth.register.invite_label')}{' '}
-                <span className="text-gray-600 font-normal lowercase tracking-normal">
-                  {t('auth.register.optional')}
-                </span>
-              </label>
-              <input
-                id="inviteCode"
-                type="text"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value)}
-                className="input-glass w-full px-4 text-white placeholder-gray-600 text-sm"
-                style={{ height: 'var(--input-height-standard, 48px)' }}
-                placeholder={t('auth.register.invite_placeholder')}
-                autoComplete="off"
-              />
             </div>
 
             {/* The newsletter is sent under the existing-customer exception:

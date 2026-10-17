@@ -321,12 +321,6 @@ const cases: Case[] = [
     ['/users/me/restore'],
   ],
   ['profile.me', () => profileApi.getMyProfile(), 'get', ['profiles/me']],
-  [
-    'profile.referrals',
-    () => profileApi.getMyReferrals(),
-    'get',
-    ['profiles/me/referrals'],
-  ],
   ['profile.get', () => profileApi.getProfile('ana'), 'get', ['/profiles/ana']],
   [
     'profile.checkUsername',

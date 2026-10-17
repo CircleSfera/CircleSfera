@@ -75,12 +75,6 @@ model User {
   botLabeledAt   DateTime?
   botLabelReason String?
 
-  // Growth & referrals
-  inviteCode   String? @unique
-  referredById String?
-  referredBy   User?   @relation("UserReferrals", fields: [referredById], references: [id])
-  referrals    User[]  @relation("UserReferrals")
-
   // Stripe Connect / platform billing
   stripeCustomerId       String? @unique
   stripeConnectAccountId String? @unique

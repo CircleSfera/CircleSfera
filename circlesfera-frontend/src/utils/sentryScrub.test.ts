@@ -15,10 +15,8 @@ describe('scrubUrl', () => {
   });
 
   it('redacts other credential-like parameters', () => {
-    expect(
-      scrubUrl('/x?access_token=1&inviteCode=2&session_id=3&q=hello'),
-    ).toBe(
-      '/x?access_token=[REDACTED]&inviteCode=[REDACTED]&session_id=[REDACTED]&q=hello',
+    expect(scrubUrl('/x?access_token=1&resetCode=2&session_id=3&q=hello')).toBe(
+      '/x?access_token=[REDACTED]&resetCode=[REDACTED]&session_id=[REDACTED]&q=hello',
     );
   });
 

@@ -18,7 +18,6 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { useCloseFriendsList } from '../../hooks/useCloseFriendsList';
@@ -546,33 +545,6 @@ export default function ProfileHeader({
                 )}
               </div>
             )}
-
-            {isMe &&
-              profile.data.accountType === 'CREATOR' &&
-              profile.data.inviteCode && (
-                <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl max-w-sm mx-auto md:mx-0 flex items-center justify-between gap-3 backdrop-blur-md">
-                  <div className="flex flex-col">
-                    <span className="text-xs font-bold text-gray-300 uppercase tracking-wide">
-                      {t('profile.invite.title')}
-                    </span>
-                    <span className="font-mono text-brand-primary-text font-bold tracking-wider text-sm">
-                      {profile.data.inviteCode}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(
-                        `${window.location.origin}/register?inviteCode=${profile.data.inviteCode}`,
-                      );
-                      toast.success(t('profile.invite.copied'));
-                    }}
-                    className="px-4 py-2 bg-white text-black hover:bg-zinc-200 rounded-lg min-h-11 text-sm font-semibold transition-all"
-                  >
-                    {t('profile.actions.copy_link')}
-                  </button>
-                </div>
-              )}
           </div>
 
           {/* Mobile Only Action Buttons. Four 44 px buttons and creator mode

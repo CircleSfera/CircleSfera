@@ -11,7 +11,6 @@ import NotificationsSettings from '../components/settings/NotificationsSettings'
 import PrivacySettings from '../components/settings/PrivacySettings';
 import ProfileSettings from '../components/settings/ProfileSettings';
 import ProfilesSettings from '../components/settings/ProfilesSettings';
-import ReferralsSettings from '../components/settings/ReferralsSettings';
 import RequestsSettings from '../components/settings/RequestsSettings';
 import SecuritySettings from '../components/settings/SecuritySettings';
 import SettingsHubIndex from '../components/settings/SettingsHubIndex';
@@ -39,8 +38,6 @@ function SectionPanel({ section }: { section: SettingsSectionId }) {
       return <MonetizationSettings />;
     case 'requests':
       return <RequestsSettings />;
-    case 'referrals':
-      return <ReferralsSettings />;
     case 'close_friends':
       return <CloseFriendsSettings />;
     case 'mutes':

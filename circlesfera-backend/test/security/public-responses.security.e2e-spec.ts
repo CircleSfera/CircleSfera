@@ -295,7 +295,6 @@ describe('Public responses never carry account-level User columns (e2e)', () => 
   const ownDataRoutes = (): string[] => [
     '/profiles/my-profiles',
     '/profiles/me',
-    '/profiles/me/referrals',
     '/monetization',
     '/monetization/transactions',
     '/monetization/status',

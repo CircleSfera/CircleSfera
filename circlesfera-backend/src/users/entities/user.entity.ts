@@ -25,8 +25,6 @@ export class UserEntity implements User {
   scheduledDeletionAt!: Date | null;
   deactivatedAt!: Date | null;
 
-  inviteCode!: string | null;
-  referredById!: string | null;
   role!: Role;
   locale!: Locale;
   identityVerifiedAt!: Date | null;
