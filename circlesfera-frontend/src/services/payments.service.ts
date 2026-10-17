@@ -1,3 +1,4 @@
+import type { WithdrawalConsentGiven } from '../components/payments/WithdrawalConsent';
 import { apiClient as api } from './api';
 
 export const paymentsApi = {
@@ -10,11 +11,13 @@ export const paymentsApi = {
   // Create a Stripe Checkout session for a platform plan.
   createSubscriptionCheckout: async (
     planId: string,
-    billingCycle: 'MONTHLY' | 'YEARLY' = 'MONTHLY',
+    billingCycle: 'MONTHLY' | 'YEARLY',
+    consent: WithdrawalConsentGiven,
   ) => {
     const response = await api.post('/payments/checkout', {
       planId,
       billingCycle,
+      ...consent,
     });
     return response.data; // { url: string }
   },

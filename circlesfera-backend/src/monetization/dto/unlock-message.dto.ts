@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsUrl } from 'class-validator';
+import { Equals, IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class UnlockMessageDto {
   @ApiProperty({
@@ -17,4 +17,9 @@ export class UnlockMessageDto {
   @IsUrl({ require_tld: false })
   @IsNotEmpty()
   returnUrl!: string;
+
+  // The buyer consents to start at once and acknowledges losing the right of
+  // withdrawal; without it the purchase is refused.
+  @Equals(true, { message: 'withdrawalConsent must be true' })
+  withdrawalConsent!: true;
 }

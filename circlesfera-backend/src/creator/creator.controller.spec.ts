@@ -184,6 +184,7 @@ describe('CreatorController', () => {
       .post('/api/v1/creator/promotions')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         targetType: 'POST',
         targetId: 'post-1',
         durationDays: 7,
@@ -200,6 +201,7 @@ describe('CreatorController', () => {
       .post('/api/v1/creator/promotions')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         targetType: 'POST',
         targetId: 'post-1',
         budget: 35,
@@ -251,6 +253,7 @@ describe('CreatorController', () => {
       .post('/api/v1/creator/promotions')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         targetType: 'post',
         targetId: 'post-1',
         budget: 35,
@@ -270,6 +273,7 @@ describe('CreatorController', () => {
       .post('/api/v1/creator/promotions')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         targetType: 'frame',
         targetId: 'post-1',
         dailyBudget: 50,
@@ -300,6 +304,7 @@ describe('CreatorController', () => {
       .send({
         targetType: 'post',
         targetId: 'post-1',
+        withdrawalConsent: true,
         dailyBudget: 5,
         durationDays: 3,
         countries: ['es', 'FR'],
@@ -421,5 +426,20 @@ describe('CreatorController', () => {
     expect(guards).not.toContain(ElitePlanGuard);
     expect(guards).not.toContain(SubscriptionGuard);
     expect(guards).toContain(CreatorAccountGuard);
+  });
+
+  it('refuses a promotion without the withdrawal consent', async () => {
+    await request(app.getHttpServer())
+      .post('/api/v1/creator/promotions')
+      .set(BEARER)
+      .send({
+        targetType: 'POST',
+        targetId: 'post-1',
+        budget: 35,
+        durationDays: 7,
+      })
+      .expect(400);
+
+    expect(mockCreatePromotionUC.execute).not.toHaveBeenCalled();
   });
 });

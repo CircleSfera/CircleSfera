@@ -199,6 +199,7 @@ describe('MonetizationController', () => {
       .post('/api/v1/monetization/unlock')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         postId: 'post-1',
         returnUrl: 'https://example.com/return',
         idempotencyKey: 'unlock-1',
@@ -223,6 +224,7 @@ describe('MonetizationController', () => {
       .post('/api/v1/monetization/unlock-story')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         storyId: 'story-1',
         returnUrl: 'https://example.com/return',
         idempotencyKey: 'unlock-s-1',
@@ -247,6 +249,7 @@ describe('MonetizationController', () => {
       .post('/api/v1/monetization/unlock-message')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         messageId: 'msg-1',
         returnUrl: 'https://example.com/return',
       })
@@ -257,5 +260,29 @@ describe('MonetizationController', () => {
       'msg-1',
       'https://example.com/return',
     );
+  });
+
+  it('refuses an unlock without the consent to start at once and the acknowledgement of losing the withdrawal right', async () => {
+    for (const [route, body] of [
+      ['unlock', { postId: 'post-1' }],
+      ['unlock-story', { storyId: 'story-1' }],
+      ['unlock-message', { messageId: 'msg-1' }],
+    ] as const) {
+      for (const withdrawalConsent of [undefined, false, 'true']) {
+        await request(app.getHttpServer())
+          .post(`/api/v1/monetization/${route}`)
+          .set(BEARER)
+          .send({
+            ...body,
+            returnUrl: 'https://example.com/return',
+            ...(withdrawalConsent !== undefined && { withdrawalConsent }),
+          })
+          .expect(400);
+      }
+    }
+
+    expect(mockService.createPostUnlockSession).not.toHaveBeenCalled();
+    expect(mockService.createStoryUnlockSession).not.toHaveBeenCalled();
+    expect(mockService.createMessageUnlockSession).not.toHaveBeenCalled();
   });
 });

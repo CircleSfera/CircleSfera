@@ -5348,5 +5348,13 @@
     "sent_email": "We have sent you a receipt by email and will email you the decision.",
     "sent_no_email": "As you left no email, we cannot tell you the decision.",
     "error": "The notice could not be sent. Check the address is of CircleSfera and try again."
+  },
+  "payments": {
+    "withdrawal": {
+      "title": "Before you pay",
+      "consent": "I want access to start right away, and I understand that I lose my 14-day right of withdrawal once it starts.",
+      "required": "Without this, the purchase cannot start.",
+      "continue": "Continue to payment"
+    }
   }
 }

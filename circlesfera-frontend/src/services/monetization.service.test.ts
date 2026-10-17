@@ -34,18 +34,32 @@ describe('monetizationApi', () => {
     expect(res).toEqual({ url: 'https://checkout.stripe.com/c/1' });
   });
 
-  it('unlocks posts and stories without sending a price (the server sets it)', async () => {
-    await monetizationApi.unlockPost('post-1', 'https://circlesfera.com/p/1');
-    await monetizationApi.unlockStory('story-1', 'https://circlesfera.com/');
+  it('unlocks posts and stories with the withdrawal consent and without sending a price (the server sets it)', async () => {
+    const given = { withdrawalConsent: true } as const;
+    await monetizationApi.unlockPost(
+      'post-1',
+      'https://circlesfera.com/p/1',
+      given,
+    );
+    await monetizationApi.unlockStory(
+      'story-1',
+      'https://circlesfera.com/',
+      given,
+    );
 
     expect(apiClient.post).toHaveBeenNthCalledWith(1, '/monetization/unlock', {
       postId: 'post-1',
       returnUrl: 'https://circlesfera.com/p/1',
+      withdrawalConsent: true,
     });
     expect(apiClient.post).toHaveBeenNthCalledWith(
       2,
       '/monetization/unlock-story',
-      { storyId: 'story-1', returnUrl: 'https://circlesfera.com/' },
+      {
+        storyId: 'story-1',
+        returnUrl: 'https://circlesfera.com/',
+        withdrawalConsent: true,
+      },
     );
   });
 

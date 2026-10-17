@@ -47,6 +47,10 @@ import { QuizWidget } from './interactive/QuizWidget';
 import { SliderWidget } from './interactive/SliderWidget';
 import { RESULT_KINDS } from './interactive/StickerResultsCard';
 import PaywallOverlay from './monetization/PaywallOverlay';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from './payments/WithdrawalConsent';
 import { StoryDeleteConfirm } from './StoryDeleteConfirm';
 import { StoryViewersSheet } from './StoryViewersSheet';
 import { buildMentionElement } from './story/storyComposer.append';
@@ -171,9 +175,16 @@ export default function StoryViewer({
     };
   }, [currentIndex, stories, durationById]);
 
+  // Before paying: the consent to start at once and the acknowledgement of
+  // losing the withdrawal right.
+  const consent = useWithdrawalConsent();
   const unlockMutation = useMutation({
-    mutationFn: () =>
-      monetizationApi.unlockStory(currentStory!.id, window.location.href),
+    mutationFn: (given: WithdrawalConsentGiven) =>
+      monetizationApi.unlockStory(
+        currentStory!.id,
+        window.location.href,
+        given,
+      ),
     onSuccess: (response: { url?: string }) => {
       if (response?.url) {
         window.location.href = response.url;
@@ -506,11 +517,14 @@ export default function StoryViewer({
                   price={
                     currentStory.priceCents ? currentStory.priceCents / 100 : 0
                   }
-                  onUnlock={() => unlockMutation.mutate()}
+                  onUnlock={() =>
+                    consent.ask((given) => unlockMutation.mutate(given))
+                  }
                   isLoading={unlockMutation.isPending}
                 />
               </div>
             )}
+            {consent.dialog}
 
             <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-black/80 via-black/40 to-transparent pointer-events-none z-20" />
             <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-black/90 via-black/50 to-transparent pointer-events-none z-20" />

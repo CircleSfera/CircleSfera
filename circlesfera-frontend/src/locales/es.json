@@ -5348,5 +5348,13 @@
     "sent_email": "Te hemos enviado un acuse de recibo por correo y te enviaremos la decisión.",
     "sent_no_email": "Como no has dejado correo, no podremos comunicarte la decisión.",
     "error": "No se pudo enviar el aviso. Comprueba que la dirección es de CircleSfera e inténtalo de nuevo."
+  },
+  "payments": {
+    "withdrawal": {
+      "title": "Antes de pagar",
+      "consent": "Quiero que el acceso empiece ya, y entiendo que pierdo mi derecho de desistimiento de 14 días en cuanto empiece.",
+      "required": "Sin esto, la compra no puede empezar.",
+      "continue": "Continuar al pago"
+    }
   }
 }

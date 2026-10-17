@@ -785,11 +785,17 @@ const cases: Case[] = [
         targetType: 'POST',
         targetId: 'p1',
         durationDays: 3,
+        withdrawalConsent: true,
       }),
     'post',
     [
       'creator/promotions',
-      { targetType: 'POST', targetId: 'p1', durationDays: 3 },
+      {
+        targetType: 'POST',
+        targetId: 'p1',
+        durationDays: 3,
+        withdrawalConsent: true,
+      },
     ],
   ],
   [

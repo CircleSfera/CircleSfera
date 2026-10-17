@@ -11,6 +11,10 @@ import type { Post } from '../types';
 import FrameItem from './FrameItem';
 import type { FrameMenuActions } from './frames/FrameOptionsSheet';
 
+vi.mock('./payments/WithdrawalConsent', async () =>
+  (await import('../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
+);
+
 const session = vi.hoisted(() => ({
   profile: { id: 'me', accountType: 'PERSONAL' } as {
     id: string;
@@ -611,6 +615,7 @@ describe('FrameItem', () => {
       expect(monetizationApi.unlockPost).toHaveBeenCalledWith(
         'f1',
         window.location.href,
+        { withdrawalConsent: true },
       );
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['frames'] });
       expect(invalidate).toHaveBeenCalledWith({ queryKey: ['feed'] });

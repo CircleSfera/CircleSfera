@@ -75,7 +75,11 @@ describe('PaymentsController', () => {
   it('rejects checkout without a session', async () => {
     await request(app.getHttpServer())
       .post('/api/v1/payments/checkout')
-      .send({ planId: TEST_UUID, billingCycle: 'YEARLY' })
+      .send({
+        planId: TEST_UUID,
+        billingCycle: 'YEARLY',
+        withdrawalConsent: true,
+      })
       .expect(401);
 
     expect(mockService.createCheckout).not.toHaveBeenCalled();
@@ -86,6 +90,7 @@ describe('PaymentsController', () => {
       .post('/api/v1/payments/checkout')
       .set(BEARER)
       .send({
+        withdrawalConsent: true,
         planId: TEST_UUID,
         billingCycle: 'YEARLY',
         amountCents: 999,
@@ -103,7 +108,11 @@ describe('PaymentsController', () => {
     const res = await request(app.getHttpServer())
       .post('/api/v1/payments/checkout')
       .set(BEARER)
-      .send({ planId: TEST_UUID, billingCycle: 'YEARLY' })
+      .send({
+        planId: TEST_UUID,
+        billingCycle: 'YEARLY',
+        withdrawalConsent: true,
+      })
       .expect(201);
 
     expect(res.body).toEqual({ url: 'https://example.com' });
@@ -260,5 +269,21 @@ describe('PaymentsController', () => {
         rawBody: Buffer.from('{}'),
       } as any),
     ).rejects.toThrow('Unknown error');
+  });
+
+  it('refuses a plan checkout without the withdrawal consent', async () => {
+    for (const withdrawalConsent of [undefined, false]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/payments/checkout')
+        .set(BEARER)
+        .send({
+          planId: TEST_UUID,
+          billingCycle: 'MONTHLY',
+          ...(withdrawalConsent !== undefined && { withdrawalConsent }),
+        })
+        .expect(400);
+    }
+
+    expect(mockService.createCheckout).not.toHaveBeenCalled();
   });
 });

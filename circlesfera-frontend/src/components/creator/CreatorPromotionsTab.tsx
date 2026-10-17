@@ -19,6 +19,10 @@ import { creatorApi } from '../../services/creator.service';
 import type { PaginatedResponse } from '../../types';
 import { formatDate, formatNumber } from '../../utils/format';
 import { formatCents } from '../../utils/money';
+import {
+  useWithdrawalConsent,
+  type WithdrawalConsentGiven,
+} from '../payments/WithdrawalConsent';
 import { Button, Dialog } from '../ui';
 import CreatorEmpty from './CreatorEmpty';
 import { CreatorBadge, CreatorPager, CreatorRow } from './CreatorPieces';
@@ -149,6 +153,10 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       ),
     });
 
+  // Repeating a promotion is a new purchase: the consent to start at once
+  // and the acknowledgement of losing the withdrawal right come first.
+  const consent = useWithdrawalConsent();
+
   const handleRepeat = (promo: CreatorPromotion) => {
     const remainingEuros = (promo.budgetCents || 0) / 100;
     if (remainingEuros <= 0) {
@@ -156,6 +164,16 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
       return;
     }
 
+    consent.ask((given) => {
+      void repeat(promo, remainingEuros, given);
+    });
+  };
+
+  const repeat = (
+    promo: CreatorPromotion,
+    remainingEuros: number,
+    given: WithdrawalConsentGiven,
+  ) =>
     creatorApi
       .createPromotion({
         targetType: promo.targetType,
@@ -163,6 +181,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         budget: remainingEuros,
         durationDays: 7,
         currency: promo.currency || 'EUR',
+        ...given,
       })
       .then((response) => {
         queryClient.invalidateQueries({ queryKey: ['creator', 'promotions'] });
@@ -175,7 +194,6 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
         redirectToCheckout(url);
       })
       .catch(() => onToast(t('creator.promotions.error_repeat'), 'error'));
-  };
 
   const extendPromo = (promo: CreatorPromotion) => {
     const next = new Date(promo.endDate);
@@ -352,6 +370,7 @@ export default function CreatorPromotionsTab({ onToast }: Props) {
 
   return (
     <div className="space-y-4 pb-8">
+      {consent.dialog}
       {promos.length > 0 && (
         <div className="flex justify-end">
           <Button

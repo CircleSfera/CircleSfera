@@ -1,3 +1,4 @@
+import type { WithdrawalConsentGiven } from '../components/payments/WithdrawalConsent';
 import type { PaginatedResponse } from '../types';
 import { apiClient } from './api';
 
@@ -126,16 +127,18 @@ export const creatorApi = {
       `/creator/promotions/${promotionId}/view`,
     ),
 
-  createPromotion: (data: {
-    targetType: string;
-    targetId: string;
-    budget?: number;
-    dailyBudget?: number;
-    durationDays: number;
-    currency?: string;
-    // ISO codes from the closed list; none for everywhere.
-    countries?: string[];
-  }) =>
+  createPromotion: (
+    data: {
+      targetType: string;
+      targetId: string;
+      budget?: number;
+      dailyBudget?: number;
+      durationDays: number;
+      currency?: string;
+      // ISO codes from the closed list; none for everywhere.
+      countries?: string[];
+    } & WithdrawalConsentGiven,
+  ) =>
     apiClient.post<{ url: string; promotionId: string }>(
       'creator/promotions',
       data,

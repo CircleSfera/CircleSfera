@@ -85,6 +85,10 @@ describe('PromoteModal', () => {
       'aria-pressed',
       'true',
     );
+    // Paying waits for the consent to start at once.
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
     await user.click(
       screen.getByRole('button', { name: 'Pay €35 and promote' }),
     );
@@ -97,6 +101,7 @@ describe('PromoteModal', () => {
         durationDays: 7,
         currency: 'EUR',
         countries: undefined,
+        withdrawalConsent: true,
       }),
     );
     await waitFor(() => expect(window.location.href).toBe(checkoutUrl));
@@ -122,6 +127,10 @@ describe('PromoteModal', () => {
       screen.queryByRole('option', { name: 'Spain' }),
     ).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Remove France' }));
+    // Paying waits for the consent to start at once.
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
     await user.click(
       screen.getByRole('button', { name: 'Pay €350 and promote' }),
     );
@@ -134,6 +143,7 @@ describe('PromoteModal', () => {
         durationDays: 14,
         currency: 'EUR',
         countries: ['ES', 'PT'],
+        withdrawalConsent: true,
       }),
     );
   });
@@ -193,6 +203,12 @@ describe('PromoteModal', () => {
     } as never);
     open(post);
 
+    // Paying waits for the consent to start at once.
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
+
     await user.click(
       screen.getByRole('button', { name: 'Pay €35 and promote' }),
     );
@@ -207,6 +223,12 @@ describe('PromoteModal', () => {
     const user = userEvent.setup();
     vi.mocked(creatorApi.createPromotion).mockRejectedValue(new Error('no'));
     open(post);
+
+    // Paying waits for the consent to start at once.
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
 
     await user.click(
       screen.getByRole('button', { name: 'Pay €35 and promote' }),
@@ -225,5 +247,20 @@ describe('PromoteModal', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Presupuesto por día')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '7 días' })).toBeInTheDocument();
+  });
+
+  it('the pay button waits for the consent to start at once and the acknowledgement of losing the withdrawal right', async () => {
+    const user = userEvent.setup();
+    open(post);
+
+    const pay = screen.getByRole('button', { name: 'Pay €35 and promote' });
+    expect(pay).toBeDisabled();
+    await user.click(pay);
+    expect(creatorApi.createPromotion).not.toHaveBeenCalled();
+
+    await user.click(
+      screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+    );
+    expect(pay).toBeEnabled();
   });
 });

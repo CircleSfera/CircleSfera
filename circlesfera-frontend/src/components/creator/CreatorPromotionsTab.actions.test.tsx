@@ -7,6 +7,10 @@ import {
 import { renderWithProviders } from '../../test/test-utils';
 import CreatorPromotionsTab from './CreatorPromotionsTab';
 
+vi.mock('../payments/WithdrawalConsent', async () =>
+  (await import('../../test/withdrawalConsentGiven')).withdrawalConsentGiven(),
+);
+
 vi.mock('../../services/creator.service', () => ({
   creatorApi: {
     getPromotions: vi.fn(),
@@ -446,6 +450,7 @@ describe('CreatorPromotionsTab with campaigns', () => {
         budget: 15.5,
         durationDays: 7,
         currency: 'USD',
+        withdrawalConsent: true,
       });
       expect(window.location.href).toBe('https://pay.example/session');
     });

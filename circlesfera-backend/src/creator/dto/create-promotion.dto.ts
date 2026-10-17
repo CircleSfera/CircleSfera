@@ -3,6 +3,7 @@ import { Transform } from 'class-transformer';
 import {
   ArrayMaxSize,
   ArrayUnique,
+  Equals,
   IsArray,
   IsDateString,
   IsIn,
@@ -83,6 +84,11 @@ export class CreatePromotionDto {
   @ArrayMaxSize(COUNTRY_CODES.length)
   @IsIn(COUNTRY_CODES, { each: true })
   countries?: string[];
+
+  // The buyer consents to start at once and acknowledges losing the right of
+  // withdrawal; without it the purchase is refused.
+  @Equals(true, { message: 'withdrawalConsent must be true' })
+  withdrawalConsent!: true;
 }
 
 export class UpdatePromotionDto {

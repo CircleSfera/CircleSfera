@@ -177,15 +177,27 @@ const cases: Case[] = [
   ],
   [
     'payments.checkout monthly',
-    () => paymentsApi.createSubscriptionCheckout('p1'),
+    () =>
+      paymentsApi.createSubscriptionCheckout('p1', 'MONTHLY', {
+        withdrawalConsent: true,
+      }),
     'post',
-    ['/payments/checkout', { planId: 'p1', billingCycle: 'MONTHLY' }],
+    [
+      '/payments/checkout',
+      { planId: 'p1', billingCycle: 'MONTHLY', withdrawalConsent: true },
+    ],
   ],
   [
     'payments.checkout yearly',
-    () => paymentsApi.createSubscriptionCheckout('p1', 'YEARLY'),
+    () =>
+      paymentsApi.createSubscriptionCheckout('p1', 'YEARLY', {
+        withdrawalConsent: true,
+      }),
     'post',
-    ['/payments/checkout', { planId: 'p1', billingCycle: 'YEARLY' }],
+    [
+      '/payments/checkout',
+      { planId: 'p1', billingCycle: 'YEARLY', withdrawalConsent: true },
+    ],
   ],
   [
     'payments.portal',

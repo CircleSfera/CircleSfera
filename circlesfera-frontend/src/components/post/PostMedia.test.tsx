@@ -203,6 +203,31 @@ describe('PostMedia', () => {
       expect(unlock()).toHaveTextContent('unlock for 0');
     });
 
+    // The box of the consent dialog, then Continue.
+    const consentAndContinue = () => {
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: /14-day right of withdrawal/ }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue to payment' }),
+      );
+    };
+
+    it('asks the consent to start at once before paying, and starts nothing without it', () => {
+      renderWithProviders(<PostMedia post={locked} />);
+
+      fireEvent.click(unlock());
+
+      const box = screen.getByRole('checkbox', {
+        name: /14-day right of withdrawal/,
+      });
+      const go = screen.getByRole('button', { name: 'Continue to payment' });
+      expect(box).not.toBeChecked();
+      expect(go).toBeDisabled();
+      fireEvent.click(go);
+      expect(monetizationApi.unlockPost).not.toHaveBeenCalled();
+    });
+
     it('goes to the payment page the server gives, coming back to this page', async () => {
       vi.mocked(monetizationApi.unlockPost).mockResolvedValue({
         url: 'https://pay.example/s1',
@@ -210,6 +235,7 @@ describe('PostMedia', () => {
       renderWithProviders(<PostMedia post={locked} />);
 
       fireEvent.click(unlock());
+      consentAndContinue();
 
       await waitFor(() =>
         expect(window.location.href).toBe('https://pay.example/s1'),
@@ -217,6 +243,7 @@ describe('PostMedia', () => {
       expect(monetizationApi.unlockPost).toHaveBeenCalledWith(
         'p1',
         'http://localhost/p/p1',
+        { withdrawalConsent: true },
       );
       expect(toast.success).not.toHaveBeenCalled();
     });
@@ -226,6 +253,7 @@ describe('PostMedia', () => {
       renderWithProviders(<PostMedia post={locked} />);
 
       fireEvent.click(unlock());
+      consentAndContinue();
 
       await waitFor(() =>
         expect(toast.success).toHaveBeenCalledWith(
@@ -241,6 +269,7 @@ describe('PostMedia', () => {
       renderWithProviders(<PostMedia post={locked} />);
 
       fireEvent.click(unlock());
+      consentAndContinue();
 
       await waitFor(() =>
         expect(pieces.reportPaymentError).toHaveBeenCalledWith(
@@ -258,6 +287,7 @@ describe('PostMedia', () => {
       renderWithProviders(<PostMedia post={locked} />);
 
       fireEvent.click(unlock());
+      consentAndContinue();
 
       await waitFor(() => expect(unlock()).toBeDisabled());
     });
