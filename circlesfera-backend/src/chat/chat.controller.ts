@@ -155,9 +155,9 @@ export class ChatController {
       dto.postId,
       dto.storyId,
       dto.replyToId,
-      undefined,
-      undefined,
-      undefined,
+      dto.voiceUrl,
+      dto.voiceDuration,
+      dto.voiceWaveform,
       dto.isLocked,
       dto.priceCents,
     );

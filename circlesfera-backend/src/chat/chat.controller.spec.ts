@@ -205,6 +205,60 @@ describe('ChatController', () => {
     );
   });
 
+  it('passes a voice note on to be stored with the message', async () => {
+    mockSendMessageUseCase.execute.mockResolvedValue({ id: 'msg-voice' });
+
+    await request(app.getHttpServer())
+      .post('/api/v1/chat/messages')
+      .set(BEARER)
+      .send({
+        conversationId: 'conv-1',
+        content: 'Nota de voz',
+        voiceUrl: 'https://cdn.circlesfera.com/voice/note.webm',
+        voiceDuration: 7,
+        voiceWaveform: [0.15, 0.5, 1],
+      })
+      .expect(201);
+
+    expect(mockSendMessageUseCase.execute).toHaveBeenCalledWith(
+      TEST_USER.profileId,
+      undefined,
+      'Nota de voz',
+      undefined,
+      undefined,
+      'conv-1',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'https://cdn.circlesfera.com/voice/note.webm',
+      7,
+      [0.15, 0.5, 1],
+      undefined,
+      undefined,
+    );
+  });
+
+  it('refuses a voice note that is not a recording address, has no sensible length or draws odd bars', async () => {
+    for (const change of [
+      { voiceUrl: 'javascript:alert(1)' },
+      { voiceUrl: 'not a url' },
+      { voiceDuration: 0 },
+      { voiceDuration: 3601 },
+      { voiceDuration: 2.5 },
+      { voiceWaveform: [2] },
+      { voiceWaveform: Array.from({ length: 65 }, () => 0.5) },
+      { voiceWaveform: 'loud' },
+    ]) {
+      await request(app.getHttpServer())
+        .post('/api/v1/chat/messages')
+        .set(BEARER)
+        .send({ conversationId: 'conv-1', content: 'Nota de voz', ...change })
+        .expect(400);
+    }
+    expect(mockSendMessageUseCase.execute).not.toHaveBeenCalled();
+  });
+
   it('sends a locked (PPV) message as the session profileId', async () => {
     const message = { id: 'msg-locked', content: 'Unlock me', isLocked: true };
     mockSendMessageUseCase.execute.mockResolvedValue(message);
