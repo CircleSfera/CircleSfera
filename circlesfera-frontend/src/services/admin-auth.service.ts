@@ -11,8 +11,9 @@ export type AdminMe = {
   lastLoginAt?: string | null;
 };
 
+// A password alone never opens a staff session: the server always asks for
+// the code of the authenticator, or for setting one up.
 export type AdminLoginResult =
-  | { status: 'OK'; message?: string }
   | { status: 'MFA_REQUIRED'; mfaToken: string }
   | {
       status: 'MFA_SETUP_REQUIRED';
@@ -38,6 +39,7 @@ export const adminAuthApi = {
 
   refresh: () => apiClient.post('/admin-auth/refresh'),
 
-  stepUp: (body: { password?: string; totpCode?: string }) =>
+  // Confirms a sensitive action with the code of the authenticator.
+  stepUp: (body: { totpCode: string }) =>
     apiClient.post('/admin-auth/step-up', body),
 };

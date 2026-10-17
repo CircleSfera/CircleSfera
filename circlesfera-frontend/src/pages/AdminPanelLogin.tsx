@@ -69,12 +69,8 @@ export default function AdminPanelLogin() {
 
   const loginMutation = useMutation({
     mutationFn: () => adminAuthApi.login(email.trim(), password),
-    onSuccess: async ({ data }) => {
+    onSuccess: ({ data }) => {
       setError(null);
-      if (data.status === 'OK') {
-        await finishLogin();
-        return;
-      }
       if (data.status === 'MFA_REQUIRED') {
         setMfaToken(data.mfaToken);
         setStep('mfa');
