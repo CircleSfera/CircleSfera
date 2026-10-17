@@ -120,4 +120,35 @@ describe('NotificationsSettings', () => {
       }),
     ).toHaveAttribute('aria-checked', 'true');
   });
+
+  it('shows the newsletter apart from the email notices and saves it on its own', async () => {
+    vi.mocked(usersApi.getSettings).mockResolvedValue({
+      data: {
+        pushNotifications: true,
+        emailNotifications: true,
+        newsletter: true,
+      },
+    } as never);
+    vi.mocked(usersApi.updateSettings).mockResolvedValue({} as never);
+
+    const { i18n } = renderWithProviders(<NotificationsSettings />);
+
+    const newsletter = await screen.findByRole('checkbox', {
+      name: i18n!.t('settings.notifications.newsletter'),
+    });
+    expect(newsletter).toBeChecked();
+    fireEvent.click(newsletter);
+
+    await waitFor(() =>
+      expect(usersApi.updateSettings).toHaveBeenCalledWith({
+        newsletter: false,
+      }),
+    );
+    expect(newsletter).not.toBeChecked();
+    expect(
+      screen.getByRole('checkbox', {
+        name: i18n!.t('settings.notifications.email_notifications'),
+      }),
+    ).toBeChecked();
+  });
 });

@@ -13,11 +13,13 @@ import {
 import { QUEUE_NAMES } from '../common/constants/queue-policy.constants.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { EmailService, isTransientBrevoFailure } from './email.service.js';
+import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 
 // No account owns these addresses, so emails use the default language.
 const mockPrisma = { user: { findUnique: vi.fn().mockResolvedValue(null) } };
 
 const mockSendTransacEmail = vi.fn();
+const newsletterTokens = { tokenFor: (id: string) => `tok.${id}` };
 
 const { MockBrevoError } = vi.hoisted(() => {
   class MockBrevoError extends Error {
@@ -70,6 +72,7 @@ describe('EmailService', () => {
         EmailService,
         { provide: ConfigService, useValue: mockConfigService },
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: NewsletterUnsubscribe, useValue: newsletterTokens },
         {
           provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
           useValue: mockEmailQueue,
@@ -104,6 +107,7 @@ describe('EmailService', () => {
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
           { provide: PrismaService, useValue: mockPrisma },
+          { provide: NewsletterUnsubscribe, useValue: newsletterTokens },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,
@@ -217,6 +221,36 @@ describe('EmailService', () => {
         'Just text content.',
       );
       expect(mockEmailQueue.add).toHaveBeenCalledTimes(2);
+    });
+
+    it('a newsletter to an account carries its unsubscribe link and the one-click headers', async () => {
+      await service.sendBroadcastEmail(
+        'user@example.com',
+        'News',
+        'Title',
+        'Body',
+        undefined,
+        undefined,
+        'user-1',
+      );
+
+      const mail = mockEmailQueue.add.mock.calls[0][1];
+      expect(mail.html).toContain(
+        'http://localhost:5173/newsletter/unsubscribe?token=tok.user-1',
+      );
+      expect(mail.headers).toEqual({
+        'List-Unsubscribe':
+          '<http://localhost:5173/api/v1/newsletter/unsubscribe?token=tok.user-1>',
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      });
+    });
+
+    it('a staff test copy has no account, no unsubscribe link and no headers', async () => {
+      await service.sendBroadcastEmail('staff@example.com', 'S', 'T', 'B');
+
+      const mail = mockEmailQueue.add.mock.calls[0][1];
+      expect(mail.html).not.toContain('/newsletter/unsubscribe');
+      expect(mail.headers).toBeUndefined();
     });
 
     it('uses the language of the account that owns the address', async () => {
@@ -393,6 +427,7 @@ describe('EmailService', () => {
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
           { provide: PrismaService, useValue: mockPrisma },
+          { provide: NewsletterUnsubscribe, useValue: newsletterTokens },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,
@@ -433,6 +468,31 @@ describe('EmailService', () => {
         email: 'ticket+42.0123456789abcdef@reply.example.com',
       });
       expect('replyTo' in without).toBe(false);
+    });
+
+    it('passes the headers of an email to Brevo, and none when it has none', async () => {
+      mBrevoInstance.transactionalEmails.sendTransacEmail.mockResolvedValue({});
+
+      await service.deliverMail({
+        to: 'news-a@example.com',
+        subject: 's',
+        html: '<p>h</p>',
+        headers: { 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' },
+      });
+      await service.deliverMail({
+        to: 'news-b@example.com',
+        subject: 's',
+        html: '<p>h</p>',
+      });
+
+      const [withHeaders, without] =
+        mBrevoInstance.transactionalEmails.sendTransacEmail.mock.calls
+          .slice(-2)
+          .map((call) => call[0] as { headers?: Record<string, string> });
+      expect(withHeaders.headers).toEqual({
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      });
+      expect('headers' in without).toBe(false);
     });
 
     it('should call Brevo with the expected payload', async () => {
@@ -477,6 +537,7 @@ describe('EmailService', () => {
           EmailService,
           { provide: ConfigService, useValue: mockConfigService },
           { provide: PrismaService, useValue: mockPrisma },
+          { provide: NewsletterUnsubscribe, useValue: newsletterTokens },
           {
             provide: getQueueToken(QUEUE_NAMES.EMAIL_PROCESSING),
             useValue: mockEmailQueue,

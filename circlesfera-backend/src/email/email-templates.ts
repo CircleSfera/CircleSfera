@@ -40,12 +40,21 @@ interface LayoutOptions {
   note?: string;
   // The email has an address to answer to; otherwise it says it has none.
   canReply?: boolean;
+  // A newsletter: the link that unsubscribes its reader in one step.
+  unsubscribeUrl?: string;
 }
 
 function layout(
   ctx: EmailContext,
   copy: EmailCopy,
-  { title, content, button, note, canReply = false }: LayoutOptions,
+  {
+    title,
+    content,
+    button,
+    note,
+    canReply = false,
+    unsubscribeUrl,
+  }: LayoutOptions,
 ): string {
   const year = String(new Date().getFullYear());
   const logoUrl = `${ctx.frontendUrl}/email/logo.png`;
@@ -135,7 +144,12 @@ function layout(
             <td align="center" style="padding: 24px 16px 0 16px; font-family: ${BRAND.font}; font-size: 12px; line-height: 18px; color: ${BRAND.textSubtle};">
               ${fill(copy.footer, { year })}<br>
               ${canReply ? copy.replyable : copy.automated}<br>
-              <a href="${ctx.frontendUrl}/privacy" target="_blank" style="color: ${BRAND.textMuted}; text-decoration: underline;">${copy.privacy}</a>
+              <a href="${ctx.frontendUrl}/privacy" target="_blank" style="color: ${BRAND.textMuted}; text-decoration: underline;">${copy.privacy}</a>${
+                unsubscribeUrl
+                  ? `<br>
+              <a href="${escapeHtml(unsubscribeUrl)}" target="_blank" style="color: ${BRAND.textMuted}; text-decoration: underline;">${copy.unsubscribe}</a>`
+                  : ''
+              }
             </td>
           </tr>
         </table>
@@ -189,6 +203,7 @@ export const EmailTemplates = {
 
   // Staff-written broadcast: subject, title and content are used as written
   // (the content may contain basic HTML by design).
+  // A newsletter also carries the link that unsubscribes its reader.
   broadcast: (
     ctx: EmailContext,
     subject: string,
@@ -196,6 +211,7 @@ export const EmailTemplates = {
     content: string,
     buttonText?: string,
     buttonUrl?: string,
+    unsubscribeUrl?: string,
   ): RenderedEmail => ({
     subject,
     html: layout(ctx, EMAIL_COPY[ctx.locale], {
@@ -205,6 +221,7 @@ export const EmailTemplates = {
         buttonText && buttonUrl
           ? { text: buttonText, url: buttonUrl }
           : undefined,
+      unsubscribeUrl,
     }),
   }),
 

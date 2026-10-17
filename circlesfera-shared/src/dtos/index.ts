@@ -10,6 +10,8 @@ export interface RegisterDto {
   visitorId?: string;
   // App language at sign-up ('en' or 'es'), for the account's emails.
   locale?: 'en' | 'es';
+  // False when the person says no to the newsletter at sign-up.
+  newsletter?: boolean;
 }
 
 export interface LoginDto {

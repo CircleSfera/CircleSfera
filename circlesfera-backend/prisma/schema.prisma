@@ -254,6 +254,10 @@ model UserSettings {
   emailNotifications   Boolean       @default(true)
   pushNotifications    Boolean       @default(true)
   isOnboarded          Boolean       @default(false)
+  // The newsletter about CircleSfera itself, apart from the email notices.
+  // On for an account under the existing-customer exception; the person can
+  // say no at sign-up, in settings or from the link in every newsletter.
+  newsletter           Boolean       @default(true)
 
   updatedAt DateTime @updatedAt
 

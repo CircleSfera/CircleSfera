@@ -66,6 +66,7 @@ import { LiveModule } from './live/live.module.js';
 import { MaintenanceModule } from './maintenance/maintenance.module.js';
 import { MediaModule } from './media/media.module.js';
 import { MonetizationModule } from './monetization/monetization.module.js';
+import { NewsletterModule } from './newsletter/newsletter.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { OutboxModule } from './outbox/outbox.module.js';
 import { PaymentsModule } from './payments/payments.module.js';
@@ -218,6 +219,7 @@ import { WhitelistModule } from './whitelist/whitelist.module.js';
     WarehouseModule,
     OutboxModule,
     SecurityReportsModule,
+    NewsletterModule,
     WellKnownModule,
   ],
   controllers: [AppController, CsrfController],

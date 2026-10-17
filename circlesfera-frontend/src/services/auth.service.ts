@@ -13,6 +13,10 @@ export const authApi = {
   verifyEmail: (token: string) =>
     apiClient.post('/auth/verify-email', { token }),
 
+  // Leaves the newsletter with the signed token of its link, no session.
+  unsubscribeNewsletter: (token: string) =>
+    apiClient.post('/newsletter/unsubscribe', { token }),
+
   resendVerification: () =>
     apiClient.post<{ message: string }>('/auth/resend-verification'),
 

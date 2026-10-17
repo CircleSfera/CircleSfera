@@ -5,6 +5,7 @@ import {
   QUEUE_NAMES,
 } from '../common/constants/queue-policy.constants.js';
 import { EmailService } from './email.service.js';
+import { NewsletterUnsubscribe } from './newsletter-unsubscribe.js';
 import { EmailProcessor } from './processors/email.processor.js';
 
 @Module({
@@ -13,7 +14,7 @@ import { EmailProcessor } from './processors/email.processor.js';
       getRegisterQueueOptions(QUEUE_NAMES.EMAIL_PROCESSING),
     ),
   ],
-  providers: [EmailService, EmailProcessor],
-  exports: [EmailService],
+  providers: [EmailService, EmailProcessor, NewsletterUnsubscribe],
+  exports: [EmailService, NewsletterUnsubscribe],
 })
 export class EmailModule {}

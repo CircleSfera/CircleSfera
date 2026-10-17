@@ -36,6 +36,7 @@ export const usersApi = {
   updateSettings: (data: {
     pushNotifications?: boolean;
     emailNotifications?: boolean;
+    newsletter?: boolean;
     contentPreference?: 'GENERAL' | 'MATURE';
     blurSensitiveContent?: boolean;
     isOnboarded?: boolean;

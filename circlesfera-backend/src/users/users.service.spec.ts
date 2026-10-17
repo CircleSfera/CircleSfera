@@ -519,6 +519,7 @@ describe('UsersService', () => {
         contentPreference: ContentPreferenceDto.MATURE,
         blurSensitiveContent: false,
         emailNotifications: false,
+        newsletter: false,
         pushNotifications: true,
         isOnboarded: true,
       });
@@ -529,6 +530,7 @@ describe('UsersService', () => {
           contentPreference: ContentRating.MATURE,
           blurSensitiveContent: false,
           emailNotifications: false,
+          newsletter: false,
           isOnboarded: true,
         },
         create: {
@@ -536,6 +538,7 @@ describe('UsersService', () => {
           contentPreference: ContentRating.MATURE,
           blurSensitiveContent: false,
           emailNotifications: false,
+          newsletter: false,
           isOnboarded: true,
         },
       });

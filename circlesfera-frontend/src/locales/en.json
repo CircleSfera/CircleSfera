@@ -489,7 +489,9 @@
       "push_desc": "Receive in-app notifications",
       "push_notifications": "Push notifications",
       "update_error": "Failed to update settings",
-      "updated": "Settings updated"
+      "updated": "Settings updated",
+      "newsletter": "CircleSfera newsletter",
+      "newsletter_desc": "News about CircleSfera by email, now and then. Separate from your notifications."
     },
     "signIns": {
       "title": "How each profile signs in",
@@ -648,7 +650,9 @@
       "sign_in_link": "Log in",
       "success": "Account created successfully! Please check your email to verify your account.",
       "age_error": "You must be at least 16 years old to register.",
-      "dob_required": "Date of birth is required"
+      "dob_required": "Date of birth is required",
+      "newsletter_notice": "We will email you news about CircleSfera now and then. You can unsubscribe at any time, from Settings or from any newsletter.",
+      "newsletter_no": "I don't want to receive CircleSfera news"
     },
     "verify": {
       "no_token": "Verification token not found.",
@@ -5313,6 +5317,17 @@
       "forbidden": "You don't have permission to do that.",
       "not_found": "We couldn't find that.",
       "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "newsletter": {
+    "unsubscribe": {
+      "title": "Unsubscribe from the newsletter",
+      "body": "You will stop receiving the CircleSfera newsletter. Notices about your account are not affected.",
+      "button": "Unsubscribe",
+      "done_title": "You have unsubscribed",
+      "done_body": "You will not receive the CircleSfera newsletter any more. You can turn it back on in Settings, Notifications.",
+      "error": "This link is not valid. You can turn the newsletter off in Settings, Notifications.",
+      "home": "Go to CircleSfera"
     }
   }
 }

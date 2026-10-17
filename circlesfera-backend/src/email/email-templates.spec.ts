@@ -121,6 +121,27 @@ describe('EmailTemplates', () => {
     expect(without.html).not.toContain('>Go</a>');
   });
 
+  it('a newsletter has an escaped unsubscribe link in its footer; other emails have none', () => {
+    const news = EmailTemplates.broadcast(
+      en,
+      'S',
+      'T',
+      'B',
+      undefined,
+      undefined,
+      'https://circlesfera.com/newsletter/unsubscribe?token=a"b',
+    );
+
+    expect(news.html).toContain(
+      'href="https://circlesfera.com/newsletter/unsubscribe?token=a&quot;b"',
+    );
+    expect(news.html).toContain('Unsubscribe from the CircleSfera newsletter');
+    expect(EmailTemplates.broadcast(en, 'S', 'T', 'B').html).not.toContain(
+      'Unsubscribe',
+    );
+    expect(EmailTemplates.welcome(en, 'Ana').html).not.toContain('Unsubscribe');
+  });
+
   it('both languages define every text', () => {
     const keys = (o: object): string[] =>
       Object.entries(o).flatMap(([k, v]) =>

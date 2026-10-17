@@ -246,6 +246,29 @@ describe('AuthService', () => {
       expect(locales).toEqual(['en', 'es']);
     });
 
+    it('keeps the newsletter off when the person says no at sign-up, on otherwise', async () => {
+      mockPrismaService.user.findUnique.mockResolvedValue(null);
+      mockPrismaService.profile.findFirst.mockResolvedValue(null);
+      mockPrismaService.user.create.mockResolvedValue({
+        id: '1',
+        email: dto.email,
+      });
+
+      await service.register({ ...dto, newsletter: false });
+      await service.register({ ...dto, newsletter: true });
+      await service.register(dto);
+
+      const settings = mockPrismaService.user.create.mock.calls.map(
+        (call) => (call[0] as { data: { settings?: unknown } }).data.settings,
+      );
+      // No row means the default, which is on.
+      expect(settings).toEqual([
+        { create: { newsletter: false } },
+        undefined,
+        undefined,
+      ]);
+    });
+
     it('should throw BadRequestException if under 16', async () => {
       const underage = {
         ...dto,

@@ -32,6 +32,11 @@ export class UpdateSettingsDto {
   @IsOptional()
   pushNotifications?: boolean;
 
+  // The newsletter about CircleSfera, apart from the email notices.
+  @IsBoolean()
+  @IsOptional()
+  newsletter?: boolean;
+
   @IsBoolean()
   @IsOptional()
   isOnboarded?: boolean;

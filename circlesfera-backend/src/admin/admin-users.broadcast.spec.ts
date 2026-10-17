@@ -25,8 +25,9 @@ describe('AdminUsersService: broadcasts', () => {
   const audience = {
     isActive: true,
     OR: [
+      // The newsletter preference, apart from the email notices.
       { settings: { is: null } },
-      { settings: { emailNotifications: true } },
+      { settings: { newsletter: true } },
     ],
   };
   let service: AdminUsersService;
@@ -191,6 +192,16 @@ describe('AdminUsersService: broadcasts', () => {
 
     await service.sendBroadcastEmail('admin-1', dto);
 
+    // Each copy is made for its account, so it can carry its unsubscribe link.
+    expect(email.sendBroadcastEmail).toHaveBeenCalledWith(
+      'a@example.com',
+      'News',
+      'Hello',
+      'Body',
+      'Open',
+      'https://circlesfera.com',
+      'u1',
+    );
     const details = prisma.adminAuditLog.create.mock.calls[0][0].data
       .details as string;
     expect(parseBroadcastLog(details)).toEqual({

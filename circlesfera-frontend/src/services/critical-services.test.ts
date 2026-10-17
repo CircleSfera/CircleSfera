@@ -51,6 +51,12 @@ const cases: Case[] = [
     ['/auth/verify-email', { token: 'tok' }],
   ],
   [
+    'auth.unsubscribeNewsletter',
+    () => authApi.unsubscribeNewsletter('tok'),
+    'post',
+    ['/newsletter/unsubscribe', { token: 'tok' }],
+  ],
+  [
     'auth.resendVerification',
     () => authApi.resendVerification(),
     'post',
