@@ -185,6 +185,42 @@ export class EmailService {
     );
   }
 
+  // A notice of illegal content: the receipt, in the notifier's language.
+  async sendNoticeReceivedEmail(
+    email: string,
+    locale: EmailContext['locale'],
+    url: string,
+    ref: string,
+  ) {
+    await this.send(
+      email,
+      EmailTemplates.noticeReceived(
+        { locale, frontendUrl: this.frontendUrl() },
+        url,
+        ref,
+      ),
+    );
+  }
+
+  // The decision on a notice of illegal content, with the reasons.
+  async sendNoticeDecidedEmail(
+    email: string,
+    locale: EmailContext['locale'],
+    url: string,
+    actioned: boolean,
+    reasons: string,
+  ) {
+    await this.send(
+      email,
+      EmailTemplates.noticeDecided(
+        { locale, frontendUrl: this.frontendUrl() },
+        url,
+        actioned,
+        reasons,
+      ),
+    );
+  }
+
   // The account was suspended by staff.
   async sendAccountBannedEmail(email: string, name?: string | null) {
     const ctx = await this.contextFor(email);

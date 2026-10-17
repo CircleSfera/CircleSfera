@@ -57,6 +57,7 @@ export default function LayoutWrapper({
     '/pricing',
     '/explore',
     '/guidelines',
+    '/report-illegal-content',
   ];
   // Inside a conversation the phone shows the conversation alone: no top
   // bar and no bottom bar, so the message field sits at the bottom.

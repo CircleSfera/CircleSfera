@@ -15,6 +15,7 @@ import {
   FirewallTab,
   HashtagsTab,
   HelpCentreTab,
+  IllegalNoticesTab,
   LinkDomainsTab,
   LiveStreamsTab,
   ModerationTab,
@@ -117,6 +118,7 @@ export default function Admin() {
         {activeTab === 'overview' && <OverviewTab />}
         {activeTab === 'analytics' && <StatsTab />}
         {activeTab === 'reports' && <ReportsTab onToast={addToast} />}
+        {activeTab === 'illegal-notices' && <IllegalNoticesTab />}
         {activeTab === 'users' && <UsersTab onToast={addToast} />}
         {activeTab === 'roles' && <RolesTab onToast={addToast} />}
         {activeTab === 'posts' && <PostsTab onToast={addToast} />}

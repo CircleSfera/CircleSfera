@@ -1648,16 +1648,17 @@ model AdminIdentity {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  linkedUser         User?               @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
-  roles              AdminIdentityRole[]
-  refreshTokens      AdminRefreshToken[]
-  passkeys           AdminPasskey[]
-  auditLogs          AdminAuditLog[]
-  assignedReports    Report[]            @relation("ReportAssignedAdmin")
-  issuedStrikes      ProfileStrike[]
-  reviewedRiskCases  RiskCase[]
-  staffNotes         StaffNote[]
-  blockedLinkDomains BlockedLinkDomain[]
+  linkedUser            User?                  @relation(fields: [linkedUserId], references: [id], onDelete: SetNull)
+  roles                 AdminIdentityRole[]
+  refreshTokens         AdminRefreshToken[]
+  passkeys              AdminPasskey[]
+  auditLogs             AdminAuditLog[]
+  assignedReports       Report[]               @relation("ReportAssignedAdmin")
+  issuedStrikes         ProfileStrike[]
+  reviewedRiskCases     RiskCase[]
+  staffNotes            StaffNote[]
+  blockedLinkDomains    BlockedLinkDomain[]
+  illegalContentNotices IllegalContentNotice[]
 
   @@index([linkedUserId])
   @@index([status])
@@ -2130,6 +2131,37 @@ model HelpdeskMessage {
 // =============================================================================
 // === Moderation / Trust & Safety
 // =============================================================================
+
+// A notice of illegal content from anyone, with or without an account
+// (Digital Services Act Art. 16). Staff decide it in the Admin Panel and the
+// notifier is told the decision when they left an email.
+model IllegalContentNotice {
+  id            String              @id @default(uuid())
+  contentUrl    String              @db.VarChar(2048)
+  explanation   String              @db.VarChar(5000)
+  // Child sexual abuse material may be notified without a name or email.
+  childAbuse    Boolean             @default(false)
+  notifierName  String?             @db.VarChar(200)
+  notifierEmail String?             @db.VarChar(320)
+  goodFaith     Boolean
+  locale        Locale              @default(es)
+  status        IllegalNoticeStatus @default(RECEIVED)
+  decision      String?             @db.VarChar(5000)
+  decidedAt     DateTime?
+  decidedById   String?
+  createdAt     DateTime            @default(now())
+
+  decidedBy AdminIdentity? @relation(fields: [decidedById], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@map("illegal_content_notices")
+}
+
+enum IllegalNoticeStatus {
+  RECEIVED
+  ACTIONED
+  NO_ACTION
+}
 
 model Report {
   id         String       @id @default(uuid())

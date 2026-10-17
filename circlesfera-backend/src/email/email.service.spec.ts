@@ -253,6 +253,38 @@ describe('EmailService', () => {
       expect(mail.headers).toBeUndefined();
     });
 
+    it("sends the receipt and the decision of a notice in the notifier's language", async () => {
+      await service.sendNoticeReceivedEmail(
+        'ana@example.com',
+        'en',
+        'https://circlesfera.com/p/1',
+        'ABCD1234',
+      );
+      await service.sendNoticeDecidedEmail(
+        'ana@example.com',
+        'es',
+        'https://circlesfera.com/p/1',
+        false,
+        'Not illegal.',
+      );
+
+      expect(mockEmailQueue.add).toHaveBeenNthCalledWith(
+        1,
+        'send-transactional-email',
+        expect.objectContaining({
+          to: 'ana@example.com',
+          subject: 'We received your notice of illegal content',
+        }),
+      );
+      expect(mockEmailQueue.add).toHaveBeenNthCalledWith(
+        2,
+        'send-transactional-email',
+        expect.objectContaining({
+          subject: 'Decisión sobre tu aviso de contenido ilegal',
+        }),
+      );
+    });
+
     it('uses the language of the account that owns the address', async () => {
       mockPrisma.user.findUnique.mockResolvedValueOnce({ locale: 'en' });
 
